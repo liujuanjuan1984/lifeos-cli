@@ -10,7 +10,6 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.note import Note
-from lifeos_cli.db.transaction import commit_or_rollback
 
 
 class NoteNotFoundError(LookupError):
@@ -80,7 +79,7 @@ async def create_note(session: AsyncSession, *, content: str) -> Note:
     """Create and persist a note."""
     note = Note(content=content)
     session.add(note)
-    await commit_or_rollback(session)
+    await session.flush()
     await session.refresh(note)
     return note
 
@@ -136,7 +135,7 @@ async def update_note(session: AsyncSession, *, note_id: UUID, content: str) -> 
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     note.content = content
-    await commit_or_rollback(session)
+    await session.flush()
     await session.refresh(note)
     return note
 
@@ -155,7 +154,7 @@ async def delete_note(
         await session.delete(note)
     else:
         note.soft_delete()
-    await commit_or_rollback(session)
+    await session.flush()
 
 
 async def batch_update_note_content(
@@ -185,14 +184,13 @@ async def batch_update_note_content(
                 case_sensitive=case_sensitive,
             )
             if replacements:
-                await commit_or_rollback(session)
+                await session.flush()
                 await session.refresh(note)
                 updated_count += 1
                 replacement_count += replacements
             else:
                 unchanged_ids.append(note_id)
         except NoteNotFoundError as exc:
-            await session.rollback()
             failed_ids.append(note_id)
             errors.append(str(exc))
 
@@ -221,7 +219,6 @@ async def batch_delete_notes(
             await delete_note(session, note_id=note_id, hard_delete=hard_delete)
             deleted_count += 1
         except NoteNotFoundError as exc:
-            await session.rollback()
             failed_ids.append(note_id)
             errors.append(str(exc))
 

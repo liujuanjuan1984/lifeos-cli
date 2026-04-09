@@ -365,4 +365,3 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help="Permanently delete each note instead of soft-deleting it",
     )
     batch_delete_parser.set_defaults(handler=handle_note_batch_delete)
-

@@ -223,4 +223,3 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
 def handle_note_batch_delete(args: argparse.Namespace) -> int:
     """Delete multiple notes in one command."""
     return run_async(handle_note_batch_delete_async(args))
-

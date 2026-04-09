@@ -65,6 +65,49 @@ def _serialize_toml_string(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _render_database_table(settings: DatabaseSettings) -> str:
+    """Render the `[database]` TOML table for persisted settings."""
+    return "\n".join(
+        (
+            "[database]",
+            f"url = {_serialize_toml_string(settings.require_database_url())}",
+            f"schema = {_serialize_toml_string(settings.database_schema)}",
+            f"echo = {'true' if settings.database_echo else 'false'}",
+        )
+    )
+
+
+def _replace_top_level_table(existing_content: str, *, table_name: str, replacement: str) -> str:
+    """Replace or append a top-level TOML table while preserving other file content."""
+    section_header = f"[{table_name}]"
+    header_pattern = re.compile(r"^\[[^\[\]].*\]$")
+    lines = existing_content.splitlines()
+    start_index: int | None = None
+    end_index = len(lines)
+
+    for index, line in enumerate(lines):
+        if line.strip() == section_header:
+            start_index = index
+            break
+
+    replacement_lines = replacement.splitlines()
+    if start_index is None:
+        if not lines:
+            return f"{replacement}\n"
+        if lines[-1].strip():
+            lines.append("")
+        lines.extend(replacement_lines)
+        return "\n".join(lines) + "\n"
+
+    for index in range(start_index + 1, len(lines)):
+        if header_pattern.match(lines[index].strip()):
+            end_index = index
+            break
+
+    updated_lines = lines[:start_index] + replacement_lines + lines[end_index:]
+    return "\n".join(updated_lines) + "\n"
+
+
 def resolve_config_path(env: Mapping[str, str] | None = None) -> Path:
     """Return the configured config file path."""
     source = env or os.environ
@@ -164,14 +207,11 @@ def write_database_settings(settings: DatabaseSettings) -> Path:
     """Persist database settings to the configured TOML file."""
     config_path = settings.config_file
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    content = "\n".join(
-        (
-            "[database]",
-            f"url = {_serialize_toml_string(settings.require_database_url())}",
-            f"schema = {_serialize_toml_string(settings.database_schema)}",
-            f"echo = {'true' if settings.database_echo else 'false'}",
-            "",
-        )
+    existing_content = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    content = _replace_top_level_table(
+        existing_content,
+        table_name="database",
+        replacement=_render_database_table(settings),
     )
     config_path.write_text(content, encoding="utf-8")
     try:

@@ -114,3 +114,43 @@ def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
     content = config_path.read_text(encoding="utf-8")
     assert "[database]" in content
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
+
+
+def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Path) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        "\n".join(
+            (
+                "# Existing file header",
+                "[database]",
+                'url = "postgresql+psycopg://old-user:<old-password>@localhost:5432/old_lifeos"',
+                'schema = "old_schema"',
+                "echo = true",
+                "",
+                "[notes]",
+                'default_editor = "nvim"',
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    settings = DatabaseSettings(
+        database_url="postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+        database_schema="lifeos_dev",
+        database_echo=False,
+        config_file=config_path,
+    )
+
+    written_path = write_database_settings(settings)
+
+    assert written_path == config_path
+    content = config_path.read_text(encoding="utf-8")
+    assert "# Existing file header" in content
+    assert "[notes]" in content
+    assert 'default_editor = "nvim"' in content
+    assert 'schema = "lifeos_dev"' in content
+    assert (
+        'url = "postgresql+psycopg://old-user:<old-password>@localhost:5432/old_lifeos"'
+        not in content
+    )
