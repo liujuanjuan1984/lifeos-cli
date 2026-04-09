@@ -21,7 +21,7 @@ def get_async_engine() -> AsyncEngine:
     """Return the process-wide SQLAlchemy async engine."""
     settings = get_database_settings()
     return create_async_engine(
-        settings.database_url,
+        settings.require_database_url(),
         echo=settings.database_echo,
         future=True,
         pool_pre_ping=True,
@@ -51,3 +51,9 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
         raise
     finally:
         await session.close()
+
+
+def clear_session_cache() -> None:
+    """Clear cached engine and session factories for the current process."""
+    get_async_engine.cache_clear()
+    get_async_session_factory.cache_clear()

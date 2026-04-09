@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -9,6 +10,9 @@ import pytest
 
 from lifeos_cli import cli
 from lifeos_cli.cli import build_parser
+from lifeos_cli.config import clear_config_cache
+from lifeos_cli.db import services as db_services
+from lifeos_cli.db import session as db_session
 
 
 def test_cli_parser_uses_lifeos_command_name() -> None:
@@ -36,6 +40,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
+    assert "init      Initialize local configuration" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -45,7 +50,7 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
 
     assert exit_code == 0
     assert "Create, inspect, update, and delete note records." in captured.out
-    assert 'lifeos note add "Capture an idea"' in captured.out
+    assert "Run `lifeos init` before using note commands for the first time." in captured.out
 
 
 def test_cli_note_list_help_explains_output_shape(capsys) -> None:
@@ -60,7 +65,69 @@ def test_cli_note_list_help_explains_output_shape(capsys) -> None:
     assert "Use --limit and --offset together for pagination." in captured.out
 
 
-def test_main_note_add_creates_note(monkeypatch, capsys) -> None:
+def test_main_init_non_interactive_writes_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(cli, "_handle_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(cli, "_handle_db_ping_async", lambda _: _async_zero())
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--non-interactive",
+            "--database-url",
+            "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Wrote config file:" in captured.out
+    assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
+    content = config_path.read_text(encoding="utf-8")
+    assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
+    clear_config_cache()
+
+
+def test_main_config_show_masks_database_password(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"',
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "show"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
+    assert "<db-password>" not in captured.out
+    clear_config_cache()
+
+
+def test_main_note_add_creates_note(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     created: dict[str, str] = {}
 
     @asynccontextmanager
@@ -76,8 +143,8 @@ def test_main_note_add_creates_note(monkeypatch, capsys) -> None:
             deleted_at=None,
         )
 
-    monkeypatch.setattr(cli, "session_scope", fake_session_scope)
-    monkeypatch.setattr(cli, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "a new note"])
     captured = capsys.readouterr()
@@ -87,7 +154,10 @@ def test_main_note_add_creates_note(monkeypatch, capsys) -> None:
     assert "Created note 11111111-1111-1111-1111-111111111111" in captured.out
 
 
-def test_main_note_list_prints_formatted_notes(monkeypatch, capsys) -> None:
+def test_main_note_list_prints_formatted_notes(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     @asynccontextmanager
     async def fake_session_scope():
         yield object()
@@ -111,8 +181,8 @@ def test_main_note_list_prints_formatted_notes(monkeypatch, capsys) -> None:
             )
         ]
 
-    monkeypatch.setattr(cli, "session_scope", fake_session_scope)
-    monkeypatch.setattr(cli, "list_notes", fake_list_notes)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "list_notes", fake_list_notes)
 
     exit_code = cli.main(["note", "list"])
     captured = capsys.readouterr()
@@ -124,7 +194,10 @@ def test_main_note_list_prints_formatted_notes(monkeypatch, capsys) -> None:
     )
 
 
-def test_main_note_delete_reports_missing_note(monkeypatch, capsys) -> None:
+def test_main_note_delete_reports_missing_note(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     @asynccontextmanager
     async def fake_session_scope():
         yield object()
@@ -135,13 +208,31 @@ def test_main_note_delete_reports_missing_note(monkeypatch, capsys) -> None:
         note_id: UUID,
         hard_delete: bool,
     ) -> None:
-        raise cli.NoteNotFoundError(f"Note {note_id} was not found")
+        raise db_services.NoteNotFoundError(f"Note {note_id} was not found")
 
-    monkeypatch.setattr(cli, "session_scope", fake_session_scope)
-    monkeypatch.setattr(cli, "delete_note", fake_delete_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "delete_note", fake_delete_note)
 
     exit_code = cli.main(["note", "delete", "33333333-3333-3333-3333-333333333333"])
     captured = capsys.readouterr()
 
     assert exit_code == 1
     assert "Note 33333333-3333-3333-3333-333333333333 was not found" in captured.err
+
+
+def test_main_note_add_prints_actionable_database_error(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    clear_config_cache()
+    monkeypatch.delenv("LIFEOS_DATABASE_URL", raising=False)
+
+    exit_code = cli.main(["note", "add", "a new note"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Run `lifeos init`" in captured.err
+
+
+async def _async_zero() -> int:
+    return 0

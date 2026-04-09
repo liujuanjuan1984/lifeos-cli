@@ -37,20 +37,34 @@ uv tool run --from lifeos-cli lifeos --help
 
 ## Database
 
-Default environment variables:
+Initialize local configuration:
+
+```bash
+lifeos init
+```
+
+The init flow writes `~/.config/lifeos/config.toml` by default, verifies database
+connectivity, and applies migrations unless you skip those steps.
+
+Inspect the effective config:
+
+```bash
+lifeos config show
+```
+
+Environment variables still override the config file when needed:
 
 ```bash
 export LIFEOS_DATABASE_URL=postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos
 export LIFEOS_DATABASE_SCHEMA=lifeos
 ```
 
-Apply migrations:
+Database administration commands:
 
 ```bash
-uv run alembic upgrade head
+lifeos db ping
+lifeos db upgrade
 ```
-
-The current branch assumes the database schema is prepared before running note commands.
 
 ## CLI
 
@@ -76,6 +90,9 @@ Command design conventions on this branch:
 Current branch examples:
 
 ```bash
+lifeos init
+lifeos config show
+lifeos db ping
 lifeos note add "a new note"
 lifeos note list
 lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
@@ -85,6 +102,9 @@ lifeos note delete 11111111-1111-1111-1111-111111111111
 The current branch exposes a narrow first slice:
 
 - PostgreSQL-backed note storage
+- Local config initialization with `lifeos init`
+- Runtime config inspection with `lifeos config show`
+- Database health checks and migrations with `lifeos db ping` and `lifeos db upgrade`
 - Alembic migrations
 - A structured CLI family rooted in `lifeos <resource> <action>`
 - `note add`, `note list`, `note update`, and `note delete`
