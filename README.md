@@ -1,6 +1,59 @@
 # lifeos-cli
 
-`lifeos-cli` is the command-line package for LifeOS workflows, tools, and automation.
+`lifeos-cli` is the command-line package for building a personal operating system on top of
+PostgreSQL, async services, and incremental domain modules.
+
+The project is currently focused on establishing a durable foundation instead of exposing every
+future LifeOS capability at once:
+
+- PostgreSQL-first persistence
+- Alembic-based schema evolution
+- async-only runtime service and data layers
+- a structured CLI grammar that can scale across domains
+- a first end-to-end `notes` slice
+
+## Current Focus
+
+This branch intentionally keeps the domain surface narrow while the platform foundation settles.
+Today the primary delivered slice is:
+
+- local configuration bootstrap with `lifeos init`
+- database connectivity checks and migrations
+- note capture, listing, search, inspection, and batch editing
+
+Planned domains such as `timelog`, `task`, and other personal management modules will follow the
+same command and data-layer conventions.
+
+## Install
+
+Install from PyPI with `uv tool`:
+
+```bash
+uv tool install lifeos-cli
+```
+
+## Quick Start
+
+1. Initialize local configuration:
+
+   ```bash
+   lifeos init
+   ```
+
+2. Add a note:
+
+   ```bash
+   lifeos note add "hello"
+   ```
+
+3. List notes:
+
+   ```bash
+   lifeos note list
+   ```
+
+For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see
+[docs/cli.md](docs/cli.md).
 
 ## Development
 
@@ -17,19 +70,12 @@
    bash ./scripts/doctor.sh
    ```
 
-## CLI
-
-Install the package and run:
-
-```bash
-lifeos --help
-```
-
 ## Tooling
 
 - `pre-commit` is used for local quality gates.
 - `pip-audit` is used for dependency vulnerability checks.
-- GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on version tags.
+- GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on
+  version tags.
 
 ## Project Policies
 
