@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import argparse
 
-from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler, run_async
+from lifeos_cli.cli_support.shared import (
+    HelpContent,
+    add_documented_parser,
+    make_help_handler,
+    run_async,
+)
 
 
 async def _handle_db_ping_async(_: argparse.Namespace) -> int:
@@ -72,4 +77,3 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         ),
     )
     upgrade_parser.set_defaults(handler=_handle_db_upgrade)
-

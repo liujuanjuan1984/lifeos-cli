@@ -12,7 +12,12 @@ from uuid import UUID
 
 from sqlalchemy.exc import OperationalError
 
-from lifeos_cli.config import ConfigurationError, DatabaseSettings, clear_config_cache, get_database_settings
+from lifeos_cli.config import (
+    ConfigurationError,
+    DatabaseSettings,
+    clear_config_cache,
+    get_database_settings,
+)
 
 
 @dataclass(frozen=True)
@@ -203,4 +208,3 @@ def print_database_runtime_error(exc: BaseException) -> int:
     )
     print(f"Original error: {exc}", file=sys.stderr)
     return 1
-

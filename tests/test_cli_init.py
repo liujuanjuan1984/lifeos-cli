@@ -215,4 +215,3 @@ def test_main_init_can_repair_invalid_existing_config(
 
 async def _async_zero() -> int:
     return 0
-

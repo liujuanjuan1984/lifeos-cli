@@ -77,4 +77,3 @@ def main(argv: Sequence[str] | None = None) -> int:
     except EOFError as exc:
         print(f"Initialization aborted: {exc}", file=sys.stderr)
         return 1
-

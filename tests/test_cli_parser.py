@@ -121,4 +121,3 @@ def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     assert "Run operations that target multiple notes in a single command." in captured.out
     assert "update-content" in captured.out
     assert "delete" in captured.out
-

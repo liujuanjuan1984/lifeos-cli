@@ -238,4 +238,3 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help="Print sensitive values such as database passwords in full",
     )
     show_parser.set_defaults(handler=_handle_config_show)
-

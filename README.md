@@ -1,10 +1,28 @@
 # lifeos-cli
 
-`lifeos-cli` is the command-line package for LifeOS workflows, tools, and automation.
+`lifeos-cli` is the command-line package for building a personal operating system on top of
+PostgreSQL, async services, and incremental domain modules.
 
-The project now ships a PostgreSQL-first data layer with Alembic migrations. Domain
-modules will be introduced incrementally, starting from `notes`.
-The runtime service and data layers are async-only, while the CLI remains a thin wrapper.
+The project is currently focused on establishing a durable foundation instead of exposing every
+future LifeOS capability at once:
+
+- PostgreSQL-first persistence
+- Alembic-based schema evolution
+- async-only runtime service and data layers
+- a structured CLI grammar that can scale across domains
+- a first end-to-end `notes` slice
+
+## Current Focus
+
+This branch intentionally keeps the domain surface narrow while the platform foundation settles.
+Today the primary delivered slice is:
+
+- local configuration bootstrap with `lifeos init`
+- database connectivity checks and migrations
+- note capture, listing, search, inspection, and batch editing
+
+Planned domains such as `timelog`, `task`, and other personal management modules will follow the
+same command and data-layer conventions.
 
 ## Install
 
@@ -14,11 +32,34 @@ Install from PyPI with `uv tool`:
 uv tool install lifeos-cli
 ```
 
-Run without a persistent installation:
+If you want to try the CLI without a persistent install, you can still use:
 
 ```bash
 uv tool run --from lifeos-cli lifeos --help
 ```
+
+## Quick Start
+
+1. Initialize local configuration:
+
+   ```bash
+   lifeos init
+   ```
+
+2. Add a note:
+
+   ```bash
+   lifeos note add "hello"
+   ```
+
+3. List notes:
+
+   ```bash
+   lifeos note list
+   ```
+
+For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see
+[docs/cli.md](docs/cli.md).
 
 ## Development
 
@@ -35,127 +76,12 @@ uv tool run --from lifeos-cli lifeos --help
    bash ./scripts/doctor.sh
    ```
 
-## Database
-
-Initialize local configuration:
-
-```bash
-lifeos init
-```
-
-The init flow writes `~/.config/lifeos/config.toml` by default, verifies database
-connectivity, and applies migrations unless you skip those steps.
-
-Inspect the effective config:
-
-```bash
-lifeos config show
-```
-
-Environment variables still override the config file when needed:
-
-```bash
-export LIFEOS_DATABASE_URL=postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos
-export LIFEOS_DATABASE_SCHEMA=lifeos
-```
-
-Database administration commands:
-
-```bash
-lifeos db ping
-lifeos db upgrade
-```
-
-## CLI
-
-Inspect the available commands:
-
-```bash
-lifeos --help
-```
-
-The command system follows a consistent grammar:
-
-```text
-lifeos <resource> <action> [arguments] [options]
-```
-
-Command design conventions on this branch:
-
-- Resource names stay singular nouns, such as `note`
-- Action names stay short verbs, such as `add`, `list`, `update`, and `delete`
-- Each resource help page should explain scope, supported actions, and examples
-- Future resources such as `timelog` should follow the same structure when introduced
-
-Current branch examples:
-
-```bash
-lifeos init
-lifeos config show
-lifeos db ping
-lifeos note add "a new note"
-printf 'first line\nsecond line\n' | lifeos note add --stdin
-lifeos note add --file ./note.md
-lifeos note list
-lifeos note search "meeting notes"
-lifeos note show 11111111-1111-1111-1111-111111111111
-lifeos note batch update-content --ids \
-  11111111-1111-1111-1111-111111111111 \
-  22222222-2222-2222-2222-222222222222 \
-  --find-text "draft" \
-  --replace-text "final"
-lifeos note batch delete --ids \
-  11111111-1111-1111-1111-111111111111 \
-  22222222-2222-2222-2222-222222222222
-lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
-lifeos note delete 11111111-1111-1111-1111-111111111111
-```
-
-For multi-line note content, use `--stdin` or `--file` instead of shell-specific quoting:
-
-```bash
-cat <<'EOF' | lifeos note add --stdin
-This is a multi-line note.
-The second line stays intact.
-EOF
-```
-
-Use `lifeos note list` for a one-line summary view. Use `lifeos note show <note-id>` when
-you need the original multi-line content.
-
-Use `lifeos note search <query>` for the current PostgreSQL-backed keyword search.
-The current branch tokenizes the query and matches any token against note content with
-case-insensitive `ILIKE` filtering.
-
-Use `lifeos note batch <operation>` for commands that act on multiple notes at once. The
-current branch includes:
-
-- `lifeos note batch update-content` for bulk find/replace by note ID
-- `lifeos note batch delete` for bulk soft delete or hard delete by note ID
-
-The current branch exposes a narrow first slice:
-
-- PostgreSQL-backed note storage
-- Local config initialization with `lifeos init`
-- Runtime config inspection with `lifeos config show`
-- Database health checks and migrations with `lifeos db ping` and `lifeos db upgrade`
-- Alembic migrations
-- A structured CLI family rooted in `lifeos <resource> <action>`
-- `note add`, `note list`, `note search`, `note show`, `note update`, and `note delete`
-- `note batch update-content` and `note batch delete`
-
-Not implemented yet on this branch:
-
-- tags for notes
-- note-to-task or note-to-person associations
-- note ingestion jobs
-- richer search ranking or association-aware note search
-
 ## Tooling
 
 - `pre-commit` is used for local quality gates.
 - `pip-audit` is used for dependency vulnerability checks.
-- GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on version tags.
+- GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on
+  version tags.
 
 ## Project Policies
 

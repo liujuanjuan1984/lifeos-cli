@@ -37,7 +37,9 @@ def _resolve_note_content(args: argparse.Namespace) -> str:
         try:
             content = Path(args.file).read_text(encoding="utf-8")
         except OSError as exc:
-            raise ConfigurationError(f"Could not read note content from {args.file}: {exc}") from exc
+            raise ConfigurationError(
+                f"Could not read note content from {args.file}: {exc}"
+            ) from exc
     else:
         content = args.content
     normalized = content.rstrip("\n")
@@ -277,7 +279,11 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     note_parser.set_defaults(handler=make_help_handler(note_parser))
-    note_subparsers = note_parser.add_subparsers(dest="note_command", title="actions", metavar="action")
+    note_subparsers = note_parser.add_subparsers(
+        dest="note_command",
+        title="actions",
+        metavar="action",
+    )
 
     add_parser = add_documented_parser(
         note_subparsers,
@@ -303,7 +309,11 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     add_parser.add_argument("content", nargs="?", help="Inline note content")
-    add_parser.add_argument("--stdin", action="store_true", help="Read note content from standard input")
+    add_parser.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Read note content from standard input",
+    )
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
     add_parser.set_defaults(handler=_handle_note_add)
 
@@ -328,9 +338,23 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    list_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted notes")
-    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of notes to return")
-    list_parser.add_argument("--offset", type=int, default=0, help="Number of notes to skip before listing")
+    list_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Include soft-deleted notes",
+    )
+    list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of notes to return",
+    )
+    list_parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of notes to skip before listing",
+    )
     list_parser.set_defaults(handler=_handle_note_list)
 
     search_parser = add_documented_parser(
@@ -361,7 +385,12 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help="Include soft-deleted notes in the search scope",
     )
-    search_parser.add_argument("--limit", type=int, default=100, help="Maximum number of matching notes to return")
+    search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of matching notes to return",
+    )
     search_parser.add_argument(
         "--offset",
         type=int,
@@ -388,7 +417,11 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    show_parser.add_argument("--include-deleted", action="store_true", help="Allow loading a soft-deleted note")
+    show_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Allow loading a soft-deleted note",
+    )
     show_parser.set_defaults(handler=_handle_note_show)
 
     update_parser = add_documented_parser(
@@ -500,7 +533,11 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         type=UUID,
         help="One or more note identifiers to update",
     )
-    batch_update_parser.add_argument("--find-text", required=True, help="Text to find in each target note")
+    batch_update_parser.add_argument(
+        "--find-text",
+        required=True,
+        help="Text to find in each target note",
+    )
     batch_update_parser.add_argument(
         "--replace-text",
         default="",
@@ -551,4 +588,3 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help="Permanently delete each note instead of soft-deleting it",
     )
     batch_delete_parser.set_defaults(handler=_handle_note_batch_delete)
-
