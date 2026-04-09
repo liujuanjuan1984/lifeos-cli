@@ -7,7 +7,7 @@ name = "lifeos"
 dynamic = ["version"]
 description = "Personal operating system workflows, tools, and automation."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
     { name = "liujuanjuan1984" },
 ]
@@ -15,6 +15,7 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -62,7 +63,7 @@ fallback_version = "0+unknown"
 tag_regex = "^v?(?P<version>.+)$"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 files = ["src/lifeos", "tests"]
 show_error_codes = true
 pretty = true
