@@ -5,20 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.tag import Tag
-from lifeos_cli.db.services import (
-    InvalidTagEntityTypeError,
-    TagAlreadyExistsError,
-    TagNotFoundError,
-    batch_delete_tags,
-    create_tag,
-    delete_tag,
-    get_tag,
-    list_tags,
-    update_tag,
-)
-from lifeos_cli.db.session import session_scope
+from lifeos_cli.db.services import tags as tag_services
 
 
 def _format_tag_summary(tag: Tag) -> str:
@@ -43,9 +34,9 @@ def _format_tag_detail(tag: Tag) -> str:
 
 
 async def handle_tag_add_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            tag = await create_tag(
+            tag = await tag_services.create_tag(
                 session,
                 name=args.name,
                 entity_type=args.entity_type,
@@ -53,7 +44,11 @@ async def handle_tag_add_async(args: argparse.Namespace) -> int:
                 description=args.description,
                 color=args.color,
             )
-        except (TagAlreadyExistsError, InvalidTagEntityTypeError, ValueError) as exc:
+        except (
+            tag_services.TagAlreadyExistsError,
+            tag_services.InvalidTagEntityTypeError,
+            ValueError,
+        ) as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Created tag {tag.id}")
@@ -65,9 +60,9 @@ def handle_tag_add(args: argparse.Namespace) -> int:
 
 
 async def handle_tag_list_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            tags = await list_tags(
+            tags = await tag_services.list_tags(
                 session,
                 entity_type=args.entity_type,
                 category=args.category,
@@ -75,7 +70,7 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
-        except InvalidTagEntityTypeError as exc:
+        except tag_services.InvalidTagEntityTypeError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     if not tags:
@@ -91,8 +86,12 @@ def handle_tag_list(args: argparse.Namespace) -> int:
 
 
 async def handle_tag_show_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
-        tag = await get_tag(session, tag_id=args.tag_id, include_deleted=args.include_deleted)
+    async with db_session.session_scope() as session:
+        tag = await tag_services.get_tag(
+            session,
+            tag_id=args.tag_id,
+            include_deleted=args.include_deleted,
+        )
     if tag is None:
         print(f"Tag {args.tag_id} was not found", file=sys.stderr)
         return 1
@@ -105,9 +104,9 @@ def handle_tag_show(args: argparse.Namespace) -> int:
 
 
 async def handle_tag_update_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            tag = await update_tag(
+            tag = await tag_services.update_tag(
                 session,
                 tag_id=args.tag_id,
                 name=args.name,
@@ -117,9 +116,9 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
                 color=args.color,
             )
         except (
-            TagNotFoundError,
-            TagAlreadyExistsError,
-            InvalidTagEntityTypeError,
+            tag_services.TagNotFoundError,
+            tag_services.TagAlreadyExistsError,
+            tag_services.InvalidTagEntityTypeError,
             ValueError,
         ) as exc:
             print(str(exc), file=sys.stderr)
@@ -133,10 +132,10 @@ def handle_tag_update(args: argparse.Namespace) -> int:
 
 
 async def handle_tag_delete_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            await delete_tag(session, tag_id=args.tag_id)
-        except TagNotFoundError as exc:
+            await tag_services.delete_tag(session, tag_id=args.tag_id)
+        except tag_services.TagNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Soft-deleted tag {args.tag_id}")
@@ -149,8 +148,8 @@ def handle_tag_delete(args: argparse.Namespace) -> int:
 
 async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple tags in one command."""
-    async with session_scope() as session:
-        result = await batch_delete_tags(
+    async with db_session.session_scope() as session:
+        result = await tag_services.batch_delete_tags(
             session,
             tag_ids=list(args.tag_ids),
         )

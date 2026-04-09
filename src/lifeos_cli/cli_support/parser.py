@@ -12,9 +12,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from lifeos_cli.cli_support.area_parser import build_area_parser
 from lifeos_cli.cli_support.config_commands import build_config_parser, build_init_parser
 from lifeos_cli.cli_support.db_commands import build_db_parser
+from lifeos_cli.cli_support.help_utils import build_epilog
 from lifeos_cli.cli_support.note_parser import build_note_parser
 from lifeos_cli.cli_support.people_parser import build_people_parser
-from lifeos_cli.cli_support.shared import build_epilog, print_database_runtime_error
+from lifeos_cli.cli_support.runtime_utils import print_database_runtime_error
 from lifeos_cli.cli_support.tag_parser import build_tag_parser
 from lifeos_cli.cli_support.task_parser import build_task_parser
 from lifeos_cli.cli_support.vision_parser import build_vision_parser

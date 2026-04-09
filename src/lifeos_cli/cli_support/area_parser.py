@@ -13,7 +13,7 @@ from lifeos_cli.cli_support.area_handlers import (
     handle_area_show,
     handle_area_update,
 )
-from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 
 
 def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

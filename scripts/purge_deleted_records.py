@@ -9,20 +9,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from uuid import UUID
 
-from lifeos_cli.db.services import (
-    delete_area,
-    delete_note,
-    delete_person,
-    delete_tag,
-    delete_task,
-    delete_vision,
-    get_area,
-    get_note,
-    get_person,
-    get_tag,
-    get_task,
-    get_vision,
-)
+from lifeos_cli.db.services import areas, notes, people, tags, tasks, visions
 from lifeos_cli.db.session import session_scope
 
 CONFIRMATION_TEXT = "permanently-delete-soft-deleted-records"
@@ -72,72 +59,72 @@ async def purge_deleted_records(resource: str, record_ids: list[UUID]) -> int:
     async with session_scope() as session:
         operations = {
             "note": ResourceOperations(
-                load=lambda record_id: get_note(
+                load=lambda record_id: notes.get_note(
                     session,
                     note_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_note(
+                hard_delete=lambda record_id: notes.delete_note(
                     session,
                     note_id=record_id,
                     hard_delete=True,
                 ),
             ),
             "area": ResourceOperations(
-                load=lambda record_id: get_area(
+                load=lambda record_id: areas.get_area(
                     session,
                     area_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_area(
+                hard_delete=lambda record_id: areas.delete_area(
                     session,
                     area_id=record_id,
                     hard_delete=True,
                 ),
             ),
             "tag": ResourceOperations(
-                load=lambda record_id: get_tag(
+                load=lambda record_id: tags.get_tag(
                     session,
                     tag_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_tag(
+                hard_delete=lambda record_id: tags.delete_tag(
                     session,
                     tag_id=record_id,
                     hard_delete=True,
                 ),
             ),
             "people": ResourceOperations(
-                load=lambda record_id: get_person(
+                load=lambda record_id: people.get_person(
                     session,
                     person_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_person(
+                hard_delete=lambda record_id: people.delete_person(
                     session,
                     person_id=record_id,
                     hard_delete=True,
                 ),
             ),
             "vision": ResourceOperations(
-                load=lambda record_id: get_vision(
+                load=lambda record_id: visions.get_vision(
                     session,
                     vision_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_vision(
+                hard_delete=lambda record_id: visions.delete_vision(
                     session,
                     vision_id=record_id,
                     hard_delete=True,
                 ),
             ),
             "task": ResourceOperations(
-                load=lambda record_id: get_task(
+                load=lambda record_id: tasks.get_task(
                     session,
                     task_id=record_id,
                     include_deleted=True,
                 ),
-                hard_delete=lambda record_id: delete_task(
+                hard_delete=lambda record_id: tasks.delete_task(
                     session,
                     task_id=record_id,
                     hard_delete=True,

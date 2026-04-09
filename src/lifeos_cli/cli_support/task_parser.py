@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.task_handlers import (
     handle_task_add,
     handle_task_batch_delete,

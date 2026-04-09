@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.db_commands import run_db_ping, run_db_upgrade
-from lifeos_cli.cli_support.shared import (
+from lifeos_cli.cli_support import db_commands, init_prompts
+from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
-    format_config_summary,
     make_help_handler,
+)
+from lifeos_cli.cli_support.runtime_utils import (
+    format_config_summary,
     refresh_runtime_configuration,
     run_async,
 )
@@ -24,52 +26,6 @@ from lifeos_cli.config import (
     validate_database_url,
     write_database_settings,
 )
-
-
-def _prompt_text(label: str, *, default: str | None = None) -> str:
-    """Prompt for a text value."""
-    suffix = f" [{default}]" if default else ""
-    value = input(f"{label}{suffix}: ").strip()
-    if value:
-        return value
-    if default is not None:
-        return default
-    raise ConfigurationError(f"{label} is required")
-
-
-def _prompt_database_url(*, default: str | None = None) -> str:
-    """Prompt until a valid SQLAlchemy PostgreSQL URL is provided."""
-    while True:
-        candidate = _prompt_text("Database URL", default=default)
-        try:
-            return validate_database_url(candidate)
-        except ConfigurationError as exc:
-            print(str(exc), file=sys.stderr)
-            default = None
-
-
-def _prompt_database_schema(*, default: str | None = None) -> str:
-    """Prompt until a valid PostgreSQL schema identifier is provided."""
-    while True:
-        candidate = _prompt_text("Database schema", default=default)
-        try:
-            return validate_database_schema_name(candidate)
-        except ConfigurationError as exc:
-            print(str(exc), file=sys.stderr)
-            default = None
-
-
-def _prompt_bool(label: str, *, default: bool) -> bool:
-    """Prompt for a yes/no value."""
-    suffix = "Y/n" if default else "y/N"
-    value = input(f"{label} [{suffix}]: ").strip().lower()
-    if not value:
-        return default
-    if value in {"y", "yes"}:
-        return True
-    if value in {"n", "no"}:
-        return False
-    raise ConfigurationError(f"{label} must be answered with yes or no")
 
 
 def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
@@ -90,11 +46,14 @@ def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
 
     if not args.non_interactive and sys.stdin.isatty():
         if args.database_url is None:
-            database_url = _prompt_database_url(default=database_url)
+            database_url = init_prompts.prompt_database_url(default=database_url)
         if args.schema is None:
-            database_schema = _prompt_database_schema(default=database_schema)
+            database_schema = init_prompts.prompt_database_schema(default=database_schema)
         if args.echo is None:
-            database_echo = _prompt_bool("Enable SQL echo logging", default=database_echo)
+            database_echo = init_prompts.prompt_bool(
+                "Enable SQL echo logging",
+                default=database_echo,
+            )
 
     if database_url is None:
         raise ConfigurationError(
@@ -121,12 +80,12 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        run_async(run_db_ping(args))
+        run_async(db_commands.run_db_ping(args))
 
     if args.skip_migrate:
         print("Skipped database migrations. Run `lifeos db upgrade` when ready.")
     else:
-        run_db_upgrade(args)
+        db_commands.run_db_upgrade(args)
 
     return 0
 

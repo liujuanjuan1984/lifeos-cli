@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import Index, String, Text, UniqueConstraint
+from sqlalchemy import Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
@@ -13,7 +13,14 @@ class Tag(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     __tablename__ = "tags"
     __table_args__ = (
-        UniqueConstraint("name", "entity_type", "category", name="uq_tags_name_type_category"),
+        Index(
+            "uq_tags_name_type_category_active",
+            "name",
+            "entity_type",
+            "category",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         Index("ix_tags_name_entity_type_category", "name", "entity_type", "category"),
     )
 

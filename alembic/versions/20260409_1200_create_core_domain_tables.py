@@ -32,8 +32,15 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_areas")),
-        sa.UniqueConstraint("name", name=op.f("uq_areas_name")),
         schema=schema_name,
+    )
+    op.create_index(
+        "uq_areas_name_active",
+        "areas",
+        ["name"],
+        unique=True,
+        schema=schema_name,
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
     op.create_index(
         op.f("ix_areas_display_order"),
@@ -55,10 +62,15 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_tags")),
-        sa.UniqueConstraint(
-            "name", "entity_type", "category", name=op.f("uq_tags_name_type_category")
-        ),
         schema=schema_name,
+    )
+    op.create_index(
+        "uq_tags_name_type_category_active",
+        "tags",
+        ["name", "entity_type", "category"],
+        unique=True,
+        schema=schema_name,
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
     op.create_index(
         "ix_tags_name_entity_type_category",
@@ -267,8 +279,10 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_people_name"), table_name="people", schema=schema_name)
     op.drop_table("people", schema=schema_name)
 
+    op.drop_index("uq_tags_name_type_category_active", table_name="tags", schema=schema_name)
     op.drop_index("ix_tags_name_entity_type_category", table_name="tags", schema=schema_name)
     op.drop_table("tags", schema=schema_name)
 
+    op.drop_index("uq_areas_name_active", table_name="areas", schema=schema_name)
     op.drop_index(op.f("ix_areas_display_order"), table_name="areas", schema=schema_name)
     op.drop_table("areas", schema=schema_name)

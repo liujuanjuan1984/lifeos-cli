@@ -5,20 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services import (
-    AreaReferenceNotFoundError,
-    VisionAlreadyExistsError,
-    VisionNotFoundError,
-    batch_delete_visions,
-    create_vision,
-    delete_vision,
-    get_vision,
-    list_visions,
-    update_vision,
-)
-from lifeos_cli.db.session import session_scope
+from lifeos_cli.db.services import visions as vision_services
 
 
 def _format_vision_summary(vision: Vision) -> str:
@@ -45,9 +36,9 @@ def _format_vision_detail(vision: Vision) -> str:
 
 
 async def handle_vision_add_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            vision = await create_vision(
+            vision = await vision_services.create_vision(
                 session,
                 name=args.name,
                 description=args.description,
@@ -55,7 +46,11 @@ async def handle_vision_add_async(args: argparse.Namespace) -> int:
                 area_id=args.area_id,
                 experience_rate_per_hour=args.experience_rate_per_hour,
             )
-        except (VisionAlreadyExistsError, AreaReferenceNotFoundError, ValueError) as exc:
+        except (
+            vision_services.VisionAlreadyExistsError,
+            vision_services.AreaReferenceNotFoundError,
+            ValueError,
+        ) as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Created vision {vision.id}")
@@ -67,9 +62,9 @@ def handle_vision_add(args: argparse.Namespace) -> int:
 
 
 async def handle_vision_list_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            visions = await list_visions(
+            visions = await vision_services.list_visions(
                 session,
                 status=args.status,
                 area_id=args.area_id,
@@ -93,8 +88,8 @@ def handle_vision_list(args: argparse.Namespace) -> int:
 
 
 async def handle_vision_show_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
-        vision = await get_vision(
+    async with db_session.session_scope() as session:
+        vision = await vision_services.get_vision(
             session,
             vision_id=args.vision_id,
             include_deleted=args.include_deleted,
@@ -111,9 +106,9 @@ def handle_vision_show(args: argparse.Namespace) -> int:
 
 
 async def handle_vision_update_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            vision = await update_vision(
+            vision = await vision_services.update_vision(
                 session,
                 vision_id=args.vision_id,
                 name=args.name,
@@ -123,9 +118,9 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
                 experience_rate_per_hour=args.experience_rate_per_hour,
             )
         except (
-            VisionNotFoundError,
-            VisionAlreadyExistsError,
-            AreaReferenceNotFoundError,
+            vision_services.VisionNotFoundError,
+            vision_services.VisionAlreadyExistsError,
+            vision_services.AreaReferenceNotFoundError,
             ValueError,
         ) as exc:
             print(str(exc), file=sys.stderr)
@@ -139,10 +134,10 @@ def handle_vision_update(args: argparse.Namespace) -> int:
 
 
 async def handle_vision_delete_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            await delete_vision(session, vision_id=args.vision_id)
-        except VisionNotFoundError as exc:
+            await vision_services.delete_vision(session, vision_id=args.vision_id)
+        except vision_services.VisionNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Soft-deleted vision {args.vision_id}")
@@ -155,8 +150,8 @@ def handle_vision_delete(args: argparse.Namespace) -> int:
 
 async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple visions in one command."""
-    async with session_scope() as session:
-        result = await batch_delete_visions(
+    async with db_session.session_scope() as session:
+        result = await vision_services.batch_delete_visions(
             session,
             vision_ids=list(args.vision_ids),
         )

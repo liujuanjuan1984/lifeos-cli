@@ -13,7 +13,13 @@ from sqlalchemy.exc import OperationalError
 from lifeos_cli import cli
 from lifeos_cli.cli_support import note_handlers
 from lifeos_cli.config import clear_config_cache
-from lifeos_cli.db.services import NoteBatchDeleteResult, NoteBatchUpdateResult, NoteNotFoundError
+from lifeos_cli.db import session as db_session
+from lifeos_cli.db.services import notes as note_services
+from lifeos_cli.db.services.notes import (
+    NoteBatchDeleteResult,
+    NoteBatchUpdateResult,
+    NoteNotFoundError,
+)
 
 
 def test_main_note_add_creates_note(
@@ -35,8 +41,8 @@ def test_main_note_add_creates_note(
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "a new note"])
     captured = capsys.readouterr()
@@ -65,8 +71,8 @@ def test_main_note_add_reads_multiline_content_from_stdin(
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
     monkeypatch.setattr(note_handlers.sys, "stdin", io.StringIO("line one\nline two\n"))
 
     exit_code = cli.main(["note", "add", "--stdin"])
@@ -99,8 +105,8 @@ def test_main_note_add_reads_content_from_file(
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "--file", str(content_file)])
     captured = capsys.readouterr()
@@ -147,8 +153,8 @@ def test_main_note_show_prints_multiline_content(
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "get_note", fake_get_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "get_note", fake_get_note)
 
     exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
     captured = capsys.readouterr()
@@ -174,8 +180,8 @@ def test_main_note_show_reports_missing_note(
     ) -> object | None:
         return None
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "get_note", fake_get_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "get_note", fake_get_note)
 
     exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
     captured = capsys.readouterr()
@@ -213,8 +219,8 @@ def test_main_note_search_prints_matching_notes(
             )
         ]
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "search_notes", fake_search_notes)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "search_notes", fake_search_notes)
 
     exit_code = cli.main(["note", "search", "meeting notes"])
     captured = capsys.readouterr()
@@ -257,8 +263,8 @@ def test_main_note_batch_update_content_prints_summary(
             replacement_count=3,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "batch_update_note_content", fake_batch_update_note_content)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "batch_update_note_content", fake_batch_update_note_content)
 
     exit_code = cli.main(
         [
@@ -305,8 +311,8 @@ def test_main_note_batch_delete_reports_failures(
             errors=("Note 22222222-2222-2222-2222-222222222222 was not found",),
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "batch_delete_notes", fake_batch_delete_notes)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "batch_delete_notes", fake_batch_delete_notes)
 
     exit_code = cli.main(
         [
@@ -353,8 +359,8 @@ def test_main_note_list_prints_formatted_notes(
             )
         ]
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "list_notes", fake_list_notes)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "list_notes", fake_list_notes)
 
     exit_code = cli.main(["note", "list"])
     captured = capsys.readouterr()
@@ -381,8 +387,8 @@ def test_main_note_delete_reports_missing_note(
     ) -> None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "delete_note", fake_delete_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "delete_note", fake_delete_note)
 
     exit_code = cli.main(["note", "delete", "33333333-3333-3333-3333-333333333333"])
     captured = capsys.readouterr()
@@ -439,8 +445,8 @@ def test_main_note_add_prints_actionable_authentication_guidance(
             orig=RuntimeError("password authentication failed"),
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "a new note"])
     captured = capsys.readouterr()

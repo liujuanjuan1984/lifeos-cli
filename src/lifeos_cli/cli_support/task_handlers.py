@@ -6,22 +6,11 @@ import argparse
 import sys
 from datetime import date
 
-from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.task import Task
-from lifeos_cli.db.services import (
-    InvalidPlanningCycleError,
-    InvalidTaskDepthError,
-    ParentTaskReferenceNotFoundError,
-    TaskNotFoundError,
-    VisionReferenceNotFoundError,
-    batch_delete_tasks,
-    create_task,
-    delete_task,
-    get_task,
-    list_tasks,
-    update_task,
-)
-from lifeos_cli.db.session import session_scope
+from lifeos_cli.db.services import tasks as task_services
 
 
 def _parse_cycle_date(value: str | None) -> date | None:
@@ -60,9 +49,9 @@ def _format_task_detail(task: Task) -> str:
 
 
 async def handle_task_add_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            task = await create_task(
+            task = await task_services.create_task(
                 session,
                 vision_id=args.vision_id,
                 content=args.content,
@@ -77,10 +66,10 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
                 planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
             )
         except (
-            VisionReferenceNotFoundError,
-            ParentTaskReferenceNotFoundError,
-            InvalidTaskDepthError,
-            InvalidPlanningCycleError,
+            task_services.VisionReferenceNotFoundError,
+            task_services.ParentTaskReferenceNotFoundError,
+            task_services.InvalidTaskDepthError,
+            task_services.InvalidPlanningCycleError,
             ValueError,
         ) as exc:
             print(str(exc), file=sys.stderr)
@@ -94,9 +83,9 @@ def handle_task_add(args: argparse.Namespace) -> int:
 
 
 async def handle_task_list_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            tasks = await list_tasks(
+            tasks = await task_services.list_tasks(
                 session,
                 vision_id=args.vision_id,
                 parent_task_id=args.parent_task_id,
@@ -121,8 +110,12 @@ def handle_task_list(args: argparse.Namespace) -> int:
 
 
 async def handle_task_show_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
-        task = await get_task(session, task_id=args.task_id, include_deleted=args.include_deleted)
+    async with db_session.session_scope() as session:
+        task = await task_services.get_task(
+            session,
+            task_id=args.task_id,
+            include_deleted=args.include_deleted,
+        )
     if task is None:
         print(f"Task {args.task_id} was not found", file=sys.stderr)
         return 1
@@ -135,9 +128,9 @@ def handle_task_show(args: argparse.Namespace) -> int:
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            task = await update_task(
+            task = await task_services.update_task(
                 session,
                 task_id=args.task_id,
                 content=args.content,
@@ -154,10 +147,10 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 else None,
             )
         except (
-            TaskNotFoundError,
-            ParentTaskReferenceNotFoundError,
-            InvalidTaskDepthError,
-            InvalidPlanningCycleError,
+            task_services.TaskNotFoundError,
+            task_services.ParentTaskReferenceNotFoundError,
+            task_services.InvalidTaskDepthError,
+            task_services.InvalidPlanningCycleError,
             ValueError,
         ) as exc:
             print(str(exc), file=sys.stderr)
@@ -171,10 +164,10 @@ def handle_task_update(args: argparse.Namespace) -> int:
 
 
 async def handle_task_delete_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            await delete_task(session, task_id=args.task_id)
-        except TaskNotFoundError as exc:
+            await task_services.delete_task(session, task_id=args.task_id)
+        except task_services.TaskNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Soft-deleted task {args.task_id}")
@@ -187,8 +180,8 @@ def handle_task_delete(args: argparse.Namespace) -> int:
 
 async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple tasks in one command."""
-    async with session_scope() as session:
-        result = await batch_delete_tasks(
+    async with db_session.session_scope() as session:
+        result = await task_services.batch_delete_tasks(
             session,
             task_ids=list(args.task_ids),
         )

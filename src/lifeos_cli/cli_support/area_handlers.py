@@ -5,19 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.area import Area
-from lifeos_cli.db.services import (
-    AreaAlreadyExistsError,
-    AreaNotFoundError,
-    batch_delete_areas,
-    create_area,
-    delete_area,
-    get_area,
-    list_areas,
-    update_area,
-)
-from lifeos_cli.db.session import session_scope
+from lifeos_cli.db.services import areas as area_services
 
 
 def _format_area_summary(area: Area) -> str:
@@ -46,9 +38,9 @@ def _format_area_detail(area: Area) -> str:
 
 
 async def handle_area_add_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            area = await create_area(
+            area = await area_services.create_area(
                 session,
                 name=args.name,
                 description=args.description,
@@ -57,7 +49,7 @@ async def handle_area_add_async(args: argparse.Namespace) -> int:
                 is_active=not args.inactive,
                 display_order=args.display_order,
             )
-        except AreaAlreadyExistsError as exc:
+        except area_services.AreaAlreadyExistsError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Created area {area.id}")
@@ -69,8 +61,8 @@ def handle_area_add(args: argparse.Namespace) -> int:
 
 
 async def handle_area_list_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
-        areas = await list_areas(
+    async with db_session.session_scope() as session:
+        areas = await area_services.list_areas(
             session,
             include_deleted=args.include_deleted,
             include_inactive=args.include_inactive,
@@ -90,8 +82,12 @@ def handle_area_list(args: argparse.Namespace) -> int:
 
 
 async def handle_area_show_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
-        area = await get_area(session, area_id=args.area_id, include_deleted=args.include_deleted)
+    async with db_session.session_scope() as session:
+        area = await area_services.get_area(
+            session,
+            area_id=args.area_id,
+            include_deleted=args.include_deleted,
+        )
     if area is None:
         print(f"Area {args.area_id} was not found", file=sys.stderr)
         return 1
@@ -104,9 +100,9 @@ def handle_area_show(args: argparse.Namespace) -> int:
 
 
 async def handle_area_update_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            area = await update_area(
+            area = await area_services.update_area(
                 session,
                 area_id=args.area_id,
                 name=args.name,
@@ -116,7 +112,7 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
                 is_active=args.active,
                 display_order=args.display_order,
             )
-        except (AreaNotFoundError, AreaAlreadyExistsError) as exc:
+        except (area_services.AreaNotFoundError, area_services.AreaAlreadyExistsError) as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Updated area {area.id}")
@@ -128,10 +124,10 @@ def handle_area_update(args: argparse.Namespace) -> int:
 
 
 async def handle_area_delete_async(args: argparse.Namespace) -> int:
-    async with session_scope() as session:
+    async with db_session.session_scope() as session:
         try:
-            await delete_area(session, area_id=args.area_id)
-        except AreaNotFoundError as exc:
+            await area_services.delete_area(session, area_id=args.area_id)
+        except area_services.AreaNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Soft-deleted area {args.area_id}")
@@ -144,8 +140,8 @@ def handle_area_delete(args: argparse.Namespace) -> int:
 
 async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple areas in one command."""
-    async with session_scope() as session:
-        result = await batch_delete_areas(
+    async with db_session.session_scope() as session:
+        result = await area_services.batch_delete_areas(
             session,
             area_ids=list(args.area_ids),
         )

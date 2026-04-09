@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 
-from lifeos_cli.cli_support.shared import (
+from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
     make_help_handler,
+)
+from lifeos_cli.cli_support.runtime_utils import (
     run_async,
 )
 

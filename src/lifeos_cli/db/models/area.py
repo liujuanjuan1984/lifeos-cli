@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import Index, String, Text, UniqueConstraint
+from sqlalchemy import Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
@@ -13,7 +13,12 @@ class Area(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     __tablename__ = "areas"
     __table_args__ = (
-        UniqueConstraint("name", name="uq_areas_name"),
+        Index(
+            "uq_areas_name_active",
+            "name",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         Index("ix_areas_display_order", "display_order"),
     )
 

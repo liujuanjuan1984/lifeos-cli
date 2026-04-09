@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.people_handlers import (
     handle_people_add,
     handle_people_batch_delete,
@@ -13,7 +14,6 @@ from lifeos_cli.cli_support.people_handlers import (
     handle_people_show,
     handle_people_update,
 )
-from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
 
 
 def build_people_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

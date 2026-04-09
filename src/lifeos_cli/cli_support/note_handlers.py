@@ -6,25 +6,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from lifeos_cli.cli_support.shared import (
+from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
     format_note_detail,
     format_note_summary,
-    run_async,
 )
+from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.config import ConfigurationError
-from lifeos_cli.db.services import (
-    NoteNotFoundError,
-    batch_delete_notes,
-    batch_update_note_content,
-    create_note,
-    delete_note,
-    get_note,
-    list_notes,
-    search_notes,
-    update_note,
-)
-from lifeos_cli.db.session import session_scope
+from lifeos_cli.db import session as db_session
+from lifeos_cli.db.services import notes as note_services
 
 
 def resolve_note_content(args: argparse.Namespace) -> str:
@@ -59,8 +49,8 @@ def resolve_note_content(args: argparse.Namespace) -> str:
 async def handle_note_add_async(args: argparse.Namespace) -> int:
     """Create a new note."""
     content = resolve_note_content(args)
-    async with session_scope() as session:
-        note = await create_note(session, content=content)
+    async with db_session.session_scope() as session:
+        note = await note_services.create_note(session, content=content)
     print(f"Created note {note.id}")
     return 0
 
@@ -72,8 +62,8 @@ def handle_note_add(args: argparse.Namespace) -> int:
 
 async def handle_note_list_async(args: argparse.Namespace) -> int:
     """List notes."""
-    async with session_scope() as session:
-        notes = await list_notes(
+    async with db_session.session_scope() as session:
+        notes = await note_services.list_notes(
             session,
             include_deleted=args.include_deleted,
             limit=args.limit,
@@ -98,8 +88,8 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
     if not normalized_query:
         raise ConfigurationError("Search query must not be empty.")
 
-    async with session_scope() as session:
-        notes = await search_notes(
+    async with db_session.session_scope() as session:
+        notes = await note_services.search_notes(
             session,
             query=normalized_query,
             include_deleted=args.include_deleted,
@@ -121,8 +111,8 @@ def handle_note_search(args: argparse.Namespace) -> int:
 
 async def handle_note_show_async(args: argparse.Namespace) -> int:
     """Show a note with full content."""
-    async with session_scope() as session:
-        note = await get_note(
+    async with db_session.session_scope() as session:
+        note = await note_services.get_note(
             session,
             note_id=args.note_id,
             include_deleted=args.include_deleted,
@@ -142,9 +132,11 @@ def handle_note_show(args: argparse.Namespace) -> int:
 async def handle_note_update_async(args: argparse.Namespace) -> int:
     """Update note content."""
     try:
-        async with session_scope() as session:
-            note = await update_note(session, note_id=args.note_id, content=args.content)
-    except NoteNotFoundError as exc:
+        async with db_session.session_scope() as session:
+            note = await note_services.update_note(
+                session, note_id=args.note_id, content=args.content
+            )
+    except note_services.NoteNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
     print(f"Updated note {note.id}")
@@ -159,9 +151,9 @@ def handle_note_update(args: argparse.Namespace) -> int:
 async def handle_note_delete_async(args: argparse.Namespace) -> int:
     """Delete a note."""
     try:
-        async with session_scope() as session:
-            await delete_note(session, note_id=args.note_id)
-    except NoteNotFoundError as exc:
+        async with db_session.session_scope() as session:
+            await note_services.delete_note(session, note_id=args.note_id)
+    except note_services.NoteNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
     print(f"Soft-deleted note {args.note_id}")
@@ -178,8 +170,8 @@ async def handle_note_batch_update_content_async(args: argparse.Namespace) -> in
     if not args.find_text.strip():
         raise ConfigurationError("Find text must not be empty.")
 
-    async with session_scope() as session:
-        result = await batch_update_note_content(
+    async with db_session.session_scope() as session:
+        result = await note_services.batch_update_note_content(
             session,
             note_ids=list(args.note_ids),
             find_text=args.find_text,
@@ -205,8 +197,8 @@ def handle_note_batch_update_content(args: argparse.Namespace) -> int:
 
 async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple notes in one command."""
-    async with session_scope() as session:
-        result = await batch_delete_notes(
+    async with db_session.session_scope() as session:
+        result = await note_services.batch_delete_notes(
             session,
             note_ids=list(args.note_ids),
         )
