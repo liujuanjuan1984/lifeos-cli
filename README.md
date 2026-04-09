@@ -41,6 +41,12 @@ uv tool install lifeos-cli
    lifeos init
    ```
 
+   Optional preference flags can be persisted during setup:
+
+   ```bash
+   lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00
+   ```
+
 2. Add a note:
 
    ```bash

@@ -27,6 +27,14 @@ def test_main_init_non_interactive_writes_config(
             "--non-interactive",
             "--database-url",
             "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+            "--timezone",
+            "America/Toronto",
+            "--language",
+            "zh-Hans",
+            "--day-starts-at",
+            "04:00",
+            "--week-starts-on",
+            "sunday",
         ]
     )
     captured = capsys.readouterr()
@@ -34,8 +42,14 @@ def test_main_init_non_interactive_writes_config(
     assert exit_code == 0
     assert "Wrote config file:" in captured.out
     assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
+    assert "Preference timezone: America/Toronto" in captured.out
+    assert "Preference language: zh-Hans" in captured.out
     content = config_path.read_text(encoding="utf-8")
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
+    assert 'timezone = "America/Toronto"' in content
+    assert 'language = "zh-Hans"' in content
+    assert 'day_starts_at = "04:00"' in content
+    assert 'week_starts_on = "sunday"' in content
     clear_config_cache()
 
 
@@ -157,6 +171,12 @@ def test_main_config_show_masks_database_password(
                 'schema = "lifeos"',
                 "echo = false",
                 "",
+                "[preferences]",
+                'timezone = "America/Toronto"',
+                'language = "zh-Hans"',
+                'day_starts_at = "04:00"',
+                'week_starts_on = "sunday"',
+                "",
             )
         ),
         encoding="utf-8",
@@ -170,6 +190,10 @@ def test_main_config_show_masks_database_password(
     assert exit_code == 0
     assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
     assert "<db-password>" not in captured.out
+    assert "Preference timezone: America/Toronto" in captured.out
+    assert "Preference language: zh-Hans" in captured.out
+    assert "Preference day starts at: 04:00" in captured.out
+    assert "Preference week starts on: sunday" in captured.out
     clear_config_cache()
 
 
@@ -210,6 +234,7 @@ def test_main_init_can_repair_invalid_existing_config(
     assert "Wrote config file:" in captured.out
     rewritten = config_path.read_text(encoding="utf-8")
     assert 'schema = "lifeos"' in rewritten
+    assert "[preferences]" in rewritten
     clear_config_cache()
 
 

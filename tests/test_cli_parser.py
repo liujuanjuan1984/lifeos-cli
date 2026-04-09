@@ -40,6 +40,31 @@ def test_cli_parser_supports_note_show_command() -> None:
     assert str(args.note_id) == "11111111-1111-1111-1111-111111111111"
 
 
+def test_cli_parser_supports_init_preference_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "init",
+            "--database-url",
+            "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+            "--timezone",
+            "America/Toronto",
+            "--language",
+            "zh-Hans",
+            "--day-starts-at",
+            "04:00",
+            "--week-starts-on",
+            "sunday",
+        ]
+    )
+
+    assert args.database_url == "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"
+    assert args.timezone == "America/Toronto"
+    assert args.language == "zh-Hans"
+    assert args.day_starts_at == "04:00"
+    assert args.week_starts_on == "sunday"
+
+
 def test_cli_parser_supports_note_search_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["note", "search", "meeting notes", "--limit", "20"])

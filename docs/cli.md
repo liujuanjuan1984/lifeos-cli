@@ -75,6 +75,12 @@ Initialize local configuration and database access:
 lifeos init
 ```
 
+Initialize while persisting user preferences:
+
+```bash
+lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday
+```
+
 Inspect the effective configuration:
 
 ```bash
@@ -95,6 +101,13 @@ lifeos init
 lifeos db ping
 lifeos db upgrade
 ```
+
+Current persisted preference keys:
+
+- `timezone`: default IANA timezone used for future local day boundaries and time-based summaries
+- `language`: preferred language tag such as `en`, `en-CA`, or `zh-Hans`
+- `day_starts_at`: local day boundary in `HH:MM`
+- `week_starts_on`: preferred first day of the week (`monday` or `sunday`)
 
 ## Notes
 
