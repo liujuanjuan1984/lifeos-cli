@@ -82,6 +82,11 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
    bash ./scripts/doctor.sh
    ```
 
+4. Use the repository dependency workflows intentionally:
+
+   - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
+   - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dev vulnerability review.
+
 ## Project Policies
 
 - Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
