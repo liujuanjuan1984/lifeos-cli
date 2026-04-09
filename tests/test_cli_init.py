@@ -18,8 +18,8 @@ def test_main_init_non_interactive_writes_config(
     config_path = tmp_path / "config.toml"
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "_handle_db_upgrade", lambda _: 0)
-    monkeypatch.setattr(config_commands, "_handle_db_ping_async", lambda _: _async_zero())
+    monkeypatch.setattr(config_commands, "run_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(config_commands, "run_db_ping", lambda _: _async_zero())
 
     exit_code = cli.main(
         [
@@ -48,8 +48,8 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     prompts: list[str] = []
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "_handle_db_upgrade", lambda _: 0)
-    monkeypatch.setattr(config_commands, "_handle_db_ping_async", lambda _: _async_zero())
+    monkeypatch.setattr(config_commands, "run_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(config_commands, "run_db_ping", lambda _: _async_zero())
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -88,8 +88,8 @@ def test_main_init_reprompts_invalid_schema_in_interactive_mode(
     responses = iter(["lifeos-dev", "lifeos_dev", ""])
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "_handle_db_upgrade", lambda _: 0)
-    monkeypatch.setattr(config_commands, "_handle_db_ping_async", lambda _: _async_zero())
+    monkeypatch.setattr(config_commands, "run_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(config_commands, "run_db_ping", lambda _: _async_zero())
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -193,8 +193,8 @@ def test_main_init_can_repair_invalid_existing_config(
     )
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "_handle_db_upgrade", lambda _: 0)
-    monkeypatch.setattr(config_commands, "_handle_db_ping_async", lambda _: _async_zero())
+    monkeypatch.setattr(config_commands, "run_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(config_commands, "run_db_ping", lambda _: _async_zero())
 
     exit_code = cli.main(
         [

@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from lifeos_cli.cli_support.config_commands import build_config_parser, build_init_parser
 from lifeos_cli.cli_support.db_commands import build_db_parser
-from lifeos_cli.cli_support.note_commands import build_note_parser
+from lifeos_cli.cli_support.note_parser import build_note_parser
 from lifeos_cli.cli_support.shared import build_epilog, print_database_runtime_error
 from lifeos_cli.config import ConfigurationError
 

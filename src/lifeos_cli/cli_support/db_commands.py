@@ -12,8 +12,8 @@ from lifeos_cli.cli_support.shared import (
 )
 
 
-async def _handle_db_ping_async(_: argparse.Namespace) -> int:
-    """Ping the configured database."""
+async def run_db_ping(_: argparse.Namespace) -> int:
+    """Ping the configured database and print a success message."""
     from lifeos_cli.db.maintenance import ping_database
 
     await ping_database()
@@ -23,11 +23,11 @@ async def _handle_db_ping_async(_: argparse.Namespace) -> int:
 
 def _handle_db_ping(args: argparse.Namespace) -> int:
     """Ping the configured database."""
-    return run_async(_handle_db_ping_async(args))
+    return run_async(run_db_ping(args))
 
 
-def _handle_db_upgrade(_: argparse.Namespace) -> int:
-    """Apply database migrations."""
+def run_db_upgrade(_: argparse.Namespace) -> int:
+    """Apply database migrations and print a success message."""
     from lifeos_cli.db.maintenance import upgrade_database
 
     upgrade_database()
@@ -76,4 +76,4 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             examples=("lifeos db upgrade",),
         ),
     )
-    upgrade_parser.set_defaults(handler=_handle_db_upgrade)
+    upgrade_parser.set_defaults(handler=run_db_upgrade)

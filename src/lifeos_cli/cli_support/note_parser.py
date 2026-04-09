@@ -1,244 +1,21 @@
-"""Note resource CLI commands."""
+"""Note resource parser construction."""
 
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
 from uuid import UUID
 
-from lifeos_cli.cli_support.shared import (
-    HelpContent,
-    add_documented_parser,
-    format_note_detail,
-    format_note_id_lines,
-    format_note_summary,
-    make_help_handler,
-    run_async,
+from lifeos_cli.cli_support.note_handlers import (
+    handle_note_add,
+    handle_note_batch_delete,
+    handle_note_batch_update_content,
+    handle_note_delete,
+    handle_note_list,
+    handle_note_search,
+    handle_note_show,
+    handle_note_update,
 )
-from lifeos_cli.config import ConfigurationError
-
-
-def _resolve_note_content(args: argparse.Namespace) -> str:
-    """Resolve note content from inline text, stdin, or a file."""
-    provided_sources = sum(
-        1
-        for candidate in (args.content is not None, args.stdin, args.file is not None)
-        if candidate
-    )
-    if provided_sources != 1:
-        raise ConfigurationError(
-            "Provide note content with exactly one source: inline `content`, `--stdin`, or "
-            "`--file`."
-        )
-    if args.stdin:
-        content = sys.stdin.read()
-    elif args.file is not None:
-        try:
-            content = Path(args.file).read_text(encoding="utf-8")
-        except OSError as exc:
-            raise ConfigurationError(
-                f"Could not read note content from {args.file}: {exc}"
-            ) from exc
-    else:
-        content = args.content
-    normalized = content.rstrip("\n")
-    if not normalized.strip():
-        raise ConfigurationError("Note content must not be empty.")
-    return normalized
-
-
-async def _handle_note_add_async(args: argparse.Namespace) -> int:
-    """Create a new note."""
-    from lifeos_cli.db.services import create_note
-    from lifeos_cli.db.session import session_scope
-
-    content = _resolve_note_content(args)
-    async with session_scope() as session:
-        note = await create_note(session, content=content)
-    print(f"Created note {note.id}")
-    return 0
-
-
-def _handle_note_add(args: argparse.Namespace) -> int:
-    """Create a new note."""
-    return run_async(_handle_note_add_async(args))
-
-
-async def _handle_note_list_async(args: argparse.Namespace) -> int:
-    """List notes."""
-    from lifeos_cli.db.services import list_notes
-    from lifeos_cli.db.session import session_scope
-
-    async with session_scope() as session:
-        notes = await list_notes(
-            session,
-            include_deleted=args.include_deleted,
-            limit=args.limit,
-            offset=args.offset,
-        )
-    if not notes:
-        print("No notes found.")
-        return 0
-    for note in notes:
-        print(format_note_summary(note))
-    return 0
-
-
-def _handle_note_list(args: argparse.Namespace) -> int:
-    """List notes."""
-    return run_async(_handle_note_list_async(args))
-
-
-async def _handle_note_search_async(args: argparse.Namespace) -> int:
-    """Search notes by keyword tokens."""
-    from lifeos_cli.db.services import search_notes
-    from lifeos_cli.db.session import session_scope
-
-    normalized_query = args.query.strip()
-    if not normalized_query:
-        raise ConfigurationError("Search query must not be empty.")
-
-    async with session_scope() as session:
-        notes = await search_notes(
-            session,
-            query=normalized_query,
-            include_deleted=args.include_deleted,
-            limit=args.limit,
-            offset=args.offset,
-        )
-    if not notes:
-        print("No matching notes found.")
-        return 0
-    for note in notes:
-        print(format_note_summary(note))
-    return 0
-
-
-def _handle_note_search(args: argparse.Namespace) -> int:
-    """Search notes by keyword tokens."""
-    return run_async(_handle_note_search_async(args))
-
-
-async def _handle_note_show_async(args: argparse.Namespace) -> int:
-    """Show a note with full content."""
-    from lifeos_cli.db.services import get_note
-    from lifeos_cli.db.session import session_scope
-
-    async with session_scope() as session:
-        note = await get_note(
-            session,
-            note_id=args.note_id,
-            include_deleted=args.include_deleted,
-        )
-    if note is None:
-        print(f"Note {args.note_id} was not found", file=sys.stderr)
-        return 1
-    print(format_note_detail(note))
-    return 0
-
-
-def _handle_note_show(args: argparse.Namespace) -> int:
-    """Show a note with full content."""
-    return run_async(_handle_note_show_async(args))
-
-
-async def _handle_note_update_async(args: argparse.Namespace) -> int:
-    """Update note content."""
-    from lifeos_cli.db.services import NoteNotFoundError, update_note
-    from lifeos_cli.db.session import session_scope
-
-    try:
-        async with session_scope() as session:
-            note = await update_note(session, note_id=args.note_id, content=args.content)
-    except NoteNotFoundError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-    print(f"Updated note {note.id}")
-    return 0
-
-
-def _handle_note_update(args: argparse.Namespace) -> int:
-    """Update note content."""
-    return run_async(_handle_note_update_async(args))
-
-
-async def _handle_note_delete_async(args: argparse.Namespace) -> int:
-    """Delete a note."""
-    from lifeos_cli.db.services import NoteNotFoundError, delete_note
-    from lifeos_cli.db.session import session_scope
-
-    try:
-        async with session_scope() as session:
-            await delete_note(session, note_id=args.note_id, hard_delete=args.hard)
-    except NoteNotFoundError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} note {args.note_id}")
-    return 0
-
-
-def _handle_note_delete(args: argparse.Namespace) -> int:
-    """Delete a note."""
-    return run_async(_handle_note_delete_async(args))
-
-
-async def _handle_note_batch_update_content_async(args: argparse.Namespace) -> int:
-    """Apply a batch content replacement across notes."""
-    from lifeos_cli.db.services import batch_update_note_content
-    from lifeos_cli.db.session import session_scope
-
-    if not args.find_text.strip():
-        raise ConfigurationError("Find text must not be empty.")
-
-    async with session_scope() as session:
-        result = await batch_update_note_content(
-            session,
-            note_ids=list(args.note_ids),
-            find_text=args.find_text,
-            replace_text=args.replace_text,
-            case_sensitive=args.case_sensitive,
-        )
-
-    print(f"Updated notes: {result.updated_count}")
-    print(f"Replacements applied: {result.replacement_count}")
-    if result.unchanged_ids:
-        print(format_note_id_lines("Unchanged note IDs", result.unchanged_ids))
-    if result.failed_ids:
-        print(format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
-
-
-def _handle_note_batch_update_content(args: argparse.Namespace) -> int:
-    """Apply a batch content replacement across notes."""
-    return run_async(_handle_note_batch_update_content_async(args))
-
-
-async def _handle_note_batch_delete_async(args: argparse.Namespace) -> int:
-    """Delete multiple notes in one command."""
-    from lifeos_cli.db.services import batch_delete_notes
-    from lifeos_cli.db.session import session_scope
-
-    async with session_scope() as session:
-        result = await batch_delete_notes(
-            session,
-            note_ids=list(args.note_ids),
-            hard_delete=args.hard,
-        )
-
-    print(f"Deleted notes: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
-
-
-def _handle_note_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple notes in one command."""
-    return run_async(_handle_note_batch_delete_async(args))
+from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
 
 
 def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -315,7 +92,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help="Read note content from standard input",
     )
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
-    add_parser.set_defaults(handler=_handle_note_add)
+    add_parser.set_defaults(handler=handle_note_add)
 
     list_parser = add_documented_parser(
         note_subparsers,
@@ -355,7 +132,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         default=0,
         help="Number of notes to skip before listing",
     )
-    list_parser.set_defaults(handler=_handle_note_list)
+    list_parser.set_defaults(handler=handle_note_list)
 
     search_parser = add_documented_parser(
         note_subparsers,
@@ -397,7 +174,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         default=0,
         help="Number of matching notes to skip before printing results",
     )
-    search_parser.set_defaults(handler=_handle_note_search)
+    search_parser.set_defaults(handler=handle_note_search)
 
     show_parser = add_documented_parser(
         note_subparsers,
@@ -422,7 +199,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help="Allow loading a soft-deleted note",
     )
-    show_parser.set_defaults(handler=_handle_note_show)
+    show_parser.set_defaults(handler=handle_note_show)
 
     update_parser = add_documented_parser(
         note_subparsers,
@@ -441,7 +218,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     )
     update_parser.add_argument("note_id", type=UUID, help="Note identifier")
     update_parser.add_argument("content", help="Replacement note content")
-    update_parser.set_defaults(handler=_handle_note_update)
+    update_parser.set_defaults(handler=handle_note_update)
 
     delete_parser = add_documented_parser(
         note_subparsers,
@@ -465,7 +242,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help="Permanently delete the note instead of soft-deleting it",
     )
-    delete_parser.set_defaults(handler=_handle_note_delete)
+    delete_parser.set_defaults(handler=handle_note_delete)
 
     batch_parser = add_documented_parser(
         note_subparsers,
@@ -548,7 +325,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help="Use a case-sensitive find/replace instead of case-insensitive matching",
     )
-    batch_update_parser.set_defaults(handler=_handle_note_batch_update_content)
+    batch_update_parser.set_defaults(handler=handle_note_batch_update_content)
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
@@ -587,4 +364,5 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help="Permanently delete each note instead of soft-deleting it",
     )
-    batch_delete_parser.set_defaults(handler=_handle_note_batch_delete)
+    batch_delete_parser.set_defaults(handler=handle_note_batch_delete)
+

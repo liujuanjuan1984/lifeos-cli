@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.db_commands import _handle_db_ping_async, _handle_db_upgrade
+from lifeos_cli.cli_support.db_commands import run_db_ping, run_db_upgrade
 from lifeos_cli.cli_support.shared import (
     HelpContent,
     add_documented_parser,
@@ -121,12 +121,12 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        run_async(_handle_db_ping_async(args))
+        run_async(run_db_ping(args))
 
     if args.skip_migrate:
         print("Skipped database migrations. Run `lifeos db upgrade` when ready.")
     else:
-        _handle_db_upgrade(args)
+        run_db_upgrade(args)
 
     return 0
 
