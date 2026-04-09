@@ -1,4 +1,4 @@
-"""Top-level package for lifeos."""
+"""Top-level package for lifeos_cli."""
 
 from .core import get_app_name
 

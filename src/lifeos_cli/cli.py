@@ -1,4 +1,4 @@
-"""CLI entrypoint for the lifeos package."""
+"""CLI entrypoint for the lifeos_cli package."""
 
 from __future__ import annotations
 

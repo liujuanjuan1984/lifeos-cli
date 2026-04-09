@@ -24,7 +24,7 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-lifeos = "lifeos.cli:main"
+lifeos = "lifeos_cli.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -60,7 +60,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-lifeos = ["py.typed"]
+lifeos_cli = ["py.typed"]
 
 [tool.setuptools_scm]
 fallback_version = "0+unknown"
@@ -68,7 +68,7 @@ tag_regex = "^v?(?P<version>.+)$"
 
 [tool.mypy]
 python_version = "3.10"
-files = ["src/lifeos", "tests"]
+files = ["src/lifeos_cli", "tests"]
 show_error_codes = true
 pretty = true
 warn_redundant_casts = true
