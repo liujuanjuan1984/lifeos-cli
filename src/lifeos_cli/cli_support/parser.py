@@ -41,7 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
             "Run LifeOS resource commands from the terminal.\n\n"
             "Command grammar:\n"
             "  lifeos <resource> <action> [arguments] [options]\n\n"
-            "Resources model domains such as notes, configuration, and database setup.\n"
+            "Resources model domains such as areas, people, visions, tasks, and notes.\n"
+            "System commands such as init, config, and db manage runtime setup.\n"
             "Actions are short verbs that operate on records or runtime state."
         ),
         epilog=build_epilog(
@@ -61,6 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
                 "Use natural exceptions such as `people` when they are clearer than "
                 "forced regular forms.",
                 "Prefer short action verbs such as add, list, update, and delete.",
+                "For structured resources, prefer `list` with filters and pagination over "
+                "separate query verbs.",
                 "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
                 "Each resource help page should explain scope, actions, and examples.",
                 "Run `lifeos init` before using database-backed resource commands.",

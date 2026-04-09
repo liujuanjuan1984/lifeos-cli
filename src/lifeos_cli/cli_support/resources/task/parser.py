@@ -28,7 +28,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "task",
         help_content=HelpContent(
             summary="Manage hierarchical tasks",
-            description="Create and maintain task trees that belong to a vision.",
+            description=(
+                "Create and maintain task trees that belong to a vision.\n\n"
+                "Tasks are the main execution unit in LifeOS and can be nested under parent tasks."
+            ),
             examples=(
                 'lifeos task add "Draft the release checklist" '
                 "--vision-id 11111111-1111-1111-1111-111111111111",
@@ -36,7 +39,9 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 "Use `list` as the primary query entrypoint for this resource.",
+                "Tasks can form trees through `--parent-task-id`.",
                 "Use the `batch` namespace for multi-record write operations.",
+                "Delete operations in the CLI always perform soft deletion.",
             ),
         ),
     )
@@ -49,7 +54,19 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         task_subparsers,
         "add",
         help_content=HelpContent(
-            summary="Create a task", description="Create a new task for a vision."
+            summary="Create a task",
+            description=(
+                "Create a new task for a vision.\n\n"
+                "Tasks can be root tasks or child tasks under another task in the same vision."
+            ),
+            examples=(
+                'lifeos task add "Draft the release checklist" '
+                "--vision-id 11111111-1111-1111-1111-111111111111",
+                'lifeos task add "Write changelog" '
+                "--vision-id 11111111-1111-1111-1111-111111111111 "
+                "--parent-task-id 22222222-2222-2222-2222-222222222222",
+            ),
+            notes=("Planning-cycle flags must be supplied as a complete set when used.",),
         ),
     )
     add_parser.add_argument("content", help="Task content")
@@ -76,7 +93,21 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "list",
         help_content=HelpContent(
             summary="List tasks",
-            description="List tasks with optional vision, parent, or status filters.",
+            description=(
+                "List tasks with optional vision, parent, or status filters.\n\n"
+                "Use this command as the primary query entrypoint for structured task views."
+            ),
+            examples=(
+                "lifeos task list",
+                "lifeos task list --vision-id 11111111-1111-1111-1111-111111111111",
+                "lifeos task list --parent-task-id "
+                "22222222-2222-2222-2222-222222222222 --status todo",
+            ),
+            notes=(
+                "When `--vision-id` is provided without `--parent-task-id`, only root "
+                "tasks are listed.",
+                "Use `--limit` and `--offset` for pagination.",
+            ),
         ),
     )
     list_parser.add_argument(
@@ -94,7 +125,12 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         task_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show a task", description="Show one task with full metadata."
+            summary="Show a task",
+            description="Show one task with full metadata.",
+            examples=(
+                "lifeos task show 11111111-1111-1111-1111-111111111111",
+                "lifeos task show 11111111-1111-1111-1111-111111111111 --include-deleted",
+            ),
         ),
     )
     show_parser.add_argument("task_id", type=UUID, help="Task identifier")
@@ -105,7 +141,17 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         task_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update a task", description="Update mutable task fields."
+            summary="Update a task",
+            description=(
+                "Update mutable task fields.\n\n"
+                "Only explicitly provided flags are changed; omitted fields stay unchanged."
+            ),
+            examples=(
+                "lifeos task update 11111111-1111-1111-1111-111111111111 --status in_progress",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 "
+                "--priority 3 --display-order 20",
+            ),
+            notes=("Parent task references must stay within the same vision.",),
         ),
     )
     update_parser.add_argument("task_id", type=UUID, help="Task identifier")
@@ -128,7 +174,12 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete a task",
-            description="Soft-delete a task.",
+            description=(
+                "Soft-delete a task.\n\n"
+                "The record remains recoverable and visible through deleted-aware "
+                "inspection commands."
+            ),
+            examples=("lifeos task delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("task_id", type=UUID, help="Task identifier")
@@ -139,7 +190,15 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary="Run batch task operations",
-            description="Run write operations that target multiple tasks in one command.",
+            description=(
+                "Run write operations that target multiple tasks in one command.\n\n"
+                "Use this namespace for bulk maintenance rather than adding many top-level verbs."
+            ),
+            examples=(
+                "lifeos task batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+            ),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
@@ -154,7 +213,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete multiple tasks",
-            description="Soft-delete multiple tasks.",
+            description="Soft-delete multiple tasks by identifier.",
+            notes=("Batch delete never performs hard deletion from the public CLI.",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="task_ids", noun="task")

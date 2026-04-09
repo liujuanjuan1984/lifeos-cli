@@ -29,7 +29,8 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help_content=HelpContent(
             summary="Manage visions",
             description=(
-                "Create and maintain high-level containers composed of one or more task trees."
+                "Create and maintain high-level containers composed of one or more task trees.\n\n"
+                "A vision is broader than a single task and usually lives under an area."
             ),
             examples=(
                 'lifeos vision add "Launch lifeos-cli" '
@@ -38,7 +39,9 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
             notes=(
                 "Use `list` as the primary query entrypoint for this resource.",
+                "Visions are intended to group related task trees.",
                 "Use the `batch` namespace for multi-record write operations.",
+                "Delete operations in the CLI always perform soft deletion.",
             ),
         ),
     )
@@ -54,7 +57,16 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "add",
         help_content=HelpContent(
             summary="Create a vision",
-            description="Create a new vision.",
+            description=(
+                "Create a new vision.\n\n"
+                "Visions usually represent medium- or long-running themes that will "
+                "own multiple tasks."
+            ),
+            examples=(
+                'lifeos vision add "Launch lifeos-cli" '
+                "--area-id 11111111-1111-1111-1111-111111111111",
+                'lifeos vision add "Improve sleep quality" --status active',
+            ),
         ),
     )
     add_parser.add_argument("name", help="Vision name")
@@ -73,7 +85,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "list",
         help_content=HelpContent(
             summary="List visions",
-            description="List visions with optional status or area filters.",
+            description=(
+                "List visions with optional status or area filters.\n\n"
+                "Use this as the main query entrypoint for visions."
+            ),
+            examples=(
+                "lifeos vision list",
+                "lifeos vision list --status active",
+                "lifeos vision list --area-id 11111111-1111-1111-1111-111111111111 --limit 20",
+            ),
         ),
     )
     list_parser.add_argument("--status", help="Filter by status")
@@ -86,7 +106,12 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show a vision", description="Show one vision with full metadata."
+            summary="Show a vision",
+            description="Show one vision with full metadata.",
+            examples=(
+                "lifeos vision show 11111111-1111-1111-1111-111111111111",
+                "lifeos vision show 11111111-1111-1111-1111-111111111111 --include-deleted",
+            ),
         ),
     )
     show_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
@@ -97,7 +122,16 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update a vision", description="Update mutable vision fields."
+            summary="Update a vision",
+            description=(
+                "Update mutable vision fields.\n\n"
+                "Only explicitly provided flags are changed; omitted values are preserved."
+            ),
+            examples=(
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 "
+                '--name "Ship lifeos-cli"',
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 --status paused",
+            ),
         ),
     )
     update_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
@@ -115,7 +149,12 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete a vision",
-            description="Soft-delete a vision.",
+            description=(
+                "Soft-delete a vision.\n\n"
+                "The record remains in the database and can still be inspected with "
+                "deleted-aware commands."
+            ),
+            examples=("lifeos vision delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
@@ -126,7 +165,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "batch",
         help_content=HelpContent(
             summary="Run batch vision operations",
-            description="Run write operations that target multiple visions in one command.",
+            description=(
+                "Run write operations that target multiple visions in one command.\n\n"
+                "Use this namespace for bulk maintenance instead of adding many top-level verbs."
+            ),
+            examples=(
+                "lifeos vision batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+            ),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
@@ -141,7 +188,8 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete multiple visions",
-            description="Soft-delete multiple visions.",
+            description="Soft-delete multiple visions by identifier.",
+            notes=("Batch delete never performs hard deletion from the public CLI.",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")

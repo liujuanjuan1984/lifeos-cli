@@ -28,7 +28,11 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "people",
         help_content=HelpContent(
             summary="Manage people and relationships",
-            description="Create and maintain people records for your social context.",
+            description=(
+                "Create and maintain people records for your social context.\n\n"
+                "This resource is for named people and relationship context, not "
+                "generic contact imports."
+            ),
             examples=(
                 'lifeos people add "Alice" --nickname ally --location Toronto',
                 "lifeos people list --search ali",
@@ -37,6 +41,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "`people` is the intentional CLI resource name for this domain.",
                 "Use `list` as the primary query entrypoint for this resource.",
                 "Use the `batch` namespace for multi-record write operations.",
+                "Delete operations in the CLI always perform soft deletion.",
             ),
         ),
     )
@@ -48,7 +53,17 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     add_parser = add_documented_parser(
         people_subparsers,
         "add",
-        help_content=HelpContent(summary="Create a person", description="Create a new person."),
+        help_content=HelpContent(
+            summary="Create a person",
+            description=(
+                "Create a new person.\n\n"
+                "Use tags, nicknames, and location to capture lightweight relationship context."
+            ),
+            examples=(
+                'lifeos people add "Alice" --nickname ally --location Toronto',
+                'lifeos people add "Bob" --tag-id 11111111-1111-1111-1111-111111111111',
+            ),
+        ),
     )
     add_parser.add_argument("name", help="Person name")
     add_parser.add_argument("--description", help="Optional person description")
@@ -64,7 +79,18 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "list",
         help_content=HelpContent(
-            summary="List people", description="List people with optional search or tag filters."
+            summary="List people",
+            description=(
+                "List people with optional search or tag filters.\n\n"
+                "Use this as the primary query entrypoint for people rather than "
+                "expecting a separate search command."
+            ),
+            examples=(
+                "lifeos people list",
+                "lifeos people list --search ali",
+                "lifeos people list --tag-id 11111111-1111-1111-1111-111111111111 --limit 20",
+            ),
+            notes=("Search currently matches name, nicknames, and location.",),
         ),
     )
     list_parser.add_argument("--search", help="Search by name, nickname, or location")
@@ -77,7 +103,12 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show a person", description="Show one person with full metadata."
+            summary="Show a person",
+            description="Show one person with full metadata.",
+            examples=(
+                "lifeos people show 11111111-1111-1111-1111-111111111111",
+                "lifeos people show 11111111-1111-1111-1111-111111111111 --include-deleted",
+            ),
         ),
     )
     show_parser.add_argument("person_id", type=UUID, help="Person identifier")
@@ -88,7 +119,16 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update a person", description="Update mutable person fields."
+            summary="Update a person",
+            description=(
+                "Update mutable person fields.\n\n"
+                "Only explicitly supplied flags are changed; omitted fields are preserved."
+            ),
+            examples=(
+                'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
+                "lifeos people update 11111111-1111-1111-1111-111111111111 --tag-id "
+                "22222222-2222-2222-2222-222222222222",
+            ),
         ),
     )
     update_parser.add_argument("person_id", type=UUID, help="Person identifier")
@@ -107,7 +147,11 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete a person",
-            description="Soft-delete a person.",
+            description=(
+                "Soft-delete a person.\n\n"
+                "The record remains recoverable through deleted-aware inspection commands."
+            ),
+            examples=("lifeos people delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("person_id", type=UUID, help="Person identifier")
@@ -118,7 +162,15 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "batch",
         help_content=HelpContent(
             summary="Run batch people operations",
-            description="Run write operations that target multiple people in one command.",
+            description=(
+                "Run write operations that target multiple people in one command.\n\n"
+                "Use this namespace for bulk maintenance operations."
+            ),
+            examples=(
+                "lifeos people batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+            ),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
@@ -133,7 +185,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete multiple people",
-            description="Soft-delete multiple people.",
+            description="Soft-delete multiple people by identifier.",
+            notes=("Batch delete never performs hard deletion from the public CLI.",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="person_ids", noun="person")

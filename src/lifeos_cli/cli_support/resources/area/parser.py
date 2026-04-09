@@ -29,7 +29,9 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help_content=HelpContent(
             summary="Manage life areas",
             description=(
-                "Create and maintain high-level life areas such as work, health, or relationships."
+                "Create and maintain high-level life areas such as work, health, or "
+                "relationships.\n\n"
+                "Areas provide one of the top-level organizing layers for the rest of the system."
             ),
             examples=(
                 'lifeos area add "Health" --color "#16A34A"',
@@ -39,7 +41,9 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 "Use `list` as the primary query entrypoint for this resource.",
+                "Use areas to group visions and other higher-level planning objects.",
                 "Use the `batch` namespace for multi-record write operations.",
+                "Delete operations in the CLI always perform soft deletion.",
             ),
         ),
     )
@@ -53,7 +57,17 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "add",
         help_content=HelpContent(
             summary="Create an area",
-            description="Create a new area.",
+            description=(
+                "Create a new area.\n\n"
+                "Areas usually represent stable parts of life such as health, work, family, "
+                "or learning."
+            ),
+            examples=(
+                'lifeos area add "Health"',
+                'lifeos area add "Deep Work" --color "#2563EB" --icon brain --display-order 10',
+                'lifeos area add "Travel" --inactive',
+            ),
+            notes=("Use `--inactive` when the area should exist but not appear as active yet.",),
         ),
     )
     add_parser.add_argument("name", help="Area name")
@@ -69,7 +83,20 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "list",
         help_content=HelpContent(
             summary="List areas",
-            description="List areas in display order.",
+            description=(
+                "List areas in display order.\n\n"
+                "Use filters and pagination flags here instead of expecting a separate "
+                "search command."
+            ),
+            examples=(
+                "lifeos area list",
+                "lifeos area list --include-inactive",
+                "lifeos area list --include-deleted --limit 20 --offset 20",
+            ),
+            notes=(
+                "Soft-deleted areas are hidden unless `--include-deleted` is set.",
+                "Use `--limit` and `--offset` together for pagination.",
+            ),
         ),
     )
     add_include_deleted_argument(list_parser, noun="areas")
@@ -84,7 +111,15 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "show",
         help_content=HelpContent(
             summary="Show an area",
-            description="Show one area with full metadata.",
+            description=(
+                "Show one area with full metadata.\n\n"
+                "Use this action when you need exact field values instead of the compact list view."
+            ),
+            examples=(
+                "lifeos area show 11111111-1111-1111-1111-111111111111",
+                "lifeos area show 11111111-1111-1111-1111-111111111111 --include-deleted",
+            ),
+            notes=("Use `--include-deleted` to inspect a soft-deleted area.",),
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help="Area identifier")
@@ -96,7 +131,15 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "update",
         help_content=HelpContent(
             summary="Update an area",
-            description="Update mutable area fields.",
+            description=(
+                "Update mutable area fields.\n\n"
+                "Only explicitly provided flags are changed; omitted fields stay as they are."
+            ),
+            examples=(
+                'lifeos area update 11111111-1111-1111-1111-111111111111 --name "Fitness"',
+                "lifeos area update 11111111-1111-1111-1111-111111111111 "
+                "--display-order 20 --active",
+            ),
         ),
     )
     update_parser.add_argument("area_id", type=UUID, help="Area identifier")
@@ -118,7 +161,12 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete an area",
-            description="Soft-delete an area.",
+            description=(
+                "Soft-delete an area.\n\n"
+                "The record remains in the database and can still be inspected through "
+                "`list --include-deleted` or `show --include-deleted`."
+            ),
+            examples=("lifeos area delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("area_id", type=UUID, help="Area identifier")
@@ -129,7 +177,15 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary="Run batch area operations",
-            description="Run write operations that target multiple areas in one command.",
+            description=(
+                "Run write operations that target multiple areas in one command.\n\n"
+                "Use this namespace for bulk maintenance so the resource keeps a stable CLI shape."
+            ),
+            examples=(
+                "lifeos area batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+            ),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
@@ -144,7 +200,8 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete multiple areas",
-            description="Soft-delete multiple areas.",
+            description="Soft-delete multiple areas by identifier.",
+            notes=("Batch delete never performs hard deletion from the public CLI.",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="area_ids", noun="area")

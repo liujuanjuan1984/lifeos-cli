@@ -11,8 +11,8 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.task_queries import get_task
 from lifeos_cli.db.services.task_support import (
-    TaskNotFoundError,
     ParentTaskReferenceNotFoundError,
+    TaskNotFoundError,
     deduplicate_task_ids,
     ensure_vision_exists,
     validate_parent_task,
@@ -85,7 +85,9 @@ async def update_task(
     if parent_task_id == task_id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
     next_parent_task_id = parent_task_id if parent_task_id is not None else task.parent_task_id
-    await validate_parent_task(session, vision_id=task.vision_id, parent_task_id=next_parent_task_id)
+    await validate_parent_task(
+        session, vision_id=task.vision_id, parent_task_id=next_parent_task_id
+    )
     (
         normalized_cycle_type,
         normalized_cycle_days,
