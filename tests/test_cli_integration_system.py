@@ -5,7 +5,6 @@ from tests.cli_integration_support import (
     IntegrationContext,
     assert_ok,
     init_context,
-    integration_context,
     run_lifeos,
 )
 

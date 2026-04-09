@@ -7,7 +7,6 @@ from tests.cli_integration_support import (
     assert_ok,
     extract_created_id,
     init_context,
-    integration_context,
     run_lifeos,
 )
 
