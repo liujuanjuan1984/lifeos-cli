@@ -1,4 +1,4 @@
-"""Administrative database helpers for setup and diagnostics."""
+"""Database maintenance helpers for setup and diagnostics."""
 
 from __future__ import annotations
 
