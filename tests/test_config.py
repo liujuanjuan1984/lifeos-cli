@@ -12,6 +12,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    detect_default_language,
     validate_database_schema_name,
     validate_database_url,
     validate_day_starts_at,
@@ -163,6 +164,10 @@ def test_validate_timezone_name_rejects_unknown_values() -> None:
 
 def test_validate_language_accepts_bcp47_like_values() -> None:
     assert validate_language("zh_Hans.UTF-8") == "zh-Hans"
+
+
+def test_detect_default_language_uses_environment() -> None:
+    assert detect_default_language({"LANG": "zh_Hans.UTF-8"}) == "zh-Hans"
 
 
 def test_validate_day_starts_at_rejects_invalid_values() -> None:
@@ -323,3 +328,30 @@ def test_build_preferences_settings_uses_explicit_values(monkeypatch, tmp_path: 
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
     assert settings.config_file == config_path
+
+
+def test_build_preferences_settings_uses_environment_defaults(monkeypatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setenv("TZ", "America/Toronto")
+    monkeypatch.delenv("LC_ALL", raising=False)
+    monkeypatch.setenv("LANG", "zh_Hans.UTF-8")
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone=None,
+        language=None,
+        day_starts_at=None,
+        week_starts_on=None,
+        non_interactive=True,
+        is_interactive=False,
+        prompts=None,
+    )
+
+    settings = build_preferences_settings(request)
+
+    assert settings.timezone == "America/Toronto"
+    assert settings.language == "zh-Hans"
+    assert settings.day_starts_at == "00:00"
+    assert settings.week_starts_on == "monday"

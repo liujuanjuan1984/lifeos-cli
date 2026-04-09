@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -23,11 +23,13 @@ from lifeos_cli.db.services.event_support import (
     deduplicate_event_ids,
     ensure_event_area_exists,
     ensure_event_task_exists,
+    normalize_event_datetime,
     validate_event_priority,
     validate_event_status,
     validate_event_time_range,
     validate_event_title,
 )
+from lifeos_cli.time_preferences import get_utc_window_for_local_date
 
 
 async def _attach_event_links(session: AsyncSession, event: Event) -> Event:
@@ -66,8 +68,12 @@ async def create_event(
     person_ids: list[UUID] | None = None,
 ) -> Event:
     """Create a new event."""
+    normalized_start_time = normalize_event_datetime(start_time, field_name="start_time")
+    normalized_end_time = (
+        normalize_event_datetime(end_time, field_name="end_time") if end_time is not None else None
+    )
     normalized_title = validate_event_title(title)
-    validate_event_time_range(start_time=start_time, end_time=end_time)
+    validate_event_time_range(start_time=normalized_start_time, end_time=normalized_end_time)
     normalized_priority = validate_event_priority(priority)
     normalized_status = validate_event_status(status)
     await ensure_event_area_exists(session, area_id)
@@ -75,8 +81,8 @@ async def create_event(
     event = Event(
         title=normalized_title,
         description=description,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=normalized_start_time,
+        end_time=normalized_end_time,
         priority=normalized_priority,
         status=normalized_status,
         is_all_day=is_all_day,
@@ -127,6 +133,7 @@ async def list_events(
     task_id: UUID | None = None,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
+    local_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
@@ -134,6 +141,10 @@ async def list_events(
     offset: int = 0,
 ) -> list[Event]:
     """List events with optional filters."""
+    if local_date is not None:
+        local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
+        window_start = local_window_start
+        window_end = local_window_end_exclusive - timedelta(microseconds=1)
     stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
     if not include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
@@ -197,8 +208,22 @@ async def update_event(
     if event is None:
         raise EventNotFoundError(f"Event {event_id} was not found")
 
-    next_start_time = start_time if start_time is not None else event.start_time
-    next_end_time = None if clear_end_time else end_time if end_time is not None else event.end_time
+    normalized_start_time = (
+        normalize_event_datetime(start_time, field_name="start_time") if start_time else None
+    )
+    normalized_end_time = (
+        normalize_event_datetime(end_time, field_name="end_time") if end_time else None
+    )
+    next_start_time = (
+        normalized_start_time if normalized_start_time is not None else event.start_time
+    )
+    next_end_time = (
+        None
+        if clear_end_time
+        else normalized_end_time
+        if normalized_end_time is not None
+        else event.end_time
+    )
     validate_event_time_range(start_time=next_start_time, end_time=next_end_time)
 
     if title is not None:
@@ -207,12 +232,12 @@ async def update_event(
         event.description = None
     elif description is not None:
         event.description = description
-    if start_time is not None:
-        event.start_time = start_time
+    if normalized_start_time is not None:
+        event.start_time = normalized_start_time
     if clear_end_time:
         event.end_time = None
-    elif end_time is not None:
-        event.end_time = end_time
+    elif normalized_end_time is not None:
+        event.end_time = normalized_end_time
     if priority is not None:
         event.priority = validate_event_priority(priority)
     if status is not None:

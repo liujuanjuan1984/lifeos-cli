@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
@@ -44,6 +44,15 @@ def validate_timelog_time_range(*, start_time: datetime, end_time: datetime) -> 
     """Validate a timelog time range."""
     if end_time < start_time:
         raise TimelogValidationError("Timelog end time must be on or after the start time")
+
+
+def normalize_timelog_datetime(value: datetime, *, field_name: str) -> datetime:
+    """Normalize one timelog datetime to UTC for storage."""
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise TimelogValidationError(
+            f"Timelog {field_name} must include timezone information, for example `-04:00` or `Z`."
+        )
+    return value.astimezone(timezone.utc)
 
 
 def validate_tracking_method(tracking_method: str) -> str:

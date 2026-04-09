@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
@@ -116,9 +116,12 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog list --tracking-method manual "
                 "--window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
+                "lifeos timelog list --date 2026-04-10",
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
+                "Use `--date` to query one configured local day using your timezone and "
+                "`day_starts_at` preference.",
                 "Use `--title-contains` for lightweight text filtering instead of a "
                 "separate search command.",
             ),
@@ -130,6 +133,12 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
     list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
     list_parser.add_argument("--tag-id", type=UUID, help="Filter by linked tag")
+    list_parser.add_argument(
+        "--date",
+        dest="local_date",
+        type=date.fromisoformat,
+        help="Filter one configured local day in YYYY-MM-DD format",
+    )
     list_parser.add_argument("--window-start", type=_datetime_value, help="Window start time")
     list_parser.add_argument("--window-end", type=_datetime_value, help="Window end time")
     add_include_deleted_argument(list_parser, noun="timelogs")

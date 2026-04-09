@@ -180,6 +180,15 @@ def test_cli_parser_supports_event_add_command() -> None:
     assert len(args.person_ids) == 1
 
 
+def test_cli_parser_supports_event_list_by_local_date() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["event", "list", "--date", "2026-04-10"])
+
+    assert args.resource == "event"
+    assert args.event_command == "list"
+    assert str(args.local_date) == "2026-04-10"
+
+
 def test_cli_parser_supports_people_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["people", "add", "Alice", "--nickname", "ally"])
@@ -225,6 +234,15 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.content == "Draft release checklist"
     assert str(args.vision_id) == "11111111-1111-1111-1111-111111111111"
     assert args.priority == 3
+
+
+def test_cli_parser_supports_timelog_list_by_local_date() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["timelog", "list", "--date", "2026-04-10"])
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "list"
+    assert str(args.local_date) == "2026-04-10"
 
 
 def test_cli_parser_supports_task_list_person_filter() -> None:

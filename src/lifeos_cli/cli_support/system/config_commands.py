@@ -128,6 +128,7 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "Environment variables still override config file values at runtime.",
                 "Database credentials may be stored in plain text in the config file.",
                 "Preference values are also stored in the config file under [preferences].",
+                "Re-run `lifeos init` at any time to update stored preferences.",
             ),
         ),
     )

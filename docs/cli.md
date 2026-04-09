@@ -81,6 +81,8 @@ Initialize while persisting user preferences:
 lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday
 ```
 
+Re-run `lifeos init` to edit stored preferences later.
+
 Inspect the effective configuration:
 
 ```bash
@@ -104,10 +106,20 @@ lifeos db upgrade
 
 Current persisted preference keys:
 
-- `timezone`: default IANA timezone used for future local day boundaries and time-based summaries
+- `timezone`: default IANA timezone used for local timestamp rendering and local day boundaries
 - `language`: preferred language tag such as `en`, `en-CA`, or `zh-Hans`
-- `day_starts_at`: local day boundary in `HH:MM`
-- `week_starts_on`: preferred first day of the week (`monday` or `sunday`)
+- `day_starts_at`: local day boundary in `HH:MM` for date-based event/timelog queries and habit
+  day semantics
+- `week_starts_on`: preferred first day of the week (`monday` or `sunday`) for weekly habit stats
+
+Time storage and rendering rules:
+
+- `event` and `timelog` datetimes are stored in UTC-normalized form in PostgreSQL
+- CLI output renders timestamps in the configured `timezone`
+- `event list --date` and `timelog list --date` use the configured `timezone` and
+  `day_starts_at` together
+- habit "today" and weekly stats use the configured local operational day instead of raw server
+  midnight
 
 ## Notes
 
@@ -250,6 +262,7 @@ lifeos tag delete <tag-id>
 ```bash
 lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
 lifeos event list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
+lifeos event list --date 2026-04-10
 lifeos event show <event-id>
 lifeos event update <event-id> --status completed --clear-task
 lifeos event delete <event-id>
@@ -259,6 +272,7 @@ Current event notes:
 
 - `event` is the planned schedule object, not the todo object
 - use `--window-start` and `--window-end` to query overlapping calendar ranges
+- use `--date` to query one configured local day
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 
 ### Habit
@@ -277,6 +291,7 @@ Current habit notes:
 
 - a habit generates one dated `habit-action` row per day in its duration
 - updating start dates or duration automatically reconciles generated action rows
+- current-day and weekly stats use the configured timezone, `day_starts_at`, and `week_starts_on`
 - habit deletion is soft deletion only in the public CLI
 
 ### Habit Action
@@ -343,6 +358,7 @@ Current task notes:
 ```bash
 lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
 lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
+lifeos timelog list --date 2026-04-10
 lifeos timelog show <timelog-id>
 lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
 lifeos timelog delete <timelog-id>
@@ -351,6 +367,7 @@ lifeos timelog delete <timelog-id>
 Current timelog notes:
 
 - `timelog` is the actual time record and represents what really happened
+- use `--date` to query one configured local day
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - timelog end time is currently required because the record models completed time spent
 

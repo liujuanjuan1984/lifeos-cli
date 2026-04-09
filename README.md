@@ -47,6 +47,8 @@ uv tool install lifeos-cli
    lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00
    ```
 
+   Re-run `lifeos init` later to update stored preferences.
+
 2. Add a note:
 
    ```bash
@@ -73,6 +75,9 @@ uv tool install lifeos-cli
    lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
    lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
    ```
+
+   Datetimes are stored in UTC and rendered back in the configured local timezone. Local-day
+   filters use the configured `day_starts_at` boundary.
 
 6. Create and inspect a habit:
 

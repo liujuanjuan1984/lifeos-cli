@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
@@ -59,6 +59,15 @@ def validate_event_time_range(
     """Validate that an event time range is coherent."""
     if end_time is not None and end_time < start_time:
         raise EventValidationError("Event end time must be on or after the start time")
+
+
+def normalize_event_datetime(value: datetime, *, field_name: str) -> datetime:
+    """Normalize one event datetime to UTC for storage."""
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise EventValidationError(
+            f"Event {field_name} must include timezone information, for example `-04:00` or `Z`."
+        )
+    return value.astimezone(timezone.utc)
 
 
 def validate_event_priority(priority: int) -> int:

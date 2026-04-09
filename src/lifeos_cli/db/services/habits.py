@@ -34,6 +34,7 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_start_date,
     validate_habit_status,
 )
+from lifeos_cli.time_preferences import get_operational_date
 
 
 async def get_habit(
@@ -72,7 +73,7 @@ async def list_habits(
         if normalized_title:
             stmt = stmt.where(Habit.title == normalized_title)
     if active_window_only:
-        local_today = date.today()
+        local_today = get_operational_date()
         end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
         stmt = stmt.where(Habit.start_date <= local_today)
         stmt = stmt.where(end_expr >= local_today)
@@ -318,7 +319,7 @@ async def list_habit_actions(
     else:
         use_window = any(value is not None for value in (center_date, days_before, days_after))
         if use_window:
-            reference_date = center_date or date.today()
+            reference_date = center_date or get_operational_date()
             window_before = (
                 days_before if days_before is not None else DEFAULT_HABIT_ACTION_WINDOW_DAYS
             )
@@ -367,7 +368,7 @@ async def update_habit_action(
     action = await get_habit_action(session, action_id=action_id, include_deleted=False)
     if action is None:
         raise HabitActionNotFoundError(f"Habit action {action_id} was not found")
-    today = date.today()
+    today = get_operational_date()
     if action.action_date > today or (today - action.action_date).days > HABIT_EDITABLE_DAYS:
         raise InvalidHabitOperationError(
             "Habit action cannot be modified outside the allowed time window"

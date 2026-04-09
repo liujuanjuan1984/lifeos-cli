@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -82,6 +82,7 @@ def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch
     )
 
     assert event.title == "Doctor appointment"
+    assert event.start_time == utc_datetime(2026, 4, 10, 13, 0)
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -121,8 +122,57 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
     )
 
     assert timelog.title == "Deep work"
+    assert timelog.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert timelog.end_time == utc_datetime(2026, 4, 10, 14, 0)
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(event: object) -> None:
+        session.added_event = event
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_attach_event_links(_: object, event: object) -> object:
+        return event
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            title="Offset event",
+            start_time=datetime(2026, 4, 10, 9, 0, tzinfo=timezone(timedelta(hours=-4))),
+            end_time=datetime(2026, 4, 10, 10, 0, tzinfo=timezone(timedelta(hours=-4))),
+        )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+
+
+def test_create_timelog_rejects_naive_datetimes() -> None:
+    session = SimpleNamespace()
+
+    with pytest.raises(timelogs.TimelogValidationError):
+        asyncio.run(
+            timelogs.create_timelog(
+                cast(Any, session),
+                title="Naive record",
+                start_time=datetime(2026, 4, 10, 13, 0),
+                end_time=datetime(2026, 4, 10, 14, 0),
+            )
+        )
 
 
 def test_validate_planning_cycle_requires_complete_fields() -> None:

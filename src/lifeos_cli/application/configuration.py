@@ -10,14 +10,12 @@ from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
     DEFAULT_DAY_STARTS_AT,
-    DEFAULT_LANGUAGE,
     DEFAULT_WEEK_STARTS_ON,
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    detect_default_language,
     detect_default_timezone,
-    get_database_settings,
-    get_preferences_settings,
     resolve_config_path,
     validate_database_schema_name,
     validate_database_url,
@@ -58,7 +56,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     """Build database settings from explicit input, current config, and prompts."""
     config_path = resolve_config_path()
     try:
-        current = get_database_settings()
+        current = DatabaseSettings.from_env()
     except (ConfigurationError, ValueError):
         current = DatabaseSettings(
             database_url=None,
@@ -99,11 +97,11 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
     """Build preference settings from explicit input and current config."""
     config_path = resolve_config_path()
     try:
-        current = get_preferences_settings()
+        current = PreferencesSettings.from_env()
     except (ConfigurationError, ValueError):
         current = PreferencesSettings(
             timezone=detect_default_timezone(),
-            language=DEFAULT_LANGUAGE,
+            language=detect_default_language(),
             day_starts_at=DEFAULT_DAY_STARTS_AT,
             week_starts_on=DEFAULT_WEEK_STARTS_ON,
             config_file=config_path,

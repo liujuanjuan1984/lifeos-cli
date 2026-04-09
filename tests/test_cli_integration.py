@@ -100,7 +100,7 @@ def _drop_schema(database_url: str, schema_name: str) -> None:
             )
 
 
-def _init_context(context: IntegrationContext) -> None:
+def _init_context(context: IntegrationContext, *extra_args: str) -> None:
     init_result = _run_lifeos(
         context,
         "init",
@@ -109,6 +109,7 @@ def _init_context(context: IntegrationContext) -> None:
         context.database_url,
         "--schema",
         context.schema,
+        *extra_args,
     )
     _assert_ok(init_result)
     assert "Database connection succeeded." in init_result.stdout
@@ -1138,3 +1139,95 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert first_timelog_id in deleted_timelog_result.stdout
     assert second_timelog_id in deleted_timelog_result.stdout
     assert "deleted" in deleted_timelog_result.stdout
+
+
+def test_real_cli_time_preferences_affect_display_and_local_date_filters(
+    integration_context: IntegrationContext,
+) -> None:
+    _init_context(
+        integration_context,
+        "--timezone",
+        "America/Toronto",
+        "--day-starts-at",
+        "04:00",
+        "--week-starts-on",
+        "sunday",
+        "--language",
+        "zh-Hans",
+    )
+
+    event_result = _run_lifeos(
+        integration_context,
+        "event",
+        "add",
+        "Late night planning",
+        "--start-time",
+        "2026-04-10T03:30:00+00:00",
+        "--end-time",
+        "2026-04-10T05:00:00+00:00",
+    )
+    _assert_ok(event_result)
+    event_id = _extract_created_id(event_result.stdout)
+
+    timelog_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Late night work",
+        "--start-time",
+        "2026-04-10T03:30:00+00:00",
+        "--end-time",
+        "2026-04-10T05:00:00+00:00",
+    )
+    _assert_ok(timelog_result)
+    timelog_id = _extract_created_id(timelog_result.stdout)
+
+    event_show_result = _run_lifeos(integration_context, "event", "show", event_id)
+    _assert_ok(event_show_result)
+    assert "start_time: 2026-04-09T23:30:00-04:00" in event_show_result.stdout
+    assert "end_time: 2026-04-10T01:00:00-04:00" in event_show_result.stdout
+
+    timelog_show_result = _run_lifeos(integration_context, "timelog", "show", timelog_id)
+    _assert_ok(timelog_show_result)
+    assert "start_time: 2026-04-09T23:30:00-04:00" in timelog_show_result.stdout
+    assert "end_time: 2026-04-10T01:00:00-04:00" in timelog_show_result.stdout
+
+    event_date_result = _run_lifeos(
+        integration_context,
+        "event",
+        "list",
+        "--date",
+        "2026-04-09",
+    )
+    _assert_ok(event_date_result)
+    assert event_id in event_date_result.stdout
+
+    timelog_date_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--date",
+        "2026-04-09",
+    )
+    _assert_ok(timelog_date_result)
+    assert timelog_id in timelog_date_result.stdout
+
+    missing_event_date_result = _run_lifeos(
+        integration_context,
+        "event",
+        "list",
+        "--date",
+        "2026-04-10",
+    )
+    _assert_ok(missing_event_date_result)
+    assert event_id not in missing_event_date_result.stdout
+
+    missing_timelog_date_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--date",
+        "2026-04-10",
+    )
+    _assert_ok(missing_timelog_date_result)
+    assert timelog_id not in missing_timelog_date_result.stdout
