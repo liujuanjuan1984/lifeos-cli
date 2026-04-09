@@ -47,6 +47,8 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
             f"progress_percentage: {stats['progress_percentage']:.1f}",
             f"current_streak: {stats['current_streak']}",
             f"longest_streak: {stats['longest_streak']}",
+            f"current_week_start: {stats['current_week_start']}",
+            f"current_week_end: {stats['current_week_end']}",
             f"completed_actions: {stats['completed_actions']}",
             f"missed_actions: {stats['missed_actions']}",
             f"skipped_actions: {stats['skipped_actions']}",
@@ -69,6 +71,8 @@ def _format_habit_stats(stats: dict[str, object]) -> str:
             f"progress_percentage: {stats['progress_percentage']:.1f}",
             f"current_streak: {stats['current_streak']}",
             f"longest_streak: {stats['longest_streak']}",
+            f"current_week_start: {stats['current_week_start']}",
+            f"current_week_end: {stats['current_week_end']}",
         )
     )
 

@@ -44,21 +44,6 @@ class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     habit = relationship("Habit", back_populates="actions")
 
-    @property
-    def is_today(self) -> bool:
-        """Return whether the action is for today."""
-        return self.action_date == date.today()
-
-    @property
-    def is_past(self) -> bool:
-        """Return whether the action is for a past day."""
-        return self.action_date < date.today()
-
-    @property
-    def is_future(self) -> bool:
-        """Return whether the action is for a future day."""
-        return self.action_date > date.today()
-
     def __repr__(self) -> str:
         return (
             f"HabitAction(id={self.id!s}, habit_id={self.habit_id!s}, "

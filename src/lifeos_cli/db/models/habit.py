@@ -46,21 +46,6 @@ class Habit(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         """Return the computed final date covered by the habit."""
         return self.start_date + timedelta(days=self.duration_days - 1)
 
-    @property
-    def is_completed(self) -> bool:
-        """Return whether the habit duration has fully elapsed."""
-        return date.today() > self.end_date
-
-    @property
-    def progress_percentage(self) -> float:
-        """Return progress based on the current date and duration."""
-        if self.is_completed:
-            return 100.0
-        days_elapsed = (date.today() - self.start_date).days + 1
-        if days_elapsed <= 0:
-            return 0.0
-        return min(100.0, (days_elapsed / self.duration_days) * 100.0)
-
     def __repr__(self) -> str:
         return (
             f"Habit(id={self.id!s}, title={self.title!r}, "

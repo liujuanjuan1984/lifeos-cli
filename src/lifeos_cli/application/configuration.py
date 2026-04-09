@@ -9,12 +9,20 @@ from pathlib import Path
 from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
+    DEFAULT_DAY_STARTS_AT,
+    DEFAULT_WEEK_STARTS_ON,
     ConfigurationError,
     DatabaseSettings,
-    get_database_settings,
+    PreferencesSettings,
+    detect_default_language,
+    detect_default_timezone,
     resolve_config_path,
     validate_database_schema_name,
     validate_database_url,
+    validate_day_starts_at,
+    validate_language,
+    validate_timezone_name,
+    validate_week_starts_on,
     write_database_settings,
 )
 
@@ -35,6 +43,10 @@ class InitializationRequest:
     database_url: str | None
     schema: str | None
     echo: bool | None
+    timezone: str | None
+    language: str | None
+    day_starts_at: str | None
+    week_starts_on: str | None
     non_interactive: bool
     is_interactive: bool
     prompts: InitializationPrompts | None = None
@@ -44,7 +56,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     """Build database settings from explicit input, current config, and prompts."""
     config_path = resolve_config_path()
     try:
-        current = get_database_settings()
+        current = DatabaseSettings.from_env()
     except (ConfigurationError, ValueError):
         current = DatabaseSettings(
             database_url=None,
@@ -81,8 +93,42 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     )
 
 
-def persist_database_settings(settings: DatabaseSettings) -> Path:
+def build_preferences_settings(request: InitializationRequest) -> PreferencesSettings:
+    """Build preference settings from explicit input and current config."""
+    config_path = resolve_config_path()
+    try:
+        current = PreferencesSettings.from_env()
+    except (ConfigurationError, ValueError):
+        current = PreferencesSettings(
+            timezone=detect_default_timezone(),
+            language=detect_default_language(),
+            day_starts_at=DEFAULT_DAY_STARTS_AT,
+            week_starts_on=DEFAULT_WEEK_STARTS_ON,
+            config_file=config_path,
+        )
+
+    timezone_value = request.timezone or current.timezone
+    language_value = request.language or current.language
+    day_starts_at_value = request.day_starts_at or current.day_starts_at
+    week_starts_on_value = request.week_starts_on or current.week_starts_on
+
+    return PreferencesSettings(
+        timezone=validate_timezone_name(timezone_value),
+        language=validate_language(language_value),
+        day_starts_at=validate_day_starts_at(day_starts_at_value),
+        week_starts_on=validate_week_starts_on(week_starts_on_value),
+        config_file=config_path,
+    )
+
+
+def persist_runtime_settings(
+    database_settings: DatabaseSettings,
+    preferences_settings: PreferencesSettings,
+) -> Path:
     """Write config changes and refresh runtime caches."""
-    config_path = write_database_settings(settings)
+    config_path = write_database_settings(
+        database_settings,
+        preferences=preferences_settings,
+    )
     refresh_runtime_configuration()
     return config_path

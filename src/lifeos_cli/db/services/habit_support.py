@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.time_preferences import get_current_week_bounds, get_operational_date
 from lifeos_cli.db.base import utc_now
 
 if TYPE_CHECKING:
@@ -117,7 +118,7 @@ def validate_habit_duration(duration_days: int) -> int:
 
 def validate_habit_start_date(start_date: date) -> date:
     """Validate that a habit does not begin too far in the past."""
-    if start_date < date.today() - timedelta(days=HABIT_EDITABLE_DAYS):
+    if start_date < get_operational_date() - timedelta(days=HABIT_EDITABLE_DAYS):
         raise HabitValidationError(
             f"Start date cannot be more than {HABIT_EDITABLE_DAYS} days in the past"
         )
@@ -145,7 +146,7 @@ async def ensure_active_capacity(
     """Ensure the active habit cap has not been exceeded."""
     from lifeos_cli.db.models.habit import Habit
 
-    local_today = date.today()
+    local_today = get_operational_date()
     end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
     filters = [
         Habit.deleted_at.is_(None),
@@ -170,7 +171,7 @@ async def refresh_habit_expiration(
     """Mark active habits as expired when their end date is in the past."""
     from lifeos_cli.db.models.habit import Habit
 
-    local_today = date.today()
+    local_today = get_operational_date()
     end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
     filters = [
         Habit.deleted_at.is_(None),
@@ -187,6 +188,7 @@ async def refresh_habit_expiration(
 
 def build_habit_stats_payload(habit: Habit, actions: list[HabitAction]) -> dict[str, object]:
     """Build stats shared by overview, show, and stats commands."""
+    current_week_start, current_week_end = get_current_week_bounds()
     total_actions = len(actions)
     completed_actions = len(
         [
@@ -207,13 +209,15 @@ def build_habit_stats_payload(habit: Habit, actions: list[HabitAction]) -> dict[
         "progress_percentage": progress_percentage,
         "current_streak": calculate_current_streak(actions),
         "longest_streak": calculate_longest_streak(actions),
+        "current_week_start": current_week_start,
+        "current_week_end": current_week_end,
     }
 
 
 def calculate_current_streak(actions: list[HabitAction]) -> int:
     """Return the current streak of completed actions."""
     streak = 0
-    today = date.today()
+    today = get_operational_date()
     for action in sorted(actions, key=lambda row: row.action_date, reverse=True):
         if action.action_date > today:
             continue

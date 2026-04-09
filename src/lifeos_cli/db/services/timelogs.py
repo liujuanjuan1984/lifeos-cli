@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.timelog import Timelog
@@ -23,6 +24,7 @@ from lifeos_cli.db.services.timelog_support import (
     deduplicate_timelog_ids,
     ensure_timelog_area_exists,
     ensure_timelog_task_exists,
+    normalize_timelog_datetime,
     validate_energy_level,
     validate_timelog_time_range,
     validate_timelog_title,
@@ -73,16 +75,21 @@ async def create_timelog(
     person_ids: list[UUID] | None = None,
 ) -> Timelog:
     """Create a new timelog."""
+    normalized_start_time = normalize_timelog_datetime(start_time, field_name="start_time")
+    normalized_end_time = normalize_timelog_datetime(end_time, field_name="end_time")
     normalized_title = validate_timelog_title(title)
-    validate_timelog_time_range(start_time=start_time, end_time=end_time)
+    validate_timelog_time_range(
+        start_time=normalized_start_time,
+        end_time=normalized_end_time,
+    )
     normalized_tracking_method = validate_tracking_method(tracking_method)
     normalized_energy_level = validate_energy_level(energy_level)
     await ensure_timelog_area_exists(session, area_id)
     await ensure_timelog_task_exists(session, task_id)
     timelog = Timelog(
         title=normalized_title,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=normalized_start_time,
+        end_time=normalized_end_time,
         tracking_method=normalized_tracking_method,
         location=location,
         energy_level=normalized_energy_level,
@@ -137,6 +144,7 @@ async def list_timelogs(
     task_id: UUID | None = None,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
+    local_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
@@ -144,6 +152,10 @@ async def list_timelogs(
     offset: int = 0,
 ) -> list[Timelog]:
     """List timelogs with optional filters."""
+    if local_date is not None:
+        local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
+        window_start = local_window_start
+        window_end = local_window_end_exclusive - timedelta(microseconds=1)
     stmt = select(Timelog).options(selectinload(Timelog.area), selectinload(Timelog.task))
     if not include_deleted:
         stmt = stmt.where(Timelog.deleted_at.is_(None))
@@ -204,16 +216,24 @@ async def update_timelog(
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
 
-    next_start_time = start_time if start_time is not None else timelog.start_time
-    next_end_time = end_time if end_time is not None else timelog.end_time
+    normalized_start_time = (
+        normalize_timelog_datetime(start_time, field_name="start_time") if start_time else None
+    )
+    normalized_end_time = (
+        normalize_timelog_datetime(end_time, field_name="end_time") if end_time else None
+    )
+    next_start_time = (
+        normalized_start_time if normalized_start_time is not None else timelog.start_time
+    )
+    next_end_time = normalized_end_time if normalized_end_time is not None else timelog.end_time
     validate_timelog_time_range(start_time=next_start_time, end_time=next_end_time)
 
     if title is not None:
         timelog.title = validate_timelog_title(title)
-    if start_time is not None:
-        timelog.start_time = start_time
-    if end_time is not None:
-        timelog.end_time = end_time
+    if normalized_start_time is not None:
+        timelog.start_time = normalized_start_time
+    if normalized_end_time is not None:
+        timelog.end_time = normalized_end_time
     if tracking_method is not None:
         timelog.tracking_method = validate_tracking_method(tracking_method)
     if clear_location:

@@ -88,6 +88,14 @@ def handle_timelog_add(args: argparse.Namespace) -> int:
 
 
 async def handle_timelog_list_async(args: argparse.Namespace) -> int:
+    if args.local_date is not None and (
+        args.window_start is not None or args.window_end is not None
+    ):
+        print(
+            "Use either --date or --window-start/--window-end, not both.",
+            file=sys.stderr,
+        )
+        return 1
     async with db_session.session_scope() as session:
         try:
             timelogs = await timelog_services.list_timelogs(
@@ -98,6 +106,7 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
+                local_date=args.local_date,
                 window_start=args.window_start,
                 window_end=args.window_end,
                 include_deleted=args.include_deleted,

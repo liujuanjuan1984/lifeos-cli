@@ -9,7 +9,8 @@ from lifeos_cli.application.configuration import (
     InitializationPrompts,
     InitializationRequest,
     build_database_settings,
-    persist_database_settings,
+    build_preferences_settings,
+    persist_runtime_settings,
 )
 from lifeos_cli.application.database import (
     ping_configured_database,
@@ -29,6 +30,7 @@ from lifeos_cli.cli_support.runtime_utils import (
 )
 from lifeos_cli.config import (
     get_database_settings,
+    get_preferences_settings,
 )
 
 
@@ -40,31 +42,39 @@ async def _run_init_ping() -> int:
 
 def _handle_init(args: argparse.Namespace) -> int:
     """Initialize local configuration and verify database connectivity."""
-    settings = build_database_settings(
-        InitializationRequest(
-            database_url=args.database_url,
-            schema=args.schema,
-            echo=args.echo,
-            non_interactive=args.non_interactive,
-            is_interactive=sys.stdin.isatty(),
-            prompts=InitializationPrompts(
-                prompt_database_url=lambda default: init_prompts.prompt_database_url(
-                    default=default
-                ),
-                prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
-                    default=default
-                ),
-                prompt_database_echo=lambda default: init_prompts.prompt_bool(
-                    "Enable SQL echo logging",
-                    default=default,
-                ),
+    request = InitializationRequest(
+        database_url=args.database_url,
+        schema=args.schema,
+        echo=args.echo,
+        timezone=args.timezone,
+        language=args.language,
+        day_starts_at=args.day_starts_at,
+        week_starts_on=args.week_starts_on,
+        non_interactive=args.non_interactive,
+        is_interactive=sys.stdin.isatty(),
+        prompts=InitializationPrompts(
+            prompt_database_url=lambda default: init_prompts.prompt_database_url(default=default),
+            prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
+                default=default
             ),
-        )
+            prompt_database_echo=lambda default: init_prompts.prompt_bool(
+                "Enable SQL echo logging",
+                default=default,
+            ),
+        ),
     )
-    config_path = persist_database_settings(settings)
+    database_settings = build_database_settings(request)
+    preferences_settings = build_preferences_settings(request)
+    config_path = persist_runtime_settings(database_settings, preferences_settings)
 
     print(f"Wrote config file: {config_path}")
-    print(format_config_summary(settings, show_secrets=False))
+    print(
+        format_config_summary(
+            database_settings,
+            preferences_settings,
+            show_secrets=False,
+        )
+    )
 
     if args.skip_ping:
         print("Skipped database connectivity check.")
@@ -83,8 +93,13 @@ def _handle_init(args: argparse.Namespace) -> int:
 
 def _handle_config_show(args: argparse.Namespace) -> int:
     """Show the effective runtime configuration."""
-    settings = get_database_settings()
-    print(format_config_summary(settings, show_secrets=args.show_secrets))
+    print(
+        format_config_summary(
+            get_database_settings(),
+            get_preferences_settings(),
+            show_secrets=args.show_secrets,
+        )
+    )
     return 0
 
 
@@ -106,12 +121,14 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos",
                 "lifeos init --non-interactive --database-url "
                 "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
-                "--skip-migrate",
+                "--timezone America/Toronto --language zh-Hans --skip-migrate",
             ),
             notes=(
                 "Configuration is written to ~/.config/lifeos/config.toml by default.",
                 "Environment variables still override config file values at runtime.",
                 "Database credentials may be stored in plain text in the config file.",
+                "Preference values are also stored in the config file under [preferences].",
+                "Re-run `lifeos init` at any time to update stored preferences.",
             ),
         ),
     )
@@ -129,6 +146,26 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action=argparse.BooleanOptionalAction,
         default=None,
         help="Enable SQLAlchemy SQL echo logging in the config file",
+    )
+    init_parser.add_argument(
+        "--timezone",
+        default=None,
+        help="Default IANA timezone for local day boundaries and time-based summaries",
+    )
+    init_parser.add_argument(
+        "--language",
+        default=None,
+        help="Preferred language tag, for example en, en-CA, or zh-Hans",
+    )
+    init_parser.add_argument(
+        "--day-starts-at",
+        default=None,
+        help="Local day boundary in HH:MM, used for future time-based grouping logic",
+    )
+    init_parser.add_argument(
+        "--week-starts-on",
+        default=None,
+        help="Preferred first day of week: monday or sunday",
     )
     init_parser.add_argument(
         "--non-interactive",
@@ -179,7 +216,11 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary="Show effective configuration",
             description="Print the effective config values used by the current process.",
             examples=("lifeos config show",),
-            notes=("Database URLs hide passwords by default. Use --show-secrets when needed.",),
+            notes=(
+                "Database URLs hide passwords by default. Use --show-secrets when needed.",
+                "Preferences are resolved from the [preferences] TOML table and optional "
+                "LIFEOS_* overrides.",
+            ),
         ),
     )
     show_parser.add_argument(

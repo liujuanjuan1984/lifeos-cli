@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
+    PreferencesSettings,
     clear_config_cache,
     get_database_settings,
 )
@@ -29,13 +30,22 @@ def refresh_runtime_configuration() -> None:
     clear_session_cache()
 
 
-def format_config_summary(settings: DatabaseSettings, *, show_secrets: bool = False) -> str:
+def format_config_summary(
+    database_settings: DatabaseSettings,
+    preferences_settings: PreferencesSettings,
+    *,
+    show_secrets: bool = False,
+) -> str:
     """Render effective config values for display."""
     lines = [
-        f"Config file: {settings.config_file}",
-        f"Database URL: {settings.render_database_url(show_secrets=show_secrets)}",
-        f"Database schema: {settings.database_schema}",
-        f"Database echo: {'true' if settings.database_echo else 'false'}",
+        f"Config file: {database_settings.config_file}",
+        f"Database URL: {database_settings.render_database_url(show_secrets=show_secrets)}",
+        f"Database schema: {database_settings.database_schema}",
+        f"Database echo: {'true' if database_settings.database_echo else 'false'}",
+        f"Preference timezone: {preferences_settings.timezone}",
+        f"Preference language: {preferences_settings.language}",
+        f"Preference day starts at: {preferences_settings.day_starts_at}",
+        f"Preference week starts on: {preferences_settings.week_starts_on}",
     ]
     return "\n".join(lines)
 
