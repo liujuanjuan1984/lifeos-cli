@@ -6,6 +6,11 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 from lifeos_cli.cli_support.task_handlers import (
     handle_task_add,
     handle_task_batch_delete,
@@ -81,16 +86,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     )
     list_parser.add_argument("--parent-task-id", type=UUID, help="Filter by parent task identifier")
     list_parser.add_argument("--status", help="Filter by task status")
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted tasks"
-    )
-    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of rows")
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of rows to skip",
-    )
+    add_include_deleted_argument(list_parser, noun="tasks")
+    add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_task_list)
 
     show_parser = add_documented_parser(
@@ -101,11 +98,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("task_id", type=UUID, help="Task identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow deleted tasks",
-    )
+    add_include_deleted_argument(show_parser, noun="tasks", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_task_show)
 
     update_parser = add_documented_parser(
@@ -164,12 +157,5 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description="Soft-delete multiple tasks.",
         ),
     )
-    batch_delete_parser.add_argument(
-        "--ids",
-        dest="task_ids",
-        type=UUID,
-        nargs="+",
-        required=True,
-        help="Task identifiers to delete",
-    )
+    add_identifier_list_argument(batch_delete_parser, dest="task_ids", noun="task")
     batch_delete_parser.set_defaults(handler=handle_task_batch_delete)

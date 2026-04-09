@@ -16,6 +16,10 @@ from lifeos_cli.cli_support.note_handlers import (
     handle_note_show,
     handle_note_update,
 )
+from lifeos_cli.cli_support.parser_common import (
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 
 
 def build_note_add_parser(
@@ -46,7 +50,9 @@ def build_note_add_parser(
     )
     add_parser.add_argument("content", nargs="?", help="Inline note content")
     add_parser.add_argument(
-        "--stdin", action="store_true", help="Read note content from standard input"
+        "--stdin",
+        action="store_true",
+        help="Read note content from standard input",
     )
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
     add_parser.set_defaults(handler=handle_note_add)
@@ -76,15 +82,8 @@ def build_note_list_parser(
             ),
         ),
     )
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted notes"
-    )
-    list_parser.add_argument(
-        "--limit", type=int, default=100, help="Maximum number of notes to return"
-    )
-    list_parser.add_argument(
-        "--offset", type=int, default=0, help="Number of notes to skip before listing"
-    )
+    add_include_deleted_argument(list_parser, noun="notes")
+    add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=handle_note_list)
 
 
@@ -114,20 +113,8 @@ def build_note_search_parser(
         ),
     )
     search_parser.add_argument("query", help="Search query string")
-    search_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Include soft-deleted notes in the search scope",
-    )
-    search_parser.add_argument(
-        "--limit", type=int, default=100, help="Maximum number of matching notes to return"
-    )
-    search_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of matching notes to skip before printing results",
-    )
+    add_include_deleted_argument(search_parser, noun="notes in the search scope")
+    add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=handle_note_search)
 
 
@@ -152,9 +139,7 @@ def build_note_show_parser(
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    show_parser.add_argument(
-        "--include-deleted", action="store_true", help="Allow loading a soft-deleted note"
-    )
+    add_include_deleted_argument(show_parser, noun="notes", help_prefix="Allow loading")
     show_parser.set_defaults(handler=handle_note_show)
 
 

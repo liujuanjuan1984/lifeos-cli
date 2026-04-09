@@ -6,6 +6,11 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 from lifeos_cli.cli_support.vision_handlers import (
     handle_vision_add,
     handle_vision_batch_delete,
@@ -73,21 +78,8 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     )
     list_parser.add_argument("--status", help="Filter by status")
     list_parser.add_argument("--area-id", type=UUID, help="Filter by area identifier")
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted visions"
-    )
-    list_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Maximum number of rows",
-    )
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of rows to skip",
-    )
+    add_include_deleted_argument(list_parser, noun="visions")
+    add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_vision_list)
 
     show_parser = add_documented_parser(
@@ -98,11 +90,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     show_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow deleted visions",
-    )
+    add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_vision_show)
 
     update_parser = add_documented_parser(
@@ -156,12 +144,5 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             description="Soft-delete multiple visions.",
         ),
     )
-    batch_delete_parser.add_argument(
-        "--ids",
-        dest="vision_ids",
-        type=UUID,
-        nargs="+",
-        required=True,
-        help="Vision identifiers to delete",
-    )
+    add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")
     batch_delete_parser.set_defaults(handler=handle_vision_batch_delete)

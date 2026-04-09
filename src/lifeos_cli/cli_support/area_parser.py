@@ -14,6 +14,11 @@ from lifeos_cli.cli_support.area_handlers import (
     handle_area_update,
 )
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 
 
 def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -67,24 +72,11 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description="List areas in display order.",
         ),
     )
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted areas"
-    )
+    add_include_deleted_argument(list_parser, noun="areas")
     list_parser.add_argument(
         "--include-inactive", action="store_true", help="Include inactive areas"
     )
-    list_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Maximum number of rows",
-    )
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of rows to skip",
-    )
+    add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_area_list)
 
     show_parser = add_documented_parser(
@@ -96,11 +88,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help="Area identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow deleted areas",
-    )
+    add_include_deleted_argument(show_parser, noun="areas", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_area_show)
 
     update_parser = add_documented_parser(
@@ -159,12 +147,5 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description="Soft-delete multiple areas.",
         ),
     )
-    batch_delete_parser.add_argument(
-        "--ids",
-        dest="area_ids",
-        type=UUID,
-        nargs="+",
-        required=True,
-        help="Area identifiers to delete",
-    )
+    add_identifier_list_argument(batch_delete_parser, dest="area_ids", noun="area")
     batch_delete_parser.set_defaults(handler=handle_area_batch_delete)

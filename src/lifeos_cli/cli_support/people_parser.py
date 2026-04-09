@@ -6,6 +6,11 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 from lifeos_cli.cli_support.people_handlers import (
     handle_people_add,
     handle_people_batch_delete,
@@ -64,16 +69,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     )
     list_parser.add_argument("--search", help="Search by name, nickname, or location")
     list_parser.add_argument("--tag-id", type=UUID, help="Filter by tag identifier")
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted people"
-    )
-    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of rows")
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of rows to skip",
-    )
+    add_include_deleted_argument(list_parser, noun="people")
+    add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_people_list)
 
     show_parser = add_documented_parser(
@@ -84,11 +81,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     show_parser.add_argument("person_id", type=UUID, help="Person identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow deleted people",
-    )
+    add_include_deleted_argument(show_parser, noun="people", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_people_show)
 
     update_parser = add_documented_parser(
@@ -143,12 +136,5 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             description="Soft-delete multiple people.",
         ),
     )
-    batch_delete_parser.add_argument(
-        "--ids",
-        dest="person_ids",
-        type=UUID,
-        nargs="+",
-        required=True,
-        help="Person identifiers to delete",
-    )
+    add_identifier_list_argument(batch_delete_parser, dest="person_ids", noun="person")
     batch_delete_parser.set_defaults(handler=handle_people_batch_delete)

@@ -6,6 +6,11 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
 from lifeos_cli.cli_support.tag_handlers import (
     handle_tag_add,
     handle_tag_batch_delete,
@@ -60,21 +65,8 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     )
     list_parser.add_argument("--entity-type", help="Filter by entity type")
     list_parser.add_argument("--category", help="Filter by category")
-    list_parser.add_argument(
-        "--include-deleted", action="store_true", help="Include soft-deleted tags"
-    )
-    list_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Maximum number of rows",
-    )
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of rows to skip",
-    )
+    add_include_deleted_argument(list_parser, noun="tags")
+    add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_tag_list)
 
     show_parser = add_documented_parser(
@@ -85,11 +77,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         ),
     )
     show_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow deleted tags",
-    )
+    add_include_deleted_argument(show_parser, noun="tags", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_tag_show)
 
     update_parser = add_documented_parser(
@@ -139,12 +127,5 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             description="Soft-delete multiple tags.",
         ),
     )
-    batch_delete_parser.add_argument(
-        "--ids",
-        dest="tag_ids",
-        type=UUID,
-        nargs="+",
-        required=True,
-        help="Tag identifiers to delete",
-    )
+    add_identifier_list_argument(batch_delete_parser, dest="tag_ids", noun="tag")
     batch_delete_parser.set_defaults(handler=handle_tag_batch_delete)

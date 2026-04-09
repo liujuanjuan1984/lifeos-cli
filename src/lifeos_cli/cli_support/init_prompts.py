@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import sys
 
-from lifeos_cli.config import ConfigurationError, validate_database_schema_name, validate_database_url
+from lifeos_cli.config import (
+    ConfigurationError,
+    validate_database_schema_name,
+    validate_database_url,
+)
 
 
 def prompt_text(label: str, *, default: str | None = None) -> str:
