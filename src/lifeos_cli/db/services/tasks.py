@@ -273,32 +273,28 @@ async def update_task(
     return task
 
 
-async def delete_task(session: AsyncSession, *, task_id: UUID, hard_delete: bool = False) -> None:
-    """Delete a task."""
-    task = await get_task(session, task_id=task_id, include_deleted=hard_delete)
+async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
+    """Soft-delete a task."""
+    task = await get_task(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
-    if hard_delete:
-        await session.delete(task)
-    else:
-        task.soft_delete()
-        await session.flush()
+    task.soft_delete()
+    await session.flush()
 
 
 async def batch_delete_tasks(
     session: AsyncSession,
     *,
     task_ids: list[UUID],
-    hard_delete: bool = False,
 ) -> BatchDeleteResult:
-    """Delete multiple tasks while preserving per-task error reporting."""
+    """Soft-delete multiple tasks while preserving per-task error reporting."""
     deleted_count = 0
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
     for task_id in _deduplicate_task_ids(task_ids):
         try:
-            await delete_task(session, task_id=task_id, hard_delete=hard_delete)
+            await delete_task(session, task_id=task_id)
             deleted_count += 1
         except TaskNotFoundError as exc:
             failed_ids.append(task_id)

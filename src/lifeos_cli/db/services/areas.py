@@ -128,33 +128,29 @@ async def update_area(
     return area
 
 
-async def delete_area(session: AsyncSession, *, area_id: UUID, hard_delete: bool = False) -> None:
-    """Delete an area."""
-    area = await get_area(session, area_id=area_id, include_deleted=hard_delete)
+async def delete_area(session: AsyncSession, *, area_id: UUID) -> None:
+    """Soft-delete an area."""
+    area = await get_area(session, area_id=area_id, include_deleted=False)
     if area is None:
         raise AreaNotFoundError(f"Area {area_id} was not found")
-    if hard_delete:
-        await session.delete(area)
-    else:
-        area.soft_delete()
-        area.is_active = False
-        await session.flush()
+    area.soft_delete()
+    area.is_active = False
+    await session.flush()
 
 
 async def batch_delete_areas(
     session: AsyncSession,
     *,
     area_ids: list[UUID],
-    hard_delete: bool = False,
 ) -> BatchDeleteResult:
-    """Delete multiple areas while preserving per-area error reporting."""
+    """Soft-delete multiple areas while preserving per-area error reporting."""
     deleted_count = 0
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
     for area_id in _deduplicate_area_ids(area_ids):
         try:
-            await delete_area(session, area_id=area_id, hard_delete=hard_delete)
+            await delete_area(session, area_id=area_id)
             deleted_count += 1
         except AreaNotFoundError as exc:
             failed_ids.append(area_id)

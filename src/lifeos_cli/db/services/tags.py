@@ -163,32 +163,28 @@ async def update_tag(
     return tag
 
 
-async def delete_tag(session: AsyncSession, *, tag_id: UUID, hard_delete: bool = False) -> None:
-    """Delete a tag."""
-    tag = await get_tag(session, tag_id=tag_id, include_deleted=hard_delete)
+async def delete_tag(session: AsyncSession, *, tag_id: UUID) -> None:
+    """Soft-delete a tag."""
+    tag = await get_tag(session, tag_id=tag_id, include_deleted=False)
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
-    if hard_delete:
-        await session.delete(tag)
-    else:
-        tag.soft_delete()
-        await session.flush()
+    tag.soft_delete()
+    await session.flush()
 
 
 async def batch_delete_tags(
     session: AsyncSession,
     *,
     tag_ids: list[UUID],
-    hard_delete: bool = False,
 ) -> BatchDeleteResult:
-    """Delete multiple tags while preserving per-tag error reporting."""
+    """Soft-delete multiple tags while preserving per-tag error reporting."""
     deleted_count = 0
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
     for tag_id in _deduplicate_tag_ids(tag_ids):
         try:
-            await delete_tag(session, tag_id=tag_id, hard_delete=hard_delete)
+            await delete_tag(session, tag_id=tag_id)
             deleted_count += 1
         except TagNotFoundError as exc:
             failed_ids.append(tag_id)

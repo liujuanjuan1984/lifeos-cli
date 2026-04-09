@@ -183,33 +183,28 @@ async def delete_person(
     session: AsyncSession,
     *,
     person_id: UUID,
-    hard_delete: bool = False,
 ) -> None:
-    """Delete a person."""
-    person = await get_person(session, person_id=person_id, include_deleted=hard_delete)
+    """Soft-delete a person."""
+    person = await get_person(session, person_id=person_id, include_deleted=False)
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")
-    if hard_delete:
-        await session.delete(person)
-    else:
-        person.soft_delete()
-        await session.flush()
+    person.soft_delete()
+    await session.flush()
 
 
 async def batch_delete_people(
     session: AsyncSession,
     *,
     person_ids: list[UUID],
-    hard_delete: bool = False,
 ) -> BatchDeleteResult:
-    """Delete multiple people while preserving per-person error reporting."""
+    """Soft-delete multiple people while preserving per-person error reporting."""
     deleted_count = 0
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
     for person_id in _deduplicate_person_ids(person_ids):
         try:
-            await delete_person(session, person_id=person_id, hard_delete=hard_delete)
+            await delete_person(session, person_id=person_id)
             deleted_count += 1
         except PersonNotFoundError as exc:
             failed_ids.append(person_id)

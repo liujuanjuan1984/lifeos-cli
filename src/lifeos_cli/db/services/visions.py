@@ -158,33 +158,28 @@ async def delete_vision(
     session: AsyncSession,
     *,
     vision_id: UUID,
-    hard_delete: bool = False,
 ) -> None:
-    """Delete a vision."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=hard_delete)
+    """Soft-delete a vision."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
-    if hard_delete:
-        await session.delete(vision)
-    else:
-        vision.soft_delete()
-        await session.flush()
+    vision.soft_delete()
+    await session.flush()
 
 
 async def batch_delete_visions(
     session: AsyncSession,
     *,
     vision_ids: list[UUID],
-    hard_delete: bool = False,
 ) -> BatchDeleteResult:
-    """Delete multiple visions while preserving per-vision error reporting."""
+    """Soft-delete multiple visions while preserving per-vision error reporting."""
     deleted_count = 0
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
     for vision_id in _deduplicate_vision_ids(vision_ids):
         try:
-            await delete_vision(session, vision_id=vision_id, hard_delete=hard_delete)
+            await delete_vision(session, vision_id=vision_id)
             deleted_count += 1
         except VisionNotFoundError as exc:
             failed_ids.append(vision_id)
