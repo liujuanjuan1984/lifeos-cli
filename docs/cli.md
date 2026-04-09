@@ -201,6 +201,8 @@ Current intent:
 - standalone `search` is intentionally deferred for now
 - `batch` is the grouped namespace for multi-record write operations
 - `habit-action` is a top-level resource instead of a nested `habit action` command tree
+- repeated `--person-id` flags attach people to supported resources such as `area`, `tag`,
+  `vision`, `task`, `event`, and `timelog`
 
 ## Structured Resource Workflows
 
@@ -210,6 +212,8 @@ These examples show the current intended command shape for the new structured re
 
 ```bash
 lifeos area add "Health" --description "Long-term wellbeing" --icon heart
+lifeos area update <area-id> --person-id <person-id-1> --person-id <person-id-2>
+lifeos area list --person-id <person-id>
 lifeos area list
 lifeos area show <area-id>
 lifeos area update <area-id> --name "Fitness" --clear-icon
@@ -220,6 +224,8 @@ lifeos area delete <area-id>
 
 ```bash
 lifeos tag add "family" --entity-type person --category relation --color green
+lifeos tag update <tag-id> --person-id <person-id>
+lifeos tag list --person-id <person-id>
 lifeos tag list
 lifeos tag show <tag-id>
 lifeos tag update <tag-id> --clear-color
@@ -290,6 +296,8 @@ lifeos people delete <person-id>
 
 ```bash
 lifeos vision add "Launch lifeos-cli" --area-id <area-id> --status active
+lifeos vision update <vision-id> --person-id <person-id-1> --person-id <person-id-2>
+lifeos vision list --person-id <person-id>
 lifeos vision list --status active
 lifeos vision show <vision-id>
 lifeos vision update <vision-id> --status archived --clear-area
@@ -300,6 +308,8 @@ lifeos vision delete <vision-id>
 
 ```bash
 lifeos task add "Draft release checklist" --vision-id <vision-id> --status todo
+lifeos task update <task-id> --person-id <person-id>
+lifeos task list --person-id <person-id>
 lifeos task list --vision-id <vision-id>
 lifeos task show <task-id>
 lifeos task update <task-id> --status in_progress
@@ -311,6 +321,8 @@ Current task notes:
 
 - `task` is the execution unit and supports tree structure through parent-child links
 - use `--clear-parent` to move a child task back to the root level
+- repeated `--person-id` flags link a task to one or more people without changing its place in
+  the task tree
 - use `--clear-*` flags when a field should become empty instead of being replaced
 
 ### Timelog
@@ -437,7 +449,6 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
-- person-to-vision or person-to-task links
 - vision experience workflows and advanced task-tree operations
 - batch update operations for the new structured resources
 - event/timelog recurrence or direct event-to-timelog conversion

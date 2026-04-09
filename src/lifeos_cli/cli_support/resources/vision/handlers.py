@@ -18,6 +18,11 @@ def _format_vision_summary(vision: Vision) -> str:
 
 
 def _format_vision_detail(vision: Vision) -> str:
+    people_names = (
+        ", ".join(person.name for person in vision.people)
+        if getattr(vision, "people", None)
+        else "-"
+    )
     return "\n".join(
         (
             f"id: {vision.id}",
@@ -28,6 +33,7 @@ def _format_vision_detail(vision: Vision) -> str:
             f"experience_points: {vision.experience_points}",
             f"experience_rate_per_hour: {vision.experience_rate_per_hour or '-'}",
             f"area_id: {vision.area_id or '-'}",
+            f"people: {people_names}",
             f"created_at: {format_timestamp(vision.created_at)}",
             f"updated_at: {format_timestamp(vision.updated_at)}",
             f"deleted_at: {format_timestamp(vision.deleted_at)}",
@@ -44,6 +50,7 @@ async def handle_vision_add_async(args: argparse.Namespace) -> int:
                 description=args.description,
                 status=args.status,
                 area_id=args.area_id,
+                person_ids=args.person_ids,
                 experience_rate_per_hour=args.experience_rate_per_hour,
             )
         except (
@@ -68,6 +75,7 @@ async def handle_vision_list_async(args: argparse.Namespace) -> int:
                 session,
                 status=args.status,
                 area_id=args.area_id,
+                person_id=args.person_id,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -118,6 +126,7 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
             "--experience-rate-per-hour",
             "--clear-experience-rate",
         ),
+        (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
     for is_conflict, value_flag, clear_flag in conflicting_flags:
         if is_conflict:
@@ -134,6 +143,8 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
                 status=args.status,
                 area_id=args.area_id,
                 clear_area=args.clear_area,
+                person_ids=args.person_ids,
+                clear_people=args.clear_people,
                 experience_rate_per_hour=args.experience_rate_per_hour,
                 clear_experience_rate=args.clear_experience_rate,
             )

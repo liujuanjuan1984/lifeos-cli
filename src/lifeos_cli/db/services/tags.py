@@ -7,8 +7,10 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
 
@@ -57,6 +59,7 @@ async def create_tag(
     category: str = "general",
     description: str | None = None,
     color: str | None = None,
+    person_ids: list[UUID] | None = None,
 ) -> Tag:
     """Create a new tag."""
     normalized_name = normalize_tag_name(name)
@@ -83,7 +86,13 @@ async def create_tag(
     )
     session.add(tag)
     await session.flush()
+    if person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=tag.id, entity_type="tag", desired_person_ids=person_ids
+        )
     await session.refresh(tag)
+    people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
+    tag.people = people_map.get(tag.id, [])
     return tag
 
 
@@ -97,7 +106,12 @@ async def get_tag(
     stmt = select(Tag).where(Tag.id == tag_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(Tag.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
+    tag = (await session.execute(stmt)).scalar_one_or_none()
+    if tag is None:
+        return None
+    people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
+    tag.people = people_map.get(tag.id, [])
+    return tag
 
 
 async def list_tags(
@@ -105,6 +119,7 @@ async def list_tags(
     *,
     entity_type: str | None = None,
     category: str | None = None,
+    person_id: UUID | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -117,8 +132,22 @@ async def list_tags(
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
     if category is not None:
         stmt = stmt.where(Tag.category == category.strip().lower())
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Tag.id)
+            & (person_associations.c.entity_type == "tag"),
+        ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Tag.name.asc(), Tag.id.asc()).offset(offset).limit(limit)
-    return list((await session.execute(stmt)).scalars())
+    tags = list((await session.execute(stmt)).scalars())
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[tag.id for tag in tags],
+        entity_type="tag",
+    )
+    for tag in tags:
+        tag.people = people_map.get(tag.id, [])
+    return tags
 
 
 async def update_tag(
@@ -132,6 +161,8 @@ async def update_tag(
     clear_description: bool = False,
     color: str | None = None,
     clear_color: bool = False,
+    person_ids: list[UUID] | None = None,
+    clear_people: bool = False,
 ) -> Tag:
     """Update a tag."""
     tag = await get_tag(session, tag_id=tag_id)
@@ -164,8 +195,18 @@ async def update_tag(
         tag.color = None
     elif color is not None:
         tag.color = color
+    if clear_people:
+        await sync_entity_people(
+            session, entity_id=tag.id, entity_type="tag", desired_person_ids=[]
+        )
+    elif person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=tag.id, entity_type="tag", desired_person_ids=person_ids
+        )
     await session.flush()
     await session.refresh(tag)
+    people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
+    tag.people = people_map.get(tag.id, [])
     return tag
 
 

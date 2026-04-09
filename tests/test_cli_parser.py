@@ -95,12 +95,23 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
 def test_cli_parser_supports_area_add_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(["area", "add", "Health", "--display-order", "2"])
+    args = parser.parse_args(
+        [
+            "area",
+            "add",
+            "Health",
+            "--display-order",
+            "2",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
 
     assert args.resource == "area"
     assert args.area_command == "add"
     assert args.name == "Health"
     assert args.display_order == 2
+    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_area_update_clear_icon_command() -> None:
@@ -186,6 +197,22 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.priority == 3
 
 
+def test_cli_parser_supports_task_list_person_filter() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "list",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "list"
+    assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
+
+
 def test_cli_parser_supports_timelog_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -224,6 +251,22 @@ def test_cli_parser_supports_vision_update_clear_area_command() -> None:
     assert args.clear_area is True
 
 
+def test_cli_parser_supports_vision_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "vision",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "vision"
+    assert args.vision_command == "update"
+    assert args.clear_people is True
+
+
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
     parser = build_parser()
 
@@ -250,6 +293,22 @@ def test_cli_parser_supports_tag_update_clear_color_command() -> None:
     assert args.resource == "tag"
     assert args.tag_command == "update"
     assert args.clear_color is True
+
+
+def test_cli_parser_supports_tag_list_person_filter() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "tag",
+            "list",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "tag"
+    assert args.tag_command == "list"
+    assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
 
 
 def test_cli_parser_supports_task_batch_delete_command() -> None:
@@ -286,6 +345,22 @@ def test_cli_parser_supports_task_update_clear_parent_command() -> None:
     assert args.task_command == "update"
     assert str(args.task_id) == "11111111-1111-1111-1111-111111111111"
     assert args.clear_parent is True
+
+
+def test_cli_parser_supports_task_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "update"
+    assert args.clear_people is True
 
 
 def test_cli_parser_supports_habit_add_command() -> None:

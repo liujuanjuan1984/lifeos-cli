@@ -8,8 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
+from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
 
@@ -58,6 +60,7 @@ async def create_vision(
     status: str = "active",
     area_id: UUID | None = None,
     experience_rate_per_hour: int | None = None,
+    person_ids: list[UUID] | None = None,
 ) -> Vision:
     """Create a new vision."""
     normalized_name = name.strip()
@@ -76,7 +79,15 @@ async def create_vision(
     )
     session.add(vision)
     await session.flush()
+    if person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=vision.id, entity_type="vision", desired_person_ids=person_ids
+        )
     await session.refresh(vision)
+    people_map = await load_people_for_entities(
+        session, entity_ids=[vision.id], entity_type="vision"
+    )
+    vision.people = people_map.get(vision.id, [])
     return vision
 
 
@@ -90,7 +101,14 @@ async def get_vision(
     stmt = select(Vision).where(Vision.id == vision_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(Vision.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
+    vision = (await session.execute(stmt)).scalar_one_or_none()
+    if vision is None:
+        return None
+    people_map = await load_people_for_entities(
+        session, entity_ids=[vision.id], entity_type="vision"
+    )
+    vision.people = people_map.get(vision.id, [])
+    return vision
 
 
 async def list_visions(
@@ -98,6 +116,7 @@ async def list_visions(
     *,
     status: str | None = None,
     area_id: UUID | None = None,
+    person_id: UUID | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -110,8 +129,22 @@ async def list_visions(
         stmt = stmt.where(Vision.status == validate_vision_status(status))
     if area_id is not None:
         stmt = stmt.where(Vision.area_id == area_id)
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Vision.id)
+            & (person_associations.c.entity_type == "vision"),
+        ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Vision.created_at.desc(), Vision.id.desc()).offset(offset).limit(limit)
-    return list((await session.execute(stmt)).scalars())
+    visions = list((await session.execute(stmt)).scalars())
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[vision.id for vision in visions],
+        entity_type="vision",
+    )
+    for vision in visions:
+        vision.people = people_map.get(vision.id, [])
+    return visions
 
 
 async def update_vision(
@@ -126,6 +159,8 @@ async def update_vision(
     clear_area: bool = False,
     experience_rate_per_hour: int | None = None,
     clear_experience_rate: bool = False,
+    person_ids: list[UUID] | None = None,
+    clear_people: bool = False,
 ) -> Vision:
     """Update a vision."""
     vision = await get_vision(session, vision_id=vision_id)
@@ -158,8 +193,20 @@ async def update_vision(
         vision.experience_rate_per_hour = None
     elif experience_rate_per_hour is not None:
         vision.experience_rate_per_hour = experience_rate_per_hour
+    if clear_people:
+        await sync_entity_people(
+            session, entity_id=vision.id, entity_type="vision", desired_person_ids=[]
+        )
+    elif person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=vision.id, entity_type="vision", desired_person_ids=person_ids
+        )
     await session.flush()
     await session.refresh(vision)
+    people_map = await load_people_for_entities(
+        session, entity_ids=[vision.id], entity_type="vision"
+    )
+    vision.people = people_map.get(vision.id, [])
     return vision
 
 

@@ -26,12 +26,21 @@ def test_main_area_add_creates_area(
 ) -> None:
     async def fake_create_area(session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "Health"
+        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("11111111-1111-1111-1111-111111111111"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(areas, "create_area", fake_create_area)
 
-    exit_code = cli.main(["area", "add", "Health"])
+    exit_code = cli.main(
+        [
+            "area",
+            "add",
+            "Health",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -103,6 +112,32 @@ def test_main_tag_add_creates_tag(
 
     assert exit_code == 0
     assert "Created tag 22222222-2222-2222-2222-222222222222" in captured.out
+
+
+def test_main_tag_update_can_clear_people(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_tag(session: object, **kwargs: object) -> object:
+        assert kwargs["clear_people"] is True
+        assert kwargs["person_ids"] is None
+        return make_record(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tags, "update_tag", fake_update_tag)
+
+    exit_code = cli.main(
+        [
+            "tag",
+            "update",
+            "22222222-2222-2222-2222-222222222222",
+            "--clear-people",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated tag 22222222-2222-2222-2222-222222222222" in captured.out
 
 
 def test_main_timelog_add_creates_timelog(
@@ -219,12 +254,21 @@ def test_main_vision_add_creates_vision(
 ) -> None:
     async def fake_create_vision(session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "Launch lifeos-cli"
+        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(visions, "create_vision", fake_create_vision)
 
-    exit_code = cli.main(["vision", "add", "Launch lifeos-cli"])
+    exit_code = cli.main(
+        [
+            "vision",
+            "add",
+            "Launch lifeos-cli",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -257,6 +301,7 @@ def test_main_task_add_creates_task(
     async def fake_create_task(session: object, **kwargs: object) -> object:
         assert kwargs["content"] == "Draft release checklist"
         assert kwargs["priority"] == 2
+        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("55555555-5555-5555-5555-555555555555"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -271,6 +316,8 @@ def test_main_task_add_creates_task(
             "66666666-6666-6666-6666-666666666666",
             "--priority",
             "2",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
         ]
     )
     captured = capsys.readouterr()
@@ -335,6 +382,32 @@ def test_main_task_update_can_clear_parent(
             "update",
             "55555555-5555-5555-5555-555555555555",
             "--clear-parent",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated task 55555555-5555-5555-5555-555555555555" in captured.out
+
+
+def test_main_task_update_can_clear_people(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_task(session: object, **kwargs: object) -> object:
+        assert kwargs["clear_people"] is True
+        assert kwargs["person_ids"] is None
+        return make_record(id=UUID("55555555-5555-5555-5555-555555555555"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "update_task", fake_update_task)
+
+    exit_code = cli.main(
+        [
+            "task",
+            "update",
+            "55555555-5555-5555-5555-555555555555",
+            "--clear-people",
         ]
     )
     captured = capsys.readouterr()

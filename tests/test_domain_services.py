@@ -157,8 +157,13 @@ def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     def fake_add(task: object) -> None:
         session.added_task = task
 
+    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
+        task_id = cast(Any, session.added_task).id
+        return {task_id: []} if task_id is not None else {}
+
     monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(task_mutations, "load_people_for_entities", fake_load_people)
     session.add = fake_add
 
     task = asyncio.run(
@@ -218,6 +223,11 @@ def test_update_task_can_clear_parent_without_committing(
 
     monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(
+        task_mutations,
+        "load_people_for_entities",
+        AsyncMock(return_value={task.id: []}),
+    )
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -277,6 +287,11 @@ def test_update_task_can_clear_optional_fields_without_committing(
 
     monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(
+        task_mutations,
+        "load_people_for_entities",
+        AsyncMock(return_value={task.id: []}),
+    )
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -293,6 +308,74 @@ def test_update_task_can_clear_optional_fields_without_committing(
     assert updated_task.planning_cycle_type is None
     assert updated_task.planning_cycle_days is None
     assert updated_task.planning_cycle_start_date is None
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
+def test_update_task_can_clear_people_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = SimpleNamespace(
+        id=UUID("99999999-9999-9999-9999-999999999999"),
+        vision_id=UUID("11111111-1111-1111-1111-111111111111"),
+        parent_task_id=None,
+        content="Existing task",
+        description=None,
+        status="todo",
+        priority=0,
+        display_order=0,
+        estimated_effort=None,
+        planning_cycle_type=None,
+        planning_cycle_days=None,
+        planning_cycle_start_date=None,
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == UUID("99999999-9999-9999-9999-999999999999")
+        assert include_deleted is False
+        return task
+
+    async def fake_validate_parent_task(
+        _: object,
+        *,
+        vision_id: UUID,
+        parent_task_id: UUID | None,
+    ) -> None:
+        assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
+        assert parent_task_id is None
+
+    async def fake_sync_people(_: object, **kwargs: object) -> None:
+        assert kwargs["entity_type"] == "task"
+        assert kwargs["desired_person_ids"] == []
+
+    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
+        return {task.id: []}
+
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(task_mutations, "sync_entity_people", fake_sync_people)
+    monkeypatch.setattr(task_mutations, "load_people_for_entities", fake_load_people)
+
+    updated_task = asyncio.run(
+        task_mutations.update_task(
+            cast(Any, session),
+            task_id=UUID("99999999-9999-9999-9999-999999999999"),
+            clear_people=True,
+        )
+    )
+
+    assert updated_task.people == []
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
     session.commit.assert_not_called()
@@ -316,6 +399,11 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
         return area
 
     monkeypatch.setattr(areas, "get_area", fake_get_area)
+    monkeypatch.setattr(
+        areas,
+        "load_people_for_entities",
+        AsyncMock(return_value={area.id: []}),
+    )
 
     updated_area = asyncio.run(
         areas.update_area(
@@ -328,6 +416,43 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
 
     assert updated_area.description is None
     assert updated_area.icon is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_create_area_syncs_people_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(
+        add=None,
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
+    )
+
+    def fake_add(area: object) -> None:
+        session.added_area = area
+
+    async def fake_sync_people(_: object, **kwargs: object) -> None:
+        assert kwargs["entity_type"] == "area"
+        assert kwargs["desired_person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
+
+    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
+        area_id = cast(Any, session.added_area).id
+        return {area_id: [SimpleNamespace(name="Alice")]}
+
+    session.add = fake_add
+    monkeypatch.setattr(areas, "sync_entity_people", fake_sync_people)
+    monkeypatch.setattr(areas, "load_people_for_entities", fake_load_people)
+
+    area = asyncio.run(
+        areas.create_area(
+            cast(Any, session),
+            name="Health",
+            person_ids=[UUID("11111111-1111-1111-1111-111111111111")],
+        )
+    )
+
+    assert len(area.people) == 1
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -354,6 +479,11 @@ def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -
         return tag
 
     monkeypatch.setattr(tags, "get_tag", fake_get_tag)
+    monkeypatch.setattr(
+        tags,
+        "load_people_for_entities",
+        AsyncMock(return_value={tag.id: []}),
+    )
 
     updated_tag = asyncio.run(
         tags.update_tag(
@@ -366,6 +496,51 @@ def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -
 
     assert updated_tag.description is None
     assert updated_tag.color is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_update_tag_can_clear_people(monkeypatch: pytest.MonkeyPatch) -> None:
+    tag = SimpleNamespace(
+        id=UUID("22222222-2222-2222-2222-222222222222"),
+        name="urgent",
+        entity_type="task",
+        category="general",
+        description=None,
+        color=None,
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
+    )
+
+    async def fake_get_tag(_: object, *, tag_id: UUID, include_deleted: bool = False) -> object:
+        assert tag_id == UUID("22222222-2222-2222-2222-222222222222")
+        assert include_deleted is False
+        return tag
+
+    async def fake_sync_people(_: object, **kwargs: object) -> None:
+        assert kwargs["entity_type"] == "tag"
+        assert kwargs["desired_person_ids"] == []
+
+    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
+        return {tag.id: []}
+
+    monkeypatch.setattr(tags, "get_tag", fake_get_tag)
+    monkeypatch.setattr(tags, "sync_entity_people", fake_sync_people)
+    monkeypatch.setattr(tags, "load_people_for_entities", fake_load_people)
+
+    updated_tag = asyncio.run(
+        tags.update_tag(
+            cast(Any, session),
+            tag_id=UUID("22222222-2222-2222-2222-222222222222"),
+            clear_people=True,
+        )
+    )
+
+    assert updated_tag.people == []
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -456,6 +631,11 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
         return vision
 
     monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+    monkeypatch.setattr(
+        visions,
+        "load_people_for_entities",
+        AsyncMock(return_value={vision.id: []}),
+    )
 
     updated_vision = asyncio.run(
         visions.update_vision(
@@ -470,6 +650,49 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     assert updated_vision.description is None
     assert updated_vision.area_id is None
     assert updated_vision.experience_rate_per_hour is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_create_vision_syncs_people_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = SimpleNamespace(
+        add=None,
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
+    )
+
+    def fake_add(vision: object) -> None:
+        session.added_vision = vision
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_sync_people(_: object, **kwargs: object) -> None:
+        assert kwargs["entity_type"] == "vision"
+        assert kwargs["desired_person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
+
+    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
+        vision_id = cast(Any, session.added_vision).id
+        return {vision_id: [SimpleNamespace(name="Alice")]}
+
+    session.add = fake_add
+    monkeypatch.setattr(visions, "_ensure_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(visions, "sync_entity_people", fake_sync_people)
+    monkeypatch.setattr(visions, "load_people_for_entities", fake_load_people)
+
+    vision = asyncio.run(
+        visions.create_vision(
+            cast(Any, session),
+            name="Launch lifeos-cli",
+            person_ids=[UUID("11111111-1111-1111-1111-111111111111")],
+        )
+    )
+
+    assert len(vision.people) == 1
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 

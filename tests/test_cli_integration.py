@@ -422,6 +422,18 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
     )
     _assert_ok(people_update_result)
 
+    area_people_result = _run_lifeos(
+        integration_context,
+        "area",
+        "update",
+        area_one_id,
+        "--person-id",
+        person_one_id,
+        "--person-id",
+        person_two_id,
+    )
+    _assert_ok(area_people_result)
+
     tag_one_result = _run_lifeos(
         integration_context,
         "tag",
@@ -464,6 +476,16 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
     )
     _assert_ok(tag_update_result)
 
+    tag_people_result = _run_lifeos(
+        integration_context,
+        "tag",
+        "update",
+        tag_one_id,
+        "--person-id",
+        person_one_id,
+    )
+    _assert_ok(tag_people_result)
+
     tag_clear_result = _run_lifeos(
         integration_context,
         "tag",
@@ -474,8 +496,50 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
     )
     _assert_ok(tag_clear_result)
 
+    vision_people_result = _run_lifeos(
+        integration_context,
+        "vision",
+        "update",
+        vision_one_id,
+        "--person-id",
+        person_one_id,
+        "--person-id",
+        person_two_id,
+    )
+    _assert_ok(vision_people_result)
+
+    task_people_result = _run_lifeos(
+        integration_context,
+        "task",
+        "update",
+        task_one_id,
+        "--person-id",
+        person_one_id,
+    )
+    _assert_ok(task_people_result)
+
     assert area_one_id in _run_lifeos(integration_context, "area", "list").stdout
+    assert (
+        area_one_id
+        in _run_lifeos(
+            integration_context,
+            "area",
+            "list",
+            "--person-id",
+            person_one_id,
+        ).stdout
+    )
     assert vision_one_id in _run_lifeos(integration_context, "vision", "list").stdout
+    assert (
+        vision_one_id
+        in _run_lifeos(
+            integration_context,
+            "vision",
+            "list",
+            "--person-id",
+            person_two_id,
+        ).stdout
+    )
     assert (
         task_one_id
         in _run_lifeos(
@@ -484,6 +548,16 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
             "list",
             "--vision-id",
             vision_one_id,
+        ).stdout
+    )
+    assert (
+        task_one_id
+        in _run_lifeos(
+            integration_context,
+            "task",
+            "list",
+            "--person-id",
+            person_one_id,
         ).stdout
     )
     assert (
@@ -506,6 +580,37 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
             "person",
         ).stdout
     )
+    assert (
+        tag_one_id
+        in _run_lifeos(
+            integration_context,
+            "tag",
+            "list",
+            "--person-id",
+            person_one_id,
+        ).stdout
+    )
+
+    area_show_with_people_result = _run_lifeos(integration_context, "area", "show", area_one_id)
+    _assert_ok(area_show_with_people_result)
+    assert "people: Alice, Bob" in area_show_with_people_result.stdout
+
+    vision_show_with_people_result = _run_lifeos(
+        integration_context,
+        "vision",
+        "show",
+        vision_one_id,
+    )
+    _assert_ok(vision_show_with_people_result)
+    assert "people: Alice, Bob" in vision_show_with_people_result.stdout
+
+    task_show_with_people_result = _run_lifeos(integration_context, "task", "show", task_one_id)
+    _assert_ok(task_show_with_people_result)
+    assert "people: Alice" in task_show_with_people_result.stdout
+
+    tag_show_with_people_result = _run_lifeos(integration_context, "tag", "show", tag_one_id)
+    _assert_ok(tag_show_with_people_result)
+    assert "people: Alice" in tag_show_with_people_result.stdout
 
     people_delete_result = _run_lifeos(
         integration_context,
