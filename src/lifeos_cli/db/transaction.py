@@ -1,14 +1,14 @@
-"""Transaction helpers for database services."""
+"""Async transaction helpers for database services."""
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def commit_or_rollback(session: Session) -> None:
+async def commit_or_rollback(session: AsyncSession) -> None:
     """Commit the current transaction or roll it back when the commit fails."""
     try:
-        session.commit()
+        await session.commit()
     except Exception:
-        session.rollback()
+        await session.rollback()
         raise

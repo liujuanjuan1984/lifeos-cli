@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import sys
-from collections.abc import Sequence
+from collections.abc import Coroutine, Sequence
 from importlib.metadata import PackageNotFoundError, version
 from typing import Protocol
 from uuid import UUID
@@ -49,18 +50,28 @@ def _format_note_summary(note: NoteSummary) -> str:
     return f"{note_id}\t{status}\t{created_label}\t{normalized_content}"
 
 
-def _handle_note_add(args: argparse.Namespace) -> int:
+def _run_async(operation: Coroutine[object, object, int]) -> int:
+    """Run an async CLI operation from the synchronous CLI entrypoint."""
+    return int(asyncio.run(operation))
+
+
+async def _handle_note_add_async(args: argparse.Namespace) -> int:
     """Create a new note."""
-    with session_scope() as session:
-        note = create_note(session, content=args.content)
+    async with session_scope() as session:
+        note = await create_note(session, content=args.content)
     print(f"Created note {note.id}")
     return 0
 
 
-def _handle_note_list(args: argparse.Namespace) -> int:
+def _handle_note_add(args: argparse.Namespace) -> int:
+    """Create a new note."""
+    return _run_async(_handle_note_add_async(args))
+
+
+async def _handle_note_list_async(args: argparse.Namespace) -> int:
     """List notes."""
-    with session_scope() as session:
-        notes = list_notes(
+    async with session_scope() as session:
+        notes = await list_notes(
             session,
             include_deleted=args.include_deleted,
             limit=args.limit,
@@ -74,11 +85,16 @@ def _handle_note_list(args: argparse.Namespace) -> int:
     return 0
 
 
-def _handle_note_update(args: argparse.Namespace) -> int:
+def _handle_note_list(args: argparse.Namespace) -> int:
+    """List notes."""
+    return _run_async(_handle_note_list_async(args))
+
+
+async def _handle_note_update_async(args: argparse.Namespace) -> int:
     """Update note content."""
     try:
-        with session_scope() as session:
-            note = update_note(session, note_id=args.note_id, content=args.content)
+        async with session_scope() as session:
+            note = await update_note(session, note_id=args.note_id, content=args.content)
     except NoteNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -86,11 +102,16 @@ def _handle_note_update(args: argparse.Namespace) -> int:
     return 0
 
 
-def _handle_note_delete(args: argparse.Namespace) -> int:
+def _handle_note_update(args: argparse.Namespace) -> int:
+    """Update note content."""
+    return _run_async(_handle_note_update_async(args))
+
+
+async def _handle_note_delete_async(args: argparse.Namespace) -> int:
     """Delete a note."""
     try:
-        with session_scope() as session:
-            delete_note(session, note_id=args.note_id, hard_delete=args.hard)
+        async with session_scope() as session:
+            await delete_note(session, note_id=args.note_id, hard_delete=args.hard)
     except NoteNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -99,6 +120,11 @@ def _handle_note_delete(args: argparse.Namespace) -> int:
     else:
         print(f"Soft-deleted note {args.note_id}")
     return 0
+
+
+def _handle_note_delete(args: argparse.Namespace) -> int:
+    """Delete a note."""
+    return _run_async(_handle_note_delete_async(args))
 
 
 def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

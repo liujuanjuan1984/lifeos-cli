@@ -4,6 +4,7 @@
 
 The project now ships a PostgreSQL-first data layer with Alembic migrations. Domain
 modules will be introduced incrementally, starting from `notes`.
+The runtime service and data layers are async-only, while the CLI remains a thin wrapper.
 
 ## Install
 

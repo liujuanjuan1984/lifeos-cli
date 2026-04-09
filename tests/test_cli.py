@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import UUID
@@ -27,11 +27,11 @@ def test_cli_parser_supports_note_add_command() -> None:
 def test_main_note_add_creates_note(monkeypatch, capsys) -> None:
     created: dict[str, str] = {}
 
-    @contextmanager
-    def fake_session_scope():
+    @asynccontextmanager
+    async def fake_session_scope():
         yield object()
 
-    def fake_create_note(session: object, *, content: str) -> object:
+    async def fake_create_note(session: object, *, content: str) -> object:
         created["content"] = content
         return SimpleNamespace(
             id=UUID("11111111-1111-1111-1111-111111111111"),
@@ -52,11 +52,11 @@ def test_main_note_add_creates_note(monkeypatch, capsys) -> None:
 
 
 def test_main_note_list_prints_formatted_notes(monkeypatch, capsys) -> None:
-    @contextmanager
-    def fake_session_scope():
+    @asynccontextmanager
+    async def fake_session_scope():
         yield object()
 
-    def fake_list_notes(
+    async def fake_list_notes(
         session: object,
         *,
         include_deleted: bool,
@@ -89,11 +89,16 @@ def test_main_note_list_prints_formatted_notes(monkeypatch, capsys) -> None:
 
 
 def test_main_note_delete_reports_missing_note(monkeypatch, capsys) -> None:
-    @contextmanager
-    def fake_session_scope():
+    @asynccontextmanager
+    async def fake_session_scope():
         yield object()
 
-    def fake_delete_note(session: object, *, note_id: UUID, hard_delete: bool) -> None:
+    async def fake_delete_note(
+        session: object,
+        *,
+        note_id: UUID,
+        hard_delete: bool,
+    ) -> None:
         raise cli.NoteNotFoundError(f"Note {note_id} was not found")
 
     monkeypatch.setattr(cli, "session_scope", fake_session_scope)
