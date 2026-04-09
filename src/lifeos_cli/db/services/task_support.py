@@ -1,0 +1,128 @@
+"""Support utilities and validations for task services."""
+
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.vision import Vision
+
+VALID_TASK_STATUSES = {"todo", "in_progress", "done", "cancelled", "paused"}
+VALID_PLANNING_CYCLE_TYPES = {"year", "month", "week", "day"}
+MAX_TASK_DEPTH = 8
+
+
+class TaskNotFoundError(LookupError):
+    """Raised when a task cannot be found."""
+
+
+class VisionReferenceNotFoundError(LookupError):
+    """Raised when a referenced vision cannot be found."""
+
+
+class ParentTaskReferenceNotFoundError(LookupError):
+    """Raised when a referenced parent task cannot be found."""
+
+
+class InvalidTaskDepthError(ValueError):
+    """Raised when a task hierarchy exceeds the configured max depth."""
+
+
+class InvalidPlanningCycleError(ValueError):
+    """Raised when planning cycle fields are incomplete or invalid."""
+
+
+def deduplicate_task_ids(task_ids: list[UUID]) -> list[UUID]:
+    """Return task identifiers in their original order without duplicates."""
+    return list(dict.fromkeys(task_ids))
+
+
+def validate_task_status(status: str) -> str:
+    """Validate a task status."""
+    normalized = status.strip().lower()
+    if normalized not in VALID_TASK_STATUSES:
+        allowed = ", ".join(sorted(VALID_TASK_STATUSES))
+        raise ValueError(f"Invalid task status {normalized!r}. Expected one of: {allowed}")
+    return normalized
+
+
+def validate_planning_cycle(
+    *,
+    planning_cycle_type: str | None,
+    planning_cycle_days: int | None,
+    planning_cycle_start_date: date | None,
+) -> tuple[str | None, int | None, date | None]:
+    """Validate planning cycle fields."""
+    values = (planning_cycle_type, planning_cycle_days, planning_cycle_start_date)
+    if all(value is None for value in values):
+        return values
+    if any(value is None for value in values):
+        raise InvalidPlanningCycleError(
+            "Planning cycle type, days, and start date must be provided together"
+        )
+    assert planning_cycle_type is not None
+    assert planning_cycle_days is not None
+    normalized_type = planning_cycle_type.strip().lower()
+    if normalized_type not in VALID_PLANNING_CYCLE_TYPES:
+        allowed = ", ".join(sorted(VALID_PLANNING_CYCLE_TYPES))
+        raise InvalidPlanningCycleError(
+            f"Invalid planning cycle type {normalized_type!r}. Expected one of: {allowed}"
+        )
+    if planning_cycle_days <= 0:
+        raise InvalidPlanningCycleError("Planning cycle days must be greater than zero")
+    return normalized_type, planning_cycle_days, planning_cycle_start_date
+
+
+async def ensure_vision_exists(session: AsyncSession, vision_id: UUID) -> None:
+    """Ensure a vision reference exists."""
+    result = await session.execute(
+        select(Vision.id).where(Vision.id == vision_id, Vision.deleted_at.is_(None)).limit(1)
+    )
+    if result.scalar_one_or_none() is None:
+        raise VisionReferenceNotFoundError(f"Vision {vision_id} was not found")
+
+
+async def load_parent_task(session: AsyncSession, parent_task_id: UUID | None) -> Task | None:
+    """Load a parent task when one is referenced."""
+    if parent_task_id is None:
+        return None
+    return (
+        await session.execute(
+            select(Task).where(Task.id == parent_task_id, Task.deleted_at.is_(None)).limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+async def validate_parent_task(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+    parent_task_id: UUID | None,
+) -> Task | None:
+    """Ensure a parent task exists, belongs to the same vision, and respects depth limits."""
+    parent_task = await load_parent_task(session, parent_task_id)
+    if parent_task_id is None:
+        return None
+    if parent_task is None:
+        raise ParentTaskReferenceNotFoundError(f"Task {parent_task_id} was not found")
+    if parent_task.vision_id != vision_id:
+        raise ParentTaskReferenceNotFoundError(
+            "Parent task must belong to the same vision as the child task"
+        )
+    depth = 1
+    current = parent_task
+    while current.parent_task_id is not None:
+        depth += 1
+        if depth >= MAX_TASK_DEPTH:
+            raise InvalidTaskDepthError(
+                f"Task hierarchy depth cannot exceed {MAX_TASK_DEPTH} levels"
+            )
+        next_parent = await load_parent_task(session, current.parent_task_id)
+        if next_parent is None:
+            break
+        current = next_parent
+    return parent_task

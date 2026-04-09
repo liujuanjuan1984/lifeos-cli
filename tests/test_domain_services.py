@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import people, tasks
+from lifeos_cli.db.services import people, task_mutations, tasks
 
 
 def test_create_person_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,8 +69,8 @@ def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     def fake_add(task: object) -> None:
         session.added_task = task
 
-    monkeypatch.setattr(tasks, "_ensure_vision_exists", fake_ensure_vision_exists)
-    monkeypatch.setattr(tasks, "_validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     session.add = fake_add
 
     task = asyncio.run(
