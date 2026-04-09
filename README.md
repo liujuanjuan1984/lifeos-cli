@@ -32,12 +32,6 @@ Install from PyPI with `uv tool`:
 uv tool install lifeos-cli
 ```
 
-If you want to try the CLI without a persistent install, you can still use:
-
-```bash
-uv tool run --from lifeos-cli lifeos --help
-```
-
 ## Quick Start
 
 1. Initialize local configuration:
