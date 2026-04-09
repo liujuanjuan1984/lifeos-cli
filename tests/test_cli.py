@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import UUID
 
+import pytest
+
 from lifeos_cli import cli
 from lifeos_cli.cli import build_parser
 
@@ -22,6 +24,40 @@ def test_cli_parser_supports_note_add_command() -> None:
     assert args.resource == "note"
     assert args.note_command == "add"
     assert args.content == "a new note"
+
+
+def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--help"])
+
+    captured = capsys.readouterr()
+
+    assert "lifeos <resource> <action> [arguments] [options]" in captured.out
+    assert "resources:" in captured.out
+    assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_main_note_without_action_prints_resource_help(capsys) -> None:
+    exit_code = cli.main(["note"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Create, inspect, update, and delete note records." in captured.out
+    assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_note_list_help_explains_output_shape(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "list", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "The output is tab-separated" in captured.out
+    assert "Use --limit and --offset together for pagination." in captured.out
 
 
 def test_main_note_add_creates_note(monkeypatch, capsys) -> None:

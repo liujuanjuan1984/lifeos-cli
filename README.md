@@ -60,6 +60,19 @@ Inspect the available commands:
 lifeos --help
 ```
 
+The command system follows a consistent grammar:
+
+```text
+lifeos <resource> <action> [arguments] [options]
+```
+
+Command design conventions on this branch:
+
+- Resource names stay singular nouns, such as `note`
+- Action names stay short verbs, such as `add`, `list`, `update`, and `delete`
+- Each resource help page should explain scope, supported actions, and examples
+- Future resources such as `timelog` should follow the same structure when introduced
+
 Current branch examples:
 
 ```bash
@@ -73,6 +86,7 @@ The current branch exposes a narrow first slice:
 
 - PostgreSQL-backed note storage
 - Alembic migrations
+- A structured CLI family rooted in `lifeos <resource> <action>`
 - `note add`, `note list`, `note update`, and `note delete`
 
 Not implemented yet on this branch:
