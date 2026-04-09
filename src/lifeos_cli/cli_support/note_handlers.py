@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 
 from lifeos_cli.cli_support.shared import (
+    format_id_lines,
     format_note_detail,
-    format_note_id_lines,
     format_note_summary,
     run_async,
 )
@@ -190,9 +190,9 @@ async def handle_note_batch_update_content_async(args: argparse.Namespace) -> in
     print(f"Updated notes: {result.updated_count}")
     print(f"Replacements applied: {result.replacement_count}")
     if result.unchanged_ids:
-        print(format_note_id_lines("Unchanged note IDs", result.unchanged_ids))
+        print(format_id_lines("Unchanged note IDs", result.unchanged_ids))
     if result.failed_ids:
-        print(format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
+        print(format_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
     for error in result.errors:
         print(f"Error: {error}", file=sys.stderr)
     return 1 if result.failed_ids else 0
@@ -213,7 +213,7 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
 
     print(f"Deleted notes: {result.deleted_count}")
     if result.failed_ids:
-        print(format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
+        print(format_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
     for error in result.errors:
         print(f"Error: {error}", file=sys.stderr)
     return 1 if result.failed_ids else 0

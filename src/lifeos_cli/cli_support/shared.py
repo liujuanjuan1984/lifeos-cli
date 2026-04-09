@@ -153,11 +153,6 @@ def format_id_lines(label: str, identifiers: Sequence[UUID]) -> str:
     return "\n".join([f"{label}:"] + [f"  {identifier}" for identifier in identifiers])
 
 
-def format_note_id_lines(label: str, note_ids: Sequence[UUID]) -> str:
-    """Backwards-compatible wrapper for note identifier rendering."""
-    return format_id_lines(label, note_ids)
-
-
 def run_async(operation: Coroutine[object, object, int]) -> int:
     """Run an async CLI operation from the synchronous CLI entrypoint."""
     return int(asyncio.run(operation))
