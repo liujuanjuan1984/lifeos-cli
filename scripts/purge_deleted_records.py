@@ -9,7 +9,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from uuid import UUID
 
-from lifeos_cli.db.session import session_scope
 from lifeos_cli.db.services import (
     delete_area,
     delete_note,
@@ -24,6 +23,7 @@ from lifeos_cli.db.services import (
     get_task,
     get_vision,
 )
+from lifeos_cli.db.session import session_scope
 
 CONFIRMATION_TEXT = "permanently-delete-soft-deleted-records"
 
