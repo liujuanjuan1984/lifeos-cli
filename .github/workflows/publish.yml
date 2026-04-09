@@ -41,6 +41,11 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
 
+      - name: Ensure release target is reachable from main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/main"
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:

@@ -2,7 +2,11 @@
 set -euo pipefail
 
 echo "[doctor] sync dependencies"
-uv sync --all-extras
+if [ "${CI:-}" = "true" ]; then
+  uv sync --all-extras --frozen
+else
+  uv sync --all-extras
+fi
 
 echo "[doctor] run lint"
 uv run pre-commit run --all-files
