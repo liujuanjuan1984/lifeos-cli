@@ -5,19 +5,19 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.area_handlers import (
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
+from lifeos_cli.cli_support.resources.area.handlers import (
     handle_area_add,
     handle_area_batch_delete,
     handle_area_delete,
     handle_area_list,
     handle_area_show,
     handle_area_update,
-)
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
-from lifeos_cli.cli_support.parser_common import (
-    add_identifier_list_argument,
-    add_include_deleted_argument,
-    add_limit_offset_arguments,
 )
 
 

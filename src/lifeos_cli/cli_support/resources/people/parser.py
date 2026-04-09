@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
-from lifeos_cli.cli_support.people_handlers import (
+from lifeos_cli.cli_support.resources.people.handlers import (
     handle_people_add,
     handle_people_batch_delete,
     handle_people_delete,

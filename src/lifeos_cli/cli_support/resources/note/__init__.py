@@ -1,0 +1,1 @@
+"""Note resource CLI support."""

@@ -6,7 +6,11 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
-from lifeos_cli.cli_support.note_handlers import (
+from lifeos_cli.cli_support.parser_common import (
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
+from lifeos_cli.cli_support.resources.note.handlers import (
     handle_note_add,
     handle_note_batch_delete,
     handle_note_batch_update_content,
@@ -15,10 +19,6 @@ from lifeos_cli.cli_support.note_handlers import (
     handle_note_search,
     handle_note_show,
     handle_note_update,
-)
-from lifeos_cli.cli_support.parser_common import (
-    add_include_deleted_argument,
-    add_limit_offset_arguments,
 )
 
 

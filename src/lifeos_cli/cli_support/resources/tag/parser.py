@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
-from lifeos_cli.cli_support.tag_handlers import (
+from lifeos_cli.cli_support.resources.tag.handlers import (
     handle_tag_add,
     handle_tag_batch_delete,
     handle_tag_delete,

@@ -5,7 +5,15 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support import db_commands, init_prompts
+from lifeos_cli.application.configuration import (
+    InitializationRequest,
+    build_database_settings,
+    persist_database_settings,
+)
+from lifeos_cli.application.database import (
+    ping_configured_database,
+    upgrade_configured_database,
+)
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
@@ -13,66 +21,31 @@ from lifeos_cli.cli_support.help_utils import (
 )
 from lifeos_cli.cli_support.runtime_utils import (
     format_config_summary,
-    refresh_runtime_configuration,
     run_async,
 )
 from lifeos_cli.config import (
-    DEFAULT_DATABASE_SCHEMA,
-    ConfigurationError,
-    DatabaseSettings,
     get_database_settings,
-    resolve_config_path,
-    validate_database_schema_name,
-    validate_database_url,
-    write_database_settings,
 )
 
 
-def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
-    """Build settings from CLI arguments and current defaults."""
-    config_path = resolve_config_path()
-    try:
-        current = get_database_settings()
-    except (ConfigurationError, ValueError):
-        current = DatabaseSettings(
-            database_url=None,
-            database_schema=DEFAULT_DATABASE_SCHEMA,
-            database_echo=False,
-            config_file=config_path,
-        )
-    database_url = args.database_url or current.database_url
-    database_schema = args.schema or current.database_schema
-    database_echo = current.database_echo if args.echo is None else args.echo
-
-    if not args.non_interactive and sys.stdin.isatty():
-        if args.database_url is None:
-            database_url = init_prompts.prompt_database_url(default=database_url)
-        if args.schema is None:
-            database_schema = init_prompts.prompt_database_schema(default=database_schema)
-        if args.echo is None:
-            database_echo = init_prompts.prompt_bool(
-                "Enable SQL echo logging",
-                default=database_echo,
-            )
-
-    if database_url is None:
-        raise ConfigurationError(
-            "Database URL is required. Provide --database-url or run `lifeos init` interactively."
-        )
-
-    return DatabaseSettings(
-        database_url=validate_database_url(database_url),
-        database_schema=validate_database_schema_name(database_schema),
-        database_echo=database_echo,
-        config_file=config_path,
-    )
+async def _run_init_ping() -> int:
+    """Ping the configured database during init."""
+    await ping_configured_database()
+    return 0
 
 
 def _handle_init(args: argparse.Namespace) -> int:
     """Initialize local configuration and verify database connectivity."""
-    settings = _build_settings_from_args(args)
-    config_path = write_database_settings(settings)
-    refresh_runtime_configuration()
+    settings = build_database_settings(
+        InitializationRequest(
+            database_url=args.database_url,
+            schema=args.schema,
+            echo=args.echo,
+            non_interactive=args.non_interactive,
+            is_interactive=sys.stdin.isatty(),
+        )
+    )
+    config_path = persist_database_settings(settings)
 
     print(f"Wrote config file: {config_path}")
     print(format_config_summary(settings, show_secrets=False))
@@ -80,12 +53,14 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        run_async(db_commands.run_db_ping(args))
+        run_async(_run_init_ping())
+        print("Database connection succeeded.")
 
     if args.skip_migrate:
         print("Skipped database migrations. Run `lifeos db upgrade` when ready.")
     else:
-        db_commands.run_db_upgrade(args)
+        upgrade_configured_database()
+        print("Database migrations are up to date.")
 
     return 0
 

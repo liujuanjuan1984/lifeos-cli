@@ -1,0 +1,1 @@
+"""Tag resource CLI support."""

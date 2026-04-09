@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
-from lifeos_cli.cli_support.vision_handlers import (
+from lifeos_cli.cli_support.resources.vision.handlers import (
     handle_vision_add,
     handle_vision_batch_delete,
     handle_vision_delete,

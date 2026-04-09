@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
-from lifeos_cli.cli_support.note_parser_actions import (
+from lifeos_cli.cli_support.resources.note.parser_actions import (
     build_note_add_parser,
     build_note_batch_parser,
     build_note_delete_parser,

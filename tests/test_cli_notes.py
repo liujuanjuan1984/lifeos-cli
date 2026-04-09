@@ -6,10 +6,9 @@ from uuid import UUID
 
 import pytest
 from sqlalchemy.exc import OperationalError
-from tests.support import make_record, make_session_scope, utc_datetime
 
 from lifeos_cli import cli
-from lifeos_cli.cli_support import note_handlers
+from lifeos_cli.cli_support.resources.note import handlers as note_handlers
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import notes as note_services
@@ -18,6 +17,7 @@ from lifeos_cli.db.services.notes import (
     NoteBatchUpdateResult,
     NoteNotFoundError,
 )
+from tests.support import make_record, make_session_scope, utc_datetime
 
 
 def test_main_note_add_creates_note(

@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import argparse
 
+from lifeos_cli.application.database import (
+    ping_configured_database,
+    upgrade_configured_database,
+)
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
@@ -16,9 +20,7 @@ from lifeos_cli.cli_support.runtime_utils import (
 
 async def run_db_ping(_: argparse.Namespace) -> int:
     """Ping the configured database and print a success message."""
-    from lifeos_cli.db.maintenance import ping_database
-
-    await ping_database()
+    await ping_configured_database()
     print("Database connection succeeded.")
     return 0
 
@@ -30,9 +32,7 @@ def _handle_db_ping(args: argparse.Namespace) -> int:
 
 def run_db_upgrade(_: argparse.Namespace) -> int:
     """Apply database migrations and print a success message."""
-    from lifeos_cli.db.maintenance import upgrade_database
-
-    upgrade_database()
+    upgrade_configured_database()
     print("Database migrations are up to date.")
     return 0
 
