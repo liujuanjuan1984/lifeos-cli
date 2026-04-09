@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult
 
-VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area"}
+VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
 
 
 class TagNotFoundError(LookupError):

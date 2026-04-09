@@ -6,7 +6,17 @@ import pytest
 
 from lifeos_cli import cli
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.services import areas, habit_actions, habits, people, tags, tasks, visions
+from lifeos_cli.db.services import (
+    areas,
+    events,
+    habit_actions,
+    habits,
+    people,
+    tags,
+    tasks,
+    timelogs,
+    visions,
+)
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
@@ -47,6 +57,35 @@ def test_main_area_update_rejects_conflicting_clear_icon_flags(
     assert "Use either --icon or --clear-icon, not both." in captured.err
 
 
+def test_main_event_add_creates_event(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_event(session: object, **kwargs: object) -> object:
+        assert kwargs["title"] == "Doctor appointment"
+        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
+        return make_record(id=UUID("12121212-1212-1212-1212-121212121212"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(events, "create_event", fake_create_event)
+
+    exit_code = cli.main(
+        [
+            "event",
+            "add",
+            "Doctor appointment",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created event 12121212-1212-1212-1212-121212121212" in captured.out
+
+
 def test_main_tag_add_creates_tag(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -64,6 +103,35 @@ def test_main_tag_add_creates_tag(
 
     assert exit_code == 0
     assert "Created tag 22222222-2222-2222-2222-222222222222" in captured.out
+
+
+def test_main_timelog_add_creates_timelog(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_timelog(session: object, **kwargs: object) -> object:
+        assert kwargs["title"] == "Deep work"
+        assert kwargs["tracking_method"] == "manual"
+        return make_record(id=UUID("13131313-1313-1313-1313-131313131313"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "create_timelog", fake_create_timelog)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "add",
+            "Deep work",
+            "--start-time",
+            "2026-04-10T13:00:00-04:00",
+            "--end-time",
+            "2026-04-10T14:30:00-04:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created timelog 13131313-1313-1313-1313-131313131313" in captured.out
 
 
 def test_main_people_show_prints_tags(
@@ -98,6 +166,25 @@ def test_main_people_show_prints_tags(
     assert exit_code == 0
     assert "name: Alice" in captured.out
     assert "tags: family, friend" in captured.out
+
+
+def test_main_event_update_rejects_conflicting_clear_area_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "event",
+            "update",
+            "12121212-1212-1212-1212-121212121212",
+            "--area-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-area",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --area-id or --clear-area, not both." in captured.err
 
 
 def test_main_people_update_can_clear_location(
@@ -292,6 +379,25 @@ def test_main_task_update_rejects_conflicting_parent_flags(
 
     assert exit_code == 1
     assert "Use either --parent-task-id or --clear-parent, not both." in captured.err
+
+
+def test_main_timelog_update_rejects_conflicting_clear_notes_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "timelog",
+            "update",
+            "13131313-1313-1313-1313-131313131313",
+            "--notes",
+            "done",
+            "--clear-notes",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --notes or --clear-notes, not both." in captured.err
 
 
 def test_main_people_batch_delete_reports_missing_ids(

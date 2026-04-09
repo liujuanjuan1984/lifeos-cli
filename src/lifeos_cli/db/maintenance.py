@@ -9,11 +9,24 @@ from uuid import UUID
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.config import get_database_settings
-from lifeos_cli.db.models import Area, Habit, HabitAction, Note, Person, Tag, Task, Vision
+from lifeos_cli.db.models import (
+    Area,
+    Event,
+    Habit,
+    HabitAction,
+    Note,
+    Person,
+    Tag,
+    Task,
+    Timelog,
+    Vision,
+)
+from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.session import get_async_engine
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
@@ -31,12 +44,25 @@ class PurgeDecision:
 RESOURCE_MODELS: dict[str, Any] = {
     "note": Note,
     "area": Area,
+    "event": Event,
     "habit": Habit,
     "habit-action": HabitAction,
     "tag": Tag,
     "people": Person,
     "vision": Vision,
     "task": Task,
+    "timelog": Timelog,
+}
+
+RESOURCE_TAG_ENTITY_TYPES: dict[str, str] = {
+    "people": "person",
+    "event": "event",
+    "timelog": "timelog",
+}
+
+RESOURCE_PERSON_ENTITY_TYPES: dict[str, str] = {
+    "event": "event",
+    "timelog": "timelog",
 }
 
 
@@ -70,6 +96,22 @@ async def purge_soft_deleted_record(
         return PurgeDecision(status="missing", resource=resource, record_id=record_id)
     if record.deleted_at is None:
         return PurgeDecision(status="active", resource=resource, record_id=record_id)
+    tag_entity_type = RESOURCE_TAG_ENTITY_TYPES.get(resource)
+    if tag_entity_type is not None:
+        await session.execute(
+            delete(tag_associations).where(
+                tag_associations.c.entity_type == tag_entity_type,
+                tag_associations.c.entity_id == record_id,
+            )
+        )
+    person_entity_type = RESOURCE_PERSON_ENTITY_TYPES.get(resource)
+    if person_entity_type is not None:
+        await session.execute(
+            delete(person_associations).where(
+                person_associations.c.entity_type == person_entity_type,
+                person_associations.c.entity_id == record_id,
+            )
+        )
     await session.delete(record)
     await session.flush()
     return PurgeDecision(status="purged", resource=resource, record_id=record_id)

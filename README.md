@@ -21,9 +21,9 @@ Today the primary delivered slice is:
 - database connectivity checks and migrations
 - note capture, listing, search, inspection, and batch editing
 - initial `area`, `tag`, `people`, `vision`, and `task` domain foundations
+- planned schedule `event` workflows
+- actual time-record `timelog` workflows
 - full `habit` and `habit-action` foundations with generated daily action records
-
-The event and time-tracking domains still need additional naming cleanup before they are migrated.
 
 ## Install
 
@@ -61,7 +61,14 @@ uv tool install lifeos-cli
    lifeos task add "Draft release checklist" --vision-id <vision-id>
    ```
 
-5. Create and inspect a habit:
+5. Create an event and a timelog:
+
+   ```bash
+   lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
+   lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
+   ```
+
+6. Create and inspect a habit:
 
    ```bash
    lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
@@ -69,7 +76,7 @@ uv tool install lifeos-cli
    lifeos habit-action list --action-date 2026-04-09
    ```
 
-6. Run a batch delete operation when needed:
+7. Run a batch delete operation when needed:
 
    ```bash
    lifeos task batch delete --ids <task-id-1> <task-id-2>

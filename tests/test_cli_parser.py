@@ -86,8 +86,10 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
     assert "init          Initialize local configuration" in captured.out
+    assert "event         Manage planned schedule events" in captured.out
     assert "people        Manage people and relationships" in captured.out
     assert "habit-action  Manage dated habit actions" in captured.out
+    assert "timelog       Manage actual time records" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -115,6 +117,26 @@ def test_cli_parser_supports_area_update_clear_icon_command() -> None:
     assert args.resource == "area"
     assert args.area_command == "update"
     assert args.clear_icon is True
+
+
+def test_cli_parser_supports_event_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "add",
+            "Doctor appointment",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "add"
+    assert args.title == "Doctor appointment"
+    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_people_add_command() -> None:
@@ -162,6 +184,28 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.content == "Draft release checklist"
     assert str(args.vision_id) == "11111111-1111-1111-1111-111111111111"
     assert args.priority == 3
+
+
+def test_cli_parser_supports_timelog_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "add",
+            "Deep work",
+            "--start-time",
+            "2026-04-10T13:00:00-04:00",
+            "--end-time",
+            "2026-04-10T14:30:00-04:00",
+            "--tracking-method",
+            "manual",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "add"
+    assert args.title == "Deep work"
+    assert args.tracking_method == "manual"
 
 
 def test_cli_parser_supports_vision_update_clear_area_command() -> None:
@@ -297,6 +341,38 @@ def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
     assert str(args.action_date) == "2026-04-09"
 
 
+def test_cli_parser_supports_event_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "update"
+    assert args.clear_people is True
+
+
+def test_cli_parser_supports_timelog_update_clear_notes_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-notes",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "update"
+    assert args.clear_notes is True
+
+
 @pytest.mark.parametrize(
     ("argv",),
     [
@@ -378,6 +454,28 @@ def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
             ],
         ),
         (["habit-action", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (["event", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "event",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["timelog", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "timelog",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
     ],
 )
 def test_cli_parser_rejects_hard_delete_flags(argv: list[str]) -> None:

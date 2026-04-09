@@ -361,3 +361,183 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
     assert deleted_result.returncode == 0, deleted_result.stderr
     assert task_id in deleted_result.stdout
     assert "deleted" in deleted_result.stdout
+
+
+def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationContext) -> None:
+    init_result = _run_lifeos(
+        integration_context,
+        "init",
+        "--non-interactive",
+        "--database-url",
+        integration_context.database_url,
+        "--schema",
+        integration_context.schema,
+    )
+    assert init_result.returncode == 0, init_result.stderr
+
+    area_result = _run_lifeos(integration_context, "area", "add", "Health")
+    assert area_result.returncode == 0, area_result.stderr
+    area_id = _extract_created_id(area_result.stdout)
+
+    vision_result = _run_lifeos(integration_context, "vision", "add", "Improve fitness")
+    assert vision_result.returncode == 0, vision_result.stderr
+    vision_id = _extract_created_id(vision_result.stdout)
+
+    task_result = _run_lifeos(
+        integration_context,
+        "task",
+        "add",
+        "Morning run",
+        "--vision-id",
+        vision_id,
+    )
+    assert task_result.returncode == 0, task_result.stderr
+    task_id = _extract_created_id(task_result.stdout)
+
+    person_result = _run_lifeos(integration_context, "people", "add", "Coach")
+    assert person_result.returncode == 0, person_result.stderr
+    person_id = _extract_created_id(person_result.stdout)
+
+    event_tag_result = _run_lifeos(
+        integration_context,
+        "tag",
+        "add",
+        "calendar",
+        "--entity-type",
+        "event",
+        "--category",
+        "context",
+    )
+    assert event_tag_result.returncode == 0, event_tag_result.stderr
+    event_tag_id = _extract_created_id(event_tag_result.stdout)
+
+    timelog_tag_result = _run_lifeos(
+        integration_context,
+        "tag",
+        "add",
+        "tracked",
+        "--entity-type",
+        "timelog",
+        "--category",
+        "context",
+    )
+    assert timelog_tag_result.returncode == 0, timelog_tag_result.stderr
+    timelog_tag_id = _extract_created_id(timelog_tag_result.stdout)
+
+    event_result = _run_lifeos(
+        integration_context,
+        "event",
+        "add",
+        "Morning run block",
+        "--start-time",
+        "2026-04-10T07:00:00-04:00",
+        "--end-time",
+        "2026-04-10T07:45:00-04:00",
+        "--area-id",
+        area_id,
+        "--task-id",
+        task_id,
+        "--person-id",
+        person_id,
+        "--tag-id",
+        event_tag_id,
+    )
+    assert event_result.returncode == 0, event_result.stderr
+    event_id = _extract_created_id(event_result.stdout)
+
+    event_list_result = _run_lifeos(
+        integration_context,
+        "event",
+        "list",
+        "--task-id",
+        task_id,
+    )
+    assert event_list_result.returncode == 0, event_list_result.stderr
+    assert event_id in event_list_result.stdout
+
+    event_show_result = _run_lifeos(integration_context, "event", "show", event_id)
+    assert event_show_result.returncode == 0, event_show_result.stderr
+    assert "people: Coach" in event_show_result.stdout
+    assert "tags: calendar" in event_show_result.stdout
+
+    event_update_result = _run_lifeos(
+        integration_context,
+        "event",
+        "update",
+        event_id,
+        "--status",
+        "completed",
+        "--clear-task",
+    )
+    assert event_update_result.returncode == 0, event_update_result.stderr
+    assert f"Updated event {event_id}" in event_update_result.stdout
+
+    timelog_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Morning run",
+        "--start-time",
+        "2026-04-10T07:02:00-04:00",
+        "--end-time",
+        "2026-04-10T07:41:00-04:00",
+        "--area-id",
+        area_id,
+        "--task-id",
+        task_id,
+        "--person-id",
+        person_id,
+        "--tag-id",
+        timelog_tag_id,
+        "--energy-level",
+        "4",
+    )
+    assert timelog_result.returncode == 0, timelog_result.stderr
+    timelog_id = _extract_created_id(timelog_result.stdout)
+
+    timelog_list_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--window-start",
+        "2026-04-10T00:00:00-04:00",
+        "--window-end",
+        "2026-04-10T23:59:59-04:00",
+    )
+    assert timelog_list_result.returncode == 0, timelog_list_result.stderr
+    assert timelog_id in timelog_list_result.stdout
+
+    timelog_show_result = _run_lifeos(integration_context, "timelog", "show", timelog_id)
+    assert timelog_show_result.returncode == 0, timelog_show_result.stderr
+    assert "people: Coach" in timelog_show_result.stdout
+    assert "tags: tracked" in timelog_show_result.stdout
+
+    timelog_update_result = _run_lifeos(
+        integration_context,
+        "timelog",
+        "update",
+        timelog_id,
+        "--notes",
+        "Felt strong",
+        "--clear-task",
+    )
+    assert timelog_update_result.returncode == 0, timelog_update_result.stderr
+    assert f"Updated timelog {timelog_id}" in timelog_update_result.stdout
+
+    timelog_delete_result = _run_lifeos(integration_context, "timelog", "delete", timelog_id)
+    assert timelog_delete_result.returncode == 0, timelog_delete_result.stderr
+    assert f"Soft-deleted timelog {timelog_id}" in timelog_delete_result.stdout
+
+    timelog_deleted_list = _run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--include-deleted",
+        "--window-start",
+        "2026-04-10T00:00:00-04:00",
+        "--window-end",
+        "2026-04-10T23:59:59-04:00",
+    )
+    assert timelog_deleted_list.returncode == 0, timelog_deleted_list.stderr
+    assert timelog_id in timelog_deleted_list.stdout
+    assert "deleted" in timelog_deleted_list.stdout
