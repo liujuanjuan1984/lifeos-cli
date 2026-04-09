@@ -249,16 +249,16 @@ def test_real_cli_structured_resource_workflow(integration_context: IntegrationC
     tag_id = _extract_created_id(tag_result.stdout)
 
     assert area_id in _run_lifeos(integration_context, "area", "list").stdout
-    assert vision_id in _run_lifeos(
-        integration_context, "vision", "list", "--status", "active"
-    ).stdout
-    assert task_id in _run_lifeos(
-        integration_context, "task", "list", "--vision-id", vision_id
-    ).stdout
+    assert (
+        vision_id in _run_lifeos(integration_context, "vision", "list", "--status", "active").stdout
+    )
+    assert (
+        task_id in _run_lifeos(integration_context, "task", "list", "--vision-id", vision_id).stdout
+    )
     assert person_id in _run_lifeos(integration_context, "people", "list").stdout
-    assert tag_id in _run_lifeos(
-        integration_context, "tag", "list", "--entity-type", "person"
-    ).stdout
+    assert (
+        tag_id in _run_lifeos(integration_context, "tag", "list", "--entity-type", "person").stdout
+    )
 
     task_show_result = _run_lifeos(integration_context, "task", "show", task_id)
     assert task_show_result.returncode == 0, task_show_result.stderr
