@@ -23,6 +23,12 @@
 - `pip-audit` is used for dependency vulnerability checks.
 - GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on version tags.
 
+## Project Policies
+
+- Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security disclosure: [SECURITY.md](SECURITY.md)
+- Community expectations: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
 ## License
 
-This project is currently unlicensed.
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
