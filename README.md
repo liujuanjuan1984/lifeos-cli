@@ -97,7 +97,16 @@ lifeos note add "a new note"
 printf 'first line\nsecond line\n' | lifeos note add --stdin
 lifeos note add --file ./note.md
 lifeos note list
+lifeos note search "meeting notes"
 lifeos note show 11111111-1111-1111-1111-111111111111
+lifeos note batch update-content --ids \
+  11111111-1111-1111-1111-111111111111 \
+  22222222-2222-2222-2222-222222222222 \
+  --find-text "draft" \
+  --replace-text "final"
+lifeos note batch delete --ids \
+  11111111-1111-1111-1111-111111111111 \
+  22222222-2222-2222-2222-222222222222
 lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
 lifeos note delete 11111111-1111-1111-1111-111111111111
 ```
@@ -114,6 +123,16 @@ EOF
 Use `lifeos note list` for a one-line summary view. Use `lifeos note show <note-id>` when
 you need the original multi-line content.
 
+Use `lifeos note search <query>` for the current PostgreSQL-backed keyword search.
+The current branch tokenizes the query and matches any token against note content with
+case-insensitive `ILIKE` filtering.
+
+Use `lifeos note batch <operation>` for commands that act on multiple notes at once. The
+current branch includes:
+
+- `lifeos note batch update-content` for bulk find/replace by note ID
+- `lifeos note batch delete` for bulk soft delete or hard delete by note ID
+
 The current branch exposes a narrow first slice:
 
 - PostgreSQL-backed note storage
@@ -122,13 +141,15 @@ The current branch exposes a narrow first slice:
 - Database health checks and migrations with `lifeos db ping` and `lifeos db upgrade`
 - Alembic migrations
 - A structured CLI family rooted in `lifeos <resource> <action>`
-- `note add`, `note list`, `note show`, `note update`, and `note delete`
+- `note add`, `note list`, `note search`, `note show`, `note update`, and `note delete`
+- `note batch update-content` and `note batch delete`
 
 Not implemented yet on this branch:
 
 - tags for notes
 - note-to-task or note-to-person associations
-- note ingestion jobs or search workflows
+- note ingestion jobs
+- richer search ranking or association-aware note search
 
 ## Tooling
 

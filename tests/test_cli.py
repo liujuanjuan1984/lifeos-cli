@@ -52,6 +52,41 @@ def test_cli_parser_supports_note_show_command() -> None:
     assert str(args.note_id) == "11111111-1111-1111-1111-111111111111"
 
 
+def test_cli_parser_supports_note_search_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["note", "search", "meeting notes", "--limit", "20"])
+
+    assert args.resource == "note"
+    assert args.note_command == "search"
+    assert args.query == "meeting notes"
+    assert args.limit == 20
+
+
+def test_cli_parser_supports_note_batch_update_content_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "batch",
+            "update-content",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "--find-text",
+            "draft",
+            "--replace-text",
+            "final",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "batch"
+    assert args.note_batch_command == "update-content"
+    assert args.find_text == "draft"
+    assert args.replace_text == "final"
+    assert len(args.note_ids) == 2
+
+
 def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     parser = build_parser()
 
@@ -85,6 +120,19 @@ def test_cli_note_list_help_explains_output_shape(capsys) -> None:
 
     assert "The output is tab-separated" in captured.out
     assert "Use --limit and --offset together for pagination." in captured.out
+
+
+def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "batch", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Run operations that target multiple notes in a single command." in captured.out
+    assert "update-content" in captured.out
+    assert "delete" in captured.out
 
 
 def test_main_init_non_interactive_writes_config(
@@ -455,6 +503,150 @@ def test_main_note_show_reports_missing_note(
     captured = capsys.readouterr()
 
     assert exit_code == 1
+    assert "was not found" in captured.err
+
+
+def test_main_note_search_prints_matching_notes(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_search_notes(
+        session: object,
+        *,
+        query: str,
+        include_deleted: bool,
+        limit: int,
+        offset: int,
+    ) -> list[object]:
+        assert query == "meeting notes"
+        assert include_deleted is False
+        assert limit == 100
+        assert offset == 0
+        return [
+            SimpleNamespace(
+                id=UUID("44444444-4444-4444-4444-444444444444"),
+                content="meeting notes for april planning",
+                created_at=datetime(2026, 4, 9, 4, 5, 6, tzinfo=timezone.utc),
+                deleted_at=None,
+            )
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "search_notes", fake_search_notes)
+
+    exit_code = cli.main(["note", "search", "meeting notes"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert (
+        "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t"
+        "meeting notes for april planning" in captured.out
+    )
+
+
+def test_main_note_batch_update_content_prints_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_batch_update_note_content(
+        session: object,
+        *,
+        note_ids: list[UUID],
+        find_text: str,
+        replace_text: str,
+        case_sensitive: bool,
+    ) -> db_services.NoteBatchUpdateResult:
+        assert note_ids == [
+            UUID("11111111-1111-1111-1111-111111111111"),
+            UUID("22222222-2222-2222-2222-222222222222"),
+        ]
+        assert find_text == "draft"
+        assert replace_text == "final"
+        assert case_sensitive is False
+        return db_services.NoteBatchUpdateResult(
+            updated_count=1,
+            unchanged_ids=(UUID("22222222-2222-2222-2222-222222222222"),),
+            failed_ids=(),
+            errors=(),
+            replacement_count=3,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "batch_update_note_content", fake_batch_update_note_content)
+
+    exit_code = cli.main(
+        [
+            "note",
+            "batch",
+            "update-content",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "--find-text",
+            "draft",
+            "--replace-text",
+            "final",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated notes: 1" in captured.out
+    assert "Replacements applied: 3" in captured.out
+    assert "Unchanged note IDs:" in captured.out
+
+
+def test_main_note_batch_delete_reports_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_batch_delete_notes(
+        session: object,
+        *,
+        note_ids: list[UUID],
+        hard_delete: bool,
+    ) -> db_services.NoteBatchDeleteResult:
+        assert note_ids == [
+            UUID("11111111-1111-1111-1111-111111111111"),
+            UUID("22222222-2222-2222-2222-222222222222"),
+        ]
+        assert hard_delete is False
+        return db_services.NoteBatchDeleteResult(
+            deleted_count=1,
+            failed_ids=(UUID("22222222-2222-2222-2222-222222222222"),),
+            errors=("Note 22222222-2222-2222-2222-222222222222 was not found",),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "batch_delete_notes", fake_batch_delete_notes)
+
+    exit_code = cli.main(
+        [
+            "note",
+            "batch",
+            "delete",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Deleted notes: 1" in captured.out
+    assert "Failed note IDs:" in captured.err
     assert "was not found" in captured.err
 
 

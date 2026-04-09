@@ -144,6 +144,13 @@ def _format_note_detail(note: NoteDetail) -> str:
     return "\n".join(lines)
 
 
+def _format_note_id_lines(label: str, note_ids: Sequence[UUID]) -> str:
+    """Render a labeled list of note identifiers."""
+    if not note_ids:
+        return f"{label}: -"
+    return "\n".join([f"{label}:"] + [f"  {note_id}" for note_id in note_ids])
+
+
 def _run_async(operation: Coroutine[object, object, int]) -> int:
     """Run an async CLI operation from the synchronous CLI entrypoint."""
     return int(asyncio.run(operation))
@@ -331,6 +338,36 @@ def _handle_note_list(args: argparse.Namespace) -> int:
     return _run_async(_handle_note_list_async(args))
 
 
+async def _handle_note_search_async(args: argparse.Namespace) -> int:
+    """Search notes by keyword tokens."""
+    from lifeos_cli.db.services import search_notes
+    from lifeos_cli.db.session import session_scope
+
+    normalized_query = args.query.strip()
+    if not normalized_query:
+        raise ConfigurationError("Search query must not be empty.")
+
+    async with session_scope() as session:
+        notes = await search_notes(
+            session,
+            query=normalized_query,
+            include_deleted=args.include_deleted,
+            limit=args.limit,
+            offset=args.offset,
+        )
+    if not notes:
+        print("No matching notes found.")
+        return 0
+    for note in notes:
+        print(_format_note_summary(note))
+    return 0
+
+
+def _handle_note_search(args: argparse.Namespace) -> int:
+    """Search notes by keyword tokens."""
+    return _run_async(_handle_note_search_async(args))
+
+
 async def _handle_note_show_async(args: argparse.Namespace) -> int:
     """Show a note with full content."""
     from lifeos_cli.db.services import get_note
@@ -395,6 +432,64 @@ async def _handle_note_delete_async(args: argparse.Namespace) -> int:
 def _handle_note_delete(args: argparse.Namespace) -> int:
     """Delete a note."""
     return _run_async(_handle_note_delete_async(args))
+
+
+async def _handle_note_batch_update_content_async(args: argparse.Namespace) -> int:
+    """Apply a batch content replacement across notes."""
+    from lifeos_cli.db.services import batch_update_note_content
+    from lifeos_cli.db.session import session_scope
+
+    if not args.find_text.strip():
+        raise ConfigurationError("Find text must not be empty.")
+
+    async with session_scope() as session:
+        result = await batch_update_note_content(
+            session,
+            note_ids=list(args.note_ids),
+            find_text=args.find_text,
+            replace_text=args.replace_text,
+            case_sensitive=args.case_sensitive,
+        )
+
+    print(f"Updated notes: {result.updated_count}")
+    print(f"Replacements applied: {result.replacement_count}")
+    if result.unchanged_ids:
+        print(_format_note_id_lines("Unchanged note IDs", result.unchanged_ids))
+    if result.failed_ids:
+        print(_format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def _handle_note_batch_update_content(args: argparse.Namespace) -> int:
+    """Apply a batch content replacement across notes."""
+    return _run_async(_handle_note_batch_update_content_async(args))
+
+
+async def _handle_note_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple notes in one command."""
+    from lifeos_cli.db.services import batch_delete_notes
+    from lifeos_cli.db.session import session_scope
+
+    async with session_scope() as session:
+        result = await batch_delete_notes(
+            session,
+            note_ids=list(args.note_ids),
+            hard_delete=args.hard,
+        )
+
+    print(f"Deleted notes: {result.deleted_count}")
+    if result.failed_ids:
+        print(_format_note_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def _handle_note_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple notes in one command."""
+    return _run_async(_handle_note_batch_delete_async(args))
 
 
 async def _handle_db_ping_async(_: argparse.Namespace) -> int:
@@ -651,7 +746,12 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos init",
                 'lifeos note add "Capture an idea"',
                 "lifeos note list --limit 20",
+                'lifeos note search "sprint retrospective"',
                 "lifeos note show 11111111-1111-1111-1111-111111111111",
+                "lifeos note batch update-content --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222 "
+                '--find-text "draft" --replace-text "final"',
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
                 "lifeos note delete 11111111-1111-1111-1111-111111111111",
             ),
@@ -659,6 +759,7 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Run `lifeos init` before using note commands for the first time.",
                 "Resource names stay singular, such as note or timelog.",
                 "Action names stay short verbs, such as add, list, update, and delete.",
+                "Use the `batch` namespace when one command operates on multiple note records.",
                 "The list command prints tab-separated columns: id, status, created_at, content.",
                 "Use `show` to inspect the full note body with preserved line breaks.",
                 "Delete performs a soft delete by default. Use --hard for permanent removal.",
@@ -747,6 +848,48 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     list_parser.set_defaults(handler=_handle_note_list)
 
+    search_parser = _add_documented_parser(
+        note_subparsers,
+        "search",
+        help_content=HelpContent(
+            summary="Search notes",
+            description=(
+                "Search notes by keyword tokens.\n\n"
+                "The current implementation uses a PostgreSQL-backed ILIKE token search.\n"
+                "Each token is matched against note content, and any matching token keeps\n"
+                "the note in the result set."
+            ),
+            examples=(
+                'lifeos note search "meeting notes"',
+                'lifeos note search "budget q2" --limit 20',
+                'lifeos note search "archived idea" --include-deleted',
+            ),
+            notes=(
+                "Results use the same summary format as `lifeos note list`.",
+                "Multi-word queries are split into tokens and matched with OR semantics.",
+            ),
+        ),
+    )
+    search_parser.add_argument("query", help="Search query string")
+    search_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Include soft-deleted notes in the search scope",
+    )
+    search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of matching notes to return",
+    )
+    search_parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of matching notes to skip before printing results",
+    )
+    search_parser.set_defaults(handler=_handle_note_search)
+
     show_parser = _add_documented_parser(
         note_subparsers,
         "show",
@@ -815,6 +958,128 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     delete_parser.set_defaults(handler=_handle_note_delete)
 
+    batch_parser = _add_documented_parser(
+        note_subparsers,
+        "batch",
+        help_content=HelpContent(
+            summary="Run batch note operations",
+            description=(
+                "Run operations that target multiple notes in a single command.\n\n"
+                "Use this namespace for bulk workflows so the CLI keeps a stable shape as\n"
+                "new note capabilities are introduced."
+            ),
+            examples=(
+                "lifeos note batch update-content --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222 "
+                '--find-text "draft" --replace-text "final"',
+                "lifeos note batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+            ),
+            notes=(
+                "Batch commands currently accept note IDs directly.",
+                "Future note batch operations should be added under this namespace.",
+            ),
+        ),
+    )
+    batch_parser.set_defaults(handler=_make_help_handler(batch_parser))
+    batch_subparsers = batch_parser.add_subparsers(
+        dest="note_batch_command",
+        title="operations",
+        metavar="operation",
+    )
+
+    batch_update_parser = _add_documented_parser(
+        batch_subparsers,
+        "update-content",
+        help_content=HelpContent(
+            summary="Find and replace note content in bulk",
+            description=(
+                "Apply a find/replace operation across multiple active notes.\n\n"
+                "This is the first batch-editing primitive for notes and provides a base\n"
+                "shape for future bulk operations."
+            ),
+            examples=(
+                "lifeos note batch update-content --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222 "
+                '--find-text "draft" --replace-text "final"',
+                "lifeos note batch update-content --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                '--find-text "TODO" --replace-text "DONE" --case-sensitive',
+            ),
+            notes=(
+                "Only active notes are updated by this command.",
+                "Failed note IDs are printed to stderr while successful updates stay on stdout.",
+            ),
+        ),
+    )
+    batch_update_parser.add_argument(
+        "--ids",
+        dest="note_ids",
+        metavar="note-id",
+        nargs="+",
+        required=True,
+        type=UUID,
+        help="One or more note identifiers to update",
+    )
+    batch_update_parser.add_argument(
+        "--find-text",
+        required=True,
+        help="Text to find in each target note",
+    )
+    batch_update_parser.add_argument(
+        "--replace-text",
+        default="",
+        help="Replacement text for matched content",
+    )
+    batch_update_parser.add_argument(
+        "--case-sensitive",
+        action="store_true",
+        help="Use a case-sensitive find/replace instead of case-insensitive matching",
+    )
+    batch_update_parser.set_defaults(handler=_handle_note_batch_update_content)
+
+    batch_delete_parser = _add_documented_parser(
+        batch_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary="Delete multiple notes",
+            description=(
+                "Delete multiple notes in one command.\n\n"
+                "This command mirrors `lifeos note delete`, but works across many note IDs."
+            ),
+            examples=(
+                "lifeos note batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222",
+                "lifeos note batch delete --ids "
+                "11111111-1111-1111-1111-111111111111 "
+                "22222222-2222-2222-2222-222222222222 --hard",
+            ),
+            notes=(
+                "Soft delete is the default. Use --hard to remove records permanently.",
+                "Failed note IDs are printed to stderr while successful deletes stay on stdout.",
+            ),
+        ),
+    )
+    batch_delete_parser.add_argument(
+        "--ids",
+        dest="note_ids",
+        metavar="note-id",
+        nargs="+",
+        required=True,
+        type=UUID,
+        help="One or more note identifiers to delete",
+    )
+    batch_delete_parser.add_argument(
+        "--hard",
+        action="store_true",
+        help="Permanently delete each note instead of soft-deleting it",
+    )
+    batch_delete_parser.set_defaults(handler=_handle_note_batch_delete)
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
@@ -833,10 +1098,12 @@ def build_parser() -> argparse.ArgumentParser:
                 "lifeos config show",
                 "lifeos db ping",
                 'lifeos note add "Capture an idea"',
+                'lifeos note search "meeting notes"',
             ),
             notes=(
                 "Keep resource names singular so new command families stay consistent.",
                 "Prefer short action verbs such as add, list, update, and delete.",
+                "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
                 "Each resource help page should explain scope, actions, and examples.",
                 "Run `lifeos init` before using database-backed resource commands.",
             ),
