@@ -2,6 +2,9 @@
 
 `lifeos-cli` is the command-line package for LifeOS workflows, tools, and automation.
 
+The project now ships a PostgreSQL-first data layer with Alembic migrations. Domain
+modules will be introduced incrementally, starting from `notes`.
+
 ## Development
 
 1. Install `uv`.
@@ -16,6 +19,21 @@
    ```bash
    bash ./scripts/doctor.sh
    ```
+
+## Database
+
+Default environment variables:
+
+```bash
+export LIFEOS_DATABASE_URL=postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos
+export LIFEOS_DATABASE_SCHEMA=lifeos
+```
+
+Apply migrations:
+
+```bash
+uv run alembic upgrade head
+```
 
 ## CLI
 
