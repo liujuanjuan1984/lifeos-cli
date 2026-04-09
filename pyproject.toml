@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=77", "setuptools-scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lifeos"
+dynamic = ["version"]
+description = "Personal operating system workflows, tools, and automation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+    { name = "liujuanjuan1984" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.18,<2.0",
+    "pip-audit>=2.9,<3.0",
+    "pre-commit>=4.5.0,<5.0",
+    "pytest>=8.4,<9.0",
+    "ruff>=0.11,<0.16",
+]
+
+[project.urls]
+Homepage = "https://github.com/liujuanjuan1984/lifeos"
+Repository = "https://github.com/liujuanjuan1984/lifeos"
+Issues = "https://github.com/liujuanjuan1984/lifeos/issues"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lifeos = ["py.typed"]
+
+[tool.setuptools_scm]
+fallback_version = "0+unknown"
+tag_regex = "^v?(?P<version>.+)$"
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/lifeos", "tests"]
+show_error_codes = true
+pretty = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
