@@ -6,16 +6,15 @@ DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
 
 
-def test_dependabot_configuration_covers_uv_and_github_actions() -> None:
+def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
     assert 'package-ecosystem: "uv"' in DEPENDABOT_TEXT
-    assert 'package-ecosystem: "github-actions"' in DEPENDABOT_TEXT
-    assert "open-pull-requests-limit: 5" in DEPENDABOT_TEXT
-    assert "open-pull-requests-limit: 3" in DEPENDABOT_TEXT
-    assert "uv-minor-and-patch" in DEPENDABOT_TEXT
+    assert 'package-ecosystem: "github-actions"' not in DEPENDABOT_TEXT
+    assert "open-pull-requests-limit: 1" in DEPENDABOT_TEXT
+    assert "uv-all-updates" in DEPENDABOT_TEXT
 
 
 def test_readme_documents_dependabot_and_dependency_audit_split() -> None:
-    assert "weekly grouped version-update PRs" in README_TEXT
+    assert "single weekly grouped version-update PR for `uv`" in README_TEXT
     assert "bash ./scripts/dependency_health.sh" in README_TEXT
 
 
