@@ -1,6 +1,6 @@
-# lifeos
+# lifeos-cli
 
-`lifeos` is a Python project for building personal operating system workflows, tools, and automation.
+`lifeos-cli` is the command-line package for LifeOS workflows, tools, and automation.
 
 ## Development
 
@@ -16,6 +16,14 @@
    ```bash
    bash ./scripts/doctor.sh
    ```
+
+## CLI
+
+Install the package and run:
+
+```bash
+lifeos --help
+```
 
 ## Tooling
 

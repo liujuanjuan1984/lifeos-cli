@@ -82,16 +82,16 @@ jobs:
           import pathlib
 
           dist_dir = pathlib.Path("dist")
-          wheels = sorted(dist_dir.glob("lifeos-*.whl"))
-          sdists = sorted(dist_dir.glob("lifeos-*.tar.gz"))
+          wheels = sorted(dist_dir.glob("lifeos_cli-*.whl"))
+          sdists = sorted(dist_dir.glob("lifeos_cli-*.tar.gz"))
           if len(wheels) != 1:
               raise SystemExit(f"Expected exactly one wheel in dist/, found {len(wheels)}")
           if len(sdists) != 1:
               raise SystemExit(f"Expected exactly one sdist in dist/, found {len(sdists)}")
           wheel = wheels[0].name
           sdist = sdists[0].name
-          version = wheel.removeprefix("lifeos-").split("-py3", 1)[0]
-          sdist_version = sdist.removeprefix("lifeos-").removesuffix(".tar.gz")
+          version = wheel.removeprefix("lifeos_cli-").split("-py3", 1)[0]
+          sdist_version = sdist.removeprefix("lifeos_cli-").removesuffix(".tar.gz")
           tag = os.environ["RELEASE_TAG"].removeprefix("v")
           if version != tag:
               raise SystemExit(f"Wheel version {version!r} does not match tag {tag!r}")

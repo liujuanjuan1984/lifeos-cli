@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for contributing to `lifeos`.
+Thanks for contributing to `lifeos-cli`.
 
-This repository is a Python project for personal operating system workflows, tools, and automation. Changes should keep package metadata, CI behavior, security expectations, and release workflows aligned.
+This repository ships the `lifeos-cli` distribution and the `lifeos` command-line entrypoint. Changes should keep package metadata, CLI behavior, CI, security expectations, and release workflows aligned.
 
 ## Before You Start
 
