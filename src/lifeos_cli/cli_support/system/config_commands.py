@@ -13,7 +13,9 @@ from lifeos_cli.application.configuration import (
 )
 from lifeos_cli.application.database import (
     ping_configured_database,
-    upgrade_configured_database,
+)
+from lifeos_cli.application.database import (
+    upgrade_configured_database_in_subprocess as upgrade_configured_database,
 )
 from lifeos_cli.cli_support import init_prompts
 from lifeos_cli.cli_support.help_utils import (
