@@ -123,7 +123,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             notes=(
                 "When both window flags are given, overlapping events are returned.",
-                "Use `--title-contains` for lightweight text filtering instead of a separate search command.",
+                "Use `--title-contains` for lightweight text filtering instead of a "
+                "separate search command.",
             ),
         ),
     )
@@ -163,8 +164,10 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             description="Update mutable event fields.",
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
-                "lifeos event update 11111111-1111-1111-1111-111111111111 --clear-task --clear-area",
-                "lifeos event update 11111111-1111-1111-1111-111111111111 --clear-people --clear-tags",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 "
+                "--clear-task --clear-area",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 "
+                "--clear-people --clear-tags",
             ),
             notes=(
                 "Use `--clear-*` flags to explicitly remove optional values.",

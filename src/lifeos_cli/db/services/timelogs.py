@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
@@ -31,9 +31,7 @@ from lifeos_cli.db.services.timelog_support import (
 
 
 async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Timelog:
-    tags_map = await load_tags_for_entities(
-        session, entity_ids=[timelog.id], entity_type="timelog"
-    )
+    tags_map = await load_tags_for_entities(session, entity_ids=[timelog.id], entity_type="timelog")
     people_map = await load_people_for_entities(
         session, entity_ids=[timelog.id], entity_type="timelog"
     )
@@ -49,9 +47,7 @@ async def _attach_timelog_links_for_many(
     if not timelogs:
         return []
     timelog_ids = [timelog.id for timelog in timelogs]
-    tags_map = await load_tags_for_entities(
-        session, entity_ids=timelog_ids, entity_type="timelog"
-    )
+    tags_map = await load_tags_for_entities(session, entity_ids=timelog_ids, entity_type="timelog")
     people_map = await load_people_for_entities(
         session, entity_ids=timelog_ids, entity_type="timelog"
     )

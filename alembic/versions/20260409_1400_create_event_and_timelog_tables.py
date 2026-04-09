@@ -107,7 +107,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_events_area_id", "events", ["area_id"], unique=False, schema=schema_name)
     op.create_index("ix_events_task_id", "events", ["task_id"], unique=False, schema=schema_name)
-    op.create_index(op.f("ix_events_status"), "events", ["status"], unique=False, schema=schema_name)
+    op.create_index(
+        op.f("ix_events_status"), "events", ["status"], unique=False, schema=schema_name
+    )
     op.create_index(
         op.f("ix_events_priority"),
         "events",

@@ -119,7 +119,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                "Use `--title-contains` for lightweight text filtering instead of a separate search command.",
+                "Use `--title-contains` for lightweight text filtering instead of a "
+                "separate search command.",
             ),
         ),
     )
@@ -159,8 +160,10 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             description="Update mutable timelog fields.",
             examples=(
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 --energy-level 5",
-                "lifeos timelog update 11111111-1111-1111-1111-111111111111 --clear-task --clear-area",
-                "lifeos timelog update 11111111-1111-1111-1111-111111111111 --clear-people --clear-tags",
+                "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
+                "--clear-task --clear-area",
+                "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
+                "--clear-people --clear-tags",
             ),
             notes=(
                 "Use `--clear-*` flags to explicitly remove optional values.",

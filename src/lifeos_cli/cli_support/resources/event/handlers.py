@@ -134,7 +134,11 @@ def handle_event_show(args: argparse.Namespace) -> int:
 
 async def handle_event_update_async(args: argparse.Namespace) -> int:
     conflicts = (
-        (args.clear_description and args.description is not None, "--description", "--clear-description"),
+        (
+            args.clear_description and args.description is not None,
+            "--description",
+            "--clear-description",
+        ),
         (args.clear_end_time and args.end_time is not None, "--end-time", "--clear-end-time"),
         (args.clear_area and args.area_id is not None, "--area-id", "--clear-area"),
         (args.clear_task and args.task_id is not None, "--task-id", "--clear-task"),

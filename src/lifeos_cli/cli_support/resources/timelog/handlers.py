@@ -21,7 +21,9 @@ def _format_timelog_summary(timelog: Timelog) -> str:
 
 
 def _format_timelog_detail(timelog: Timelog) -> str:
-    tag_names = ", ".join(tag.name for tag in timelog.tags) if getattr(timelog, "tags", None) else "-"
+    tag_names = (
+        ", ".join(tag.name for tag in timelog.tags) if getattr(timelog, "tags", None) else "-"
+    )
     people_names = (
         ", ".join(person.name for person in timelog.people)
         if getattr(timelog, "people", None)

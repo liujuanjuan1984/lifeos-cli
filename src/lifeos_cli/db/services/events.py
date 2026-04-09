@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
@@ -26,8 +28,6 @@ from lifeos_cli.db.services.event_support import (
     validate_event_time_range,
     validate_event_title,
 )
-from lifeos_cli.db.models.person_association import person_associations
-from lifeos_cli.db.models.tag_association import tag_associations
 
 
 async def _attach_event_links(session: AsyncSession, event: Event) -> Event:

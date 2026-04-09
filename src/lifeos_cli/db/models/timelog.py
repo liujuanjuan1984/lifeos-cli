@@ -27,7 +27,9 @@ class Timelog(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    start_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     tracking_method: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
     location: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -52,4 +54,7 @@ class Timelog(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         people: list[Person]
 
     def __repr__(self) -> str:
-        return f"Timelog(id={self.id!s}, title={self.title!r}, tracking_method={self.tracking_method!r})"
+        return (
+            f"Timelog(id={self.id!s}, title={self.title!r}, "
+            f"tracking_method={self.tracking_method!r})"
+        )

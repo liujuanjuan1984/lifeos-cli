@@ -28,7 +28,9 @@ async def sync_entity_people(
     existing_rows = await session.execute(existing_stmt)
     existing_person_ids = set(existing_rows.scalars().all())
 
-    missing = [str(person_id) for person_id in unique_person_ids if person_id not in existing_person_ids]
+    missing = [
+        str(person_id) for person_id in unique_person_ids if person_id not in existing_person_ids
+    ]
     if missing:
         raise LookupError(f"Unknown person IDs for entity type {entity_type}: {', '.join(missing)}")
 
