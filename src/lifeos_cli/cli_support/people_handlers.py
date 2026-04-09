@@ -143,11 +143,11 @@ def handle_people_update(args: argparse.Namespace) -> int:
 async def handle_people_delete_async(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         try:
-            await delete_person(session, person_id=args.person_id, hard_delete=args.hard)
+            await delete_person(session, person_id=args.person_id)
         except PersonNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} person {args.person_id}")
+    print(f"Soft-deleted person {args.person_id}")
     return 0
 
 
@@ -161,7 +161,6 @@ async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_people(
             session,
             person_ids=list(args.person_ids),
-            hard_delete=args.hard,
         )
     print(f"Deleted people: {result.deleted_count}")
     if result.failed_ids:

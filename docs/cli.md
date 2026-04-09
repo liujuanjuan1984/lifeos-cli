@@ -19,6 +19,8 @@ Command design conventions:
   `batch`
 - for structured resources, `list` is the primary query entrypoint and should grow richer filters
   over time
+- the public CLI only performs soft deletion; permanent cleanup is reserved for internal
+  maintenance scripts
 
 ## Installation and Initialization
 
@@ -89,7 +91,6 @@ Update or delete a note:
 ```bash
 lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
 lifeos note delete 11111111-1111-1111-1111-111111111111
-lifeos note delete 11111111-1111-1111-1111-111111111111 --hard
 ```
 
 ## Note Search
@@ -157,13 +158,14 @@ lifeos note batch delete --ids \
   22222222-2222-2222-2222-222222222222
 ```
 
-Permanent bulk delete:
+Internal maintenance purge:
 
 ```bash
-lifeos note batch delete --ids \
+uv run python scripts/purge_deleted_records.py note \
+  --ids \
   11111111-1111-1111-1111-111111111111 \
   22222222-2222-2222-2222-222222222222 \
-  --hard
+  --confirm permanently-delete-soft-deleted-records
 ```
 
 ## Scope on This Branch
@@ -202,3 +204,4 @@ Not implemented yet:
 - batch update operations for the new structured resources
 - note ingestion jobs
 - richer search ranking or association-aware note search
+- public CLI access to hard delete

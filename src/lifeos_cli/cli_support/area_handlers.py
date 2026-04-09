@@ -130,11 +130,11 @@ def handle_area_update(args: argparse.Namespace) -> int:
 async def handle_area_delete_async(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         try:
-            await delete_area(session, area_id=args.area_id, hard_delete=args.hard)
+            await delete_area(session, area_id=args.area_id)
         except AreaNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} area {args.area_id}")
+    print(f"Soft-deleted area {args.area_id}")
     return 0
 
 
@@ -148,7 +148,6 @@ async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_areas(
             session,
             area_ids=list(args.area_ids),
-            hard_delete=args.hard,
         )
     print(f"Deleted areas: {result.deleted_count}")
     if result.failed_ids:

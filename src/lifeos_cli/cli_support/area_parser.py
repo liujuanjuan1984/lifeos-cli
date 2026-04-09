@@ -130,15 +130,10 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete an area",
-            description=("Soft-delete an area by default. Use --hard for permanent deletion."),
+            description="Soft-delete an area.",
         ),
     )
     delete_parser.add_argument("area_id", type=UUID, help="Area identifier")
-    delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete the area",
-    )
     delete_parser.set_defaults(handler=handle_area_delete)
 
     batch_parser = add_documented_parser(
@@ -161,9 +156,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete multiple areas",
-            description=(
-                "Soft-delete multiple areas by default. Use --hard for permanent deletion."
-            ),
+            description="Soft-delete multiple areas.",
         ),
     )
     batch_delete_parser.add_argument(
@@ -174,5 +167,4 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         required=True,
         help="Area identifiers to delete",
     )
-    batch_delete_parser.add_argument("--hard", action="store_true", help="Permanently delete areas")
     batch_delete_parser.set_defaults(handler=handle_area_batch_delete)

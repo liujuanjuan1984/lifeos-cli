@@ -294,13 +294,11 @@ def test_main_note_batch_delete_reports_failures(
         session: object,
         *,
         note_ids: list[UUID],
-        hard_delete: bool,
     ) -> NoteBatchDeleteResult:
         assert note_ids == [
             UUID("11111111-1111-1111-1111-111111111111"),
             UUID("22222222-2222-2222-2222-222222222222"),
         ]
-        assert hard_delete is False
         return NoteBatchDeleteResult(
             deleted_count=1,
             failed_ids=(UUID("22222222-2222-2222-2222-222222222222"),),
@@ -380,7 +378,6 @@ def test_main_note_delete_reports_missing_note(
         session: object,
         *,
         note_id: UUID,
-        hard_delete: bool,
     ) -> None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
 

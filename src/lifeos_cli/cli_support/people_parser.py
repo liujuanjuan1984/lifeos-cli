@@ -114,11 +114,10 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete a person",
-            description="Soft-delete a person by default. Use --hard for permanent deletion.",
+            description="Soft-delete a person.",
         ),
     )
     delete_parser.add_argument("person_id", type=UUID, help="Person identifier")
-    delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the person")
     delete_parser.set_defaults(handler=handle_people_delete)
 
     batch_parser = add_documented_parser(
@@ -141,9 +140,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete multiple people",
-            description=(
-                "Soft-delete multiple people by default. Use --hard for permanent deletion."
-            ),
+            description="Soft-delete multiple people.",
         ),
     )
     batch_delete_parser.add_argument(
@@ -153,8 +150,5 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         nargs="+",
         required=True,
         help="Person identifiers to delete",
-    )
-    batch_delete_parser.add_argument(
-        "--hard", action="store_true", help="Permanently delete people"
     )
     batch_delete_parser.set_defaults(handler=handle_people_batch_delete)

@@ -135,11 +135,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete a task",
-            description="Soft-delete a task by default. Use --hard for permanent deletion.",
+            description="Soft-delete a task.",
         ),
     )
     delete_parser.add_argument("task_id", type=UUID, help="Task identifier")
-    delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the task")
     delete_parser.set_defaults(handler=handle_task_delete)
 
     batch_parser = add_documented_parser(
@@ -162,7 +161,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete multiple tasks",
-            description="Soft-delete multiple tasks by default. Use --hard for permanent deletion.",
+            description="Soft-delete multiple tasks.",
         ),
     )
     batch_delete_parser.add_argument(
@@ -173,5 +172,4 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         required=True,
         help="Task identifiers to delete",
     )
-    batch_delete_parser.add_argument("--hard", action="store_true", help="Permanently delete tasks")
     batch_delete_parser.set_defaults(handler=handle_task_batch_delete)

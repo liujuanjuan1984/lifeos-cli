@@ -135,11 +135,11 @@ def handle_tag_update(args: argparse.Namespace) -> int:
 async def handle_tag_delete_async(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         try:
-            await delete_tag(session, tag_id=args.tag_id, hard_delete=args.hard)
+            await delete_tag(session, tag_id=args.tag_id)
         except TagNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} tag {args.tag_id}")
+    print(f"Soft-deleted tag {args.tag_id}")
     return 0
 
 
@@ -153,7 +153,6 @@ async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_tags(
             session,
             tag_ids=list(args.tag_ids),
-            hard_delete=args.hard,
         )
     print(f"Deleted tags: {result.deleted_count}")
     if result.failed_ids:

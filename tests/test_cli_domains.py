@@ -167,13 +167,11 @@ def test_main_task_batch_delete_prints_summary(
         session: object,
         *,
         task_ids: list[UUID],
-        hard_delete: bool,
     ) -> object:
         assert task_ids == [
             UUID("11111111-1111-1111-1111-111111111111"),
             UUID("22222222-2222-2222-2222-222222222222"),
         ]
-        assert hard_delete is False
         return SimpleNamespace(
             deleted_count=2,
             failed_ids=(),
@@ -211,10 +209,8 @@ def test_main_people_batch_delete_reports_missing_ids(
         session: object,
         *,
         person_ids: list[UUID],
-        hard_delete: bool,
     ) -> object:
         assert person_ids == [UUID("33333333-3333-3333-3333-333333333333")]
-        assert hard_delete is False
         return SimpleNamespace(
             deleted_count=0,
             failed_ids=(UUID("33333333-3333-3333-3333-333333333333"),),

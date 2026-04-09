@@ -69,6 +69,9 @@ uv tool install lifeos-cli
 For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see
 [docs/cli.md](docs/cli.md).
 
+The public CLI only performs soft deletion. Permanent cleanup is intentionally kept out of the
+user-facing command tree and must be done through internal maintenance scripts.
+
 ## Development
 
 1. Install `uv`.

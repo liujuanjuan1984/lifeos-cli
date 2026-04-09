@@ -110,11 +110,10 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "delete",
         help_content=HelpContent(
             summary="Delete a tag",
-            description="Soft-delete a tag by default. Use --hard for permanent deletion.",
+            description="Soft-delete a tag.",
         ),
     )
     delete_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
-    delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the tag")
     delete_parser.set_defaults(handler=handle_tag_delete)
 
     batch_parser = add_documented_parser(
@@ -137,7 +136,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "delete",
         help_content=HelpContent(
             summary="Delete multiple tags",
-            description="Soft-delete multiple tags by default. Use --hard for permanent deletion.",
+            description="Soft-delete multiple tags.",
         ),
     )
     batch_delete_parser.add_argument(
@@ -148,5 +147,4 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         required=True,
         help="Tag identifiers to delete",
     )
-    batch_delete_parser.add_argument("--hard", action="store_true", help="Permanently delete tags")
     batch_delete_parser.set_defaults(handler=handle_tag_batch_delete)

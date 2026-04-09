@@ -51,7 +51,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "Use the `batch` namespace when one command operates on multiple note records.",
                 "The list command prints tab-separated columns: id, status, created_at, content.",
                 "Use `show` to inspect the full note body with preserved line breaks.",
-                "Delete performs a soft delete by default. Use --hard for permanent removal.",
+                "Delete operations in the CLI always perform soft deletion.",
             ),
         ),
     )
@@ -228,20 +228,12 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description=(
                 "Delete a note by identifier.\n\n"
                 "By default the note is soft-deleted so it can remain visible in audit\n"
-                "or recovery flows. Use --hard to remove it permanently."
+                "or recovery flows."
             ),
-            examples=(
-                "lifeos note delete 11111111-1111-1111-1111-111111111111",
-                "lifeos note delete 11111111-1111-1111-1111-111111111111 --hard",
-            ),
+            examples=("lifeos note delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete the note instead of soft-deleting it",
-    )
     delete_parser.set_defaults(handler=handle_note_delete)
 
     batch_parser = add_documented_parser(
@@ -340,12 +332,9 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos note batch delete --ids "
                 "11111111-1111-1111-1111-111111111111 "
                 "22222222-2222-2222-2222-222222222222",
-                "lifeos note batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 --hard",
             ),
             notes=(
-                "Soft delete is the default. Use --hard to remove records permanently.",
+                "CLI batch delete performs soft deletion only.",
                 "Failed note IDs are printed to stderr while successful deletes stay on stdout.",
             ),
         ),
@@ -358,10 +347,5 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         required=True,
         type=UUID,
         help="One or more note identifiers to delete",
-    )
-    batch_delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete each note instead of soft-deleting it",
     )
     batch_delete_parser.set_defaults(handler=handle_note_batch_delete)

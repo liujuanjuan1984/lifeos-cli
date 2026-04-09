@@ -127,15 +127,10 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete a vision",
-            description=("Soft-delete a vision by default. Use --hard for permanent deletion."),
+            description="Soft-delete a vision.",
         ),
     )
     delete_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
-    delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete the vision",
-    )
     delete_parser.set_defaults(handler=handle_vision_delete)
 
     batch_parser = add_documented_parser(
@@ -158,9 +153,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary="Delete multiple visions",
-            description=(
-                "Soft-delete multiple visions by default. Use --hard for permanent deletion."
-            ),
+            description="Soft-delete multiple visions.",
         ),
     )
     batch_delete_parser.add_argument(
@@ -170,10 +163,5 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         nargs="+",
         required=True,
         help="Vision identifiers to delete",
-    )
-    batch_delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete visions",
     )
     batch_delete_parser.set_defaults(handler=handle_vision_batch_delete)

@@ -141,11 +141,11 @@ def handle_vision_update(args: argparse.Namespace) -> int:
 async def handle_vision_delete_async(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         try:
-            await delete_vision(session, vision_id=args.vision_id, hard_delete=args.hard)
+            await delete_vision(session, vision_id=args.vision_id)
         except VisionNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} vision {args.vision_id}")
+    print(f"Soft-deleted vision {args.vision_id}")
     return 0
 
 
@@ -159,7 +159,6 @@ async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_visions(
             session,
             vision_ids=list(args.vision_ids),
-            hard_delete=args.hard,
         )
     print(f"Deleted visions: {result.deleted_count}")
     if result.failed_ids:

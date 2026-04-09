@@ -173,11 +173,11 @@ def handle_task_update(args: argparse.Namespace) -> int:
 async def handle_task_delete_async(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         try:
-            await delete_task(session, task_id=args.task_id, hard_delete=args.hard)
+            await delete_task(session, task_id=args.task_id)
         except TaskNotFoundError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} task {args.task_id}")
+    print(f"Soft-deleted task {args.task_id}")
     return 0
 
 
@@ -191,7 +191,6 @@ async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_tasks(
             session,
             task_ids=list(args.task_ids),
-            hard_delete=args.hard,
         )
     print(f"Deleted tasks: {result.deleted_count}")
     if result.failed_ids:

@@ -150,6 +150,84 @@ def test_cli_parser_supports_task_batch_delete_command() -> None:
     assert len(args.task_ids) == 2
 
 
+@pytest.mark.parametrize(
+    ("argv",),
+    [
+        (["note", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "note",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["area", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "area",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["tag", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "tag",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["people", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "people",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["vision", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "vision",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["task", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "task",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+    ],
+)
+def test_cli_parser_rejects_hard_delete_flags(argv: list[str]) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+
 def test_main_note_without_action_prints_resource_help(capsys) -> None:
     exit_code = cli.main(["note"])
     captured = capsys.readouterr()

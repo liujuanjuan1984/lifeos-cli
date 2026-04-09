@@ -160,11 +160,11 @@ async def handle_note_delete_async(args: argparse.Namespace) -> int:
     """Delete a note."""
     try:
         async with session_scope() as session:
-            await delete_note(session, note_id=args.note_id, hard_delete=args.hard)
+            await delete_note(session, note_id=args.note_id)
     except NoteNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    print(f"{'Deleted' if args.hard else 'Soft-deleted'} note {args.note_id}")
+    print(f"Soft-deleted note {args.note_id}")
     return 0
 
 
@@ -209,7 +209,6 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
         result = await batch_delete_notes(
             session,
             note_ids=list(args.note_ids),
-            hard_delete=args.hard,
         )
 
     print(f"Deleted notes: {result.deleted_count}")
