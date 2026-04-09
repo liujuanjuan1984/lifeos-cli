@@ -1,29 +1,47 @@
 # lifeos-cli
 
-`lifeos-cli` is the command-line package for building a personal operating system on top of
-PostgreSQL, async services, and incremental domain modules.
+`lifeos-cli` is a command-line personal operating system for people who want structured, durable,
+and agent-friendly life data.
 
-The project is currently focused on establishing a durable foundation instead of exposing every
-future LifeOS capability at once:
+It is built on a simple premise: meaningful self-awareness starts with honest data. Intentions,
+plans, routines, and actual time use should all be recorded as first-class objects instead of being
+buried in disconnected notes and ad hoc tools.
 
-- PostgreSQL-first persistence
-- Alembic-based schema evolution
-- async-only runtime service and data layers
-- a structured CLI grammar that can scale across domains
-- a first end-to-end `notes` slice
+The project borrows the LifeOS design philosophy from `Common Compass`, but it intentionally does
+not include an embedded agentic layer. Instead, `lifeos-cli` treats the CLI itself as the stable
+interface: humans can use it directly, and existing coding agents or automation systems can invoke
+the same commands without needing a separate in-product agent runtime.
 
-## Current Focus
+## Design Principles
 
-This branch intentionally keeps the domain surface narrow while the platform foundation settles.
-Today the primary delivered slice is:
+- Structured data before speculative intelligence
+- Clear separation between intention and reality
+- PostgreSQL-first persistence with explicit schema evolution
+- async-only runtime services and data access
+- one CLI grammar that stays consistent across domains
+- a tool surface that is easy for both humans and agents to call
 
-- local configuration bootstrap with `lifeos init`
-- database connectivity checks and migrations
-- note capture, listing, search, inspection, and batch editing
-- initial `area`, `tag`, `people`, `vision`, and `task` domain foundations
-- planned schedule `event` workflows
-- actual time-record `timelog` workflows
-- full `habit` and `habit-action` foundations with generated daily action records
+## Current Domain Surface
+
+The project is still expanding incrementally, but the current foundation already covers:
+
+- notes
+- areas
+- tags
+- people
+- visions
+- tasks
+- habits and habit actions
+- events for planned schedule blocks
+- timelogs for actual time records
+
+Together, these domains form the initial bridge between:
+
+- intention: visions, tasks, habits, planned events
+- reality: notes, timelogs, completed habit actions, relationship records
+
+That bridge is the core value of the project. The goal is not just to collect data, but to make it
+possible to compare what you meant to do with what you actually invested time and attention in.
 
 ## Install
 
@@ -33,71 +51,44 @@ Install from PyPI with `uv tool`:
 uv tool install lifeos-cli
 ```
 
-## Quick Start
+## Getting Started
 
-1. Initialize local configuration:
+1. Install the package:
+
+   ```bash
+   uv tool install lifeos-cli
+   ```
+
+2. Initialize local configuration:
 
    ```bash
    lifeos init
    ```
 
-   Optional preference flags can be persisted during setup:
+3. Explore the available command surface:
 
    ```bash
-   lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00
+   lifeos --help
    ```
 
-   Re-run `lifeos init` later to update stored preferences.
-
-2. Add a note:
-
-   ```bash
-   lifeos note add "hello"
-   ```
-
-3. List notes:
-
-   ```bash
-   lifeos note list
-   ```
-
-4. Create an area, a vision, and a task:
-
-   ```bash
-   lifeos area add "Health"
-   lifeos vision add "Launch lifeos-cli"
-   lifeos task add "Draft release checklist" --vision-id <vision-id>
-   ```
-
-5. Create an event and a timelog:
-
-   ```bash
-   lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
-   lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
-   ```
-
-   Datetimes are stored in UTC and rendered back in the configured local timezone. Local-day
-   filters use the configured `day_starts_at` boundary.
-
-6. Create and inspect a habit:
-
-   ```bash
-   lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
-   lifeos habit list --with-stats
-   lifeos habit-action list --action-date 2026-04-09
-   ```
-
-7. Run a batch delete operation when needed:
-
-   ```bash
-   lifeos task batch delete --ids <task-id-1> <task-id-2>
-   ```
-
-For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see
-[docs/cli.md](docs/cli.md).
+For complete CLI usage, resource-by-resource workflows, output conventions, and agent-oriented
+calling patterns, see [docs/cli.md](docs/cli.md).
 
 The public CLI only performs soft deletion. Permanent cleanup is intentionally kept out of the
 user-facing command tree and must be done through internal maintenance scripts.
+
+## Time Semantics
+
+`lifeos-cli` stores datetimes in UTC and renders them back in the configured local timezone.
+
+Operational day and week views are preference-aware:
+
+- `timezone` controls local rendering
+- `day_starts_at` controls when a local day begins
+- `week_starts_on` controls weekly grouping
+
+This keeps storage semantics stable while still letting the CLI reflect the user's lived time
+boundaries.
 
 ## Development
 
