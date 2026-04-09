@@ -12,7 +12,8 @@ lifeos <resource> <action> [arguments] [options]
 
 Command design conventions:
 
-- resource names stay singular nouns, such as `note`
+- resource names stay short and stable; most are singular nouns such as `note` or `task`
+- use natural exceptions such as `people` when they are clearer than forced regular forms
 - action names stay short verbs, such as `add`, `list`, `show`, `search`, and `delete`
 - when one command targets multiple records, it should live under a grouped namespace such as
   `batch`
@@ -105,6 +106,26 @@ Current behavior:
 - tokens are matched with OR semantics
 - results use the same summary format as `lifeos note list`
 
+## Core Domains
+
+The branch now exposes early CRUD-oriented command families for several additional domains:
+
+- `lifeos area ...`
+- `lifeos tag ...`
+- `lifeos people ...`
+- `lifeos vision ...`
+- `lifeos task ...`
+
+Examples:
+
+```bash
+lifeos area add "Health"
+lifeos tag add "family" --entity-type person --category relation
+lifeos people add "Alice" --nickname ally --location Toronto
+lifeos vision add "Launch lifeos-cli"
+lifeos task add "Draft release checklist" --vision-id <vision-id>
+```
+
 ## Note Batch Operations
 
 The first grouped bulk namespace is `lifeos note batch`.
@@ -144,6 +165,11 @@ Currently implemented:
 - `lifeos config show`
 - `lifeos db ping`
 - `lifeos db upgrade`
+- `lifeos area add|list|show|update|delete`
+- `lifeos tag add|list|show|update|delete`
+- `lifeos people add|list|show|update|delete`
+- `lifeos vision add|list|show|update|delete`
+- `lifeos task add|list|show|update|delete`
 - `lifeos note add`
 - `lifeos note list`
 - `lifeos note search`
@@ -157,5 +183,7 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
+- person-to-vision or person-to-task links
+- vision experience workflows and advanced task-tree operations
 - note ingestion jobs
 - richer search ranking or association-aware note search

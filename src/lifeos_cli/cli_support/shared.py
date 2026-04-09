@@ -79,6 +79,16 @@ def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ())
     return "\n\n".join(sections)
 
 
+def format_timestamp(value: object | None) -> str:
+    """Render a timestamp-like object."""
+    if value is None:
+        return "-"
+    isoformat = getattr(value, "isoformat", None)
+    if callable(isoformat):
+        return str(isoformat())
+    return str(value)
+
+
 def make_help_handler(parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], int]:
     """Return a handler that prints parser help for resource-level commands."""
 

@@ -20,9 +20,9 @@ Today the primary delivered slice is:
 - local configuration bootstrap with `lifeos init`
 - database connectivity checks and migrations
 - note capture, listing, search, inspection, and batch editing
+- initial `area`, `tag`, `people`, `vision`, and `task` domain foundations
 
-Planned domains such as `timelog`, `task`, and other personal management modules will follow the
-same command and data-layer conventions.
+The event and time-tracking domains still need additional naming cleanup before they are migrated.
 
 ## Install
 
@@ -50,6 +50,14 @@ uv tool install lifeos-cli
 
    ```bash
    lifeos note list
+   ```
+
+4. Create an area, a vision, and a task:
+
+   ```bash
+   lifeos area add "Health"
+   lifeos vision add "Launch lifeos-cli"
+   lifeos task add "Draft release checklist" --vision-id <vision-id>
    ```
 
 For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see

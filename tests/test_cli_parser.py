@@ -86,7 +86,49 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
     assert "init      Initialize local configuration" in captured.out
+    assert "people    Manage people and relationships" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_parser_supports_area_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["area", "add", "Health", "--display-order", "2"])
+
+    assert args.resource == "area"
+    assert args.area_command == "add"
+    assert args.name == "Health"
+    assert args.display_order == 2
+
+
+def test_cli_parser_supports_people_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["people", "add", "Alice", "--nickname", "ally"])
+
+    assert args.resource == "people"
+    assert args.people_command == "add"
+    assert args.name == "Alice"
+    assert args.nickname == ["ally"]
+
+
+def test_cli_parser_supports_task_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "add",
+            "Draft release checklist",
+            "--vision-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--priority",
+            "3",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "add"
+    assert args.content == "Draft release checklist"
+    assert str(args.vision_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.priority == 3
 
 
 def test_main_note_without_action_prints_resource_help(capsys) -> None:

@@ -46,7 +46,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 "Run `lifeos init` before using note commands for the first time.",
-                "Resource names stay singular, such as note or timelog.",
+                "Prefer short, stable resource names, such as note, task, or people.",
                 "Action names stay short verbs, such as add, list, update, and delete.",
                 "Use the `batch` namespace when one command operates on multiple note records.",
                 "The list command prints tab-separated columns: id, status, created_at, content.",

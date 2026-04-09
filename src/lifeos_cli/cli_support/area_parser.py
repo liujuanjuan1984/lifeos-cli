@@ -1,0 +1,112 @@
+"""Area resource parser construction."""
+
+from __future__ import annotations
+
+import argparse
+from uuid import UUID
+
+from lifeos_cli.cli_support.area_handlers import (
+    handle_area_add,
+    handle_area_delete,
+    handle_area_list,
+    handle_area_show,
+    handle_area_update,
+)
+from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
+
+
+def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """Build the area command tree."""
+    area_parser = add_documented_parser(
+        subparsers,
+        "area",
+        help_content=HelpContent(
+            summary="Manage life areas",
+            description=(
+                "Create and maintain high-level life areas such as work, health, or relationships."
+            ),
+            examples=(
+                'lifeos area add "Health" --color "#16A34A"',
+                "lifeos area list",
+                "lifeos area show 11111111-1111-1111-1111-111111111111",
+            ),
+        ),
+    )
+    area_parser.set_defaults(handler=make_help_handler(area_parser))
+    area_subparsers = area_parser.add_subparsers(dest="area_command", title="actions", metavar="action")
+
+    add_parser = add_documented_parser(
+        area_subparsers,
+        "add",
+        help_content=HelpContent(
+            summary="Create an area",
+            description="Create a new area.",
+        ),
+    )
+    add_parser.add_argument("name", help="Area name")
+    add_parser.add_argument("--description", help="Optional area description")
+    add_parser.add_argument("--color", default="#3B82F6", help="Hex color code")
+    add_parser.add_argument("--icon", help="Optional icon identifier")
+    add_parser.add_argument("--inactive", action="store_true", help="Create the area as inactive")
+    add_parser.add_argument("--display-order", type=int, default=0, help="Display order")
+    add_parser.set_defaults(handler=handle_area_add)
+
+    list_parser = add_documented_parser(
+        area_subparsers,
+        "list",
+        help_content=HelpContent(
+            summary="List areas",
+            description="List areas in display order.",
+        ),
+    )
+    list_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted areas")
+    list_parser.add_argument("--include-inactive", action="store_true", help="Include inactive areas")
+    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of rows")
+    list_parser.add_argument("--offset", type=int, default=0, help="Number of rows to skip")
+    list_parser.set_defaults(handler=handle_area_list)
+
+    show_parser = add_documented_parser(
+        area_subparsers,
+        "show",
+        help_content=HelpContent(
+            summary="Show an area",
+            description="Show one area with full metadata.",
+        ),
+    )
+    show_parser.add_argument("area_id", type=UUID, help="Area identifier")
+    show_parser.add_argument("--include-deleted", action="store_true", help="Allow deleted areas")
+    show_parser.set_defaults(handler=handle_area_show)
+
+    update_parser = add_documented_parser(
+        area_subparsers,
+        "update",
+        help_content=HelpContent(
+            summary="Update an area",
+            description="Update mutable area fields.",
+        ),
+    )
+    update_parser.add_argument("area_id", type=UUID, help="Area identifier")
+    update_parser.add_argument("--name", help="Updated area name")
+    update_parser.add_argument("--description", help="Updated description")
+    update_parser.add_argument("--color", help="Updated hex color code")
+    update_parser.add_argument("--icon", help="Updated icon identifier")
+    update_parser.add_argument(
+        "--active",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Toggle whether the area is active",
+    )
+    update_parser.add_argument("--display-order", type=int, help="Updated display order")
+    update_parser.set_defaults(handler=handle_area_update)
+
+    delete_parser = add_documented_parser(
+        area_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary="Delete an area",
+            description="Soft-delete an area by default. Use --hard for permanent deletion.",
+        ),
+    )
+    delete_parser.add_argument("area_id", type=UUID, help="Area identifier")
+    delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the area")
+    delete_parser.set_defaults(handler=handle_area_delete)

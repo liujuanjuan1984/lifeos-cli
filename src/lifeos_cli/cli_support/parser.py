@@ -9,10 +9,15 @@ from importlib.metadata import PackageNotFoundError, version
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from lifeos_cli.cli_support.area_parser import build_area_parser
 from lifeos_cli.cli_support.config_commands import build_config_parser, build_init_parser
 from lifeos_cli.cli_support.db_commands import build_db_parser
 from lifeos_cli.cli_support.note_parser import build_note_parser
+from lifeos_cli.cli_support.people_parser import build_people_parser
 from lifeos_cli.cli_support.shared import build_epilog, print_database_runtime_error
+from lifeos_cli.cli_support.tag_parser import build_tag_parser
+from lifeos_cli.cli_support.task_parser import build_task_parser
+from lifeos_cli.cli_support.vision_parser import build_vision_parser
 from lifeos_cli.config import ConfigurationError
 
 
@@ -40,11 +45,17 @@ def build_parser() -> argparse.ArgumentParser:
                 "lifeos init",
                 "lifeos config show",
                 "lifeos db ping",
+                'lifeos area add "Health"',
+                'lifeos people add "Alice"',
+                'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
+                'lifeos task add "Draft release plan" --vision-id <vision-id>',
                 'lifeos note add "Capture an idea"',
                 'lifeos note search "meeting notes"',
             ),
             notes=(
-                "Keep resource names singular so new command families stay consistent.",
+                "Prefer short, stable resource names so new command families stay consistent.",
+                "Use natural exceptions such as `people` when they are clearer than "
+                "forced regular forms.",
                 "Prefer short action verbs such as add, list, update, and delete.",
                 "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
                 "Each resource help page should explain scope, actions, and examples.",
@@ -58,6 +69,11 @@ def build_parser() -> argparse.ArgumentParser:
     build_init_parser(subparsers)
     build_config_parser(subparsers)
     build_db_parser(subparsers)
+    build_area_parser(subparsers)
+    build_tag_parser(subparsers)
+    build_people_parser(subparsers)
+    build_vision_parser(subparsers)
+    build_task_parser(subparsers)
     build_note_parser(subparsers)
     return parser
 
