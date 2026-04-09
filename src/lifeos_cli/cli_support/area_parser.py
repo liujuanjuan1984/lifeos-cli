@@ -7,6 +7,7 @@ from uuid import UUID
 
 from lifeos_cli.cli_support.area_handlers import (
     handle_area_add,
+    handle_area_batch_delete,
     handle_area_delete,
     handle_area_list,
     handle_area_show,
@@ -29,11 +30,18 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos area add "Health" --color "#16A34A"',
                 "lifeos area list",
                 "lifeos area show 11111111-1111-1111-1111-111111111111",
+                "lifeos area batch delete --ids 11111111-1111-1111-1111-111111111111",
+            ),
+            notes=(
+                "Use `list` as the primary query entrypoint for this resource.",
+                "Use the `batch` namespace for multi-record write operations.",
             ),
         ),
     )
     area_parser.set_defaults(handler=make_help_handler(area_parser))
-    area_subparsers = area_parser.add_subparsers(dest="area_command", title="actions", metavar="action")
+    area_subparsers = area_parser.add_subparsers(
+        dest="area_command", title="actions", metavar="action"
+    )
 
     add_parser = add_documented_parser(
         area_subparsers,
@@ -59,10 +67,24 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description="List areas in display order.",
         ),
     )
-    list_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted areas")
-    list_parser.add_argument("--include-inactive", action="store_true", help="Include inactive areas")
-    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of rows")
-    list_parser.add_argument("--offset", type=int, default=0, help="Number of rows to skip")
+    list_parser.add_argument(
+        "--include-deleted", action="store_true", help="Include soft-deleted areas"
+    )
+    list_parser.add_argument(
+        "--include-inactive", action="store_true", help="Include inactive areas"
+    )
+    list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of rows",
+    )
+    list_parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of rows to skip",
+    )
     list_parser.set_defaults(handler=handle_area_list)
 
     show_parser = add_documented_parser(
@@ -74,7 +96,11 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help="Area identifier")
-    show_parser.add_argument("--include-deleted", action="store_true", help="Allow deleted areas")
+    show_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Allow deleted areas",
+    )
     show_parser.set_defaults(handler=handle_area_show)
 
     update_parser = add_documented_parser(
@@ -104,9 +130,49 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary="Delete an area",
-            description="Soft-delete an area by default. Use --hard for permanent deletion.",
+            description=("Soft-delete an area by default. Use --hard for permanent deletion."),
         ),
     )
     delete_parser.add_argument("area_id", type=UUID, help="Area identifier")
-    delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the area")
+    delete_parser.add_argument(
+        "--hard",
+        action="store_true",
+        help="Permanently delete the area",
+    )
     delete_parser.set_defaults(handler=handle_area_delete)
+
+    batch_parser = add_documented_parser(
+        area_subparsers,
+        "batch",
+        help_content=HelpContent(
+            summary="Run batch area operations",
+            description="Run write operations that target multiple areas in one command.",
+        ),
+    )
+    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
+    batch_subparsers = batch_parser.add_subparsers(
+        dest="area_batch_command",
+        title="batch actions",
+        metavar="batch_action",
+    )
+
+    batch_delete_parser = add_documented_parser(
+        batch_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary="Delete multiple areas",
+            description=(
+                "Soft-delete multiple areas by default. Use --hard for permanent deletion."
+            ),
+        ),
+    )
+    batch_delete_parser.add_argument(
+        "--ids",
+        dest="area_ids",
+        type=UUID,
+        nargs="+",
+        required=True,
+        help="Area identifiers to delete",
+    )
+    batch_delete_parser.add_argument("--hard", action="store_true", help="Permanently delete areas")
+    batch_delete_parser.set_defaults(handler=handle_area_batch_delete)

@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_timestamp, run_async
+from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services import (
     AreaAlreadyExistsError,
     AreaNotFoundError,
+    batch_delete_areas,
     create_area,
     delete_area,
     get_area,
@@ -18,30 +20,27 @@ from lifeos_cli.db.services import (
 from lifeos_cli.db.session import session_scope
 
 
-def _format_area_summary(area: object) -> str:
+def _format_area_summary(area: Area) -> str:
     status_parts: list[str] = []
-    if getattr(area, "deleted_at", None) is not None:
+    if area.deleted_at is not None:
         status_parts.append("deleted")
-    status_parts.append("active" if getattr(area, "is_active", True) else "inactive")
-    return (
-        f"{getattr(area, 'id')}\t{'/'.join(status_parts)}\t"
-        f"{getattr(area, 'display_order')}\t{getattr(area, 'name')}"
-    )
+    status_parts.append("active" if area.is_active else "inactive")
+    return f"{area.id}\t{'/'.join(status_parts)}\t{area.display_order}\t{area.name}"
 
 
-def _format_area_detail(area: object) -> str:
+def _format_area_detail(area: Area) -> str:
     return "\n".join(
         (
-            f"id: {getattr(area, 'id')}",
-            f"name: {getattr(area, 'name')}",
-            f"description: {getattr(area, 'description') or '-'}",
-            f"color: {getattr(area, 'color')}",
-            f"icon: {getattr(area, 'icon') or '-'}",
-            f"is_active: {getattr(area, 'is_active')}",
-            f"display_order: {getattr(area, 'display_order')}",
-            f"created_at: {format_timestamp(getattr(area, 'created_at', None))}",
-            f"updated_at: {format_timestamp(getattr(area, 'updated_at', None))}",
-            f"deleted_at: {format_timestamp(getattr(area, 'deleted_at', None))}",
+            f"id: {area.id}",
+            f"name: {area.name}",
+            f"description: {area.description or '-'}",
+            f"color: {area.color}",
+            f"icon: {area.icon or '-'}",
+            f"is_active: {area.is_active}",
+            f"display_order: {area.display_order}",
+            f"created_at: {format_timestamp(area.created_at)}",
+            f"updated_at: {format_timestamp(area.updated_at)}",
+            f"deleted_at: {format_timestamp(area.deleted_at)}",
         )
     )
 
@@ -141,3 +140,24 @@ async def handle_area_delete_async(args: argparse.Namespace) -> int:
 
 def handle_area_delete(args: argparse.Namespace) -> int:
     return run_async(handle_area_delete_async(args))
+
+
+async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple areas in one command."""
+    async with session_scope() as session:
+        result = await batch_delete_areas(
+            session,
+            area_ids=list(args.area_ids),
+            hard_delete=args.hard,
+        )
+    print(f"Deleted areas: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed area IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_area_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple areas in one command."""
+    return run_async(handle_area_batch_delete_async(args))

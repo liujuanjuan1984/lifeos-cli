@@ -6,10 +6,12 @@ import argparse
 import sys
 from datetime import date
 
-from lifeos_cli.cli_support.shared import format_timestamp, run_async
+from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.services import (
     PersonAlreadyExistsError,
     PersonNotFoundError,
+    batch_delete_people,
     create_person,
     delete_person,
     get_person,
@@ -25,31 +27,28 @@ def _parse_birth_date(value: str | None) -> date | None:
     return date.fromisoformat(value)
 
 
-def _format_person_summary(person: object) -> str:
-    status = "deleted" if getattr(person, "deleted_at", None) is not None else "active"
-    tag_names = ",".join(tag.name for tag in getattr(person, "tags", [])) or "-"
-    return (
-        f"{getattr(person, 'id')}\t{status}\t{getattr(person, 'name')}\t"
-        f"{getattr(person, 'location') or '-'}\t{tag_names}"
-    )
+def _format_person_summary(person: Person) -> str:
+    status = "deleted" if person.deleted_at is not None else "active"
+    tag_names = ",".join(tag.name for tag in person.tags) or "-"
+    return f"{person.id}\t{status}\t{person.name}\t{person.location or '-'}\t{tag_names}"
 
 
-def _format_person_detail(person: object) -> str:
-    tags = getattr(person, "tags", [])
+def _format_person_detail(person: Person) -> str:
+    tags = person.tags
     tag_names = ", ".join(tag.name for tag in tags) if tags else "-"
-    nicknames = getattr(person, "nicknames", None) or []
+    nicknames = person.nicknames or []
     return "\n".join(
         (
-            f"id: {getattr(person, 'id')}",
-            f"name: {getattr(person, 'name')}",
-            f"description: {getattr(person, 'description') or '-'}",
+            f"id: {person.id}",
+            f"name: {person.name}",
+            f"description: {person.description or '-'}",
             f"nicknames: {', '.join(nicknames) if nicknames else '-'}",
-            f"birth_date: {getattr(person, 'birth_date') or '-'}",
-            f"location: {getattr(person, 'location') or '-'}",
+            f"birth_date: {person.birth_date or '-'}",
+            f"location: {person.location or '-'}",
             f"tags: {tag_names}",
-            f"created_at: {format_timestamp(getattr(person, 'created_at', None))}",
-            f"updated_at: {format_timestamp(getattr(person, 'updated_at', None))}",
-            f"deleted_at: {format_timestamp(getattr(person, 'deleted_at', None))}",
+            f"created_at: {format_timestamp(person.created_at)}",
+            f"updated_at: {format_timestamp(person.updated_at)}",
+            f"deleted_at: {format_timestamp(person.deleted_at)}",
         )
     )
 
@@ -154,3 +153,24 @@ async def handle_people_delete_async(args: argparse.Namespace) -> int:
 
 def handle_people_delete(args: argparse.Namespace) -> int:
     return run_async(handle_people_delete_async(args))
+
+
+async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple people in one command."""
+    async with session_scope() as session:
+        result = await batch_delete_people(
+            session,
+            person_ids=list(args.person_ids),
+            hard_delete=args.hard,
+        )
+    print(f"Deleted people: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed person IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_people_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple people in one command."""
+    return run_async(handle_people_batch_delete_async(args))

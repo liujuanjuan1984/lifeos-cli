@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.vision import Vision
+from lifeos_cli.db.services.batching import BatchDeleteResult
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
 
@@ -23,6 +24,11 @@ class VisionAlreadyExistsError(ValueError):
 
 class AreaReferenceNotFoundError(LookupError):
     """Raised when a referenced area cannot be found."""
+
+
+def _deduplicate_vision_ids(vision_ids: list[UUID]) -> list[UUID]:
+    """Return vision identifiers in their original order without duplicates."""
+    return list(dict.fromkeys(vision_ids))
 
 
 def validate_vision_status(status: str) -> str:
@@ -163,3 +169,29 @@ async def delete_vision(
     else:
         vision.soft_delete()
         await session.flush()
+
+
+async def batch_delete_visions(
+    session: AsyncSession,
+    *,
+    vision_ids: list[UUID],
+    hard_delete: bool = False,
+) -> BatchDeleteResult:
+    """Delete multiple visions while preserving per-vision error reporting."""
+    deleted_count = 0
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for vision_id in _deduplicate_vision_ids(vision_ids):
+        try:
+            await delete_vision(session, vision_id=vision_id, hard_delete=hard_delete)
+            deleted_count += 1
+        except VisionNotFoundError as exc:
+            failed_ids.append(vision_id)
+            errors.append(str(exc))
+
+    return BatchDeleteResult(
+        deleted_count=deleted_count,
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )

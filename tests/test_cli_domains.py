@@ -153,3 +153,88 @@ def test_main_task_add_creates_task(
 
     assert exit_code == 0
     assert "Created task 55555555-5555-5555-5555-555555555555" in captured.out
+
+
+def test_main_task_batch_delete_prints_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_batch_delete_tasks(
+        session: object,
+        *,
+        task_ids: list[UUID],
+        hard_delete: bool,
+    ) -> object:
+        assert task_ids == [
+            UUID("11111111-1111-1111-1111-111111111111"),
+            UUID("22222222-2222-2222-2222-222222222222"),
+        ]
+        assert hard_delete is False
+        return SimpleNamespace(
+            deleted_count=2,
+            failed_ids=(),
+            errors=(),
+        )
+
+    monkeypatch.setattr(task_handlers, "session_scope", fake_session_scope)
+    monkeypatch.setattr(task_handlers, "batch_delete_tasks", fake_batch_delete_tasks)
+
+    exit_code = cli.main(
+        [
+            "task",
+            "batch",
+            "delete",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Deleted tasks: 2" in captured.out
+
+
+def test_main_people_batch_delete_reports_missing_ids(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_batch_delete_people(
+        session: object,
+        *,
+        person_ids: list[UUID],
+        hard_delete: bool,
+    ) -> object:
+        assert person_ids == [UUID("33333333-3333-3333-3333-333333333333")]
+        assert hard_delete is False
+        return SimpleNamespace(
+            deleted_count=0,
+            failed_ids=(UUID("33333333-3333-3333-3333-333333333333"),),
+            errors=("Person 33333333-3333-3333-3333-333333333333 was not found",),
+        )
+
+    monkeypatch.setattr(people_handlers, "session_scope", fake_session_scope)
+    monkeypatch.setattr(people_handlers, "batch_delete_people", fake_batch_delete_people)
+
+    exit_code = cli.main(
+        [
+            "people",
+            "batch",
+            "delete",
+            "--ids",
+            "33333333-3333-3333-3333-333333333333",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Deleted people: 0" in captured.out
+    assert "Failed person IDs" in captured.err

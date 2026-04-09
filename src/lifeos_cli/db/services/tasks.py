@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
+from lifeos_cli.db.services.batching import BatchDeleteResult
 
 VALID_TASK_STATUSES = {"todo", "in_progress", "done", "cancelled", "paused"}
 VALID_PLANNING_CYCLE_TYPES = {"year", "month", "week", "day"}
@@ -34,6 +35,11 @@ class InvalidTaskDepthError(ValueError):
 
 class InvalidPlanningCycleError(ValueError):
     """Raised when planning cycle fields are incomplete or invalid."""
+
+
+def _deduplicate_task_ids(task_ids: list[UUID]) -> list[UUID]:
+    """Return task identifiers in their original order without duplicates."""
+    return list(dict.fromkeys(task_ids))
 
 
 def validate_task_status(status: str) -> str:
@@ -83,9 +89,11 @@ async def _ensure_vision_exists(session: AsyncSession, vision_id: UUID) -> None:
 async def _load_parent_task(session: AsyncSession, parent_task_id: UUID | None) -> Task | None:
     if parent_task_id is None:
         return None
-    return (await session.execute(
-        select(Task).where(Task.id == parent_task_id, Task.deleted_at.is_(None)).limit(1)
-    )).scalar_one_or_none()
+    return (
+        await session.execute(
+            select(Task).where(Task.id == parent_task_id, Task.deleted_at.is_(None)).limit(1)
+        )
+    ).scalar_one_or_none()
 
 
 async def _validate_parent_task(
@@ -225,7 +233,9 @@ async def update_task(
     if parent_task_id == task_id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
     next_parent_task_id = parent_task_id if parent_task_id is not None else task.parent_task_id
-    await _validate_parent_task(session, vision_id=task.vision_id, parent_task_id=next_parent_task_id)
+    await _validate_parent_task(
+        session, vision_id=task.vision_id, parent_task_id=next_parent_task_id
+    )
     (
         normalized_cycle_type,
         normalized_cycle_days,
@@ -273,3 +283,29 @@ async def delete_task(session: AsyncSession, *, task_id: UUID, hard_delete: bool
     else:
         task.soft_delete()
         await session.flush()
+
+
+async def batch_delete_tasks(
+    session: AsyncSession,
+    *,
+    task_ids: list[UUID],
+    hard_delete: bool = False,
+) -> BatchDeleteResult:
+    """Delete multiple tasks while preserving per-task error reporting."""
+    deleted_count = 0
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for task_id in _deduplicate_task_ids(task_ids):
+        try:
+            await delete_task(session, task_id=task_id, hard_delete=hard_delete)
+            deleted_count += 1
+        except TaskNotFoundError as exc:
+            failed_ids.append(task_id)
+            errors.append(str(exc))
+
+    return BatchDeleteResult(
+        deleted_count=deleted_count,
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )

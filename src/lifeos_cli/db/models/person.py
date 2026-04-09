@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, JSON, String, Text
+from sqlalchemy import JSON, Date, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from lifeos_cli.db.models.tag import Tag
 
 
 class Person(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -20,6 +24,9 @@ class Person(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     nicknames: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     location: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+
+    if TYPE_CHECKING:
+        tags: list[Tag]
 
     def __repr__(self) -> str:
         return f"Person(id={self.id!s}, name={self.name!r})"

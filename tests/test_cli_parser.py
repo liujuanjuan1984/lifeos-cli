@@ -131,6 +131,25 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.priority == 3
 
 
+def test_cli_parser_supports_task_batch_delete_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "batch",
+            "delete",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "batch"
+    assert args.task_batch_command == "delete"
+    assert len(args.task_ids) == 2
+
+
 def test_main_note_without_action_prints_resource_help(capsys) -> None:
     exit_code = cli.main(["note"])
     captured = capsys.readouterr()

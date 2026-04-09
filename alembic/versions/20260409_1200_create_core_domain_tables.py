@@ -55,7 +55,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_tags")),
-        sa.UniqueConstraint("name", "entity_type", "category", name=op.f("uq_tags_name_type_category")),
+        sa.UniqueConstraint(
+            "name", "entity_type", "category", name=op.f("uq_tags_name_type_category")
+        ),
         schema=schema_name,
     )
     op.create_index(
@@ -167,7 +169,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_tasks")),
         schema=schema_name,
     )
-    op.create_index(op.f("ix_tasks_vision_id"), "tasks", ["vision_id"], unique=False, schema=schema_name)
+    op.create_index(
+        op.f("ix_tasks_vision_id"), "tasks", ["vision_id"], unique=False, schema=schema_name
+    )
     op.create_index(
         op.f("ix_tasks_parent_task_id"),
         "tasks",
@@ -175,9 +179,13 @@ def upgrade() -> None:
         unique=False,
         schema=schema_name,
     )
-    op.create_index(op.f("ix_tasks_content"), "tasks", ["content"], unique=False, schema=schema_name)
+    op.create_index(
+        op.f("ix_tasks_content"), "tasks", ["content"], unique=False, schema=schema_name
+    )
     op.create_index(op.f("ix_tasks_status"), "tasks", ["status"], unique=False, schema=schema_name)
-    op.create_index(op.f("ix_tasks_priority"), "tasks", ["priority"], unique=False, schema=schema_name)
+    op.create_index(
+        op.f("ix_tasks_priority"), "tasks", ["priority"], unique=False, schema=schema_name
+    )
     op.create_index(
         op.f("ix_tasks_planning_cycle_type"),
         "tasks",
@@ -211,7 +219,9 @@ def upgrade() -> None:
             name=op.f("fk_tag_associations_tag_id_tags"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("entity_id", "entity_type", "tag_id", name=op.f("pk_tag_associations")),
+        sa.PrimaryKeyConstraint(
+            "entity_id", "entity_type", "tag_id", name=op.f("pk_tag_associations")
+        ),
         schema=schema_name,
     )
     op.create_index(
@@ -237,7 +247,9 @@ def downgrade() -> None:
     op.drop_table("tag_associations", schema=schema_name)
 
     op.drop_index("ix_tasks_vision_display_order_created", table_name="tasks", schema=schema_name)
-    op.drop_index(op.f("ix_tasks_planning_cycle_start_date"), table_name="tasks", schema=schema_name)
+    op.drop_index(
+        op.f("ix_tasks_planning_cycle_start_date"), table_name="tasks", schema=schema_name
+    )
     op.drop_index(op.f("ix_tasks_planning_cycle_type"), table_name="tasks", schema=schema_name)
     op.drop_index(op.f("ix_tasks_priority"), table_name="tasks", schema=schema_name)
     op.drop_index(op.f("ix_tasks_status"), table_name="tasks", schema=schema_name)

@@ -3,12 +3,14 @@
 from .areas import (
     AreaAlreadyExistsError,
     AreaNotFoundError,
+    batch_delete_areas,
     create_area,
     delete_area,
     get_area,
     list_areas,
     update_area,
 )
+from .batching import BatchDeleteResult
 from .entity_tags import load_tags_for_entities, sync_entity_tags
 from .notes import (
     NoteBatchDeleteResult,
@@ -26,6 +28,7 @@ from .notes import (
 from .people import (
     PersonAlreadyExistsError,
     PersonNotFoundError,
+    batch_delete_people,
     create_person,
     delete_person,
     get_person,
@@ -37,6 +40,7 @@ from .tags import (
     InvalidTagEntityTypeError,
     TagAlreadyExistsError,
     TagNotFoundError,
+    batch_delete_tags,
     create_tag,
     delete_tag,
     get_tag,
@@ -51,6 +55,7 @@ from .tasks import (
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
     VisionReferenceNotFoundError,
+    batch_delete_tasks,
     create_task,
     delete_task,
     get_task,
@@ -61,6 +66,7 @@ from .visions import (
     AreaReferenceNotFoundError,
     VisionAlreadyExistsError,
     VisionNotFoundError,
+    batch_delete_visions,
     create_vision,
     delete_vision,
     get_vision,
@@ -73,6 +79,7 @@ __all__ = [
     "AreaAlreadyExistsError",
     "AreaNotFoundError",
     "AreaReferenceNotFoundError",
+    "BatchDeleteResult",
     "InvalidPlanningCycleError",
     "InvalidTagEntityTypeError",
     "InvalidTaskDepthError",
@@ -84,7 +91,12 @@ __all__ = [
     "PersonNotFoundError",
     "TagAlreadyExistsError",
     "TagNotFoundError",
+    "batch_delete_areas",
+    "batch_delete_people",
     "batch_delete_notes",
+    "batch_delete_tags",
+    "batch_delete_tasks",
+    "batch_delete_visions",
     "batch_update_note_content",
     "create_area",
     "create_note",

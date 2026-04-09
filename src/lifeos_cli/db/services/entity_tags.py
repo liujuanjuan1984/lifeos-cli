@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import DefaultDict
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -71,7 +70,7 @@ async def load_tags_for_entities(
         .order_by(Tag.name.asc(), Tag.id.asc())
     )
     rows = await session.execute(stmt)
-    grouped: DefaultDict[UUID, list[Tag]] = defaultdict(list)
+    grouped: defaultdict[UUID, list[Tag]] = defaultdict(list)
     for entity_id, tag in rows.all():
         grouped[entity_id].append(tag)
     return dict(grouped)

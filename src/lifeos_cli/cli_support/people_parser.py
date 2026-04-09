@@ -7,6 +7,7 @@ from uuid import UUID
 
 from lifeos_cli.cli_support.people_handlers import (
     handle_people_add,
+    handle_people_batch_delete,
     handle_people_delete,
     handle_people_list,
     handle_people_show,
@@ -27,45 +28,133 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 'lifeos people add "Alice" --nickname ally --location Toronto',
                 "lifeos people list --search ali",
             ),
-            notes=("`people` is the intentional CLI resource name for this domain.",),
+            notes=(
+                "`people` is the intentional CLI resource name for this domain.",
+                "Use `list` as the primary query entrypoint for this resource.",
+                "Use the `batch` namespace for multi-record write operations.",
+            ),
         ),
     )
     people_parser.set_defaults(handler=make_help_handler(people_parser))
-    people_subparsers = people_parser.add_subparsers(dest="people_command", title="actions", metavar="action")
+    people_subparsers = people_parser.add_subparsers(
+        dest="people_command", title="actions", metavar="action"
+    )
 
-    add_parser = add_documented_parser(people_subparsers, "add", help_content=HelpContent(summary="Create a person", description="Create a new person."))
+    add_parser = add_documented_parser(
+        people_subparsers,
+        "add",
+        help_content=HelpContent(summary="Create a person", description="Create a new person."),
+    )
     add_parser.add_argument("name", help="Person name")
     add_parser.add_argument("--description", help="Optional person description")
     add_parser.add_argument("--nickname", action="append", help="Nickname or alias, repeatable")
     add_parser.add_argument("--birth-date", help="Birth date in ISO format YYYY-MM-DD")
     add_parser.add_argument("--location", help="Location label")
-    add_parser.add_argument("--tag-id", action="append", type=UUID, help="Tag identifier, repeatable")
+    add_parser.add_argument(
+        "--tag-id", action="append", type=UUID, help="Tag identifier, repeatable"
+    )
     add_parser.set_defaults(handler=handle_people_add)
 
-    list_parser = add_documented_parser(people_subparsers, "list", help_content=HelpContent(summary="List people", description="List people with optional search or tag filters."))
+    list_parser = add_documented_parser(
+        people_subparsers,
+        "list",
+        help_content=HelpContent(
+            summary="List people", description="List people with optional search or tag filters."
+        ),
+    )
     list_parser.add_argument("--search", help="Search by name, nickname, or location")
     list_parser.add_argument("--tag-id", type=UUID, help="Filter by tag identifier")
-    list_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted people")
+    list_parser.add_argument(
+        "--include-deleted", action="store_true", help="Include soft-deleted people"
+    )
     list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of rows")
-    list_parser.add_argument("--offset", type=int, default=0, help="Number of rows to skip")
+    list_parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of rows to skip",
+    )
     list_parser.set_defaults(handler=handle_people_list)
 
-    show_parser = add_documented_parser(people_subparsers, "show", help_content=HelpContent(summary="Show a person", description="Show one person with full metadata."))
+    show_parser = add_documented_parser(
+        people_subparsers,
+        "show",
+        help_content=HelpContent(
+            summary="Show a person", description="Show one person with full metadata."
+        ),
+    )
     show_parser.add_argument("person_id", type=UUID, help="Person identifier")
-    show_parser.add_argument("--include-deleted", action="store_true", help="Allow deleted people")
+    show_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Allow deleted people",
+    )
     show_parser.set_defaults(handler=handle_people_show)
 
-    update_parser = add_documented_parser(people_subparsers, "update", help_content=HelpContent(summary="Update a person", description="Update mutable person fields."))
+    update_parser = add_documented_parser(
+        people_subparsers,
+        "update",
+        help_content=HelpContent(
+            summary="Update a person", description="Update mutable person fields."
+        ),
+    )
     update_parser.add_argument("person_id", type=UUID, help="Person identifier")
     update_parser.add_argument("--name", help="Updated person name")
     update_parser.add_argument("--description", help="Updated description")
     update_parser.add_argument("--nickname", action="append", help="Updated nicknames, repeatable")
     update_parser.add_argument("--birth-date", help="Updated birth date in ISO format YYYY-MM-DD")
     update_parser.add_argument("--location", help="Updated location")
-    update_parser.add_argument("--tag-id", action="append", type=UUID, help="Replacement tag identifiers")
+    update_parser.add_argument(
+        "--tag-id", action="append", type=UUID, help="Replacement tag identifiers"
+    )
     update_parser.set_defaults(handler=handle_people_update)
 
-    delete_parser = add_documented_parser(people_subparsers, "delete", help_content=HelpContent(summary="Delete a person", description="Soft-delete a person by default. Use --hard for permanent deletion."))
+    delete_parser = add_documented_parser(
+        people_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary="Delete a person",
+            description="Soft-delete a person by default. Use --hard for permanent deletion.",
+        ),
+    )
     delete_parser.add_argument("person_id", type=UUID, help="Person identifier")
     delete_parser.add_argument("--hard", action="store_true", help="Permanently delete the person")
     delete_parser.set_defaults(handler=handle_people_delete)
+
+    batch_parser = add_documented_parser(
+        people_subparsers,
+        "batch",
+        help_content=HelpContent(
+            summary="Run batch people operations",
+            description="Run write operations that target multiple people in one command.",
+        ),
+    )
+    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
+    batch_subparsers = batch_parser.add_subparsers(
+        dest="people_batch_command",
+        title="batch actions",
+        metavar="batch_action",
+    )
+
+    batch_delete_parser = add_documented_parser(
+        batch_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary="Delete multiple people",
+            description=(
+                "Soft-delete multiple people by default. Use --hard for permanent deletion."
+            ),
+        ),
+    )
+    batch_delete_parser.add_argument(
+        "--ids",
+        dest="person_ids",
+        type=UUID,
+        nargs="+",
+        required=True,
+        help="Person identifiers to delete",
+    )
+    batch_delete_parser.add_argument(
+        "--hard", action="store_true", help="Permanently delete people"
+    )
+    batch_delete_parser.set_defaults(handler=handle_people_batch_delete)

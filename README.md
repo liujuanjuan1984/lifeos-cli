@@ -60,6 +60,12 @@ uv tool install lifeos-cli
    lifeos task add "Draft release checklist" --vision-id <vision-id>
    ```
 
+5. Run a batch delete operation when needed:
+
+   ```bash
+   lifeos task batch delete --ids <task-id-1> <task-id-2>
+   ```
+
 For detailed CLI usage, command grammar, multiline note input, search, and batch operations, see
 [docs/cli.md](docs/cli.md).
 

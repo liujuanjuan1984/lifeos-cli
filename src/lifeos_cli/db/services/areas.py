@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
+from lifeos_cli.db.services.batching import BatchDeleteResult
 
 
 class AreaNotFoundError(LookupError):
@@ -16,6 +17,11 @@ class AreaNotFoundError(LookupError):
 
 class AreaAlreadyExistsError(ValueError):
     """Raised when an area with the same name already exists."""
+
+
+def _deduplicate_area_ids(area_ids: list[UUID]) -> list[UUID]:
+    """Return area identifiers in their original order without duplicates."""
+    return list(dict.fromkeys(area_ids))
 
 
 async def create_area(
@@ -133,3 +139,29 @@ async def delete_area(session: AsyncSession, *, area_id: UUID, hard_delete: bool
         area.soft_delete()
         area.is_active = False
         await session.flush()
+
+
+async def batch_delete_areas(
+    session: AsyncSession,
+    *,
+    area_ids: list[UUID],
+    hard_delete: bool = False,
+) -> BatchDeleteResult:
+    """Delete multiple areas while preserving per-area error reporting."""
+    deleted_count = 0
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for area_id in _deduplicate_area_ids(area_ids):
+        try:
+            await delete_area(session, area_id=area_id, hard_delete=hard_delete)
+            deleted_count += 1
+        except AreaNotFoundError as exc:
+            failed_ids.append(area_id)
+            errors.append(str(exc))
+
+    return BatchDeleteResult(
+        deleted_count=deleted_count,
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )

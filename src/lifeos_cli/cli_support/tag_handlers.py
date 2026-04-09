@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_timestamp, run_async
+from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services import (
     InvalidTagEntityTypeError,
     TagAlreadyExistsError,
     TagNotFoundError,
+    batch_delete_tags,
     create_tag,
     delete_tag,
     get_tag,
@@ -19,26 +21,23 @@ from lifeos_cli.db.services import (
 from lifeos_cli.db.session import session_scope
 
 
-def _format_tag_summary(tag: object) -> str:
-    status = "deleted" if getattr(tag, "deleted_at", None) is not None else "active"
-    return (
-        f"{getattr(tag, 'id')}\t{status}\t{getattr(tag, 'entity_type')}\t"
-        f"{getattr(tag, 'category')}\t{getattr(tag, 'name')}"
-    )
+def _format_tag_summary(tag: Tag) -> str:
+    status = "deleted" if tag.deleted_at is not None else "active"
+    return f"{tag.id}\t{status}\t{tag.entity_type}\t{tag.category}\t{tag.name}"
 
 
-def _format_tag_detail(tag: object) -> str:
+def _format_tag_detail(tag: Tag) -> str:
     return "\n".join(
         (
-            f"id: {getattr(tag, 'id')}",
-            f"name: {getattr(tag, 'name')}",
-            f"entity_type: {getattr(tag, 'entity_type')}",
-            f"category: {getattr(tag, 'category')}",
-            f"description: {getattr(tag, 'description') or '-'}",
-            f"color: {getattr(tag, 'color') or '-'}",
-            f"created_at: {format_timestamp(getattr(tag, 'created_at', None))}",
-            f"updated_at: {format_timestamp(getattr(tag, 'updated_at', None))}",
-            f"deleted_at: {format_timestamp(getattr(tag, 'deleted_at', None))}",
+            f"id: {tag.id}",
+            f"name: {tag.name}",
+            f"entity_type: {tag.entity_type}",
+            f"category: {tag.category}",
+            f"description: {tag.description or '-'}",
+            f"color: {tag.color or '-'}",
+            f"created_at: {format_timestamp(tag.created_at)}",
+            f"updated_at: {format_timestamp(tag.updated_at)}",
+            f"deleted_at: {format_timestamp(tag.deleted_at)}",
         )
     )
 
@@ -117,7 +116,12 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
                 description=args.description,
                 color=args.color,
             )
-        except (TagNotFoundError, TagAlreadyExistsError, InvalidTagEntityTypeError, ValueError) as exc:
+        except (
+            TagNotFoundError,
+            TagAlreadyExistsError,
+            InvalidTagEntityTypeError,
+            ValueError,
+        ) as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Updated tag {tag.id}")
@@ -141,3 +145,24 @@ async def handle_tag_delete_async(args: argparse.Namespace) -> int:
 
 def handle_tag_delete(args: argparse.Namespace) -> int:
     return run_async(handle_tag_delete_async(args))
+
+
+async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple tags in one command."""
+    async with session_scope() as session:
+        result = await batch_delete_tags(
+            session,
+            tag_ids=list(args.tag_ids),
+            hard_delete=args.hard,
+        )
+    print(f"Deleted tags: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed tag IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_tag_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple tags in one command."""
+    return run_async(handle_tag_batch_delete_async(args))

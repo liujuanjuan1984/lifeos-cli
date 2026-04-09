@@ -6,7 +6,6 @@ from sqlalchemy import Column, ForeignKey, Index, String, Table, Uuid
 
 from lifeos_cli.db.base import Base
 
-
 tag_associations = Table(
     "tag_associations",
     Base.metadata,

@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.shared import format_timestamp, run_async
+from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import (
     AreaReferenceNotFoundError,
     VisionAlreadyExistsError,
     VisionNotFoundError,
+    batch_delete_visions,
     create_vision,
     delete_vision,
     get_vision,
@@ -19,32 +21,25 @@ from lifeos_cli.db.services import (
 from lifeos_cli.db.session import session_scope
 
 
-def _format_vision_summary(vision: object) -> str:
-    status = (
-        "deleted"
-        if getattr(vision, "deleted_at", None) is not None
-        else getattr(vision, "status")
-    )
-    return (
-        f"{getattr(vision, 'id')}\t{status}\t{getattr(vision, 'area_id') or '-'}\t"
-        f"{getattr(vision, 'name')}"
-    )
+def _format_vision_summary(vision: Vision) -> str:
+    status = "deleted" if vision.deleted_at is not None else vision.status
+    return f"{vision.id}\t{status}\t{vision.area_id or '-'}\t{vision.name}"
 
 
-def _format_vision_detail(vision: object) -> str:
+def _format_vision_detail(vision: Vision) -> str:
     return "\n".join(
         (
-            f"id: {getattr(vision, 'id')}",
-            f"name: {getattr(vision, 'name')}",
-            f"description: {getattr(vision, 'description') or '-'}",
-            f"status: {getattr(vision, 'status')}",
-            f"stage: {getattr(vision, 'stage')}",
-            f"experience_points: {getattr(vision, 'experience_points')}",
-            f"experience_rate_per_hour: {getattr(vision, 'experience_rate_per_hour') or '-'}",
-            f"area_id: {getattr(vision, 'area_id') or '-'}",
-            f"created_at: {format_timestamp(getattr(vision, 'created_at', None))}",
-            f"updated_at: {format_timestamp(getattr(vision, 'updated_at', None))}",
-            f"deleted_at: {format_timestamp(getattr(vision, 'deleted_at', None))}",
+            f"id: {vision.id}",
+            f"name: {vision.name}",
+            f"description: {vision.description or '-'}",
+            f"status: {vision.status}",
+            f"stage: {vision.stage}",
+            f"experience_points: {vision.experience_points}",
+            f"experience_rate_per_hour: {vision.experience_rate_per_hour or '-'}",
+            f"area_id: {vision.area_id or '-'}",
+            f"created_at: {format_timestamp(vision.created_at)}",
+            f"updated_at: {format_timestamp(vision.updated_at)}",
+            f"deleted_at: {format_timestamp(vision.deleted_at)}",
         )
     )
 
@@ -127,7 +122,12 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
                 area_id=args.area_id,
                 experience_rate_per_hour=args.experience_rate_per_hour,
             )
-        except (VisionNotFoundError, VisionAlreadyExistsError, AreaReferenceNotFoundError, ValueError) as exc:
+        except (
+            VisionNotFoundError,
+            VisionAlreadyExistsError,
+            AreaReferenceNotFoundError,
+            ValueError,
+        ) as exc:
             print(str(exc), file=sys.stderr)
             return 1
     print(f"Updated vision {vision.id}")
@@ -151,3 +151,24 @@ async def handle_vision_delete_async(args: argparse.Namespace) -> int:
 
 def handle_vision_delete(args: argparse.Namespace) -> int:
     return run_async(handle_vision_delete_async(args))
+
+
+async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple visions in one command."""
+    async with session_scope() as session:
+        result = await batch_delete_visions(
+            session,
+            vision_ids=list(args.vision_ids),
+            hard_delete=args.hard,
+        )
+    print(f"Deleted visions: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed vision IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_vision_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple visions in one command."""
+    return run_async(handle_vision_batch_delete_async(args))

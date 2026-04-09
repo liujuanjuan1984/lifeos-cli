@@ -17,6 +17,8 @@ Command design conventions:
 - action names stay short verbs, such as `add`, `list`, `show`, `search`, and `delete`
 - when one command targets multiple records, it should live under a grouped namespace such as
   `batch`
+- for structured resources, `list` is the primary query entrypoint and should grow richer filters
+  over time
 
 ## Installation and Initialization
 
@@ -124,7 +126,14 @@ lifeos tag add "family" --entity-type person --category relation
 lifeos people add "Alice" --nickname ally --location Toronto
 lifeos vision add "Launch lifeos-cli"
 lifeos task add "Draft release checklist" --vision-id <vision-id>
+lifeos task batch delete --ids <task-id-1> <task-id-2>
 ```
+
+Current intent:
+
+- `list` is the query entrypoint for these structured resources
+- standalone `search` is intentionally deferred for now
+- `batch` is the grouped namespace for multi-record write operations
 
 ## Note Batch Operations
 
@@ -166,10 +175,15 @@ Currently implemented:
 - `lifeos db ping`
 - `lifeos db upgrade`
 - `lifeos area add|list|show|update|delete`
+- `lifeos area batch delete`
 - `lifeos tag add|list|show|update|delete`
+- `lifeos tag batch delete`
 - `lifeos people add|list|show|update|delete`
+- `lifeos people batch delete`
 - `lifeos vision add|list|show|update|delete`
+- `lifeos vision batch delete`
 - `lifeos task add|list|show|update|delete`
+- `lifeos task batch delete`
 - `lifeos note add`
 - `lifeos note list`
 - `lifeos note search`
@@ -185,5 +199,6 @@ Not implemented yet:
 - note-to-task or note-to-person associations
 - person-to-vision or person-to-task links
 - vision experience workflows and advanced task-tree operations
+- batch update operations for the new structured resources
 - note ingestion jobs
 - richer search ranking or association-aware note search

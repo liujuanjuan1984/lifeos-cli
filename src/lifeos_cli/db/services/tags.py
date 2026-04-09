@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.tag import Tag
+from lifeos_cli.db.services.batching import BatchDeleteResult
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area"}
 
@@ -22,6 +23,11 @@ class TagAlreadyExistsError(ValueError):
 
 class InvalidTagEntityTypeError(ValueError):
     """Raised when an unsupported tag entity type is requested."""
+
+
+def _deduplicate_tag_ids(tag_ids: list[UUID]) -> list[UUID]:
+    """Return tag identifiers in their original order without duplicates."""
+    return list(dict.fromkeys(tag_ids))
 
 
 def normalize_tag_name(name: str) -> str:
@@ -167,3 +173,29 @@ async def delete_tag(session: AsyncSession, *, tag_id: UUID, hard_delete: bool =
     else:
         tag.soft_delete()
         await session.flush()
+
+
+async def batch_delete_tags(
+    session: AsyncSession,
+    *,
+    tag_ids: list[UUID],
+    hard_delete: bool = False,
+) -> BatchDeleteResult:
+    """Delete multiple tags while preserving per-tag error reporting."""
+    deleted_count = 0
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for tag_id in _deduplicate_tag_ids(tag_ids):
+        try:
+            await delete_tag(session, tag_id=tag_id, hard_delete=hard_delete)
+            deleted_count += 1
+        except TagNotFoundError as exc:
+            failed_ids.append(tag_id)
+            errors.append(str(exc))
+
+    return BatchDeleteResult(
+        deleted_count=deleted_count,
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )

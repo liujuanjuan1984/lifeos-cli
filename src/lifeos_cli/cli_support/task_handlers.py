@@ -6,13 +6,15 @@ import argparse
 import sys
 from datetime import date
 
-from lifeos_cli.cli_support.shared import format_timestamp, run_async
+from lifeos_cli.cli_support.shared import format_id_lines, format_timestamp, run_async
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services import (
     InvalidPlanningCycleError,
     InvalidTaskDepthError,
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
     VisionReferenceNotFoundError,
+    batch_delete_tasks,
     create_task,
     delete_task,
     get_task,
@@ -28,34 +30,31 @@ def _parse_cycle_date(value: str | None) -> date | None:
     return date.fromisoformat(value)
 
 
-def _format_task_summary(task: object) -> str:
-    status = "deleted" if getattr(task, "deleted_at", None) is not None else getattr(task, "status")
-    return (
-        f"{getattr(task, 'id')}\t{status}\t{getattr(task, 'vision_id')}\t"
-        f"{getattr(task, 'parent_task_id') or '-'}\t{getattr(task, 'content')}"
-    )
+def _format_task_summary(task: Task) -> str:
+    status = "deleted" if task.deleted_at is not None else task.status
+    return f"{task.id}\t{status}\t{task.vision_id}\t{task.parent_task_id or '-'}\t{task.content}"
 
 
-def _format_task_detail(task: object) -> str:
+def _format_task_detail(task: Task) -> str:
     return "\n".join(
         (
-            f"id: {getattr(task, 'id')}",
-            f"vision_id: {getattr(task, 'vision_id')}",
-            f"parent_task_id: {getattr(task, 'parent_task_id') or '-'}",
-            f"content: {getattr(task, 'content')}",
-            f"description: {getattr(task, 'description') or '-'}",
-            f"status: {getattr(task, 'status')}",
-            f"priority: {getattr(task, 'priority')}",
-            f"display_order: {getattr(task, 'display_order')}",
-            f"estimated_effort: {getattr(task, 'estimated_effort') or '-'}",
-            f"planning_cycle_type: {getattr(task, 'planning_cycle_type') or '-'}",
-            f"planning_cycle_days: {getattr(task, 'planning_cycle_days') or '-'}",
-            f"planning_cycle_start_date: {getattr(task, 'planning_cycle_start_date') or '-'}",
-            f"actual_effort_self: {getattr(task, 'actual_effort_self')}",
-            f"actual_effort_total: {getattr(task, 'actual_effort_total')}",
-            f"created_at: {format_timestamp(getattr(task, 'created_at', None))}",
-            f"updated_at: {format_timestamp(getattr(task, 'updated_at', None))}",
-            f"deleted_at: {format_timestamp(getattr(task, 'deleted_at', None))}",
+            f"id: {task.id}",
+            f"vision_id: {task.vision_id}",
+            f"parent_task_id: {task.parent_task_id or '-'}",
+            f"content: {task.content}",
+            f"description: {task.description or '-'}",
+            f"status: {task.status}",
+            f"priority: {task.priority}",
+            f"display_order: {task.display_order}",
+            f"estimated_effort: {task.estimated_effort or '-'}",
+            f"planning_cycle_type: {task.planning_cycle_type or '-'}",
+            f"planning_cycle_days: {task.planning_cycle_days or '-'}",
+            f"planning_cycle_start_date: {task.planning_cycle_start_date or '-'}",
+            f"actual_effort_self: {task.actual_effort_self}",
+            f"actual_effort_total: {task.actual_effort_total}",
+            f"created_at: {format_timestamp(task.created_at)}",
+            f"updated_at: {format_timestamp(task.updated_at)}",
+            f"deleted_at: {format_timestamp(task.deleted_at)}",
         )
     )
 
@@ -184,3 +183,24 @@ async def handle_task_delete_async(args: argparse.Namespace) -> int:
 
 def handle_task_delete(args: argparse.Namespace) -> int:
     return run_async(handle_task_delete_async(args))
+
+
+async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
+    """Delete multiple tasks in one command."""
+    async with session_scope() as session:
+        result = await batch_delete_tasks(
+            session,
+            task_ids=list(args.task_ids),
+            hard_delete=args.hard,
+        )
+    print(f"Deleted tasks: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed task IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_task_batch_delete(args: argparse.Namespace) -> int:
+    """Delete multiple tasks in one command."""
+    return run_async(handle_task_batch_delete_async(args))
