@@ -1,6 +1,7 @@
 # CLI Guide
 
 This document describes the current `lifeos` command structure exposed by the branch.
+It is intended for both human operators and agents that need stable command patterns.
 
 ## Command Grammar
 
@@ -21,6 +22,44 @@ Command design conventions:
   over time
 - the public CLI only performs soft deletion; permanent cleanup is reserved for internal
   maintenance scripts
+
+## Operating Model
+
+The CLI is designed around a few stable patterns:
+
+- create a record with `add`
+- inspect collections with `list`
+- inspect one record with `show`
+- mutate one record with `update`
+- soft-delete records with `delete`
+- group multi-record write operations under `batch`
+
+For structured resources such as `area`, `tag`, `people`, `vision`, and `task`:
+
+- prefer `list` as the main query command
+- expect future filtering and pagination growth on `list`
+- do not expect a separate public `search` command yet
+
+For text-heavy resources such as `note`:
+
+- `search` exists because it is a distinct retrieval mode
+- `show` is the correct way to inspect full multi-line content
+
+## Output Conventions
+
+The current CLI output is intentionally simple and scriptable.
+
+- `list` commands print tab-separated summary rows
+- `show` commands print labeled detail fields
+- `add` and `update` commands print a short confirmation plus the resulting identifier
+- `delete` and `batch delete` commands print soft-delete results only
+
+Practical guidance:
+
+- use `list` when a human or agent needs compact summaries
+- use `show` when exact field values or multi-line content matter
+- keep identifiers from `add` or `list` output and feed them into later commands
+- do not assume `list` output preserves multi-line formatting; use `show` for that
 
 ## Installation and Initialization
 
@@ -45,6 +84,14 @@ lifeos config show
 Check database connectivity and apply migrations:
 
 ```bash
+lifeos db ping
+lifeos db upgrade
+```
+
+Recommended first-run flow:
+
+```bash
+lifeos init
 lifeos db ping
 lifeos db upgrade
 ```
@@ -93,6 +140,16 @@ lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
 lifeos note delete 11111111-1111-1111-1111-111111111111
 ```
 
+Minimal note workflow:
+
+```bash
+lifeos note add "capture an idea"
+lifeos note list
+lifeos note show <note-id>
+lifeos note update <note-id> "capture a better idea"
+lifeos note delete <note-id>
+```
+
 ## Note Search
 
 Search currently uses PostgreSQL-backed `ILIKE` token matching against note content.
@@ -136,6 +193,67 @@ Current intent:
 - standalone `search` is intentionally deferred for now
 - `batch` is the grouped namespace for multi-record write operations
 
+## Structured Resource Workflows
+
+These examples show the current intended command shape for the new structured resources.
+
+### Area
+
+```bash
+lifeos area add "Health" --description "Long-term wellbeing" --icon heart
+lifeos area list
+lifeos area show <area-id>
+lifeos area update <area-id> --name "Fitness" --clear-icon
+lifeos area delete <area-id>
+```
+
+### Tag
+
+```bash
+lifeos tag add "family" --entity-type person --category relation --color green
+lifeos tag list
+lifeos tag show <tag-id>
+lifeos tag update <tag-id> --clear-color
+lifeos tag delete <tag-id>
+```
+
+### People
+
+```bash
+lifeos people add "Alice" --nickname ally --location Toronto
+lifeos people list
+lifeos people show <person-id>
+lifeos people update <person-id> --clear-location
+lifeos people delete <person-id>
+```
+
+### Vision
+
+```bash
+lifeos vision add "Launch lifeos-cli" --area-id <area-id> --status active
+lifeos vision list --status active
+lifeos vision show <vision-id>
+lifeos vision update <vision-id> --status archived --clear-area
+lifeos vision delete <vision-id>
+```
+
+### Task
+
+```bash
+lifeos task add "Draft release checklist" --vision-id <vision-id> --status todo
+lifeos task list --vision-id <vision-id>
+lifeos task show <task-id>
+lifeos task update <task-id> --status in_progress
+lifeos task update <child-task-id> --clear-parent
+lifeos task delete <task-id>
+```
+
+Current task notes:
+
+- `task` is the execution unit and supports tree structure through parent-child links
+- use `--clear-parent` to move a child task back to the root level
+- use `--clear-*` flags when a field should become empty instead of being replaced
+
 ## Note Batch Operations
 
 The first grouped bulk namespace is `lifeos note batch`.
@@ -167,6 +285,45 @@ uv run python scripts/purge_deleted_records.py note \
   22222222-2222-2222-2222-222222222222 \
   --confirm permanently-delete-soft-deleted-records
 ```
+
+Structured resources also expose batch soft delete:
+
+```bash
+lifeos area batch delete --ids <area-id-1> <area-id-2>
+lifeos tag batch delete --ids <tag-id-1> <tag-id-2>
+lifeos people batch delete --ids <person-id-1> <person-id-2>
+lifeos vision batch delete --ids <vision-id-1> <vision-id-2>
+lifeos task batch delete --ids <task-id-1> <task-id-2>
+```
+
+## Agent Usage Patterns
+
+If the caller is an agent or another automation layer, prefer these patterns:
+
+- start from `list` to discover identifiers
+- switch to `show` before making a destructive or state-changing update
+- treat all public `delete` commands as soft delete only
+- use `batch delete` for coordinated cleanup instead of issuing many single deletes
+- keep command flows id-driven instead of name-driven after discovery
+
+Example pattern:
+
+```bash
+lifeos people list
+lifeos people show <person-id>
+lifeos people update <person-id> --location "Montreal"
+```
+
+## Safety Model
+
+The public CLI is intentionally conservative:
+
+- public `delete` commands only soft-delete records
+- public `batch delete` commands also only soft-delete records
+- public CLI commands do not expose hard delete
+- permanent cleanup requires internal maintenance scripts and explicit confirmation text
+
+This separation is intentional and should remain stable as more domains are added.
 
 ## Scope on This Branch
 
