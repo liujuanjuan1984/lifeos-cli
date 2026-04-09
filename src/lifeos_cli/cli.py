@@ -8,10 +8,11 @@ import sys
 from collections.abc import Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
@@ -21,6 +22,7 @@ from lifeos_cli.config import (
     get_database_settings,
     resolve_config_path,
     validate_database_schema_name,
+    validate_database_url,
     write_database_settings,
 )
 
@@ -129,6 +131,17 @@ def _prompt_text(label: str, *, default: str | None = None) -> str:
     raise ConfigurationError(f"{label} is required")
 
 
+def _prompt_database_url(*, default: str | None = None) -> str:
+    """Prompt until a valid SQLAlchemy PostgreSQL URL is provided."""
+    while True:
+        candidate = _prompt_text("Database URL", default=default)
+        try:
+            return validate_database_url(candidate)
+        except ConfigurationError as exc:
+            print(str(exc), file=sys.stderr)
+            default = None
+
+
 def _prompt_database_schema(*, default: str | None = None) -> str:
     """Prompt until a valid PostgreSQL schema identifier is provided."""
     while True:
@@ -176,6 +189,26 @@ def _print_database_runtime_error(exc: BaseException) -> int:
             file=sys.stderr,
         )
         print(f"Configured schema: {settings.database_schema}", file=sys.stderr)
+        guidance = None
+        if isinstance(exc, OperationalError):
+            details = str(exc).lower()
+            if "no password supplied" in details or "password authentication failed" in details:
+                guidance = (
+                    "Authentication failed. Check the username/password in the database URL, "
+                    "or update them with `lifeos init`."
+                )
+            elif "does not exist" in details:
+                guidance = (
+                    "The configured PostgreSQL database does not exist yet. Create it first, "
+                    "then run `lifeos db upgrade`."
+                )
+            elif "connection refused" in details or "could not connect" in details:
+                guidance = (
+                    "PostgreSQL is not reachable. Ensure the server is installed, running, "
+                    "and listening on the configured host/port."
+                )
+        if guidance is not None:
+            print(guidance, file=sys.stderr)
         print("Run `lifeos init` to create or update local configuration.", file=sys.stderr)
         print(
             "Then run `lifeos db ping` to verify connectivity and `lifeos db upgrade` to apply "
@@ -186,13 +219,47 @@ def _print_database_runtime_error(exc: BaseException) -> int:
     return 1
 
 
+def _resolve_note_content(args: argparse.Namespace) -> str:
+    """Resolve note content from inline text, stdin, or a file."""
+    provided_sources = sum(
+        1
+        for candidate in (
+            args.content is not None,
+            args.stdin,
+            args.file is not None,
+        )
+        if candidate
+    )
+    if provided_sources != 1:
+        raise ConfigurationError(
+            "Provide note content with exactly one source: inline `content`, `--stdin`, or "
+            "`--file`."
+        )
+    if args.stdin:
+        content = sys.stdin.read()
+    elif args.file is not None:
+        try:
+            content = Path(args.file).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ConfigurationError(
+                f"Could not read note content from {args.file}: {exc}"
+            ) from exc
+    else:
+        content = args.content
+    normalized = content.rstrip("\n")
+    if not normalized.strip():
+        raise ConfigurationError("Note content must not be empty.")
+    return normalized
+
+
 async def _handle_note_add_async(args: argparse.Namespace) -> int:
     """Create a new note."""
     from lifeos_cli.db.services import create_note
     from lifeos_cli.db.session import session_scope
 
+    content = _resolve_note_content(args)
     async with session_scope() as session:
-        note = await create_note(session, content=args.content)
+        note = await create_note(session, content=content)
     print(f"Created note {note.id}")
     return 0
 
@@ -318,10 +385,7 @@ def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
 
     if not args.non_interactive and sys.stdin.isatty():
         if args.database_url is None:
-            database_url = _prompt_text(
-                "Database URL",
-                default=database_url,
-            )
+            database_url = _prompt_database_url(default=database_url)
         if args.schema is None:
             database_schema = _prompt_database_schema(default=database_schema)
         if args.echo is None:
@@ -331,6 +395,7 @@ def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
         raise ConfigurationError(
             "Database URL is required. Provide --database-url or run `lifeos init` interactively."
         )
+    database_url = validate_database_url(database_url)
     database_schema = validate_database_schema_name(database_schema)
 
     return DatabaseSettings(
@@ -551,19 +616,33 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help_content=HelpContent(
             summary="Create a note",
             description=(
-                "Create a new note from the provided content.\n\n"
+                "Create a new note from inline text, stdin, or a file.\n\n"
                 "Use this action to capture short thoughts, prompts, or raw text before\n"
                 "they are linked to other domains such as tasks or people."
             ),
             examples=(
                 "lifeos init",
                 'lifeos note add "Capture the sprint retrospective idea"',
+                "printf 'line one\\nline two\\n' | lifeos note add --stdin",
+                "lifeos note add --file ./note.md",
                 'lifeos note add "Review the monthly budget assumptions"',
             ),
-            notes=("Wrap content in quotes when it contains spaces.",),
+            notes=(
+                "Wrap inline content in quotes when it contains spaces.",
+                "Use `--stdin` or `--file` for multi-line note content.",
+            ),
         ),
     )
-    add_parser.add_argument("content", help="Note content")
+    add_parser.add_argument("content", nargs="?", help="Inline note content")
+    add_parser.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Read note content from standard input",
+    )
+    add_parser.add_argument(
+        "--file",
+        help="Read note content from a UTF-8 text file",
+    )
     add_parser.set_defaults(handler=_handle_note_add)
 
     list_parser = _add_documented_parser(

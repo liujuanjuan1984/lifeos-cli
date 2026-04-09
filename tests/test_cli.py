@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import io
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,6 +9,7 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from lifeos_cli import cli
 from lifeos_cli.cli import build_parser
@@ -29,6 +31,16 @@ def test_cli_parser_supports_note_add_command() -> None:
     assert args.resource == "note"
     assert args.note_command == "add"
     assert args.content == "a new note"
+
+
+def test_cli_parser_supports_note_add_from_stdin() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["note", "add", "--stdin"])
+
+    assert args.resource == "note"
+    assert args.note_command == "add"
+    assert args.stdin is True
+    assert args.content is None
 
 
 def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
@@ -299,6 +311,84 @@ def test_main_note_add_creates_note(
     assert "Created note 11111111-1111-1111-1111-111111111111" in captured.out
 
 
+def test_main_note_add_reads_multiline_content_from_stdin(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    created: dict[str, str] = {}
+
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_create_note(session: object, *, content: str) -> object:
+        created["content"] = content
+        return SimpleNamespace(
+            id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            content=content,
+            created_at=datetime(2026, 4, 9, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "create_note", fake_create_note)
+    monkeypatch.setattr(cli.sys, "stdin", io.StringIO("line one\nline two\n"))
+
+    exit_code = cli.main(["note", "add", "--stdin"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert created["content"] == "line one\nline two"
+    assert "Created note aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" in captured.out
+
+
+def test_main_note_add_reads_content_from_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    created: dict[str, str] = {}
+    content_file = tmp_path / "note.md"
+    content_file.write_text("first line\nsecond line\n", encoding="utf-8")
+
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_create_note(session: object, *, content: str) -> object:
+        created["content"] = content
+        return SimpleNamespace(
+            id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            content=content,
+            created_at=datetime(2026, 4, 9, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "create_note", fake_create_note)
+
+    exit_code = cli.main(["note", "add", "--file", str(content_file)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert created["content"] == "first line\nsecond line"
+    assert "Created note bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" in captured.out
+
+
+def test_main_note_add_requires_exactly_one_content_source(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(Path("/tmp") / "missing-config.toml"))
+
+    exit_code = cli.main(["note", "add", "inline text", "--stdin"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "exactly one source" in captured.err
+
+
 def test_main_note_list_prints_formatted_notes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -379,6 +469,49 @@ def test_main_note_add_prints_actionable_database_error(
 
     assert exit_code == 1
     assert "Run `lifeos init`" in captured.err
+
+
+def test_main_note_add_prints_actionable_authentication_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"',
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_create_note(session: object, *, content: str) -> object:
+        raise OperationalError(
+            statement=None,
+            params=None,
+            orig=RuntimeError("password authentication failed"),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "create_note", fake_create_note)
+
+    exit_code = cli.main(["note", "add", "a new note"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Authentication failed." in captured.err
+    clear_config_cache()
 
 
 async def _async_zero() -> int:

@@ -6,6 +6,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     validate_database_schema_name,
+    validate_database_url,
     write_database_settings,
 )
 
@@ -75,6 +76,15 @@ def test_database_settings_rejects_invalid_schema_name(tmp_path: Path) -> None:
 
 def test_validate_database_schema_name_accepts_underscores() -> None:
     assert validate_database_schema_name("lifeos_dev") == "lifeos_dev"
+
+
+def test_validate_database_url_requires_postgresql_psycopg_driver() -> None:
+    try:
+        validate_database_url("sqlite:///lifeos.db")
+    except ConfigurationError as exc:
+        assert "postgresql+psycopg://" in str(exc)
+    else:
+        raise AssertionError("invalid driver should fail validation")
 
 
 def test_require_database_url_raises_helpful_error(tmp_path: Path) -> None:

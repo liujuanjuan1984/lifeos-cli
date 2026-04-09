@@ -26,6 +26,24 @@ class ConfigurationError(RuntimeError):
     """Raised when runtime configuration is missing or invalid."""
 
 
+def validate_database_url(database_url: str) -> str:
+    """Validate a PostgreSQL SQLAlchemy URL and return the normalized value."""
+    normalized = database_url.strip()
+    if not normalized:
+        raise ConfigurationError("Database URL is required.")
+    try:
+        parsed = make_url(normalized)
+    except Exception as exc:
+        raise ConfigurationError(f"Database URL is invalid: {exc}") from exc
+    if parsed.drivername != "postgresql+psycopg":
+        raise ConfigurationError(
+            "Database URL must use the `postgresql+psycopg://` SQLAlchemy driver."
+        )
+    if parsed.database is None or not parsed.database.strip():
+        raise ConfigurationError("Database URL must include a PostgreSQL database name.")
+    return normalized
+
+
 def validate_database_schema_name(schema_name: str) -> str:
     """Validate a PostgreSQL schema identifier and return the normalized value."""
     normalized = schema_name.strip()
@@ -97,7 +115,7 @@ class DatabaseSettings:
         if database_url is None and isinstance(file_url, str):
             database_url = file_url
         if database_url is not None:
-            database_url = database_url.strip() or None
+            database_url = validate_database_url(database_url)
 
         database_schema = source.get("LIFEOS_DATABASE_SCHEMA")
         if database_schema is None and isinstance(file_schema, str):

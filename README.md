@@ -94,9 +94,20 @@ lifeos init
 lifeos config show
 lifeos db ping
 lifeos note add "a new note"
+printf 'first line\nsecond line\n' | lifeos note add --stdin
+lifeos note add --file ./note.md
 lifeos note list
 lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
 lifeos note delete 11111111-1111-1111-1111-111111111111
+```
+
+For multi-line note content, use `--stdin` or `--file` instead of shell-specific quoting:
+
+```bash
+cat <<'EOF' | lifeos note add --stdin
+This is a multi-line note.
+The second line stays intact.
+EOF
 ```
 
 The current branch exposes a narrow first slice:
