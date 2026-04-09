@@ -1,29 +1,47 @@
 # lifeos-cli
 
-`lifeos-cli` is a command-line personal operating system for people who want structured, durable,
-and agent-friendly life data.
+`lifeos-cli` is a personal operating system built around a simple belief:
 
-It is built on a simple premise: meaningful self-awareness starts with honest data. Intentions,
-plans, routines, and actual time use should all be recorded as first-class objects instead of being
-buried in disconnected notes and ad hoc tools.
+> A better life starts with clearer awareness, and clearer awareness starts with honest data.
 
-The project borrows the LifeOS design philosophy from `Common Compass`, but it intentionally does
-not include an embedded agentic layer. Instead, `lifeos-cli` treats the CLI itself as the stable
-interface: humans can use it directly, and existing coding agents or automation systems can invoke
-the same commands without needing a separate in-product agent runtime.
+Most personal systems break life into disconnected tools: notes in one place, plans in another,
+calendar somewhere else, habits somewhere else again. That fragmentation makes it hard to answer
+simple but important questions:
 
-## Design Principles
+- What did I intend to do?
+- What actually happened?
+- Where did my time and energy really go?
+- Which relationships, routines, and priorities am I actually living out?
 
-- Structured data before speculative intelligence
-- Clear separation between intention and reality
-- PostgreSQL-first persistence with explicit schema evolution
-- async-only runtime services and data access
-- one CLI grammar that stays consistent across domains
-- a tool surface that is easy for both humans and agents to call
+`lifeos-cli` is designed to hold those answers in one structured system.
 
-## Current Domain Surface
+## Value Proposition
 
-The project is still expanding incrementally, but the current foundation already covers:
+The core idea is to build a bridge between **intention** and **reality**.
+
+- Intention lives in visions, tasks, habits, and planned events.
+- Reality lives in notes, timelogs, completed habit actions, and relationship records.
+
+That distinction matters. A personal operating system should not only store what you hope to do. It
+should also reflect what you actually did, so self-reflection can be grounded in evidence instead of
+memory, mood, or wishful thinking.
+
+## Why CLI
+
+This project deliberately uses the command line as its primary interface.
+
+That choice is not about being more technical for its own sake. It is about creating a stable,
+explicit, and scriptable surface that works well for both:
+
+- people who want direct control over their own data
+- existing agents and automation systems that can call the same commands
+
+Instead of embedding a special in-product agent layer, `lifeos-cli` treats the CLI itself as the
+shared interface.
+
+## Current Scope
+
+The current system already covers the core building blocks of a LifeOS:
 
 - notes
 - areas
@@ -32,63 +50,45 @@ The project is still expanding incrementally, but the current foundation already
 - visions
 - tasks
 - habits and habit actions
-- events for planned schedule blocks
-- timelogs for actual time records
+- events
+- timelogs
 
-Together, these domains form the initial bridge between:
+These modules are enough to start expressing the shape of a real personal operating system:
 
-- intention: visions, tasks, habits, planned events
-- reality: notes, timelogs, completed habit actions, relationship records
+- what matters
+- what is planned
+- what is being executed
+- what actually happened
 
-That bridge is the core value of the project. The goal is not just to collect data, but to make it
-possible to compare what you meant to do with what you actually invested time and attention in.
+## Getting Started
 
-## Install
-
-Install from PyPI with `uv tool`:
+Install from PyPI:
 
 ```bash
 uv tool install lifeos-cli
 ```
 
-## Getting Started
+Initialize your local setup:
 
-1. Install the package:
+```bash
+lifeos init
+```
 
-   ```bash
-   uv tool install lifeos-cli
-   ```
+See the available command surface:
 
-2. Initialize local configuration:
+```bash
+lifeos --help
+```
 
-   ```bash
-   lifeos init
-   ```
+For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
 
-3. Explore the available command surface:
+## Principles
 
-   ```bash
-   lifeos --help
-   ```
-
-For complete CLI usage, resource-by-resource workflows, output conventions, and agent-oriented
-calling patterns, see [docs/cli.md](docs/cli.md).
-
-The public CLI only performs soft deletion. Permanent cleanup is intentionally kept out of the
-user-facing command tree and must be done through internal maintenance scripts.
-
-## Time Semantics
-
-`lifeos-cli` stores datetimes in UTC and renders them back in the configured local timezone.
-
-Operational day and week views are preference-aware:
-
-- `timezone` controls local rendering
-- `day_starts_at` controls when a local day begins
-- `week_starts_on` controls weekly grouping
-
-This keeps storage semantics stable while still letting the CLI reflect the user's lived time
-boundaries.
+- Structured data before speculative intelligence
+- Clear separation between intention and reality
+- One stable interface for both humans and agents
+- Local ownership of personal data
+- Incremental domain growth instead of feature sprawl
 
 ## Development
 
@@ -104,13 +104,6 @@ boundaries.
    ```bash
    bash ./scripts/doctor.sh
    ```
-
-## Tooling
-
-- `pre-commit` is used for local quality gates.
-- `pip-audit` is used for dependency vulnerability checks.
-- GitHub Actions validates pull requests, audits dependencies, and prepares release publishing on
-  version tags.
 
 ## Project Policies
 
