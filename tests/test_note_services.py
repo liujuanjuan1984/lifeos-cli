@@ -20,7 +20,7 @@ def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     )
 
     def fake_add(note: object) -> None:
-        setattr(session, "added_note", note)
+        session.added_note = note
 
     session.add = fake_add
 
