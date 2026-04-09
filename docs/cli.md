@@ -171,6 +171,8 @@ Current behavior:
 The branch now exposes early CRUD-oriented command families for several additional domains:
 
 - `lifeos area ...`
+- `lifeos habit ...`
+- `lifeos habit-action ...`
 - `lifeos tag ...`
 - `lifeos people ...`
 - `lifeos vision ...`
@@ -180,6 +182,8 @@ Examples:
 
 ```bash
 lifeos area add "Health"
+lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
+lifeos habit-action list --action-date 2026-04-09
 lifeos tag add "family" --entity-type person --category relation
 lifeos people add "Alice" --nickname ally --location Toronto
 lifeos vision add "Launch lifeos-cli"
@@ -192,6 +196,7 @@ Current intent:
 - `list` is the query entrypoint for these structured resources
 - standalone `search` is intentionally deferred for now
 - `batch` is the grouped namespace for multi-record write operations
+- `habit-action` is a top-level resource instead of a nested `habit action` command tree
 
 ## Structured Resource Workflows
 
@@ -216,6 +221,40 @@ lifeos tag show <tag-id>
 lifeos tag update <tag-id> --clear-color
 lifeos tag delete <tag-id>
 ```
+
+### Habit
+
+```bash
+lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
+lifeos habit list --with-stats
+lifeos habit show <habit-id>
+lifeos habit update <habit-id> --status paused
+lifeos habit stats <habit-id>
+lifeos habit task-associations
+lifeos habit delete <habit-id>
+```
+
+Current habit notes:
+
+- a habit generates one dated `habit-action` row per day in its duration
+- updating start dates or duration automatically reconciles generated action rows
+- habit deletion is soft deletion only in the public CLI
+
+### Habit Action
+
+```bash
+lifeos habit-action list --habit-id <habit-id>
+lifeos habit-action list --action-date 2026-04-09
+lifeos habit-action show <action-id>
+lifeos habit-action update <action-id> --status done
+lifeos habit-action update <action-id> --clear-notes
+```
+
+Current habit-action notes:
+
+- public CLI does not create or delete habit actions directly
+- use `list` for both per-habit and by-date inspection flows
+- updates respect the habit-action editable window enforced by the service layer
 
 ### People
 

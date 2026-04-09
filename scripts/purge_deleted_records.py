@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "resource",
-        choices=("note", "area", "tag", "people", "vision", "task"),
+        choices=("note", "area", "tag", "people", "vision", "task", "habit", "habit-action"),
         help="Resource type to purge",
     )
     parser.add_argument(

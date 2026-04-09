@@ -1,0 +1,1 @@
+"""Habit CLI resource package."""

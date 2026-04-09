@@ -6,7 +6,7 @@ import pytest
 
 from lifeos_cli import cli
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.services import areas, people, tags, tasks, visions
+from lifeos_cli.db.services import areas, habit_actions, habits, people, tags, tasks, visions
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
@@ -327,3 +327,78 @@ def test_main_people_batch_delete_reports_missing_ids(
     assert exit_code == 1
     assert "Deleted people: 0" in captured.out
     assert "Failed person IDs" in captured.err
+
+
+def test_main_habit_add_creates_habit(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_habit(session: object, **kwargs: object) -> object:
+        assert kwargs["title"] == "Daily Exercise"
+        assert str(kwargs["start_date"]) == "2026-04-09"
+        assert kwargs["duration_days"] == 21
+        return make_record(id=UUID("77777777-7777-7777-7777-777777777777"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habits, "create_habit", fake_create_habit)
+
+    exit_code = cli.main(
+        [
+            "habit",
+            "add",
+            "Daily Exercise",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "21",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created habit 77777777-7777-7777-7777-777777777777" in captured.out
+
+
+def test_main_habit_update_rejects_conflicting_clear_task_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "habit",
+            "update",
+            "77777777-7777-7777-7777-777777777777",
+            "--task-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-task",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --task-id or --clear-task, not both." in captured.err
+
+
+def test_main_habit_action_update_can_clear_notes(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_habit_action(session: object, **kwargs: object) -> object:
+        assert kwargs["clear_notes"] is True
+        assert kwargs["notes"] is None
+        return make_record(id=UUID("88888888-8888-8888-8888-888888888888"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habit_actions, "update_habit_action", fake_update_habit_action)
+
+    exit_code = cli.main(
+        [
+            "habit-action",
+            "update",
+            "88888888-8888-8888-8888-888888888888",
+            "--clear-notes",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated habit action 88888888-8888-8888-8888-888888888888" in captured.out

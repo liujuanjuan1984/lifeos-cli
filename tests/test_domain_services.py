@@ -9,7 +9,15 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import areas, people, tags, task_mutations, tasks, visions
+from lifeos_cli.db.services import (
+    areas,
+    habits,
+    people,
+    tags,
+    task_mutations,
+    tasks,
+    visions,
+)
 
 
 def test_create_person_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -383,4 +391,88 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     assert updated_vision.area_id is None
     assert updated_vision.experience_rate_per_hour is None
     session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_create_habit_generates_actions_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = SimpleNamespace(
+        add=None,
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+    added_records: list[object] = []
+
+    def fake_add(record: object) -> None:
+        if getattr(record, "id", None) is None:
+            cast(Any, record).id = UUID("99999999-9999-9999-9999-999999999999")
+        added_records.append(record)
+
+    async def fake_ensure_active_capacity(_: object, **__: object) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("99999999-9999-9999-9999-999999999999")
+        return 0
+
+    session.add = fake_add
+    monkeypatch.setattr(habits, "ensure_active_capacity", fake_ensure_active_capacity)
+    monkeypatch.setattr(habits, "ensure_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(habits, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    habit = asyncio.run(
+        habits.create_habit(
+            cast(Any, session),
+            title="Daily Exercise",
+            start_date=date(2026, 4, 9),
+            duration_days=7,
+        )
+    )
+
+    assert habit.title == "Daily Exercise"
+    assert len(added_records) == 8
+    session.flush.assert_awaited()
+    session.commit.assert_not_called()
+
+
+def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
+    habit = SimpleNamespace(
+        id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+        title="Daily Exercise",
+        description="Move every day",
+        start_date=date(2026, 4, 9),
+        duration_days=21,
+        status="active",
+        task_id=UUID("11111111-1111-1111-1111-111111111111"),
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
+        assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        assert include_deleted is False
+        return habit
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        return 0
+
+    monkeypatch.setattr(habits, "get_habit", fake_get_habit)
+    monkeypatch.setattr(habits, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    updated_habit = asyncio.run(
+        habits.update_habit(
+            cast(Any, session),
+            habit_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            clear_task=True,
+        )
+    )
+
+    assert updated_habit.task_id is None
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(habit)
     session.commit.assert_not_called()

@@ -85,8 +85,9 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
-    assert "init      Initialize local configuration" in captured.out
-    assert "people    Manage people and relationships" in captured.out
+    assert "init          Initialize local configuration" in captured.out
+    assert "people        Manage people and relationships" in captured.out
+    assert "habit-action  Manage dated habit actions" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -243,6 +244,59 @@ def test_cli_parser_supports_task_update_clear_parent_command() -> None:
     assert args.clear_parent is True
 
 
+def test_cli_parser_supports_habit_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Daily Exercise",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "21",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.title == "Daily Exercise"
+    assert args.duration_days == 21
+
+
+def test_cli_parser_supports_habit_update_clear_task_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-task",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "update"
+    assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_task is True
+
+
+def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit-action",
+            "list",
+            "--action-date",
+            "2026-04-09",
+        ]
+    )
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "list"
+    assert str(args.action_date) == "2026-04-09"
+
+
 @pytest.mark.parametrize(
     ("argv",),
     [
@@ -312,6 +366,18 @@ def test_cli_parser_supports_task_update_clear_parent_command() -> None:
                 "--hard",
             ],
         ),
+        (["habit", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "habit",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["habit-action", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
     ],
 )
 def test_cli_parser_rejects_hard_delete_flags(argv: list[str]) -> None:

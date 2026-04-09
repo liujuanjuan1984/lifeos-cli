@@ -260,6 +260,87 @@ def test_real_cli_structured_resource_workflow(integration_context: IntegrationC
         tag_id in _run_lifeos(integration_context, "tag", "list", "--entity-type", "person").stdout
     )
 
+
+def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> None:
+    init_result = _run_lifeos(
+        integration_context,
+        "init",
+        "--non-interactive",
+        "--database-url",
+        integration_context.database_url,
+        "--schema",
+        integration_context.schema,
+    )
+    assert init_result.returncode == 0, init_result.stderr
+
+    vision_result = _run_lifeos(integration_context, "vision", "add", "Improve fitness")
+    assert vision_result.returncode == 0, vision_result.stderr
+    vision_id = _extract_created_id(vision_result.stdout)
+
+    task_result = _run_lifeos(
+        integration_context,
+        "task",
+        "add",
+        "Exercise consistently",
+        "--vision-id",
+        vision_id,
+    )
+    assert task_result.returncode == 0, task_result.stderr
+    task_id = _extract_created_id(task_result.stdout)
+
+    habit_result = _run_lifeos(
+        integration_context,
+        "habit",
+        "add",
+        "Daily Exercise",
+        "--start-date",
+        "2026-04-09",
+        "--duration-days",
+        "21",
+        "--task-id",
+        task_id,
+    )
+    assert habit_result.returncode == 0, habit_result.stderr
+    habit_id = _extract_created_id(habit_result.stdout)
+
+    habit_list_result = _run_lifeos(integration_context, "habit", "list", "--with-stats")
+    assert habit_list_result.returncode == 0, habit_list_result.stderr
+    assert habit_id in habit_list_result.stdout
+    assert "Daily Exercise" in habit_list_result.stdout
+
+    habit_show_result = _run_lifeos(integration_context, "habit", "show", habit_id)
+    assert habit_show_result.returncode == 0, habit_show_result.stderr
+    assert f"id: {habit_id}" in habit_show_result.stdout
+    assert "total_actions: 21" in habit_show_result.stdout
+
+    action_list_result = _run_lifeos(
+        integration_context,
+        "habit-action",
+        "list",
+        "--habit-id",
+        habit_id,
+    )
+    assert action_list_result.returncode == 0, action_list_result.stderr
+    action_id = _extract_created_id(action_list_result.stdout)
+
+    action_update_result = _run_lifeos(
+        integration_context,
+        "habit-action",
+        "update",
+        action_id,
+        "--status",
+        "done",
+        "--notes",
+        "Completed before work",
+    )
+    assert action_update_result.returncode == 0, action_update_result.stderr
+    assert f"Updated habit action {action_id}" in action_update_result.stdout
+
+    action_show_result = _run_lifeos(integration_context, "habit-action", "show", action_id)
+    assert action_show_result.returncode == 0, action_show_result.stderr
+    assert "status: done" in action_show_result.stdout
+    assert "notes: Completed before work" in action_show_result.stdout
+
     task_show_result = _run_lifeos(integration_context, "task", "show", task_id)
     assert task_show_result.returncode == 0, task_show_result.stderr
     assert f"id: {task_id}" in task_show_result.stdout

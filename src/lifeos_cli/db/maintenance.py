@@ -13,7 +13,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.config import get_database_settings
-from lifeos_cli.db.models import Area, Note, Person, Tag, Task, Vision
+from lifeos_cli.db.models import Area, Habit, HabitAction, Note, Person, Tag, Task, Vision
 from lifeos_cli.db.session import get_async_engine
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
@@ -31,6 +31,8 @@ class PurgeDecision:
 RESOURCE_MODELS: dict[str, Any] = {
     "note": Note,
     "area": Area,
+    "habit": Habit,
+    "habit-action": HabitAction,
     "tag": Tag,
     "people": Person,
     "vision": Vision,
