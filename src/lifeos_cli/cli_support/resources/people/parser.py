@@ -128,17 +128,44 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --tag-id "
                 "22222222-2222-2222-2222-222222222222",
+                "lifeos people update 11111111-1111-1111-1111-111111111111 --clear-location",
             ),
+            notes=("Use `--clear-*` flags to remove optional values instead of replacing them.",),
         ),
     )
     update_parser.add_argument("person_id", type=UUID, help="Person identifier")
     update_parser.add_argument("--name", help="Updated person name")
     update_parser.add_argument("--description", help="Updated description")
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help="Clear the optional person description",
+    )
     update_parser.add_argument("--nickname", action="append", help="Updated nicknames, repeatable")
+    update_parser.add_argument(
+        "--clear-nicknames",
+        action="store_true",
+        help="Clear all nicknames",
+    )
     update_parser.add_argument("--birth-date", help="Updated birth date in ISO format YYYY-MM-DD")
+    update_parser.add_argument(
+        "--clear-birth-date",
+        action="store_true",
+        help="Clear the optional birth date",
+    )
     update_parser.add_argument("--location", help="Updated location")
     update_parser.add_argument(
+        "--clear-location",
+        action="store_true",
+        help="Clear the optional location",
+    )
+    update_parser.add_argument(
         "--tag-id", action="append", type=UUID, help="Replacement tag identifiers"
+    )
+    update_parser.add_argument(
+        "--clear-tags",
+        action="store_true",
+        help="Remove all tag associations from the person",
     )
     update_parser.set_defaults(handler=handle_people_update)
 

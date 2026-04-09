@@ -28,6 +28,25 @@ def test_main_area_add_creates_area(
     assert "Created area 11111111-1111-1111-1111-111111111111" in captured.out
 
 
+def test_main_area_update_rejects_conflicting_clear_icon_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "area",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--icon",
+            "brain",
+            "--clear-icon",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --icon or --clear-icon, not both." in captured.err
+
+
 def test_main_tag_add_creates_tag(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -81,6 +100,32 @@ def test_main_people_show_prints_tags(
     assert "tags: family, friend" in captured.out
 
 
+def test_main_people_update_can_clear_location(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_person(session: object, **kwargs: object) -> object:
+        assert kwargs["clear_location"] is True
+        assert kwargs["location"] is None
+        return make_record(id=UUID("33333333-3333-3333-3333-333333333333"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(people, "update_person", fake_update_person)
+
+    exit_code = cli.main(
+        [
+            "people",
+            "update",
+            "33333333-3333-3333-3333-333333333333",
+            "--clear-location",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated person 33333333-3333-3333-3333-333333333333" in captured.out
+
+
 def test_main_vision_add_creates_vision(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -97,6 +142,25 @@ def test_main_vision_add_creates_vision(
 
     assert exit_code == 0
     assert "Created vision 44444444-4444-4444-4444-444444444444" in captured.out
+
+
+def test_main_vision_update_rejects_conflicting_clear_area_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "vision",
+            "update",
+            "44444444-4444-4444-4444-444444444444",
+            "--area-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-area",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --area-id or --clear-area, not both." in captured.err
 
 
 def test_main_task_add_creates_task(
@@ -190,6 +254,25 @@ def test_main_task_update_can_clear_parent(
 
     assert exit_code == 0
     assert "Updated task 55555555-5555-5555-5555-555555555555" in captured.out
+
+
+def test_main_task_update_rejects_conflicting_clear_planning_cycle_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "task",
+            "update",
+            "55555555-5555-5555-5555-555555555555",
+            "--planning-cycle-type",
+            "week",
+            "--clear-planning-cycle",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either planning cycle fields or --clear-planning-cycle, not both." in captured.err
 
 
 def test_main_task_update_rejects_conflicting_parent_flags(

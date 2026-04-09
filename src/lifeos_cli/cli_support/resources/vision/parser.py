@@ -130,17 +130,37 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             examples=(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
                 '--name "Ship lifeos-cli"',
-                "lifeos vision update 11111111-1111-1111-1111-111111111111 --status paused",
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 --status archived",
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
+            ),
+            notes=(
+                "Valid statuses currently include `active`, `archived`, and `fruit`.",
+                "Use `--clear-*` flags to remove optional values.",
             ),
         ),
     )
     update_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
     update_parser.add_argument("--name", help="Updated vision name")
     update_parser.add_argument("--description", help="Updated vision description")
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help="Clear the optional vision description",
+    )
     update_parser.add_argument("--status", help="Updated status")
     update_parser.add_argument("--area-id", type=UUID, help="Updated area identifier")
     update_parser.add_argument(
+        "--clear-area",
+        action="store_true",
+        help="Clear the optional area reference",
+    )
+    update_parser.add_argument(
         "--experience-rate-per-hour", type=int, help="Updated experience rate"
+    )
+    update_parser.add_argument(
+        "--clear-experience-rate",
+        action="store_true",
+        help="Clear the optional experience rate",
     )
     update_parser.set_defaults(handler=handle_vision_update)
 

@@ -128,9 +128,40 @@ def handle_task_show(args: argparse.Namespace) -> int:
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
-    if args.clear_parent and args.parent_task_id is not None:
-        print("Use either --parent-task-id or --clear-parent, not both.", file=sys.stderr)
-        return 1
+    conflicting_flags = (
+        (
+            args.clear_description and args.description is not None,
+            "--description",
+            "--clear-description",
+        ),
+        (
+            args.clear_parent and args.parent_task_id is not None,
+            "--parent-task-id",
+            "--clear-parent",
+        ),
+        (
+            args.clear_estimated_effort and args.estimated_effort is not None,
+            "--estimated-effort",
+            "--clear-estimated-effort",
+        ),
+        (
+            args.clear_planning_cycle
+            and any(
+                value is not None
+                for value in (
+                    args.planning_cycle_type,
+                    args.planning_cycle_days,
+                    args.planning_cycle_start_date,
+                )
+            ),
+            "planning cycle fields",
+            "--clear-planning-cycle",
+        ),
+    )
+    for is_conflict, value_flag, clear_flag in conflicting_flags:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
     async with db_session.session_scope() as session:
         try:
             task = await task_services.update_task(
@@ -138,17 +169,20 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 content=args.content,
                 description=args.description,
+                clear_description=args.clear_description,
                 parent_task_id=args.parent_task_id,
                 clear_parent=args.clear_parent,
                 status=args.status,
                 priority=args.priority,
                 display_order=args.display_order,
                 estimated_effort=args.estimated_effort,
+                clear_estimated_effort=args.clear_estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
                 planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date)
                 if args.planning_cycle_start_date
                 else None,
+                clear_planning_cycle=args.clear_planning_cycle,
             )
         except (
             task_services.TaskNotFoundError,

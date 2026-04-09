@@ -100,6 +100,22 @@ def test_cli_parser_supports_area_add_command() -> None:
     assert args.display_order == 2
 
 
+def test_cli_parser_supports_area_update_clear_icon_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "area",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-icon",
+        ]
+    )
+
+    assert args.resource == "area"
+    assert args.area_command == "update"
+    assert args.clear_icon is True
+
+
 def test_cli_parser_supports_people_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["people", "add", "Alice", "--nickname", "ally"])
@@ -108,6 +124,22 @@ def test_cli_parser_supports_people_add_command() -> None:
     assert args.people_command == "add"
     assert args.name == "Alice"
     assert args.nickname == ["ally"]
+
+
+def test_cli_parser_supports_people_update_clear_location_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "people",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-location",
+        ]
+    )
+
+    assert args.resource == "people"
+    assert args.people_command == "update"
+    assert args.clear_location is True
 
 
 def test_cli_parser_supports_task_add_command() -> None:
@@ -129,6 +161,50 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.content == "Draft release checklist"
     assert str(args.vision_id) == "11111111-1111-1111-1111-111111111111"
     assert args.priority == 3
+
+
+def test_cli_parser_supports_vision_update_clear_area_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "vision",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-area",
+        ]
+    )
+
+    assert args.resource == "vision"
+    assert args.vision_command == "update"
+    assert args.clear_area is True
+
+
+def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "update", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "active`, `archived`, and `fruit`" in captured.out
+    assert "--status paused" not in captured.out
+
+
+def test_cli_parser_supports_tag_update_clear_color_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "tag",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-color",
+        ]
+    )
+
+    assert args.resource == "tag"
+    assert args.tag_command == "update"
+    assert args.clear_color is True
 
 
 def test_cli_parser_supports_task_batch_delete_command() -> None:

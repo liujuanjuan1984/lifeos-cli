@@ -104,6 +104,12 @@ def handle_tag_show(args: argparse.Namespace) -> int:
 
 
 async def handle_tag_update_async(args: argparse.Namespace) -> int:
+    if args.clear_description and args.description is not None:
+        print("Use either --description or --clear-description, not both.", file=sys.stderr)
+        return 1
+    if args.clear_color and args.color is not None:
+        print("Use either --color or --clear-color, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             tag = await tag_services.update_tag(
@@ -113,7 +119,9 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
                 entity_type=args.entity_type,
                 category=args.category,
                 description=args.description,
+                clear_description=args.clear_description,
                 color=args.color,
+                clear_color=args.clear_color,
             )
         except (
             tag_services.TagNotFoundError,

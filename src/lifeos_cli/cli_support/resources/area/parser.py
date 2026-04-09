@@ -139,14 +139,26 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos area update 11111111-1111-1111-1111-111111111111 --name "Fitness"',
                 "lifeos area update 11111111-1111-1111-1111-111111111111 "
                 "--display-order 20 --active",
+                "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-icon",
             ),
+            notes=("Use `--clear-description` or `--clear-icon` to remove optional values.",),
         ),
     )
     update_parser.add_argument("area_id", type=UUID, help="Area identifier")
     update_parser.add_argument("--name", help="Updated area name")
     update_parser.add_argument("--description", help="Updated description")
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help="Clear the optional area description",
+    )
     update_parser.add_argument("--color", help="Updated hex color code")
     update_parser.add_argument("--icon", help="Updated icon identifier")
+    update_parser.add_argument(
+        "--clear-icon",
+        action="store_true",
+        help="Clear the optional icon identifier",
+    )
     update_parser.add_argument(
         "--active",
         action=argparse.BooleanOptionalAction,

@@ -92,8 +92,10 @@ async def update_area(
     area_id: UUID,
     name: str | None = None,
     description: str | None = None,
+    clear_description: bool = False,
     color: str | None = None,
     icon: str | None = None,
+    clear_icon: bool = False,
     is_active: bool | None = None,
     display_order: int | None = None,
 ) -> Area:
@@ -113,11 +115,15 @@ async def update_area(
         if conflict.scalar_one_or_none() is not None:
             raise AreaAlreadyExistsError(f"Area with name {normalized_name!r} already exists")
         area.name = normalized_name
-    if description is not None:
+    if clear_description:
+        area.description = None
+    elif description is not None:
         area.description = description
     if color is not None:
         area.color = color
-    if icon is not None:
+    if clear_icon:
+        area.icon = None
+    elif icon is not None:
         area.icon = icon
     if is_active is not None:
         area.is_active = is_active

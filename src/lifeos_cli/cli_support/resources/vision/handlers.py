@@ -106,6 +106,23 @@ def handle_vision_show(args: argparse.Namespace) -> int:
 
 
 async def handle_vision_update_async(args: argparse.Namespace) -> int:
+    conflicting_flags = (
+        (
+            args.clear_description and args.description is not None,
+            "--description",
+            "--clear-description",
+        ),
+        (args.clear_area and args.area_id is not None, "--area-id", "--clear-area"),
+        (
+            args.clear_experience_rate and args.experience_rate_per_hour is not None,
+            "--experience-rate-per-hour",
+            "--clear-experience-rate",
+        ),
+    )
+    for is_conflict, value_flag, clear_flag in conflicting_flags:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
     async with db_session.session_scope() as session:
         try:
             vision = await vision_services.update_vision(
@@ -113,9 +130,12 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
                 vision_id=args.vision_id,
                 name=args.name,
                 description=args.description,
+                clear_description=args.clear_description,
                 status=args.status,
                 area_id=args.area_id,
+                clear_area=args.clear_area,
                 experience_rate_per_hour=args.experience_rate_per_hour,
+                clear_experience_rate=args.clear_experience_rate,
             )
         except (
             vision_services.VisionNotFoundError,

@@ -109,6 +109,25 @@ def handle_people_show(args: argparse.Namespace) -> int:
 
 
 async def handle_people_update_async(args: argparse.Namespace) -> int:
+    conflicting_flags = (
+        (
+            args.clear_description and args.description is not None,
+            "--description",
+            "--clear-description",
+        ),
+        (args.clear_nicknames and args.nickname is not None, "--nickname", "--clear-nicknames"),
+        (
+            args.clear_birth_date and args.birth_date is not None,
+            "--birth-date",
+            "--clear-birth-date",
+        ),
+        (args.clear_location and args.location is not None, "--location", "--clear-location"),
+        (args.clear_tags and args.tag_id is not None, "--tag-id", "--clear-tags"),
+    )
+    for is_conflict, value_flag, clear_flag in conflicting_flags:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
     async with db_session.session_scope() as session:
         try:
             person = await people_services.update_person(
@@ -116,10 +135,15 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
                 person_id=args.person_id,
                 name=args.name,
                 description=args.description,
+                clear_description=args.clear_description,
                 nicknames=args.nickname,
+                clear_nicknames=args.clear_nicknames,
                 birth_date=_parse_birth_date(args.birth_date) if args.birth_date else None,
+                clear_birth_date=args.clear_birth_date,
                 location=args.location,
+                clear_location=args.clear_location,
                 tag_ids=args.tag_id,
+                clear_tags=args.clear_tags,
             )
         except (
             people_services.PersonNotFoundError,

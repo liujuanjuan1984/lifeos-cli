@@ -138,10 +138,15 @@ async def update_person(
     person_id: UUID,
     name: str | None = None,
     description: str | None = None,
+    clear_description: bool = False,
     nicknames: list[str] | None = None,
+    clear_nicknames: bool = False,
     birth_date: date | None = None,
+    clear_birth_date: bool = False,
     location: str | None = None,
+    clear_location: bool = False,
     tag_ids: list[UUID] | None = None,
+    clear_tags: bool = False,
 ) -> Person:
     """Update a person."""
     person = await get_person(session, person_id=person_id)
@@ -159,15 +164,30 @@ async def update_person(
         if conflict.scalar_one_or_none() is not None:
             raise PersonAlreadyExistsError(f"Person with name {normalized_name!r} already exists")
         person.name = normalized_name
-    if description is not None:
+    if clear_description:
+        person.description = None
+    elif description is not None:
         person.description = description
-    if nicknames is not None:
+    if clear_nicknames:
+        person.nicknames = None
+    elif nicknames is not None:
         person.nicknames = nicknames
-    if birth_date is not None:
+    if clear_birth_date:
+        person.birth_date = None
+    elif birth_date is not None:
         person.birth_date = birth_date
-    if location is not None:
+    if clear_location:
+        person.location = None
+    elif location is not None:
         person.location = location
-    if tag_ids is not None:
+    if clear_tags:
+        await sync_entity_tags(
+            session,
+            entity_id=person.id,
+            entity_type="person",
+            desired_tag_ids=[],
+        )
+    elif tag_ids is not None:
         await sync_entity_tags(
             session,
             entity_id=person.id,

@@ -120,9 +120,12 @@ async def update_vision(
     vision_id: UUID,
     name: str | None = None,
     description: str | None = None,
+    clear_description: bool = False,
     status: str | None = None,
     area_id: UUID | None = None,
+    clear_area: bool = False,
     experience_rate_per_hour: int | None = None,
+    clear_experience_rate: bool = False,
 ) -> Vision:
     """Update a vision."""
     vision = await get_vision(session, vision_id=vision_id)
@@ -140,14 +143,20 @@ async def update_vision(
         if conflict.scalar_one_or_none() is not None:
             raise VisionAlreadyExistsError(f"Vision with name {normalized_name!r} already exists")
         vision.name = normalized_name
-    if description is not None:
+    if clear_description:
+        vision.description = None
+    elif description is not None:
         vision.description = description
     if status is not None:
         vision.status = validate_vision_status(status)
-    if area_id is not None:
+    if clear_area:
+        vision.area_id = None
+    elif area_id is not None:
         await _ensure_area_exists(session, area_id)
         vision.area_id = area_id
-    if experience_rate_per_hour is not None:
+    if clear_experience_rate:
+        vision.experience_rate_per_hour = None
+    elif experience_rate_per_hour is not None:
         vision.experience_rate_per_hour = experience_rate_per_hour
     await session.flush()
     await session.refresh(vision)

@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import people, task_mutations, tasks
+from lifeos_cli.db.services import areas, people, tags, task_mutations, tasks, visions
 
 
 def test_create_person_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -142,4 +142,245 @@ def test_update_task_can_clear_parent_without_committing(
     assert updated_task.parent_task_id is None
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
+def test_update_task_can_clear_optional_fields_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = SimpleNamespace(
+        id=UUID("88888888-8888-8888-8888-888888888888"),
+        vision_id=UUID("11111111-1111-1111-1111-111111111111"),
+        parent_task_id=None,
+        content="Existing task",
+        description="Write details",
+        status="todo",
+        priority=0,
+        display_order=0,
+        estimated_effort=45,
+        planning_cycle_type="week",
+        planning_cycle_days=7,
+        planning_cycle_start_date=date(2026, 4, 9),
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == UUID("88888888-8888-8888-8888-888888888888")
+        assert include_deleted is False
+        return task
+
+    async def fake_validate_parent_task(
+        _: object,
+        *,
+        vision_id: UUID,
+        parent_task_id: UUID | None,
+    ) -> None:
+        assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
+        assert parent_task_id is None
+
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+
+    updated_task = asyncio.run(
+        task_mutations.update_task(
+            cast(Any, session),
+            task_id=UUID("88888888-8888-8888-8888-888888888888"),
+            clear_description=True,
+            clear_estimated_effort=True,
+            clear_planning_cycle=True,
+        )
+    )
+
+    assert updated_task.description is None
+    assert updated_task.estimated_effort is None
+    assert updated_task.planning_cycle_type is None
+    assert updated_task.planning_cycle_days is None
+    assert updated_task.planning_cycle_start_date is None
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
+def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    area = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        name="Health",
+        description="Focus",
+        color="#3B82F6",
+        icon="heart",
+        is_active=True,
+        display_order=1,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_area(_: object, *, area_id: UUID, include_deleted: bool = False) -> object:
+        assert area_id == UUID("11111111-1111-1111-1111-111111111111")
+        assert include_deleted is False
+        return area
+
+    monkeypatch.setattr(areas, "get_area", fake_get_area)
+
+    updated_area = asyncio.run(
+        areas.update_area(
+            cast(Any, session),
+            area_id=UUID("11111111-1111-1111-1111-111111111111"),
+            clear_description=True,
+            clear_icon=True,
+        )
+    )
+
+    assert updated_area.description is None
+    assert updated_area.icon is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    tag = SimpleNamespace(
+        id=UUID("22222222-2222-2222-2222-222222222222"),
+        name="urgent",
+        entity_type="task",
+        category="general",
+        description="High priority",
+        color="#DC2626",
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
+    )
+
+    async def fake_get_tag(_: object, *, tag_id: UUID, include_deleted: bool = False) -> object:
+        assert tag_id == UUID("22222222-2222-2222-2222-222222222222")
+        assert include_deleted is False
+        return tag
+
+    monkeypatch.setattr(tags, "get_tag", fake_get_tag)
+
+    updated_tag = asyncio.run(
+        tags.update_tag(
+            cast(Any, session),
+            tag_id=UUID("22222222-2222-2222-2222-222222222222"),
+            clear_description=True,
+            clear_color=True,
+        )
+    )
+
+    assert updated_tag.description is None
+    assert updated_tag.color is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_update_person_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    person = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        name="Alice",
+        description="Friend",
+        nicknames=["ally"],
+        birth_date=date(2026, 4, 9),
+        location="Toronto",
+        tags=[],
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    async def fake_get_person(
+        _: object,
+        *,
+        person_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert person_id == UUID("33333333-3333-3333-3333-333333333333")
+        assert include_deleted is False
+        return person
+
+    async def fake_attach_tags(_: object, person_record: object) -> object:
+        return person_record
+
+    async def fake_sync_entity_tags(
+        _: object,
+        *,
+        entity_id: UUID,
+        entity_type: str,
+        desired_tag_ids: list[UUID],
+    ) -> None:
+        assert entity_id == UUID("33333333-3333-3333-3333-333333333333")
+        assert entity_type == "person"
+        assert desired_tag_ids == []
+
+    monkeypatch.setattr(people, "get_person", fake_get_person)
+    monkeypatch.setattr(people, "_attach_tags", fake_attach_tags)
+    monkeypatch.setattr(people, "sync_entity_tags", fake_sync_entity_tags)
+
+    updated_person = asyncio.run(
+        people.update_person(
+            cast(Any, session),
+            person_id=UUID("33333333-3333-3333-3333-333333333333"),
+            clear_description=True,
+            clear_nicknames=True,
+            clear_birth_date=True,
+            clear_location=True,
+            clear_tags=True,
+        )
+    )
+
+    assert updated_person.description is None
+    assert updated_person.nicknames is None
+    assert updated_person.birth_date is None
+    assert updated_person.location is None
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    vision = SimpleNamespace(
+        id=UUID("44444444-4444-4444-4444-444444444444"),
+        name="Launch lifeos-cli",
+        description="Ship the first release",
+        status="active",
+        area_id=UUID("11111111-1111-1111-1111-111111111111"),
+        experience_rate_per_hour=120,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert include_deleted is False
+        return vision
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+
+    updated_vision = asyncio.run(
+        visions.update_vision(
+            cast(Any, session),
+            vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+            clear_description=True,
+            clear_area=True,
+            clear_experience_rate=True,
+        )
+    )
+
+    assert updated_vision.description is None
+    assert updated_vision.area_id is None
+    assert updated_vision.experience_rate_per_hour is None
+    session.flush.assert_awaited_once()
     session.commit.assert_not_called()

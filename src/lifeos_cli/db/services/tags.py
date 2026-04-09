@@ -129,7 +129,9 @@ async def update_tag(
     entity_type: str | None = None,
     category: str | None = None,
     description: str | None = None,
+    clear_description: bool = False,
     color: str | None = None,
+    clear_color: bool = False,
 ) -> Tag:
     """Update a tag."""
     tag = await get_tag(session, tag_id=tag_id)
@@ -154,9 +156,13 @@ async def update_tag(
     tag.name = next_name
     tag.entity_type = next_entity_type
     tag.category = next_category
-    if description is not None:
+    if clear_description:
+        tag.description = None
+    elif description is not None:
         tag.description = description
-    if color is not None:
+    if clear_color:
+        tag.color = None
+    elif color is not None:
         tag.color = color
     await session.flush()
     await session.refresh(tag)

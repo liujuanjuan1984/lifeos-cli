@@ -151,16 +151,24 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--priority 3 --display-order 20",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-parent",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-planning-cycle",
             ),
             notes=(
                 "Parent task references must stay within the same vision.",
                 "Use `--clear-parent` to move a child task back to the root level.",
+                "Use `--clear-*` flags to remove optional values such as descriptions "
+                "or planning cycles.",
             ),
         ),
     )
     update_parser.add_argument("task_id", type=UUID, help="Task identifier")
     update_parser.add_argument("--content", help="Updated task content")
     update_parser.add_argument("--description", help="Updated description")
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help="Clear the optional task description",
+    )
     update_parser.add_argument("--parent-task-id", type=UUID, help="Updated parent task identifier")
     update_parser.add_argument(
         "--clear-parent",
@@ -171,11 +179,21 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     update_parser.add_argument("--priority", type=int, help="Updated priority")
     update_parser.add_argument("--display-order", type=int, help="Updated display order")
     update_parser.add_argument("--estimated-effort", type=int, help="Updated estimated effort")
+    update_parser.add_argument(
+        "--clear-estimated-effort",
+        action="store_true",
+        help="Clear the optional estimated effort value",
+    )
     update_parser.add_argument("--planning-cycle-type", help="Updated planning cycle type")
     update_parser.add_argument(
         "--planning-cycle-days", type=int, help="Updated planning cycle days"
     )
     update_parser.add_argument("--planning-cycle-start-date", help="Updated start date YYYY-MM-DD")
+    update_parser.add_argument(
+        "--clear-planning-cycle",
+        action="store_true",
+        help="Clear all planning cycle fields",
+    )
     update_parser.set_defaults(handler=handle_task_update)
 
     delete_parser = add_documented_parser(

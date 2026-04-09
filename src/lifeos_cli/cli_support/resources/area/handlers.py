@@ -100,6 +100,12 @@ def handle_area_show(args: argparse.Namespace) -> int:
 
 
 async def handle_area_update_async(args: argparse.Namespace) -> int:
+    if args.clear_description and args.description is not None:
+        print("Use either --description or --clear-description, not both.", file=sys.stderr)
+        return 1
+    if args.clear_icon and args.icon is not None:
+        print("Use either --icon or --clear-icon, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             area = await area_services.update_area(
@@ -107,8 +113,10 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
                 area_id=args.area_id,
                 name=args.name,
                 description=args.description,
+                clear_description=args.clear_description,
                 color=args.color,
                 icon=args.icon,
+                clear_icon=args.clear_icon,
                 is_active=args.active,
                 display_order=args.display_order,
             )

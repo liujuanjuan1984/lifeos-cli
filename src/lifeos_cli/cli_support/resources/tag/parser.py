@@ -114,14 +114,35 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     update_parser = add_documented_parser(
         tag_subparsers,
         "update",
-        help_content=HelpContent(summary="Update a tag", description="Update mutable tag fields."),
+        help_content=HelpContent(
+            summary="Update a tag",
+            description=(
+                "Update mutable tag fields.\n\n"
+                "Only explicitly provided flags are changed; omitted values are preserved."
+            ),
+            examples=(
+                'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
+                "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
+            ),
+            notes=("Use `--clear-description` or `--clear-color` to remove optional values.",),
+        ),
     )
     update_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
     update_parser.add_argument("--name", help="Updated tag name")
     update_parser.add_argument("--entity-type", help="Updated entity type")
     update_parser.add_argument("--category", help="Updated tag category")
     update_parser.add_argument("--description", help="Updated tag description")
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help="Clear the optional tag description",
+    )
     update_parser.add_argument("--color", help="Updated hex color code")
+    update_parser.add_argument(
+        "--clear-color",
+        action="store_true",
+        help="Clear the optional tag color",
+    )
     update_parser.set_defaults(handler=handle_tag_update)
 
     delete_parser = add_documented_parser(
