@@ -1,0 +1,46 @@
+name: Validate PRs and Main
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    name: Validate Default Toolchain
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+
+      - name: Run default validation
+        run: bash ./scripts/doctor.sh
+
+      - name: Export runtime requirements for vulnerability audit
+        run: >
+          uv export --format requirements.txt --no-dev --locked --no-emit-project
+          --output-file /tmp/runtime-requirements.txt >/dev/null
+
+      - name: Run runtime dependency vulnerability audit
+        run: uv run pip-audit --requirement /tmp/runtime-requirements.txt
+
+      - name: Clean previous build artifacts
+        run: rm -rf build dist
+
+      - name: Build package artifacts
+        run: uv build --no-sources

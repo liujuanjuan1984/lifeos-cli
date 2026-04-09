@@ -1,0 +1,124 @@
+name: Release Publish and Repair
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing v* tag to publish or repair
+        required: true
+        type: string
+      publish_to_pypi:
+        description: Publish artifacts to PyPI before syncing the GitHub Release
+        required: true
+        default: false
+        type: boolean
+      sync_github_release:
+        description: Create or repair the GitHub Release and release assets
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: publish-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Build and Publish Release Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+
+      - name: Run default regression baseline
+        run: bash ./scripts/doctor.sh
+
+      - name: Export runtime requirements for vulnerability audit
+        run: >
+          uv export --format requirements.txt --no-dev --locked --no-emit-project
+          --output-file /tmp/runtime-requirements.txt >/dev/null
+
+      - name: Run runtime dependency vulnerability audit
+        run: uv run pip-audit --requirement /tmp/runtime-requirements.txt
+
+      - name: Clean previous build artifacts
+        run: rm -rf build dist
+
+      - name: Build package artifacts
+        run: uv build --no-sources
+
+      - name: Verify published version matches tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+
+          dist_dir = pathlib.Path("dist")
+          wheels = sorted(dist_dir.glob("lifeos-*.whl"))
+          sdists = sorted(dist_dir.glob("lifeos-*.tar.gz"))
+          if len(wheels) != 1:
+              raise SystemExit(f"Expected exactly one wheel in dist/, found {len(wheels)}")
+          if len(sdists) != 1:
+              raise SystemExit(f"Expected exactly one sdist in dist/, found {len(sdists)}")
+          wheel = wheels[0].name
+          sdist = sdists[0].name
+          version = wheel.removeprefix("lifeos-").split("-py3", 1)[0]
+          sdist_version = sdist.removeprefix("lifeos-").removesuffix(".tar.gz")
+          tag = os.environ["RELEASE_TAG"].removeprefix("v")
+          if version != tag:
+              raise SystemExit(f"Wheel version {version!r} does not match tag {tag!r}")
+          if sdist_version != tag:
+              raise SystemExit(f"sdist version {sdist_version!r} does not match tag {tag!r}")
+          print(f"Validated release version: {version}")
+          PY
+
+      - name: Publish to PyPI
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_to_pypi }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Sync GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.sync_github_release }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$RELEASE_TAG" --json url >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists."
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --generate-notes
+          fi
+
+          for asset in dist/*.tar.gz dist/*.whl; do
+            asset_name="$(basename "$asset")"
+            if gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | grep -Fxq "$asset_name"; then
+              echo "Release asset already present: $asset_name"
+              continue
+            fi
+
+            gh release upload "$RELEASE_TAG" "$asset"
+          done
