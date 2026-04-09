@@ -9,7 +9,6 @@ from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
-from lifeos_cli.time_preferences import get_operational_date
 
 
 class Habit(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -46,21 +45,6 @@ class Habit(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     def end_date(self) -> date:
         """Return the computed final date covered by the habit."""
         return self.start_date + timedelta(days=self.duration_days - 1)
-
-    @property
-    def is_completed(self) -> bool:
-        """Return whether the habit duration has fully elapsed."""
-        return get_operational_date() > self.end_date
-
-    @property
-    def progress_percentage(self) -> float:
-        """Return progress based on the current date and duration."""
-        if self.is_completed:
-            return 100.0
-        days_elapsed = (get_operational_date() - self.start_date).days + 1
-        if days_elapsed <= 0:
-            return 0.0
-        return min(100.0, (days_elapsed / self.duration_days) * 100.0)
 
     def __repr__(self) -> str:
         return (

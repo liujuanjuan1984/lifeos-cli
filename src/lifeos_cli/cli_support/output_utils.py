@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from lifeos_cli.time_preferences import to_preferred_timezone
+from lifeos_cli.application.time_preferences import to_preferred_timezone
 
 
 class NoteSummary(Protocol):

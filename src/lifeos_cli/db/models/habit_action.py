@@ -10,7 +10,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
 from lifeos_cli.db.services.habit_support import get_default_habit_action_status
-from lifeos_cli.time_preferences import get_operational_date
 
 
 class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -44,21 +43,6 @@ class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     habit = relationship("Habit", back_populates="actions")
-
-    @property
-    def is_today(self) -> bool:
-        """Return whether the action is for today."""
-        return self.action_date == get_operational_date()
-
-    @property
-    def is_past(self) -> bool:
-        """Return whether the action is for a past day."""
-        return self.action_date < get_operational_date()
-
-    @property
-    def is_future(self) -> bool:
-        """Return whether the action is for a future day."""
-        return self.action_date > get_operational_date()
 
     def __repr__(self) -> str:
         return (

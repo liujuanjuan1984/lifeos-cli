@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.timelog import Timelog
@@ -29,7 +30,6 @@ from lifeos_cli.db.services.timelog_support import (
     validate_timelog_title,
     validate_tracking_method,
 )
-from lifeos_cli.time_preferences import get_utc_window_for_local_date
 
 
 async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Timelog:

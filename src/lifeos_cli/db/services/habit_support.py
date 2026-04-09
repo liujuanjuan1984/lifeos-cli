@@ -9,8 +9,8 @@ from uuid import UUID
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.time_preferences import get_current_week_bounds, get_operational_date
 from lifeos_cli.db.base import utc_now
-from lifeos_cli.time_preferences import get_current_week_bounds, get_operational_date
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.habit import Habit

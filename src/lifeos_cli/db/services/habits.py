@@ -9,6 +9,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
@@ -34,7 +35,6 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_start_date,
     validate_habit_status,
 )
-from lifeos_cli.time_preferences import get_operational_date
 
 
 async def get_habit(

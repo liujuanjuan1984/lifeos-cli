@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from lifeos_cli.config import clear_config_cache
-from lifeos_cli.time_preferences import (
+from lifeos_cli.application.time_preferences import (
     get_current_week_bounds,
     get_operational_date,
     get_utc_window_for_local_date,
     to_preferred_timezone,
 )
+from lifeos_cli.config import clear_config_cache
 
 
 def test_to_preferred_timezone_uses_configured_timezone(monkeypatch, tmp_path) -> None:
