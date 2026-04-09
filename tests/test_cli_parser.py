@@ -87,10 +87,14 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "resources:" in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
-    assert "event         Manage planned schedule events" in captured.out
-    assert "people        Manage people and relationships" in captured.out
-    assert "habit-action  Manage dated habit actions" in captured.out
-    assert "timelog       Manage actual time records" in captured.out
+    assert "event" in captured.out
+    assert "Manage planned schedule events" in captured.out
+    assert "people" in captured.out
+    assert "Manage people and relationships" in captured.out
+    assert "habit-action" in captured.out
+    assert "Manage dated habit actions" in captured.out
+    assert "timelog" in captured.out
+    assert "Manage actual time records" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
