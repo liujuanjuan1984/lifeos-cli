@@ -5,6 +5,20 @@
 The project now ships a PostgreSQL-first data layer with Alembic migrations. Domain
 modules will be introduced incrementally, starting from `notes`.
 
+## Install
+
+Install from PyPI with `uv tool`:
+
+```bash
+uv tool install lifeos-cli
+```
+
+Run without a persistent installation:
+
+```bash
+uv tool run --from lifeos-cli lifeos --help
+```
+
 ## Development
 
 1. Install `uv`.
@@ -35,13 +49,36 @@ Apply migrations:
 uv run alembic upgrade head
 ```
 
+The current branch assumes the database schema is prepared before running note commands.
+
 ## CLI
 
-Install the package and run:
+Inspect the available commands:
 
 ```bash
 lifeos --help
 ```
+
+Current branch examples:
+
+```bash
+lifeos note add "a new note"
+lifeos note list
+lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
+lifeos note delete 11111111-1111-1111-1111-111111111111
+```
+
+The current branch exposes a narrow first slice:
+
+- PostgreSQL-backed note storage
+- Alembic migrations
+- `note add`, `note list`, `note update`, and `note delete`
+
+Not implemented yet on this branch:
+
+- tags for notes
+- note-to-task or note-to-person associations
+- note ingestion jobs or search workflows
 
 ## Tooling
 

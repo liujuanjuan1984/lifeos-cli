@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Mapping
 
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -25,7 +25,7 @@ class DatabaseSettings:
     database_echo: bool
 
     @classmethod
-    def from_env(cls, env: Mapping[str, str] | None = None) -> "DatabaseSettings":
+    def from_env(cls, env: Mapping[str, str] | None = None) -> DatabaseSettings:
         """Build database settings from the provided environment mapping."""
         source = env or os.environ
         database_url = source.get(
@@ -44,9 +44,7 @@ class DatabaseSettings:
     @staticmethod
     def _validate_schema_name(schema_name: str) -> None:
         if not _SCHEMA_NAME_PATTERN.match(schema_name):
-            raise ValueError(
-                "LIFEOS_DATABASE_SCHEMA must be a valid PostgreSQL schema identifier"
-            )
+            raise ValueError("LIFEOS_DATABASE_SCHEMA must be a valid PostgreSQL schema identifier")
 
 
 @lru_cache(maxsize=1)

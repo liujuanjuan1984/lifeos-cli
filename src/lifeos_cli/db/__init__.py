@@ -1,6 +1,6 @@
 """Database infrastructure exports for lifeos_cli."""
 
-from .base import Base, DATABASE_SCHEMA
+from .base import DATABASE_SCHEMA, Base
 from .session import get_engine, get_session_factory, session_scope
 
 __all__ = [

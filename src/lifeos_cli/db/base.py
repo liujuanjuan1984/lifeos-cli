@@ -66,4 +66,3 @@ class SoftDeleteMixin:
     def soft_delete(self) -> None:
         """Mark a record as soft-deleted."""
         self.deleted_at = utc_now()
-

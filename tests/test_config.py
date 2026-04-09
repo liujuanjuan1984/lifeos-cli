@@ -12,7 +12,7 @@ def test_database_settings_defaults() -> None:
 def test_database_settings_honors_env_values() -> None:
     settings = DatabaseSettings.from_env(
         {
-            "LIFEOS_DATABASE_URL": "postgresql+psycopg://custom:custom@localhost:5432/custom",
+            "LIFEOS_DATABASE_URL": "postgresql+psycopg://localhost/custom",
             "LIFEOS_DATABASE_SCHEMA": "lifeos_dev",
             "LIFEOS_DATABASE_ECHO": "true",
         }

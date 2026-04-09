@@ -12,4 +12,3 @@ def commit_or_rollback(session: Session) -> None:
     except Exception:
         session.rollback()
         raise
-
