@@ -134,6 +134,71 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     clear_config_cache()
 
 
+def test_main_init_reprompts_invalid_schema_in_interactive_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    prompts: list[str] = []
+    responses = iter(["lifeos-dev", "lifeos_dev", ""])
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(cli, "_handle_db_upgrade", lambda _: 0)
+    monkeypatch.setattr(cli, "_handle_db_ping_async", lambda _: _async_zero())
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return next(responses)
+
+    monkeypatch.setattr(builtins, "input", fake_input)
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--database-url",
+            "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+            "--skip-ping",
+            "--skip-migrate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "lifeos_dev" in config_path.read_text(encoding="utf-8")
+    assert "Use `lifeos_dev` instead of `lifeos-dev`." in captured.err
+    assert sum(prompt.startswith("Database schema") for prompt in prompts) == 2
+    clear_config_cache()
+
+
+def test_main_init_rejects_invalid_schema_non_interactively(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--non-interactive",
+            "--database-url",
+            "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+            "--schema",
+            "lifeos-dev",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use `lifeos_dev` instead of `lifeos-dev`." in captured.err
+    assert not config_path.exists()
+    clear_config_cache()
+
+
 def test_main_config_show_masks_database_password(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -302,9 +367,11 @@ def test_main_note_delete_reports_missing_note(
 
 def test_main_note_add_prints_actionable_database_error(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(tmp_path / "missing-config.toml"))
     monkeypatch.delenv("LIFEOS_DATABASE_URL", raising=False)
 
     exit_code = cli.main(["note", "add", "a new note"])

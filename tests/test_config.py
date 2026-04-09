@@ -5,6 +5,7 @@ from pathlib import Path
 from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
+    validate_database_schema_name,
     write_database_settings,
 )
 
@@ -66,10 +67,14 @@ def test_database_settings_rejects_invalid_schema_name(tmp_path: Path) -> None:
                 "LIFEOS_DATABASE_SCHEMA": "lifeos-dev",
             }
         )
-    except ValueError as exc:
-        assert "schema" in str(exc).lower()
+    except ConfigurationError as exc:
+        assert "lifeos_dev" in str(exc)
     else:
         raise AssertionError("invalid schema name should fail validation")
+
+
+def test_validate_database_schema_name_accepts_underscores() -> None:
+    assert validate_database_schema_name("lifeos_dev") == "lifeos_dev"
 
 
 def test_require_database_url_raises_helpful_error(tmp_path: Path) -> None:

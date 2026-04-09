@@ -26,6 +26,17 @@ class ConfigurationError(RuntimeError):
     """Raised when runtime configuration is missing or invalid."""
 
 
+def validate_database_schema_name(schema_name: str) -> str:
+    """Validate a PostgreSQL schema identifier and return the normalized value."""
+    normalized = schema_name.strip()
+    if not _SCHEMA_NAME_PATTERN.match(normalized):
+        raise ConfigurationError(
+            "Database schema must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores. Use `lifeos_dev` instead of `lifeos-dev`."
+        )
+    return normalized
+
+
 def _parse_bool(value: str) -> bool:
     normalized = value.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
@@ -103,18 +114,13 @@ class DatabaseSettings:
         else:
             database_echo = False
 
-        cls._validate_schema_name(database_schema)
+        database_schema = validate_database_schema_name(database_schema)
         return cls(
             database_url=database_url,
             database_schema=database_schema,
             database_echo=database_echo,
             config_file=config_path,
         )
-
-    @staticmethod
-    def _validate_schema_name(schema_name: str) -> None:
-        if not _SCHEMA_NAME_PATTERN.match(schema_name):
-            raise ValueError("LIFEOS_DATABASE_SCHEMA must be a valid PostgreSQL schema identifier")
 
     def require_database_url(self) -> str:
         """Return the configured database URL or raise a helpful error."""

@@ -20,6 +20,7 @@ from lifeos_cli.config import (
     clear_config_cache,
     get_database_settings,
     resolve_config_path,
+    validate_database_schema_name,
     write_database_settings,
 )
 
@@ -126,6 +127,17 @@ def _prompt_text(label: str, *, default: str | None = None) -> str:
     if default is not None:
         return default
     raise ConfigurationError(f"{label} is required")
+
+
+def _prompt_database_schema(*, default: str | None = None) -> str:
+    """Prompt until a valid PostgreSQL schema identifier is provided."""
+    while True:
+        candidate = _prompt_text("Database schema", default=default)
+        try:
+            return validate_database_schema_name(candidate)
+        except ConfigurationError as exc:
+            print(str(exc), file=sys.stderr)
+            default = None
 
 
 def _prompt_bool(label: str, *, default: bool) -> bool:
@@ -311,7 +323,7 @@ def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
                 default=database_url,
             )
         if args.schema is None:
-            database_schema = _prompt_text("Database schema", default=database_schema)
+            database_schema = _prompt_database_schema(default=database_schema)
         if args.echo is None:
             database_echo = _prompt_bool("Enable SQL echo logging", default=database_echo)
 
@@ -319,6 +331,7 @@ def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
         raise ConfigurationError(
             "Database URL is required. Provide --database-url or run `lifeos init` interactively."
         )
+    database_schema = validate_database_schema_name(database_schema)
 
     return DatabaseSettings(
         database_url=database_url,
