@@ -128,6 +128,9 @@ def handle_task_show(args: argparse.Namespace) -> int:
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
+    if args.clear_parent and args.parent_task_id is not None:
+        print("Use either --parent-task-id or --clear-parent, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             task = await task_services.update_task(
@@ -136,6 +139,7 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 content=args.content,
                 description=args.description,
                 parent_task_id=args.parent_task_id,
+                clear_parent=args.clear_parent,
                 status=args.status,
                 priority=args.priority,
                 display_order=args.display_order,

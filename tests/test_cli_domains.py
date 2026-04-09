@@ -3,11 +3,11 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from tests.support import make_record, make_session_scope, utc_datetime
 
 from lifeos_cli import cli
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import areas, people, tags, tasks, visions
+from tests.support import make_record, make_session_scope, utc_datetime
 
 
 def test_main_area_add_creates_area(
@@ -164,6 +164,51 @@ def test_main_task_batch_delete_prints_summary(
 
     assert exit_code == 0
     assert "Deleted tasks: 2" in captured.out
+
+
+def test_main_task_update_can_clear_parent(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_task(session: object, **kwargs: object) -> object:
+        assert kwargs["clear_parent"] is True
+        assert kwargs["parent_task_id"] is None
+        return make_record(id=UUID("55555555-5555-5555-5555-555555555555"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "update_task", fake_update_task)
+
+    exit_code = cli.main(
+        [
+            "task",
+            "update",
+            "55555555-5555-5555-5555-555555555555",
+            "--clear-parent",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated task 55555555-5555-5555-5555-555555555555" in captured.out
+
+
+def test_main_task_update_rejects_conflicting_parent_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "task",
+            "update",
+            "55555555-5555-5555-5555-555555555555",
+            "--parent-task-id",
+            "66666666-6666-6666-6666-666666666666",
+            "--clear-parent",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --parent-task-id or --clear-parent, not both." in captured.err
 
 
 def test_main_people_batch_delete_reports_missing_ids(

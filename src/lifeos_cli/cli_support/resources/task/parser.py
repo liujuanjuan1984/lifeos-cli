@@ -150,14 +150,23 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --status in_progress",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--priority 3 --display-order 20",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-parent",
             ),
-            notes=("Parent task references must stay within the same vision.",),
+            notes=(
+                "Parent task references must stay within the same vision.",
+                "Use `--clear-parent` to move a child task back to the root level.",
+            ),
         ),
     )
     update_parser.add_argument("task_id", type=UUID, help="Task identifier")
     update_parser.add_argument("--content", help="Updated task content")
     update_parser.add_argument("--description", help="Updated description")
     update_parser.add_argument("--parent-task-id", type=UUID, help="Updated parent task identifier")
+    update_parser.add_argument(
+        "--clear-parent",
+        action="store_true",
+        help="Move the task to the root level by clearing its parent task reference",
+    )
     update_parser.add_argument("--status", help="Updated task status")
     update_parser.add_argument("--priority", type=int, help="Updated priority")
     update_parser.add_argument("--display-order", type=int, help="Updated display order")

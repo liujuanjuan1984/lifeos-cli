@@ -84,3 +84,62 @@ def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     assert task.content == "Draft release checklist"
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_update_task_can_clear_parent_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = SimpleNamespace(
+        id=UUID("77777777-7777-7777-7777-777777777777"),
+        vision_id=UUID("11111111-1111-1111-1111-111111111111"),
+        parent_task_id=UUID("22222222-2222-2222-2222-222222222222"),
+        content="Existing task",
+        description=None,
+        status="todo",
+        priority=0,
+        display_order=0,
+        estimated_effort=None,
+        planning_cycle_type=None,
+        planning_cycle_days=None,
+        planning_cycle_start_date=None,
+    )
+    session = SimpleNamespace(
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == UUID("77777777-7777-7777-7777-777777777777")
+        assert include_deleted is False
+        return task
+
+    async def fake_validate_parent_task(
+        _: object,
+        *,
+        vision_id: UUID,
+        parent_task_id: UUID | None,
+    ) -> None:
+        assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
+        assert parent_task_id is None
+
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+
+    updated_task = asyncio.run(
+        task_mutations.update_task(
+            cast(Any, session),
+            task_id=UUID("77777777-7777-7777-7777-777777777777"),
+            clear_parent=True,
+        )
+    )
+
+    assert updated_task.parent_task_id is None
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()

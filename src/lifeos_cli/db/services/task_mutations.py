@@ -70,6 +70,7 @@ async def update_task(
     content: str | None = None,
     description: str | None = None,
     parent_task_id: UUID | None = None,
+    clear_parent: bool = False,
     status: str | None = None,
     priority: int | None = None,
     display_order: int | None = None,
@@ -84,7 +85,13 @@ async def update_task(
         raise TaskNotFoundError(f"Task {task_id} was not found")
     if parent_task_id == task_id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
-    next_parent_task_id = parent_task_id if parent_task_id is not None else task.parent_task_id
+    next_parent_task_id = (
+        None
+        if clear_parent
+        else parent_task_id
+        if parent_task_id is not None
+        else task.parent_task_id
+    )
     await validate_parent_task(
         session, vision_id=task.vision_id, parent_task_id=next_parent_task_id
     )
@@ -107,7 +114,9 @@ async def update_task(
         task.content = content.strip()
     if description is not None:
         task.description = description
-    if parent_task_id is not None:
+    if clear_parent:
+        task.parent_task_id = None
+    elif parent_task_id is not None:
         task.parent_task_id = parent_task_id
     if status is not None:
         task.status = validate_task_status(status)

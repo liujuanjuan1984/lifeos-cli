@@ -150,6 +150,23 @@ def test_cli_parser_supports_task_batch_delete_command() -> None:
     assert len(args.task_ids) == 2
 
 
+def test_cli_parser_supports_task_update_clear_parent_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-parent",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "update"
+    assert str(args.task_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_parent is True
+
+
 @pytest.mark.parametrize(
     ("argv",),
     [

@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from lifeos_cli.application.configuration import (
+    InitializationPrompts,
     InitializationRequest,
     build_database_settings,
     persist_database_settings,
@@ -14,6 +15,7 @@ from lifeos_cli.application.database import (
     ping_configured_database,
     upgrade_configured_database,
 )
+from lifeos_cli.cli_support import init_prompts
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
@@ -43,6 +45,18 @@ def _handle_init(args: argparse.Namespace) -> int:
             echo=args.echo,
             non_interactive=args.non_interactive,
             is_interactive=sys.stdin.isatty(),
+            prompts=InitializationPrompts(
+                prompt_database_url=lambda default: init_prompts.prompt_database_url(
+                    default=default
+                ),
+                prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
+                    default=default
+                ),
+                prompt_database_echo=lambda default: init_prompts.prompt_bool(
+                    "Enable SQL echo logging",
+                    default=default,
+                ),
+            ),
         )
     )
     config_path = persist_database_settings(settings)

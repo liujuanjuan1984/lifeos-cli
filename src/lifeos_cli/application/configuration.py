@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from lifeos_cli.cli_support import init_prompts
 from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
@@ -20,6 +20,15 @@ from lifeos_cli.config import (
 
 
 @dataclass(frozen=True)
+class InitializationPrompts:
+    """Interactive prompt callables used to collect missing config values."""
+
+    prompt_database_url: Callable[[str | None], str]
+    prompt_database_schema: Callable[[str | None], str]
+    prompt_database_echo: Callable[[bool], bool]
+
+
+@dataclass(frozen=True)
 class InitializationRequest:
     """Input values for configuration initialization."""
 
@@ -28,6 +37,7 @@ class InitializationRequest:
     echo: bool | None
     non_interactive: bool
     is_interactive: bool
+    prompts: InitializationPrompts | None = None
 
 
 def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
@@ -47,15 +57,16 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     database_echo = current.database_echo if request.echo is None else request.echo
 
     if not request.non_interactive and request.is_interactive:
-        if request.database_url is None:
-            database_url = init_prompts.prompt_database_url(default=database_url)
-        if request.schema is None:
-            database_schema = init_prompts.prompt_database_schema(default=database_schema)
-        if request.echo is None:
-            database_echo = init_prompts.prompt_bool(
-                "Enable SQL echo logging",
-                default=database_echo,
+        if request.prompts is None:
+            raise ConfigurationError(
+                "Interactive initialization requires prompt handlers to collect missing values."
             )
+        if request.database_url is None:
+            database_url = request.prompts.prompt_database_url(database_url)
+        if request.schema is None:
+            database_schema = request.prompts.prompt_database_schema(database_schema)
+        if request.echo is None:
+            database_echo = request.prompts.prompt_database_echo(database_echo)
 
     if database_url is None:
         raise ConfigurationError(
