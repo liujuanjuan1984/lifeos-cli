@@ -341,7 +341,7 @@ wheels = [
 ]
 
 [[package]]
-name = "lifeos"
+name = "lifeos-cli"
 source = { editable = "." }
 
 [package.optional-dependencies]

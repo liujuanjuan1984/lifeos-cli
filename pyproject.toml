@@ -3,9 +3,9 @@ requires = ["setuptools>=77", "setuptools-scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lifeos"
+name = "lifeos-cli"
 dynamic = ["version"]
-description = "Personal operating system workflows, tools, and automation."
+description = "Command-line tooling for personal operating system workflows, tools, and automation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -23,6 +23,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+lifeos = "lifeos.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "mypy>=1.18,<2.0",
@@ -33,9 +36,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/liujuanjuan1984/lifeos"
-Repository = "https://github.com/liujuanjuan1984/lifeos"
-Issues = "https://github.com/liujuanjuan1984/lifeos/issues"
+Homepage = "https://github.com/liujuanjuan1984/lifeos-cli"
+Repository = "https://github.com/liujuanjuan1984/lifeos-cli"
+Issues = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
 
 [tool.ruff]
 line-length = 100
