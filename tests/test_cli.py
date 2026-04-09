@@ -43,6 +43,15 @@ def test_cli_parser_supports_note_add_from_stdin() -> None:
     assert args.content is None
 
 
+def test_cli_parser_supports_note_show_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["note", "show", "11111111-1111-1111-1111-111111111111"])
+
+    assert args.resource == "note"
+    assert args.note_command == "show"
+    assert str(args.note_id) == "11111111-1111-1111-1111-111111111111"
+
+
 def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     parser = build_parser()
 
@@ -387,6 +396,66 @@ def test_main_note_add_requires_exactly_one_content_source(
 
     assert exit_code == 1
     assert "exactly one source" in captured.err
+
+
+def test_main_note_show_prints_multiline_content(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_get_note(
+        session: object,
+        *,
+        note_id: UUID,
+        include_deleted: bool,
+    ) -> object:
+        assert include_deleted is False
+        return SimpleNamespace(
+            id=note_id,
+            content="first line\nsecond line",
+            created_at=datetime(2026, 4, 9, 3, 24, 11, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 4, 9, 3, 30, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "get_note", fake_get_note)
+
+    exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "content:\nfirst line\nsecond line" in captured.out
+    assert "status: active" in captured.out
+
+
+def test_main_note_show_reports_missing_note(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @asynccontextmanager
+    async def fake_session_scope():
+        yield object()
+
+    async def fake_get_note(
+        session: object,
+        *,
+        note_id: UUID,
+        include_deleted: bool,
+    ) -> object | None:
+        return None
+
+    monkeypatch.setattr(db_session, "session_scope", fake_session_scope)
+    monkeypatch.setattr(db_services, "get_note", fake_get_note)
+
+    exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "was not found" in captured.err
 
 
 def test_main_note_list_prints_formatted_notes(

@@ -97,6 +97,7 @@ lifeos note add "a new note"
 printf 'first line\nsecond line\n' | lifeos note add --stdin
 lifeos note add --file ./note.md
 lifeos note list
+lifeos note show 11111111-1111-1111-1111-111111111111
 lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
 lifeos note delete 11111111-1111-1111-1111-111111111111
 ```
@@ -110,6 +111,9 @@ The second line stays intact.
 EOF
 ```
 
+Use `lifeos note list` for a one-line summary view. Use `lifeos note show <note-id>` when
+you need the original multi-line content.
+
 The current branch exposes a narrow first slice:
 
 - PostgreSQL-backed note storage
@@ -118,7 +122,7 @@ The current branch exposes a narrow first slice:
 - Database health checks and migrations with `lifeos db ping` and `lifeos db upgrade`
 - Alembic migrations
 - A structured CLI family rooted in `lifeos <resource> <action>`
-- `note add`, `note list`, `note update`, and `note delete`
+- `note add`, `note list`, `note show`, `note update`, and `note delete`
 
 Not implemented yet on this branch:
 

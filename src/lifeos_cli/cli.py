@@ -53,6 +53,25 @@ class NoteSummary(Protocol):
     def deleted_at(self) -> object | None: ...
 
 
+class NoteDetail(Protocol):
+    """Protocol for detailed note rendering."""
+
+    @property
+    def id(self) -> UUID: ...
+
+    @property
+    def content(self) -> str: ...
+
+    @property
+    def created_at(self) -> object | None: ...
+
+    @property
+    def updated_at(self) -> object | None: ...
+
+    @property
+    def deleted_at(self) -> object | None: ...
+
+
 def _build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ()) -> str | None:
     """Build an argparse epilog from structured examples and notes."""
     sections: list[str] = []
@@ -105,6 +124,24 @@ def _format_note_summary(note: NoteSummary) -> str:
     created_label = created_at.isoformat() if created_at is not None else "-"
     status = "deleted" if deleted_at is not None else "active"
     return f"{note_id}\t{status}\t{created_label}\t{normalized_content}"
+
+
+def _format_note_detail(note: NoteDetail) -> str:
+    """Render a note with full metadata and multi-line content."""
+    created_at = getattr(note, "created_at", None)
+    updated_at = getattr(note, "updated_at", None)
+    deleted_at = getattr(note, "deleted_at", None)
+    status = "deleted" if deleted_at is not None else "active"
+    lines = [
+        f"id: {note.id}",
+        f"status: {status}",
+        f"created_at: {created_at.isoformat() if created_at is not None else '-'}",
+        f"updated_at: {updated_at.isoformat() if updated_at is not None else '-'}",
+        f"deleted_at: {deleted_at.isoformat() if deleted_at is not None else '-'}",
+        "content:",
+        str(getattr(note, "content", "")),
+    ]
+    return "\n".join(lines)
 
 
 def _run_async(operation: Coroutine[object, object, int]) -> int:
@@ -292,6 +329,29 @@ async def _handle_note_list_async(args: argparse.Namespace) -> int:
 def _handle_note_list(args: argparse.Namespace) -> int:
     """List notes."""
     return _run_async(_handle_note_list_async(args))
+
+
+async def _handle_note_show_async(args: argparse.Namespace) -> int:
+    """Show a note with full content."""
+    from lifeos_cli.db.services import get_note
+    from lifeos_cli.db.session import session_scope
+
+    async with session_scope() as session:
+        note = await get_note(
+            session,
+            note_id=args.note_id,
+            include_deleted=args.include_deleted,
+        )
+    if note is None:
+        print(f"Note {args.note_id} was not found", file=sys.stderr)
+        return 1
+    print(_format_note_detail(note))
+    return 0
+
+
+def _handle_note_show(args: argparse.Namespace) -> int:
+    """Show a note with full content."""
+    return _run_async(_handle_note_show_async(args))
 
 
 async def _handle_note_update_async(args: argparse.Namespace) -> int:
@@ -591,6 +651,7 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos init",
                 'lifeos note add "Capture an idea"',
                 "lifeos note list --limit 20",
+                "lifeos note show 11111111-1111-1111-1111-111111111111",
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
                 "lifeos note delete 11111111-1111-1111-1111-111111111111",
             ),
@@ -599,6 +660,7 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Resource names stay singular, such as note or timelog.",
                 "Action names stay short verbs, such as add, list, update, and delete.",
                 "The list command prints tab-separated columns: id, status, created_at, content.",
+                "Use `show` to inspect the full note body with preserved line breaks.",
                 "Delete performs a soft delete by default. Use --hard for permanent removal.",
             ),
         ),
@@ -684,6 +746,31 @@ def _build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help="Number of notes to skip before listing",
     )
     list_parser.set_defaults(handler=_handle_note_list)
+
+    show_parser = _add_documented_parser(
+        note_subparsers,
+        "show",
+        help_content=HelpContent(
+            summary="Show full note content",
+            description=(
+                "Show a single note with full metadata and the original content body.\n\n"
+                "Use this action when you need to inspect preserved line breaks instead of the "
+                "single-line summary from `note list`."
+            ),
+            examples=(
+                "lifeos note show 11111111-1111-1111-1111-111111111111",
+                "lifeos note show 11111111-1111-1111-1111-111111111111 --include-deleted",
+            ),
+            notes=("Use `--include-deleted` to inspect a soft-deleted note.",),
+        ),
+    )
+    show_parser.add_argument("note_id", type=UUID, help="Note identifier")
+    show_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Allow loading a soft-deleted note",
+    )
+    show_parser.set_defaults(handler=_handle_note_show)
 
     update_parser = _add_documented_parser(
         note_subparsers,
