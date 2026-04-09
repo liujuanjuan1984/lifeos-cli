@@ -11,7 +11,6 @@ from sqlalchemy import text
 from lifeos_cli.config import get_database_settings
 from lifeos_cli.db.session import get_async_engine
 
-
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 

@@ -3,25 +3,27 @@ from __future__ import annotations
 from pathlib import Path
 
 from lifeos_cli.config import (
-    DEFAULT_CONFIG_PATH,
     ConfigurationError,
     DatabaseSettings,
     write_database_settings,
 )
 
 
-def test_database_settings_defaults_use_config_path_and_no_database_url() -> None:
-    settings = DatabaseSettings.from_env({})
+def test_database_settings_defaults_use_config_path_and_no_database_url(tmp_path: Path) -> None:
+    config_path = tmp_path / "missing-config.toml"
+    settings = DatabaseSettings.from_env({"LIFEOS_CONFIG_FILE": str(config_path)})
 
     assert settings.database_url is None
     assert settings.database_schema == "lifeos"
     assert settings.database_echo is False
-    assert settings.config_file == DEFAULT_CONFIG_PATH
+    assert settings.config_file == config_path
 
 
-def test_database_settings_honors_env_values() -> None:
+def test_database_settings_honors_env_values(tmp_path: Path) -> None:
+    config_path = tmp_path / "missing-config.toml"
     settings = DatabaseSettings.from_env(
         {
+            "LIFEOS_CONFIG_FILE": str(config_path),
             "LIFEOS_DATABASE_URL": "postgresql+psycopg://localhost/custom",
             "LIFEOS_DATABASE_SCHEMA": "lifeos_dev",
             "LIFEOS_DATABASE_ECHO": "true",
@@ -55,17 +57,24 @@ def test_database_settings_reads_config_file(tmp_path: Path) -> None:
     assert settings.database_echo is True
 
 
-def test_database_settings_rejects_invalid_schema_name() -> None:
+def test_database_settings_rejects_invalid_schema_name(tmp_path: Path) -> None:
+    config_path = tmp_path / "missing-config.toml"
     try:
-        DatabaseSettings.from_env({"LIFEOS_DATABASE_SCHEMA": "lifeos-dev"})
+        DatabaseSettings.from_env(
+            {
+                "LIFEOS_CONFIG_FILE": str(config_path),
+                "LIFEOS_DATABASE_SCHEMA": "lifeos-dev",
+            }
+        )
     except ValueError as exc:
         assert "schema" in str(exc).lower()
     else:
         raise AssertionError("invalid schema name should fail validation")
 
 
-def test_require_database_url_raises_helpful_error() -> None:
-    settings = DatabaseSettings.from_env({})
+def test_require_database_url_raises_helpful_error(tmp_path: Path) -> None:
+    config_path = tmp_path / "missing-config.toml"
+    settings = DatabaseSettings.from_env({"LIFEOS_CONFIG_FILE": str(config_path)})
 
     try:
         settings.require_database_url()

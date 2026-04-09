@@ -14,6 +14,7 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 
 from lifeos_cli.config import (
+    DEFAULT_DATABASE_SCHEMA,
     ConfigurationError,
     DatabaseSettings,
     clear_config_cache,
@@ -289,19 +290,30 @@ def _handle_config_show(args: argparse.Namespace) -> int:
 
 def _build_settings_from_args(args: argparse.Namespace) -> DatabaseSettings:
     """Build settings from CLI arguments and current defaults."""
-    current = get_database_settings()
     config_path = resolve_config_path()
+    try:
+        current = get_database_settings()
+    except (ConfigurationError, ValueError):
+        current = DatabaseSettings(
+            database_url=None,
+            database_schema=DEFAULT_DATABASE_SCHEMA,
+            database_echo=False,
+            config_file=config_path,
+        )
     database_url = args.database_url or current.database_url
     database_schema = args.schema or current.database_schema
     database_echo = current.database_echo if args.echo is None else args.echo
 
     if not args.non_interactive and sys.stdin.isatty():
-        database_url = _prompt_text(
-            "Database URL",
-            default=database_url,
-        )
-        database_schema = _prompt_text("Database schema", default=database_schema)
-        database_echo = _prompt_bool("Enable SQL echo logging", default=database_echo)
+        if args.database_url is None:
+            database_url = _prompt_text(
+                "Database URL",
+                default=database_url,
+            )
+        if args.schema is None:
+            database_schema = _prompt_text("Database schema", default=database_schema)
+        if args.echo is None:
+            database_echo = _prompt_bool("Enable SQL echo logging", default=database_echo)
 
     if database_url is None:
         raise ConfigurationError(
