@@ -18,6 +18,9 @@ def _format_tag_summary(tag: Tag) -> str:
 
 
 def _format_tag_detail(tag: Tag) -> str:
+    people_names = (
+        ", ".join(person.name for person in tag.people) if getattr(tag, "people", None) else "-"
+    )
     return "\n".join(
         (
             f"id: {tag.id}",
@@ -26,6 +29,7 @@ def _format_tag_detail(tag: Tag) -> str:
             f"category: {tag.category}",
             f"description: {tag.description or '-'}",
             f"color: {tag.color or '-'}",
+            f"people: {people_names}",
             f"created_at: {format_timestamp(tag.created_at)}",
             f"updated_at: {format_timestamp(tag.updated_at)}",
             f"deleted_at: {format_timestamp(tag.deleted_at)}",
@@ -43,6 +47,7 @@ async def handle_tag_add_async(args: argparse.Namespace) -> int:
                 category=args.category,
                 description=args.description,
                 color=args.color,
+                person_ids=args.person_ids,
             )
         except (
             tag_services.TagAlreadyExistsError,
@@ -66,6 +71,7 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
                 session,
                 entity_type=args.entity_type,
                 category=args.category,
+                person_id=args.person_id,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -110,6 +116,9 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
     if args.clear_color and args.color is not None:
         print("Use either --color or --clear-color, not both.", file=sys.stderr)
         return 1
+    if args.clear_people and args.person_ids is not None:
+        print("Use either --person-id or --clear-people, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             tag = await tag_services.update_tag(
@@ -122,6 +131,8 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
                 clear_description=args.clear_description,
                 color=args.color,
                 clear_color=args.clear_color,
+                person_ids=args.person_ids,
+                clear_people=args.clear_people,
             )
         except (
             tag_services.TagNotFoundError,

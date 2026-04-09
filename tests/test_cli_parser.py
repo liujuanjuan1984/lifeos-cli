@@ -85,19 +85,38 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
-    assert "init      Initialize local configuration" in captured.out
-    assert "people    Manage people and relationships" in captured.out
+    assert "init" in captured.out
+    assert "Initialize local configuration" in captured.out
+    assert "event" in captured.out
+    assert "Manage planned schedule events" in captured.out
+    assert "people" in captured.out
+    assert "Manage people and relationships" in captured.out
+    assert "habit-action" in captured.out
+    assert "Manage dated habit actions" in captured.out
+    assert "timelog" in captured.out
+    assert "Manage actual time records" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
 def test_cli_parser_supports_area_add_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(["area", "add", "Health", "--display-order", "2"])
+    args = parser.parse_args(
+        [
+            "area",
+            "add",
+            "Health",
+            "--display-order",
+            "2",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
 
     assert args.resource == "area"
     assert args.area_command == "add"
     assert args.name == "Health"
     assert args.display_order == 2
+    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_area_update_clear_icon_command() -> None:
@@ -114,6 +133,26 @@ def test_cli_parser_supports_area_update_clear_icon_command() -> None:
     assert args.resource == "area"
     assert args.area_command == "update"
     assert args.clear_icon is True
+
+
+def test_cli_parser_supports_event_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "add",
+            "Doctor appointment",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "add"
+    assert args.title == "Doctor appointment"
+    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_people_add_command() -> None:
@@ -163,6 +202,44 @@ def test_cli_parser_supports_task_add_command() -> None:
     assert args.priority == 3
 
 
+def test_cli_parser_supports_task_list_person_filter() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "list",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "list"
+    assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
+
+
+def test_cli_parser_supports_timelog_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "add",
+            "Deep work",
+            "--start-time",
+            "2026-04-10T13:00:00-04:00",
+            "--end-time",
+            "2026-04-10T14:30:00-04:00",
+            "--tracking-method",
+            "manual",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "add"
+    assert args.title == "Deep work"
+    assert args.tracking_method == "manual"
+
+
 def test_cli_parser_supports_vision_update_clear_area_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -177,6 +254,22 @@ def test_cli_parser_supports_vision_update_clear_area_command() -> None:
     assert args.resource == "vision"
     assert args.vision_command == "update"
     assert args.clear_area is True
+
+
+def test_cli_parser_supports_vision_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "vision",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "vision"
+    assert args.vision_command == "update"
+    assert args.clear_people is True
 
 
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
@@ -205,6 +298,22 @@ def test_cli_parser_supports_tag_update_clear_color_command() -> None:
     assert args.resource == "tag"
     assert args.tag_command == "update"
     assert args.clear_color is True
+
+
+def test_cli_parser_supports_tag_list_person_filter() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "tag",
+            "list",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+        ]
+    )
+
+    assert args.resource == "tag"
+    assert args.tag_command == "list"
+    assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
 
 
 def test_cli_parser_supports_task_batch_delete_command() -> None:
@@ -241,6 +350,107 @@ def test_cli_parser_supports_task_update_clear_parent_command() -> None:
     assert args.task_command == "update"
     assert str(args.task_id) == "11111111-1111-1111-1111-111111111111"
     assert args.clear_parent is True
+
+
+def test_cli_parser_supports_task_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "update"
+    assert args.clear_people is True
+
+
+def test_cli_parser_supports_habit_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Daily Exercise",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "21",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.title == "Daily Exercise"
+    assert args.duration_days == 21
+
+
+def test_cli_parser_supports_habit_update_clear_task_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-task",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "update"
+    assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_task is True
+
+
+def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit-action",
+            "list",
+            "--action-date",
+            "2026-04-09",
+        ]
+    )
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "list"
+    assert str(args.action_date) == "2026-04-09"
+
+
+def test_cli_parser_supports_event_update_clear_people_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-people",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "update"
+    assert args.clear_people is True
+
+
+def test_cli_parser_supports_timelog_update_clear_notes_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-notes",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "update"
+    assert args.clear_notes is True
 
 
 @pytest.mark.parametrize(
@@ -305,6 +515,40 @@ def test_cli_parser_supports_task_update_clear_parent_command() -> None:
         (
             [
                 "task",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["habit", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "habit",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["habit-action", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (["event", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "event",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["timelog", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "timelog",
                 "batch",
                 "delete",
                 "--ids",

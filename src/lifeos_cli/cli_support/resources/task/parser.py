@@ -65,8 +65,14 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos task add "Write changelog" '
                 "--vision-id 11111111-1111-1111-1111-111111111111 "
                 "--parent-task-id 22222222-2222-2222-2222-222222222222",
+                'lifeos task add "Prepare family meeting" '
+                "--vision-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 33333333-3333-3333-3333-333333333333",
             ),
-            notes=("Planning-cycle flags must be supplied as a complete set when used.",),
+            notes=(
+                "Planning-cycle flags must be supplied as a complete set when used.",
+                "Repeat `--person-id` to associate one or more people.",
+            ),
         ),
     )
     add_parser.add_argument("content", help="Task content")
@@ -78,6 +84,14 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     add_parser.add_argument("--status", default="todo", help="Task status")
     add_parser.add_argument("--priority", type=int, default=0, help="Task priority")
     add_parser.add_argument("--display-order", type=int, default=0, help="Display order")
+    add_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to associate one or more people",
+    )
     add_parser.add_argument("--estimated-effort", type=int, help="Estimated effort in minutes")
     add_parser.add_argument("--planning-cycle-type", help="Planning cycle type")
     add_parser.add_argument(
@@ -100,6 +114,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 "lifeos task list",
                 "lifeos task list --vision-id 11111111-1111-1111-1111-111111111111",
+                "lifeos task list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos task list --parent-task-id "
                 "22222222-2222-2222-2222-222222222222 --status todo",
             ),
@@ -116,6 +131,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help="Filter by vision identifier",
     )
     list_parser.add_argument("--parent-task-id", type=UUID, help="Filter by parent task identifier")
+    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
     list_parser.add_argument("--status", help="Filter by task status")
     add_include_deleted_argument(list_parser, noun="tasks")
     add_limit_offset_arguments(list_parser)
@@ -150,6 +166,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --status in_progress",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--priority 3 --display-order 20",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 33333333-3333-3333-3333-333333333333",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-parent",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-planning-cycle",
             ),
@@ -178,6 +196,15 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     update_parser.add_argument("--status", help="Updated task status")
     update_parser.add_argument("--priority", type=int, help="Updated priority")
     update_parser.add_argument("--display-order", type=int, help="Updated display order")
+    update_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace people with one or more identifiers",
+    )
+    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
     update_parser.add_argument("--estimated-effort", type=int, help="Updated estimated effort")
     update_parser.add_argument(
         "--clear-estimated-effort",

@@ -7,7 +7,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.services.entity_people import load_people_for_entities
 from lifeos_cli.db.services.task_support import validate_task_status
 
 
@@ -21,7 +23,12 @@ async def get_task(
     stmt = select(Task).where(Task.id == task_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(Task.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
+    task = (await session.execute(stmt)).scalar_one_or_none()
+    if task is None:
+        return None
+    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
+    task.people = people_map.get(task.id, [])
+    return task
 
 
 async def list_tasks(
@@ -29,6 +36,7 @@ async def list_tasks(
     *,
     vision_id: UUID | None = None,
     parent_task_id: UUID | None = None,
+    person_id: UUID | None = None,
     status: str | None = None,
     include_deleted: bool = False,
     limit: int = 100,
@@ -44,6 +52,12 @@ async def list_tasks(
         stmt = stmt.where(Task.parent_task_id.is_(None))
     elif parent_task_id is not None:
         stmt = stmt.where(Task.parent_task_id == parent_task_id)
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Task.id)
+            & (person_associations.c.entity_type == "task"),
+        ).where(person_associations.c.person_id == person_id)
     if status is not None:
         stmt = stmt.where(Task.status == validate_task_status(status))
     stmt = (
@@ -51,4 +65,12 @@ async def list_tasks(
         .offset(offset)
         .limit(limit)
     )
-    return list((await session.execute(stmt)).scalars())
+    tasks = list((await session.execute(stmt)).scalars())
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
+    for task in tasks:
+        task.people = people_map.get(task.id, [])
+    return tasks

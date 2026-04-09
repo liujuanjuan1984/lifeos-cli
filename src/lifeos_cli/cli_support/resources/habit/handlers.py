@@ -1,0 +1,276 @@
+"""Habit resource handlers."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+
+from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.db import session as db_session
+from lifeos_cli.db.models.habit import Habit
+from lifeos_cli.db.services import habits as habit_services
+
+
+def _format_habit_summary(habit: Habit) -> str:
+    status = "deleted" if habit.deleted_at is not None else habit.status
+    return (
+        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t"
+        f"{habit.task_id or '-'}\t{habit.title}"
+    )
+
+
+def _format_habit_summary_with_stats(overview: dict[str, object]) -> str:
+    habit = overview["habit"]
+    stats = overview["stats"]
+    assert isinstance(habit, Habit)
+    assert isinstance(stats, dict)
+    status = "deleted" if habit.deleted_at is not None else habit.status
+    return (
+        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t"
+        f"{stats['progress_percentage']:.1f}\t{stats['current_streak']}\t"
+        f"{stats['longest_streak']}\t{habit.title}"
+    )
+
+
+def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
+    return "\n".join(
+        (
+            f"id: {habit.id}",
+            f"title: {habit.title}",
+            f"description: {habit.description or '-'}",
+            f"status: {habit.status}",
+            f"start_date: {habit.start_date}",
+            f"end_date: {habit.end_date}",
+            f"duration_days: {habit.duration_days}",
+            f"task_id: {habit.task_id or '-'}",
+            f"progress_percentage: {stats['progress_percentage']:.1f}",
+            f"current_streak: {stats['current_streak']}",
+            f"longest_streak: {stats['longest_streak']}",
+            f"completed_actions: {stats['completed_actions']}",
+            f"missed_actions: {stats['missed_actions']}",
+            f"skipped_actions: {stats['skipped_actions']}",
+            f"total_actions: {stats['total_actions']}",
+            f"created_at: {format_timestamp(habit.created_at)}",
+            f"updated_at: {format_timestamp(habit.updated_at)}",
+            f"deleted_at: {format_timestamp(habit.deleted_at)}",
+        )
+    )
+
+
+def _format_habit_stats(stats: dict[str, object]) -> str:
+    return "\n".join(
+        (
+            f"habit_id: {stats['habit_id']}",
+            f"total_actions: {stats['total_actions']}",
+            f"completed_actions: {stats['completed_actions']}",
+            f"missed_actions: {stats['missed_actions']}",
+            f"skipped_actions: {stats['skipped_actions']}",
+            f"progress_percentage: {stats['progress_percentage']:.1f}",
+            f"current_streak: {stats['current_streak']}",
+            f"longest_streak: {stats['longest_streak']}",
+        )
+    )
+
+
+async def handle_habit_add_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            habit = await habit_services.create_habit(
+                session,
+                title=args.title,
+                description=args.description,
+                start_date=args.start_date,
+                duration_days=args.duration_days,
+                task_id=args.task_id,
+            )
+        except (
+            habit_services.HabitValidationError,
+            habit_services.HabitTaskReferenceNotFoundError,
+            habit_services.InvalidHabitOperationError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Created habit {habit.id}")
+    return 0
+
+
+def handle_habit_add(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_add_async(args))
+
+
+async def handle_habit_list_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            if args.with_stats:
+                overviews = await habit_services.list_habit_overviews(
+                    session,
+                    status=args.status,
+                    title=args.title,
+                    active_window_only=args.active_window_only,
+                    include_deleted=args.include_deleted,
+                    limit=args.limit,
+                    offset=args.offset,
+                )
+                if not overviews:
+                    print("No habits found.")
+                    return 0
+                for overview in overviews:
+                    print(_format_habit_summary_with_stats(overview))
+                return 0
+            habits = await habit_services.list_habits(
+                session,
+                status=args.status,
+                title=args.title,
+                active_window_only=args.active_window_only,
+                include_deleted=args.include_deleted,
+                limit=args.limit,
+                offset=args.offset,
+            )
+        except habit_services.HabitValidationError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    if not habits:
+        print("No habits found.")
+        return 0
+    for habit in habits:
+        print(_format_habit_summary(habit))
+    return 0
+
+
+def handle_habit_list(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_list_async(args))
+
+
+async def handle_habit_show_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            overview = await habit_services.get_habit_overview(
+                session,
+                habit_id=args.habit_id,
+                include_deleted=args.include_deleted,
+            )
+        except habit_services.HabitNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    habit = overview["habit"]
+    stats = overview["stats"]
+    assert isinstance(habit, Habit)
+    assert isinstance(stats, dict)
+    print(_format_habit_detail(habit, stats))
+    return 0
+
+
+def handle_habit_show(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_show_async(args))
+
+
+async def handle_habit_update_async(args: argparse.Namespace) -> int:
+    conflicts = (
+        (
+            args.clear_description and args.description is not None,
+            "--description",
+            "--clear-description",
+        ),
+        (
+            args.clear_task and args.task_id is not None,
+            "--task-id",
+            "--clear-task",
+        ),
+    )
+    for is_conflict, value_flag, clear_flag in conflicts:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
+    async with db_session.session_scope() as session:
+        try:
+            habit = await habit_services.update_habit(
+                session,
+                habit_id=args.habit_id,
+                title=args.title,
+                description=args.description,
+                clear_description=args.clear_description,
+                start_date=args.start_date,
+                duration_days=args.duration_days,
+                status=args.status,
+                task_id=args.task_id,
+                clear_task=args.clear_task,
+            )
+        except (
+            habit_services.HabitNotFoundError,
+            habit_services.HabitValidationError,
+            habit_services.HabitTaskReferenceNotFoundError,
+            habit_services.InvalidHabitOperationError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Updated habit {habit.id}")
+    return 0
+
+
+def handle_habit_update(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_update_async(args))
+
+
+async def handle_habit_delete_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            await habit_services.delete_habit(session, habit_id=args.habit_id)
+        except habit_services.HabitNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Soft-deleted habit {args.habit_id}")
+    return 0
+
+
+def handle_habit_delete(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_delete_async(args))
+
+
+async def handle_habit_stats_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            stats = await habit_services.get_habit_stats(session, habit_id=args.habit_id)
+        except habit_services.HabitNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_habit_stats(stats))
+    return 0
+
+
+def handle_habit_stats(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_stats_async(args))
+
+
+async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        associations = await habit_services.get_habit_task_associations(session)
+    if not associations:
+        print("No task associations found.")
+        return 0
+    for task_id, habits in associations.items():
+        for habit in habits:
+            print(f"{task_id}\t{habit.id}\t{habit.status}\t{habit.start_date}\t{habit.title}")
+    return 0
+
+
+def handle_habit_task_associations(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_task_associations_async(args))
+
+
+async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        result = await habit_services.batch_delete_habits(
+            session,
+            habit_ids=list(args.habit_ids),
+        )
+    print(f"Deleted habits: {result.deleted_count}")
+    if result.failed_ids:
+        print(format_id_lines("Failed habit IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_habit_batch_delete(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_batch_delete_async(args))

@@ -61,6 +61,9 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             examples=(
                 'lifeos tag add "family" --entity-type person --category relation',
                 'lifeos tag add "urgent" --entity-type task --color "#DC2626"',
+                "lifeos tag add "
+                '"coach" --entity-type vision --person-id '
+                "11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
@@ -69,6 +72,14 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     add_parser.add_argument("--category", default="general", help="Tag category")
     add_parser.add_argument("--description", help="Optional tag description")
     add_parser.add_argument("--color", help="Optional hex color code")
+    add_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to associate one or more people",
+    )
     add_parser.set_defaults(handler=handle_tag_add)
 
     list_parser = add_documented_parser(
@@ -84,6 +95,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             examples=(
                 "lifeos tag list",
                 "lifeos tag list --entity-type person",
+                "lifeos tag list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos tag list --entity-type task --category priority --limit 20",
             ),
             notes=("Use `--include-deleted` to review previously deleted tags.",),
@@ -91,6 +103,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     )
     list_parser.add_argument("--entity-type", help="Filter by entity type")
     list_parser.add_argument("--category", help="Filter by category")
+    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
     add_include_deleted_argument(list_parser, noun="tags")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_tag_list)
@@ -122,9 +135,14 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             ),
             examples=(
                 'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
+                "lifeos tag update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
             ),
-            notes=("Use `--clear-description` or `--clear-color` to remove optional values.",),
+            notes=(
+                "Use `--clear-description`, `--clear-color`, or `--clear-people` "
+                "to remove optional values.",
+            ),
         ),
     )
     update_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
@@ -143,6 +161,15 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         action="store_true",
         help="Clear the optional tag color",
     )
+    update_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace people with one or more identifiers",
+    )
+    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
     update_parser.set_defaults(handler=handle_tag_update)
 
     delete_parser = add_documented_parser(

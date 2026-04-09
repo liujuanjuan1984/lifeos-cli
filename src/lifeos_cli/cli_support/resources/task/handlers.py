@@ -25,6 +25,9 @@ def _format_task_summary(task: Task) -> str:
 
 
 def _format_task_detail(task: Task) -> str:
+    people_names = (
+        ", ".join(person.name for person in task.people) if getattr(task, "people", None) else "-"
+    )
     return "\n".join(
         (
             f"id: {task.id}",
@@ -39,6 +42,7 @@ def _format_task_detail(task: Task) -> str:
             f"planning_cycle_type: {task.planning_cycle_type or '-'}",
             f"planning_cycle_days: {task.planning_cycle_days or '-'}",
             f"planning_cycle_start_date: {task.planning_cycle_start_date or '-'}",
+            f"people: {people_names}",
             f"actual_effort_self: {task.actual_effort_self}",
             f"actual_effort_total: {task.actual_effort_total}",
             f"created_at: {format_timestamp(task.created_at)}",
@@ -60,6 +64,7 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
                 status=args.status,
                 priority=args.priority,
                 display_order=args.display_order,
+                person_ids=args.person_ids,
                 estimated_effort=args.estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
@@ -89,6 +94,7 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
                 session,
                 vision_id=args.vision_id,
                 parent_task_id=args.parent_task_id,
+                person_id=args.person_id,
                 status=args.status,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
@@ -144,6 +150,7 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
             "--estimated-effort",
             "--clear-estimated-effort",
         ),
+        (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
         (
             args.clear_planning_cycle
             and any(
@@ -175,6 +182,8 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 status=args.status,
                 priority=args.priority,
                 display_order=args.display_order,
+                person_ids=args.person_ids,
+                clear_people=args.clear_people,
                 estimated_effort=args.estimated_effort,
                 clear_estimated_effort=args.clear_estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,

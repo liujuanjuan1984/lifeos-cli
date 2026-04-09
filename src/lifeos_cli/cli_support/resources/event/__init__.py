@@ -1,0 +1,1 @@
+"""Event CLI resource package."""

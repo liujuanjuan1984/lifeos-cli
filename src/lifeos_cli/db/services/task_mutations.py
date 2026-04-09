@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.task_queries import get_task
 from lifeos_cli.db.services.task_support import (
     ParentTaskReferenceNotFoundError,
@@ -35,6 +36,7 @@ async def create_task(
     planning_cycle_type: str | None = None,
     planning_cycle_days: int | None = None,
     planning_cycle_start_date: date | None = None,
+    person_ids: list[UUID] | None = None,
 ) -> Task:
     """Create a task."""
     await ensure_vision_exists(session, vision_id)
@@ -59,7 +61,13 @@ async def create_task(
     )
     session.add(task)
     await session.flush()
+    if person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=task.id, entity_type="task", desired_person_ids=person_ids
+        )
     await session.refresh(task)
+    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
+    task.people = people_map.get(task.id, [])
     return task
 
 
@@ -81,6 +89,8 @@ async def update_task(
     planning_cycle_days: int | None = None,
     planning_cycle_start_date: date | None = None,
     clear_planning_cycle: bool = False,
+    person_ids: list[UUID] | None = None,
+    clear_people: bool = False,
 ) -> Task:
     """Update a task."""
     task = await get_task(session, task_id=task_id)
@@ -148,11 +158,21 @@ async def update_task(
         task.estimated_effort = None
     elif estimated_effort is not None:
         task.estimated_effort = estimated_effort
+    if clear_people:
+        await sync_entity_people(
+            session, entity_id=task.id, entity_type="task", desired_person_ids=[]
+        )
+    elif person_ids is not None:
+        await sync_entity_people(
+            session, entity_id=task.id, entity_type="task", desired_person_ids=person_ids
+        )
     task.planning_cycle_type = normalized_cycle_type
     task.planning_cycle_days = normalized_cycle_days
     task.planning_cycle_start_date = normalized_cycle_start_date
     await session.flush()
     await session.refresh(task)
+    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
+    task.people = people_map.get(task.id, [])
     return task
 
 

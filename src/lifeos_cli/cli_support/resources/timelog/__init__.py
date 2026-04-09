@@ -1,0 +1,1 @@
+"""Timelog CLI resource package."""
