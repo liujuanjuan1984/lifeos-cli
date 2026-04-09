@@ -9,10 +9,19 @@ from importlib.metadata import PackageNotFoundError, version
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from lifeos_cli.cli_support.config_commands import build_config_parser, build_init_parser
-from lifeos_cli.cli_support.db_commands import build_db_parser
-from lifeos_cli.cli_support.note_parser import build_note_parser
-from lifeos_cli.cli_support.shared import build_epilog, print_database_runtime_error
+from lifeos_cli.cli_support.help_utils import build_epilog
+from lifeos_cli.cli_support.resources.area.parser import build_area_parser
+from lifeos_cli.cli_support.resources.note.parser import build_note_parser
+from lifeos_cli.cli_support.resources.people.parser import build_people_parser
+from lifeos_cli.cli_support.resources.tag.parser import build_tag_parser
+from lifeos_cli.cli_support.resources.task.parser import build_task_parser
+from lifeos_cli.cli_support.resources.vision.parser import build_vision_parser
+from lifeos_cli.cli_support.runtime_utils import print_database_runtime_error
+from lifeos_cli.cli_support.system.config_commands import (
+    build_config_parser,
+    build_init_parser,
+)
+from lifeos_cli.cli_support.system.db_commands import build_db_parser
 from lifeos_cli.config import ConfigurationError
 
 
@@ -32,7 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
             "Run LifeOS resource commands from the terminal.\n\n"
             "Command grammar:\n"
             "  lifeos <resource> <action> [arguments] [options]\n\n"
-            "Resources model domains such as notes, configuration, and database setup.\n"
+            "Resources model domains such as areas, people, visions, tasks, and notes.\n"
+            "System commands such as init, config, and db manage runtime setup.\n"
             "Actions are short verbs that operate on records or runtime state."
         ),
         epilog=build_epilog(
@@ -40,12 +50,20 @@ def build_parser() -> argparse.ArgumentParser:
                 "lifeos init",
                 "lifeos config show",
                 "lifeos db ping",
+                'lifeos area add "Health"',
+                'lifeos people add "Alice"',
+                'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
+                'lifeos task add "Draft release plan" --vision-id <vision-id>',
                 'lifeos note add "Capture an idea"',
                 'lifeos note search "meeting notes"',
             ),
             notes=(
-                "Keep resource names singular so new command families stay consistent.",
+                "Prefer short, stable resource names so new command families stay consistent.",
+                "Use natural exceptions such as `people` when they are clearer than "
+                "forced regular forms.",
                 "Prefer short action verbs such as add, list, update, and delete.",
+                "For structured resources, prefer `list` with filters and pagination over "
+                "separate query verbs.",
                 "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
                 "Each resource help page should explain scope, actions, and examples.",
                 "Run `lifeos init` before using database-backed resource commands.",
@@ -58,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
     build_init_parser(subparsers)
     build_config_parser(subparsers)
     build_db_parser(subparsers)
+    build_area_parser(subparsers)
+    build_tag_parser(subparsers)
+    build_people_parser(subparsers)
+    build_vision_parser(subparsers)
+    build_task_parser(subparsers)
     build_note_parser(subparsers)
     return parser
 

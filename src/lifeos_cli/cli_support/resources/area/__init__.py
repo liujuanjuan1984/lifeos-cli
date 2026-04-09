@@ -1,0 +1,1 @@
+"""Area resource CLI support."""

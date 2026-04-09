@@ -83,3 +83,6 @@ warn_return_any = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: runs real CLI integration tests against a configured PostgreSQL database",
+]

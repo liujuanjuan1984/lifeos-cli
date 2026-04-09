@@ -86,7 +86,239 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
     assert "init      Initialize local configuration" in captured.out
+    assert "people    Manage people and relationships" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_parser_supports_area_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["area", "add", "Health", "--display-order", "2"])
+
+    assert args.resource == "area"
+    assert args.area_command == "add"
+    assert args.name == "Health"
+    assert args.display_order == 2
+
+
+def test_cli_parser_supports_area_update_clear_icon_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "area",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-icon",
+        ]
+    )
+
+    assert args.resource == "area"
+    assert args.area_command == "update"
+    assert args.clear_icon is True
+
+
+def test_cli_parser_supports_people_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["people", "add", "Alice", "--nickname", "ally"])
+
+    assert args.resource == "people"
+    assert args.people_command == "add"
+    assert args.name == "Alice"
+    assert args.nickname == ["ally"]
+
+
+def test_cli_parser_supports_people_update_clear_location_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "people",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-location",
+        ]
+    )
+
+    assert args.resource == "people"
+    assert args.people_command == "update"
+    assert args.clear_location is True
+
+
+def test_cli_parser_supports_task_add_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "add",
+            "Draft release checklist",
+            "--vision-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--priority",
+            "3",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "add"
+    assert args.content == "Draft release checklist"
+    assert str(args.vision_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.priority == 3
+
+
+def test_cli_parser_supports_vision_update_clear_area_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "vision",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-area",
+        ]
+    )
+
+    assert args.resource == "vision"
+    assert args.vision_command == "update"
+    assert args.clear_area is True
+
+
+def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "update", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "active`, `archived`, and `fruit`" in captured.out
+    assert "--status paused" not in captured.out
+
+
+def test_cli_parser_supports_tag_update_clear_color_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "tag",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-color",
+        ]
+    )
+
+    assert args.resource == "tag"
+    assert args.tag_command == "update"
+    assert args.clear_color is True
+
+
+def test_cli_parser_supports_task_batch_delete_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "batch",
+            "delete",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "batch"
+    assert args.task_batch_command == "delete"
+    assert len(args.task_ids) == 2
+
+
+def test_cli_parser_supports_task_update_clear_parent_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-parent",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "update"
+    assert str(args.task_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_parent is True
+
+
+@pytest.mark.parametrize(
+    ("argv",),
+    [
+        (["note", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "note",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["area", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "area",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["tag", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "tag",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["people", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "people",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["vision", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "vision",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+        (["task", "delete", "11111111-1111-1111-1111-111111111111", "--hard"],),
+        (
+            [
+                "task",
+                "batch",
+                "delete",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+                "--hard",
+            ],
+        ),
+    ],
+)
+def test_cli_parser_rejects_hard_delete_flags(argv: list[str]) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
 
 
 def test_main_note_without_action_prints_resource_help(capsys) -> None:

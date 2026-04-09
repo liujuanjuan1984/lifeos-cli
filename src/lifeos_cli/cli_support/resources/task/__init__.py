@@ -1,0 +1,1 @@
+"""Task resource CLI support."""

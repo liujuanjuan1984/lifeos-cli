@@ -1,11 +1,16 @@
-"""Note resource parser construction."""
+"""Builder helpers for note subcommands."""
 
 from __future__ import annotations
 
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.note_handlers import (
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.parser_common import (
+    add_include_deleted_argument,
+    add_limit_offset_arguments,
+)
+from lifeos_cli.cli_support.resources.note.handlers import (
     handle_note_add,
     handle_note_batch_delete,
     handle_note_batch_update_content,
@@ -15,53 +20,11 @@ from lifeos_cli.cli_support.note_handlers import (
     handle_note_show,
     handle_note_update,
 )
-from lifeos_cli.cli_support.shared import HelpContent, add_documented_parser, make_help_handler
 
 
-def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """Build the note command tree."""
-    note_parser = add_documented_parser(
-        subparsers,
-        "note",
-        help_content=HelpContent(
-            summary="Capture and manage notes",
-            description=(
-                "Create, inspect, update, and delete note records.\n\n"
-                "The note resource is the reference command family for LifeOS.\n"
-                "Future resources should follow the same command grammar:\n"
-                "  lifeos <resource> <action> [arguments] [options]"
-            ),
-            examples=(
-                "lifeos init",
-                'lifeos note add "Capture an idea"',
-                "lifeos note list --limit 20",
-                'lifeos note search "sprint retrospective"',
-                "lifeos note show 11111111-1111-1111-1111-111111111111",
-                "lifeos note batch update-content --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 "
-                '--find-text "draft" --replace-text "final"',
-                'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
-                "lifeos note delete 11111111-1111-1111-1111-111111111111",
-            ),
-            notes=(
-                "Run `lifeos init` before using note commands for the first time.",
-                "Resource names stay singular, such as note or timelog.",
-                "Action names stay short verbs, such as add, list, update, and delete.",
-                "Use the `batch` namespace when one command operates on multiple note records.",
-                "The list command prints tab-separated columns: id, status, created_at, content.",
-                "Use `show` to inspect the full note body with preserved line breaks.",
-                "Delete performs a soft delete by default. Use --hard for permanent removal.",
-            ),
-        ),
-    )
-    note_parser.set_defaults(handler=make_help_handler(note_parser))
-    note_subparsers = note_parser.add_subparsers(
-        dest="note_command",
-        title="actions",
-        metavar="action",
-    )
-
+def build_note_add_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     add_parser = add_documented_parser(
         note_subparsers,
         "add",
@@ -94,6 +57,10 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
     add_parser.set_defaults(handler=handle_note_add)
 
+
+def build_note_list_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     list_parser = add_documented_parser(
         note_subparsers,
         "list",
@@ -115,25 +82,14 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    list_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Include soft-deleted notes",
-    )
-    list_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Maximum number of notes to return",
-    )
-    list_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of notes to skip before listing",
-    )
+    add_include_deleted_argument(list_parser, noun="notes")
+    add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=handle_note_list)
 
+
+def build_note_search_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     search_parser = add_documented_parser(
         note_subparsers,
         "search",
@@ -157,25 +113,14 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     search_parser.add_argument("query", help="Search query string")
-    search_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Include soft-deleted notes in the search scope",
-    )
-    search_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Maximum number of matching notes to return",
-    )
-    search_parser.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Number of matching notes to skip before printing results",
-    )
+    add_include_deleted_argument(search_parser, noun="notes in the search scope")
+    add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=handle_note_search)
 
+
+def build_note_show_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     show_parser = add_documented_parser(
         note_subparsers,
         "show",
@@ -194,13 +139,13 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    show_parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help="Allow loading a soft-deleted note",
-    )
+    add_include_deleted_argument(show_parser, noun="notes", help_prefix="Allow loading")
     show_parser.set_defaults(handler=handle_note_show)
 
+
+def build_note_update_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     update_parser = add_documented_parser(
         note_subparsers,
         "update",
@@ -220,6 +165,10 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     update_parser.add_argument("content", help="Replacement note content")
     update_parser.set_defaults(handler=handle_note_update)
 
+
+def build_note_delete_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     delete_parser = add_documented_parser(
         note_subparsers,
         "delete",
@@ -228,22 +177,18 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description=(
                 "Delete a note by identifier.\n\n"
                 "By default the note is soft-deleted so it can remain visible in audit\n"
-                "or recovery flows. Use --hard to remove it permanently."
+                "or recovery flows."
             ),
-            examples=(
-                "lifeos note delete 11111111-1111-1111-1111-111111111111",
-                "lifeos note delete 11111111-1111-1111-1111-111111111111 --hard",
-            ),
+            examples=("lifeos note delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete the note instead of soft-deleting it",
-    )
     delete_parser.set_defaults(handler=handle_note_delete)
 
+
+def build_note_batch_parser(
+    note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     batch_parser = add_documented_parser(
         note_subparsers,
         "batch",
@@ -311,14 +256,10 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help="One or more note identifiers to update",
     )
     batch_update_parser.add_argument(
-        "--find-text",
-        required=True,
-        help="Text to find in each target note",
+        "--find-text", required=True, help="Text to find in each target note"
     )
     batch_update_parser.add_argument(
-        "--replace-text",
-        default="",
-        help="Replacement text for matched content",
+        "--replace-text", default="", help="Replacement text for matched content"
     )
     batch_update_parser.add_argument(
         "--case-sensitive",
@@ -340,12 +281,9 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos note batch delete --ids "
                 "11111111-1111-1111-1111-111111111111 "
                 "22222222-2222-2222-2222-222222222222",
-                "lifeos note batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 --hard",
             ),
             notes=(
-                "Soft delete is the default. Use --hard to remove records permanently.",
+                "CLI batch delete performs soft deletion only.",
                 "Failed note IDs are printed to stderr while successful deletes stay on stdout.",
             ),
         ),
@@ -358,10 +296,5 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         required=True,
         type=UUID,
         help="One or more note identifiers to delete",
-    )
-    batch_delete_parser.add_argument(
-        "--hard",
-        action="store_true",
-        help="Permanently delete each note instead of soft-deleting it",
     )
     batch_delete_parser.set_defaults(handler=handle_note_batch_delete)

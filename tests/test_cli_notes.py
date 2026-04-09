@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import io
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from pathlib import Path
-from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
 from sqlalchemy.exc import OperationalError
 
 from lifeos_cli import cli
-from lifeos_cli.cli_support import note_handlers
+from lifeos_cli.cli_support.resources.note import handlers as note_handlers
 from lifeos_cli.config import clear_config_cache
-from lifeos_cli.db.services import NoteBatchDeleteResult, NoteBatchUpdateResult, NoteNotFoundError
+from lifeos_cli.db import session as db_session
+from lifeos_cli.db.services import notes as note_services
+from lifeos_cli.db.services.notes import (
+    NoteBatchDeleteResult,
+    NoteBatchUpdateResult,
+    NoteNotFoundError,
+)
+from tests.support import make_record, make_session_scope, utc_datetime
 
 
 def test_main_note_add_creates_note(
@@ -22,21 +26,17 @@ def test_main_note_add_creates_note(
 ) -> None:
     created: dict[str, str] = {}
 
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_create_note(session: object, *, content: str) -> object:
         created["content"] = content
-        return SimpleNamespace(
+        return make_record(
             id=UUID("11111111-1111-1111-1111-111111111111"),
             content=content,
-            created_at=datetime(2026, 4, 9, tzinfo=timezone.utc),
+            created_at=utc_datetime(2026, 4, 9),
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "a new note"])
     captured = capsys.readouterr()
@@ -52,21 +52,17 @@ def test_main_note_add_reads_multiline_content_from_stdin(
 ) -> None:
     created: dict[str, str] = {}
 
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_create_note(session: object, *, content: str) -> object:
         created["content"] = content
-        return SimpleNamespace(
+        return make_record(
             id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             content=content,
-            created_at=datetime(2026, 4, 9, tzinfo=timezone.utc),
+            created_at=utc_datetime(2026, 4, 9),
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
     monkeypatch.setattr(note_handlers.sys, "stdin", io.StringIO("line one\nline two\n"))
 
     exit_code = cli.main(["note", "add", "--stdin"])
@@ -86,21 +82,17 @@ def test_main_note_add_reads_content_from_file(
     content_file = tmp_path / "note.md"
     content_file.write_text("first line\nsecond line\n", encoding="utf-8")
 
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_create_note(session: object, *, content: str) -> object:
         created["content"] = content
-        return SimpleNamespace(
+        return make_record(
             id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             content=content,
-            created_at=datetime(2026, 4, 9, tzinfo=timezone.utc),
+            created_at=utc_datetime(2026, 4, 9),
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "--file", str(content_file)])
     captured = capsys.readouterr()
@@ -128,10 +120,6 @@ def test_main_note_show_prints_multiline_content(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_get_note(
         session: object,
         *,
@@ -139,16 +127,16 @@ def test_main_note_show_prints_multiline_content(
         include_deleted: bool,
     ) -> object:
         assert include_deleted is False
-        return SimpleNamespace(
+        return make_record(
             id=note_id,
             content="first line\nsecond line",
-            created_at=datetime(2026, 4, 9, 3, 24, 11, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 4, 9, 3, 30, 0, tzinfo=timezone.utc),
+            created_at=utc_datetime(2026, 4, 9, 3, 24, 11),
+            updated_at=utc_datetime(2026, 4, 9, 3, 30, 0),
             deleted_at=None,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "get_note", fake_get_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "get_note", fake_get_note)
 
     exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
     captured = capsys.readouterr()
@@ -162,10 +150,6 @@ def test_main_note_show_reports_missing_note(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_get_note(
         session: object,
         *,
@@ -174,8 +158,8 @@ def test_main_note_show_reports_missing_note(
     ) -> object | None:
         return None
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "get_note", fake_get_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "get_note", fake_get_note)
 
     exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
     captured = capsys.readouterr()
@@ -188,10 +172,6 @@ def test_main_note_search_prints_matching_notes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_search_notes(
         session: object,
         *,
@@ -205,16 +185,16 @@ def test_main_note_search_prints_matching_notes(
         assert limit == 100
         assert offset == 0
         return [
-            SimpleNamespace(
+            make_record(
                 id=UUID("44444444-4444-4444-4444-444444444444"),
                 content="meeting notes for april planning",
-                created_at=datetime(2026, 4, 9, 4, 5, 6, tzinfo=timezone.utc),
+                created_at=utc_datetime(2026, 4, 9, 4, 5, 6),
                 deleted_at=None,
             )
         ]
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "search_notes", fake_search_notes)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "search_notes", fake_search_notes)
 
     exit_code = cli.main(["note", "search", "meeting notes"])
     captured = capsys.readouterr()
@@ -230,10 +210,6 @@ def test_main_note_batch_update_content_prints_summary(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_batch_update_note_content(
         session: object,
         *,
@@ -257,8 +233,8 @@ def test_main_note_batch_update_content_prints_summary(
             replacement_count=3,
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "batch_update_note_content", fake_batch_update_note_content)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "batch_update_note_content", fake_batch_update_note_content)
 
     exit_code = cli.main(
         [
@@ -286,29 +262,23 @@ def test_main_note_batch_delete_reports_failures(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_batch_delete_notes(
         session: object,
         *,
         note_ids: list[UUID],
-        hard_delete: bool,
     ) -> NoteBatchDeleteResult:
         assert note_ids == [
             UUID("11111111-1111-1111-1111-111111111111"),
             UUID("22222222-2222-2222-2222-222222222222"),
         ]
-        assert hard_delete is False
         return NoteBatchDeleteResult(
             deleted_count=1,
             failed_ids=(UUID("22222222-2222-2222-2222-222222222222"),),
             errors=("Note 22222222-2222-2222-2222-222222222222 was not found",),
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "batch_delete_notes", fake_batch_delete_notes)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "batch_delete_notes", fake_batch_delete_notes)
 
     exit_code = cli.main(
         [
@@ -332,10 +302,6 @@ def test_main_note_list_prints_formatted_notes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_list_notes(
         session: object,
         *,
@@ -347,16 +313,16 @@ def test_main_note_list_prints_formatted_notes(
         assert limit == 100
         assert offset == 0
         return [
-            SimpleNamespace(
+            make_record(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
                 content="first note",
-                created_at=datetime(2026, 4, 9, 1, 2, 3, tzinfo=timezone.utc),
+                created_at=utc_datetime(2026, 4, 9, 1, 2, 3),
                 deleted_at=None,
             )
         ]
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "list_notes", fake_list_notes)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "list_notes", fake_list_notes)
 
     exit_code = cli.main(["note", "list"])
     captured = capsys.readouterr()
@@ -372,20 +338,15 @@ def test_main_note_delete_reports_missing_note(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_delete_note(
         session: object,
         *,
         note_id: UUID,
-        hard_delete: bool,
     ) -> None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "delete_note", fake_delete_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "delete_note", fake_delete_note)
 
     exit_code = cli.main(["note", "delete", "33333333-3333-3333-3333-333333333333"])
     captured = capsys.readouterr()
@@ -431,10 +392,6 @@ def test_main_note_add_prints_actionable_authentication_guidance(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
 
-    @asynccontextmanager
-    async def fake_session_scope():
-        yield object()
-
     async def fake_create_note(session: object, *, content: str) -> object:
         raise OperationalError(
             statement=None,
@@ -442,8 +399,8 @@ def test_main_note_add_prints_actionable_authentication_guidance(
             orig=RuntimeError("password authentication failed"),
         )
 
-    monkeypatch.setattr(note_handlers, "session_scope", fake_session_scope)
-    monkeypatch.setattr(note_handlers, "create_note", fake_create_note)
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "create_note", fake_create_note)
 
     exit_code = cli.main(["note", "add", "a new note"])
     captured = capsys.readouterr()

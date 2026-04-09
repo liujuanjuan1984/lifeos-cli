@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lifeos_cli.application.configuration import (
+    InitializationPrompts,
+    InitializationRequest,
+    build_database_settings,
+)
 from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
@@ -154,3 +159,34 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
         'url = "postgresql+psycopg://old-user:<old-password>@localhost:5432/old_lifeos"'
         not in content
     )
+
+
+def test_build_database_settings_uses_injected_prompts(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        non_interactive=False,
+        is_interactive=True,
+        prompts=InitializationPrompts(
+            prompt_database_url=lambda default: (
+                "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"
+            ),
+            prompt_database_schema=lambda default: "lifeos_dev",
+            prompt_database_echo=lambda default: True,
+        ),
+    )
+
+    settings = build_database_settings(request)
+
+    assert (
+        settings.database_url == "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"
+    )
+    assert settings.database_schema == "lifeos_dev"
+    assert settings.database_echo is True
+    assert settings.config_file == config_path
