@@ -45,7 +45,9 @@ def build_note_add_parser(
         ),
     )
     add_parser.add_argument("content", nargs="?", help="Inline note content")
-    add_parser.add_argument("--stdin", action="store_true", help="Read note content from standard input")
+    add_parser.add_argument(
+        "--stdin", action="store_true", help="Read note content from standard input"
+    )
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
     add_parser.set_defaults(handler=handle_note_add)
 
@@ -74,9 +76,15 @@ def build_note_list_parser(
             ),
         ),
     )
-    list_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted notes")
-    list_parser.add_argument("--limit", type=int, default=100, help="Maximum number of notes to return")
-    list_parser.add_argument("--offset", type=int, default=0, help="Number of notes to skip before listing")
+    list_parser.add_argument(
+        "--include-deleted", action="store_true", help="Include soft-deleted notes"
+    )
+    list_parser.add_argument(
+        "--limit", type=int, default=100, help="Maximum number of notes to return"
+    )
+    list_parser.add_argument(
+        "--offset", type=int, default=0, help="Number of notes to skip before listing"
+    )
     list_parser.set_defaults(handler=handle_note_list)
 
 
@@ -106,9 +114,20 @@ def build_note_search_parser(
         ),
     )
     search_parser.add_argument("query", help="Search query string")
-    search_parser.add_argument("--include-deleted", action="store_true", help="Include soft-deleted notes in the search scope")
-    search_parser.add_argument("--limit", type=int, default=100, help="Maximum number of matching notes to return")
-    search_parser.add_argument("--offset", type=int, default=0, help="Number of matching notes to skip before printing results")
+    search_parser.add_argument(
+        "--include-deleted",
+        action="store_true",
+        help="Include soft-deleted notes in the search scope",
+    )
+    search_parser.add_argument(
+        "--limit", type=int, default=100, help="Maximum number of matching notes to return"
+    )
+    search_parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of matching notes to skip before printing results",
+    )
     search_parser.set_defaults(handler=handle_note_search)
 
 
@@ -133,7 +152,9 @@ def build_note_show_parser(
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    show_parser.add_argument("--include-deleted", action="store_true", help="Allow loading a soft-deleted note")
+    show_parser.add_argument(
+        "--include-deleted", action="store_true", help="Allow loading a soft-deleted note"
+    )
     show_parser.set_defaults(handler=handle_note_show)
 
 
@@ -150,7 +171,9 @@ def build_note_update_parser(
                 "This action updates the current note body in place. It does not apply\n"
                 "partial patches or keep revision history yet."
             ),
-            examples=('lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',),
+            examples=(
+                'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
+            ),
         ),
     )
     update_parser.add_argument("note_id", type=UUID, help="Note identifier")
@@ -238,10 +261,26 @@ def build_note_batch_parser(
             ),
         ),
     )
-    batch_update_parser.add_argument("--ids", dest="note_ids", metavar="note-id", nargs="+", required=True, type=UUID, help="One or more note identifiers to update")
-    batch_update_parser.add_argument("--find-text", required=True, help="Text to find in each target note")
-    batch_update_parser.add_argument("--replace-text", default="", help="Replacement text for matched content")
-    batch_update_parser.add_argument("--case-sensitive", action="store_true", help="Use a case-sensitive find/replace instead of case-insensitive matching")
+    batch_update_parser.add_argument(
+        "--ids",
+        dest="note_ids",
+        metavar="note-id",
+        nargs="+",
+        required=True,
+        type=UUID,
+        help="One or more note identifiers to update",
+    )
+    batch_update_parser.add_argument(
+        "--find-text", required=True, help="Text to find in each target note"
+    )
+    batch_update_parser.add_argument(
+        "--replace-text", default="", help="Replacement text for matched content"
+    )
+    batch_update_parser.add_argument(
+        "--case-sensitive",
+        action="store_true",
+        help="Use a case-sensitive find/replace instead of case-insensitive matching",
+    )
     batch_update_parser.set_defaults(handler=handle_note_batch_update_content)
 
     batch_delete_parser = add_documented_parser(
@@ -264,5 +303,13 @@ def build_note_batch_parser(
             ),
         ),
     )
-    batch_delete_parser.add_argument("--ids", dest="note_ids", metavar="note-id", nargs="+", required=True, type=UUID, help="One or more note identifiers to delete")
+    batch_delete_parser.add_argument(
+        "--ids",
+        dest="note_ids",
+        metavar="note-id",
+        nargs="+",
+        required=True,
+        type=UUID,
+        help="One or more note identifiers to delete",
+    )
     batch_delete_parser.set_defaults(handler=handle_note_batch_delete)

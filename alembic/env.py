@@ -14,9 +14,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+import lifeos_cli.db.models  # noqa: F401, E402
 from lifeos_cli.config import get_database_settings  # noqa: E402
 from lifeos_cli.db.base import DATABASE_SCHEMA, Base  # noqa: E402
-from lifeos_cli.db.models import Note  # noqa: F401, E402
 
 config = context.config
 
