@@ -294,6 +294,58 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     session.commit.assert_not_called()
 
 
+def test_vision_experience_rate_validation_matches_compass_bounds() -> None:
+    assert visions.VISION_EXPERIENCE_RATE_DEFAULT == 60
+    assert visions.VISION_EXPERIENCE_RATE_MAX == 3600
+    assert visions.validate_vision_experience_rate(None) is None
+    assert visions.validate_vision_experience_rate(1) == 1
+    assert visions.validate_vision_experience_rate(3600) == 3600
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        visions.validate_vision_experience_rate(0)
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        visions.validate_vision_experience_rate(3601)
+
+
+def test_update_vision_rejects_invalid_experience_rate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vision = SimpleNamespace(
+        id=UUID("44444444-4444-4444-4444-444444444444"),
+        name="Launch lifeos-cli",
+        description=None,
+        status="active",
+        area_id=None,
+        experience_rate_per_hour=120,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert include_deleted is False
+        return vision
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        asyncio.run(
+            visions.update_vision(
+                cast(Any, session),
+                vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+                experience_rate_per_hour=0,
+            )
+        )
+
+    session.flush.assert_not_awaited()
+    session.commit.assert_not_called()
+
+
 def test_create_vision_syncs_people_without_committing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

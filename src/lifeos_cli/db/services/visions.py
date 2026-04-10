@@ -14,6 +14,8 @@ from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
+VISION_EXPERIENCE_RATE_DEFAULT = 60
+VISION_EXPERIENCE_RATE_MAX = 3600
 
 
 class VisionNotFoundError(LookupError):
@@ -40,6 +42,21 @@ def validate_vision_status(status: str) -> str:
         allowed = ", ".join(sorted(VALID_VISION_STATUSES))
         raise ValueError(f"Invalid vision status {normalized!r}. Expected one of: {allowed}")
     return normalized
+
+
+def validate_vision_experience_rate(experience_rate_per_hour: int | None) -> int | None:
+    """Validate a vision-specific experience rate override."""
+    if experience_rate_per_hour is None:
+        return None
+    if (
+        experience_rate_per_hour < 1
+        or experience_rate_per_hour > VISION_EXPERIENCE_RATE_MAX
+    ):
+        raise ValueError(
+            "Experience rate per hour must be between "
+            f"1 and {VISION_EXPERIENCE_RATE_MAX}"
+        )
+    return experience_rate_per_hour
 
 
 async def _ensure_area_exists(session: AsyncSession, area_id: UUID | None) -> None:
@@ -75,7 +92,7 @@ async def create_vision(
         description=description,
         status=validate_vision_status(status),
         area_id=area_id,
-        experience_rate_per_hour=experience_rate_per_hour,
+        experience_rate_per_hour=validate_vision_experience_rate(experience_rate_per_hour),
     )
     session.add(vision)
     await session.flush()
@@ -192,7 +209,9 @@ async def update_vision(
     if clear_experience_rate:
         vision.experience_rate_per_hour = None
     elif experience_rate_per_hour is not None:
-        vision.experience_rate_per_hour = experience_rate_per_hour
+        vision.experience_rate_per_hour = validate_vision_experience_rate(
+            experience_rate_per_hour
+        )
     if clear_people:
         await sync_entity_people(
             session, entity_id=vision.id, entity_type="vision", desired_person_ids=[]
