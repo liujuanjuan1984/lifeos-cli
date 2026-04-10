@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.config import (
-    DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
     MAX_VISION_EXPERIENCE_RATE_PER_HOUR,
     ConfigurationError,
     get_preferences_settings,
@@ -23,7 +22,6 @@ from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
-VISION_EXPERIENCE_RATE_DEFAULT = DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR
 VISION_EXPERIENCE_RATE_MAX = MAX_VISION_EXPERIENCE_RATE_PER_HOUR
 
 

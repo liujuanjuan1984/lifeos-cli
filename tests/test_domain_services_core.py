@@ -22,10 +22,10 @@ def test_create_person_flushes_without_committing(monkeypatch: pytest.MonkeyPatc
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    def fake_add(person: object) -> None:
-        session.added_person = person
+    def fake_add(_: object) -> None:
+        pass
 
-    async def fake_attach_tags(session_: object, person: object) -> object:
+    async def fake_attach_tags(_session: object, person: object) -> object:
         return person
 
     session.add = fake_add
@@ -81,8 +81,8 @@ def test_create_area_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    def fake_add(area: object) -> None:
-        session.added_area = area
+    def fake_add(_: object) -> None:
+        pass
 
     session.add = fake_add
 
@@ -296,7 +296,6 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
 
 
 def test_vision_experience_rate_validation_matches_compass_bounds() -> None:
-    assert visions.VISION_EXPERIENCE_RATE_DEFAULT == 60
     assert visions.VISION_EXPERIENCE_RATE_MAX == 3600
     assert visions.validate_vision_experience_rate(None) is None
     assert visions.validate_vision_experience_rate(1) == 1

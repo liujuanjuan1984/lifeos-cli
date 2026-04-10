@@ -21,8 +21,8 @@ def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch
         commit=AsyncMock(),
     )
 
-    def fake_add(event: object) -> None:
-        session.added_event = event
+    def fake_add(_: object) -> None:
+        pass
 
     async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
         return None
@@ -60,8 +60,8 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
         commit=AsyncMock(),
     )
 
-    def fake_add(timelog: object) -> None:
-        session.added_timelog = timelog
+    def fake_add(_: object) -> None:
+        pass
 
     async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
         return None
@@ -96,8 +96,8 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
 def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
 
-    def fake_add(event: object) -> None:
-        session.added_event = event
+    def fake_add(_: object) -> None:
+        pass
 
     async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
         return None
