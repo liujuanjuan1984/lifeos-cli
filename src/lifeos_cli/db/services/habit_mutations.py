@@ -12,7 +12,7 @@ from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.habit_queries import get_habit, get_habit_action
 from lifeos_cli.db.services.habit_support import (
     HABIT_EDITABLE_DAYS,
@@ -137,22 +137,10 @@ async def batch_delete_habits(
     habit_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple habits."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for habit_id in deduplicate_habit_ids(habit_ids):
-        try:
-            await delete_habit(session, habit_id=habit_id)
-            deleted_count += 1
-        except HabitNotFoundError as exc:
-            failed_ids.append(habit_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_habit_ids(habit_ids),
+        delete_record=lambda habit_id: delete_habit(session, habit_id=habit_id),
+        handled_exceptions=(HabitNotFoundError,),
     )
 
 

@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
 from lifeos_cli.db.services.task_queries import get_task
@@ -315,20 +315,8 @@ async def batch_delete_tasks(
     task_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple tasks while preserving per-task error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for task_id in deduplicate_task_ids(task_ids):
-        try:
-            await delete_task(session, task_id=task_id)
-            deleted_count += 1
-        except TaskNotFoundError as exc:
-            failed_ids.append(task_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_task_ids(task_ids),
+        delete_record=lambda task_id: delete_task(session, task_id=task_id),
+        handled_exceptions=(TaskNotFoundError,),
     )

@@ -7,7 +7,7 @@ import sys
 from datetime import date
 from uuid import UUID
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.task import Task
@@ -400,12 +400,12 @@ async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             task_ids=list(args.task_ids),
         )
-    print(f"Deleted tasks: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed task IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted tasks",
+        success_count=result.deleted_count,
+        failed_label="Failed task IDs",
+        result=result,
+    )
 
 
 def handle_task_batch_delete(args: argparse.Namespace) -> int:

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 
 
 class AreaNotFoundError(LookupError):
@@ -150,20 +150,8 @@ async def batch_delete_areas(
     area_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple areas while preserving per-area error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for area_id in _deduplicate_area_ids(area_ids):
-        try:
-            await delete_area(session, area_id=area_id)
-            deleted_count += 1
-        except AreaNotFoundError as exc:
-            failed_ids.append(area_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_area_ids(area_ids),
+        delete_record=lambda area_id: delete_area(session, area_id=area_id),
+        handled_exceptions=(AreaNotFoundError,),
     )

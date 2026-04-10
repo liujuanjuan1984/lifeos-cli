@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.event import Event
@@ -217,12 +217,12 @@ async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             event_ids=list(args.event_ids),
         )
-    print(f"Deleted events: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed event IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted events",
+        success_count=result.deleted_count,
+        failed_label="Failed event IDs",
+        result=result,
+    )
 
 
 def handle_event_batch_delete(args: argparse.Namespace) -> int:

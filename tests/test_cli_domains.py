@@ -18,6 +18,7 @@ from lifeos_cli.db.services import (
     timelogs,
     visions,
 )
+from lifeos_cli.db.services.batching import BatchRestoreResult
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
@@ -291,7 +292,7 @@ def test_main_timelog_batch_restore_reports_failed_ids(
             UUID("13131313-1313-1313-1313-131313131313"),
             missing_id,
         ]
-        return timelogs.TimelogBatchRestoreResult(
+        return BatchRestoreResult(
             restored_count=1,
             failed_ids=(missing_id,),
             errors=(f"Timelog {missing_id} was not found",),

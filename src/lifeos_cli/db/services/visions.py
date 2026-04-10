@@ -18,7 +18,7 @@ from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
@@ -407,20 +407,8 @@ async def batch_delete_visions(
     vision_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple visions while preserving per-vision error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for vision_id in _deduplicate_vision_ids(vision_ids):
-        try:
-            await delete_vision(session, vision_id=vision_id)
-            deleted_count += 1
-        except VisionNotFoundError as exc:
-            failed_ids.append(vision_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_vision_ids(vision_ids),
+        delete_record=lambda vision_id: delete_vision(session, vision_id=vision_id),
+        handled_exceptions=(VisionNotFoundError,),
     )

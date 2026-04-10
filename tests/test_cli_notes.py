@@ -12,8 +12,8 @@ from lifeos_cli.cli_support.resources.note import handlers as note_handlers
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import notes as note_services
+from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.notes import (
-    NoteBatchDeleteResult,
     NoteBatchUpdateResult,
     NoteNotFoundError,
 )
@@ -266,12 +266,12 @@ def test_main_note_batch_delete_reports_failures(
         session: object,
         *,
         note_ids: list[UUID],
-    ) -> NoteBatchDeleteResult:
+    ) -> BatchDeleteResult:
         assert note_ids == [
             UUID("11111111-1111-1111-1111-111111111111"),
             UUID("22222222-2222-2222-2222-222222222222"),
         ]
-        return NoteBatchDeleteResult(
+        return BatchDeleteResult(
             deleted_count=1,
             failed_ids=(UUID("22222222-2222-2222-2222-222222222222"),),
             errors=("Note 22222222-2222-2222-2222-222222222222 was not found",),

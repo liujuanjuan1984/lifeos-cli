@@ -16,7 +16,12 @@ from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.timelog import Timelog
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import (
+    BatchDeleteResult,
+    BatchRestoreResult,
+    batch_delete_records,
+    batch_restore_records,
+)
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
@@ -42,15 +47,6 @@ class TimelogBatchUpdateResult:
 
     updated_count: int
     unchanged_ids: tuple[UUID, ...]
-    failed_ids: tuple[UUID, ...]
-    errors: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class TimelogBatchRestoreResult:
-    """Summary for a batch timelog restore operation."""
-
-    restored_count: int
     failed_ids: tuple[UUID, ...]
     errors: tuple[str, ...]
 
@@ -617,20 +613,10 @@ async def batch_delete_timelogs(
     timelog_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple timelogs."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-    for timelog_id in deduplicate_timelog_ids(timelog_ids):
-        try:
-            await delete_timelog(session, timelog_id=timelog_id)
-            deleted_count += 1
-        except TimelogNotFoundError as exc:
-            failed_ids.append(timelog_id)
-            errors.append(str(exc))
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_timelog_ids(timelog_ids),
+        delete_record=lambda timelog_id: delete_timelog(session, timelog_id=timelog_id),
+        handled_exceptions=(TimelogNotFoundError,),
     )
 
 
@@ -638,33 +624,22 @@ async def batch_restore_timelogs(
     session: AsyncSession,
     *,
     timelog_ids: list[UUID],
-) -> TimelogBatchRestoreResult:
+) -> BatchRestoreResult:
     """Restore multiple soft-deleted timelogs."""
-    restored_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-    for timelog_id in deduplicate_timelog_ids(timelog_ids):
-        try:
-            await restore_timelog(session, timelog_id=timelog_id)
-            restored_count += 1
-        except (
+    return await batch_restore_records(
+        identifiers=deduplicate_timelog_ids(timelog_ids),
+        restore_record=lambda timelog_id: restore_timelog(session, timelog_id=timelog_id),
+        handled_exceptions=(
             TimelogAreaReferenceNotFoundError,
             TimelogNotFoundError,
             TimelogTaskReferenceNotFoundError,
             TimelogValidationError,
-        ) as exc:
-            failed_ids.append(timelog_id)
-            errors.append(str(exc))
-    return TimelogBatchRestoreResult(
-        restored_count=restored_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+        ),
     )
 
 
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
-    "TimelogBatchRestoreResult",
     "TimelogBatchUpdateResult",
     "TimelogNotFoundError",
     "TimelogTaskReferenceNotFoundError",

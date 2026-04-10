@@ -6,7 +6,7 @@ import argparse
 import sys
 from datetime import date
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.person import Person
@@ -183,12 +183,12 @@ async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             person_ids=list(args.person_ids),
         )
-    print(f"Deleted people: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed person IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted people",
+        success_count=result.deleted_count,
+        failed_label="Failed person IDs",
+        result=result,
+    )
 
 
 def handle_people_batch_delete(args: argparse.Namespace) -> int:

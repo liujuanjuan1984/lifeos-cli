@@ -13,7 +13,7 @@ from lifeos_cli.application.time_preferences import get_utc_window_for_local_dat
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.event_support import (
@@ -288,20 +288,10 @@ async def batch_delete_events(
     event_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple events."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-    for event_id in deduplicate_event_ids(event_ids):
-        try:
-            await delete_event(session, event_id=event_id)
-            deleted_count += 1
-        except EventNotFoundError as exc:
-            failed_ids.append(event_id)
-            errors.append(str(exc))
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_event_ids(event_ids),
+        delete_record=lambda event_id: delete_event(session, event_id=event_id),
+        handled_exceptions=(EventNotFoundError,),
     )
 
 

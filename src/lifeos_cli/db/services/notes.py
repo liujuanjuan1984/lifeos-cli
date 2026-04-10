@@ -10,6 +10,7 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.note import Note
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 
 
 class NoteNotFoundError(LookupError):
@@ -25,15 +26,6 @@ class NoteBatchUpdateResult:
     failed_ids: tuple[UUID, ...]
     errors: tuple[str, ...]
     replacement_count: int
-
-
-@dataclass(frozen=True)
-class NoteBatchDeleteResult:
-    """Summary for a batch note delete operation."""
-
-    deleted_count: int
-    failed_ids: tuple[UUID, ...]
-    errors: tuple[str, ...]
 
 
 def _note_query(*, include_deleted: bool) -> Select[tuple[Note]]:
@@ -203,22 +195,10 @@ async def batch_delete_notes(
     session: AsyncSession,
     *,
     note_ids: list[UUID],
-) -> NoteBatchDeleteResult:
+) -> BatchDeleteResult:
     """Soft-delete multiple notes while preserving per-note error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for note_id in _deduplicate_note_ids(note_ids):
-        try:
-            await delete_note(session, note_id=note_id)
-            deleted_count += 1
-        except NoteNotFoundError as exc:
-            failed_ids.append(note_id)
-            errors.append(str(exc))
-
-    return NoteBatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_note_ids(note_ids),
+        delete_record=lambda note_id: delete_note(session, note_id=note_id),
+        handled_exceptions=(NoteNotFoundError,),
     )
