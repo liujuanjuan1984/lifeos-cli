@@ -115,6 +115,10 @@ def test_update_task_can_clear_parent_without_committing(
         "load_people_for_entities",
         AsyncMock(return_value={task.id: []}),
     )
+    recompute_subtree = AsyncMock()
+    recompute_upwards = AsyncMock()
+    monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
+    monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -125,6 +129,12 @@ def test_update_task_can_clear_parent_without_committing(
     )
 
     assert updated_task.parent_task_id is None
+    recompute_subtree.assert_awaited_once_with(cast(Any, session), task.id)
+    recompute_upwards.assert_any_await(
+        cast(Any, session),
+        UUID("22222222-2222-2222-2222-222222222222"),
+    )
+    recompute_upwards.assert_any_await(cast(Any, session), task.id)
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
     session.commit.assert_not_called()

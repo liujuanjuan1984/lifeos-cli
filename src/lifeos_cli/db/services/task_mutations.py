@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
 from lifeos_cli.db.services.task_queries import get_task
 from lifeos_cli.db.services.task_support import (
     ParentTaskReferenceNotFoundError,
@@ -98,6 +99,7 @@ async def update_task(
         raise TaskNotFoundError(f"Task {task_id} was not found")
     if parent_task_id == task_id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
+    old_parent_task_id = task.parent_task_id
     next_parent_task_id = (
         None
         if clear_parent
@@ -169,6 +171,11 @@ async def update_task(
     task.planning_cycle_type = normalized_cycle_type
     task.planning_cycle_days = normalized_cycle_days
     task.planning_cycle_start_date = normalized_cycle_start_date
+    if task.parent_task_id != old_parent_task_id:
+        await recompute_subtree_totals(session, task.id)
+        if old_parent_task_id is not None:
+            await recompute_totals_upwards(session, old_parent_task_id)
+        await recompute_totals_upwards(session, task.id)
     await session.flush()
     await session.refresh(task)
     people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
@@ -181,7 +188,10 @@ async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     task = await get_task(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
+    old_parent_task_id = task.parent_task_id
     task.soft_delete()
+    if old_parent_task_id is not None:
+        await recompute_totals_upwards(session, old_parent_task_id)
     await session.flush()
 
 

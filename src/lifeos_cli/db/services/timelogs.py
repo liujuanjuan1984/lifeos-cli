@@ -16,6 +16,7 @@ from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
 from lifeos_cli.db.services.timelog_support import (
     TimelogAreaReferenceNotFoundError,
     TimelogNotFoundError,
@@ -109,6 +110,12 @@ async def create_timelog(
             entity_id=timelog.id,
             entity_type="timelog",
             desired_person_ids=person_ids,
+        )
+    if timelog.task_id is not None:
+        await recompute_task_effort_after_timelog_change(
+            session,
+            old_task_id=None,
+            new_task_id=timelog.task_id,
         )
     await session.refresh(timelog)
     return await _attach_timelog_links(session, timelog)
@@ -215,6 +222,7 @@ async def update_timelog(
     timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=False)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+    old_task_id = timelog.task_id
 
     normalized_start_time = (
         normalize_timelog_datetime(start_time, field_name="start_time") if start_time else None
@@ -277,6 +285,11 @@ async def update_timelog(
             entity_type="timelog",
             desired_person_ids=person_ids,
         )
+    await recompute_task_effort_after_timelog_change(
+        session,
+        old_task_id=old_task_id,
+        new_task_id=timelog.task_id,
+    )
     await session.flush()
     await session.refresh(timelog)
     return await _attach_timelog_links(session, timelog)
@@ -287,7 +300,13 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=False)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+    old_task_id = timelog.task_id
     timelog.soft_delete()
+    await recompute_task_effort_after_timelog_change(
+        session,
+        old_task_id=old_task_id,
+        new_task_id=None,
+    )
     await session.flush()
 
 

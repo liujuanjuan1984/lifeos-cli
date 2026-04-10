@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import events, timelogs
+from lifeos_cli.db.services import events, task_effort, timelogs
 from tests.support import utc_datetime
 
 
@@ -140,6 +140,20 @@ def test_create_timelog_rejects_naive_datetimes() -> None:
         )
 
 
+def test_timelog_minutes_uses_whole_positive_minutes() -> None:
+    timelog = SimpleNamespace(
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 13, 59, 59),
+    )
+    invalid_timelog = SimpleNamespace(
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 12, 59),
+    )
+
+    assert task_effort._timelog_minutes(cast(Any, timelog)) == 59
+    assert task_effort._timelog_minutes(cast(Any, invalid_timelog)) == 0
+
+
 def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     event = SimpleNamespace(
         id=UUID("abababab-abab-abab-abab-abababababab"),
@@ -233,6 +247,12 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(timelogs, "_attach_timelog_links", fake_attach_timelog_links)
     monkeypatch.setattr(timelogs, "sync_entity_tags", fake_sync_tags)
     monkeypatch.setattr(timelogs, "sync_entity_people", fake_sync_people)
+    recompute_task_effort = AsyncMock()
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_task_effort_after_timelog_change",
+        recompute_task_effort,
+    )
 
     updated_timelog = asyncio.run(
         timelogs.update_timelog(
@@ -253,5 +273,10 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
     assert updated_timelog.notes is None
     assert updated_timelog.area_id is None
     assert updated_timelog.task_id is None
+    recompute_task_effort.assert_awaited_once_with(
+        cast(Any, session),
+        old_task_id=UUID("22222222-2222-2222-2222-222222222222"),
+        new_task_id=None,
+    )
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()

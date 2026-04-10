@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from lifeos_cli.db.services.task_effort import (
+    recompute_subtree_totals,
+    recompute_task_effort_after_timelog_change,
+    recompute_task_self_minutes,
+    recompute_totals_upwards,
+)
 from lifeos_cli.db.services.task_mutations import (
     batch_delete_tasks,
     create_task,
@@ -48,6 +54,10 @@ __all__ = [
     "delete_task",
     "get_task",
     "list_tasks",
+    "recompute_subtree_totals",
+    "recompute_task_effort_after_timelog_change",
+    "recompute_task_self_minutes",
+    "recompute_totals_upwards",
     "update_task",
     "validate_planning_cycle",
     "validate_task_status",

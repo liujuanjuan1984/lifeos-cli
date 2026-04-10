@@ -158,6 +158,11 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert_ok(first_timelog_result)
     first_timelog_id = extract_created_id(first_timelog_result.stdout)
 
+    task_with_timelog_result = run_lifeos(integration_context, "task", "show", task_id)
+    assert_ok(task_with_timelog_result)
+    assert "actual_effort_self: 39" in task_with_timelog_result.stdout
+    assert "actual_effort_total: 39" in task_with_timelog_result.stdout
+
     second_timelog_result = run_lifeos(
         integration_context,
         "timelog",
@@ -215,6 +220,11 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "area_id: -" in updated_timelog_result.stdout
     assert "tags: -" in updated_timelog_result.stdout
     assert "people: -" in updated_timelog_result.stdout
+
+    task_after_clear_timelog_result = run_lifeos(integration_context, "task", "show", task_id)
+    assert_ok(task_after_clear_timelog_result)
+    assert "actual_effort_self: 0" in task_after_clear_timelog_result.stdout
+    assert "actual_effort_total: 0" in task_after_clear_timelog_result.stdout
 
     event_delete_result = run_lifeos(
         integration_context,
