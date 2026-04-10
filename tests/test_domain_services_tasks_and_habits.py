@@ -4,12 +4,12 @@ import asyncio
 from datetime import date
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import habit_mutations, habits, task_mutations, tasks
+from lifeos_cli.db.services import habit_mutations, habits, task_mutations, task_support, tasks
 
 
 def test_validate_planning_cycle_requires_complete_fields() -> None:
@@ -37,9 +37,11 @@ def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
         *,
         vision_id: UUID,
         parent_task_id: UUID | None,
+        child_task_id: UUID | None = None,
     ) -> None:
         assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
         assert parent_task_id is None
+        assert child_task_id is None
 
     def fake_add(task: object) -> None:
         session.added_task = task
@@ -104,9 +106,11 @@ def test_update_task_can_clear_parent_without_committing(
         *,
         vision_id: UUID,
         parent_task_id: UUID | None,
+        child_task_id: UUID | None = None,
     ) -> None:
         assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
         assert parent_task_id is None
+        assert child_task_id == task.id
 
     monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
@@ -178,9 +182,11 @@ def test_update_task_can_clear_optional_fields_without_committing(
         *,
         vision_id: UUID,
         parent_task_id: UUID | None,
+        child_task_id: UUID | None = None,
     ) -> None:
         assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
         assert parent_task_id is None
+        assert child_task_id == task.id
 
     monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
@@ -248,9 +254,11 @@ def test_update_task_can_clear_people_without_committing(
         *,
         vision_id: UUID,
         parent_task_id: UUID | None,
+        child_task_id: UUID | None = None,
     ) -> None:
         assert vision_id == UUID("11111111-1111-1111-1111-111111111111")
         assert parent_task_id is None
+        assert child_task_id == task.id
 
     async def fake_sync_people(_: object, **kwargs: object) -> None:
         assert kwargs["entity_type"] == "task"
@@ -275,6 +283,92 @@ def test_update_task_can_clear_people_without_committing(
     assert updated_task.people == []
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
+def test_validate_parent_task_rejects_circular_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root_id = UUID("11111111-1111-1111-1111-111111111111")
+    child_id = UUID("22222222-2222-2222-2222-222222222222")
+    vision_id = UUID("33333333-3333-3333-3333-333333333333")
+    root_task = SimpleNamespace(id=root_id, vision_id=vision_id, parent_task_id=None)
+    child_task = SimpleNamespace(id=child_id, vision_id=vision_id, parent_task_id=root_id)
+
+    async def fake_load_parent_task(_: object, parent_task_id: UUID | None) -> object | None:
+        return {
+            root_id: root_task,
+            child_id: child_task,
+        }.get(parent_task_id)
+
+    monkeypatch.setattr(task_support, "load_parent_task", fake_load_parent_task)
+
+    with pytest.raises(tasks.CircularTaskReferenceError):
+        asyncio.run(
+            task_support.validate_parent_task(
+                cast(Any, object()),
+                vision_id=vision_id,
+                parent_task_id=child_id,
+                child_task_id=root_id,
+            )
+        )
+
+
+def test_validate_task_status_change_rejects_done_with_incomplete_children() -> None:
+    task = SimpleNamespace(id=UUID("11111111-1111-1111-1111-111111111111"), status="todo")
+    result = SimpleNamespace(scalars=lambda: ["done", "todo"])
+    session = SimpleNamespace(execute=AsyncMock(return_value=result))
+
+    with pytest.raises(tasks.TaskCannotBeCompletedError):
+        asyncio.run(
+            tasks.validate_task_status_change(
+                cast(Any, session),
+                task=cast(Any, task),
+                new_status="done",
+            )
+        )
+
+
+def test_delete_task_soft_deletes_subtree_without_committing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root_task = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        parent_task_id=UUID("22222222-2222-2222-2222-222222222222"),
+        soft_delete=Mock(),
+    )
+    child_task = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        parent_task_id=root_task.id,
+        soft_delete=Mock(),
+    )
+    session = SimpleNamespace(flush=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == root_task.id
+        assert include_deleted is False
+        return root_task
+
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(
+        task_mutations,
+        "load_task_subtree",
+        AsyncMock(return_value=[root_task, child_task]),
+    )
+    recompute_upwards = AsyncMock()
+    monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+
+    asyncio.run(task_mutations.delete_task(cast(Any, session), task_id=root_task.id))
+
+    root_task.soft_delete.assert_called_once_with()
+    child_task.soft_delete.assert_called_once_with()
+    recompute_upwards.assert_awaited_once_with(cast(Any, session), root_task.parent_task_id)
+    session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
 

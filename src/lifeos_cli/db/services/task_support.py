@@ -36,6 +36,14 @@ class InvalidPlanningCycleError(ValueError):
     """Raised when planning cycle fields are incomplete or invalid."""
 
 
+class CircularTaskReferenceError(ValueError):
+    """Raised when a task parent change would create a cycle."""
+
+
+class TaskCannotBeCompletedError(ValueError):
+    """Raised when a task status transition is not allowed."""
+
+
 def deduplicate_task_ids(task_ids: list[UUID]) -> list[UUID]:
     """Return task identifiers in their original order without duplicates."""
     return list(dict.fromkeys(task_ids))
@@ -102,6 +110,7 @@ async def validate_parent_task(
     *,
     vision_id: UUID,
     parent_task_id: UUID | None,
+    child_task_id: UUID | None = None,
 ) -> Task | None:
     """Ensure a parent task exists, belongs to the same vision, and respects depth limits."""
     parent_task = await load_parent_task(session, parent_task_id)
@@ -116,6 +125,8 @@ async def validate_parent_task(
     depth = 1
     current = parent_task
     while current.parent_task_id is not None:
+        if current.id == child_task_id:
+            raise CircularTaskReferenceError("This would create a circular task reference")
         depth += 1
         if depth >= MAX_TASK_DEPTH:
             raise InvalidTaskDepthError(
@@ -125,4 +136,56 @@ async def validate_parent_task(
         if next_parent is None:
             break
         current = next_parent
+    if current.id == child_task_id:
+        raise CircularTaskReferenceError("This would create a circular task reference")
     return parent_task
+
+
+async def validate_task_status_change(
+    session: AsyncSession,
+    *,
+    task: Task,
+    new_status: str,
+) -> str:
+    """Validate status transitions that depend on task hierarchy state."""
+    normalized_status = validate_task_status(new_status)
+    if normalized_status == task.status:
+        return normalized_status
+    if normalized_status != "done":
+        return normalized_status
+
+    result = await session.execute(
+        select(Task.status).where(
+            Task.parent_task_id == task.id,
+            Task.deleted_at.is_(None),
+        )
+    )
+    child_statuses = list(result.scalars())
+    if child_statuses and any(status != "done" for status in child_statuses):
+        raise TaskCannotBeCompletedError(
+            "Task cannot be completed until all direct subtasks are done"
+        )
+    return normalized_status
+
+
+async def load_task_subtree(session: AsyncSession, *, root_task_id: UUID) -> list[Task]:
+    """Load an active task subtree in breadth-first order."""
+    root_task = await load_parent_task(session, root_task_id)
+    if root_task is None:
+        return []
+
+    subtree: list[Task] = []
+    queue = [root_task]
+    while queue:
+        task = queue.pop(0)
+        subtree.append(task)
+        children = (
+            await session.execute(
+                select(Task).where(
+                    Task.parent_task_id == task.id,
+                    Task.deleted_at.is_(None),
+                )
+            )
+        ).scalars()
+        queue.extend(children)
+    return subtree

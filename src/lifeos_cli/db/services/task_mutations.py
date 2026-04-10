@@ -17,9 +17,11 @@ from lifeos_cli.db.services.task_support import (
     TaskNotFoundError,
     deduplicate_task_ids,
     ensure_vision_exists,
+    load_task_subtree,
     validate_parent_task,
     validate_planning_cycle,
     validate_task_status,
+    validate_task_status_change,
 )
 
 
@@ -129,7 +131,10 @@ async def update_task(
         else task.planning_cycle_start_date
     )
     await validate_parent_task(
-        session, vision_id=task.vision_id, parent_task_id=next_parent_task_id
+        session,
+        vision_id=task.vision_id,
+        parent_task_id=next_parent_task_id,
+        child_task_id=task.id,
     )
     (
         normalized_cycle_type,
@@ -151,7 +156,7 @@ async def update_task(
     elif parent_task_id is not None:
         task.parent_task_id = parent_task_id
     if status is not None:
-        task.status = validate_task_status(status)
+        task.status = await validate_task_status_change(session, task=task, new_status=status)
     if priority is not None:
         task.priority = priority
     if display_order is not None:
@@ -189,7 +194,9 @@ async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     old_parent_task_id = task.parent_task_id
-    task.soft_delete()
+    subtree = await load_task_subtree(session, root_task_id=task_id)
+    for subtree_task in subtree:
+        subtree_task.soft_delete()
     if old_parent_task_id is not None:
         await recompute_totals_upwards(session, old_parent_task_id)
     await session.flush()
