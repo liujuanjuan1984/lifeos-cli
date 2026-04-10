@@ -26,21 +26,12 @@ def test_main_area_add_creates_area(
 ) -> None:
     async def fake_create_area(session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "Health"
-        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("11111111-1111-1111-1111-111111111111"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(areas, "create_area", fake_create_area)
 
-    exit_code = cli.main(
-        [
-            "area",
-            "add",
-            "Health",
-            "--person-id",
-            "11111111-1111-1111-1111-111111111111",
-        ]
-    )
+    exit_code = cli.main(["area", "add", "Health"])
     captured = capsys.readouterr()
 
     assert exit_code == 0

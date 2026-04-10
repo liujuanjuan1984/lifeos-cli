@@ -132,8 +132,6 @@ def test_cli_parser_supports_area_add_command() -> None:
             "Health",
             "--display-order",
             "2",
-            "--person-id",
-            "11111111-1111-1111-1111-111111111111",
         ]
     )
 
@@ -141,7 +139,6 @@ def test_cli_parser_supports_area_add_command() -> None:
     assert args.area_command == "add"
     assert args.name == "Health"
     assert args.display_order == 2
-    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_area_update_clear_icon_command() -> None:

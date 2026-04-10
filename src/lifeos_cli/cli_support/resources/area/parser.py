@@ -65,27 +65,15 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 'lifeos area add "Health"',
                 'lifeos area add "Deep Work" --color "#2563EB" --icon brain --display-order 10',
-                'lifeos area add "Family" --person-id 11111111-1111-1111-1111-111111111111',
                 'lifeos area add "Travel" --inactive',
             ),
-            notes=(
-                "Use `--inactive` when the area should exist but not appear as active yet.",
-                "Repeat `--person-id` to associate one or more people.",
-            ),
+            notes=("Use `--inactive` when the area should exist but not appear as active yet.",),
         ),
     )
     add_parser.add_argument("name", help="Area name")
     add_parser.add_argument("--description", help="Optional area description")
     add_parser.add_argument("--color", default="#3B82F6", help="Hex color code")
     add_parser.add_argument("--icon", help="Optional icon identifier")
-    add_parser.add_argument(
-        "--person-id",
-        dest="person_ids",
-        type=UUID,
-        action="append",
-        default=None,
-        help="Repeat to associate one or more people",
-    )
     add_parser.add_argument("--inactive", action="store_true", help="Create the area as inactive")
     add_parser.add_argument("--display-order", type=int, default=0, help="Display order")
     add_parser.set_defaults(handler=handle_area_add)
@@ -102,7 +90,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             examples=(
                 "lifeos area list",
-                "lifeos area list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos area list --include-inactive",
                 "lifeos area list --include-deleted --limit 20 --offset 20",
             ),
@@ -113,7 +100,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     add_include_deleted_argument(list_parser, noun="areas")
-    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
     list_parser.add_argument(
         "--include-inactive", action="store_true", help="Include inactive areas"
     )
@@ -153,14 +139,9 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos area update 11111111-1111-1111-1111-111111111111 --name "Fitness"',
                 "lifeos area update 11111111-1111-1111-1111-111111111111 "
                 "--display-order 20 --active",
-                "lifeos area update 11111111-1111-1111-1111-111111111111 "
-                "--person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-icon",
             ),
-            notes=(
-                "Use `--clear-description`, `--clear-icon`, or `--clear-people` "
-                "to remove optional values.",
-            ),
+            notes=("Use `--clear-description` or `--clear-icon` to remove optional values.",),
         ),
     )
     update_parser.add_argument("area_id", type=UUID, help="Area identifier")
@@ -177,19 +158,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--clear-icon",
         action="store_true",
         help="Clear the optional icon identifier",
-    )
-    update_parser.add_argument(
-        "--person-id",
-        dest="person_ids",
-        type=UUID,
-        action="append",
-        default=None,
-        help="Repeat to replace people with one or more identifiers",
-    )
-    update_parser.add_argument(
-        "--clear-people",
-        action="store_true",
-        help="Remove all linked people",
     )
     update_parser.add_argument(
         "--active",

@@ -61,7 +61,6 @@ RESOURCE_TAG_ENTITY_TYPES: dict[str, str] = {
 }
 
 RESOURCE_PERSON_ENTITY_TYPES: dict[str, str] = {
-    "area": "area",
     "event": "event",
     "tag": "tag",
     "timelog": "timelog",

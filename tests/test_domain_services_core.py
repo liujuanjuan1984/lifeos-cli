@@ -55,11 +55,6 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
         return area
 
     monkeypatch.setattr(areas, "get_area", fake_get_area)
-    monkeypatch.setattr(
-        areas,
-        "load_people_for_entities",
-        AsyncMock(return_value={area.id: []}),
-    )
 
     updated_area = asyncio.run(
         areas.update_area(
@@ -76,7 +71,7 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
     session.commit.assert_not_called()
 
 
-def test_create_area_syncs_people_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_area_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(
         add=None,
         flush=AsyncMock(),
@@ -88,27 +83,16 @@ def test_create_area_syncs_people_without_committing(monkeypatch: pytest.MonkeyP
     def fake_add(area: object) -> None:
         session.added_area = area
 
-    async def fake_sync_people(_: object, **kwargs: object) -> None:
-        assert kwargs["entity_type"] == "area"
-        assert kwargs["desired_person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
-
-    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
-        area_id = cast(Any, session.added_area).id
-        return {area_id: [SimpleNamespace(name="Alice")]}
-
     session.add = fake_add
-    monkeypatch.setattr(areas, "sync_entity_people", fake_sync_people)
-    monkeypatch.setattr(areas, "load_people_for_entities", fake_load_people)
 
     area = asyncio.run(
         areas.create_area(
             cast(Any, session),
             name="Health",
-            person_ids=[UUID("11111111-1111-1111-1111-111111111111")],
         )
     )
 
-    assert len(area.people) == 1
+    assert area.name == "Health"
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 

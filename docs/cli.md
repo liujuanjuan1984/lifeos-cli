@@ -226,8 +226,8 @@ Current intent:
 - standalone `search` is intentionally deferred for now
 - `batch` is the grouped namespace for multi-record write operations
 - `habit-action` is a top-level resource instead of a nested `habit action` command tree
-- repeated `--person-id` flags attach people to supported resources such as `area`, `tag`,
-  `vision`, `task`, `event`, and `timelog`
+- repeated `--person-id` flags attach people to supported resources such as `tag`, `vision`,
+  `task`, `event`, and `timelog`
 
 ## Structured Resource Workflows
 
@@ -237,8 +237,6 @@ These examples show the current intended command shape for the new structured re
 
 ```bash
 lifeos area add "Health" --description "Long-term wellbeing" --icon heart
-lifeos area update <area-id> --person-id <person-id-1> --person-id <person-id-2>
-lifeos area list --person-id <person-id>
 lifeos area list
 lifeos area show <area-id>
 lifeos area update <area-id> --name "Fitness" --clear-icon

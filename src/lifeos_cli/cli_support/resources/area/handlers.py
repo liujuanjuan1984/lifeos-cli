@@ -21,9 +21,6 @@ def _format_area_summary(area: Area) -> str:
 
 
 def _format_area_detail(area: Area) -> str:
-    people_names = (
-        ", ".join(person.name for person in area.people) if getattr(area, "people", None) else "-"
-    )
     return "\n".join(
         (
             f"id: {area.id}",
@@ -33,7 +30,6 @@ def _format_area_detail(area: Area) -> str:
             f"icon: {area.icon or '-'}",
             f"is_active: {area.is_active}",
             f"display_order: {area.display_order}",
-            f"people: {people_names}",
             f"created_at: {format_timestamp(area.created_at)}",
             f"updated_at: {format_timestamp(area.updated_at)}",
             f"deleted_at: {format_timestamp(area.deleted_at)}",
@@ -52,7 +48,6 @@ async def handle_area_add_async(args: argparse.Namespace) -> int:
                 icon=args.icon,
                 is_active=not args.inactive,
                 display_order=args.display_order,
-                person_ids=args.person_ids,
             )
         except area_services.AreaAlreadyExistsError as exc:
             print(str(exc), file=sys.stderr)
@@ -71,7 +66,6 @@ async def handle_area_list_async(args: argparse.Namespace) -> int:
             session,
             include_deleted=args.include_deleted,
             include_inactive=args.include_inactive,
-            person_id=args.person_id,
             limit=args.limit,
             offset=args.offset,
         )
@@ -112,9 +106,6 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
     if args.clear_icon and args.icon is not None:
         print("Use either --icon or --clear-icon, not both.", file=sys.stderr)
         return 1
-    if args.clear_people and args.person_ids is not None:
-        print("Use either --person-id or --clear-people, not both.", file=sys.stderr)
-        return 1
     async with db_session.session_scope() as session:
         try:
             area = await area_services.update_area(
@@ -126,8 +117,6 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
                 color=args.color,
                 icon=args.icon,
                 clear_icon=args.clear_icon,
-                person_ids=args.person_ids,
-                clear_people=args.clear_people,
                 is_active=args.active,
                 display_order=args.display_order,
             )
