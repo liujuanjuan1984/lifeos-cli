@@ -13,6 +13,7 @@ from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
 from lifeos_cli.db.services.task_support import (
+    VALID_PLANNING_CYCLE_TYPES,
     TaskNotFoundError,
     ensure_vision_exists,
     load_task_subtree,
@@ -127,6 +128,23 @@ def _build_task_tree(tasks: list[Task]) -> tuple[TaskWithSubtasks, ...]:
     return tuple(convert(task, depth=0) for task in root_tasks)
 
 
+def _split_csv(value: str | None) -> list[str]:
+    """Return non-empty comma-separated values."""
+    if value is None:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _parse_uuid_csv(value: str | None) -> list[UUID]:
+    """Parse comma-separated UUID values."""
+    return [UUID(item) for item in _split_csv(value)]
+
+
+def _parse_status_csv(value: str | None) -> list[str]:
+    """Parse comma-separated task statuses."""
+    return [validate_task_status(item) for item in _split_csv(value)]
+
+
 async def get_task(
     session: AsyncSession,
     *,
@@ -148,9 +166,15 @@ async def list_tasks(
     session: AsyncSession,
     *,
     vision_id: UUID | None = None,
+    vision_in: str | None = None,
     parent_task_id: UUID | None = None,
     person_id: UUID | None = None,
     status: str | None = None,
+    status_in: str | None = None,
+    exclude_status: str | None = None,
+    planning_cycle_type: str | None = None,
+    planning_cycle_start_date: date | None = None,
+    content: str | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -161,6 +185,9 @@ async def list_tasks(
         stmt = stmt.where(Task.deleted_at.is_(None))
     if vision_id is not None:
         stmt = stmt.where(Task.vision_id == vision_id)
+    vision_ids = _parse_uuid_csv(vision_in)
+    if vision_ids:
+        stmt = stmt.where(Task.vision_id.in_(vision_ids))
     if parent_task_id is None and vision_id is not None:
         stmt = stmt.where(Task.parent_task_id.is_(None))
     elif parent_task_id is not None:
@@ -173,6 +200,26 @@ async def list_tasks(
         ).where(person_associations.c.person_id == person_id)
     if status is not None:
         stmt = stmt.where(Task.status == validate_task_status(status))
+    included_statuses = _parse_status_csv(status_in)
+    if included_statuses:
+        stmt = stmt.where(Task.status.in_(included_statuses))
+    excluded_statuses = _parse_status_csv(exclude_status)
+    if excluded_statuses:
+        stmt = stmt.where(Task.status.not_in(excluded_statuses))
+    if planning_cycle_type is not None:
+        normalized_cycle_type = planning_cycle_type.strip().lower()
+        if normalized_cycle_type not in VALID_PLANNING_CYCLE_TYPES:
+            allowed = ", ".join(sorted(VALID_PLANNING_CYCLE_TYPES))
+            raise ValueError(
+                f"Invalid planning cycle type {normalized_cycle_type!r}. Expected one of: {allowed}"
+            )
+        stmt = stmt.where(Task.planning_cycle_type == normalized_cycle_type)
+    if planning_cycle_start_date is not None:
+        stmt = stmt.where(Task.planning_cycle_start_date == planning_cycle_start_date)
+    if content is not None:
+        normalized_content = content.strip()
+        if normalized_content:
+            stmt = stmt.where(Task.content == normalized_content)
     stmt = (
         stmt.order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
         .offset(offset)

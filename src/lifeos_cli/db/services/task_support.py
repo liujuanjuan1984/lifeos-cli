@@ -44,6 +44,10 @@ class TaskCannotBeCompletedError(ValueError):
     """Raised when a task status transition is not allowed."""
 
 
+class InvalidTaskOperationError(ValueError):
+    """Raised when a task operation is inconsistent with current state."""
+
+
 def deduplicate_task_ids(task_ids: list[UUID]) -> list[UUID]:
     """Return task identifiers in their original order without duplicates."""
     return list(dict.fromkeys(task_ids))

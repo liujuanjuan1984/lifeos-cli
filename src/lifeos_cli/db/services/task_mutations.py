@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
@@ -13,6 +15,7 @@ from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_
 from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
 from lifeos_cli.db.services.task_queries import get_task
 from lifeos_cli.db.services.task_support import (
+    InvalidTaskOperationError,
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
     deduplicate_task_ids,
@@ -23,6 +26,14 @@ from lifeos_cli.db.services.task_support import (
     validate_task_status,
     validate_task_status_change,
 )
+
+
+@dataclass(frozen=True)
+class TaskMoveResult:
+    """Result payload for moving a task."""
+
+    task: Task
+    updated_descendants: tuple[Task, ...]
 
 
 async def create_task(
@@ -72,6 +83,102 @@ async def create_task(
     people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
     task.people = people_map.get(task.id, [])
     return task
+
+
+async def reorder_tasks(
+    session: AsyncSession,
+    *,
+    task_orders: list[tuple[UUID, int]],
+) -> None:
+    """Update display order for multiple active tasks."""
+    if not task_orders:
+        return
+
+    task_ids = [task_id for task_id, _ in task_orders]
+    result = await session.execute(
+        select(Task).where(Task.id.in_(task_ids), Task.deleted_at.is_(None))
+    )
+    tasks = list(result.scalars())
+    if len(tasks) != len(set(task_ids)):
+        raise TaskNotFoundError("One or more tasks were not found")
+
+    tasks_by_id = {task.id: task for task in tasks}
+    for task_id, display_order in task_orders:
+        tasks_by_id[task_id].display_order = display_order
+    await session.flush()
+
+
+async def _update_descendant_visions(
+    session: AsyncSession,
+    *,
+    root_task_id: UUID,
+    new_vision_id: UUID,
+) -> tuple[Task, ...]:
+    """Update descendant vision ownership after moving a task subtree."""
+    subtree = await load_task_subtree(session, root_task_id=root_task_id)
+    updated_descendants: list[Task] = []
+    for descendant in subtree[1:]:
+        if descendant.vision_id == new_vision_id:
+            continue
+        descendant.vision_id = new_vision_id
+        updated_descendants.append(descendant)
+    return tuple(updated_descendants)
+
+
+async def move_task(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+    old_parent_task_id: UUID | None = None,
+    new_parent_task_id: UUID | None = None,
+    new_vision_id: UUID | None = None,
+    new_display_order: int = 0,
+) -> TaskMoveResult:
+    """Move a task to a new parent and optionally a new vision."""
+    task = await get_task(session, task_id=task_id)
+    if task is None:
+        raise TaskNotFoundError(f"Task {task_id} was not found")
+
+    if old_parent_task_id is not None and old_parent_task_id != task.parent_task_id:
+        raise InvalidTaskOperationError("Old parent task ID does not match current parent task ID")
+
+    old_parent_task_id = task.parent_task_id
+    old_vision_id = task.vision_id
+    target_vision_id = new_vision_id or old_vision_id
+    if new_vision_id is not None and new_vision_id != old_vision_id:
+        await ensure_vision_exists(session, new_vision_id)
+
+    if new_parent_task_id == task.id:
+        raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
+    await validate_parent_task(
+        session,
+        vision_id=target_vision_id,
+        parent_task_id=new_parent_task_id,
+        child_task_id=task.id,
+    )
+
+    task.parent_task_id = new_parent_task_id
+    task.display_order = new_display_order
+    updated_descendants: tuple[Task, ...] = ()
+    if target_vision_id != old_vision_id:
+        task.vision_id = target_vision_id
+        updated_descendants = await _update_descendant_visions(
+            session,
+            root_task_id=task.id,
+            new_vision_id=target_vision_id,
+        )
+
+    await recompute_subtree_totals(session, task.id)
+    if old_parent_task_id is not None:
+        await recompute_totals_upwards(session, old_parent_task_id)
+    if new_parent_task_id is not None:
+        await recompute_totals_upwards(session, new_parent_task_id)
+    await recompute_totals_upwards(session, task.id)
+    await session.flush()
+    await session.refresh(task)
+    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
+    task.people = people_map.get(task.id, [])
+    return TaskMoveResult(task=task, updated_descendants=updated_descendants)
 
 
 async def update_task(

@@ -151,6 +151,111 @@ def test_update_task_can_clear_parent_without_committing(
     session.commit.assert_not_called()
 
 
+def test_move_task_updates_parent_vision_and_descendants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+        parent_task_id=UUID("33333333-3333-3333-3333-333333333333"),
+        display_order=0,
+    )
+    descendant = SimpleNamespace(
+        id=UUID("44444444-4444-4444-4444-444444444444"),
+        vision_id=UUID("55555555-5555-5555-5555-555555555555"),
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == task.id
+        assert include_deleted is False
+        return task
+
+    async def fake_ensure_vision_exists(_: object, vision_id: UUID) -> None:
+        assert vision_id == UUID("55555555-5555-5555-5555-555555555555")
+
+    async def fake_validate_parent_task(_: object, **kwargs: object) -> None:
+        assert kwargs["vision_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        assert kwargs["parent_task_id"] == UUID("66666666-6666-6666-6666-666666666666")
+        assert kwargs["child_task_id"] == task.id
+
+    async def fake_update_descendant_visions(_: object, **kwargs: object) -> tuple[object, ...]:
+        assert kwargs["root_task_id"] == task.id
+        assert kwargs["new_vision_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        return (descendant,)
+
+    recompute_subtree = AsyncMock()
+    recompute_upwards = AsyncMock()
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(
+        task_mutations,
+        "_update_descendant_visions",
+        fake_update_descendant_visions,
+    )
+    monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
+    monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(
+        task_mutations,
+        "load_people_for_entities",
+        AsyncMock(return_value={task.id: []}),
+    )
+
+    result = asyncio.run(
+        tasks.move_task(
+            cast(Any, session),
+            task_id=task.id,
+            old_parent_task_id=task.parent_task_id,
+            new_parent_task_id=UUID("66666666-6666-6666-6666-666666666666"),
+            new_vision_id=UUID("55555555-5555-5555-5555-555555555555"),
+            new_display_order=7,
+        )
+    )
+
+    assert result.task is task
+    assert result.updated_descendants == (descendant,)
+    assert task.parent_task_id == UUID("66666666-6666-6666-6666-666666666666")
+    assert task.vision_id == UUID("55555555-5555-5555-5555-555555555555")
+    assert task.display_order == 7
+    recompute_subtree.assert_awaited_once_with(cast(Any, session), task.id)
+    recompute_upwards.assert_any_await(
+        cast(Any, session),
+        UUID("33333333-3333-3333-3333-333333333333"),
+    )
+    recompute_upwards.assert_any_await(
+        cast(Any, session),
+        UUID("66666666-6666-6666-6666-666666666666"),
+    )
+    recompute_upwards.assert_any_await(cast(Any, session), task.id)
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
+def test_reorder_tasks_updates_display_order_without_committing() -> None:
+    task_1 = SimpleNamespace(id=UUID("11111111-1111-1111-1111-111111111111"), display_order=3)
+    task_2 = SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"), display_order=4)
+    result = SimpleNamespace(scalars=lambda: [task_1, task_2])
+    session = SimpleNamespace(execute=AsyncMock(return_value=result), flush=AsyncMock())
+
+    asyncio.run(
+        tasks.reorder_tasks(
+            cast(Any, session),
+            task_orders=[(task_1.id, 0), (task_2.id, 1)],
+        )
+    )
+
+    assert task_1.display_order == 0
+    assert task_2.display_order == 1
+    session.flush.assert_awaited_once()
+
+
 def test_update_task_can_clear_optional_fields_without_committing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

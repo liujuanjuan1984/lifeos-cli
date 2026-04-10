@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 import pytest
@@ -488,6 +489,104 @@ def test_main_task_read_model_commands_print_results(
     assert "root_tasks:" in captured.out
     assert "total_subtasks: 1" in captured.out
     assert "completion_percentage: 0.50" in captured.out
+
+
+def test_main_task_list_passes_extended_filters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_tasks(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["vision_in"] == "44444444-4444-4444-4444-444444444444"
+        assert kwargs["status_in"] == "todo,in_progress"
+        assert kwargs["exclude_status"] == "cancelled"
+        assert kwargs["planning_cycle_type"] == "week"
+        assert kwargs["planning_cycle_start_date"] == date(2026, 4, 10)
+        assert kwargs["content"] == "Draft release checklist"
+        return []
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "list_tasks", fake_list_tasks)
+
+    exit_code = cli.main(
+        [
+            "task",
+            "list",
+            "--vision-in",
+            "44444444-4444-4444-4444-444444444444",
+            "--status-in",
+            "todo,in_progress",
+            "--exclude-status",
+            "cancelled",
+            "--planning-cycle-type",
+            "week",
+            "--planning-cycle-start-date",
+            "2026-04-10",
+            "--content",
+            "Draft release checklist",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "No tasks found." in captured.out
+
+
+def test_main_task_move_and_reorder_call_services(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_move_task(session: object, **kwargs: object) -> object:
+        assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        assert kwargs["old_parent_task_id"] == UUID("66666666-6666-6666-6666-666666666666")
+        assert kwargs["new_parent_task_id"] == UUID("77777777-7777-7777-7777-777777777777")
+        assert kwargs["new_vision_id"] == UUID("88888888-8888-8888-8888-888888888888")
+        assert kwargs["new_display_order"] == 3
+        return make_record(
+            task=make_record(id=UUID("55555555-5555-5555-5555-555555555555")),
+            updated_descendants=(),
+        )
+
+    async def fake_reorder_tasks(session: object, **kwargs: object) -> None:
+        assert kwargs["task_orders"] == [
+            (UUID("55555555-5555-5555-5555-555555555555"), 0),
+            (UUID("66666666-6666-6666-6666-666666666666"), 1),
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "move_task", fake_move_task)
+    monkeypatch.setattr(tasks, "reorder_tasks", fake_reorder_tasks)
+
+    move_exit_code = cli.main(
+        [
+            "task",
+            "move",
+            "55555555-5555-5555-5555-555555555555",
+            "--old-parent-task-id",
+            "66666666-6666-6666-6666-666666666666",
+            "--new-parent-task-id",
+            "77777777-7777-7777-7777-777777777777",
+            "--new-vision-id",
+            "88888888-8888-8888-8888-888888888888",
+            "--new-display-order",
+            "3",
+        ]
+    )
+    reorder_exit_code = cli.main(
+        [
+            "task",
+            "reorder",
+            "--order",
+            "55555555-5555-5555-5555-555555555555:0",
+            "--order",
+            "66666666-6666-6666-6666-666666666666:1",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert move_exit_code == 0
+    assert reorder_exit_code == 0
+    assert "Moved task 55555555-5555-5555-5555-555555555555" in captured.out
+    assert "Reordered tasks: 2" in captured.out
 
 
 def test_main_task_batch_delete_prints_summary(

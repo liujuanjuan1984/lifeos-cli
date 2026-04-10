@@ -261,6 +261,36 @@ def test_cli_parser_supports_task_list_person_filter() -> None:
     assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
 
 
+def test_cli_parser_supports_task_list_extended_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "list",
+            "--vision-in",
+            "11111111-1111-1111-1111-111111111111,22222222-2222-2222-2222-222222222222",
+            "--status-in",
+            "todo,in_progress",
+            "--exclude-status",
+            "cancelled",
+            "--planning-cycle-type",
+            "week",
+            "--planning-cycle-start-date",
+            "2026-04-10",
+            "--content",
+            "Draft release checklist",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "list"
+    assert args.status_in == "todo,in_progress"
+    assert args.exclude_status == "cancelled"
+    assert args.planning_cycle_type == "week"
+    assert args.planning_cycle_start_date == "2026-04-10"
+    assert args.content == "Draft release checklist"
+
+
 def test_cli_parser_supports_task_read_model_commands() -> None:
     parser = build_parser()
 
@@ -281,6 +311,49 @@ def test_cli_parser_supports_task_read_model_commands() -> None:
     assert stats_args.resource == "task"
     assert stats_args.task_command == "stats"
     assert str(stats_args.task_id) == "33333333-3333-3333-3333-333333333333"
+
+
+def test_cli_parser_supports_task_move_and_reorder_commands() -> None:
+    parser = build_parser()
+
+    move_args = parser.parse_args(
+        [
+            "task",
+            "move",
+            "11111111-1111-1111-1111-111111111111",
+            "--old-parent-task-id",
+            "22222222-2222-2222-2222-222222222222",
+            "--new-parent-task-id",
+            "33333333-3333-3333-3333-333333333333",
+            "--new-vision-id",
+            "44444444-4444-4444-4444-444444444444",
+            "--new-display-order",
+            "2",
+        ]
+    )
+    reorder_args = parser.parse_args(
+        [
+            "task",
+            "reorder",
+            "--order",
+            "11111111-1111-1111-1111-111111111111:0",
+            "--order",
+            "22222222-2222-2222-2222-222222222222:1",
+        ]
+    )
+
+    assert move_args.resource == "task"
+    assert move_args.task_command == "move"
+    assert str(move_args.old_parent_task_id) == "22222222-2222-2222-2222-222222222222"
+    assert str(move_args.new_parent_task_id) == "33333333-3333-3333-3333-333333333333"
+    assert str(move_args.new_vision_id) == "44444444-4444-4444-4444-444444444444"
+    assert move_args.new_display_order == 2
+    assert reorder_args.resource == "task"
+    assert reorder_args.task_command == "reorder"
+    assert reorder_args.order == [
+        "11111111-1111-1111-1111-111111111111:0",
+        "22222222-2222-2222-2222-222222222222:1",
+    ]
 
 
 def test_cli_parser_supports_timelog_add_command() -> None:
