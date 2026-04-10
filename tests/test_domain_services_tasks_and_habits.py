@@ -11,6 +11,7 @@ import pytest
 
 from lifeos_cli.db.services import (
     habit_mutations,
+    habit_queries,
     habits,
     task_mutations,
     task_queries,
@@ -667,3 +668,33 @@ def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.Monk
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(habit)
     session.commit.assert_not_called()
+
+
+def test_habit_task_associations_require_active_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    statements: list[object] = []
+
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace()
+
+    async def fake_execute(statement: object) -> Result:
+        statements.append(statement)
+        return Result()
+
+    async def fake_refresh_habit_expiration(_: object) -> int:
+        return 0
+
+    session.execute = fake_execute
+    monkeypatch.setattr(habit_queries, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    associations = asyncio.run(habits.get_habit_task_associations(cast(Any, session)))
+
+    assert associations == {}
+    assert statements
+    compiled = str(statements[-1])
+    assert "tasks.deleted_at IS NULL" in compiled
+    assert "habits.status =" not in compiled

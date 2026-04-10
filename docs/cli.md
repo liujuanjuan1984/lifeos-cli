@@ -282,6 +282,7 @@ Current event notes:
 ```bash
 lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
 lifeos habit list --with-stats
+lifeos habit list --status active --count
 lifeos habit show <habit-id>
 lifeos habit update <habit-id> --status paused
 lifeos habit stats <habit-id>
@@ -294,13 +295,14 @@ Current habit notes:
 - a habit generates one dated `habit-action` row per day in its duration
 - updating start dates or duration automatically reconciles generated action rows
 - current-day and weekly stats use the configured timezone, `day_starts_at`, and `week_starts_on`
+- task associations include non-deleted habits linked to non-deleted tasks
 - habit deletion is soft deletion only in the public CLI
 
 ### Habit Action
 
 ```bash
 lifeos habit-action list --habit-id <habit-id>
-lifeos habit-action list --action-date 2026-04-09
+lifeos habit-action list --action-date 2026-04-09 --count
 lifeos habit-action show <action-id>
 lifeos habit-action update <action-id> --status done
 lifeos habit-action update <action-id> --clear-notes

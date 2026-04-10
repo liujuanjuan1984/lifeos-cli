@@ -958,6 +958,40 @@ def test_main_habit_add_creates_habit(
     assert "Created habit 77777777-7777-7777-7777-777777777777" in captured.out
 
 
+def test_main_habit_list_prints_count(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_habits(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["status"] == "active"
+        return [
+            make_record(
+                id=UUID("77777777-7777-7777-7777-777777777777"),
+                deleted_at=None,
+                status="active",
+                start_date=date(2026, 4, 9),
+                duration_days=21,
+                task_id=None,
+                title="Daily Exercise",
+            )
+        ]
+
+    async def fake_count_habits(session: object, **kwargs: object) -> int:
+        assert kwargs["status"] == "active"
+        return 1
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habits, "list_habits", fake_list_habits)
+    monkeypatch.setattr(habits, "count_habits", fake_count_habits)
+
+    exit_code = cli.main(["habit", "list", "--status", "active", "--count"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Daily Exercise" in captured.out
+    assert "Total habits: 1" in captured.out
+
+
 def test_main_habit_update_rejects_conflicting_clear_task_flags(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -975,6 +1009,39 @@ def test_main_habit_update_rejects_conflicting_clear_task_flags(
 
     assert exit_code == 1
     assert "Use either --task-id or --clear-task, not both." in captured.err
+
+
+def test_main_habit_action_list_prints_count(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_habit_actions(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["action_date"] == date(2026, 4, 9)
+        return [
+            make_record(
+                id=UUID("88888888-8888-8888-8888-888888888888"),
+                deleted_at=None,
+                status="pending",
+                action_date=date(2026, 4, 9),
+                habit_id=UUID("77777777-7777-7777-7777-777777777777"),
+                habit=make_record(title="Daily Exercise"),
+            )
+        ]
+
+    async def fake_count_habit_actions(session: object, **kwargs: object) -> int:
+        assert kwargs["action_date"] == date(2026, 4, 9)
+        return 1
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habit_actions, "list_habit_actions", fake_list_habit_actions)
+    monkeypatch.setattr(habit_actions, "count_habit_actions", fake_count_habit_actions)
+
+    exit_code = cli.main(["habit-action", "list", "--action-date", "2026-04-09", "--count"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Daily Exercise" in captured.out
+    assert "Total habit actions: 1" in captured.out
 
 
 def test_main_habit_action_update_can_clear_notes(

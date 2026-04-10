@@ -62,6 +62,7 @@ def build_habit_action_parser(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action list --action-date 2026-04-09",
                 "lifeos habit-action list --center-date 2026-04-09 --days-before 3 --days-after 3",
+                "lifeos habit-action list --action-date 2026-04-09 --count",
             ),
             notes=(
                 "Use `--action-date` for one exact day.",
@@ -83,6 +84,7 @@ def build_habit_action_parser(
     )
     list_parser.add_argument("--days-before", type=int, help="Days before the center date")
     list_parser.add_argument("--days-after", type=int, help="Days after the center date")
+    list_parser.add_argument("--count", action="store_true", help="Print total matched count")
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
     list_parser.set_defaults(handler=handle_habit_action_list)

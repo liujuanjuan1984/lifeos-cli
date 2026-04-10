@@ -50,6 +50,20 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
+            total_count = (
+                await habit_action_services.count_habit_actions(
+                    session,
+                    habit_id=args.habit_id,
+                    status=args.status,
+                    action_date=args.action_date,
+                    center_date=args.center_date,
+                    days_before=args.days_before,
+                    days_after=args.days_after,
+                    include_deleted=args.include_deleted,
+                )
+                if args.count
+                else None
+            )
         except (
             habit_action_services.HabitNotFoundError,
             habit_action_services.HabitValidationError,
@@ -58,9 +72,13 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
             return 1
     if not actions:
         print("No habit actions found.")
+        if total_count is not None:
+            print(f"Total habit actions: {total_count}")
         return 0
     for action in actions:
         print(_format_habit_action_summary(action))
+    if total_count is not None:
+        print(f"Total habit actions: {total_count}")
     return 0
 
 

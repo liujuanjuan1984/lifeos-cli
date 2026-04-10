@@ -103,6 +103,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos habit list",
                 "lifeos habit list --status active --with-stats",
                 'lifeos habit list --title "Daily Exercise" --active-window-only',
+                "lifeos habit list --status active --count",
             ),
             notes=(
                 "Use `--with-stats` when the summary should include progress and streak fields.",
@@ -122,6 +123,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         action="store_true",
         help="Include progress and streak information in each summary row",
     )
+    list_parser.add_argument("--count", action="store_true", help="Print total matched count")
     add_include_deleted_argument(list_parser, noun="habits")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_habit_list)

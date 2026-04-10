@@ -592,6 +592,16 @@ def test_cli_parser_supports_habit_add_command() -> None:
     assert args.duration_days == 21
 
 
+def test_cli_parser_supports_habit_list_count_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["habit", "list", "--status", "active", "--count"])
+
+    assert args.resource == "habit"
+    assert args.habit_command == "list"
+    assert args.status == "active"
+    assert args.count is True
+
+
 def test_cli_parser_supports_habit_update_clear_task_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -623,6 +633,15 @@ def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
     assert args.resource == "habit-action"
     assert args.habit_action_command == "list"
     assert str(args.action_date) == "2026-04-09"
+
+
+def test_cli_parser_supports_habit_action_list_count_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["habit-action", "list", "--action-date", "2026-04-09", "--count"])
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "list"
+    assert args.count is True
 
 
 def test_cli_parser_supports_event_update_clear_people_command() -> None:

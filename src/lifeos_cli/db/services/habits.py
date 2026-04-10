@@ -10,6 +10,8 @@ from lifeos_cli.db.services.habit_mutations import (
     update_habit_action,
 )
 from lifeos_cli.db.services.habit_queries import (
+    count_habit_actions,
+    count_habits,
     get_habit,
     get_habit_action,
     get_habit_overview,
@@ -46,6 +48,8 @@ __all__ = [
     "batch_delete_habits",
     "create_habit",
     "delete_habit",
+    "count_habit_actions",
+    "count_habits",
     "get_habit",
     "get_habit_action",
     "get_habit_overview",
