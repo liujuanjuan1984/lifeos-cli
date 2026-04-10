@@ -216,6 +216,52 @@ def test_main_timelog_list_passes_search_filters(
     assert "Total timelogs: 1" in captured.out
 
 
+def test_main_timelog_batch_update_passes_relation_and_title_updates(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_batch_update_timelogs(session: object, **kwargs: object) -> object:
+        assert kwargs["timelog_ids"] == [
+            UUID("13131313-1313-1313-1313-131313131313"),
+            UUID("14141414-1414-1414-1414-141414141414"),
+        ]
+        assert kwargs["find_title_text"] == "deep"
+        assert kwargs["replace_title_text"] == "focused"
+        assert kwargs["clear_task"] is True
+        assert kwargs["person_ids"] == [UUID("33333333-3333-3333-3333-333333333333")]
+        return timelogs.TimelogBatchUpdateResult(
+            updated_count=2,
+            unchanged_ids=(),
+            failed_ids=(),
+            errors=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "batch_update_timelogs", fake_batch_update_timelogs)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "batch",
+            "update",
+            "--ids",
+            "13131313-1313-1313-1313-131313131313",
+            "14141414-1414-1414-1414-141414141414",
+            "--find-title-text",
+            "deep",
+            "--replace-title-text",
+            "focused",
+            "--clear-task",
+            "--person-id",
+            "33333333-3333-3333-3333-333333333333",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated timelogs: 2" in captured.out
+
+
 def test_main_people_show_prints_tags(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

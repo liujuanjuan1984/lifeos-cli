@@ -280,3 +280,94 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
     )
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
+    missing_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+    session = SimpleNamespace()
+    update_calls: list[dict[str, object]] = []
+
+    async def fake_get_timelog(
+        _: object,
+        *,
+        timelog_id: UUID,
+        include_deleted: bool = False,
+    ) -> object | None:
+        assert include_deleted is False
+        if timelog_id == missing_id:
+            return None
+        return timelog
+
+    async def fake_update_timelog(_: object, **kwargs: object) -> object:
+        update_calls.append(kwargs)
+        return timelog
+
+    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
+    monkeypatch.setattr(timelogs, "update_timelog", fake_update_timelog)
+
+    result = asyncio.run(
+        timelogs.batch_update_timelogs(
+            cast(Any, session),
+            timelog_ids=[timelog_id, timelog_id, missing_id],
+            find_title_text="Deep",
+            replace_title_text="Focused",
+            task_id=task_id,
+            clear_people=True,
+        )
+    )
+
+    assert result.updated_count == 1
+    assert result.failed_ids == (missing_id,)
+    assert update_calls == [
+        {
+            "timelog_id": timelog_id,
+            "title": "Focused work",
+            "area_id": None,
+            "clear_area": False,
+            "task_id": task_id,
+            "clear_task": False,
+            "tag_ids": None,
+            "clear_tags": False,
+            "person_ids": None,
+            "clear_people": True,
+        }
+    ]
+
+
+def test_batch_update_timelogs_reports_unchanged_title_replace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
+    session = SimpleNamespace()
+    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+
+    async def fake_get_timelog(
+        _: object,
+        *,
+        timelog_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert include_deleted is False
+        return timelog
+
+    update_timelog = AsyncMock()
+    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
+    monkeypatch.setattr(timelogs, "update_timelog", update_timelog)
+
+    result = asyncio.run(
+        timelogs.batch_update_timelogs(
+            cast(Any, session),
+            timelog_ids=[timelog_id],
+            find_title_text="Planning",
+            replace_title_text="Review",
+        )
+    )
+
+    assert result.updated_count == 0
+    assert result.unchanged_ids == (timelog_id,)
+    update_timelog.assert_not_awaited()

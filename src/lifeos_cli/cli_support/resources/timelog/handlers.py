@@ -254,6 +254,80 @@ def handle_timelog_delete(args: argparse.Namespace) -> int:
     return run_async(handle_timelog_delete_async(args))
 
 
+def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
+    return any(
+        (
+            args.title is not None,
+            args.find_title_text is not None,
+            args.area_id is not None,
+            args.clear_area,
+            args.task_id is not None,
+            args.clear_task,
+            args.tag_ids is not None,
+            args.clear_tags,
+            args.person_ids is not None,
+            args.clear_people,
+        )
+    )
+
+
+async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
+    conflicts = (
+        (
+            args.title is not None
+            and (args.find_title_text is not None or args.replace_title_text is not None),
+            "--title",
+            "--find-title-text/--replace-title-text",
+        ),
+        (args.clear_area and args.area_id is not None, "--area-id", "--clear-area"),
+        (args.clear_task and args.task_id is not None, "--task-id", "--clear-task"),
+        (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
+        (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
+    )
+    for is_conflict, value_flag, clear_flag in conflicts:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
+    if args.replace_title_text is not None and args.find_title_text is None:
+        print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
+        return 1
+    if not _timelog_batch_update_requested(args):
+        print("At least one batch update option is required.", file=sys.stderr)
+        return 1
+
+    async with db_session.session_scope() as session:
+        try:
+            result = await timelog_services.batch_update_timelogs(
+                session,
+                timelog_ids=list(args.timelog_ids),
+                title=args.title,
+                find_title_text=args.find_title_text,
+                replace_title_text=args.replace_title_text or "",
+                area_id=args.area_id,
+                clear_area=args.clear_area,
+                task_id=args.task_id,
+                clear_task=args.clear_task,
+                tag_ids=args.tag_ids,
+                clear_tags=args.clear_tags,
+                person_ids=args.person_ids,
+                clear_people=args.clear_people,
+            )
+        except timelog_services.TimelogValidationError as exc:
+            return _print_timelog_error(exc)
+    print(f"Updated timelogs: {result.updated_count}")
+    if result.unchanged_ids:
+        print(format_id_lines("Unchanged timelog IDs", result.unchanged_ids))
+    if result.failed_ids:
+        print(format_id_lines("Failed timelog IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_timelog_batch_update(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_batch_update_async(args))
+
+
 async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await timelog_services.batch_delete_timelogs(

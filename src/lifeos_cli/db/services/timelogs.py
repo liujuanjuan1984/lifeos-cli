@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -33,6 +34,16 @@ from lifeos_cli.db.services.timelog_support import (
     validate_timelog_title,
     validate_tracking_method,
 )
+
+
+@dataclass(frozen=True)
+class TimelogBatchUpdateResult:
+    """Summary for a batch timelog update operation."""
+
+    updated_count: int
+    unchanged_ids: tuple[UUID, ...]
+    failed_ids: tuple[UUID, ...]
+    errors: tuple[str, ...]
 
 
 async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Timelog:
@@ -425,6 +436,137 @@ async def update_timelog(
     return await _attach_timelog_links(session, timelog)
 
 
+def _has_timelog_batch_update(
+    *,
+    title: str | None,
+    find_title_text: str | None,
+    area_id: UUID | None,
+    clear_area: bool,
+    task_id: UUID | None,
+    clear_task: bool,
+    tag_ids: list[UUID] | None,
+    clear_tags: bool,
+    person_ids: list[UUID] | None,
+    clear_people: bool,
+) -> bool:
+    return any(
+        (
+            title is not None,
+            find_title_text is not None,
+            area_id is not None,
+            clear_area,
+            task_id is not None,
+            clear_task,
+            tag_ids is not None,
+            clear_tags,
+            person_ids is not None,
+            clear_people,
+        )
+    )
+
+
+async def batch_update_timelogs(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+    title: str | None = None,
+    find_title_text: str | None = None,
+    replace_title_text: str = "",
+    area_id: UUID | None = None,
+    clear_area: bool = False,
+    task_id: UUID | None = None,
+    clear_task: bool = False,
+    tag_ids: list[UUID] | None = None,
+    clear_tags: bool = False,
+    person_ids: list[UUID] | None = None,
+    clear_people: bool = False,
+) -> TimelogBatchUpdateResult:
+    """Update multiple active timelogs while preserving per-record errors."""
+    if title is not None and find_title_text is not None:
+        raise TimelogValidationError("Use either title or title find/replace, not both.")
+    if find_title_text is not None and not find_title_text.strip():
+        raise TimelogValidationError("Title find text must not be empty.")
+    if not _has_timelog_batch_update(
+        title=title,
+        find_title_text=find_title_text,
+        area_id=area_id,
+        clear_area=clear_area,
+        task_id=task_id,
+        clear_task=clear_task,
+        tag_ids=tag_ids,
+        clear_tags=clear_tags,
+        person_ids=person_ids,
+        clear_people=clear_people,
+    ):
+        raise TimelogValidationError("At least one batch update option is required.")
+
+    has_non_title_update = any(
+        (
+            area_id is not None,
+            clear_area,
+            task_id is not None,
+            clear_task,
+            tag_ids is not None,
+            clear_tags,
+            person_ids is not None,
+            clear_people,
+        )
+    )
+    updated_count = 0
+    unchanged_ids: list[UUID] = []
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for timelog_id in deduplicate_timelog_ids(timelog_ids):
+        try:
+            next_title = title
+            if find_title_text is not None:
+                timelog = await get_timelog(
+                    session,
+                    timelog_id=timelog_id,
+                    include_deleted=False,
+                )
+                if timelog is None:
+                    raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+                replaced_title = timelog.title.replace(find_title_text, replace_title_text)
+                if replaced_title != timelog.title:
+                    next_title = replaced_title
+                elif not has_non_title_update:
+                    unchanged_ids.append(timelog_id)
+                    continue
+
+            await update_timelog(
+                session,
+                timelog_id=timelog_id,
+                title=next_title,
+                area_id=area_id,
+                clear_area=clear_area,
+                task_id=task_id,
+                clear_task=clear_task,
+                tag_ids=tag_ids,
+                clear_tags=clear_tags,
+                person_ids=person_ids,
+                clear_people=clear_people,
+            )
+            updated_count += 1
+        except (
+            TimelogAreaReferenceNotFoundError,
+            TimelogNotFoundError,
+            TimelogTaskReferenceNotFoundError,
+            TimelogValidationError,
+            LookupError,
+        ) as exc:
+            failed_ids.append(timelog_id)
+            errors.append(str(exc))
+
+    return TimelogBatchUpdateResult(
+        updated_count=updated_count,
+        unchanged_ids=tuple(unchanged_ids),
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )
+
+
 async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     """Soft-delete one timelog."""
     timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=False)
@@ -465,10 +607,12 @@ async def batch_delete_timelogs(
 
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
+    "TimelogBatchUpdateResult",
     "TimelogNotFoundError",
     "TimelogTaskReferenceNotFoundError",
     "TimelogValidationError",
     "batch_delete_timelogs",
+    "batch_update_timelogs",
     "create_timelog",
     "count_timelogs",
     "delete_timelog",

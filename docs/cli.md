@@ -379,6 +379,8 @@ lifeos timelog list --query "deep work" --count
 lifeos timelog list --area-name Work --without-task
 lifeos timelog show <timelog-id>
 lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
+lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task
+lifeos timelog batch update --ids <timelog-id-1> --find-title-text "deep" --replace-title-text "focused"
 lifeos timelog delete <timelog-id>
 ```
 
@@ -387,6 +389,7 @@ Current timelog notes:
 - `timelog` is the actual time record and represents what really happened
 - use `--date` to query one configured local day
 - use `--query` to search timelog titles and notes
+- use `batch update` for repeated relation cleanup or title find/replace
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - timelog end time is currently required because the record models completed time spent
 
@@ -486,6 +489,7 @@ Currently implemented:
 - `lifeos task add|list|show|with-subtasks|hierarchy|stats|move|reorder|update|delete`
 - `lifeos task batch delete`
 - `lifeos timelog add|list|show|update|delete`
+- `lifeos timelog batch update`
 - `lifeos timelog batch delete`
 - `lifeos note add`
 - `lifeos note list`
@@ -500,7 +504,7 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
-- batch update operations for the new structured resources
+- batch update operations for the remaining structured resources
 - event/timelog recurrence or direct event-to-timelog conversion
 - note ingestion jobs
 - richer search ranking or association-aware note search
