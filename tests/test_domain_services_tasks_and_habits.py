@@ -9,7 +9,14 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli.db.services import habit_mutations, habits, task_mutations, task_support, tasks
+from lifeos_cli.db.services import (
+    habit_mutations,
+    habits,
+    task_mutations,
+    task_queries,
+    task_support,
+    tasks,
+)
 
 
 def test_validate_planning_cycle_requires_complete_fields() -> None:
@@ -296,6 +303,8 @@ def test_validate_parent_task_rejects_circular_reference(
     child_task = SimpleNamespace(id=child_id, vision_id=vision_id, parent_task_id=root_id)
 
     async def fake_load_parent_task(_: object, parent_task_id: UUID | None) -> object | None:
+        if parent_task_id is None:
+            return None
         return {
             root_id: root_task,
             child_id: child_task,
@@ -370,6 +379,105 @@ def test_delete_task_soft_deletes_subtree_without_committing(
     recompute_upwards.assert_awaited_once_with(cast(Any, session), root_task.parent_task_id)
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_get_task_with_subtasks_builds_tree(monkeypatch: pytest.MonkeyPatch) -> None:
+    root_task = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+        parent_task_id=None,
+        content="Root task",
+        description=None,
+        status="todo",
+        priority=0,
+        display_order=0,
+        estimated_effort=60,
+        planning_cycle_type=None,
+        planning_cycle_days=None,
+        planning_cycle_start_date=None,
+        actual_effort_self=30,
+        actual_effort_total=60,
+        created_at=None,
+        updated_at=None,
+        deleted_at=None,
+    )
+    child_task = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        vision_id=root_task.vision_id,
+        parent_task_id=root_task.id,
+        content="Child task",
+        description=None,
+        status="done",
+        priority=0,
+        display_order=0,
+        estimated_effort=30,
+        planning_cycle_type=None,
+        planning_cycle_days=None,
+        planning_cycle_start_date=None,
+        actual_effort_self=30,
+        actual_effort_total=30,
+        created_at=None,
+        updated_at=None,
+        deleted_at=None,
+    )
+
+    monkeypatch.setattr(
+        task_queries,
+        "load_task_subtree",
+        AsyncMock(return_value=[root_task, child_task]),
+    )
+    monkeypatch.setattr(
+        task_queries,
+        "load_people_for_entities",
+        AsyncMock(return_value={root_task.id: [], child_task.id: []}),
+    )
+
+    result = asyncio.run(tasks.get_task_with_subtasks(cast(Any, object()), task_id=root_task.id))
+
+    assert result is not None
+    assert result.id == root_task.id
+    assert result.depth == 0
+    assert result.completion_percentage == 1.0
+    assert len(result.subtasks) == 1
+    assert result.subtasks[0].id == child_task.id
+    assert result.subtasks[0].depth == 1
+
+
+def test_get_task_stats_summarizes_subtree(monkeypatch: pytest.MonkeyPatch) -> None:
+    root_task = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        parent_task_id=None,
+        status="todo",
+        estimated_effort=60,
+        actual_effort_self=30,
+    )
+    child_task_1 = SimpleNamespace(
+        id=UUID("22222222-2222-2222-2222-222222222222"),
+        parent_task_id=root_task.id,
+        status="done",
+        estimated_effort=30,
+        actual_effort_self=20,
+    )
+    child_task_2 = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        parent_task_id=root_task.id,
+        status="todo",
+        estimated_effort=45,
+        actual_effort_self=10,
+    )
+    monkeypatch.setattr(
+        task_queries,
+        "load_task_subtree",
+        AsyncMock(return_value=[root_task, child_task_1, child_task_2]),
+    )
+
+    stats = asyncio.run(tasks.get_task_stats(cast(Any, object()), task_id=root_task.id))
+
+    assert stats.total_subtasks == 2
+    assert stats.completed_subtasks == 1
+    assert stats.completion_percentage == 0.5
+    assert stats.total_estimated_effort == 135
+    assert stats.total_actual_effort == 60
 
 
 def test_create_habit_generates_actions_without_committing(

@@ -181,10 +181,12 @@ async def load_task_subtree(session: AsyncSession, *, root_task_id: UUID) -> lis
         subtree.append(task)
         children = (
             await session.execute(
-                select(Task).where(
+                select(Task)
+                .where(
                     Task.parent_task_id == task.id,
                     Task.deleted_at.is_(None),
                 )
+                .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
             )
         ).scalars()
         queue.extend(children)

@@ -347,6 +347,9 @@ lifeos task update <task-id> --person-id <person-id>
 lifeos task list --person-id <person-id>
 lifeos task list --vision-id <vision-id>
 lifeos task show <task-id>
+lifeos task with-subtasks <task-id>
+lifeos task hierarchy <vision-id>
+lifeos task stats <task-id>
 lifeos task update <task-id> --status in_progress
 lifeos task update <child-task-id> --clear-parent
 lifeos task delete <task-id>
@@ -355,6 +358,7 @@ lifeos task delete <task-id>
 Current task notes:
 
 - `task` is the execution unit and supports tree structure through parent-child links
+- use `with-subtasks`, `hierarchy`, and `stats` for task-tree read models
 - use `--clear-parent` to move a child task back to the root level
 - repeated `--person-id` flags link a task to one or more people without changing its place in
   the task tree
@@ -471,7 +475,7 @@ Currently implemented:
 - `lifeos vision with-tasks|stats`
 - `lifeos vision add-experience|sync-experience|harvest`
 - `lifeos vision batch delete`
-- `lifeos task add|list|show|update|delete`
+- `lifeos task add|list|show|with-subtasks|hierarchy|stats|update|delete`
 - `lifeos task batch delete`
 - `lifeos timelog add|list|show|update|delete`
 - `lifeos timelog batch delete`
@@ -488,7 +492,7 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
-- advanced task-tree operations
+- advanced task-tree move or reorder operations
 - batch update operations for the new structured resources
 - event/timelog recurrence or direct event-to-timelog conversion
 - note ingestion jobs

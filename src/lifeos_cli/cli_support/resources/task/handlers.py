@@ -52,6 +52,47 @@ def _format_task_detail(task: Task) -> str:
     )
 
 
+def _format_task_tree(node: task_services.TaskWithSubtasks) -> str:
+    lines: list[str] = []
+
+    def collect(current: task_services.TaskWithSubtasks) -> None:
+        indent = "  " * current.depth
+        lines.append(
+            f"{indent}{current.id}\t{current.status}\t{current.completion_percentage:.2f}\t"
+            f"{current.content}"
+        )
+        for subtask in current.subtasks:
+            collect(subtask)
+
+    collect(node)
+    return "\n".join(lines)
+
+
+def _format_task_hierarchy(hierarchy: task_services.TaskHierarchy) -> str:
+    task_lines: list[str] = []
+    for root_task in hierarchy.root_tasks:
+        task_lines.extend(_format_task_tree(root_task).splitlines())
+    return "\n".join(
+        (
+            f"vision_id: {hierarchy.vision_id}",
+            "root_tasks:",
+            *(task_lines or ["  -"]),
+        )
+    )
+
+
+def _format_task_stats(stats: task_services.TaskStats) -> str:
+    return "\n".join(
+        (
+            f"total_subtasks: {stats.total_subtasks}",
+            f"completed_subtasks: {stats.completed_subtasks}",
+            f"completion_percentage: {stats.completion_percentage:.2f}",
+            f"total_estimated_effort: {stats.total_estimated_effort or '-'}",
+            f"total_actual_effort: {stats.total_actual_effort or '-'}",
+        )
+    )
+
+
 async def handle_task_add_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -131,6 +172,59 @@ async def handle_task_show_async(args: argparse.Namespace) -> int:
 
 def handle_task_show(args: argparse.Namespace) -> int:
     return run_async(handle_task_show_async(args))
+
+
+async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        task = await task_services.get_task_with_subtasks(
+            session,
+            task_id=args.task_id,
+        )
+    if task is None:
+        print(f"Task {args.task_id} was not found", file=sys.stderr)
+        return 1
+    print(_format_task_tree(task))
+    return 0
+
+
+def handle_task_with_subtasks(args: argparse.Namespace) -> int:
+    return run_async(handle_task_with_subtasks_async(args))
+
+
+async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            hierarchy = await task_services.get_vision_task_hierarchy(
+                session,
+                vision_id=args.vision_id,
+            )
+        except task_services.VisionReferenceNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_task_hierarchy(hierarchy))
+    return 0
+
+
+def handle_task_hierarchy(args: argparse.Namespace) -> int:
+    return run_async(handle_task_hierarchy_async(args))
+
+
+async def handle_task_stats_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            stats = await task_services.get_task_stats(
+                session,
+                task_id=args.task_id,
+            )
+        except task_services.TaskNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_task_stats(stats))
+    return 0
+
+
+def handle_task_stats(args: argparse.Namespace) -> int:
+    return run_async(handle_task_stats_async(args))
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:

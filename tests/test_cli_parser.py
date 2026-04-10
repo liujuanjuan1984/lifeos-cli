@@ -261,6 +261,28 @@ def test_cli_parser_supports_task_list_person_filter() -> None:
     assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
 
 
+def test_cli_parser_supports_task_read_model_commands() -> None:
+    parser = build_parser()
+
+    with_subtasks_args = parser.parse_args(
+        ["task", "with-subtasks", "11111111-1111-1111-1111-111111111111"]
+    )
+    hierarchy_args = parser.parse_args(
+        ["task", "hierarchy", "22222222-2222-2222-2222-222222222222"]
+    )
+    stats_args = parser.parse_args(["task", "stats", "33333333-3333-3333-3333-333333333333"])
+
+    assert with_subtasks_args.resource == "task"
+    assert with_subtasks_args.task_command == "with-subtasks"
+    assert str(with_subtasks_args.task_id) == "11111111-1111-1111-1111-111111111111"
+    assert hierarchy_args.resource == "task"
+    assert hierarchy_args.task_command == "hierarchy"
+    assert str(hierarchy_args.vision_id) == "22222222-2222-2222-2222-222222222222"
+    assert stats_args.resource == "task"
+    assert stats_args.task_command == "stats"
+    assert str(stats_args.task_id) == "33333333-3333-3333-3333-333333333333"
+
+
 def test_cli_parser_supports_timelog_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(

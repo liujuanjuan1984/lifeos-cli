@@ -425,6 +425,71 @@ def test_main_task_add_creates_task(
     assert "Created task 55555555-5555-5555-5555-555555555555" in captured.out
 
 
+def test_main_task_read_model_commands_print_results(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root_task = make_record(
+        id=UUID("55555555-5555-5555-5555-555555555555"),
+        status="todo",
+        content="Root task",
+        completion_percentage=0.5,
+        depth=0,
+        subtasks=(
+            make_record(
+                id=UUID("66666666-6666-6666-6666-666666666666"),
+                status="done",
+                content="Child task",
+                completion_percentage=1.0,
+                depth=1,
+                subtasks=(),
+            ),
+        ),
+    )
+
+    async def fake_get_task_with_subtasks(session: object, **kwargs: object) -> object:
+        assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        return root_task
+
+    async def fake_get_hierarchy(session: object, **kwargs: object) -> object:
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        return make_record(
+            vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+            root_tasks=(root_task,),
+        )
+
+    async def fake_get_stats(session: object, **kwargs: object) -> object:
+        assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        return tasks.TaskStats(
+            total_subtasks=1,
+            completed_subtasks=1,
+            completion_percentage=0.5,
+            total_estimated_effort=90,
+            total_actual_effort=60,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "get_task_with_subtasks", fake_get_task_with_subtasks)
+    monkeypatch.setattr(tasks, "get_vision_task_hierarchy", fake_get_hierarchy)
+    monkeypatch.setattr(tasks, "get_task_stats", fake_get_stats)
+
+    with_subtasks_exit_code = cli.main(
+        ["task", "with-subtasks", "55555555-5555-5555-5555-555555555555"]
+    )
+    hierarchy_exit_code = cli.main(["task", "hierarchy", "44444444-4444-4444-4444-444444444444"])
+    stats_exit_code = cli.main(["task", "stats", "55555555-5555-5555-5555-555555555555"])
+    captured = capsys.readouterr()
+
+    assert with_subtasks_exit_code == 0
+    assert hierarchy_exit_code == 0
+    assert stats_exit_code == 0
+    assert "Root task" in captured.out
+    assert "Child task" in captured.out
+    assert "root_tasks:" in captured.out
+    assert "total_subtasks: 1" in captured.out
+    assert "completion_percentage: 0.50" in captured.out
+
+
 def test_main_task_batch_delete_prints_summary(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

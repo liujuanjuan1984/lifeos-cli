@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,7 +12,119 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
-from lifeos_cli.db.services.task_support import validate_task_status
+from lifeos_cli.db.services.task_support import (
+    TaskNotFoundError,
+    ensure_vision_exists,
+    load_task_subtree,
+    validate_task_status,
+)
+
+
+@dataclass(frozen=True)
+class TaskStats:
+    """Aggregated statistics for a task subtree."""
+
+    total_subtasks: int
+    completed_subtasks: int
+    completion_percentage: float
+    total_estimated_effort: int | None
+    total_actual_effort: int | None
+
+
+@dataclass(frozen=True)
+class TaskWithSubtasks:
+    """Task read model with nested subtasks."""
+
+    task: Task
+    id: UUID
+    vision_id: UUID
+    parent_task_id: UUID | None
+    content: str
+    description: str | None
+    status: str
+    priority: int
+    display_order: int
+    estimated_effort: int | None
+    planning_cycle_type: str | None
+    planning_cycle_days: int | None
+    planning_cycle_start_date: date | None
+    actual_effort_self: int
+    actual_effort_total: int
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None
+    people: tuple[object, ...]
+    subtasks: tuple[TaskWithSubtasks, ...]
+    completion_percentage: float
+    depth: int
+
+
+@dataclass(frozen=True)
+class TaskHierarchy:
+    """Vision task hierarchy read model."""
+
+    vision_id: UUID
+    root_tasks: tuple[TaskWithSubtasks, ...]
+
+
+async def _hydrate_people(session: AsyncSession, tasks: list[Task]) -> None:
+    """Attach people to tasks using the shared entity-person association helper."""
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
+    for task in tasks:
+        task.people = people_map.get(task.id, [])
+
+
+def _build_task_tree(tasks: list[Task]) -> tuple[TaskWithSubtasks, ...]:
+    """Build a task tree from a flat task list."""
+    task_ids = {task.id for task in tasks}
+    children_by_parent: dict[UUID, list[Task]] = {task.id: [] for task in tasks}
+    root_tasks: list[Task] = []
+    for task in tasks:
+        if task.parent_task_id is None or task.parent_task_id not in task_ids:
+            root_tasks.append(task)
+            continue
+        children_by_parent.setdefault(task.parent_task_id, []).append(task)
+
+    def completion_ratio(task: Task, subtasks: tuple[TaskWithSubtasks, ...]) -> float:
+        if not subtasks:
+            return 1.0 if task.status == "done" else 0.0
+        completed_count = sum(1 for subtask in subtasks if subtask.status == "done")
+        return completed_count / len(subtasks)
+
+    def convert(task: Task, *, depth: int) -> TaskWithSubtasks:
+        subtasks = tuple(
+            convert(subtask, depth=depth + 1) for subtask in children_by_parent[task.id]
+        )
+        return TaskWithSubtasks(
+            task=task,
+            id=task.id,
+            vision_id=task.vision_id,
+            parent_task_id=task.parent_task_id,
+            content=task.content,
+            description=task.description,
+            status=task.status,
+            priority=task.priority,
+            display_order=task.display_order,
+            estimated_effort=task.estimated_effort,
+            planning_cycle_type=task.planning_cycle_type,
+            planning_cycle_days=task.planning_cycle_days,
+            planning_cycle_start_date=task.planning_cycle_start_date,
+            actual_effort_self=task.actual_effort_self,
+            actual_effort_total=task.actual_effort_total,
+            created_at=task.created_at,
+            updated_at=task.updated_at,
+            deleted_at=task.deleted_at,
+            people=tuple(getattr(task, "people", []) or []),
+            subtasks=subtasks,
+            completion_percentage=completion_ratio(task, subtasks),
+            depth=depth,
+        )
+
+    return tuple(convert(task, depth=0) for task in root_tasks)
 
 
 async def get_task(
@@ -26,8 +140,7 @@ async def get_task(
     task = (await session.execute(stmt)).scalar_one_or_none()
     if task is None:
         return None
-    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
-    task.people = people_map.get(task.id, [])
+    await _hydrate_people(session, [task])
     return task
 
 
@@ -66,11 +179,73 @@ async def list_tasks(
         .limit(limit)
     )
     tasks = list((await session.execute(stmt)).scalars())
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[task.id for task in tasks],
-        entity_type="task",
-    )
-    for task in tasks:
-        task.people = people_map.get(task.id, [])
+    await _hydrate_people(session, tasks)
     return tasks
+
+
+async def get_vision_task_hierarchy(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> TaskHierarchy:
+    """Load active tasks for a vision as a hierarchy."""
+    await ensure_vision_exists(session, vision_id)
+    stmt = (
+        select(Task)
+        .where(Task.vision_id == vision_id, Task.deleted_at.is_(None))
+        .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
+    )
+    tasks = list((await session.execute(stmt)).scalars())
+    await _hydrate_people(session, tasks)
+    return TaskHierarchy(vision_id=vision_id, root_tasks=_build_task_tree(tasks))
+
+
+async def get_task_with_subtasks(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+) -> TaskWithSubtasks | None:
+    """Load a task with all active subtasks."""
+    tasks = await load_task_subtree(session, root_task_id=task_id)
+    if not tasks:
+        return None
+    await _hydrate_people(session, tasks)
+    task_tree = _build_task_tree(tasks)
+    return task_tree[0] if task_tree else None
+
+
+async def get_task_stats(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+) -> TaskStats:
+    """Return task subtree statistics."""
+    tasks = await load_task_subtree(session, root_task_id=task_id)
+    if not tasks:
+        raise TaskNotFoundError(f"Task {task_id} was not found")
+
+    root = next((task for task in tasks if task.id == task_id), None)
+    if root is None:
+        raise TaskNotFoundError(f"Task {task_id} was not found")
+
+    subtasks = [task for task in tasks if task.id != task_id]
+    total_subtasks = len(subtasks)
+    completed_subtasks = len([task for task in subtasks if task.status == "done"])
+
+    direct_children = [task for task in subtasks if task.parent_task_id == task_id]
+    if not direct_children:
+        completion_percentage = 1.0 if root.status == "done" else 0.0
+    else:
+        done_children = len([task for task in direct_children if task.status == "done"])
+        completion_percentage = done_children / len(direct_children)
+
+    total_estimated_effort = sum(task.estimated_effort or 0 for task in tasks)
+    total_actual_effort = sum(task.actual_effort_self or 0 for task in tasks)
+
+    return TaskStats(
+        total_subtasks=total_subtasks,
+        completed_subtasks=completed_subtasks,
+        completion_percentage=completion_percentage,
+        total_estimated_effort=total_estimated_effort or None,
+        total_actual_effort=total_actual_effort or None,
+    )

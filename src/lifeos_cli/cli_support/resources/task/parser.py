@@ -15,9 +15,12 @@ from lifeos_cli.cli_support.resources.task.handlers import (
     handle_task_add,
     handle_task_batch_delete,
     handle_task_delete,
+    handle_task_hierarchy,
     handle_task_list,
     handle_task_show,
+    handle_task_stats,
     handle_task_update,
+    handle_task_with_subtasks,
 )
 
 
@@ -152,6 +155,42 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     show_parser.add_argument("task_id", type=UUID, help="Task identifier")
     add_include_deleted_argument(show_parser, noun="tasks", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_task_show)
+
+    with_subtasks_parser = add_documented_parser(
+        task_subparsers,
+        "with-subtasks",
+        help_content=HelpContent(
+            summary="Show a task subtree",
+            description="Show one task with its active nested subtasks.",
+            examples=("lifeos task with-subtasks 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    with_subtasks_parser.add_argument("task_id", type=UUID, help="Task identifier")
+    with_subtasks_parser.set_defaults(handler=handle_task_with_subtasks)
+
+    hierarchy_parser = add_documented_parser(
+        task_subparsers,
+        "hierarchy",
+        help_content=HelpContent(
+            summary="Show a vision task hierarchy",
+            description="Show all active tasks for a vision as a hierarchy.",
+            examples=("lifeos task hierarchy 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    hierarchy_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    hierarchy_parser.set_defaults(handler=handle_task_hierarchy)
+
+    stats_parser = add_documented_parser(
+        task_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary="Show task statistics",
+            description="Show subtree completion and effort statistics for one task.",
+            examples=("lifeos task stats 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    stats_parser.add_argument("task_id", type=UUID, help="Task identifier")
+    stats_parser.set_defaults(handler=handle_task_stats)
 
     update_parser = add_documented_parser(
         task_subparsers,

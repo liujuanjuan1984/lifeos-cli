@@ -14,7 +14,16 @@ from lifeos_cli.db.services.task_mutations import (
     delete_task,
     update_task,
 )
-from lifeos_cli.db.services.task_queries import get_task, list_tasks
+from lifeos_cli.db.services.task_queries import (
+    TaskHierarchy,
+    TaskStats,
+    TaskWithSubtasks,
+    get_task,
+    get_task_stats,
+    get_task_with_subtasks,
+    get_vision_task_hierarchy,
+    list_tasks,
+)
 from lifeos_cli.db.services.task_support import (
     MAX_TASK_DEPTH,
     VALID_PLANNING_CYCLE_TYPES,
@@ -50,7 +59,10 @@ __all__ = [
     "InvalidTaskDepthError",
     "ParentTaskReferenceNotFoundError",
     "TaskCannotBeCompletedError",
+    "TaskHierarchy",
     "TaskNotFoundError",
+    "TaskStats",
+    "TaskWithSubtasks",
     "VisionReferenceNotFoundError",
     "_deduplicate_task_ids",
     "_ensure_vision_exists",
@@ -59,6 +71,9 @@ __all__ = [
     "create_task",
     "delete_task",
     "get_task",
+    "get_task_stats",
+    "get_task_with_subtasks",
+    "get_vision_task_hierarchy",
     "list_tasks",
     "recompute_subtree_totals",
     "recompute_task_effort_after_timelog_change",
