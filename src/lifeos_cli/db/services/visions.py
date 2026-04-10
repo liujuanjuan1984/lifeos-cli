@@ -8,6 +8,13 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.config import (
+    DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
+    MAX_VISION_EXPERIENCE_RATE_PER_HOUR,
+    ConfigurationError,
+    get_preferences_settings,
+    validate_vision_experience_rate_per_hour,
+)
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
@@ -16,8 +23,8 @@ from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
-VISION_EXPERIENCE_RATE_DEFAULT = 60
-VISION_EXPERIENCE_RATE_MAX = 3600
+VISION_EXPERIENCE_RATE_DEFAULT = DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR
+VISION_EXPERIENCE_RATE_MAX = MAX_VISION_EXPERIENCE_RATE_PER_HOUR
 
 
 @dataclass(frozen=True)
@@ -67,11 +74,12 @@ def validate_vision_experience_rate(experience_rate_per_hour: int | None) -> int
     """Validate a vision-specific experience rate override."""
     if experience_rate_per_hour is None:
         return None
-    if experience_rate_per_hour < 1 or experience_rate_per_hour > VISION_EXPERIENCE_RATE_MAX:
+    try:
+        return validate_vision_experience_rate_per_hour(experience_rate_per_hour)
+    except ConfigurationError as exc:
         raise ValueError(
             f"Experience rate per hour must be between 1 and {VISION_EXPERIENCE_RATE_MAX}"
-        )
-    return experience_rate_per_hour
+        ) from exc
 
 
 def validate_experience_points(points: int) -> int:
@@ -85,7 +93,7 @@ def resolve_experience_rate_for_vision(vision: Vision) -> int:
     """Return the effective experience rate for a vision."""
     return (
         validate_vision_experience_rate(vision.experience_rate_per_hour)
-        or VISION_EXPERIENCE_RATE_DEFAULT
+        or get_preferences_settings().vision_experience_rate_per_hour
     )
 
 

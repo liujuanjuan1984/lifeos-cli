@@ -55,6 +55,8 @@ def test_cli_parser_supports_init_preference_flags() -> None:
             "04:00",
             "--week-starts-on",
             "sunday",
+            "--vision-experience-rate-per-hour",
+            "120",
         ]
     )
 
@@ -63,6 +65,7 @@ def test_cli_parser_supports_init_preference_flags() -> None:
     assert args.language == "zh-Hans"
     assert args.day_starts_at == "04:00"
     assert args.week_starts_on == "sunday"
+    assert args.vision_experience_rate_per_hour == 120
 
 
 def test_cli_parser_supports_note_search_command() -> None:

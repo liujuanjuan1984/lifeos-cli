@@ -78,7 +78,7 @@ lifeos init
 Initialize while persisting user preferences:
 
 ```bash
-lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday
+lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday --vision-experience-rate-per-hour 120
 ```
 
 Re-run `lifeos init` to edit stored preferences later.
@@ -111,6 +111,8 @@ Current persisted preference keys:
 - `day_starts_at`: local day boundary in `HH:MM` for date-based event/timelog queries and habit
   day semantics
 - `week_starts_on`: preferred first day of the week (`monday` or `sunday`) for weekly habit stats
+- `vision_experience_rate_per_hour`: default vision experience points gained per hour of actual
+  effort, used when a vision does not define its own rate
 
 Time storage and rendering rules:
 
@@ -120,6 +122,8 @@ Time storage and rendering rules:
   `day_starts_at` together
 - habit "today" and weekly stats use the configured local operational day instead of raw server
   midnight
+- vision experience sync uses `vision_experience_rate_per_hour` unless the vision has a
+  per-record `experience_rate_per_hour` override
 
 ## Notes
 

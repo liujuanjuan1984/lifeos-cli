@@ -18,6 +18,7 @@ from lifeos_cli.config import (
     validate_day_starts_at,
     validate_language,
     validate_timezone_name,
+    validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
     write_database_settings,
 )
@@ -99,6 +100,7 @@ def test_preferences_settings_honor_env_values(tmp_path: Path) -> None:
             "LIFEOS_LANGUAGE": "zh_Hans.UTF-8",
             "LIFEOS_DAY_STARTS_AT": "04:00",
             "LIFEOS_WEEK_STARTS_ON": "sunday",
+            "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR": "120",
         }
     )
 
@@ -106,6 +108,7 @@ def test_preferences_settings_honor_env_values(tmp_path: Path) -> None:
     assert settings.language == "zh-Hans"
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
+    assert settings.vision_experience_rate_per_hour == 120
 
 
 def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
@@ -118,6 +121,7 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
                 'language = "zh-Hans"',
                 'day_starts_at = "04:00"',
                 'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 90",
                 "",
             )
         ),
@@ -130,6 +134,32 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
     assert settings.language == "zh-Hans"
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
+    assert settings.vision_experience_rate_per_hour == 90
+
+
+def test_preferences_settings_rejects_invalid_vision_experience_rate(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[preferences]",
+                'timezone = "America/Toronto"',
+                'language = "zh-Hans"',
+                'day_starts_at = "04:00"',
+                'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 0",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        PreferencesSettings.from_env({"LIFEOS_CONFIG_FILE": str(config_path)})
+    except ConfigurationError as exc:
+        assert "between 1 and 3600" in str(exc)
+    else:
+        raise AssertionError("invalid vision experience rate should fail validation")
 
 
 def test_validate_database_url_requires_postgresql_psycopg_driver() -> None:
@@ -189,6 +219,17 @@ def test_validate_week_starts_on_rejects_invalid_values() -> None:
         raise AssertionError("invalid week start should fail validation")
 
 
+def test_validate_vision_experience_rate_per_hour_rejects_invalid_values() -> None:
+    assert validate_vision_experience_rate_per_hour("60") == 60
+
+    try:
+        validate_vision_experience_rate_per_hour("0")
+    except ConfigurationError as exc:
+        assert "between 1 and 3600" in str(exc)
+    else:
+        raise AssertionError("invalid vision experience rate should fail")
+
+
 def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
     config_path = tmp_path / "lifeos" / "config.toml"
     database_settings = DatabaseSettings(
@@ -202,6 +243,7 @@ def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
         language="zh-Hans",
         day_starts_at="04:00",
         week_starts_on="sunday",
+        vision_experience_rate_per_hour=90,
         config_file=config_path,
     )
 
@@ -213,6 +255,7 @@ def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
     assert "[preferences]" in content
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
     assert 'timezone = "America/Toronto"' in content
+    assert "vision_experience_rate_per_hour = 90" in content
 
 
 def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Path) -> None:
@@ -232,6 +275,7 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
                 'language = "en"',
                 'day_starts_at = "00:00"',
                 'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
                 "",
                 "[notes]",
                 'default_editor = "nvim"',
@@ -251,6 +295,7 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
         language="zh-Hans",
         day_starts_at="04:00",
         week_starts_on="sunday",
+        vision_experience_rate_per_hour=120,
         config_file=config_path,
     )
 
@@ -264,6 +309,7 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
     assert 'schema = "lifeos_dev"' in content
     assert 'timezone = "America/Toronto"' in content
     assert 'language = "zh-Hans"' in content
+    assert "vision_experience_rate_per_hour = 120" in content
     assert (
         'url = "postgresql+psycopg://old-user:<old-password>@localhost:5432/old_lifeos"'
         not in content
@@ -284,6 +330,7 @@ def test_build_database_settings_uses_injected_prompts(
         language=None,
         day_starts_at=None,
         week_starts_on=None,
+        vision_experience_rate_per_hour=None,
         non_interactive=False,
         is_interactive=True,
         prompts=InitializationPrompts(
@@ -316,6 +363,7 @@ def test_build_preferences_settings_uses_explicit_values(monkeypatch, tmp_path: 
         language="zh-Hans",
         day_starts_at="04:00",
         week_starts_on="sunday",
+        vision_experience_rate_per_hour=120,
         non_interactive=True,
         is_interactive=False,
         prompts=None,
@@ -327,7 +375,36 @@ def test_build_preferences_settings_uses_explicit_values(monkeypatch, tmp_path: 
     assert settings.language == "zh-Hans"
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
+    assert settings.vision_experience_rate_per_hour == 120
     assert settings.config_file == config_path
+
+
+def test_build_preferences_settings_rejects_invalid_explicit_vision_experience_rate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone="America/Toronto",
+        language="zh-Hans",
+        day_starts_at="04:00",
+        week_starts_on="sunday",
+        vision_experience_rate_per_hour=0,
+        non_interactive=True,
+        is_interactive=False,
+        prompts=None,
+    )
+
+    try:
+        build_preferences_settings(request)
+    except ConfigurationError as exc:
+        assert "between 1 and 3600" in str(exc)
+    else:
+        raise AssertionError("invalid vision experience rate should fail validation")
 
 
 def test_build_preferences_settings_uses_environment_defaults(monkeypatch, tmp_path: Path) -> None:
@@ -344,6 +421,7 @@ def test_build_preferences_settings_uses_environment_defaults(monkeypatch, tmp_p
         language=None,
         day_starts_at=None,
         week_starts_on=None,
+        vision_experience_rate_per_hour=None,
         non_interactive=True,
         is_interactive=False,
         prompts=None,
@@ -355,3 +433,4 @@ def test_build_preferences_settings_uses_environment_defaults(monkeypatch, tmp_p
     assert settings.language == "zh-Hans"
     assert settings.day_starts_at == "00:00"
     assert settings.week_starts_on == "monday"
+    assert settings.vision_experience_rate_per_hour == 60

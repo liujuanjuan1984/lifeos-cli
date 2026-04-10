@@ -401,6 +401,11 @@ def test_sync_vision_experience_uses_root_task_effort(
     monkeypatch.setattr(visions, "get_vision", fake_get_vision)
     monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
     monkeypatch.setattr(
+        visions,
+        "get_preferences_settings",
+        lambda: SimpleNamespace(vision_experience_rate_per_hour=120),
+    )
+    monkeypatch.setattr(
         visions, "load_people_for_entities", AsyncMock(return_value={vision.id: []})
     )
 
@@ -411,9 +416,9 @@ def test_sync_vision_experience_uses_root_task_effort(
         )
     )
 
-    assert synced.experience_rate_per_hour == 60
-    assert synced.experience_points == 240
-    assert synced.stage == 2
+    assert synced.experience_rate_per_hour == 120
+    assert synced.experience_points == 480
+    assert synced.stage == 3
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 

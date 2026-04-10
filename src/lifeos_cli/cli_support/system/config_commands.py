@@ -50,6 +50,7 @@ def _handle_init(args: argparse.Namespace) -> int:
         language=args.language,
         day_starts_at=args.day_starts_at,
         week_starts_on=args.week_starts_on,
+        vision_experience_rate_per_hour=args.vision_experience_rate_per_hour,
         non_interactive=args.non_interactive,
         is_interactive=sys.stdin.isatty(),
         prompts=InitializationPrompts(
@@ -166,6 +167,12 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--week-starts-on",
         default=None,
         help="Preferred first day of week: monday or sunday",
+    )
+    init_parser.add_argument(
+        "--vision-experience-rate-per-hour",
+        type=int,
+        default=None,
+        help="Default vision experience points gained per hour of actual effort",
     )
     init_parser.add_argument(
         "--non-interactive",
