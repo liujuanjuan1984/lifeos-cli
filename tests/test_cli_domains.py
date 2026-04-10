@@ -747,6 +747,37 @@ def test_main_task_move_and_reorder_call_services(
     assert "Reordered tasks: 2" in captured.out
 
 
+def test_main_task_move_preserves_parent_when_parent_flag_is_omitted(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_move_task(session: object, **kwargs: object) -> object:
+        assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
+        assert "new_parent_task_id" not in kwargs
+        assert kwargs["new_display_order"] == 4
+        return make_record(
+            task=make_record(id=UUID("55555555-5555-5555-5555-555555555555")),
+            updated_descendants=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "move_task", fake_move_task)
+
+    exit_code = cli.main(
+        [
+            "task",
+            "move",
+            "55555555-5555-5555-5555-555555555555",
+            "--new-display-order",
+            "4",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Moved task 55555555-5555-5555-5555-555555555555" in captured.out
+
+
 def test_main_task_batch_delete_prints_summary(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

@@ -239,6 +239,67 @@ def test_move_task_updates_parent_vision_and_descendants(
     session.commit.assert_not_called()
 
 
+def test_move_task_preserves_parent_when_parent_change_is_not_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+        parent_task_id=UUID("33333333-3333-3333-3333-333333333333"),
+        display_order=5,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_task(
+        _: object,
+        *,
+        task_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert task_id == task.id
+        assert include_deleted is False
+        return task
+
+    async def fake_validate_parent_task(_: object, **kwargs: object) -> None:
+        assert kwargs["vision_id"] == task.vision_id
+        assert kwargs["parent_task_id"] == task.parent_task_id
+        assert kwargs["child_task_id"] == task.id
+
+    recompute_subtree = AsyncMock()
+    recompute_upwards = AsyncMock()
+    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
+    monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
+    monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(
+        task_mutations,
+        "load_people_for_entities",
+        AsyncMock(return_value={task.id: []}),
+    )
+
+    result = asyncio.run(
+        tasks.move_task(
+            cast(Any, session),
+            task_id=task.id,
+            new_display_order=7,
+        )
+    )
+
+    assert result.task is task
+    assert task.parent_task_id == UUID("33333333-3333-3333-3333-333333333333")
+    assert task.display_order == 7
+    recompute_subtree.assert_awaited_once_with(cast(Any, session), task.id)
+    recompute_upwards.assert_any_await(
+        cast(Any, session),
+        UUID("33333333-3333-3333-3333-333333333333"),
+    )
+    recompute_upwards.assert_any_await(cast(Any, session), task.id)
+    assert recompute_upwards.await_count == 2
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(task)
+    session.commit.assert_not_called()
+
+
 def test_reorder_tasks_updates_display_order_without_committing() -> None:
     task_1 = SimpleNamespace(id=UUID("11111111-1111-1111-1111-111111111111"), display_order=3)
     task_2 = SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"), display_order=4)

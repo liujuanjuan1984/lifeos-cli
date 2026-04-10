@@ -237,7 +237,6 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     move_parser.add_argument(
         "--new-display-order",
         type=int,
-        default=0,
         help="Target display order",
     )
     move_parser.set_defaults(handler=handle_task_move)

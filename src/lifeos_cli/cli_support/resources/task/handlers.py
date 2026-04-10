@@ -248,16 +248,33 @@ async def handle_task_move_async(args: argparse.Namespace) -> int:
     if args.clear_parent and args.new_parent_task_id is not None:
         print("Use either --new-parent-task-id or --clear-parent, not both.", file=sys.stderr)
         return 1
+    if (
+        not args.clear_parent
+        and args.new_parent_task_id is None
+        and args.new_vision_id is None
+        and args.new_display_order is None
+    ):
+        print("Provide at least one target field to move the task.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
-            result = await task_services.move_task(
-                session,
-                task_id=args.task_id,
-                old_parent_task_id=args.old_parent_task_id,
-                new_parent_task_id=None if args.clear_parent else args.new_parent_task_id,
-                new_vision_id=args.new_vision_id,
-                new_display_order=args.new_display_order,
-            )
+            if args.clear_parent or args.new_parent_task_id is not None:
+                result = await task_services.move_task(
+                    session,
+                    task_id=args.task_id,
+                    old_parent_task_id=args.old_parent_task_id,
+                    new_parent_task_id=None if args.clear_parent else args.new_parent_task_id,
+                    new_vision_id=args.new_vision_id,
+                    new_display_order=args.new_display_order,
+                )
+            else:
+                result = await task_services.move_task(
+                    session,
+                    task_id=args.task_id,
+                    old_parent_task_id=args.old_parent_task_id,
+                    new_vision_id=args.new_vision_id,
+                    new_display_order=args.new_display_order,
+                )
         except (
             task_services.TaskNotFoundError,
             task_services.VisionReferenceNotFoundError,

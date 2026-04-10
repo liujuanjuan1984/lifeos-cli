@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Final, cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -34,6 +35,13 @@ class TaskMoveResult:
 
     task: Task
     updated_descendants: tuple[Task, ...]
+
+
+class _UnsetParentTaskId:
+    """Sentinel for omitted parent task changes."""
+
+
+_UNSET_PARENT_TASK_ID: Final = _UnsetParentTaskId()
 
 
 async def create_task(
@@ -130,9 +138,9 @@ async def move_task(
     *,
     task_id: UUID,
     old_parent_task_id: UUID | None = None,
-    new_parent_task_id: UUID | None = None,
+    new_parent_task_id: UUID | None | _UnsetParentTaskId = _UNSET_PARENT_TASK_ID,
     new_vision_id: UUID | None = None,
-    new_display_order: int = 0,
+    new_display_order: int | None = None,
 ) -> TaskMoveResult:
     """Move a task to a new parent and optionally a new vision."""
     task = await get_task(session, task_id=task_id)
@@ -145,20 +153,26 @@ async def move_task(
     old_parent_task_id = task.parent_task_id
     old_vision_id = task.vision_id
     target_vision_id = new_vision_id or old_vision_id
+    parent_change_requested = new_parent_task_id is not _UNSET_PARENT_TASK_ID
+    target_parent_task_id = (
+        cast(UUID | None, new_parent_task_id) if parent_change_requested else task.parent_task_id
+    )
     if new_vision_id is not None and new_vision_id != old_vision_id:
         await ensure_vision_exists(session, new_vision_id)
 
-    if new_parent_task_id == task.id:
+    if target_parent_task_id == task.id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
     await validate_parent_task(
         session,
         vision_id=target_vision_id,
-        parent_task_id=new_parent_task_id,
+        parent_task_id=target_parent_task_id,
         child_task_id=task.id,
     )
 
-    task.parent_task_id = new_parent_task_id
-    task.display_order = new_display_order
+    if parent_change_requested:
+        task.parent_task_id = target_parent_task_id
+    if new_display_order is not None:
+        task.display_order = new_display_order
     updated_descendants: tuple[Task, ...] = ()
     if target_vision_id != old_vision_id:
         task.vision_id = target_vision_id
@@ -169,11 +183,17 @@ async def move_task(
         )
 
     await recompute_subtree_totals(session, task.id)
-    if old_parent_task_id is not None:
-        await recompute_totals_upwards(session, old_parent_task_id)
-    if new_parent_task_id is not None:
-        await recompute_totals_upwards(session, new_parent_task_id)
-    await recompute_totals_upwards(session, task.id)
+    recompute_roots = [
+        task_id
+        for task_id in (
+            old_parent_task_id,
+            target_parent_task_id if parent_change_requested else None,
+            task.id,
+        )
+        if task_id is not None
+    ]
+    for recompute_root_id in deduplicate_task_ids(recompute_roots):
+        await recompute_totals_upwards(session, recompute_root_id)
     await session.flush()
     await session.refresh(task)
     people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
