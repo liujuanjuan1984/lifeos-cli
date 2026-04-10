@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from lifeos_cli.db.services.habit_mutations import update_habit_action
+from lifeos_cli.db.services.habit_mutations import (
+    update_habit_action,
+    update_habit_action_by_date,
+)
 from lifeos_cli.db.services.habit_queries import (
     count_habit_actions,
     get_habit_action,
@@ -33,5 +36,6 @@ __all__ = [
     "get_habit_action",
     "list_habit_actions",
     "update_habit_action",
+    "update_habit_action_by_date",
     "validate_habit_action_status",
 ]

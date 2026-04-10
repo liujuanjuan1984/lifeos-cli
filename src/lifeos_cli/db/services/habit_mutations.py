@@ -184,6 +184,41 @@ async def update_habit_action(
     return action
 
 
+async def update_habit_action_by_date(
+    session: AsyncSession,
+    *,
+    habit_id: UUID,
+    action_date: date,
+    status: str | None = None,
+    notes: str | None = None,
+    clear_notes: bool = False,
+) -> HabitAction:
+    """Update one habit action by habit and action date."""
+    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    if habit is None:
+        raise HabitNotFoundError(f"Habit {habit_id} was not found")
+    action = (
+        await session.execute(
+            select(HabitAction).where(
+                HabitAction.habit_id == habit_id,
+                HabitAction.action_date == action_date,
+                HabitAction.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if action is None:
+        raise HabitActionNotFoundError(
+            f"Habit action for habit {habit_id} on {action_date} was not found"
+        )
+    return await update_habit_action(
+        session,
+        action_id=action.id,
+        status=status,
+        notes=notes,
+        clear_notes=clear_notes,
+    )
+
+
 async def _generate_habit_actions(session: AsyncSession, habit: Habit) -> None:
     current_date = habit.start_date
     while current_date <= habit.end_date:

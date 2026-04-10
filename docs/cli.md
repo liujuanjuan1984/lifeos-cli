@@ -305,6 +305,7 @@ lifeos habit-action list --habit-id <habit-id>
 lifeos habit-action list --action-date 2026-04-09 --count
 lifeos habit-action show <action-id>
 lifeos habit-action update <action-id> --status done
+lifeos habit-action log --habit-id <habit-id> --action-date 2026-04-09 --status done
 lifeos habit-action update <action-id> --clear-notes
 ```
 
@@ -312,6 +313,7 @@ Current habit-action notes:
 
 - public CLI does not create or delete habit actions directly
 - use `list` for both per-habit and by-date inspection flows
+- use `log` to update one action by habit and date without first looking up the action ID
 - updates respect the habit-action editable window enforced by the service layer
 
 ### People
@@ -493,6 +495,9 @@ Currently implemented:
 - `lifeos vision batch delete`
 - `lifeos task add|list|show|with-subtasks|hierarchy|stats|move|reorder|update|delete`
 - `lifeos task batch delete`
+- `lifeos habit add|list|show|stats|task-associations|update|delete`
+- `lifeos habit batch delete`
+- `lifeos habit-action list|show|update|log`
 - `lifeos timelog add|list|show|update|delete|restore`
 - `lifeos timelog batch update`
 - `lifeos timelog batch restore`

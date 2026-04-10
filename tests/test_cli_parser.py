@@ -644,6 +644,28 @@ def test_cli_parser_supports_habit_action_list_count_command() -> None:
     assert args.count is True
 
 
+def test_cli_parser_supports_habit_action_log_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit-action",
+            "log",
+            "--habit-id",
+            "77777777-7777-7777-7777-777777777777",
+            "--action-date",
+            "2026-04-09",
+            "--status",
+            "done",
+        ]
+    )
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "log"
+    assert args.habit_id == UUID("77777777-7777-7777-7777-777777777777")
+    assert str(args.action_date) == "2026-04-09"
+    assert args.status == "done"
+
+
 def test_cli_parser_supports_event_update_clear_people_command() -> None:
     parser = build_parser()
     args = parser.parse_args(

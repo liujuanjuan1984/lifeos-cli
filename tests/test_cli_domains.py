@@ -1044,6 +1044,45 @@ def test_main_habit_action_list_prints_count(
     assert "Total habit actions: 1" in captured.out
 
 
+def test_main_habit_action_log_updates_by_habit_and_date(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_habit_action_by_date(session: object, **kwargs: object) -> object:
+        assert kwargs["habit_id"] == UUID("77777777-7777-7777-7777-777777777777")
+        assert kwargs["action_date"] == date(2026, 4, 9)
+        assert kwargs["status"] == "done"
+        assert kwargs["notes"] == "Completed"
+        assert kwargs["clear_notes"] is False
+        return make_record(id=UUID("88888888-8888-8888-8888-888888888888"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(
+        habit_actions,
+        "update_habit_action_by_date",
+        fake_update_habit_action_by_date,
+    )
+
+    exit_code = cli.main(
+        [
+            "habit-action",
+            "log",
+            "--habit-id",
+            "77777777-7777-7777-7777-777777777777",
+            "--action-date",
+            "2026-04-09",
+            "--status",
+            "done",
+            "--notes",
+            "Completed",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated habit action 88888888-8888-8888-8888-888888888888" in captured.out
+
+
 def test_main_habit_action_update_can_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

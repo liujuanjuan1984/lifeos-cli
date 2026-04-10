@@ -698,3 +698,49 @@ def test_habit_task_associations_require_active_tasks(
     compiled = str(statements[-1])
     assert "tasks.deleted_at IS NULL" in compiled
     assert "habits.status =" not in compiled
+
+
+def test_update_habit_action_by_date_uses_existing_update_rules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    action_id = UUID("88888888-8888-8888-8888-888888888888")
+    action_date = date(2026, 4, 9)
+    action = SimpleNamespace(id=action_id, action_date=action_date)
+    session = SimpleNamespace()
+
+    class Result:
+        def scalar_one_or_none(self) -> object:
+            return action
+
+    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
+        assert include_deleted is False
+        return SimpleNamespace(id=habit_id)
+
+    async def fake_execute(statement: object) -> Result:
+        return Result()
+
+    async def fake_update_habit_action(_: object, **kwargs: object) -> object:
+        assert kwargs == {
+            "action_id": action_id,
+            "status": "done",
+            "notes": "Completed",
+            "clear_notes": False,
+        }
+        return action
+
+    session.execute = fake_execute
+    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
+    monkeypatch.setattr(habit_mutations, "update_habit_action", fake_update_habit_action)
+
+    updated_action = asyncio.run(
+        habits.update_habit_action_by_date(
+            cast(Any, session),
+            habit_id=habit_id,
+            action_date=action_date,
+            status="done",
+            notes="Completed",
+        )
+    )
+
+    assert updated_action is action
