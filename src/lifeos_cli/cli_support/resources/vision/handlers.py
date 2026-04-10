@@ -179,6 +179,64 @@ def handle_vision_delete(args: argparse.Namespace) -> int:
     return run_async(handle_vision_delete_async(args))
 
 
+async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.add_experience_to_vision(
+                session,
+                vision_id=args.vision_id,
+                experience_points=args.experience_points,
+            )
+        except (vision_services.VisionNotFoundError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Updated vision {vision.id}")
+    return 0
+
+
+def handle_vision_add_experience(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_add_experience_async(args))
+
+
+async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.sync_vision_experience(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Synced vision {vision.id}")
+    return 0
+
+
+def handle_vision_sync_experience(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_sync_experience_async(args))
+
+
+async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.harvest_vision(
+                session,
+                vision_id=args.vision_id,
+            )
+        except (
+            vision_services.VisionNotFoundError,
+            vision_services.VisionNotReadyForHarvestError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Harvested vision {vision.id}")
+    return 0
+
+
+def handle_vision_harvest(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_harvest_async(args))
+
+
 async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple visions in one command."""
     async with db_session.session_scope() as session:

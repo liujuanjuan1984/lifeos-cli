@@ -163,6 +163,13 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "actual_effort_self: 39" in task_with_timelog_result.stdout
     assert "actual_effort_total: 39" in task_with_timelog_result.stdout
 
+    vision_sync_result = run_lifeos(integration_context, "vision", "sync-experience", vision_id)
+    assert_ok(vision_sync_result)
+    synced_vision_result = run_lifeos(integration_context, "vision", "show", vision_id)
+    assert_ok(synced_vision_result)
+    assert "experience_points: 39" in synced_vision_result.stdout
+    assert "experience_rate_per_hour: 60" in synced_vision_result.stdout
+
     second_timelog_result = run_lifeos(
         integration_context,
         "timelog",

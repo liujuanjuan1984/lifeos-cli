@@ -312,6 +312,30 @@ def test_cli_parser_supports_vision_update_clear_people_command() -> None:
     assert args.clear_people is True
 
 
+def test_cli_parser_supports_vision_experience_commands() -> None:
+    parser = build_parser()
+
+    add_args = parser.parse_args(
+        [
+            "vision",
+            "add-experience",
+            "11111111-1111-1111-1111-111111111111",
+            "--points",
+            "120",
+        ]
+    )
+    sync_args = parser.parse_args(
+        ["vision", "sync-experience", "11111111-1111-1111-1111-111111111111"]
+    )
+    harvest_args = parser.parse_args(["vision", "harvest", "11111111-1111-1111-1111-111111111111"])
+
+    assert add_args.resource == "vision"
+    assert add_args.vision_command == "add-experience"
+    assert add_args.experience_points == 120
+    assert sync_args.vision_command == "sync-experience"
+    assert harvest_args.vision_command == "harvest"
+
+
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
     parser = build_parser()
 

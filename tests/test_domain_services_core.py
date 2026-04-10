@@ -9,6 +9,7 @@ from uuid import UUID
 
 import pytest
 
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import areas, people, tags, visions
 
 
@@ -343,6 +344,77 @@ def test_update_vision_rejects_invalid_experience_rate(
         )
 
     session.flush.assert_not_awaited()
+    session.commit.assert_not_called()
+
+
+def test_vision_model_syncs_experience_and_harvests_when_ready() -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.stage = 0
+    vision.experience_points = 0
+    root_task = SimpleNamespace(parent_task_id=None, actual_effort_total=480)
+    child_task = SimpleNamespace(
+        parent_task_id=UUID("11111111-1111-1111-1111-111111111111"),
+        actual_effort_total=999,
+    )
+
+    evolved = vision.sync_experience_with_actual_effort(
+        experience_rate_per_hour=60,
+        tasks=[cast(Any, root_task), cast(Any, child_task)],
+    )
+
+    assert evolved is True
+    assert vision.experience_points == 480
+    assert vision.stage == 3
+
+    vision.add_experience(7680)
+    assert vision.can_harvest() is True
+
+    vision.harvest()
+    assert vision.status == "fruit"
+
+
+def test_sync_vision_experience_uses_root_task_effort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.id = UUID("44444444-4444-4444-4444-444444444444")
+    vision.stage = 0
+    vision.experience_points = 0
+    vision.experience_rate_per_hour = None
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+    root_task = SimpleNamespace(parent_task_id=None, actual_effort_total=240)
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> Vision:
+        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert include_deleted is False
+        return vision
+
+    async def fake_load_tasks(_: object, vision_id: UUID) -> list[object]:
+        assert vision_id == vision.id
+        return [root_task]
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+    monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
+    monkeypatch.setattr(
+        visions, "load_people_for_entities", AsyncMock(return_value={vision.id: []})
+    )
+
+    synced = asyncio.run(
+        visions.sync_vision_experience(
+            cast(Any, session),
+            vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+        )
+    )
+
+    assert synced.experience_rate_per_hour == 60
+    assert synced.experience_points == 240
+    assert synced.stage == 2
+    session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
 

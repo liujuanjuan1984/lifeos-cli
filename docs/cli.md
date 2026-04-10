@@ -327,6 +327,9 @@ lifeos vision list --person-id <person-id>
 lifeos vision list --status active
 lifeos vision show <vision-id>
 lifeos vision update <vision-id> --status archived --clear-area
+lifeos vision sync-experience <vision-id>
+lifeos vision add-experience <vision-id> --points 120
+lifeos vision harvest <vision-id>
 lifeos vision delete <vision-id>
 ```
 
@@ -459,6 +462,7 @@ Currently implemented:
 - `lifeos people add|list|show|update|delete`
 - `lifeos people batch delete`
 - `lifeos vision add|list|show|update|delete`
+- `lifeos vision add-experience|sync-experience|harvest`
 - `lifeos vision batch delete`
 - `lifeos task add|list|show|update|delete`
 - `lifeos task batch delete`
@@ -477,7 +481,7 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
-- vision experience workflows and advanced task-tree operations
+- advanced task-tree operations
 - batch update operations for the new structured resources
 - event/timelog recurrence or direct event-to-timelog conversion
 - note ingestion jobs

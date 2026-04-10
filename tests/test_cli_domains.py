@@ -285,6 +285,55 @@ def test_main_vision_update_rejects_conflicting_clear_area_flags(
     assert "Use either --area-id or --clear-area, not both." in captured.err
 
 
+def test_main_vision_experience_commands_call_services(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[str] = []
+
+    async def fake_add_experience(session: object, **kwargs: object) -> object:
+        calls.append("add")
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        assert kwargs["experience_points"] == 120
+        return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
+
+    async def fake_sync_experience(session: object, **kwargs: object) -> object:
+        calls.append("sync")
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
+
+    async def fake_harvest(session: object, **kwargs: object) -> object:
+        calls.append("harvest")
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(visions, "add_experience_to_vision", fake_add_experience)
+    monkeypatch.setattr(visions, "sync_vision_experience", fake_sync_experience)
+    monkeypatch.setattr(visions, "harvest_vision", fake_harvest)
+
+    add_exit_code = cli.main(
+        [
+            "vision",
+            "add-experience",
+            "44444444-4444-4444-4444-444444444444",
+            "--points",
+            "120",
+        ]
+    )
+    sync_exit_code = cli.main(["vision", "sync-experience", "44444444-4444-4444-4444-444444444444"])
+    harvest_exit_code = cli.main(["vision", "harvest", "44444444-4444-4444-4444-444444444444"])
+    captured = capsys.readouterr()
+
+    assert add_exit_code == 0
+    assert sync_exit_code == 0
+    assert harvest_exit_code == 0
+    assert calls == ["add", "sync", "harvest"]
+    assert "Updated vision 44444444-4444-4444-4444-444444444444" in captured.out
+    assert "Synced vision 44444444-4444-4444-4444-444444444444" in captured.out
+    assert "Harvested vision 44444444-4444-4444-4444-444444444444" in captured.out
+
+
 def test_main_task_add_creates_task(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

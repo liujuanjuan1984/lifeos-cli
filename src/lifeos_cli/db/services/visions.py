@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
@@ -30,6 +31,10 @@ class AreaReferenceNotFoundError(LookupError):
     """Raised when a referenced area cannot be found."""
 
 
+class VisionNotReadyForHarvestError(ValueError):
+    """Raised when a vision cannot be harvested yet."""
+
+
 def _deduplicate_vision_ids(vision_ids: list[UUID]) -> list[UUID]:
     """Return vision identifiers in their original order without duplicates."""
     return list(dict.fromkeys(vision_ids))
@@ -48,15 +53,31 @@ def validate_vision_experience_rate(experience_rate_per_hour: int | None) -> int
     """Validate a vision-specific experience rate override."""
     if experience_rate_per_hour is None:
         return None
-    if (
-        experience_rate_per_hour < 1
-        or experience_rate_per_hour > VISION_EXPERIENCE_RATE_MAX
-    ):
+    if experience_rate_per_hour < 1 or experience_rate_per_hour > VISION_EXPERIENCE_RATE_MAX:
         raise ValueError(
-            "Experience rate per hour must be between "
-            f"1 and {VISION_EXPERIENCE_RATE_MAX}"
+            f"Experience rate per hour must be between 1 and {VISION_EXPERIENCE_RATE_MAX}"
         )
     return experience_rate_per_hour
+
+
+def validate_experience_points(points: int) -> int:
+    """Validate manual experience additions."""
+    if points < 0:
+        raise ValueError("Experience points must be greater than or equal to zero")
+    return points
+
+
+def resolve_experience_rate_for_vision(vision: Vision) -> int:
+    """Return the effective experience rate for a vision."""
+    return (
+        validate_vision_experience_rate(vision.experience_rate_per_hour)
+        or VISION_EXPERIENCE_RATE_DEFAULT
+    )
+
+
+def _apply_effective_experience_rate(vision: Vision, effective_rate: int) -> None:
+    if vision.experience_rate_per_hour is None:
+        vision.experience_rate_per_hour = effective_rate
 
 
 async def _ensure_area_exists(session: AsyncSession, area_id: UUID | None) -> None:
@@ -67,6 +88,15 @@ async def _ensure_area_exists(session: AsyncSession, area_id: UUID | None) -> No
     )
     if area.scalar_one_or_none() is None:
         raise AreaReferenceNotFoundError(f"Area {area_id} was not found")
+
+
+async def _load_active_tasks_for_vision(session: AsyncSession, vision_id: UUID) -> list[Task]:
+    stmt = (
+        select(Task)
+        .where(Task.vision_id == vision_id, Task.deleted_at.is_(None))
+        .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
+    )
+    return list((await session.execute(stmt)).scalars())
 
 
 async def create_vision(
@@ -108,6 +138,14 @@ async def create_vision(
     return vision
 
 
+async def _attach_people(session: AsyncSession, vision: Vision) -> Vision:
+    people_map = await load_people_for_entities(
+        session, entity_ids=[vision.id], entity_type="vision"
+    )
+    vision.people = people_map.get(vision.id, [])
+    return vision
+
+
 async def get_vision(
     session: AsyncSession,
     *,
@@ -121,11 +159,7 @@ async def get_vision(
     vision = (await session.execute(stmt)).scalar_one_or_none()
     if vision is None:
         return None
-    people_map = await load_people_for_entities(
-        session, entity_ids=[vision.id], entity_type="vision"
-    )
-    vision.people = people_map.get(vision.id, [])
-    return vision
+    return await _attach_people(session, vision)
 
 
 async def list_visions(
@@ -209,9 +243,7 @@ async def update_vision(
     if clear_experience_rate:
         vision.experience_rate_per_hour = None
     elif experience_rate_per_hour is not None:
-        vision.experience_rate_per_hour = validate_vision_experience_rate(
-            experience_rate_per_hour
-        )
+        vision.experience_rate_per_hour = validate_vision_experience_rate(experience_rate_per_hour)
     if clear_people:
         await sync_entity_people(
             session, entity_id=vision.id, entity_type="vision", desired_person_ids=[]
@@ -240,6 +272,68 @@ async def delete_vision(
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     vision.soft_delete()
     await session.flush()
+
+
+async def add_experience_to_vision(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+    experience_points: int,
+) -> Vision:
+    """Add manual experience points to an active vision."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+    if vision.status != "active":
+        raise ValueError("Can only add experience to active visions")
+    effective_rate = resolve_experience_rate_for_vision(vision)
+    _apply_effective_experience_rate(vision, effective_rate)
+    vision.add_experience(validate_experience_points(experience_points))
+    await session.flush()
+    await session.refresh(vision)
+    return await _attach_people(session, vision)
+
+
+async def sync_vision_experience(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> Vision:
+    """Synchronize vision experience points from root task actual effort."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+    effective_rate = resolve_experience_rate_for_vision(vision)
+    _apply_effective_experience_rate(vision, effective_rate)
+    tasks = await _load_active_tasks_for_vision(session, vision.id)
+    vision.sync_experience_with_actual_effort(
+        experience_rate_per_hour=effective_rate,
+        tasks=tasks,
+    )
+    await session.flush()
+    await session.refresh(vision)
+    return await _attach_people(session, vision)
+
+
+async def harvest_vision(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> Vision:
+    """Harvest a mature active vision into fruit status."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+    if not vision.can_harvest():
+        raise VisionNotReadyForHarvestError(
+            "Vision is not ready for harvest (must be at final stage and active)"
+        )
+    effective_rate = resolve_experience_rate_for_vision(vision)
+    _apply_effective_experience_rate(vision, effective_rate)
+    vision.harvest()
+    await session.flush()
+    await session.refresh(vision)
+    return await _attach_people(session, vision)
 
 
 async def batch_delete_visions(
