@@ -9,6 +9,7 @@ from uuid import UUID
 
 import pytest
 
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import areas, people, tags, visions
 
 
@@ -21,10 +22,10 @@ def test_create_person_flushes_without_committing(monkeypatch: pytest.MonkeyPatc
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    def fake_add(person: object) -> None:
-        session.added_person = person
+    def fake_add(_: object) -> None:
+        pass
 
-    async def fake_attach_tags(session_: object, person: object) -> object:
+    async def fake_attach_tags(_session: object, person: object) -> object:
         return person
 
     session.add = fake_add
@@ -55,11 +56,6 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
         return area
 
     monkeypatch.setattr(areas, "get_area", fake_get_area)
-    monkeypatch.setattr(
-        areas,
-        "load_people_for_entities",
-        AsyncMock(return_value={area.id: []}),
-    )
 
     updated_area = asyncio.run(
         areas.update_area(
@@ -76,7 +72,7 @@ def test_update_area_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) 
     session.commit.assert_not_called()
 
 
-def test_create_area_syncs_people_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_area_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(
         add=None,
         flush=AsyncMock(),
@@ -85,30 +81,19 @@ def test_create_area_syncs_people_without_committing(monkeypatch: pytest.MonkeyP
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    def fake_add(area: object) -> None:
-        session.added_area = area
-
-    async def fake_sync_people(_: object, **kwargs: object) -> None:
-        assert kwargs["entity_type"] == "area"
-        assert kwargs["desired_person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
-
-    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
-        area_id = cast(Any, session.added_area).id
-        return {area_id: [SimpleNamespace(name="Alice")]}
+    def fake_add(_: object) -> None:
+        pass
 
     session.add = fake_add
-    monkeypatch.setattr(areas, "sync_entity_people", fake_sync_people)
-    monkeypatch.setattr(areas, "load_people_for_entities", fake_load_people)
 
     area = asyncio.run(
         areas.create_area(
             cast(Any, session),
             name="Health",
-            person_ids=[UUID("11111111-1111-1111-1111-111111111111")],
         )
     )
 
-    assert len(area.people) == 1
+    assert area.name == "Health"
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -308,6 +293,190 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     assert updated_vision.experience_rate_per_hour is None
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_vision_experience_rate_validation_matches_compass_bounds() -> None:
+    assert visions.VISION_EXPERIENCE_RATE_MAX == 3600
+    assert visions.validate_vision_experience_rate(None) is None
+    assert visions.validate_vision_experience_rate(1) == 1
+    assert visions.validate_vision_experience_rate(3600) == 3600
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        visions.validate_vision_experience_rate(0)
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        visions.validate_vision_experience_rate(3601)
+
+
+def test_update_vision_rejects_invalid_experience_rate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vision = SimpleNamespace(
+        id=UUID("44444444-4444-4444-4444-444444444444"),
+        name="Launch lifeos-cli",
+        description=None,
+        status="active",
+        area_id=None,
+        experience_rate_per_hour=120,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert include_deleted is False
+        return vision
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+
+    with pytest.raises(ValueError, match="between 1 and 3600"):
+        asyncio.run(
+            visions.update_vision(
+                cast(Any, session),
+                vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+                experience_rate_per_hour=0,
+            )
+        )
+
+    session.flush.assert_not_awaited()
+    session.commit.assert_not_called()
+
+
+def test_vision_model_syncs_experience_and_harvests_when_ready() -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.stage = 0
+    vision.experience_points = 0
+    root_task = SimpleNamespace(parent_task_id=None, actual_effort_total=480)
+    child_task = SimpleNamespace(
+        parent_task_id=UUID("11111111-1111-1111-1111-111111111111"),
+        actual_effort_total=999,
+    )
+
+    evolved = vision.sync_experience_with_actual_effort(
+        experience_rate_per_hour=60,
+        tasks=[cast(Any, root_task), cast(Any, child_task)],
+    )
+
+    assert evolved is True
+    assert vision.experience_points == 480
+    assert vision.stage == 3
+
+    vision.add_experience(7680)
+    assert vision.can_harvest() is True
+
+    vision.harvest()
+    assert vision.status == "fruit"
+
+
+def test_sync_vision_experience_uses_root_task_effort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.id = UUID("44444444-4444-4444-4444-444444444444")
+    vision.stage = 0
+    vision.experience_points = 0
+    vision.experience_rate_per_hour = None
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+    root_task = SimpleNamespace(parent_task_id=None, actual_effort_total=240)
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> Vision:
+        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert include_deleted is False
+        return vision
+
+    async def fake_load_tasks(_: object, vision_id: UUID) -> list[object]:
+        assert vision_id == vision.id
+        return [root_task]
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+    monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
+    monkeypatch.setattr(
+        visions,
+        "get_preferences_settings",
+        lambda: SimpleNamespace(vision_experience_rate_per_hour=120),
+    )
+    monkeypatch.setattr(
+        visions, "load_people_for_entities", AsyncMock(return_value={vision.id: []})
+    )
+
+    synced = asyncio.run(
+        visions.sync_vision_experience(
+            cast(Any, session),
+            vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+        )
+    )
+
+    assert synced.experience_rate_per_hour == 120
+    assert synced.experience_points == 480
+    assert synced.stage == 3
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
+def test_get_vision_stats_summarizes_tasks(monkeypatch: pytest.MonkeyPatch) -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.id = UUID("44444444-4444-4444-4444-444444444444")
+    tasks: list[object] = [
+        SimpleNamespace(
+            status="done",
+            estimated_effort=30,
+            actual_effort_total=45,
+            parent_task_id=None,
+        ),
+        SimpleNamespace(
+            status="in_progress",
+            estimated_effort=60,
+            actual_effort_total=20,
+            parent_task_id=UUID("11111111-1111-1111-1111-111111111111"),
+        ),
+        SimpleNamespace(
+            status="todo",
+            estimated_effort=None,
+            actual_effort_total=10,
+            parent_task_id=None,
+        ),
+    ]
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> Vision:
+        assert vision_id == vision.id
+        assert include_deleted is False
+        return vision
+
+    async def fake_load_tasks(_: object, vision_id: UUID) -> list[object]:
+        assert vision_id == vision.id
+        return tasks
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+    monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
+
+    stats = asyncio.run(
+        visions.get_vision_stats(
+            cast(Any, object()),
+            vision_id=vision.id,
+        )
+    )
+
+    assert stats.total_tasks == 3
+    assert stats.completed_tasks == 1
+    assert stats.in_progress_tasks == 1
+    assert stats.todo_tasks == 1
+    assert stats.completion_percentage == pytest.approx(1 / 3)
+    assert stats.total_estimated_effort == 90
+    assert stats.total_actual_effort == 55
 
 
 def test_create_vision_syncs_people_without_committing(

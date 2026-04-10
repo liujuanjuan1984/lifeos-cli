@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import (
+    format_id_lines,
+    format_timestamp,
+    print_batch_result,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.timelog import Timelog
@@ -96,14 +100,25 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+    if args.without_area and (args.area_id is not None or args.area_name is not None):
+        print("Use either an area filter or --without-area, not both.", file=sys.stderr)
+        return 1
+    if args.without_task and args.task_id is not None:
+        print("Use either --task-id or --without-task, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             timelogs = await timelog_services.list_timelogs(
                 session,
                 title_contains=args.title_contains,
+                notes_contains=args.notes_contains,
+                query=args.query,
                 tracking_method=args.tracking_method,
                 area_id=args.area_id,
+                area_name=args.area_name,
+                without_area=args.without_area,
                 task_id=args.task_id,
+                without_task=args.without_task,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
                 local_date=args.local_date,
@@ -113,13 +128,39 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
+            total_count = (
+                await timelog_services.count_timelogs(
+                    session,
+                    title_contains=args.title_contains,
+                    notes_contains=args.notes_contains,
+                    query=args.query,
+                    tracking_method=args.tracking_method,
+                    area_id=args.area_id,
+                    area_name=args.area_name,
+                    without_area=args.without_area,
+                    task_id=args.task_id,
+                    without_task=args.without_task,
+                    person_id=args.person_id,
+                    tag_id=args.tag_id,
+                    local_date=args.local_date,
+                    window_start=args.window_start,
+                    window_end=args.window_end,
+                    include_deleted=args.include_deleted,
+                )
+                if args.count
+                else None
+            )
         except timelog_services.TimelogValidationError as exc:
             return _print_timelog_error(exc)
     if not timelogs:
         print("No timelogs found.")
+        if total_count is not None:
+            print(f"Total timelogs: {total_count}")
         return 0
     for timelog in timelogs:
         print(_format_timelog_summary(timelog))
+    if total_count is not None:
+        print(f"Total timelogs: {total_count}")
     return 0
 
 
@@ -217,18 +258,132 @@ def handle_timelog_delete(args: argparse.Namespace) -> int:
     return run_async(handle_timelog_delete_async(args))
 
 
+async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            timelog = await timelog_services.restore_timelog(
+                session,
+                timelog_id=args.timelog_id,
+            )
+        except (
+            timelog_services.TimelogAreaReferenceNotFoundError,
+            timelog_services.TimelogNotFoundError,
+            timelog_services.TimelogTaskReferenceNotFoundError,
+            timelog_services.TimelogValidationError,
+        ) as exc:
+            return _print_timelog_error(exc)
+    print(f"Restored timelog {timelog.id}")
+    return 0
+
+
+def handle_timelog_restore(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_restore_async(args))
+
+
+def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
+    return any(
+        (
+            args.title is not None,
+            args.find_title_text is not None,
+            args.area_id is not None,
+            args.clear_area,
+            args.task_id is not None,
+            args.clear_task,
+            args.tag_ids is not None,
+            args.clear_tags,
+            args.person_ids is not None,
+            args.clear_people,
+        )
+    )
+
+
+async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
+    conflicts = (
+        (
+            args.title is not None
+            and (args.find_title_text is not None or args.replace_title_text is not None),
+            "--title",
+            "--find-title-text/--replace-title-text",
+        ),
+        (args.clear_area and args.area_id is not None, "--area-id", "--clear-area"),
+        (args.clear_task and args.task_id is not None, "--task-id", "--clear-task"),
+        (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
+        (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
+    )
+    for is_conflict, value_flag, clear_flag in conflicts:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
+    if args.replace_title_text is not None and args.find_title_text is None:
+        print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
+        return 1
+    if not _timelog_batch_update_requested(args):
+        print("At least one batch update option is required.", file=sys.stderr)
+        return 1
+
+    async with db_session.session_scope() as session:
+        try:
+            result = await timelog_services.batch_update_timelogs(
+                session,
+                timelog_ids=list(args.timelog_ids),
+                title=args.title,
+                find_title_text=args.find_title_text,
+                replace_title_text=args.replace_title_text or "",
+                area_id=args.area_id,
+                clear_area=args.clear_area,
+                task_id=args.task_id,
+                clear_task=args.clear_task,
+                tag_ids=args.tag_ids,
+                clear_tags=args.clear_tags,
+                person_ids=args.person_ids,
+                clear_people=args.clear_people,
+            )
+        except timelog_services.TimelogValidationError as exc:
+            return _print_timelog_error(exc)
+    print(f"Updated timelogs: {result.updated_count}")
+    if result.unchanged_ids:
+        print(format_id_lines("Unchanged timelog IDs", result.unchanged_ids))
+    if result.failed_ids:
+        print(format_id_lines("Failed timelog IDs", result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
+
+
+def handle_timelog_batch_update(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_batch_update_async(args))
+
+
+async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        result = await timelog_services.batch_restore_timelogs(
+            session,
+            timelog_ids=list(args.timelog_ids),
+        )
+    return print_batch_result(
+        success_label="Restored timelogs",
+        success_count=result.restored_count,
+        failed_label="Failed timelog IDs",
+        result=result,
+    )
+
+
+def handle_timelog_batch_restore(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_batch_restore_async(args))
+
+
 async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await timelog_services.batch_delete_timelogs(
             session,
             timelog_ids=list(args.timelog_ids),
         )
-    print(f"Deleted timelogs: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed timelog IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted timelogs",
+        success_count=result.deleted_count,
+        failed_label="Failed timelog IDs",
+        result=result,
+    )
 
 
 def handle_timelog_batch_delete(args: argparse.Namespace) -> int:

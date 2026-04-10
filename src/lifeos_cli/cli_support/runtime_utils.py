@@ -46,6 +46,8 @@ def format_config_summary(
         f"Preference language: {preferences_settings.language}",
         f"Preference day starts at: {preferences_settings.day_starts_at}",
         f"Preference week starts on: {preferences_settings.week_starts_on}",
+        "Preference vision experience rate per hour: "
+        f"{preferences_settings.vision_experience_rate_per_hour}",
     ]
     return "\n".join(lines)
 

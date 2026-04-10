@@ -78,7 +78,7 @@ lifeos init
 Initialize while persisting user preferences:
 
 ```bash
-lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday
+lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday --vision-experience-rate-per-hour 120
 ```
 
 Re-run `lifeos init` to edit stored preferences later.
@@ -111,6 +111,8 @@ Current persisted preference keys:
 - `day_starts_at`: local day boundary in `HH:MM` for date-based event/timelog queries and habit
   day semantics
 - `week_starts_on`: preferred first day of the week (`monday` or `sunday`) for weekly habit stats
+- `vision_experience_rate_per_hour`: default vision experience points gained per hour of actual
+  effort, used when a vision does not define its own rate
 
 Time storage and rendering rules:
 
@@ -120,6 +122,8 @@ Time storage and rendering rules:
   `day_starts_at` together
 - habit "today" and weekly stats use the configured local operational day instead of raw server
   midnight
+- vision experience sync uses `vision_experience_rate_per_hour` unless the vision has a
+  per-record `experience_rate_per_hour` override
 
 ## Notes
 
@@ -226,8 +230,8 @@ Current intent:
 - standalone `search` is intentionally deferred for now
 - `batch` is the grouped namespace for multi-record write operations
 - `habit-action` is a top-level resource instead of a nested `habit action` command tree
-- repeated `--person-id` flags attach people to supported resources such as `area`, `tag`,
-  `vision`, `task`, `event`, and `timelog`
+- repeated `--person-id` flags attach people to supported resources such as `tag`, `vision`,
+  `task`, `event`, and `timelog`
 
 ## Structured Resource Workflows
 
@@ -237,8 +241,6 @@ These examples show the current intended command shape for the new structured re
 
 ```bash
 lifeos area add "Health" --description "Long-term wellbeing" --icon heart
-lifeos area update <area-id> --person-id <person-id-1> --person-id <person-id-2>
-lifeos area list --person-id <person-id>
 lifeos area list
 lifeos area show <area-id>
 lifeos area update <area-id> --name "Fitness" --clear-icon
@@ -280,6 +282,7 @@ Current event notes:
 ```bash
 lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
 lifeos habit list --with-stats
+lifeos habit list --status active --count
 lifeos habit show <habit-id>
 lifeos habit update <habit-id> --status paused
 lifeos habit stats <habit-id>
@@ -292,15 +295,17 @@ Current habit notes:
 - a habit generates one dated `habit-action` row per day in its duration
 - updating start dates or duration automatically reconciles generated action rows
 - current-day and weekly stats use the configured timezone, `day_starts_at`, and `week_starts_on`
+- task associations include non-deleted habits linked to non-deleted tasks
 - habit deletion is soft deletion only in the public CLI
 
 ### Habit Action
 
 ```bash
 lifeos habit-action list --habit-id <habit-id>
-lifeos habit-action list --action-date 2026-04-09
+lifeos habit-action list --action-date 2026-04-09 --count
 lifeos habit-action show <action-id>
 lifeos habit-action update <action-id> --status done
+lifeos habit-action log --habit-id <habit-id> --action-date 2026-04-09 --status done
 lifeos habit-action update <action-id> --clear-notes
 ```
 
@@ -308,6 +313,7 @@ Current habit-action notes:
 
 - public CLI does not create or delete habit actions directly
 - use `list` for both per-habit and by-date inspection flows
+- use `log` to update one action by habit and date without first looking up the action ID
 - updates respect the habit-action editable window enforced by the service layer
 
 ### People
@@ -328,7 +334,12 @@ lifeos vision update <vision-id> --person-id <person-id-1> --person-id <person-i
 lifeos vision list --person-id <person-id>
 lifeos vision list --status active
 lifeos vision show <vision-id>
+lifeos vision with-tasks <vision-id>
+lifeos vision stats <vision-id>
 lifeos vision update <vision-id> --status archived --clear-area
+lifeos vision sync-experience <vision-id>
+lifeos vision add-experience <vision-id> --points 120
+lifeos vision harvest <vision-id>
 lifeos vision delete <vision-id>
 ```
 
@@ -339,7 +350,14 @@ lifeos task add "Draft release checklist" --vision-id <vision-id> --status todo
 lifeos task update <task-id> --person-id <person-id>
 lifeos task list --person-id <person-id>
 lifeos task list --vision-id <vision-id>
+lifeos task list --status-in todo,in_progress --exclude-status cancelled
+lifeos task list --planning-cycle-type week --planning-cycle-start-date 2026-04-10
 lifeos task show <task-id>
+lifeos task with-subtasks <task-id>
+lifeos task hierarchy <vision-id>
+lifeos task stats <task-id>
+lifeos task move <task-id> --new-parent-task-id <parent-task-id> --new-display-order 1
+lifeos task reorder --order <task-id-1>:0 --order <task-id-2>:1
 lifeos task update <task-id> --status in_progress
 lifeos task update <child-task-id> --clear-parent
 lifeos task delete <task-id>
@@ -348,7 +366,9 @@ lifeos task delete <task-id>
 Current task notes:
 
 - `task` is the execution unit and supports tree structure through parent-child links
+- use `with-subtasks`, `hierarchy`, and `stats` for task-tree read models
 - use `--clear-parent` to move a child task back to the root level
+- use `move` for parent or vision changes and `reorder` for display order changes
 - repeated `--person-id` flags link a task to one or more people without changing its place in
   the task tree
 - use `--clear-*` flags when a field should become empty instead of being replaced
@@ -359,15 +379,24 @@ Current task notes:
 lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
 lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
 lifeos timelog list --date 2026-04-10
+lifeos timelog list --query "deep work" --count
+lifeos timelog list --area-name Work --without-task
 lifeos timelog show <timelog-id>
 lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
+lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task
+lifeos timelog batch update --ids <timelog-id-1> --find-title-text "deep" --replace-title-text "focused"
 lifeos timelog delete <timelog-id>
+lifeos timelog restore <timelog-id>
+lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>
 ```
 
 Current timelog notes:
 
 - `timelog` is the actual time record and represents what really happened
 - use `--date` to query one configured local day
+- use `--query` to search timelog titles and notes
+- use `batch update` for repeated relation cleanup or title find/replace
+- use `restore` or `batch restore` to recover soft-deleted timelogs
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - timelog end time is currently required because the record models completed time spent
 
@@ -461,10 +490,17 @@ Currently implemented:
 - `lifeos people add|list|show|update|delete`
 - `lifeos people batch delete`
 - `lifeos vision add|list|show|update|delete`
+- `lifeos vision with-tasks|stats`
+- `lifeos vision add-experience|sync-experience|harvest`
 - `lifeos vision batch delete`
-- `lifeos task add|list|show|update|delete`
+- `lifeos task add|list|show|with-subtasks|hierarchy|stats|move|reorder|update|delete`
 - `lifeos task batch delete`
-- `lifeos timelog add|list|show|update|delete`
+- `lifeos habit add|list|show|stats|task-associations|update|delete`
+- `lifeos habit batch delete`
+- `lifeos habit-action list|show|update|log`
+- `lifeos timelog add|list|show|update|delete|restore`
+- `lifeos timelog batch update`
+- `lifeos timelog batch restore`
 - `lifeos timelog batch delete`
 - `lifeos note add`
 - `lifeos note list`
@@ -479,8 +515,7 @@ Not implemented yet:
 
 - note tags
 - note-to-task or note-to-person associations
-- vision experience workflows and advanced task-tree operations
-- batch update operations for the new structured resources
+- batch update operations for the remaining structured resources
 - event/timelog recurrence or direct event-to-timelog conversion
 - note ingestion jobs
 - richer search ranking or association-aware note search

@@ -2,24 +2,46 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
+from typing import Final, cast
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
 from lifeos_cli.db.services.task_queries import get_task
 from lifeos_cli.db.services.task_support import (
+    InvalidTaskOperationError,
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
     deduplicate_task_ids,
     ensure_vision_exists,
+    load_task_subtree,
     validate_parent_task,
     validate_planning_cycle,
     validate_task_status,
+    validate_task_status_change,
 )
+
+
+@dataclass(frozen=True)
+class TaskMoveResult:
+    """Result payload for moving a task."""
+
+    task: Task
+    updated_descendants: tuple[Task, ...]
+
+
+class _UnsetParentTaskId:
+    """Sentinel for omitted parent task changes."""
+
+
+_UNSET_PARENT_TASK_ID: Final = _UnsetParentTaskId()
 
 
 async def create_task(
@@ -71,6 +93,114 @@ async def create_task(
     return task
 
 
+async def reorder_tasks(
+    session: AsyncSession,
+    *,
+    task_orders: list[tuple[UUID, int]],
+) -> None:
+    """Update display order for multiple active tasks."""
+    if not task_orders:
+        return
+
+    task_ids = [task_id for task_id, _ in task_orders]
+    result = await session.execute(
+        select(Task).where(Task.id.in_(task_ids), Task.deleted_at.is_(None))
+    )
+    tasks = list(result.scalars())
+    if len(tasks) != len(set(task_ids)):
+        raise TaskNotFoundError("One or more tasks were not found")
+
+    tasks_by_id = {task.id: task for task in tasks}
+    for task_id, display_order in task_orders:
+        tasks_by_id[task_id].display_order = display_order
+    await session.flush()
+
+
+async def _update_descendant_visions(
+    session: AsyncSession,
+    *,
+    root_task_id: UUID,
+    new_vision_id: UUID,
+) -> tuple[Task, ...]:
+    """Update descendant vision ownership after moving a task subtree."""
+    subtree = await load_task_subtree(session, root_task_id=root_task_id)
+    updated_descendants: list[Task] = []
+    for descendant in subtree[1:]:
+        if descendant.vision_id == new_vision_id:
+            continue
+        descendant.vision_id = new_vision_id
+        updated_descendants.append(descendant)
+    return tuple(updated_descendants)
+
+
+async def move_task(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+    old_parent_task_id: UUID | None = None,
+    new_parent_task_id: UUID | None | _UnsetParentTaskId = _UNSET_PARENT_TASK_ID,
+    new_vision_id: UUID | None = None,
+    new_display_order: int | None = None,
+) -> TaskMoveResult:
+    """Move a task to a new parent and optionally a new vision."""
+    task = await get_task(session, task_id=task_id)
+    if task is None:
+        raise TaskNotFoundError(f"Task {task_id} was not found")
+
+    if old_parent_task_id is not None and old_parent_task_id != task.parent_task_id:
+        raise InvalidTaskOperationError("Old parent task ID does not match current parent task ID")
+
+    old_parent_task_id = task.parent_task_id
+    old_vision_id = task.vision_id
+    target_vision_id = new_vision_id or old_vision_id
+    parent_change_requested = new_parent_task_id is not _UNSET_PARENT_TASK_ID
+    target_parent_task_id = (
+        cast(UUID | None, new_parent_task_id) if parent_change_requested else task.parent_task_id
+    )
+    if new_vision_id is not None and new_vision_id != old_vision_id:
+        await ensure_vision_exists(session, new_vision_id)
+
+    if target_parent_task_id == task.id:
+        raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
+    await validate_parent_task(
+        session,
+        vision_id=target_vision_id,
+        parent_task_id=target_parent_task_id,
+        child_task_id=task.id,
+    )
+
+    if parent_change_requested:
+        task.parent_task_id = target_parent_task_id
+    if new_display_order is not None:
+        task.display_order = new_display_order
+    updated_descendants: tuple[Task, ...] = ()
+    if target_vision_id != old_vision_id:
+        task.vision_id = target_vision_id
+        updated_descendants = await _update_descendant_visions(
+            session,
+            root_task_id=task.id,
+            new_vision_id=target_vision_id,
+        )
+
+    await recompute_subtree_totals(session, task.id)
+    recompute_roots = [
+        task_id
+        for task_id in (
+            old_parent_task_id,
+            target_parent_task_id if parent_change_requested else None,
+            task.id,
+        )
+        if task_id is not None
+    ]
+    for recompute_root_id in deduplicate_task_ids(recompute_roots):
+        await recompute_totals_upwards(session, recompute_root_id)
+    await session.flush()
+    await session.refresh(task)
+    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
+    task.people = people_map.get(task.id, [])
+    return TaskMoveResult(task=task, updated_descendants=updated_descendants)
+
+
 async def update_task(
     session: AsyncSession,
     *,
@@ -98,6 +228,7 @@ async def update_task(
         raise TaskNotFoundError(f"Task {task_id} was not found")
     if parent_task_id == task_id:
         raise ParentTaskReferenceNotFoundError("Task cannot be its own parent")
+    old_parent_task_id = task.parent_task_id
     next_parent_task_id = (
         None
         if clear_parent
@@ -127,7 +258,10 @@ async def update_task(
         else task.planning_cycle_start_date
     )
     await validate_parent_task(
-        session, vision_id=task.vision_id, parent_task_id=next_parent_task_id
+        session,
+        vision_id=task.vision_id,
+        parent_task_id=next_parent_task_id,
+        child_task_id=task.id,
     )
     (
         normalized_cycle_type,
@@ -149,7 +283,7 @@ async def update_task(
     elif parent_task_id is not None:
         task.parent_task_id = parent_task_id
     if status is not None:
-        task.status = validate_task_status(status)
+        task.status = await validate_task_status_change(session, task=task, new_status=status)
     if priority is not None:
         task.priority = priority
     if display_order is not None:
@@ -169,6 +303,11 @@ async def update_task(
     task.planning_cycle_type = normalized_cycle_type
     task.planning_cycle_days = normalized_cycle_days
     task.planning_cycle_start_date = normalized_cycle_start_date
+    if task.parent_task_id != old_parent_task_id:
+        await recompute_subtree_totals(session, task.id)
+        if old_parent_task_id is not None:
+            await recompute_totals_upwards(session, old_parent_task_id)
+        await recompute_totals_upwards(session, task.id)
     await session.flush()
     await session.refresh(task)
     people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
@@ -181,7 +320,12 @@ async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     task = await get_task(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
-    task.soft_delete()
+    old_parent_task_id = task.parent_task_id
+    subtree = await load_task_subtree(session, root_task_id=task_id)
+    for subtree_task in subtree:
+        subtree_task.soft_delete()
+    if old_parent_task_id is not None:
+        await recompute_totals_upwards(session, old_parent_task_id)
     await session.flush()
 
 
@@ -191,20 +335,8 @@ async def batch_delete_tasks(
     task_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple tasks while preserving per-task error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for task_id in deduplicate_task_ids(task_ids):
-        try:
-            await delete_task(session, task_id=task_id)
-            deleted_count += 1
-        except TaskNotFoundError as exc:
-            failed_ids.append(task_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_task_ids(task_ids),
+        delete_record=lambda task_id: delete_task(session, task_id=task_id),
+        handled_exceptions=(TaskNotFoundError,),
     )

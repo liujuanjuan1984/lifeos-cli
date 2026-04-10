@@ -50,6 +50,20 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
+            total_count = (
+                await habit_action_services.count_habit_actions(
+                    session,
+                    habit_id=args.habit_id,
+                    status=args.status,
+                    action_date=args.action_date,
+                    center_date=args.center_date,
+                    days_before=args.days_before,
+                    days_after=args.days_after,
+                    include_deleted=args.include_deleted,
+                )
+                if args.count
+                else None
+            )
         except (
             habit_action_services.HabitNotFoundError,
             habit_action_services.HabitValidationError,
@@ -58,9 +72,13 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
             return 1
     if not actions:
         print("No habit actions found.")
+        if total_count is not None:
+            print(f"Total habit actions: {total_count}")
         return 0
     for action in actions:
         print(_format_habit_action_summary(action))
+    if total_count is not None:
+        print(f"Total habit actions: {total_count}")
     return 0
 
 
@@ -112,3 +130,36 @@ async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
 
 def handle_habit_action_update(args: argparse.Namespace) -> int:
     return run_async(handle_habit_action_update_async(args))
+
+
+async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
+    if args.clear_notes and args.notes is not None:
+        print("Use either --notes or --clear-notes, not both.", file=sys.stderr)
+        return 1
+    if args.status is None and args.notes is None and not args.clear_notes:
+        print("At least one of --status, --notes, or --clear-notes is required.", file=sys.stderr)
+        return 1
+    async with db_session.session_scope() as session:
+        try:
+            action = await habit_action_services.update_habit_action_by_date(
+                session,
+                habit_id=args.habit_id,
+                action_date=args.action_date,
+                status=args.status,
+                notes=args.notes,
+                clear_notes=args.clear_notes,
+            )
+        except (
+            habit_action_services.HabitActionNotFoundError,
+            habit_action_services.HabitNotFoundError,
+            habit_action_services.HabitValidationError,
+            habit_action_services.InvalidHabitOperationError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Updated habit action {action.id}")
+    return 0
+
+
+def handle_habit_action_log(args: argparse.Namespace) -> int:
+    return run_async(handle_habit_action_log_async(args))

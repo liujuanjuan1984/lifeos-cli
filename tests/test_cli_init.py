@@ -35,6 +35,8 @@ def test_main_init_non_interactive_writes_config(
             "04:00",
             "--week-starts-on",
             "sunday",
+            "--vision-experience-rate-per-hour",
+            "120",
         ]
     )
     captured = capsys.readouterr()
@@ -44,12 +46,14 @@ def test_main_init_non_interactive_writes_config(
     assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
     assert "Preference timezone: America/Toronto" in captured.out
     assert "Preference language: zh-Hans" in captured.out
+    assert "Preference vision experience rate per hour: 120" in captured.out
     content = config_path.read_text(encoding="utf-8")
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
     assert 'timezone = "America/Toronto"' in content
     assert 'language = "zh-Hans"' in content
     assert 'day_starts_at = "04:00"' in content
     assert 'week_starts_on = "sunday"' in content
+    assert "vision_experience_rate_per_hour = 120" in content
     clear_config_cache()
 
 
@@ -176,6 +180,7 @@ def test_main_config_show_masks_database_password(
                 'language = "zh-Hans"',
                 'day_starts_at = "04:00"',
                 'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 90",
                 "",
             )
         ),
@@ -194,6 +199,7 @@ def test_main_config_show_masks_database_password(
     assert "Preference language: zh-Hans" in captured.out
     assert "Preference day starts at: 04:00" in captured.out
     assert "Preference week starts on: sunday" in captured.out
+    assert "Preference vision experience rate per hour: 90" in captured.out
     clear_config_cache()
 
 

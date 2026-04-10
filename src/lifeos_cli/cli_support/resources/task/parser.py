@@ -15,9 +15,14 @@ from lifeos_cli.cli_support.resources.task.handlers import (
     handle_task_add,
     handle_task_batch_delete,
     handle_task_delete,
+    handle_task_hierarchy,
     handle_task_list,
+    handle_task_move,
+    handle_task_reorder,
     handle_task_show,
+    handle_task_stats,
     handle_task_update,
+    handle_task_with_subtasks,
 )
 
 
@@ -130,9 +135,18 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         type=UUID,
         help="Filter by vision identifier",
     )
+    list_parser.add_argument("--vision-in", help="Comma-separated vision identifiers")
     list_parser.add_argument("--parent-task-id", type=UUID, help="Filter by parent task identifier")
     list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
     list_parser.add_argument("--status", help="Filter by task status")
+    list_parser.add_argument("--status-in", help="Comma-separated statuses to include")
+    list_parser.add_argument("--exclude-status", help="Comma-separated statuses to exclude")
+    list_parser.add_argument("--planning-cycle-type", help="Filter by planning cycle type")
+    list_parser.add_argument(
+        "--planning-cycle-start-date",
+        help="Filter by planning cycle start date YYYY-MM-DD",
+    )
+    list_parser.add_argument("--content", help="Filter by exact task content")
     add_include_deleted_argument(list_parser, noun="tasks")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_task_list)
@@ -152,6 +166,100 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     show_parser.add_argument("task_id", type=UUID, help="Task identifier")
     add_include_deleted_argument(show_parser, noun="tasks", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_task_show)
+
+    with_subtasks_parser = add_documented_parser(
+        task_subparsers,
+        "with-subtasks",
+        help_content=HelpContent(
+            summary="Show a task subtree",
+            description="Show one task with its active nested subtasks.",
+            examples=("lifeos task with-subtasks 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    with_subtasks_parser.add_argument("task_id", type=UUID, help="Task identifier")
+    with_subtasks_parser.set_defaults(handler=handle_task_with_subtasks)
+
+    hierarchy_parser = add_documented_parser(
+        task_subparsers,
+        "hierarchy",
+        help_content=HelpContent(
+            summary="Show a vision task hierarchy",
+            description="Show all active tasks for a vision as a hierarchy.",
+            examples=("lifeos task hierarchy 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    hierarchy_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    hierarchy_parser.set_defaults(handler=handle_task_hierarchy)
+
+    stats_parser = add_documented_parser(
+        task_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary="Show task statistics",
+            description="Show subtree completion and effort statistics for one task.",
+            examples=("lifeos task stats 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    stats_parser.add_argument("task_id", type=UUID, help="Task identifier")
+    stats_parser.set_defaults(handler=handle_task_stats)
+
+    move_parser = add_documented_parser(
+        task_subparsers,
+        "move",
+        help_content=HelpContent(
+            summary="Move a task",
+            description="Move a task to a new parent and optionally a new vision.",
+            examples=(
+                "lifeos task move 11111111-1111-1111-1111-111111111111 "
+                "--new-parent-task-id 22222222-2222-2222-2222-222222222222",
+                "lifeos task move 11111111-1111-1111-1111-111111111111 "
+                "--new-vision-id 33333333-3333-3333-3333-333333333333 --clear-parent",
+            ),
+        ),
+    )
+    move_parser.add_argument("task_id", type=UUID, help="Task identifier")
+    move_parser.add_argument(
+        "--old-parent-task-id",
+        type=UUID,
+        help="Expected current parent task identifier",
+    )
+    move_parser.add_argument(
+        "--new-parent-task-id",
+        type=UUID,
+        help="Target parent task identifier",
+    )
+    move_parser.add_argument(
+        "--clear-parent",
+        action="store_true",
+        help="Move the task to the root level",
+    )
+    move_parser.add_argument("--new-vision-id", type=UUID, help="Target vision identifier")
+    move_parser.add_argument(
+        "--new-display-order",
+        type=int,
+        help="Target display order",
+    )
+    move_parser.set_defaults(handler=handle_task_move)
+
+    reorder_parser = add_documented_parser(
+        task_subparsers,
+        "reorder",
+        help_content=HelpContent(
+            summary="Reorder tasks",
+            description="Update display order values for one or more tasks.",
+            examples=(
+                "lifeos task reorder --order 11111111-1111-1111-1111-111111111111:0 "
+                "--order 22222222-2222-2222-2222-222222222222:1",
+            ),
+        ),
+    )
+    reorder_parser.add_argument(
+        "--order",
+        action="append",
+        required=True,
+        help="Task order in <task-id>:<display-order> format; repeat for multiple tasks",
+    )
+    reorder_parser.set_defaults(handler=handle_task_reorder)
 
     update_parser = add_documented_parser(
         task_subparsers,

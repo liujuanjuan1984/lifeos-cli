@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import date
+from uuid import UUID
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.task import Task
@@ -17,6 +18,16 @@ def _parse_cycle_date(value: str | None) -> date | None:
     if value is None:
         return None
     return date.fromisoformat(value)
+
+
+def _parse_task_order(value: str) -> tuple[UUID, int]:
+    task_id_value, separator, display_order_value = value.partition(":")
+    if not separator:
+        raise ValueError("Task order must use <task-id>:<display-order>")
+    try:
+        return UUID(task_id_value), int(display_order_value)
+    except ValueError as exc:
+        raise ValueError("Task order must use <task-id>:<display-order>") from exc
 
 
 def _format_task_summary(task: Task) -> str:
@@ -48,6 +59,47 @@ def _format_task_detail(task: Task) -> str:
             f"created_at: {format_timestamp(task.created_at)}",
             f"updated_at: {format_timestamp(task.updated_at)}",
             f"deleted_at: {format_timestamp(task.deleted_at)}",
+        )
+    )
+
+
+def _format_task_tree(node: task_services.TaskWithSubtasks) -> str:
+    lines: list[str] = []
+
+    def collect(current: task_services.TaskWithSubtasks) -> None:
+        indent = "  " * current.depth
+        lines.append(
+            f"{indent}{current.id}\t{current.status}\t{current.completion_percentage:.2f}\t"
+            f"{current.content}"
+        )
+        for subtask in current.subtasks:
+            collect(subtask)
+
+    collect(node)
+    return "\n".join(lines)
+
+
+def _format_task_hierarchy(hierarchy: task_services.TaskHierarchy) -> str:
+    task_lines: list[str] = []
+    for root_task in hierarchy.root_tasks:
+        task_lines.extend(_format_task_tree(root_task).splitlines())
+    return "\n".join(
+        (
+            f"vision_id: {hierarchy.vision_id}",
+            "root_tasks:",
+            *(task_lines or ["  -"]),
+        )
+    )
+
+
+def _format_task_stats(stats: task_services.TaskStats) -> str:
+    return "\n".join(
+        (
+            f"total_subtasks: {stats.total_subtasks}",
+            f"completed_subtasks: {stats.completed_subtasks}",
+            f"completion_percentage: {stats.completion_percentage:.2f}",
+            f"total_estimated_effort: {stats.total_estimated_effort or '-'}",
+            f"total_actual_effort: {stats.total_actual_effort or '-'}",
         )
     )
 
@@ -93,9 +145,15 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
             tasks = await task_services.list_tasks(
                 session,
                 vision_id=args.vision_id,
+                vision_in=args.vision_in,
                 parent_task_id=args.parent_task_id,
                 person_id=args.person_id,
                 status=args.status,
+                status_in=args.status_in,
+                exclude_status=args.exclude_status,
+                planning_cycle_type=args.planning_cycle_type,
+                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
+                content=args.content,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -131,6 +189,133 @@ async def handle_task_show_async(args: argparse.Namespace) -> int:
 
 def handle_task_show(args: argparse.Namespace) -> int:
     return run_async(handle_task_show_async(args))
+
+
+async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        task = await task_services.get_task_with_subtasks(
+            session,
+            task_id=args.task_id,
+        )
+    if task is None:
+        print(f"Task {args.task_id} was not found", file=sys.stderr)
+        return 1
+    print(_format_task_tree(task))
+    return 0
+
+
+def handle_task_with_subtasks(args: argparse.Namespace) -> int:
+    return run_async(handle_task_with_subtasks_async(args))
+
+
+async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            hierarchy = await task_services.get_vision_task_hierarchy(
+                session,
+                vision_id=args.vision_id,
+            )
+        except task_services.VisionReferenceNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_task_hierarchy(hierarchy))
+    return 0
+
+
+def handle_task_hierarchy(args: argparse.Namespace) -> int:
+    return run_async(handle_task_hierarchy_async(args))
+
+
+async def handle_task_stats_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            stats = await task_services.get_task_stats(
+                session,
+                task_id=args.task_id,
+            )
+        except task_services.TaskNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_task_stats(stats))
+    return 0
+
+
+def handle_task_stats(args: argparse.Namespace) -> int:
+    return run_async(handle_task_stats_async(args))
+
+
+async def handle_task_move_async(args: argparse.Namespace) -> int:
+    if args.clear_parent and args.new_parent_task_id is not None:
+        print("Use either --new-parent-task-id or --clear-parent, not both.", file=sys.stderr)
+        return 1
+    if (
+        not args.clear_parent
+        and args.new_parent_task_id is None
+        and args.new_vision_id is None
+        and args.new_display_order is None
+    ):
+        print("Provide at least one target field to move the task.", file=sys.stderr)
+        return 1
+    async with db_session.session_scope() as session:
+        try:
+            if args.clear_parent or args.new_parent_task_id is not None:
+                result = await task_services.move_task(
+                    session,
+                    task_id=args.task_id,
+                    old_parent_task_id=args.old_parent_task_id,
+                    new_parent_task_id=None if args.clear_parent else args.new_parent_task_id,
+                    new_vision_id=args.new_vision_id,
+                    new_display_order=args.new_display_order,
+                )
+            else:
+                result = await task_services.move_task(
+                    session,
+                    task_id=args.task_id,
+                    old_parent_task_id=args.old_parent_task_id,
+                    new_vision_id=args.new_vision_id,
+                    new_display_order=args.new_display_order,
+                )
+        except (
+            task_services.TaskNotFoundError,
+            task_services.VisionReferenceNotFoundError,
+            task_services.ParentTaskReferenceNotFoundError,
+            task_services.InvalidTaskDepthError,
+            task_services.InvalidTaskOperationError,
+            ValueError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Moved task {result.task.id}")
+    if result.updated_descendants:
+        print(f"Updated descendants: {len(result.updated_descendants)}")
+    return 0
+
+
+def handle_task_move(args: argparse.Namespace) -> int:
+    return run_async(handle_task_move_async(args))
+
+
+async def handle_task_reorder_async(args: argparse.Namespace) -> int:
+    try:
+        task_orders = [_parse_task_order(value) for value in args.order]
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    async with db_session.session_scope() as session:
+        try:
+            await task_services.reorder_tasks(
+                session,
+                task_orders=task_orders,
+            )
+        except task_services.TaskNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Reordered tasks: {len(task_orders)}")
+    return 0
+
+
+def handle_task_reorder(args: argparse.Namespace) -> int:
+    return run_async(handle_task_reorder_async(args))
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
@@ -232,12 +417,12 @@ async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             task_ids=list(args.task_ids),
         )
-    print(f"Deleted tasks: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed task IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted tasks",
+        success_count=result.deleted_count,
+        failed_label="Failed task IDs",
+        result=result,
+    )
 
 
 def handle_task_batch_delete(args: argparse.Namespace) -> int:

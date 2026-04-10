@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
@@ -116,11 +116,26 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                     limit=args.limit,
                     offset=args.offset,
                 )
+                total_count = (
+                    await habit_services.count_habits(
+                        session,
+                        status=args.status,
+                        title=args.title,
+                        active_window_only=args.active_window_only,
+                        include_deleted=args.include_deleted,
+                    )
+                    if args.count
+                    else None
+                )
                 if not overviews:
                     print("No habits found.")
+                    if total_count is not None:
+                        print(f"Total habits: {total_count}")
                     return 0
                 for overview in overviews:
                     print(_format_habit_summary_with_stats(overview))
+                if total_count is not None:
+                    print(f"Total habits: {total_count}")
                 return 0
             habits = await habit_services.list_habits(
                 session,
@@ -131,14 +146,29 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
+            total_count = (
+                await habit_services.count_habits(
+                    session,
+                    status=args.status,
+                    title=args.title,
+                    active_window_only=args.active_window_only,
+                    include_deleted=args.include_deleted,
+                )
+                if args.count
+                else None
+            )
         except habit_services.HabitValidationError as exc:
             print(str(exc), file=sys.stderr)
             return 1
     if not habits:
         print("No habits found.")
+        if total_count is not None:
+            print(f"Total habits: {total_count}")
         return 0
     for habit in habits:
         print(_format_habit_summary(habit))
+    if total_count is not None:
+        print(f"Total habits: {total_count}")
     return 0
 
 
@@ -268,12 +298,12 @@ async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             habit_ids=list(args.habit_ids),
         )
-    print(f"Deleted habits: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed habit IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted habits",
+        success_count=result.deleted_count,
+        failed_label="Failed habit IDs",
+        result=result,
+    )
 
 
 def handle_habit_batch_delete(args: argparse.Namespace) -> int:

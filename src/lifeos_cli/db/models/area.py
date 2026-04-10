@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sqlalchemy import Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
-
-if TYPE_CHECKING:
-    from lifeos_cli.db.models.person import Person
 
 
 class Area(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -35,9 +30,6 @@ class Area(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     display_order: Mapped[int] = mapped_column(nullable=False, default=0)
 
     visions = relationship("Vision", back_populates="area")
-
-    if TYPE_CHECKING:
-        people: list[Person]
 
     def __repr__(self) -> str:
         return f"Area(id={self.id!s}, name={self.name!r}, active={self.is_active!r})"

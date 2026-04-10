@@ -158,6 +158,25 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert_ok(first_timelog_result)
     first_timelog_id = extract_created_id(first_timelog_result.stdout)
 
+    task_with_timelog_result = run_lifeos(integration_context, "task", "show", task_id)
+    assert_ok(task_with_timelog_result)
+    assert "actual_effort_self: 39" in task_with_timelog_result.stdout
+    assert "actual_effort_total: 39" in task_with_timelog_result.stdout
+
+    vision_sync_result = run_lifeos(integration_context, "vision", "sync-experience", vision_id)
+    assert_ok(vision_sync_result)
+    synced_vision_result = run_lifeos(integration_context, "vision", "show", vision_id)
+    assert_ok(synced_vision_result)
+    assert "experience_points: 39" in synced_vision_result.stdout
+    assert "experience_rate_per_hour: 60" in synced_vision_result.stdout
+    vision_with_tasks_result = run_lifeos(integration_context, "vision", "with-tasks", vision_id)
+    assert_ok(vision_with_tasks_result)
+    assert task_id in vision_with_tasks_result.stdout
+    vision_stats_result = run_lifeos(integration_context, "vision", "stats", vision_id)
+    assert_ok(vision_stats_result)
+    assert "total_tasks: 1" in vision_stats_result.stdout
+    assert "total_actual_effort: 39" in vision_stats_result.stdout
+
     second_timelog_result = run_lifeos(
         integration_context,
         "timelog",
@@ -215,6 +234,11 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "area_id: -" in updated_timelog_result.stdout
     assert "tags: -" in updated_timelog_result.stdout
     assert "people: -" in updated_timelog_result.stdout
+
+    task_after_clear_timelog_result = run_lifeos(integration_context, "task", "show", task_id)
+    assert_ok(task_after_clear_timelog_result)
+    assert "actual_effort_self: 0" in task_after_clear_timelog_result.stdout
+    assert "actual_effort_total: 0" in task_after_clear_timelog_result.stdout
 
     event_delete_result = run_lifeos(
         integration_context,

@@ -24,6 +24,8 @@ DEFAULT_CONFIG_PATH = Path.home() / ".config" / "lifeos" / "config.toml"
 DEFAULT_LANGUAGE = "en"
 DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
+DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
+MAX_VISION_EXPERIENCE_RATE_PER_HOUR = 3600
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LANGUAGE_TAG_PATTERN = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 _DAY_STARTS_AT_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
@@ -151,6 +153,24 @@ def validate_week_starts_on(value: str) -> str:
     return normalized
 
 
+def validate_vision_experience_rate_per_hour(value: int | str) -> int:
+    """Validate the default vision experience rate preference."""
+    if isinstance(value, bool):
+        raise ConfigurationError("Preference `vision_experience_rate_per_hour` must be an integer.")
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(
+            "Preference `vision_experience_rate_per_hour` must be an integer."
+        ) from exc
+    if normalized < 1 or normalized > MAX_VISION_EXPERIENCE_RATE_PER_HOUR:
+        raise ConfigurationError(
+            "Preference `vision_experience_rate_per_hour` must be between "
+            f"1 and {MAX_VISION_EXPERIENCE_RATE_PER_HOUR}."
+        )
+    return normalized
+
+
 def _parse_bool(value: str) -> bool:
     normalized = value.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
@@ -182,6 +202,7 @@ def _render_preferences_table(settings: PreferencesSettings) -> str:
             f"language = {_serialize_toml_string(settings.language)}",
             f"day_starts_at = {_serialize_toml_string(settings.day_starts_at)}",
             f"week_starts_on = {_serialize_toml_string(settings.week_starts_on)}",
+            f"vision_experience_rate_per_hour = {settings.vision_experience_rate_per_hour}",
         )
     )
 
@@ -320,6 +341,7 @@ class PreferencesSettings:
     language: str
     day_starts_at: str
     week_starts_on: str
+    vision_experience_rate_per_hour: int
     config_file: Path
 
     @classmethod
@@ -339,6 +361,7 @@ class PreferencesSettings:
         file_language = preference_values.get("language")
         file_day_starts_at = preference_values.get("day_starts_at")
         file_week_starts_on = preference_values.get("week_starts_on")
+        file_vision_experience_rate = preference_values.get("vision_experience_rate_per_hour")
 
         timezone_value = source.get("LIFEOS_TIMEZONE")
         if timezone_value is None and isinstance(file_timezone, str):
@@ -362,11 +385,23 @@ class PreferencesSettings:
             week_starts_on_value or DEFAULT_WEEK_STARTS_ON
         )
 
+        vision_experience_rate_value: int | str | None = source.get(
+            "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR"
+        )
+        if vision_experience_rate_value is None and file_vision_experience_rate is not None:
+            vision_experience_rate_value = file_vision_experience_rate
+        if vision_experience_rate_value is None:
+            vision_experience_rate_value = DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR
+        vision_experience_rate = validate_vision_experience_rate_per_hour(
+            vision_experience_rate_value
+        )
+
         return cls(
             timezone=timezone_value,
             language=language_value,
             day_starts_at=day_starts_at_value,
             week_starts_on=week_starts_on_value,
+            vision_experience_rate_per_hour=vision_experience_rate,
             config_file=config_path,
         )
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
@@ -45,6 +46,16 @@ class NoteDetail(Protocol):
     def deleted_at(self) -> object | None: ...
 
 
+class BatchResult(Protocol):
+    """Protocol for batch command result rendering."""
+
+    @property
+    def failed_ids(self) -> Sequence[UUID]: ...
+
+    @property
+    def errors(self) -> Sequence[str]: ...
+
+
 def format_timestamp(value: object | None) -> str:
     """Render a timestamp-like object."""
     if value is None:
@@ -62,6 +73,22 @@ def format_id_lines(label: str, identifiers: Sequence[UUID]) -> str:
     if not identifiers:
         return f"{label}: -"
     return "\n".join([f"{label}:"] + [f"  {identifier}" for identifier in identifiers])
+
+
+def print_batch_result(
+    *,
+    success_label: str,
+    success_count: int,
+    failed_label: str,
+    result: BatchResult,
+) -> int:
+    """Print a standard batch command result and return the command exit code."""
+    print(f"{success_label}: {success_count}")
+    if result.failed_ids:
+        print(format_id_lines(failed_label, result.failed_ids), file=sys.stderr)
+    for error in result.errors:
+        print(f"Error: {error}", file=sys.stderr)
+    return 1 if result.failed_ids else 0
 
 
 def format_note_summary(note: NoteSummary) -> str:

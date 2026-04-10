@@ -12,6 +12,7 @@ from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrim
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.person import Person
+    from lifeos_cli.db.models.task import Task
 
 
 class Vision(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -37,6 +38,76 @@ class Vision(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     if TYPE_CHECKING:
         people: list[Person]
+
+    def calculate_task_experience(
+        self,
+        *,
+        experience_rate_per_hour: int,
+        tasks: list[Task] | None = None,
+    ) -> int:
+        """Calculate experience from root task actual effort totals."""
+        selected_tasks = tasks if tasks is not None else []
+        total_actual_effort = sum(
+            task.actual_effort_total or 0 for task in selected_tasks if task.parent_task_id is None
+        )
+        if experience_rate_per_hour <= 0:
+            return 0
+        return (total_actual_effort * experience_rate_per_hour) // 60
+
+    def _update_stage_based_on_experience(self) -> bool:
+        """Update stage based on current experience points."""
+        old_stage = self.stage
+        stage_thresholds = [
+            0,
+            120,
+            240,
+            480,
+            960,
+            1920,
+            3840,
+            7680,
+            15360,
+            30720,
+            61440,
+        ]
+        new_stage = 0
+        for threshold in stage_thresholds:
+            if self.experience_points >= threshold:
+                new_stage += 1
+            else:
+                break
+        self.stage = min(new_stage - 1, 10)
+        return self.stage > old_stage
+
+    def add_experience(self, points: int) -> bool:
+        """Add experience points and return whether the stage evolved."""
+        self.experience_points += points
+        return self._update_stage_based_on_experience()
+
+    def sync_experience_with_actual_effort(
+        self,
+        *,
+        experience_rate_per_hour: int,
+        tasks: list[Task] | None = None,
+    ) -> bool:
+        """Synchronize experience points from current root task effort totals."""
+        new_experience = self.calculate_task_experience(
+            experience_rate_per_hour=experience_rate_per_hour,
+            tasks=tasks,
+        )
+        if new_experience != self.experience_points:
+            self.experience_points = new_experience
+            return self._update_stage_based_on_experience()
+        return False
+
+    def can_harvest(self) -> bool:
+        """Return whether this active vision is ready to become a fruit."""
+        return self.stage >= 7 and self.status == "active"
+
+    def harvest(self) -> None:
+        """Convert this vision into a fruit when it is ready."""
+        if self.can_harvest():
+            self.status = "fruit"
 
     def __repr__(self) -> str:
         return f"Vision(id={self.id!s}, name={self.name!r}, status={self.status!r})"

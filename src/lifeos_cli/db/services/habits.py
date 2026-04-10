@@ -8,8 +8,11 @@ from lifeos_cli.db.services.habit_mutations import (
     delete_habit,
     update_habit,
     update_habit_action,
+    update_habit_action_by_date,
 )
 from lifeos_cli.db.services.habit_queries import (
+    count_habit_actions,
+    count_habits,
     get_habit,
     get_habit_action,
     get_habit_overview,
@@ -46,6 +49,8 @@ __all__ = [
     "batch_delete_habits",
     "create_habit",
     "delete_habit",
+    "count_habit_actions",
+    "count_habits",
     "get_habit",
     "get_habit_action",
     "get_habit_overview",
@@ -56,6 +61,7 @@ __all__ = [
     "list_habits",
     "update_habit",
     "update_habit_action",
+    "update_habit_action_by_date",
     "validate_habit_action_status",
     "validate_habit_status",
 ]

@@ -8,9 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
-from lifeos_cli.db.models.person_association import person_associations
-from lifeos_cli.db.services.batching import BatchDeleteResult
-from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 
 
 class AreaNotFoundError(LookupError):
@@ -35,7 +33,6 @@ async def create_area(
     icon: str | None = None,
     is_active: bool = True,
     display_order: int = 0,
-    person_ids: list[UUID] | None = None,
 ) -> Area:
     """Create a new area."""
     normalized_name = name.strip()
@@ -54,13 +51,7 @@ async def create_area(
     )
     session.add(area)
     await session.flush()
-    if person_ids is not None:
-        await sync_entity_people(
-            session, entity_id=area.id, entity_type="area", desired_person_ids=person_ids
-        )
     await session.refresh(area)
-    people_map = await load_people_for_entities(session, entity_ids=[area.id], entity_type="area")
-    area.people = people_map.get(area.id, [])
     return area
 
 
@@ -74,18 +65,12 @@ async def get_area(
     stmt = select(Area).where(Area.id == area_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(Area.deleted_at.is_(None))
-    area = (await session.execute(stmt)).scalar_one_or_none()
-    if area is None:
-        return None
-    people_map = await load_people_for_entities(session, entity_ids=[area.id], entity_type="area")
-    area.people = people_map.get(area.id, [])
-    return area
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def list_areas(
     session: AsyncSession,
     *,
-    person_id: UUID | None = None,
     include_deleted: bool = False,
     include_inactive: bool = False,
     limit: int = 100,
@@ -97,22 +82,8 @@ async def list_areas(
         stmt = stmt.where(Area.deleted_at.is_(None))
     if not include_inactive:
         stmt = stmt.where(Area.is_active.is_(True))
-    if person_id is not None:
-        stmt = stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Area.id)
-            & (person_associations.c.entity_type == "area"),
-        ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Area.display_order.asc(), Area.name.asc()).offset(offset).limit(limit)
-    areas = list((await session.execute(stmt)).scalars())
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[area.id for area in areas],
-        entity_type="area",
-    )
-    for area in areas:
-        area.people = people_map.get(area.id, [])
-    return areas
+    return list((await session.execute(stmt)).scalars())
 
 
 async def update_area(
@@ -125,8 +96,6 @@ async def update_area(
     color: str | None = None,
     icon: str | None = None,
     clear_icon: bool = False,
-    person_ids: list[UUID] | None = None,
-    clear_people: bool = False,
     is_active: bool | None = None,
     display_order: int | None = None,
 ) -> Area:
@@ -156,22 +125,12 @@ async def update_area(
         area.icon = None
     elif icon is not None:
         area.icon = icon
-    if clear_people:
-        await sync_entity_people(
-            session, entity_id=area.id, entity_type="area", desired_person_ids=[]
-        )
-    elif person_ids is not None:
-        await sync_entity_people(
-            session, entity_id=area.id, entity_type="area", desired_person_ids=person_ids
-        )
     if is_active is not None:
         area.is_active = is_active
     if display_order is not None:
         area.display_order = display_order
     await session.flush()
     await session.refresh(area)
-    people_map = await load_people_for_entities(session, entity_ids=[area.id], entity_type="area")
-    area.people = people_map.get(area.id, [])
     return area
 
 
@@ -191,20 +150,8 @@ async def batch_delete_areas(
     area_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple areas while preserving per-area error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for area_id in _deduplicate_area_ids(area_ids):
-        try:
-            await delete_area(session, area_id=area_id)
-            deleted_count += 1
-        except AreaNotFoundError as exc:
-            failed_ids.append(area_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_area_ids(area_ids),
+        delete_record=lambda area_id: delete_area(session, area_id=area_id),
+        handled_exceptions=(AreaNotFoundError,),
     )

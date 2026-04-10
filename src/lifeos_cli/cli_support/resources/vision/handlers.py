@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_id_lines, format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.vision import Vision
@@ -37,6 +37,35 @@ def _format_vision_detail(vision: Vision) -> str:
             f"created_at: {format_timestamp(vision.created_at)}",
             f"updated_at: {format_timestamp(vision.updated_at)}",
             f"deleted_at: {format_timestamp(vision.deleted_at)}",
+        )
+    )
+
+
+def _format_vision_with_tasks(vision: Vision) -> str:
+    tasks = getattr(vision, "tasks", []) or []
+    task_lines = [
+        f"  {task.id}\t{task.status}\t{task.parent_task_id or '-'}\t{task.content}"
+        for task in tasks
+    ]
+    return "\n".join(
+        (
+            _format_vision_detail(vision),
+            "tasks:",
+            *(task_lines or ["  -"]),
+        )
+    )
+
+
+def _format_vision_stats(stats: vision_services.VisionStats) -> str:
+    return "\n".join(
+        (
+            f"total_tasks: {stats.total_tasks}",
+            f"completed_tasks: {stats.completed_tasks}",
+            f"in_progress_tasks: {stats.in_progress_tasks}",
+            f"todo_tasks: {stats.todo_tasks}",
+            f"completion_percentage: {stats.completion_percentage:.2f}",
+            f"total_estimated_effort: {stats.total_estimated_effort or '-'}",
+            f"total_actual_effort: {stats.total_actual_effort or '-'}",
         )
     )
 
@@ -113,6 +142,42 @@ def handle_vision_show(args: argparse.Namespace) -> int:
     return run_async(handle_vision_show_async(args))
 
 
+async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.get_vision_with_tasks(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_vision_with_tasks(vision))
+    return 0
+
+
+def handle_vision_with_tasks(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_with_tasks_async(args))
+
+
+async def handle_vision_stats_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            stats = await vision_services.get_vision_stats(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_vision_stats(stats))
+    return 0
+
+
+def handle_vision_stats(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_stats_async(args))
+
+
 async def handle_vision_update_async(args: argparse.Namespace) -> int:
     conflicting_flags = (
         (
@@ -179,6 +244,64 @@ def handle_vision_delete(args: argparse.Namespace) -> int:
     return run_async(handle_vision_delete_async(args))
 
 
+async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.add_experience_to_vision(
+                session,
+                vision_id=args.vision_id,
+                experience_points=args.experience_points,
+            )
+        except (vision_services.VisionNotFoundError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Updated vision {vision.id}")
+    return 0
+
+
+def handle_vision_add_experience(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_add_experience_async(args))
+
+
+async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.sync_vision_experience(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Synced vision {vision.id}")
+    return 0
+
+
+def handle_vision_sync_experience(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_sync_experience_async(args))
+
+
+async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.harvest_vision(
+                session,
+                vision_id=args.vision_id,
+            )
+        except (
+            vision_services.VisionNotFoundError,
+            vision_services.VisionNotReadyForHarvestError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(f"Harvested vision {vision.id}")
+    return 0
+
+
+def handle_vision_harvest(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_harvest_async(args))
+
+
 async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple visions in one command."""
     async with db_session.session_scope() as session:
@@ -186,12 +309,12 @@ async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
             session,
             vision_ids=list(args.vision_ids),
         )
-    print(f"Deleted visions: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed vision IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted visions",
+        success_count=result.deleted_count,
+        failed_label="Failed vision IDs",
+        result=result,
+    )
 
 
 def handle_vision_batch_delete(args: argparse.Namespace) -> int:

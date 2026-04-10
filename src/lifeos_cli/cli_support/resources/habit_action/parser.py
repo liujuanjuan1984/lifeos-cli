@@ -13,6 +13,7 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.habit_action.handlers import (
     handle_habit_action_list,
+    handle_habit_action_log,
     handle_habit_action_show,
     handle_habit_action_update,
 )
@@ -35,6 +36,8 @@ def build_habit_action_parser(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action list --action-date 2026-04-09",
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
+                "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
+                "--action-date 2026-04-09 --status done",
             ),
             notes=(
                 "Use `list` for both per-habit and by-date views.",
@@ -62,6 +65,7 @@ def build_habit_action_parser(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action list --action-date 2026-04-09",
                 "lifeos habit-action list --center-date 2026-04-09 --days-before 3 --days-after 3",
+                "lifeos habit-action list --action-date 2026-04-09 --count",
             ),
             notes=(
                 "Use `--action-date` for one exact day.",
@@ -83,6 +87,7 @@ def build_habit_action_parser(
     )
     list_parser.add_argument("--days-before", type=int, help="Days before the center date")
     list_parser.add_argument("--days-after", type=int, help="Days after the center date")
+    list_parser.add_argument("--count", action="store_true", help="Print total matched count")
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
     list_parser.set_defaults(handler=handle_habit_action_list)
@@ -129,3 +134,37 @@ def build_habit_action_parser(
         help="Clear the optional notes field",
     )
     update_parser.set_defaults(handler=handle_habit_action_update)
+
+    log_parser = add_documented_parser(
+        action_subparsers,
+        "log",
+        help_content=HelpContent(
+            summary="Update a habit action by date",
+            description=(
+                "Update a generated habit action by habit identifier and action date.\n\n"
+                "Use this command when checking in without first looking up the action ID."
+            ),
+            examples=(
+                "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
+                "--action-date 2026-04-09 --status done",
+                "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
+                '--action-date 2026-04-09 --status skip --notes "Travel day"',
+            ),
+            notes=("This command follows the same editable-window rules as `update`.",),
+        ),
+    )
+    log_parser.add_argument("--habit-id", required=True, type=UUID, help="Habit identifier")
+    log_parser.add_argument(
+        "--action-date",
+        required=True,
+        type=date.fromisoformat,
+        help="Action date in YYYY-MM-DD format",
+    )
+    log_parser.add_argument("--status", help="Updated habit-action status")
+    log_parser.add_argument("--notes", help="Updated notes")
+    log_parser.add_argument(
+        "--clear-notes",
+        action="store_true",
+        help="Clear the optional notes field",
+    )
+    log_parser.set_defaults(handler=handle_habit_action_log)

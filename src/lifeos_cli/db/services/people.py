@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.tag_association import tag_associations
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 
 
@@ -218,20 +218,8 @@ async def batch_delete_people(
     person_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple people while preserving per-person error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for person_id in _deduplicate_person_ids(person_ids):
-        try:
-            await delete_person(session, person_id=person_id)
-            deleted_count += 1
-        except PersonNotFoundError as exc:
-            failed_ids.append(person_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_person_ids(person_ids),
+        delete_record=lambda person_id: delete_person(session, person_id=person_id),
+        handled_exceptions=(PersonNotFoundError,),
     )

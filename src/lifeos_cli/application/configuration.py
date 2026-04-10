@@ -10,6 +10,7 @@ from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
     DEFAULT_DAY_STARTS_AT,
+    DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
     DEFAULT_WEEK_STARTS_ON,
     ConfigurationError,
     DatabaseSettings,
@@ -22,6 +23,7 @@ from lifeos_cli.config import (
     validate_day_starts_at,
     validate_language,
     validate_timezone_name,
+    validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
     write_database_settings,
 )
@@ -47,6 +49,7 @@ class InitializationRequest:
     language: str | None
     day_starts_at: str | None
     week_starts_on: str | None
+    vision_experience_rate_per_hour: int | None
     non_interactive: bool
     is_interactive: bool
     prompts: InitializationPrompts | None = None
@@ -104,6 +107,7 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
             language=detect_default_language(),
             day_starts_at=DEFAULT_DAY_STARTS_AT,
             week_starts_on=DEFAULT_WEEK_STARTS_ON,
+            vision_experience_rate_per_hour=DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
             config_file=config_path,
         )
 
@@ -111,12 +115,20 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
     language_value = request.language or current.language
     day_starts_at_value = request.day_starts_at or current.day_starts_at
     week_starts_on_value = request.week_starts_on or current.week_starts_on
+    vision_experience_rate_value = (
+        current.vision_experience_rate_per_hour
+        if request.vision_experience_rate_per_hour is None
+        else request.vision_experience_rate_per_hour
+    )
 
     return PreferencesSettings(
         timezone=validate_timezone_name(timezone_value),
         language=validate_language(language_value),
         day_starts_at=validate_day_starts_at(day_starts_at_value),
         week_starts_on=validate_week_starts_on(week_starts_on_value),
+        vision_experience_rate_per_hour=validate_vision_experience_rate_per_hour(
+            vision_experience_rate_value
+        ),
         config_file=config_path,
     )
 

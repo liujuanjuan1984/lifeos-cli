@@ -13,11 +13,16 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.vision.handlers import (
     handle_vision_add,
+    handle_vision_add_experience,
     handle_vision_batch_delete,
     handle_vision_delete,
+    handle_vision_harvest,
     handle_vision_list,
     handle_vision_show,
+    handle_vision_stats,
+    handle_vision_sync_experience,
     handle_vision_update,
+    handle_vision_with_tasks,
 )
 
 
@@ -130,6 +135,30 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_vision_show)
 
+    with_tasks_parser = add_documented_parser(
+        vision_subparsers,
+        "with-tasks",
+        help_content=HelpContent(
+            summary="Show a vision task tree",
+            description="Show one vision with its active tasks.",
+            examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    with_tasks_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    with_tasks_parser.set_defaults(handler=handle_vision_with_tasks)
+
+    stats_parser = add_documented_parser(
+        vision_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary="Show vision stats",
+            description="Show task counts and effort totals for one vision.",
+            examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    stats_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    stats_parser.set_defaults(handler=handle_vision_stats)
+
     update_parser = add_documented_parser(
         vision_subparsers,
         "update",
@@ -186,6 +215,51 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help="Clear the optional experience rate",
     )
     update_parser.set_defaults(handler=handle_vision_update)
+
+    add_experience_parser = add_documented_parser(
+        vision_subparsers,
+        "add-experience",
+        help_content=HelpContent(
+            summary="Add vision experience",
+            description="Add manual experience points to an active vision.",
+            examples=(
+                "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
+            ),
+        ),
+    )
+    add_experience_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    add_experience_parser.add_argument(
+        "--points",
+        dest="experience_points",
+        type=int,
+        required=True,
+        help="Experience points to add",
+    )
+    add_experience_parser.set_defaults(handler=handle_vision_add_experience)
+
+    sync_experience_parser = add_documented_parser(
+        vision_subparsers,
+        "sync-experience",
+        help_content=HelpContent(
+            summary="Sync vision experience",
+            description="Synchronize experience points from root task actual effort totals.",
+            examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    sync_experience_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    sync_experience_parser.set_defaults(handler=handle_vision_sync_experience)
+
+    harvest_parser = add_documented_parser(
+        vision_subparsers,
+        "harvest",
+        help_content=HelpContent(
+            summary="Harvest a vision",
+            description="Convert a mature active vision to fruit status.",
+            examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    harvest_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    harvest_parser.set_defaults(handler=handle_vision_harvest)
 
     delete_parser = add_documented_parser(
         vision_subparsers,

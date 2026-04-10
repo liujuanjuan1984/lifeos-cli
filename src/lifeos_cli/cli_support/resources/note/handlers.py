@@ -10,6 +10,7 @@ from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
     format_note_detail,
     format_note_summary,
+    print_batch_result,
 )
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.config import ConfigurationError
@@ -203,12 +204,12 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
             note_ids=list(args.note_ids),
         )
 
-    print(f"Deleted notes: {result.deleted_count}")
-    if result.failed_ids:
-        print(format_id_lines("Failed note IDs", result.failed_ids), file=sys.stderr)
-    for error in result.errors:
-        print(f"Error: {error}", file=sys.stderr)
-    return 1 if result.failed_ids else 0
+    return print_batch_result(
+        success_label="Deleted notes",
+        success_count=result.deleted_count,
+        failed_label="Failed note IDs",
+        result=result,
+    )
 
 
 def handle_note_batch_delete(args: argparse.Namespace) -> int:

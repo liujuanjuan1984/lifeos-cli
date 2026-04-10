@@ -19,8 +19,8 @@ def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
         commit=AsyncMock(),
     )
 
-    def fake_add(note: object) -> None:
-        session.added_note = note
+    def fake_add(_: object) -> None:
+        pass
 
     session.add = fake_add
 

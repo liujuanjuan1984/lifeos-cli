@@ -12,7 +12,7 @@ from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.habit_queries import get_habit, get_habit_action
 from lifeos_cli.db.services.habit_support import (
     HABIT_EDITABLE_DAYS,
@@ -137,22 +137,10 @@ async def batch_delete_habits(
     habit_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple habits."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for habit_id in deduplicate_habit_ids(habit_ids):
-        try:
-            await delete_habit(session, habit_id=habit_id)
-            deleted_count += 1
-        except HabitNotFoundError as exc:
-            failed_ids.append(habit_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=deduplicate_habit_ids(habit_ids),
+        delete_record=lambda habit_id: delete_habit(session, habit_id=habit_id),
+        handled_exceptions=(HabitNotFoundError,),
     )
 
 
@@ -182,6 +170,41 @@ async def update_habit_action(
     await session.flush()
     await session.refresh(action)
     return action
+
+
+async def update_habit_action_by_date(
+    session: AsyncSession,
+    *,
+    habit_id: UUID,
+    action_date: date,
+    status: str | None = None,
+    notes: str | None = None,
+    clear_notes: bool = False,
+) -> HabitAction:
+    """Update one habit action by habit and action date."""
+    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    if habit is None:
+        raise HabitNotFoundError(f"Habit {habit_id} was not found")
+    action = (
+        await session.execute(
+            select(HabitAction).where(
+                HabitAction.habit_id == habit_id,
+                HabitAction.action_date == action_date,
+                HabitAction.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if action is None:
+        raise HabitActionNotFoundError(
+            f"Habit action for habit {habit_id} on {action_date} was not found"
+        )
+    return await update_habit_action(
+        session,
+        action_id=action.id,
+        status=status,
+        notes=notes,
+        clear_notes=clear_notes,
+    )
 
 
 async def _generate_habit_actions(session: AsyncSession, habit: Habit) -> None:

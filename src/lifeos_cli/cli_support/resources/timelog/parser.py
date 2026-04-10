@@ -15,8 +15,11 @@ from lifeos_cli.cli_support.parser_common import (
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_add,
     handle_timelog_batch_delete,
+    handle_timelog_batch_restore,
+    handle_timelog_batch_update,
     handle_timelog_delete,
     handle_timelog_list,
+    handle_timelog_restore,
     handle_timelog_show,
     handle_timelog_update,
 )
@@ -44,11 +47,15 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
+                'lifeos timelog batch update --ids <timelog-id-1> --find-title-text "old" '
+                '--replace-title-text "new"',
+                "lifeos timelog restore <timelog-id>",
             ),
             notes=(
                 "Use `list` as the primary query entrypoint for timelogs.",
                 "Timelogs can optionally reference one area and one task.",
                 "Delete operations in the public CLI always perform soft deletion.",
+                "Use `restore` to recover a soft-deleted timelog.",
             ),
         ),
     )
@@ -118,19 +125,32 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos timelog list --date 2026-04-10",
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
+                'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
-                "Use `--title-contains` for lightweight text filtering instead of a "
-                "separate search command.",
+                "Use `--query` for lightweight text filtering across titles and notes.",
             ),
         ),
     )
     list_parser.add_argument("--title-contains", help="Filter by title substring")
+    list_parser.add_argument("--notes-contains", help="Filter by notes substring")
+    list_parser.add_argument("--query", help="Search title and notes by keyword")
     list_parser.add_argument("--tracking-method", help="Filter by tracking method")
     list_parser.add_argument("--area-id", type=UUID, help="Filter by linked area")
+    list_parser.add_argument("--area-name", help="Filter by exact linked area name")
+    list_parser.add_argument(
+        "--without-area",
+        action="store_true",
+        help="Filter timelogs without a linked area",
+    )
     list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
+    list_parser.add_argument(
+        "--without-task",
+        action="store_true",
+        help="Filter timelogs without a linked task",
+    )
     list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
     list_parser.add_argument("--tag-id", type=UUID, help="Filter by linked tag")
     list_parser.add_argument(
@@ -141,6 +161,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     list_parser.add_argument("--window-start", type=_datetime_value, help="Window start time")
     list_parser.add_argument("--window-end", type=_datetime_value, help="Window end time")
+    list_parser.add_argument("--count", action="store_true", help="Print total matched count")
     add_include_deleted_argument(list_parser, noun="timelogs")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_timelog_list)
@@ -231,19 +252,101 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     delete_parser.add_argument("timelog_id", type=UUID, help="Timelog identifier")
     delete_parser.set_defaults(handler=handle_timelog_delete)
 
+    restore_parser = add_documented_parser(
+        timelog_subparsers,
+        "restore",
+        help_content=HelpContent(
+            summary="Restore a timelog",
+            description="Restore one soft-deleted timelog.",
+            examples=("lifeos timelog restore 11111111-1111-1111-1111-111111111111",),
+            notes=("The referenced area and task must still be active if they are linked.",),
+        ),
+    )
+    restore_parser.add_argument("timelog_id", type=UUID, help="Timelog identifier")
+    restore_parser.set_defaults(handler=handle_timelog_restore)
+
     batch_parser = add_documented_parser(
         timelog_subparsers,
         "batch",
         help_content=HelpContent(
             summary="Run batch timelog operations",
             description="Grouped namespace for multi-record timelog writes.",
-            examples=("lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",),
+            examples=(
+                "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
+                "lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",
+                "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task",
+            ),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="timelog_batch_command", title="batch actions", metavar="batch-action"
     )
+    batch_update_parser = add_documented_parser(
+        batch_subparsers,
+        "update",
+        help_content=HelpContent(
+            summary="Update multiple timelogs",
+            description="Update mutable fields across multiple active timelogs.",
+            examples=(
+                "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task",
+                "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> "
+                '--find-title-text "deep" --replace-title-text "focused"',
+                "lifeos timelog batch update --ids <timelog-id-1> --clear-tags "
+                "--person-id <person-id>",
+            ),
+            notes=(
+                "Use repeated `--tag-id` and `--person-id` flags to replace associations.",
+                "Use `--clear-*` flags to remove optional links.",
+            ),
+        ),
+    )
+    add_identifier_list_argument(batch_update_parser, dest="timelog_ids", noun="timelog")
+    batch_update_parser.add_argument("--title", help="Replace the full title")
+    batch_update_parser.add_argument("--find-title-text", help="Title text to find")
+    batch_update_parser.add_argument(
+        "--replace-title-text",
+        help="Replacement text for title matches",
+    )
+    batch_update_parser.add_argument("--area-id", type=UUID, help="Replace linked area")
+    batch_update_parser.add_argument("--clear-area", action="store_true", help="Clear linked area")
+    batch_update_parser.add_argument("--task-id", type=UUID, help="Replace linked task")
+    batch_update_parser.add_argument("--clear-task", action="store_true", help="Clear linked task")
+    batch_update_parser.add_argument(
+        "--tag-id",
+        dest="tag_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace tags with one or more identifiers",
+    )
+    batch_update_parser.add_argument("--clear-tags", action="store_true", help="Remove all tags")
+    batch_update_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace people with one or more identifiers",
+    )
+    batch_update_parser.add_argument(
+        "--clear-people",
+        action="store_true",
+        help="Remove all people",
+    )
+    batch_update_parser.set_defaults(handler=handle_timelog_batch_update)
+
+    batch_restore_parser = add_documented_parser(
+        batch_subparsers,
+        "restore",
+        help_content=HelpContent(
+            summary="Restore multiple timelogs",
+            description="Restore multiple soft-deleted timelogs by identifier.",
+        ),
+    )
+    add_identifier_list_argument(batch_restore_parser, dest="timelog_ids", noun="timelog")
+    batch_restore_parser.set_defaults(handler=handle_timelog_batch_restore)
+
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",

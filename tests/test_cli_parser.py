@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 import pytest
 
 from lifeos_cli import cli
@@ -55,6 +57,8 @@ def test_cli_parser_supports_init_preference_flags() -> None:
             "04:00",
             "--week-starts-on",
             "sunday",
+            "--vision-experience-rate-per-hour",
+            "120",
         ]
     )
 
@@ -63,6 +67,7 @@ def test_cli_parser_supports_init_preference_flags() -> None:
     assert args.language == "zh-Hans"
     assert args.day_starts_at == "04:00"
     assert args.week_starts_on == "sunday"
+    assert args.vision_experience_rate_per_hour == 120
 
 
 def test_cli_parser_supports_note_search_command() -> None:
@@ -132,8 +137,6 @@ def test_cli_parser_supports_area_add_command() -> None:
             "Health",
             "--display-order",
             "2",
-            "--person-id",
-            "11111111-1111-1111-1111-111111111111",
         ]
     )
 
@@ -141,7 +144,6 @@ def test_cli_parser_supports_area_add_command() -> None:
     assert args.area_command == "add"
     assert args.name == "Health"
     assert args.display_order == 2
-    assert len(args.person_ids) == 1
 
 
 def test_cli_parser_supports_area_update_clear_icon_command() -> None:
@@ -245,6 +247,32 @@ def test_cli_parser_supports_timelog_list_by_local_date() -> None:
     assert str(args.local_date) == "2026-04-10"
 
 
+def test_cli_parser_supports_timelog_list_search_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "list",
+            "--query",
+            "deep work",
+            "--notes-contains",
+            "focused",
+            "--area-name",
+            "Work",
+            "--without-task",
+            "--count",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "list"
+    assert args.query == "deep work"
+    assert args.notes_contains == "focused"
+    assert args.area_name == "Work"
+    assert args.without_task is True
+    assert args.count is True
+
+
 def test_cli_parser_supports_task_list_person_filter() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -259,6 +287,101 @@ def test_cli_parser_supports_task_list_person_filter() -> None:
     assert args.resource == "task"
     assert args.task_command == "list"
     assert str(args.person_id) == "11111111-1111-1111-1111-111111111111"
+
+
+def test_cli_parser_supports_task_list_extended_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "task",
+            "list",
+            "--vision-in",
+            "11111111-1111-1111-1111-111111111111,22222222-2222-2222-2222-222222222222",
+            "--status-in",
+            "todo,in_progress",
+            "--exclude-status",
+            "cancelled",
+            "--planning-cycle-type",
+            "week",
+            "--planning-cycle-start-date",
+            "2026-04-10",
+            "--content",
+            "Draft release checklist",
+        ]
+    )
+
+    assert args.resource == "task"
+    assert args.task_command == "list"
+    assert args.status_in == "todo,in_progress"
+    assert args.exclude_status == "cancelled"
+    assert args.planning_cycle_type == "week"
+    assert args.planning_cycle_start_date == "2026-04-10"
+    assert args.content == "Draft release checklist"
+
+
+def test_cli_parser_supports_task_read_model_commands() -> None:
+    parser = build_parser()
+
+    with_subtasks_args = parser.parse_args(
+        ["task", "with-subtasks", "11111111-1111-1111-1111-111111111111"]
+    )
+    hierarchy_args = parser.parse_args(
+        ["task", "hierarchy", "22222222-2222-2222-2222-222222222222"]
+    )
+    stats_args = parser.parse_args(["task", "stats", "33333333-3333-3333-3333-333333333333"])
+
+    assert with_subtasks_args.resource == "task"
+    assert with_subtasks_args.task_command == "with-subtasks"
+    assert str(with_subtasks_args.task_id) == "11111111-1111-1111-1111-111111111111"
+    assert hierarchy_args.resource == "task"
+    assert hierarchy_args.task_command == "hierarchy"
+    assert str(hierarchy_args.vision_id) == "22222222-2222-2222-2222-222222222222"
+    assert stats_args.resource == "task"
+    assert stats_args.task_command == "stats"
+    assert str(stats_args.task_id) == "33333333-3333-3333-3333-333333333333"
+
+
+def test_cli_parser_supports_task_move_and_reorder_commands() -> None:
+    parser = build_parser()
+
+    move_args = parser.parse_args(
+        [
+            "task",
+            "move",
+            "11111111-1111-1111-1111-111111111111",
+            "--old-parent-task-id",
+            "22222222-2222-2222-2222-222222222222",
+            "--new-parent-task-id",
+            "33333333-3333-3333-3333-333333333333",
+            "--new-vision-id",
+            "44444444-4444-4444-4444-444444444444",
+            "--new-display-order",
+            "2",
+        ]
+    )
+    reorder_args = parser.parse_args(
+        [
+            "task",
+            "reorder",
+            "--order",
+            "11111111-1111-1111-1111-111111111111:0",
+            "--order",
+            "22222222-2222-2222-2222-222222222222:1",
+        ]
+    )
+
+    assert move_args.resource == "task"
+    assert move_args.task_command == "move"
+    assert str(move_args.old_parent_task_id) == "22222222-2222-2222-2222-222222222222"
+    assert str(move_args.new_parent_task_id) == "33333333-3333-3333-3333-333333333333"
+    assert str(move_args.new_vision_id) == "44444444-4444-4444-4444-444444444444"
+    assert move_args.new_display_order == 2
+    assert reorder_args.resource == "task"
+    assert reorder_args.task_command == "reorder"
+    assert reorder_args.order == [
+        "11111111-1111-1111-1111-111111111111:0",
+        "22222222-2222-2222-2222-222222222222:1",
+    ]
 
 
 def test_cli_parser_supports_timelog_add_command() -> None:
@@ -313,6 +436,44 @@ def test_cli_parser_supports_vision_update_clear_people_command() -> None:
     assert args.resource == "vision"
     assert args.vision_command == "update"
     assert args.clear_people is True
+
+
+def test_cli_parser_supports_vision_experience_commands() -> None:
+    parser = build_parser()
+
+    add_args = parser.parse_args(
+        [
+            "vision",
+            "add-experience",
+            "11111111-1111-1111-1111-111111111111",
+            "--points",
+            "120",
+        ]
+    )
+    sync_args = parser.parse_args(
+        ["vision", "sync-experience", "11111111-1111-1111-1111-111111111111"]
+    )
+    harvest_args = parser.parse_args(["vision", "harvest", "11111111-1111-1111-1111-111111111111"])
+
+    assert add_args.resource == "vision"
+    assert add_args.vision_command == "add-experience"
+    assert add_args.experience_points == 120
+    assert sync_args.vision_command == "sync-experience"
+    assert harvest_args.vision_command == "harvest"
+
+
+def test_cli_parser_supports_vision_read_model_commands() -> None:
+    parser = build_parser()
+
+    with_tasks_args = parser.parse_args(
+        ["vision", "with-tasks", "11111111-1111-1111-1111-111111111111"]
+    )
+    stats_args = parser.parse_args(["vision", "stats", "11111111-1111-1111-1111-111111111111"])
+
+    assert with_tasks_args.resource == "vision"
+    assert with_tasks_args.vision_command == "with-tasks"
+    assert stats_args.resource == "vision"
+    assert stats_args.vision_command == "stats"
 
 
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
@@ -431,6 +592,16 @@ def test_cli_parser_supports_habit_add_command() -> None:
     assert args.duration_days == 21
 
 
+def test_cli_parser_supports_habit_list_count_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["habit", "list", "--status", "active", "--count"])
+
+    assert args.resource == "habit"
+    assert args.habit_command == "list"
+    assert args.status == "active"
+    assert args.count is True
+
+
 def test_cli_parser_supports_habit_update_clear_task_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -464,6 +635,37 @@ def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
     assert str(args.action_date) == "2026-04-09"
 
 
+def test_cli_parser_supports_habit_action_list_count_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["habit-action", "list", "--action-date", "2026-04-09", "--count"])
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "list"
+    assert args.count is True
+
+
+def test_cli_parser_supports_habit_action_log_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit-action",
+            "log",
+            "--habit-id",
+            "77777777-7777-7777-7777-777777777777",
+            "--action-date",
+            "2026-04-09",
+            "--status",
+            "done",
+        ]
+    )
+
+    assert args.resource == "habit-action"
+    assert args.habit_action_command == "log"
+    assert args.habit_id == UUID("77777777-7777-7777-7777-777777777777")
+    assert str(args.action_date) == "2026-04-09"
+    assert args.status == "done"
+
+
 def test_cli_parser_supports_event_update_clear_people_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -494,6 +696,63 @@ def test_cli_parser_supports_timelog_update_clear_notes_command() -> None:
     assert args.resource == "timelog"
     assert args.timelog_command == "update"
     assert args.clear_notes is True
+
+
+def test_cli_parser_supports_timelog_batch_update_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "batch",
+            "update",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "--find-title-text",
+            "deep",
+            "--replace-title-text",
+            "focused",
+            "--clear-task",
+            "--person-id",
+            "33333333-3333-3333-3333-333333333333",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "batch"
+    assert args.timelog_batch_command == "update"
+    assert args.find_title_text == "deep"
+    assert args.replace_title_text == "focused"
+    assert args.clear_task is True
+    assert args.person_ids == [UUID("33333333-3333-3333-3333-333333333333")]
+    assert len(args.timelog_ids) == 2
+
+
+def test_cli_parser_supports_timelog_restore_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["timelog", "restore", "11111111-1111-1111-1111-111111111111"])
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "restore"
+
+
+def test_cli_parser_supports_timelog_batch_restore_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "batch",
+            "restore",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "batch"
+    assert args.timelog_batch_command == "restore"
+    assert len(args.timelog_ids) == 2
 
 
 @pytest.mark.parametrize(

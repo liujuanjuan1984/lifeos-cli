@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag import Tag
-from lifeos_cli.db.services.batching import BatchDeleteResult
+from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
@@ -225,20 +225,8 @@ async def batch_delete_tags(
     tag_ids: list[UUID],
 ) -> BatchDeleteResult:
     """Soft-delete multiple tags while preserving per-tag error reporting."""
-    deleted_count = 0
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-
-    for tag_id in _deduplicate_tag_ids(tag_ids):
-        try:
-            await delete_tag(session, tag_id=tag_id)
-            deleted_count += 1
-        except TagNotFoundError as exc:
-            failed_ids.append(tag_id)
-            errors.append(str(exc))
-
-    return BatchDeleteResult(
-        deleted_count=deleted_count,
-        failed_ids=tuple(failed_ids),
-        errors=tuple(errors),
+    return await batch_delete_records(
+        identifiers=_deduplicate_tag_ids(tag_ids),
+        delete_record=lambda tag_id: delete_tag(session, tag_id=tag_id),
+        handled_exceptions=(TagNotFoundError,),
     )
