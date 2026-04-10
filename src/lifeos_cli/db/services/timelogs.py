@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.timelog import Timelog
@@ -58,6 +60,91 @@ async def _attach_timelog_links_for_many(
         timelog.tags = tags_map.get(timelog.id, [])
         timelog.people = people_map.get(timelog.id, [])
     return timelogs
+
+
+def _apply_timelog_filters(
+    stmt: Any,
+    *,
+    title_contains: str | None = None,
+    notes_contains: str | None = None,
+    query: str | None = None,
+    tracking_method: str | None = None,
+    area_id: UUID | None = None,
+    area_name: str | None = None,
+    without_area: bool = False,
+    task_id: UUID | None = None,
+    without_task: bool = False,
+    person_id: UUID | None = None,
+    tag_id: UUID | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
+    include_deleted: bool = False,
+) -> Any:
+    """Apply shared timelog list filters to a SQLAlchemy select."""
+    if not include_deleted:
+        stmt = stmt.where(Timelog.deleted_at.is_(None))
+    if title_contains:
+        stmt = stmt.where(Timelog.title.ilike(f"%{title_contains.strip()}%"))
+    if notes_contains:
+        stmt = stmt.where(Timelog.notes.ilike(f"%{notes_contains.strip()}%"))
+    if query:
+        keywords = [keyword.strip() for keyword in query.split() if keyword.strip()]
+        if keywords:
+            stmt = stmt.where(
+                or_(
+                    *(
+                        or_(
+                            Timelog.title.ilike(f"%{keyword}%"),
+                            Timelog.notes.ilike(f"%{keyword}%"),
+                        )
+                        for keyword in keywords
+                    )
+                )
+            )
+    if tracking_method is not None:
+        stmt = stmt.where(Timelog.tracking_method == validate_tracking_method(tracking_method))
+    if without_area:
+        stmt = stmt.where(Timelog.area_id.is_(None))
+    elif area_id is not None:
+        stmt = stmt.where(Timelog.area_id == area_id)
+    if area_name:
+        stmt = stmt.join(Area, Timelog.area_id == Area.id).where(
+            Area.name == area_name.strip(),
+            Area.deleted_at.is_(None),
+        )
+    if without_task:
+        stmt = stmt.where(Timelog.task_id.is_(None))
+    elif task_id is not None:
+        stmt = stmt.where(Timelog.task_id == task_id)
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Timelog.id)
+            & (person_associations.c.entity_type == "timelog"),
+        ).where(person_associations.c.person_id == person_id)
+    if tag_id is not None:
+        stmt = stmt.join(
+            tag_associations,
+            (tag_associations.c.entity_id == Timelog.id)
+            & (tag_associations.c.entity_type == "timelog"),
+        ).where(tag_associations.c.tag_id == tag_id)
+    if window_start is not None:
+        stmt = stmt.where(Timelog.end_time >= window_start)
+    if window_end is not None:
+        stmt = stmt.where(Timelog.start_time <= window_end)
+    return stmt
+
+
+def _resolve_timelog_window(
+    *,
+    local_date: date | None,
+    window_start: datetime | None,
+    window_end: datetime | None,
+) -> tuple[datetime | None, datetime | None]:
+    if local_date is None:
+        return window_start, window_end
+    local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
+    return local_window_start, local_window_end_exclusive - timedelta(microseconds=1)
 
 
 async def create_timelog(
@@ -146,9 +233,14 @@ async def list_timelogs(
     session: AsyncSession,
     *,
     title_contains: str | None = None,
+    notes_contains: str | None = None,
+    query: str | None = None,
     tracking_method: str | None = None,
     area_id: UUID | None = None,
+    area_name: str | None = None,
+    without_area: bool = False,
     task_id: UUID | None = None,
+    without_task: bool = False,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
     local_date: date | None = None,
@@ -159,40 +251,78 @@ async def list_timelogs(
     offset: int = 0,
 ) -> list[Timelog]:
     """List timelogs with optional filters."""
-    if local_date is not None:
-        local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
-        window_start = local_window_start
-        window_end = local_window_end_exclusive - timedelta(microseconds=1)
+    window_start, window_end = _resolve_timelog_window(
+        local_date=local_date,
+        window_start=window_start,
+        window_end=window_end,
+    )
     stmt = select(Timelog).options(selectinload(Timelog.area), selectinload(Timelog.task))
-    if not include_deleted:
-        stmt = stmt.where(Timelog.deleted_at.is_(None))
-    if title_contains:
-        stmt = stmt.where(Timelog.title.ilike(f"%{title_contains.strip()}%"))
-    if tracking_method is not None:
-        stmt = stmt.where(Timelog.tracking_method == validate_tracking_method(tracking_method))
-    if area_id is not None:
-        stmt = stmt.where(Timelog.area_id == area_id)
-    if task_id is not None:
-        stmt = stmt.where(Timelog.task_id == task_id)
-    if person_id is not None:
-        stmt = stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Timelog.id)
-            & (person_associations.c.entity_type == "timelog"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
-        stmt = stmt.join(
-            tag_associations,
-            (tag_associations.c.entity_id == Timelog.id)
-            & (tag_associations.c.entity_type == "timelog"),
-        ).where(tag_associations.c.tag_id == tag_id)
-    if window_start is not None:
-        stmt = stmt.where(Timelog.end_time >= window_start)
-    if window_end is not None:
-        stmt = stmt.where(Timelog.start_time <= window_end)
+    stmt = _apply_timelog_filters(
+        stmt,
+        title_contains=title_contains,
+        notes_contains=notes_contains,
+        query=query,
+        tracking_method=tracking_method,
+        area_id=area_id,
+        area_name=area_name,
+        without_area=without_area,
+        task_id=task_id,
+        without_task=without_task,
+        person_id=person_id,
+        tag_id=tag_id,
+        window_start=window_start,
+        window_end=window_end,
+        include_deleted=include_deleted,
+    )
     stmt = stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc()).offset(offset).limit(limit)
     timelogs = list((await session.execute(stmt)).scalars())
     return await _attach_timelog_links_for_many(session, timelogs)
+
+
+async def count_timelogs(
+    session: AsyncSession,
+    *,
+    title_contains: str | None = None,
+    notes_contains: str | None = None,
+    query: str | None = None,
+    tracking_method: str | None = None,
+    area_id: UUID | None = None,
+    area_name: str | None = None,
+    without_area: bool = False,
+    task_id: UUID | None = None,
+    without_task: bool = False,
+    person_id: UUID | None = None,
+    tag_id: UUID | None = None,
+    local_date: date | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
+    include_deleted: bool = False,
+) -> int:
+    """Count timelogs with the same filters used by list_timelogs."""
+    window_start, window_end = _resolve_timelog_window(
+        local_date=local_date,
+        window_start=window_start,
+        window_end=window_end,
+    )
+    id_stmt = _apply_timelog_filters(
+        select(Timelog.id),
+        title_contains=title_contains,
+        notes_contains=notes_contains,
+        query=query,
+        tracking_method=tracking_method,
+        area_id=area_id,
+        area_name=area_name,
+        without_area=without_area,
+        task_id=task_id,
+        without_task=without_task,
+        person_id=person_id,
+        tag_id=tag_id,
+        window_start=window_start,
+        window_end=window_end,
+        include_deleted=include_deleted,
+    )
+    count_stmt = select(func.count()).select_from(id_stmt.subquery())
+    return int((await session.execute(count_stmt)).scalar_one())
 
 
 async def update_timelog(
@@ -340,6 +470,7 @@ __all__ = [
     "TimelogValidationError",
     "batch_delete_timelogs",
     "create_timelog",
+    "count_timelogs",
     "delete_timelog",
     "get_timelog",
     "list_timelogs",

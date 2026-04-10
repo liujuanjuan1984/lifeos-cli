@@ -375,6 +375,8 @@ Current task notes:
 lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
 lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
 lifeos timelog list --date 2026-04-10
+lifeos timelog list --query "deep work" --count
+lifeos timelog list --area-name Work --without-task
 lifeos timelog show <timelog-id>
 lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
 lifeos timelog delete <timelog-id>
@@ -384,6 +386,7 @@ Current timelog notes:
 
 - `timelog` is the actual time record and represents what really happened
 - use `--date` to query one configured local day
+- use `--query` to search timelog titles and notes
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - timelog end time is currently required because the record models completed time spent
 

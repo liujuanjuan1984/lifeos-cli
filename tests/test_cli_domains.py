@@ -161,6 +161,61 @@ def test_main_timelog_add_creates_timelog(
     assert "Created timelog 13131313-1313-1313-1313-131313131313" in captured.out
 
 
+def test_main_timelog_list_passes_search_filters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_timelogs(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["query"] == "deep work"
+        assert kwargs["notes_contains"] == "focused"
+        assert kwargs["area_name"] == "Work"
+        assert kwargs["without_area"] is False
+        assert kwargs["without_task"] is True
+        return [
+            make_record(
+                id=UUID("13131313-1313-1313-1313-131313131313"),
+                deleted_at=None,
+                tracking_method="manual",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                end_time=utc_datetime(2026, 4, 10, 14, 0),
+                task_id=None,
+                title="Deep work",
+            )
+        ]
+
+    async def fake_count_timelogs(session: object, **kwargs: object) -> int:
+        assert kwargs["query"] == "deep work"
+        assert kwargs["notes_contains"] == "focused"
+        assert kwargs["area_name"] == "Work"
+        assert kwargs["without_area"] is False
+        assert kwargs["without_task"] is True
+        return 1
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "list_timelogs", fake_list_timelogs)
+    monkeypatch.setattr(timelogs, "count_timelogs", fake_count_timelogs)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "list",
+            "--query",
+            "deep work",
+            "--notes-contains",
+            "focused",
+            "--area-name",
+            "Work",
+            "--without-task",
+            "--count",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Deep work" in captured.out
+    assert "Total timelogs: 1" in captured.out
+
+
 def test_main_people_show_prints_tags(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

@@ -118,19 +118,32 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos timelog list --date 2026-04-10",
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
+                'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
-                "Use `--title-contains` for lightweight text filtering instead of a "
-                "separate search command.",
+                "Use `--query` for lightweight text filtering across titles and notes.",
             ),
         ),
     )
     list_parser.add_argument("--title-contains", help="Filter by title substring")
+    list_parser.add_argument("--notes-contains", help="Filter by notes substring")
+    list_parser.add_argument("--query", help="Search title and notes by keyword")
     list_parser.add_argument("--tracking-method", help="Filter by tracking method")
     list_parser.add_argument("--area-id", type=UUID, help="Filter by linked area")
+    list_parser.add_argument("--area-name", help="Filter by exact linked area name")
+    list_parser.add_argument(
+        "--without-area",
+        action="store_true",
+        help="Filter timelogs without a linked area",
+    )
     list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
+    list_parser.add_argument(
+        "--without-task",
+        action="store_true",
+        help="Filter timelogs without a linked task",
+    )
     list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
     list_parser.add_argument("--tag-id", type=UUID, help="Filter by linked tag")
     list_parser.add_argument(
@@ -141,6 +154,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     list_parser.add_argument("--window-start", type=_datetime_value, help="Window start time")
     list_parser.add_argument("--window-end", type=_datetime_value, help="Window end time")
+    list_parser.add_argument("--count", action="store_true", help="Print total matched count")
     add_include_deleted_argument(list_parser, noun="timelogs")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_timelog_list)

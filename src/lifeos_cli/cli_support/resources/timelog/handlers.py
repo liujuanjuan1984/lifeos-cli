@@ -96,14 +96,25 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+    if args.without_area and (args.area_id is not None or args.area_name is not None):
+        print("Use either an area filter or --without-area, not both.", file=sys.stderr)
+        return 1
+    if args.without_task and args.task_id is not None:
+        print("Use either --task-id or --without-task, not both.", file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             timelogs = await timelog_services.list_timelogs(
                 session,
                 title_contains=args.title_contains,
+                notes_contains=args.notes_contains,
+                query=args.query,
                 tracking_method=args.tracking_method,
                 area_id=args.area_id,
+                area_name=args.area_name,
+                without_area=args.without_area,
                 task_id=args.task_id,
+                without_task=args.without_task,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
                 local_date=args.local_date,
@@ -113,13 +124,39 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
+            total_count = (
+                await timelog_services.count_timelogs(
+                    session,
+                    title_contains=args.title_contains,
+                    notes_contains=args.notes_contains,
+                    query=args.query,
+                    tracking_method=args.tracking_method,
+                    area_id=args.area_id,
+                    area_name=args.area_name,
+                    without_area=args.without_area,
+                    task_id=args.task_id,
+                    without_task=args.without_task,
+                    person_id=args.person_id,
+                    tag_id=args.tag_id,
+                    local_date=args.local_date,
+                    window_start=args.window_start,
+                    window_end=args.window_end,
+                    include_deleted=args.include_deleted,
+                )
+                if args.count
+                else None
+            )
         except timelog_services.TimelogValidationError as exc:
             return _print_timelog_error(exc)
     if not timelogs:
         print("No timelogs found.")
+        if total_count is not None:
+            print(f"Total timelogs: {total_count}")
         return 0
     for timelog in timelogs:
         print(_format_timelog_summary(timelog))
+    if total_count is not None:
+        print(f"Total timelogs: {total_count}")
     return 0
 
 

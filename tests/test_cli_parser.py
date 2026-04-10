@@ -245,6 +245,32 @@ def test_cli_parser_supports_timelog_list_by_local_date() -> None:
     assert str(args.local_date) == "2026-04-10"
 
 
+def test_cli_parser_supports_timelog_list_search_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "list",
+            "--query",
+            "deep work",
+            "--notes-contains",
+            "focused",
+            "--area-name",
+            "Work",
+            "--without-task",
+            "--count",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "list"
+    assert args.query == "deep work"
+    assert args.notes_contains == "focused"
+    assert args.area_name == "Work"
+    assert args.without_task is True
+    assert args.count is True
+
+
 def test_cli_parser_supports_task_list_person_filter() -> None:
     parser = build_parser()
     args = parser.parse_args(
