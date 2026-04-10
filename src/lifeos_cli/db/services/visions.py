@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,6 +18,19 @@ from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
 VISION_EXPERIENCE_RATE_DEFAULT = 60
 VISION_EXPERIENCE_RATE_MAX = 3600
+
+
+@dataclass(frozen=True)
+class VisionStats:
+    """Aggregated task statistics for a vision."""
+
+    total_tasks: int
+    completed_tasks: int
+    in_progress_tasks: int
+    todo_tasks: int
+    completion_percentage: float
+    total_estimated_effort: int | None
+    total_actual_effort: int | None
 
 
 class VisionNotFoundError(LookupError):
@@ -313,6 +327,51 @@ async def sync_vision_experience(
     await session.flush()
     await session.refresh(vision)
     return await _attach_people(session, vision)
+
+
+async def get_vision_with_tasks(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> Vision:
+    """Load one vision with its active tasks attached."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+    vision.tasks = await _load_active_tasks_for_vision(session, vision.id)
+    return vision
+
+
+async def get_vision_stats(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> VisionStats:
+    """Return task statistics for a vision."""
+    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+
+    tasks = await _load_active_tasks_for_vision(session, vision.id)
+    total_tasks = len(tasks)
+    completed_tasks = len([task for task in tasks if task.status == "done"])
+    in_progress_tasks = len([task for task in tasks if task.status == "in_progress"])
+    todo_tasks = len([task for task in tasks if task.status == "todo"])
+    completion_percentage = completed_tasks / total_tasks if total_tasks > 0 else 0.0
+    total_estimated_effort = sum(task.estimated_effort or 0 for task in tasks)
+    total_actual_effort = sum(
+        task.actual_effort_total or 0 for task in tasks if task.parent_task_id is None
+    )
+
+    return VisionStats(
+        total_tasks=total_tasks,
+        completed_tasks=completed_tasks,
+        in_progress_tasks=in_progress_tasks,
+        todo_tasks=todo_tasks,
+        completion_percentage=completion_percentage,
+        total_estimated_effort=total_estimated_effort or None,
+        total_actual_effort=total_actual_effort or None,
+    )
 
 
 async def harvest_vision(

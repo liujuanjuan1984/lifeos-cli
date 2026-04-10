@@ -336,6 +336,20 @@ def test_cli_parser_supports_vision_experience_commands() -> None:
     assert harvest_args.vision_command == "harvest"
 
 
+def test_cli_parser_supports_vision_read_model_commands() -> None:
+    parser = build_parser()
+
+    with_tasks_args = parser.parse_args(
+        ["vision", "with-tasks", "11111111-1111-1111-1111-111111111111"]
+    )
+    stats_args = parser.parse_args(["vision", "stats", "11111111-1111-1111-1111-111111111111"])
+
+    assert with_tasks_args.resource == "vision"
+    assert with_tasks_args.vision_command == "with-tasks"
+    assert stats_args.resource == "vision"
+    assert stats_args.vision_command == "stats"
+
+
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
     parser = build_parser()
 

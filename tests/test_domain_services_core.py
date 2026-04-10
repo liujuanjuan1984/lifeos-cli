@@ -418,6 +418,63 @@ def test_sync_vision_experience_uses_root_task_effort(
     session.commit.assert_not_called()
 
 
+def test_get_vision_stats_summarizes_tasks(monkeypatch: pytest.MonkeyPatch) -> None:
+    vision = Vision(name="Launch lifeos-cli", status="active")
+    vision.id = UUID("44444444-4444-4444-4444-444444444444")
+    tasks = [
+        SimpleNamespace(
+            status="done",
+            estimated_effort=30,
+            actual_effort_total=45,
+            parent_task_id=None,
+        ),
+        SimpleNamespace(
+            status="in_progress",
+            estimated_effort=60,
+            actual_effort_total=20,
+            parent_task_id=UUID("11111111-1111-1111-1111-111111111111"),
+        ),
+        SimpleNamespace(
+            status="todo",
+            estimated_effort=None,
+            actual_effort_total=10,
+            parent_task_id=None,
+        ),
+    ]
+
+    async def fake_get_vision(
+        _: object,
+        *,
+        vision_id: UUID,
+        include_deleted: bool = False,
+    ) -> Vision:
+        assert vision_id == vision.id
+        assert include_deleted is False
+        return vision
+
+    async def fake_load_tasks(_: object, vision_id: UUID) -> list[object]:
+        assert vision_id == vision.id
+        return tasks
+
+    monkeypatch.setattr(visions, "get_vision", fake_get_vision)
+    monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
+
+    stats = asyncio.run(
+        visions.get_vision_stats(
+            cast(Any, object()),
+            vision_id=vision.id,
+        )
+    )
+
+    assert stats.total_tasks == 3
+    assert stats.completed_tasks == 1
+    assert stats.in_progress_tasks == 1
+    assert stats.todo_tasks == 1
+    assert stats.completion_percentage == pytest.approx(1 / 3)
+    assert stats.total_estimated_effort == 90
+    assert stats.total_actual_effort == 55
+
+
 def test_create_vision_syncs_people_without_committing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

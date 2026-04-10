@@ -41,6 +41,35 @@ def _format_vision_detail(vision: Vision) -> str:
     )
 
 
+def _format_vision_with_tasks(vision: Vision) -> str:
+    tasks = getattr(vision, "tasks", []) or []
+    task_lines = [
+        f"  {task.id}\t{task.status}\t{task.parent_task_id or '-'}\t{task.content}"
+        for task in tasks
+    ]
+    return "\n".join(
+        (
+            _format_vision_detail(vision),
+            "tasks:",
+            *(task_lines or ["  -"]),
+        )
+    )
+
+
+def _format_vision_stats(stats: vision_services.VisionStats) -> str:
+    return "\n".join(
+        (
+            f"total_tasks: {stats.total_tasks}",
+            f"completed_tasks: {stats.completed_tasks}",
+            f"in_progress_tasks: {stats.in_progress_tasks}",
+            f"todo_tasks: {stats.todo_tasks}",
+            f"completion_percentage: {stats.completion_percentage:.2f}",
+            f"total_estimated_effort: {stats.total_estimated_effort or '-'}",
+            f"total_actual_effort: {stats.total_actual_effort or '-'}",
+        )
+    )
+
+
 async def handle_vision_add_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -111,6 +140,42 @@ async def handle_vision_show_async(args: argparse.Namespace) -> int:
 
 def handle_vision_show(args: argparse.Namespace) -> int:
     return run_async(handle_vision_show_async(args))
+
+
+async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            vision = await vision_services.get_vision_with_tasks(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_vision_with_tasks(vision))
+    return 0
+
+
+def handle_vision_with_tasks(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_with_tasks_async(args))
+
+
+async def handle_vision_stats_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            stats = await vision_services.get_vision_stats(
+                session,
+                vision_id=args.vision_id,
+            )
+        except vision_services.VisionNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    print(_format_vision_stats(stats))
+    return 0
+
+
+def handle_vision_stats(args: argparse.Namespace) -> int:
+    return run_async(handle_vision_stats_async(args))
 
 
 async def handle_vision_update_async(args: argparse.Namespace) -> int:

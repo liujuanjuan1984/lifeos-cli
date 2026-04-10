@@ -334,6 +334,65 @@ def test_main_vision_experience_commands_call_services(
     assert "Harvested vision 44444444-4444-4444-4444-444444444444" in captured.out
 
 
+def test_main_vision_read_model_commands_print_results(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_get_with_tasks(session: object, **kwargs: object) -> object:
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        return make_record(
+            id=UUID("44444444-4444-4444-4444-444444444444"),
+            name="Launch lifeos-cli",
+            description=None,
+            status="active",
+            stage=0,
+            experience_points=0,
+            experience_rate_per_hour=60,
+            area_id=None,
+            people=[],
+            tasks=[
+                make_record(
+                    id=UUID("55555555-5555-5555-5555-555555555555"),
+                    status="done",
+                    parent_task_id=None,
+                    content="Draft release checklist",
+                )
+            ],
+            created_at=None,
+            updated_at=None,
+            deleted_at=None,
+        )
+
+    async def fake_get_stats(session: object, **kwargs: object) -> object:
+        assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
+        return visions.VisionStats(
+            total_tasks=1,
+            completed_tasks=1,
+            in_progress_tasks=0,
+            todo_tasks=0,
+            completion_percentage=1.0,
+            total_estimated_effort=30,
+            total_actual_effort=45,
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(visions, "get_vision_with_tasks", fake_get_with_tasks)
+    monkeypatch.setattr(visions, "get_vision_stats", fake_get_stats)
+
+    with_tasks_exit_code = cli.main(
+        ["vision", "with-tasks", "44444444-4444-4444-4444-444444444444"]
+    )
+    stats_exit_code = cli.main(["vision", "stats", "44444444-4444-4444-4444-444444444444"])
+    captured = capsys.readouterr()
+
+    assert with_tasks_exit_code == 0
+    assert stats_exit_code == 0
+    assert "tasks:" in captured.out
+    assert "Draft release checklist" in captured.out
+    assert "total_tasks: 1" in captured.out
+    assert "completion_percentage: 1.00" in captured.out
+
+
 def test_main_task_add_creates_task(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

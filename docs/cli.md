@@ -326,6 +326,8 @@ lifeos vision update <vision-id> --person-id <person-id-1> --person-id <person-i
 lifeos vision list --person-id <person-id>
 lifeos vision list --status active
 lifeos vision show <vision-id>
+lifeos vision with-tasks <vision-id>
+lifeos vision stats <vision-id>
 lifeos vision update <vision-id> --status archived --clear-area
 lifeos vision sync-experience <vision-id>
 lifeos vision add-experience <vision-id> --points 120
@@ -462,6 +464,7 @@ Currently implemented:
 - `lifeos people add|list|show|update|delete`
 - `lifeos people batch delete`
 - `lifeos vision add|list|show|update|delete`
+- `lifeos vision with-tasks|stats`
 - `lifeos vision add-experience|sync-experience|harvest`
 - `lifeos vision batch delete`
 - `lifeos task add|list|show|update|delete`
