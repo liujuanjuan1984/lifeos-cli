@@ -687,6 +687,33 @@ def test_cli_parser_supports_timelog_batch_update_command() -> None:
     assert len(args.timelog_ids) == 2
 
 
+def test_cli_parser_supports_timelog_restore_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["timelog", "restore", "11111111-1111-1111-1111-111111111111"])
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "restore"
+
+
+def test_cli_parser_supports_timelog_batch_restore_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "batch",
+            "restore",
+            "--ids",
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "batch"
+    assert args.timelog_batch_command == "restore"
+    assert len(args.timelog_ids) == 2
+
+
 @pytest.mark.parametrize(
     ("argv",),
     [

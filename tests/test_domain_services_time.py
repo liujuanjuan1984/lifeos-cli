@@ -371,3 +371,85 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
     assert result.updated_count == 0
     assert result.unchanged_ids == (timelog_id,)
     update_timelog.assert_not_awaited()
+
+
+def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    timelog = SimpleNamespace(
+        id=timelog_id,
+        area_id=None,
+        task_id=task_id,
+        deleted_at=utc_datetime(2026, 4, 10, 15, 0),
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock())
+
+    async def fake_get_timelog(
+        _: object,
+        *,
+        timelog_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert include_deleted is True
+        return timelog
+
+    async def fake_ensure_area_exists(_: object, area_id: UUID | None) -> None:
+        assert area_id is None
+
+    async def fake_ensure_task_exists(_: object, candidate_task_id: UUID | None) -> None:
+        assert candidate_task_id == task_id
+
+    async def fake_attach_timelog_links(_: object, timelog_record: object) -> object:
+        return timelog_record
+
+    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
+    monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(timelogs, "_attach_timelog_links", fake_attach_timelog_links)
+    recompute_task_effort = AsyncMock()
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_task_effort_after_timelog_change",
+        recompute_task_effort,
+    )
+
+    restored_timelog = asyncio.run(
+        timelogs.restore_timelog(
+            cast(Any, session),
+            timelog_id=timelog_id,
+        )
+    )
+
+    assert restored_timelog.deleted_at is None
+    recompute_task_effort.assert_awaited_once_with(
+        cast(Any, session),
+        old_task_id=None,
+        new_task_id=task_id,
+    )
+    session.flush.assert_awaited_once()
+    session.refresh.assert_awaited_once_with(timelog)
+
+
+def test_batch_restore_timelogs_reports_failed_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    target_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
+    missing_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+    session = SimpleNamespace()
+
+    async def fake_restore_timelog(_: object, *, timelog_id: UUID) -> object:
+        if timelog_id == missing_id:
+            raise timelogs.TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+        return SimpleNamespace(id=timelog_id)
+
+    monkeypatch.setattr(timelogs, "restore_timelog", fake_restore_timelog)
+
+    result = asyncio.run(
+        timelogs.batch_restore_timelogs(
+            cast(Any, session),
+            timelog_ids=[target_id, target_id, missing_id],
+        )
+    )
+
+    assert result.restored_count == 1
+    assert result.failed_ids == (missing_id,)

@@ -46,6 +46,15 @@ class TimelogBatchUpdateResult:
     errors: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class TimelogBatchRestoreResult:
+    """Summary for a batch timelog restore operation."""
+
+    restored_count: int
+    failed_ids: tuple[UUID, ...]
+    errors: tuple[str, ...]
+
+
 async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Timelog:
     tags_map = await load_tags_for_entities(session, entity_ids=[timelog.id], entity_type="timelog")
     people_map = await load_people_for_entities(
@@ -582,6 +591,26 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     await session.flush()
 
 
+async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> Timelog:
+    """Restore one soft-deleted timelog."""
+    timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=True)
+    if timelog is None:
+        raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+    if timelog.deleted_at is None:
+        raise TimelogValidationError(f"Timelog {timelog_id} is not deleted")
+    await ensure_timelog_area_exists(session, timelog.area_id)
+    await ensure_timelog_task_exists(session, timelog.task_id)
+    timelog.deleted_at = None
+    await recompute_task_effort_after_timelog_change(
+        session,
+        old_task_id=None,
+        new_task_id=timelog.task_id,
+    )
+    await session.flush()
+    await session.refresh(timelog)
+    return await _attach_timelog_links(session, timelog)
+
+
 async def batch_delete_timelogs(
     session: AsyncSession,
     *,
@@ -605,18 +634,49 @@ async def batch_delete_timelogs(
     )
 
 
+async def batch_restore_timelogs(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+) -> TimelogBatchRestoreResult:
+    """Restore multiple soft-deleted timelogs."""
+    restored_count = 0
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+    for timelog_id in deduplicate_timelog_ids(timelog_ids):
+        try:
+            await restore_timelog(session, timelog_id=timelog_id)
+            restored_count += 1
+        except (
+            TimelogAreaReferenceNotFoundError,
+            TimelogNotFoundError,
+            TimelogTaskReferenceNotFoundError,
+            TimelogValidationError,
+        ) as exc:
+            failed_ids.append(timelog_id)
+            errors.append(str(exc))
+    return TimelogBatchRestoreResult(
+        restored_count=restored_count,
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )
+
+
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
+    "TimelogBatchRestoreResult",
     "TimelogBatchUpdateResult",
     "TimelogNotFoundError",
     "TimelogTaskReferenceNotFoundError",
     "TimelogValidationError",
     "batch_delete_timelogs",
+    "batch_restore_timelogs",
     "batch_update_timelogs",
     "create_timelog",
     "count_timelogs",
     "delete_timelog",
     "get_timelog",
     "list_timelogs",
+    "restore_timelog",
     "update_timelog",
 ]

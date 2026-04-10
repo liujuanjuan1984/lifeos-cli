@@ -382,6 +382,8 @@ lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
 lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task
 lifeos timelog batch update --ids <timelog-id-1> --find-title-text "deep" --replace-title-text "focused"
 lifeos timelog delete <timelog-id>
+lifeos timelog restore <timelog-id>
+lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>
 ```
 
 Current timelog notes:
@@ -390,6 +392,7 @@ Current timelog notes:
 - use `--date` to query one configured local day
 - use `--query` to search timelog titles and notes
 - use `batch update` for repeated relation cleanup or title find/replace
+- use `restore` or `batch restore` to recover soft-deleted timelogs
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - timelog end time is currently required because the record models completed time spent
 
@@ -488,8 +491,9 @@ Currently implemented:
 - `lifeos vision batch delete`
 - `lifeos task add|list|show|with-subtasks|hierarchy|stats|move|reorder|update|delete`
 - `lifeos task batch delete`
-- `lifeos timelog add|list|show|update|delete`
+- `lifeos timelog add|list|show|update|delete|restore`
 - `lifeos timelog batch update`
+- `lifeos timelog batch restore`
 - `lifeos timelog batch delete`
 - `lifeos note add`
 - `lifeos note list`

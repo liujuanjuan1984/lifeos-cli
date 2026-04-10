@@ -15,9 +15,11 @@ from lifeos_cli.cli_support.parser_common import (
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_add,
     handle_timelog_batch_delete,
+    handle_timelog_batch_restore,
     handle_timelog_batch_update,
     handle_timelog_delete,
     handle_timelog_list,
+    handle_timelog_restore,
     handle_timelog_show,
     handle_timelog_update,
 )
@@ -47,11 +49,13 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
                 'lifeos timelog batch update --ids <timelog-id-1> --find-title-text "old" '
                 '--replace-title-text "new"',
+                "lifeos timelog restore <timelog-id>",
             ),
             notes=(
                 "Use `list` as the primary query entrypoint for timelogs.",
                 "Timelogs can optionally reference one area and one task.",
                 "Delete operations in the public CLI always perform soft deletion.",
+                "Use `restore` to recover a soft-deleted timelog.",
             ),
         ),
     )
@@ -248,6 +252,19 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     delete_parser.add_argument("timelog_id", type=UUID, help="Timelog identifier")
     delete_parser.set_defaults(handler=handle_timelog_delete)
 
+    restore_parser = add_documented_parser(
+        timelog_subparsers,
+        "restore",
+        help_content=HelpContent(
+            summary="Restore a timelog",
+            description="Restore one soft-deleted timelog.",
+            examples=("lifeos timelog restore 11111111-1111-1111-1111-111111111111",),
+            notes=("The referenced area and task must still be active if they are linked.",),
+        ),
+    )
+    restore_parser.add_argument("timelog_id", type=UUID, help="Timelog identifier")
+    restore_parser.set_defaults(handler=handle_timelog_restore)
+
     batch_parser = add_documented_parser(
         timelog_subparsers,
         "batch",
@@ -256,6 +273,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             description="Grouped namespace for multi-record timelog writes.",
             examples=(
                 "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
+                "lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",
                 "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task",
             ),
         ),
@@ -317,6 +335,17 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help="Remove all people",
     )
     batch_update_parser.set_defaults(handler=handle_timelog_batch_update)
+
+    batch_restore_parser = add_documented_parser(
+        batch_subparsers,
+        "restore",
+        help_content=HelpContent(
+            summary="Restore multiple timelogs",
+            description="Restore multiple soft-deleted timelogs by identifier.",
+        ),
+    )
+    add_identifier_list_argument(batch_restore_parser, dest="timelog_ids", noun="timelog")
+    batch_restore_parser.set_defaults(handler=handle_timelog_batch_restore)
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
