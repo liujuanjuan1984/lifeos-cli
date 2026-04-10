@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select, text
@@ -23,6 +24,90 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_action_status,
     validate_habit_status,
 )
+
+
+def _apply_habit_filters(
+    stmt: Any,
+    *,
+    status: str | None,
+    title: str | None,
+    active_window_only: bool,
+    include_deleted: bool,
+) -> Any:
+    if not include_deleted:
+        stmt = stmt.where(Habit.deleted_at.is_(None))
+    if status is not None:
+        stmt = stmt.where(Habit.status == validate_habit_status(status))
+    if title is not None:
+        normalized_title = title.strip()
+        if normalized_title:
+            stmt = stmt.where(Habit.title == normalized_title)
+    if active_window_only:
+        local_today = get_operational_date()
+        end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+        stmt = stmt.where(Habit.start_date <= local_today)
+        stmt = stmt.where(end_expr >= local_today)
+    return stmt
+
+
+def _resolve_habit_action_window(
+    *,
+    action_date: date | None,
+    center_date: date | None,
+    days_before: int | None,
+    days_after: int | None,
+) -> tuple[date, date] | None:
+    if action_date is not None:
+        return None
+    if not any(value is not None for value in (center_date, days_before, days_after)):
+        return None
+
+    reference_date = center_date or get_operational_date()
+    window_before = days_before if days_before is not None else DEFAULT_HABIT_ACTION_WINDOW_DAYS
+    window_after = days_after if days_after is not None else window_before
+    if window_before < 0 or window_after < 0:
+        raise HabitValidationError("days_before and days_after must be non-negative")
+    if window_before + window_after + 1 > MAX_HABIT_ACTION_WINDOW_DAYS:
+        raise HabitValidationError("The requested action window is larger than the allowed maximum")
+    return reference_date - timedelta(days=window_before), reference_date + timedelta(
+        days=window_after
+    )
+
+
+async def _apply_habit_action_filters(
+    session: AsyncSession,
+    stmt: Any,
+    *,
+    habit_id: UUID | None,
+    status: str | None,
+    action_date: date | None,
+    center_date: date | None,
+    days_before: int | None,
+    days_after: int | None,
+    include_deleted: bool,
+) -> Any:
+    if habit_id is not None:
+        habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
+        if habit is None:
+            raise HabitNotFoundError(f"Habit {habit_id} was not found")
+        stmt = stmt.where(HabitAction.habit_id == habit_id)
+    if not include_deleted:
+        stmt = stmt.where(HabitAction.deleted_at.is_(None))
+    if status is not None:
+        stmt = stmt.where(HabitAction.status == validate_habit_action_status(status))
+    if action_date is not None:
+        stmt = stmt.where(HabitAction.action_date == action_date)
+    else:
+        action_window = _resolve_habit_action_window(
+            action_date=action_date,
+            center_date=center_date,
+            days_before=days_before,
+            days_after=days_after,
+        )
+        if action_window is not None:
+            start, end = action_window
+            stmt = stmt.where(HabitAction.action_date >= start, HabitAction.action_date <= end)
+    return stmt
 
 
 async def get_habit(
@@ -52,19 +137,13 @@ async def list_habits(
     """List habits with optional status and title filters."""
     await refresh_habit_expiration(session)
     stmt = select(Habit).options(selectinload(Habit.task))
-    if not include_deleted:
-        stmt = stmt.where(Habit.deleted_at.is_(None))
-    if status is not None:
-        stmt = stmt.where(Habit.status == validate_habit_status(status))
-    if title is not None:
-        normalized_title = title.strip()
-        if normalized_title:
-            stmt = stmt.where(Habit.title == normalized_title)
-    if active_window_only:
-        local_today = get_operational_date()
-        end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
-        stmt = stmt.where(Habit.start_date <= local_today)
-        stmt = stmt.where(end_expr >= local_today)
+    stmt = _apply_habit_filters(
+        stmt,
+        status=status,
+        title=title,
+        active_window_only=active_window_only,
+        include_deleted=include_deleted,
+    )
     stmt = stmt.order_by(Habit.created_at.desc(), Habit.id.desc()).offset(offset).limit(limit)
     return list((await session.execute(stmt)).scalars())
 
@@ -80,19 +159,13 @@ async def count_habits(
     """Count habits with the same filters used by list_habits."""
     await refresh_habit_expiration(session)
     stmt = select(func.count()).select_from(Habit)
-    if not include_deleted:
-        stmt = stmt.where(Habit.deleted_at.is_(None))
-    if status is not None:
-        stmt = stmt.where(Habit.status == validate_habit_status(status))
-    if title is not None:
-        normalized_title = title.strip()
-        if normalized_title:
-            stmt = stmt.where(Habit.title == normalized_title)
-    if active_window_only:
-        local_today = get_operational_date()
-        end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
-        stmt = stmt.where(Habit.start_date <= local_today)
-        stmt = stmt.where(end_expr >= local_today)
+    stmt = _apply_habit_filters(
+        stmt,
+        status=status,
+        title=title,
+        active_window_only=active_window_only,
+        include_deleted=include_deleted,
+    )
     return int((await session.execute(stmt)).scalar_one())
 
 
@@ -196,34 +269,17 @@ async def list_habit_actions(
 ) -> list[HabitAction]:
     """List habit actions with optional habit, status, and date filters."""
     stmt = select(HabitAction).options(selectinload(HabitAction.habit))
-    if habit_id is not None:
-        habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
-        if habit is None:
-            raise HabitNotFoundError(f"Habit {habit_id} was not found")
-        stmt = stmt.where(HabitAction.habit_id == habit_id)
-    if not include_deleted:
-        stmt = stmt.where(HabitAction.deleted_at.is_(None))
-    if status is not None:
-        stmt = stmt.where(HabitAction.status == validate_habit_action_status(status))
-    if action_date is not None:
-        stmt = stmt.where(HabitAction.action_date == action_date)
-    else:
-        use_window = any(value is not None for value in (center_date, days_before, days_after))
-        if use_window:
-            reference_date = center_date or get_operational_date()
-            window_before = (
-                days_before if days_before is not None else DEFAULT_HABIT_ACTION_WINDOW_DAYS
-            )
-            window_after = days_after if days_after is not None else window_before
-            if window_before < 0 or window_after < 0:
-                raise HabitValidationError("days_before and days_after must be non-negative")
-            if window_before + window_after + 1 > MAX_HABIT_ACTION_WINDOW_DAYS:
-                raise HabitValidationError(
-                    "The requested action window is larger than the allowed maximum"
-                )
-            start = reference_date - timedelta(days=window_before)
-            end = reference_date + timedelta(days=window_after)
-            stmt = stmt.where(HabitAction.action_date >= start, HabitAction.action_date <= end)
+    stmt = await _apply_habit_action_filters(
+        session,
+        stmt,
+        habit_id=habit_id,
+        status=status,
+        action_date=action_date,
+        center_date=center_date,
+        days_before=days_before,
+        days_after=days_after,
+        include_deleted=include_deleted,
+    )
     stmt = stmt.order_by(HabitAction.action_date.asc(), HabitAction.id.asc())
     stmt = stmt.offset(offset).limit(limit)
     return list((await session.execute(stmt)).scalars())
@@ -242,34 +298,17 @@ async def count_habit_actions(
 ) -> int:
     """Count habit actions with the same filters used by list_habit_actions."""
     stmt = select(func.count()).select_from(HabitAction)
-    if habit_id is not None:
-        habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
-        if habit is None:
-            raise HabitNotFoundError(f"Habit {habit_id} was not found")
-        stmt = stmt.where(HabitAction.habit_id == habit_id)
-    if not include_deleted:
-        stmt = stmt.where(HabitAction.deleted_at.is_(None))
-    if status is not None:
-        stmt = stmt.where(HabitAction.status == validate_habit_action_status(status))
-    if action_date is not None:
-        stmt = stmt.where(HabitAction.action_date == action_date)
-    else:
-        use_window = any(value is not None for value in (center_date, days_before, days_after))
-        if use_window:
-            reference_date = center_date or get_operational_date()
-            window_before = (
-                days_before if days_before is not None else DEFAULT_HABIT_ACTION_WINDOW_DAYS
-            )
-            window_after = days_after if days_after is not None else window_before
-            if window_before < 0 or window_after < 0:
-                raise HabitValidationError("days_before and days_after must be non-negative")
-            if window_before + window_after + 1 > MAX_HABIT_ACTION_WINDOW_DAYS:
-                raise HabitValidationError(
-                    "The requested action window is larger than the allowed maximum"
-                )
-            start = reference_date - timedelta(days=window_before)
-            end = reference_date + timedelta(days=window_after)
-            stmt = stmt.where(HabitAction.action_date >= start, HabitAction.action_date <= end)
+    stmt = await _apply_habit_action_filters(
+        session,
+        stmt,
+        habit_id=habit_id,
+        status=status,
+        action_date=action_date,
+        center_date=center_date,
+        days_before=days_before,
+        days_after=days_after,
+        include_deleted=include_deleted,
+    )
     return int((await session.execute(stmt)).scalar_one())
 
 
