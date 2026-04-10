@@ -421,7 +421,7 @@ def test_sync_vision_experience_uses_root_task_effort(
 def test_get_vision_stats_summarizes_tasks(monkeypatch: pytest.MonkeyPatch) -> None:
     vision = Vision(name="Launch lifeos-cli", status="active")
     vision.id = UUID("44444444-4444-4444-4444-444444444444")
-    tasks = [
+    tasks: list[object] = [
         SimpleNamespace(
             status="done",
             estimated_effort=30,

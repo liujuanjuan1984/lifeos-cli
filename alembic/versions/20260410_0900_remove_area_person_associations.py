@@ -20,8 +20,7 @@ def upgrade() -> None:
     schema_name = _schema_name()
     op.execute(
         sa.text(
-            f'DELETE FROM "{schema_name}"."person_associations" '
-            "WHERE entity_type = :entity_type"
+            f'DELETE FROM "{schema_name}"."person_associations" WHERE entity_type = :entity_type'
         ).bindparams(entity_type="area")
     )
 
