@@ -39,3 +39,14 @@ The following rules apply to coding agent collaboration in this repository. Thes
 - Never commit secrets, tokens, private keys, or `.env` contents.
 - Ensure logs and examples do not expose credentials or sensitive local paths unintentionally.
 - Update [SECURITY.md](SECURITY.md), [README.md](README.md), and release-related docs when changing publishing, dependency, or security-sensitive behavior.
+
+## 6. CLI Help and Tests
+
+- Treat CLI help as the primary command reference:
+  - `lifeos --help`
+  - `lifeos <resource> --help`
+  - `lifeos <resource> <action> --help`
+- Command-specific facts such as examples, argument constraints, behavioral notes, and scope rules must be updated in help when CLI behavior changes.
+- Repository-level CLI docs should summarize cross-command concepts and must not become a second source of truth for command-level details.
+- For CLI feature work, review the related help text and tests before considering the task complete.
+- Do not ship CLI behavior changes with source-only updates; update the relevant help text and add or adjust tests that cover the user-visible command shape and behavior.
