@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from lifeos_cli.cli_support.help_utils import build_epilog
 from lifeos_cli.cli_support.resources.area.parser import build_area_parser
+from lifeos_cli.cli_support.resources.data.parser import build_data_parser
 from lifeos_cli.cli_support.resources.event.parser import build_event_parser
 from lifeos_cli.cli_support.resources.habit.parser import build_habit_parser
 from lifeos_cli.cli_support.resources.habit_action.parser import build_habit_action_parser
@@ -52,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Use `schedule` for aggregated day and range views across planned work.\n"
             "Habits and habit actions are exposed as separate top-level resources.\n"
             "System commands such as init, config, and db manage runtime setup.\n"
+            "Use `data` for canonical import/export, bundle backup, and batch operations.\n"
             "Actions are short verbs that operate on records or runtime state."
         ),
         epilog=build_epilog(
@@ -59,6 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
                 "lifeos init",
                 "lifeos config show",
                 "lifeos db ping",
+                "lifeos data export all --output lifeos-bundle.zip",
                 'lifeos area add "Health"',
                 'lifeos people add "Alice"',
                 'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
@@ -96,6 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_init_parser(subparsers)
     build_config_parser(subparsers)
     build_db_parser(subparsers)
+    build_data_parser(subparsers)
     build_area_parser(subparsers)
     build_event_parser(subparsers)
     build_schedule_parser(subparsers)

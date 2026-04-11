@@ -118,6 +118,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "resources:" in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
+    assert "data" in captured.out
+    assert "Run unified data import/export and batch commands" in captured.out
     assert "event" in captured.out
     assert "Manage planned schedule events" in captured.out
     assert "schedule" in captured.out
@@ -149,6 +151,34 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
 
 
+def test_cli_data_help_describes_snapshot_and_bundle_model(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "canonical JSON/JSONL snapshot rows" in captured.out
+    assert "bundle backup or restore" in captured.out
+    assert "data export all --output lifeos-bundle.zip" in captured.out
+    assert "data import bundle --file lifeos-bundle.zip --replace-existing" in captured.out
+
+
+def test_cli_data_import_help_describes_atomic_bundle_restore(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "import", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Bundle restore is atomic" in captured.out
+    assert (
+        "Single-resource imports expect referenced foreign rows to already exist." in captured.out
+    )
+
+
 def test_cli_timelog_stats_help_describes_persisted_area_stats(capsys) -> None:
     parser = build_parser()
 
@@ -160,6 +190,30 @@ def test_cli_timelog_stats_help_describes_persisted_area_stats(capsys) -> None:
     assert "persisted stats when available" in captured.out
     assert "Stats are grouped only by area" in captured.out
     assert "timelog stats rebuild" in captured.out
+
+
+def test_cli_parser_supports_data_commands() -> None:
+    parser = build_parser()
+
+    export_args = parser.parse_args(["data", "export", "timelog", "--format", "jsonl"])
+    bundle_args = parser.parse_args(["data", "import", "bundle", "--file", "backup.zip"])
+    batch_update_args = parser.parse_args(
+        ["data", "batch-update", "task", "--file", "task-patch.jsonl"]
+    )
+    batch_delete_args = parser.parse_args(
+        ["data", "batch-delete", "event", "--id", "11111111-1111-1111-1111-111111111111"]
+    )
+
+    assert export_args.resource == "data"
+    assert export_args.data_command == "export"
+    assert export_args.target == "timelog"
+    assert export_args.format == "jsonl"
+    assert bundle_args.data_command == "import"
+    assert bundle_args.target == "bundle"
+    assert batch_update_args.data_command == "batch-update"
+    assert batch_update_args.target == "task"
+    assert batch_delete_args.data_command == "batch-delete"
+    assert batch_delete_args.target == "event"
 
 
 def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:

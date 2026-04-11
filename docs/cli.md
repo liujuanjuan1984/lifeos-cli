@@ -94,6 +94,7 @@ Time-oriented behavior follows these rules:
 Use help as the first-stop reference for each command family:
 
 - `lifeos area --help`
+- `lifeos data --help`
 - `lifeos event --help`
 - `lifeos schedule --help`
 - `lifeos habit --help`
@@ -108,6 +109,7 @@ Use help as the first-stop reference for each command family:
 Current high-level domain roles:
 
 - `event`: planned schedule blocks
+- `data`: canonical import/export, bundle backup, and batch operations
 - `schedule`: aggregated day and range read model
 - `timelog`: actual time records
 - `habit`: recurring intention that generates dated habit actions
