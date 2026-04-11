@@ -47,7 +47,8 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "Prefer short, stable resource names, such as note, task, or people.",
                 "Action names stay short verbs, such as add, list, update, and delete.",
                 "Use the `batch` namespace when one command operates on multiple note records.",
-                "The list command prints tab-separated columns: id, status, created_at, content.",
+                "The list command prints tab-separated columns: id, status, created_at, "
+                "task_id, people_count, timelog_count, content.",
                 "Use `show` to inspect the full note body with preserved line breaks.",
                 "Delete operations in the CLI always perform soft deletion.",
             ),

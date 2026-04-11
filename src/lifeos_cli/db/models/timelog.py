@@ -50,6 +50,7 @@ class Timelog(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     task = relationship("Task", foreign_keys=[task_id])
 
     if TYPE_CHECKING:
+        linked_notes_count: int
         tags: list[Tag]
         people: list[Person]
 

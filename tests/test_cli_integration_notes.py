@@ -102,3 +102,101 @@ def test_real_cli_note_workflow(integration_context: IntegrationContext) -> None
         "00000000-0000-0000-0000-000000000000",
     )
     assert_missing(missing_show_result, "00000000-0000-0000-0000-000000000000")
+
+
+def test_real_cli_note_associations_and_timelog_counts(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    person_result = run_lifeos(integration_context, "people", "add", "Alice")
+    assert_ok(person_result)
+    person_id = extract_created_id(person_result.stdout)
+
+    vision_result = run_lifeos(integration_context, "vision", "add", "Link notes to work")
+    assert_ok(vision_result)
+    vision_id = extract_created_id(vision_result.stdout)
+
+    task_result = run_lifeos(
+        integration_context,
+        "task",
+        "add",
+        "Investigate note associations",
+        "--vision-id",
+        vision_id,
+    )
+    assert_ok(task_result)
+    task_id = extract_created_id(task_result.stdout)
+
+    timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Implementation session",
+        "--start-time",
+        "2026-04-10T10:00:00-04:00",
+        "--end-time",
+        "2026-04-10T11:00:00-04:00",
+        "--task-id",
+        task_id,
+    )
+    assert_ok(timelog_result)
+    timelog_id = extract_created_id(timelog_result.stdout)
+
+    note_result = run_lifeos(
+        integration_context,
+        "note",
+        "add",
+        "Association note",
+        "--person-id",
+        person_id,
+        "--task-id",
+        task_id,
+        "--timelog-id",
+        timelog_id,
+    )
+    assert_ok(note_result)
+    note_id = extract_created_id(note_result.stdout)
+
+    note_show_result = run_lifeos(integration_context, "note", "show", note_id)
+    assert_ok(note_show_result)
+    assert "people: Alice" in note_show_result.stdout
+    assert f"task: {task_id} | Investigate note associations" in note_show_result.stdout
+    assert f"timelogs: {timelog_id} | Implementation session" in note_show_result.stdout
+
+    note_list_result = run_lifeos(integration_context, "note", "list", "--person-id", person_id)
+    assert_ok(note_list_result)
+    assert note_id in note_list_result.stdout
+    assert f"\t{task_id}\t1\t1\tAssociation note" in note_list_result.stdout
+
+    note_search_result = run_lifeos(
+        integration_context,
+        "note",
+        "search",
+        "Association",
+        "--task-id",
+        task_id,
+    )
+    assert_ok(note_search_result)
+    assert note_id in note_search_result.stdout
+
+    timelog_show_result = run_lifeos(integration_context, "timelog", "show", timelog_id)
+    assert_ok(timelog_show_result)
+    assert "linked_notes_count: 1" in timelog_show_result.stdout
+
+    clear_timelog_result = run_lifeos(
+        integration_context,
+        "note",
+        "update",
+        note_id,
+        "--clear-timelogs",
+    )
+    assert_ok(clear_timelog_result)
+
+    updated_note_result = run_lifeos(integration_context, "note", "show", note_id)
+    assert_ok(updated_note_result)
+    assert "timelogs: -" in updated_note_result.stdout
+
+    updated_timelog_result = run_lifeos(integration_context, "timelog", "show", timelog_id)
+    assert_ok(updated_timelog_result)
+    assert "linked_notes_count: 0" in updated_timelog_result.stdout

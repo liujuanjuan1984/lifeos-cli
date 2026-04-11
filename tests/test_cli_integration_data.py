@@ -140,7 +140,18 @@ def test_real_cli_data_round_trip_and_batch_workflow(
     assert_ok(timelog_result)
     timelog_id = extract_created_id(timelog_result.stdout)
 
-    note_result = run_lifeos(integration_context, "note", "add", "Bundle restore checklist")
+    note_result = run_lifeos(
+        integration_context,
+        "note",
+        "add",
+        "Bundle restore checklist",
+        "--person-id",
+        person_id,
+        "--task-id",
+        task_id,
+        "--timelog-id",
+        timelog_id,
+    )
     assert_ok(note_result)
     note_id = extract_created_id(note_result.stdout)
 
@@ -231,6 +242,7 @@ def test_real_cli_data_round_trip_and_batch_workflow(
     assert_ok(restored_timelog_result)
     assert "title: Implementation session" in restored_timelog_result.stdout
     assert "notes: Initial draft" in restored_timelog_result.stdout
+    assert "linked_notes_count: 1" in restored_timelog_result.stdout
     assert "people: Alice" in restored_timelog_result.stdout
     assert "tags: tracked" in restored_timelog_result.stdout
 
@@ -251,6 +263,9 @@ def test_real_cli_data_round_trip_and_batch_workflow(
     restored_note_result = run_lifeos(integration_context, "note", "show", note_id)
     assert_ok(restored_note_result)
     assert "Bundle restore checklist" in restored_note_result.stdout
+    assert "people: Alice" in restored_note_result.stdout
+    assert f"task: {task_id} | Implement data operations" in restored_note_result.stdout
+    assert f"timelogs: {timelog_id} | Implementation session" in restored_note_result.stdout
 
     restored_task_result = run_lifeos(integration_context, "task", "show", task_id)
     assert_ok(restored_task_result)

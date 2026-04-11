@@ -2,6 +2,7 @@
 
 from .aggregated_timelog_stats_groupby_area import AggregatedTimelogStatsGroupByArea
 from .area import Area
+from .association import Association
 from .daily_timelog_stats_groupby_area import DailyTimelogStatsGroupByArea
 from .event import Event
 from .event_occurrence_exception import EventOccurrenceException
@@ -16,6 +17,7 @@ from .vision import Vision
 
 __all__ = [
     "AggregatedTimelogStatsGroupByArea",
+    "Association",
     "Area",
     "DailyTimelogStatsGroupByArea",
     "Event",

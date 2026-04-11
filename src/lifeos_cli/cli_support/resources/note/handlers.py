@@ -50,8 +50,21 @@ def resolve_note_content(args: argparse.Namespace) -> str:
 async def handle_note_add_async(args: argparse.Namespace) -> int:
     """Create a new note."""
     content = resolve_note_content(args)
-    async with db_session.session_scope() as session:
-        note = await note_services.create_note(session, content=content)
+    try:
+        async with db_session.session_scope() as session:
+            if args.person_ids is None and args.task_id is None and args.timelog_ids is None:
+                note = await note_services.create_note(session, content=content)
+            else:
+                note = await note_services.create_note(
+                    session,
+                    content=content,
+                    person_ids=args.person_ids,
+                    task_id=args.task_id,
+                    timelog_ids=args.timelog_ids,
+                )
+    except (LookupError, note_services.NoteValidationError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     print(f"Created note {note.id}")
     return 0
 
@@ -64,12 +77,23 @@ def handle_note_add(args: argparse.Namespace) -> int:
 async def handle_note_list_async(args: argparse.Namespace) -> int:
     """List notes."""
     async with db_session.session_scope() as session:
-        notes = await note_services.list_notes(
-            session,
-            include_deleted=args.include_deleted,
-            limit=args.limit,
-            offset=args.offset,
-        )
+        if args.person_id is None and args.task_id is None and args.timelog_id is None:
+            notes = await note_services.list_notes(
+                session,
+                include_deleted=args.include_deleted,
+                limit=args.limit,
+                offset=args.offset,
+            )
+        else:
+            notes = await note_services.list_notes(
+                session,
+                include_deleted=args.include_deleted,
+                person_id=args.person_id,
+                task_id=args.task_id,
+                timelog_id=args.timelog_id,
+                limit=args.limit,
+                offset=args.offset,
+            )
     if not notes:
         print("No notes found.")
         return 0
@@ -90,13 +114,25 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
         raise ConfigurationError("Search query must not be empty.")
 
     async with db_session.session_scope() as session:
-        notes = await note_services.search_notes(
-            session,
-            query=normalized_query,
-            include_deleted=args.include_deleted,
-            limit=args.limit,
-            offset=args.offset,
-        )
+        if args.person_id is None and args.task_id is None and args.timelog_id is None:
+            notes = await note_services.search_notes(
+                session,
+                query=normalized_query,
+                include_deleted=args.include_deleted,
+                limit=args.limit,
+                offset=args.offset,
+            )
+        else:
+            notes = await note_services.search_notes(
+                session,
+                query=normalized_query,
+                include_deleted=args.include_deleted,
+                person_id=args.person_id,
+                task_id=args.task_id,
+                timelog_id=args.timelog_id,
+                limit=args.limit,
+                offset=args.offset,
+            )
     if not notes:
         print("No matching notes found.")
         return 0
@@ -132,12 +168,44 @@ def handle_note_show(args: argparse.Namespace) -> int:
 
 async def handle_note_update_async(args: argparse.Namespace) -> int:
     """Update note content."""
+    conflicts = (
+        (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
+        (args.clear_task and args.task_id is not None, "--task-id", "--clear-task"),
+        (args.clear_timelogs and args.timelog_ids is not None, "--timelog-id", "--clear-timelogs"),
+    )
+    for is_conflict, value_flag, clear_flag in conflicts:
+        if is_conflict:
+            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
+            return 1
+
     try:
         async with db_session.session_scope() as session:
-            note = await note_services.update_note(
-                session, note_id=args.note_id, content=args.content
-            )
-    except note_services.NoteNotFoundError as exc:
+            if (
+                args.person_ids is None
+                and not args.clear_people
+                and args.task_id is None
+                and not args.clear_task
+                and args.timelog_ids is None
+                and not args.clear_timelogs
+            ):
+                note = await note_services.update_note(
+                    session,
+                    note_id=args.note_id,
+                    content=args.content,
+                )
+            else:
+                note = await note_services.update_note(
+                    session,
+                    note_id=args.note_id,
+                    content=args.content,
+                    person_ids=args.person_ids,
+                    clear_people=args.clear_people,
+                    task_id=args.task_id,
+                    clear_task=args.clear_task,
+                    timelog_ids=args.timelog_ids,
+                    clear_timelogs=args.clear_timelogs,
+                )
+    except (note_services.NoteNotFoundError, note_services.NoteValidationError, LookupError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     print(f"Updated note {note.id}")

@@ -455,6 +455,65 @@ def test_cli_parser_supports_people_add_command() -> None:
     assert args.nickname == ["ally"]
 
 
+def test_cli_parser_supports_note_add_association_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "add",
+            "Association note",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--task-id",
+            "22222222-2222-2222-2222-222222222222",
+            "--timelog-id",
+            "33333333-3333-3333-3333-333333333333",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "add"
+    assert args.person_ids == [UUID("11111111-1111-1111-1111-111111111111")]
+    assert args.task_id == UUID("22222222-2222-2222-2222-222222222222")
+    assert args.timelog_ids == [UUID("33333333-3333-3333-3333-333333333333")]
+
+
+def test_cli_parser_supports_note_update_relation_only_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-timelogs",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "update"
+    assert args.content is None
+    assert args.clear_timelogs is True
+
+
+def test_cli_parser_supports_note_list_relation_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "list",
+            "--person-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--timelog-id",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "list"
+    assert args.person_id == UUID("11111111-1111-1111-1111-111111111111")
+    assert args.timelog_id == UUID("22222222-2222-2222-2222-222222222222")
+
+
 def test_cli_parser_supports_schedule_show_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["schedule", "show", "--date", "2026-04-10"])

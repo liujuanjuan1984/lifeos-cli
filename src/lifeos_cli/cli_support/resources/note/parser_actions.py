@@ -33,18 +33,19 @@ def build_note_add_parser(
             description=(
                 "Create a new note from inline text, stdin, or a file.\n\n"
                 "Use this action to capture short thoughts, prompts, or raw text before\n"
-                "they are linked to other domains such as tasks or people."
+                "they are linked to other domains such as tasks, people, or timelogs."
             ),
             examples=(
                 "lifeos init",
                 'lifeos note add "Capture the sprint retrospective idea"',
                 "printf 'line one\\nline two\\n' | lifeos note add --stdin",
                 "lifeos note add --file ./note.md",
-                'lifeos note add "Review the monthly budget assumptions"',
+                'lifeos note add "Review the monthly budget assumptions" --task-id <task-id>',
             ),
             notes=(
                 "Wrap inline content in quotes when it contains spaces.",
                 "Use `--stdin` or `--file` for multi-line note content.",
+                "Repeat `--person-id` and `--timelog-id` to link multiple records.",
             ),
         ),
     )
@@ -55,6 +56,23 @@ def build_note_add_parser(
         help="Read note content from standard input",
     )
     add_parser.add_argument("--file", help="Read note content from a UTF-8 text file")
+    add_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to associate one or more people",
+    )
+    add_parser.add_argument("--task-id", type=UUID, help="Associate one task")
+    add_parser.add_argument(
+        "--timelog-id",
+        dest="timelog_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to associate one or more timelogs",
+    )
     add_parser.set_defaults(handler=handle_note_add)
 
 
@@ -69,10 +87,13 @@ def build_note_list_parser(
             description=(
                 "List notes in reverse creation order.\n\n"
                 "The output is tab-separated and currently includes: id, status,\n"
-                "created_at, and a normalized content preview."
+                "created_at, task_id, people_count, timelog_count, and a normalized "
+                "content preview."
             ),
             examples=(
                 "lifeos note list",
+                "lifeos note list --person-id <person-id>",
+                "lifeos note list --timelog-id <timelog-id>",
                 "lifeos note list --limit 20 --offset 20",
                 "lifeos note list --include-deleted",
             ),
@@ -82,6 +103,9 @@ def build_note_list_parser(
             ),
         ),
     )
+    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
+    list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
+    list_parser.add_argument("--timelog-id", type=UUID, help="Filter by linked timelog")
     add_include_deleted_argument(list_parser, noun="notes")
     add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=handle_note_list)
@@ -103,6 +127,7 @@ def build_note_search_parser(
             ),
             examples=(
                 'lifeos note search "meeting notes"',
+                'lifeos note search "review" --task-id <task-id>',
                 'lifeos note search "budget q2" --limit 20',
                 'lifeos note search "archived idea" --include-deleted',
             ),
@@ -113,6 +138,9 @@ def build_note_search_parser(
         ),
     )
     search_parser.add_argument("query", help="Search query string")
+    search_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
+    search_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
+    search_parser.add_argument("--timelog-id", type=UUID, help="Filter by linked timelog")
     add_include_deleted_argument(search_parser, noun="notes in the search scope")
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=handle_note_search)
@@ -150,19 +178,48 @@ def build_note_update_parser(
         note_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Replace note content",
+            summary="Update a note",
             description=(
-                "Replace the full content of an existing note.\n\n"
-                "This action updates the current note body in place. It does not apply\n"
-                "partial patches or keep revision history yet."
+                "Update note content and weak associations in place.\n\n"
+                "Omitted fields remain unchanged. Use `--clear-*` flags to remove links."
             ),
             examples=(
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
+                "lifeos note update 11111111-1111-1111-1111-111111111111 --task-id <task-id>",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
+            ),
+            notes=(
+                "Repeat `--person-id` and `--timelog-id` to replace linked records.",
+                "Use relation flags without `content` when only links need to change.",
             ),
         ),
     )
     update_parser.add_argument("note_id", type=UUID, help="Note identifier")
-    update_parser.add_argument("content", help="Replacement note content")
+    update_parser.add_argument("content", nargs="?", help="Replacement note content")
+    update_parser.add_argument(
+        "--person-id",
+        dest="person_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace people with one or more identifiers",
+    )
+    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
+    update_parser.add_argument("--task-id", type=UUID, help="Replace the linked task")
+    update_parser.add_argument("--clear-task", action="store_true", help="Remove the linked task")
+    update_parser.add_argument(
+        "--timelog-id",
+        dest="timelog_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help="Repeat to replace timelogs with one or more identifiers",
+    )
+    update_parser.add_argument(
+        "--clear-timelogs",
+        action="store_true",
+        help="Remove all linked timelogs",
+    )
     update_parser.set_defaults(handler=handle_note_update)
 
 
