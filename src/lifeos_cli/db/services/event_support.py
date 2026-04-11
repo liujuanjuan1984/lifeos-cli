@@ -14,6 +14,7 @@ from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.task import Task
 
 VALID_EVENT_STATUSES = {"planned", "cancelled", "completed"}
+VALID_EVENT_TYPES = {"appointment", "timeblock", "deadline"}
 VALID_EVENT_RECURRENCE_FREQUENCIES = {"daily", "weekly"}
 VALID_EVENT_OPERATION_SCOPES = {"single", "all_future", "all"}
 
@@ -53,6 +54,15 @@ def validate_event_status(status: str) -> str:
         raise EventValidationError(
             f"Invalid event status {normalized!r}. Expected one of: {allowed}"
         )
+    return normalized
+
+
+def validate_event_type(event_type: str) -> str:
+    """Validate an event type value."""
+    normalized = event_type.strip().lower()
+    if normalized not in VALID_EVENT_TYPES:
+        allowed = ", ".join(sorted(VALID_EVENT_TYPES))
+        raise EventValidationError(f"Invalid event type {normalized!r}. Expected one of: {allowed}")
     return normalized
 
 

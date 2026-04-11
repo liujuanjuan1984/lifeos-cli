@@ -160,6 +160,10 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     )
     assert "expanded recurring event occurrences" in captured.out
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+    assert (
+        "Event output is segmented into appointment, timeblock, and deadline sections."
+        in captured.out
+    )
 
 
 def test_cli_config_help_describes_set_command(capsys) -> None:
@@ -366,6 +370,7 @@ def test_cli_parser_supports_event_add_command() -> None:
     assert args.event_command == "add"
     assert args.title == "Doctor appointment"
     assert len(args.person_ids) == 1
+    assert args.event_type == "appointment"
 
 
 def test_cli_parser_supports_event_list_by_local_date() -> None:
@@ -400,6 +405,24 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
     assert args.recurrence_frequency == "daily"
     assert args.recurrence_interval == 2
     assert args.recurrence_count == 5
+
+
+def test_cli_parser_supports_event_type_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "list",
+            "--type",
+            "deadline",
+            "--date",
+            "2026-04-10",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "list"
+    assert args.event_type == "deadline"
 
 
 def test_cli_parser_supports_event_update_scope_flags() -> None:

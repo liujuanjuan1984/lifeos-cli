@@ -40,6 +40,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
+                'lifeos event add "Focus Work" --type timeblock '
+                "--start-time 2026-04-10T13:00:00-04:00",
                 "lifeos event list --window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
@@ -47,6 +49,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(
                 "Use `list` as the primary query entrypoint for events.",
                 "Events can optionally reference one area and one task.",
+                "Event types distinguish hard appointments, flexible timeblocks, and deadlines.",
                 "Delete operations in the public CLI always perform soft deletion.",
             ),
         ),
@@ -65,10 +68,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00 '
                 "--end-time 2026-04-10T10:00:00-04:00",
-                'lifeos event add "Deep work block" --start-time 2026-04-10T13:00:00-04:00 '
+                'lifeos event add "Deep work block" --type timeblock '
+                "--start-time 2026-04-10T13:00:00-04:00 "
                 "--task-id <task-id> --area-id <area-id>",
             ),
             notes=(
+                "`appointment` is the default type. Use `--type` for timeblocks and deadlines.",
                 "Use repeated `--tag-id` and `--person-id` flags to attach tags and people.",
                 "If `--end-time` is omitted, the event is treated as open-ended.",
                 "Use recurrence flags to create a recurring series without renaming the resource.",
@@ -83,6 +88,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     add_parser.add_argument("--end-time", type=_datetime_value, help="Optional end time")
     add_parser.add_argument("--priority", type=int, default=0, help="Priority from 0 to 5")
     add_parser.add_argument("--status", default="planned", help="Event status")
+    add_parser.add_argument(
+        "--type",
+        dest="event_type",
+        default="appointment",
+        help="Event type: appointment, timeblock, or deadline",
+    )
     add_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
@@ -142,6 +153,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event list --status planned --window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos event list --date 2026-04-10",
+                "lifeos event list --type deadline --date 2026-04-10",
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
@@ -149,6 +161,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
                 "Recurring series are expanded for bounded window queries and schedule views.",
+                "Use `--type` to narrow results to one event topology.",
                 "Use `--title-contains` for lightweight text filtering instead of a "
                 "separate search command.",
             ),
@@ -156,6 +169,11 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     list_parser.add_argument("--title-contains", help="Filter by title substring")
     list_parser.add_argument("--status", help="Filter by event status")
+    list_parser.add_argument(
+        "--type",
+        dest="event_type",
+        help="Filter by event type: appointment, timeblock, or deadline",
+    )
     list_parser.add_argument("--area-id", type=UUID, help="Filter by linked area")
     list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
     list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
@@ -196,12 +214,14 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             description="Update mutable event fields.",
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
                 "--clear-task --clear-area",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
                 "--clear-people --clear-tags",
             ),
             notes=(
+                "Use `--type` to retag an event as appointment, timeblock, or deadline.",
                 "Use `--clear-*` flags to explicitly remove optional values.",
                 "Do not mix a value flag with the matching clear flag in the same command.",
                 "Use `--scope single|all_future|all` for recurring series updates.",
@@ -220,6 +240,11 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--clear-end-time", action="store_true", help="Clear end time")
     update_parser.add_argument("--priority", type=int, help="Updated priority from 0 to 5")
     update_parser.add_argument("--status", help="Updated event status")
+    update_parser.add_argument(
+        "--type",
+        dest="event_type",
+        help="Updated event type: appointment, timeblock, or deadline",
+    )
     update_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,

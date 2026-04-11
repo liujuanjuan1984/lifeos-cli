@@ -29,6 +29,19 @@ def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     )
 
 
+def _append_schedule_event_section(
+    lines: list[str],
+    *,
+    heading: str,
+    events: tuple[schedule_services.ScheduleEventItem, ...],
+) -> None:
+    lines.append(heading)
+    if events:
+        lines.extend(_format_schedule_event(item) for item in events)
+    else:
+        lines.append("  -")
+
+
 def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
     lines = [f"date: {day.local_date}", "tasks:"]
     if day.tasks:
@@ -42,11 +55,21 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
     else:
         lines.append("  -")
 
-    lines.append("events:")
-    if day.events:
-        lines.extend(_format_schedule_event(item) for item in day.events)
-    else:
-        lines.append("  -")
+    _append_schedule_event_section(
+        lines,
+        heading="events_appointments:",
+        events=day.appointment_events,
+    )
+    _append_schedule_event_section(
+        lines,
+        heading="events_timeblocks:",
+        events=day.timeblock_events,
+    )
+    _append_schedule_event_section(
+        lines,
+        heading="events_deadlines:",
+        events=day.deadline_events,
+    )
     return "\n".join(lines)
 
 

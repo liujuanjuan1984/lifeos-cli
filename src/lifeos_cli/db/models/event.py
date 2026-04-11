@@ -22,6 +22,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     __tablename__ = "events"
     __table_args__ = (
         Index("ix_events_status_start_time", "status", "start_time"),
+        Index("ix_events_event_type", "event_type"),
         Index("ix_events_area_id", "area_id"),
         Index("ix_events_task_id", "task_id"),
         Index("ix_events_recurrence_parent_event_id", "recurrence_parent_event_id"),
@@ -38,6 +39,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="planned", index=True)
+    event_type: Mapped[str] = mapped_column(String(20), nullable=False, default="appointment")
     is_all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     recurrence_frequency: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     recurrence_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -73,4 +75,8 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         people: list[Person]
 
     def __repr__(self) -> str:
-        return f"Event(id={self.id!s}, title={self.title!r}, status={self.status!r})"
+        return (
+            "Event("
+            f"id={self.id!s}, title={self.title!r}, status={self.status!r}, "
+            f"event_type={self.event_type!r})"
+        )

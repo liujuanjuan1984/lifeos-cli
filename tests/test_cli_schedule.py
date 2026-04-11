@@ -40,16 +40,19 @@ def test_main_schedule_show_prints_grouped_sections(
                     notes=None,
                 ),
             ),
-            events=(
+            appointment_events=(
                 schedules.ScheduleEventItem(
                     id=UUID("33333333-3333-3333-3333-333333333333"),
                     title="Doctor appointment",
                     status="planned",
+                    event_type="appointment",
                     start_time=utc_datetime(2026, 4, 10, 13, 0),
                     end_time=utc_datetime(2026, 4, 10, 14, 0),
                     task_id=None,
                 ),
             ),
+            timeblock_events=(),
+            deadline_events=(),
         )
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -62,7 +65,9 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "date: 2026-04-10" in captured.out
     assert "tasks:" in captured.out
     assert "habit_actions:" in captured.out
-    assert "events:" in captured.out
+    assert "events_appointments:" in captured.out
+    assert "events_timeblocks:" in captured.out
+    assert "events_deadlines:" in captured.out
     assert "Draft release checklist" in captured.out
     assert "Daily Review" in captured.out
     assert "Doctor appointment" in captured.out

@@ -47,6 +47,7 @@ def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch
     )
 
     assert event.title == "Doctor appointment"
+    assert event.event_type == "appointment"
     assert event.start_time == utc_datetime(2026, 4, 10, 13, 0)
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
@@ -162,6 +163,38 @@ def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch)
     assert created.recurrence_count == 5
 
 
+def test_create_event_accepts_event_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_attach_event_links(_: object, event: object) -> object:
+        return event
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            title="Focus block",
+            start_time=utc_datetime(2026, 4, 10, 13, 0),
+            event_type="timeblock",
+        )
+    )
+
+    assert created.event_type == "timeblock"
+
+
 def test_create_timelog_rejects_naive_datetimes() -> None:
     session = SimpleNamespace()
 
@@ -199,6 +232,7 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
         end_time=utc_datetime(2026, 4, 10, 10, 0),
         priority=3,
         status="planned",
+        event_type="appointment",
         is_all_day=False,
         recurrence_frequency=None,
         recurrence_interval=None,
@@ -382,6 +416,7 @@ def test_list_event_occurrences_applies_all_supported_filters() -> None:
             window_end=utc_datetime(2026, 4, 12, 23, 59),
             title_contains="review",
             status="planned",
+            event_type="deadline",
             area_id=area_id,
             task_id=task_id,
             person_id=person_id,
@@ -400,6 +435,7 @@ def test_list_event_occurrences_applies_all_supported_filters() -> None:
         assert "events.area_id" in statement_sql
         assert "events.task_id" in statement_sql
         assert "events.status" in statement_sql
+        assert "events.event_type" in statement_sql
         assert "title" in statement_sql
 
 

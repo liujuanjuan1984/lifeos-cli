@@ -48,6 +48,7 @@ class ScheduleEventItem:
     id: UUID
     title: str
     status: str
+    event_type: str
     start_time: datetime
     end_time: datetime | None
     task_id: UUID | None
@@ -60,7 +61,9 @@ class ScheduleDay:
     local_date: date
     tasks: tuple[ScheduleTaskItem, ...]
     habit_actions: tuple[ScheduleHabitActionItem, ...]
-    events: tuple[ScheduleEventItem, ...]
+    appointment_events: tuple[ScheduleEventItem, ...]
+    timeblock_events: tuple[ScheduleEventItem, ...]
+    deadline_events: tuple[ScheduleEventItem, ...]
 
 
 def _iter_date_range(start_date: date, end_date: date) -> list[date]:
@@ -170,6 +173,7 @@ def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
         id=event.id,
         title=event.title,
         status=event.status,
+        event_type=getattr(event, "event_type", "appointment"),
         start_time=event.start_time,
         end_time=event.end_time,
         task_id=event.task_id,
@@ -216,12 +220,19 @@ async def list_schedule_in_range(
             if item.start_time <= current_window_end
             and (item.end_time is None or item.end_time >= current_window_start)
         )
+        appointment_events = tuple(
+            item for item in current_events if item.event_type == "appointment"
+        )
+        timeblock_events = tuple(item for item in current_events if item.event_type == "timeblock")
+        deadline_events = tuple(item for item in current_events if item.event_type == "deadline")
         days.append(
             ScheduleDay(
                 local_date=current_date,
                 tasks=current_tasks,
                 habit_actions=current_actions,
-                events=current_events,
+                appointment_events=appointment_events,
+                timeblock_events=timeblock_events,
+                deadline_events=deadline_events,
             )
         )
     return days
