@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 from uuid import UUID
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -296,20 +296,25 @@ def _parse_event_occurrence_exceptions(value: Any) -> list[dict[str, Any]]:
     for item in value:
         if not isinstance(item, dict):
             raise DataOperationError("Each event occurrence exception must be a JSON object.")
-        parsed.append(
-            {
-                "id": UUID(str(item["id"])),
-                "action": str(item["action"]),
-                "instance_start": _normalize_json_datetime(str(item["instance_start"])),
-                "created_at": _normalize_json_datetime(str(item["created_at"])),
-                "updated_at": _normalize_json_datetime(str(item["updated_at"])),
-                "deleted_at": (
-                    None
-                    if item.get("deleted_at") is None
-                    else _normalize_json_datetime(str(item["deleted_at"]))
-                ),
-            }
-        )
+        try:
+            parsed.append(
+                {
+                    "id": UUID(str(item["id"])),
+                    "action": str(item["action"]),
+                    "instance_start": _normalize_json_datetime(str(item["instance_start"])),
+                    "created_at": _normalize_json_datetime(str(item["created_at"])),
+                    "updated_at": _normalize_json_datetime(str(item["updated_at"])),
+                    "deleted_at": (
+                        None
+                        if item.get("deleted_at") is None
+                        else _normalize_json_datetime(str(item["deleted_at"]))
+                    ),
+                }
+            )
+        except KeyError as exc:
+            raise DataOperationError(
+                f"Each event occurrence exception must include `{exc.args[0]}`."
+            ) from exc
     return parsed
 
 
@@ -596,8 +601,7 @@ async def import_resource_snapshot(
 ) -> DataImportReport:
     """Import canonical snapshot rows for one resource."""
     prepared_rows = [
-        prepare_snapshot_row(resource, index + 1, row)
-        for index, row in enumerate(rows)
+        prepare_snapshot_row(resource, index + 1, row) for index, row in enumerate(rows)
     ]
     created_count, updated_count = await _import_prepared_base_rows(
         session,
@@ -777,9 +781,7 @@ def _batch_update_timelog_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         if field in payload:
             kwargs[field] = payload[field]
     kwargs.update(_null_means_clear(payload, field="location", clear_flag="clear_location"))
-    kwargs.update(
-        _null_means_clear(payload, field="energy_level", clear_flag="clear_energy_level")
-    )
+    kwargs.update(_null_means_clear(payload, field="energy_level", clear_flag="clear_energy_level"))
     kwargs.update(_null_means_clear(payload, field="notes", clear_flag="clear_notes"))
     kwargs.update(_null_means_clear(payload, field="area_id", clear_flag="clear_area"))
     kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
@@ -924,9 +926,7 @@ async def batch_delete_resource(
         raise DataOperationError(f"Resource {resource!r} does not support batch delete.")
     result = await DELETE_OPERATIONS[resource](session, **{DELETE_ARG_NAMES[resource]: record_ids})
     deleted_count = int(
-        getattr(result, "deleted_count", None)
-        or getattr(result, "restored_count", None)
-        or 0
+        getattr(result, "deleted_count", None) or getattr(result, "restored_count", None) or 0
     )
     failures = tuple(
         DataOperationFailure(
@@ -1043,6 +1043,8 @@ def read_bundle(path: Path) -> BundlePayload:
                 resources[resource] = [
                     json.loads(line) for line in raw_text.splitlines() if line.strip()
                 ]
+    except BadZipFile as exc:
+        raise DataOperationError(f"Unable to read bundle archive: {exc}.") from exc
     except OSError as exc:
         raise DataOperationError(f"Unable to read bundle archive: {exc}.") from exc
     except json.JSONDecodeError as exc:
@@ -1081,8 +1083,7 @@ async def import_bundle(
         if not rows:
             continue
         prepared_rows = [
-            prepare_snapshot_row(resource, index + 1, row)
-            for index, row in enumerate(rows)
+            prepare_snapshot_row(resource, index + 1, row) for index, row in enumerate(rows)
         ]
         prepared_by_resource[resource] = prepared_rows
         created_delta, updated_delta = await _import_prepared_base_rows(

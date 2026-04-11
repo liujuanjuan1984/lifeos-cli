@@ -222,7 +222,7 @@ async def _import_rows(
                     )
                     created_count += report.created_count
                     updated_count += report.updated_count
-            except data_ops.DataOperationError as exc:
+            except Exception as exc:  # noqa: BLE001
                 failures.append(
                     data_ops.DataOperationFailure(
                         index=index,
@@ -302,7 +302,7 @@ async def handle_data_import_async(args: argparse.Namespace) -> int:
         print(f"Updated rows: {import_report.updated_count}")
         print(f"Failed rows: {import_report.failed_count}")
         return 0 if import_report.failed_count == 0 else 1
-    except data_ops.DataOperationError as exc:
+    except (data_ops.DataOperationError, LookupError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
@@ -327,7 +327,7 @@ async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
                             rows=[row],
                         )
                         updated_count += report.updated_count
-                except data_ops.DataOperationError as exc:
+                except Exception as exc:  # noqa: BLE001
                     failures.append(
                         data_ops.DataOperationFailure(
                             index=index,

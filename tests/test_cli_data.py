@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import UUID
 
@@ -25,6 +26,10 @@ class FakeAsyncSession:
 
     async def close(self) -> None:
         self.closed = True
+
+    @asynccontextmanager
+    async def begin_nested(self):
+        yield self
 
 
 def _make_session_factory_getter(session: FakeAsyncSession):
@@ -203,3 +208,113 @@ def test_main_data_batch_delete_reads_ids_from_jsonl_file(
     assert exit_code == 0
     assert captured_ids == [UUID("11111111-1111-1111-1111-111111111111")]
     assert "Deleted rows: 1" in captured.out
+
+
+def test_main_data_import_bundle_reports_invalid_zip(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    broken_bundle = tmp_path / "broken.zip"
+    broken_bundle.write_text("not a zip archive", encoding="utf-8")
+
+    exit_code = cli.main(["data", "import", "bundle", "--file", str(broken_bundle)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Unable to read bundle archive" in captured.err
+
+
+def test_main_data_import_records_lookup_failures_without_crashing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    session = FakeAsyncSession()
+    input_path = tmp_path / "timelog.jsonl"
+    input_path.write_text(
+        '{"id":"11111111-1111-1111-1111-111111111111","title":"demo"}\n',
+        encoding="utf-8",
+    )
+
+    async def fake_import_resource_snapshot(
+        session_obj: object,
+        *,
+        resource: str,
+        rows: list[dict[str, object]],
+    ) -> data_ops.DataImportReport:
+        raise LookupError("Unknown person IDs for entity type timelog: missing-person")
+
+    async def fake_run_post_import_hooks(session_obj: object, *, resources: set[str]) -> None:
+        raise AssertionError("post-import hooks should not run after a stopping failure")
+
+    monkeypatch.setattr(
+        db_session,
+        "get_async_session_factory",
+        _make_session_factory_getter(session),
+    )
+    monkeypatch.setattr(data_ops, "import_resource_snapshot", fake_import_resource_snapshot)
+    monkeypatch.setattr(data_ops, "run_post_import_hooks", fake_run_post_import_hooks)
+
+    exit_code = cli.main(
+        [
+            "data",
+            "import",
+            "timelog",
+            "--file",
+            str(input_path),
+            "--format",
+            "jsonl",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Resource: timelog" in captured.out
+    assert "Failed rows: 1" in captured.out
+    assert session.rolled_back is True
+
+
+def test_main_data_batch_update_records_lookup_failures_without_crashing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    session = FakeAsyncSession()
+    patch_path = tmp_path / "people-patch.jsonl"
+    patch_path.write_text(
+        '{"id":"11111111-1111-1111-1111-111111111111","tag_ids":["22222222-2222-2222-2222-222222222222"]}\n',
+        encoding="utf-8",
+    )
+
+    async def fake_batch_update_resource(
+        session_obj: object,
+        *,
+        resource: str,
+        rows: list[dict[str, object]],
+    ) -> data_ops.DataBatchUpdateReport:
+        raise LookupError("Unknown tag IDs for entity type person: missing-tag")
+
+    monkeypatch.setattr(
+        db_session,
+        "get_async_session_factory",
+        _make_session_factory_getter(session),
+    )
+    monkeypatch.setattr(data_ops, "batch_update_resource", fake_batch_update_resource)
+
+    exit_code = cli.main(
+        [
+            "data",
+            "batch-update",
+            "people",
+            "--file",
+            str(patch_path),
+            "--format",
+            "jsonl",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Resource: people" in captured.out
+    assert "Failed rows: 1" in captured.out
+    assert session.rolled_back is True
