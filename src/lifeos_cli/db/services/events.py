@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
@@ -340,6 +340,12 @@ async def list_event_occurrences(
     *,
     window_start: datetime,
     window_end: datetime,
+    title_contains: str | None = None,
+    status: str | None = None,
+    area_id: UUID | None = None,
+    task_id: UUID | None = None,
+    person_id: UUID | None = None,
+    tag_id: UUID | None = None,
     include_deleted: bool = False,
 ) -> list[EventOccurrence]:
     """List expanded event occurrences that overlap one time window."""
@@ -354,6 +360,26 @@ async def list_event_occurrences(
     )
     if not include_deleted:
         master_stmt = master_stmt.where(Event.deleted_at.is_(None))
+    if title_contains:
+        master_stmt = master_stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
+    if status is not None:
+        master_stmt = master_stmt.where(Event.status == validate_event_status(status))
+    if area_id is not None:
+        master_stmt = master_stmt.where(Event.area_id == area_id)
+    if task_id is not None:
+        master_stmt = master_stmt.where(Event.task_id == task_id)
+    if person_id is not None:
+        master_stmt = master_stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Event.id)
+            & (person_associations.c.entity_type == "event"),
+        ).where(person_associations.c.person_id == person_id)
+    if tag_id is not None:
+        master_stmt = master_stmt.join(
+            tag_associations,
+            (tag_associations.c.entity_id == Event.id)
+            & (tag_associations.c.entity_type == "event"),
+        ).where(tag_associations.c.tag_id == tag_id)
     masters = list((await session.execute(master_stmt)).scalars())
     master_ids = [event.id for event in masters if event_is_recurring(event)]
     skip_map = await _load_skip_exceptions(session, master_event_ids=master_ids)
@@ -365,6 +391,26 @@ async def list_event_occurrences(
     )
     if not include_deleted:
         override_stmt = override_stmt.where(Event.deleted_at.is_(None))
+    if title_contains:
+        override_stmt = override_stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
+    if status is not None:
+        override_stmt = override_stmt.where(Event.status == validate_event_status(status))
+    if area_id is not None:
+        override_stmt = override_stmt.where(Event.area_id == area_id)
+    if task_id is not None:
+        override_stmt = override_stmt.where(Event.task_id == task_id)
+    if person_id is not None:
+        override_stmt = override_stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Event.id)
+            & (person_associations.c.entity_type == "event"),
+        ).where(person_associations.c.person_id == person_id)
+    if tag_id is not None:
+        override_stmt = override_stmt.join(
+            tag_associations,
+            (tag_associations.c.entity_id == Event.id)
+            & (tag_associations.c.entity_type == "event"),
+        ).where(tag_associations.c.tag_id == tag_id)
     overrides = list((await session.execute(override_stmt)).scalars())
     override_keys = {
         (override.recurrence_parent_event_id, override.recurrence_instance_start): override
@@ -458,24 +504,19 @@ async def list_events(
         window_start = local_window_start
         window_end = local_window_end_exclusive - timedelta(microseconds=1)
 
-    if window_start is not None or window_end is not None:
-        normalized_window_start = window_start or datetime.min.replace(tzinfo=timezone.utc)
-        normalized_window_end = window_end or datetime.max.replace(tzinfo=timezone.utc)
+    if window_start is not None and window_end is not None:
         occurrences = await list_event_occurrences(
             session,
-            window_start=normalized_window_start,
-            window_end=normalized_window_end,
+            window_start=window_start,
+            window_end=window_end,
+            title_contains=title_contains,
+            status=status,
+            area_id=area_id,
+            task_id=task_id,
+            person_id=person_id,
+            tag_id=tag_id,
             include_deleted=include_deleted,
         )
-        if title_contains:
-            normalized_title = title_contains.strip().lower()
-            occurrences = [item for item in occurrences if normalized_title in item.title.lower()]
-        if status is not None:
-            occurrences = [
-                item for item in occurrences if item.status == validate_event_status(status)
-            ]
-        if task_id is not None:
-            occurrences = [item for item in occurrences if item.task_id == task_id]
         return list(occurrences[offset : offset + limit])
 
     stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
@@ -489,6 +530,10 @@ async def list_events(
         stmt = stmt.where(Event.area_id == area_id)
     if task_id is not None:
         stmt = stmt.where(Event.task_id == task_id)
+    if window_start is not None:
+        stmt = stmt.where(or_(Event.end_time.is_(None), Event.end_time >= window_start))
+    if window_end is not None:
+        stmt = stmt.where(Event.start_time <= window_end)
     if person_id is not None:
         stmt = stmt.join(
             person_associations,

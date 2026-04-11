@@ -352,6 +352,98 @@ def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() 
     ]
 
 
+def test_list_event_occurrences_applies_all_supported_filters() -> None:
+    class _Result:
+        def __init__(self, values: list[object]) -> None:
+            self._values = values
+
+        def scalars(self) -> list[object]:
+            return self._values
+
+    class _Session:
+        def __init__(self) -> None:
+            self.statements: list[object] = []
+            self._results = [_Result([]), _Result([])]
+
+        async def execute(self, statement: object) -> _Result:
+            self.statements.append(statement)
+            return self._results.pop(0)
+
+    area_id = UUID("11111111-1111-1111-1111-111111111111")
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    person_id = UUID("33333333-3333-3333-3333-333333333333")
+    tag_id = UUID("44444444-4444-4444-4444-444444444444")
+    session = _Session()
+
+    occurrences = asyncio.run(
+        events.list_event_occurrences(
+            cast(Any, session),
+            window_start=utc_datetime(2026, 4, 10, 0, 0),
+            window_end=utc_datetime(2026, 4, 12, 23, 59),
+            title_contains="review",
+            status="planned",
+            area_id=area_id,
+            task_id=task_id,
+            person_id=person_id,
+            tag_id=tag_id,
+        )
+    )
+
+    assert occurrences == []
+    assert len(session.statements) == 2
+    master_sql = str(session.statements[0])
+    override_sql = str(session.statements[1])
+
+    for statement_sql in (master_sql, override_sql):
+        assert "person_associations" in statement_sql
+        assert "tag_associations" in statement_sql
+        assert "events.area_id" in statement_sql
+        assert "events.task_id" in statement_sql
+        assert "events.status" in statement_sql
+        assert "title" in statement_sql
+
+
+def test_list_events_with_one_sided_window_uses_overlap_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    class _Session:
+        def __init__(self) -> None:
+            self.statements: list[object] = []
+
+        async def execute(self, statement: object) -> _Result:
+            self.statements.append(statement)
+            return _Result()
+
+    list_occurrences = AsyncMock(return_value=[])
+
+    async def fake_attach_event_links_for_many(
+        _: object, event_records: list[object]
+    ) -> list[object]:
+        return event_records
+
+    monkeypatch.setattr(events, "list_event_occurrences", list_occurrences)
+    monkeypatch.setattr(events, "_attach_event_links_for_many", fake_attach_event_links_for_many)
+
+    session = _Session()
+    listed = asyncio.run(
+        events.list_events(
+            cast(Any, session),
+            window_start=utc_datetime(2026, 4, 10, 12, 0),
+        )
+    )
+
+    assert listed == []
+    list_occurrences.assert_not_awaited()
+    assert len(session.statements) == 1
+    statement_sql = str(session.statements[0])
+    assert "end_time IS NULL OR" in statement_sql
+    assert "end_time >=" in statement_sql
+
+
 def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     timelog = SimpleNamespace(
         id=UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd"),
