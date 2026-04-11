@@ -94,9 +94,9 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "date: 2026-04-10" in schedule_show_result.stdout
     assert "tasks:" in schedule_show_result.stdout
     assert "habit_actions:" in schedule_show_result.stdout
-    assert "events_appointments:" in schedule_show_result.stdout
-    assert "events_timeblocks:" in schedule_show_result.stdout
-    assert "events_deadlines:" in schedule_show_result.stdout
+    assert "appointments:" in schedule_show_result.stdout
+    assert "timeblocks:" in schedule_show_result.stdout
+    assert "deadlines:" in schedule_show_result.stdout
     assert task_id in schedule_show_result.stdout
     assert "Daily Review" in schedule_show_result.stdout
     assert event_id in schedule_show_result.stdout

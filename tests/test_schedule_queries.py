@@ -111,13 +111,13 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
     assert days[0].local_date == date(2026, 4, 10)
     assert [item.content for item in days[0].tasks] == ["Draft release checklist"]
     assert [item.habit_title for item in days[0].habit_actions] == ["Daily Review"]
-    assert [item.title for item in days[0].appointment_events] == ["Late call"]
-    assert days[0].timeblock_events == ()
-    assert days[0].deadline_events == ()
+    assert [item.title for item in days[0].appointments] == ["Late call"]
+    assert days[0].timeblocks == ()
+    assert days[0].deadlines == ()
     assert days[1].local_date == date(2026, 4, 11)
     assert [item.content for item in days[1].tasks] == ["Draft release checklist"]
     assert days[1].habit_actions == ()
-    assert [item.title for item in days[1].appointment_events] == ["Late call"]
+    assert [item.title for item in days[1].appointments] == ["Late call"]
 
 
 def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkeypatch) -> None:
@@ -192,8 +192,8 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
             utc_datetime(2026, 4, 11, 23, 59, 59).replace(microsecond=999999),
         )
     ]
-    assert [item.title for item in days[0].timeblock_events] == ["Daily review"]
-    assert [item.title for item in days[1].timeblock_events] == ["Daily review"]
+    assert [item.title for item in days[0].timeblocks] == ["Daily review"]
+    assert [item.title for item in days[1].timeblocks] == ["Daily review"]
 
 
 def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
@@ -261,9 +261,9 @@ def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
         )
     )
 
-    assert [item.title for item in days[0].appointment_events] == ["Doctor appointment"]
-    assert [item.title for item in days[0].timeblock_events] == ["Focus block"]
-    assert [item.title for item in days[0].deadline_events] == ["Tax deadline"]
+    assert [item.title for item in days[0].appointments] == ["Doctor appointment"]
+    assert [item.title for item in days[0].timeblocks] == ["Focus block"]
+    assert [item.title for item in days[0].deadlines] == ["Tax deadline"]
 
 
 def test_list_schedule_in_range_rejects_inverted_date_range() -> None:

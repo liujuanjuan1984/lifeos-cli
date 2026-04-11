@@ -57,18 +57,18 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
 
     _append_schedule_event_section(
         lines,
-        heading="events_appointments:",
-        events=day.appointment_events,
+        heading="appointments:",
+        events=day.appointments,
     )
     _append_schedule_event_section(
         lines,
-        heading="events_timeblocks:",
-        events=day.timeblock_events,
+        heading="timeblocks:",
+        events=day.timeblocks,
     )
     _append_schedule_event_section(
         lines,
-        heading="events_deadlines:",
-        events=day.deadline_events,
+        heading="deadlines:",
+        events=day.deadlines,
     )
     return "\n".join(lines)
 
