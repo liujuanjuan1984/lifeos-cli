@@ -36,6 +36,12 @@ def upgrade() -> None:
         unique=False,
         schema=schema_name,
     )
+    op.create_check_constraint(
+        "ck_events_event_type_valid",
+        "events",
+        "event_type IN ('appointment', 'timeblock', 'deadline')",
+        schema=schema_name,
+    )
     op.alter_column(
         "events",
         "event_type",
@@ -47,5 +53,11 @@ def upgrade() -> None:
 def downgrade() -> None:
     schema_name = _schema_name()
 
+    op.drop_constraint(
+        "ck_events_event_type_valid",
+        "events",
+        schema=schema_name,
+        type_="check",
+    )
     op.drop_index("ix_events_event_type", table_name="events", schema=schema_name)
     op.drop_column("events", "event_type", schema=schema_name)

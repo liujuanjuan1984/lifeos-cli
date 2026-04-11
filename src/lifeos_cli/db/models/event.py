@@ -6,7 +6,17 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
@@ -21,6 +31,10 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     __tablename__ = "events"
     __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('appointment', 'timeblock', 'deadline')",
+            name="ck_events_event_type_valid",
+        ),
         Index("ix_events_status_start_time", "status", "start_time"),
         Index("ix_events_event_type", "event_type"),
         Index("ix_events_area_id", "area_id"),

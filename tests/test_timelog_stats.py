@@ -31,9 +31,8 @@ def configured_time_preferences(monkeypatch: pytest.MonkeyPatch, tmp_path) -> It
     clear_config_cache()
 
 
-def test_iter_local_dates_for_timelog_window_respects_day_boundary(
-    configured_time_preferences: None,
-) -> None:
+@pytest.mark.usefixtures("configured_time_preferences")
+def test_iter_local_dates_for_timelog_window_respects_day_boundary() -> None:
     local_dates = timelog_stats.iter_local_dates_for_timelog_window(
         start_time=datetime(2026, 4, 10, 7, 30, tzinfo=timezone.utc),
         end_time=datetime(2026, 4, 10, 9, 30, tzinfo=timezone.utc),
@@ -53,9 +52,8 @@ def test_overlap_minutes_for_window_returns_whole_minutes() -> None:
     assert minutes == 30
 
 
-def test_resolve_stats_period_uses_configured_week_boundary(
-    configured_time_preferences: None,
-) -> None:
+@pytest.mark.usefixtures("configured_time_preferences")
+def test_resolve_stats_period_uses_configured_week_boundary() -> None:
     start_date, end_date = timelog_stats.resolve_stats_period(
         granularity="week",
         target_date=date(2026, 4, 9),
