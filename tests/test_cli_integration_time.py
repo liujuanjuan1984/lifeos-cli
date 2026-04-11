@@ -307,6 +307,99 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "deleted" in deleted_timelog_result.stdout
 
 
+def test_real_cli_timelog_stats_groupby_area_updates_after_writes(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    area_result = run_lifeos(integration_context, "area", "add", "Health")
+    assert_ok(area_result)
+    health_area_id = extract_created_id(area_result.stdout)
+
+    second_area_result = run_lifeos(integration_context, "area", "add", "Work")
+    assert_ok(second_area_result)
+    work_area_id = extract_created_id(second_area_result.stdout)
+
+    first_timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Late workout",
+        "--start-time",
+        "2026-04-10T22:30:00-04:00",
+        "--end-time",
+        "2026-04-11T00:30:00-04:00",
+        "--area-id",
+        health_area_id,
+    )
+    assert_ok(first_timelog_result)
+    first_timelog_id = extract_created_id(first_timelog_result.stdout)
+
+    second_timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Morning planning",
+        "--start-time",
+        "2026-04-11T09:00:00-04:00",
+        "--end-time",
+        "2026-04-11T10:00:00-04:00",
+        "--area-id",
+        work_area_id,
+    )
+    assert_ok(second_timelog_result)
+
+    first_day_stats = run_lifeos(
+        integration_context,
+        "timelog",
+        "stats",
+        "day",
+        "--date",
+        "2026-04-10",
+    )
+    assert_ok(first_day_stats)
+    assert "granularity: day" in first_day_stats.stdout
+    assert "Health" in first_day_stats.stdout
+    assert "90" in first_day_stats.stdout
+
+    second_day_stats = run_lifeos(
+        integration_context,
+        "timelog",
+        "stats",
+        "day",
+        "--date",
+        "2026-04-11",
+    )
+    assert_ok(second_day_stats)
+    assert "Health" in second_day_stats.stdout
+    assert "30" in second_day_stats.stdout
+    assert "Work" in second_day_stats.stdout
+    assert "60" in second_day_stats.stdout
+
+    update_timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "update",
+        first_timelog_id,
+        "--area-id",
+        work_area_id,
+    )
+    assert_ok(update_timelog_result)
+
+    updated_first_day_stats = run_lifeos(
+        integration_context,
+        "timelog",
+        "stats",
+        "day",
+        "--date",
+        "2026-04-10",
+    )
+    assert_ok(updated_first_day_stats)
+    assert "Health" not in updated_first_day_stats.stdout
+    assert "Work" in updated_first_day_stats.stdout
+    assert "90" in updated_first_day_stats.stdout
+
+
 def test_real_cli_time_preferences_affect_display_and_local_date_filters(
     integration_context: IntegrationContext,
 ) -> None:

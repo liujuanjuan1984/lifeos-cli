@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 
 from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
@@ -13,6 +14,7 @@ from lifeos_cli.cli_support.output_utils import (
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.services import timelog_stats
 from lifeos_cli.db.services import timelogs as timelog_services
 
 
@@ -57,6 +59,29 @@ def _format_timelog_detail(timelog: Timelog) -> str:
 def _print_timelog_error(exc: Exception) -> int:
     print(str(exc), file=sys.stderr)
     return 1
+
+
+def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> str:
+    lines = [
+        f"granularity: {report.granularity}",
+        f"start_date: {report.start_date.isoformat()}",
+        f"end_date: {report.end_date.isoformat()}",
+        f"timezone: {report.timezone}",
+    ]
+    if not report.rows:
+        lines.append("No timelog stats found.")
+        return "\n".join(lines)
+    lines.extend(
+        (
+            "area_stats:",
+            "area_id\tarea_name\tminutes\ttimelog_count",
+        )
+    )
+    lines.extend(
+        f"{row.area_id}\t{row.area_name or '-'}\t{row.minutes}\t{row.timelog_count}"
+        for row in report.rows
+    )
+    return "\n".join(lines)
 
 
 async def handle_timelog_add_async(args: argparse.Namespace) -> int:
@@ -388,3 +413,132 @@ async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
 
 def handle_timelog_batch_delete(args: argparse.Namespace) -> int:
     return run_async(handle_timelog_batch_delete_async(args))
+
+
+async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        report = await timelog_stats.get_timelog_stats_groupby_area_for_day(
+            session,
+            target_date=args.target_date,
+        )
+    print(_format_timelog_stats_report(report))
+    return 0
+
+
+def handle_timelog_stats_day(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_day_async(args))
+
+
+async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
+    if args.end_date < args.start_date:
+        print("--end-date must be on or after --start-date.", file=sys.stderr)
+        return 1
+    async with db_session.session_scope() as session:
+        report = await timelog_stats.get_timelog_stats_groupby_area_for_range(
+            session,
+            start_date=args.start_date,
+            end_date=args.end_date,
+        )
+    print(_format_timelog_stats_report(report))
+    return 0
+
+
+def handle_timelog_stats_range(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_range_async(args))
+
+
+async def _handle_timelog_stats_period_async(
+    *,
+    granularity: str,
+    target_date: date | None = None,
+    month: date | None = None,
+    year: int | None = None,
+) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            report = await timelog_stats.get_timelog_stats_groupby_area_for_period(
+                session,
+                granularity=granularity,
+                target_date=target_date,
+                month=month,
+                year=year,
+            )
+        except timelog_stats.TimelogStatsValidationError as exc:
+            return _print_timelog_error(exc)
+    print(_format_timelog_stats_report(report))
+    return 0
+
+
+async def handle_timelog_stats_week_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="week",
+        target_date=args.target_date,
+    )
+
+
+def handle_timelog_stats_week(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_week_async(args))
+
+
+async def handle_timelog_stats_month_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="month",
+        month=args.month,
+    )
+
+
+def handle_timelog_stats_month(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_month_async(args))
+
+
+async def handle_timelog_stats_year_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="year",
+        year=args.year,
+    )
+
+
+def handle_timelog_stats_year(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_year_async(args))
+
+
+async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
+    if args.target_date is not None and (args.start_date is not None or args.end_date is not None):
+        print("Use either --date or --start-date/--end-date, not both.", file=sys.stderr)
+        return 1
+    if args.start_date is None and args.end_date is not None:
+        print("`--start-date` and `--end-date` must be provided together.", file=sys.stderr)
+        return 1
+    if args.start_date is not None and args.end_date is None:
+        print("`--start-date` and `--end-date` must be provided together.", file=sys.stderr)
+        return 1
+    if args.start_date is not None and args.end_date < args.start_date:
+        print("--end-date must be on or after --start-date.", file=sys.stderr)
+        return 1
+    if args.rebuild_all and any(
+        value is not None for value in (args.target_date, args.start_date, args.end_date)
+    ):
+        print("Use --all by itself, without --date or --start-date/--end-date.", file=sys.stderr)
+        return 1
+    async with db_session.session_scope() as session:
+        try:
+            rebuilt_dates = await timelog_stats.rebuild_timelog_stats_groupby_area(
+                session,
+                target_date=args.target_date,
+                start_date=args.start_date,
+                end_date=args.end_date,
+                rebuild_all=args.rebuild_all,
+            )
+        except timelog_stats.TimelogStatsValidationError as exc:
+            return _print_timelog_error(exc)
+    if not rebuilt_dates:
+        print("No linked-area timelogs found for the selected rebuild scope.")
+        return 0
+    print(f"Rebuilt timelog stats grouped by area for {len(rebuilt_dates)} dates.")
+    print(f"start_date: {rebuilt_dates[0].isoformat()}")
+    print(f"end_date: {rebuilt_dates[-1].isoformat()}")
+    return 0
+
+
+def handle_timelog_stats_rebuild(args: argparse.Namespace) -> int:
+    return run_async(handle_timelog_stats_rebuild_async(args))

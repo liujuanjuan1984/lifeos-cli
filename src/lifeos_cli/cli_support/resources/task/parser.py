@@ -77,6 +77,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             notes=(
                 "Planning-cycle flags must be supplied as a complete set when used.",
                 "Repeat `--person-id` to associate one or more people.",
+                "When an agent creates tasks on behalf of a human, use `--person-id` to "
+                "mark whether the task belongs to the human, the agent, or both.",
             ),
         ),
     )
@@ -284,6 +286,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "Use `--clear-parent` to move a child task back to the root level.",
                 "Use `--clear-*` flags to remove optional values such as descriptions "
                 "or planning cycles.",
+                "Use repeated `--person-id` to keep human-only, agent-only, and shared "
+                "task ownership explicit.",
             ),
         ),
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 import pytest
@@ -117,6 +118,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "resources:" in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
+    assert "data" in captured.out
+    assert "Run unified data import/export and batch commands" in captured.out
     assert "event" in captured.out
     assert "Manage planned schedule events" in captured.out
     assert "schedule" in captured.out
@@ -128,6 +131,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "timelog" in captured.out
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
+    assert "When automation acts on behalf of a human" in captured.out
+    assert "human-only work, agent-only work, and truly shared work" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -144,6 +149,132 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     )
     assert "expanded recurring event occurrences" in captured.out
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+
+
+def test_cli_data_help_describes_snapshot_and_bundle_model(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "canonical JSON/JSONL snapshot rows" in captured.out
+    assert "bundle backup or restore" in captured.out
+    assert "data export all --output lifeos-bundle.zip" in captured.out
+    assert "data import bundle --file lifeos-bundle.zip --replace-existing" in captured.out
+
+
+def test_cli_data_import_help_describes_atomic_bundle_restore(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "import", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Bundle restore is atomic" in captured.out
+    assert (
+        "Single-resource imports expect referenced foreign rows to already exist." in captured.out
+    )
+
+
+def test_cli_timelog_stats_help_describes_persisted_area_stats(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "stats", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "persisted stats when available" in captured.out
+    assert "Stats are grouped only by area" in captured.out
+    assert "timelog stats rebuild" in captured.out
+
+
+def test_cli_parser_supports_data_commands() -> None:
+    parser = build_parser()
+
+    export_args = parser.parse_args(["data", "export", "timelog", "--format", "jsonl"])
+    bundle_args = parser.parse_args(["data", "import", "bundle", "--file", "backup.zip"])
+    batch_update_args = parser.parse_args(
+        ["data", "batch-update", "task", "--file", "task-patch.jsonl"]
+    )
+    batch_delete_args = parser.parse_args(
+        ["data", "batch-delete", "event", "--id", "11111111-1111-1111-1111-111111111111"]
+    )
+
+    assert export_args.resource == "data"
+    assert export_args.data_command == "export"
+    assert export_args.target == "timelog"
+    assert export_args.format == "jsonl"
+    assert bundle_args.data_command == "import"
+    assert bundle_args.target == "bundle"
+    assert batch_update_args.data_command == "batch-update"
+    assert batch_update_args.target == "task"
+    assert batch_delete_args.data_command == "batch-delete"
+    assert batch_delete_args.target == "event"
+
+
+def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["people", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "human partner and, when useful, a named automation identity" in captured.out
+    assert "separate records when both can own work" in captured.out
+
+
+def test_cli_parser_supports_timelog_stats_commands() -> None:
+    parser = build_parser()
+
+    day_args = parser.parse_args(["timelog", "stats", "day", "--date", "2026-04-10"])
+    month_args = parser.parse_args(["timelog", "stats", "month", "--month", "2026-04"])
+    rebuild_args = parser.parse_args(["timelog", "stats", "rebuild", "--all"])
+
+    assert day_args.resource == "timelog"
+    assert day_args.timelog_command == "stats"
+    assert day_args.timelog_stats_command == "day"
+    assert day_args.target_date == date(2026, 4, 10)
+    assert month_args.timelog_stats_command == "month"
+    assert month_args.month == date(2026, 4, 1)
+    assert rebuild_args.timelog_stats_command == "rebuild"
+    assert rebuild_args.rebuild_all is True
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_text"),
+    (
+        (
+            ["task", "add", "--help"],
+            "mark whether the task belongs to the human, the agent, or both",
+        ),
+        (
+            ["event", "add", "--help"],
+            "distinguish human-only plans from agent-only or shared schedule blocks",
+        ),
+        (
+            ["timelog", "add", "--help"],
+            "state whether the effort belongs to the human, the agent, or both",
+        ),
+    ),
+)
+def test_cli_action_help_describes_subject_disambiguation(
+    argv: list[str],
+    expected_text: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected_text in captured.out
 
 
 def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) -> None:

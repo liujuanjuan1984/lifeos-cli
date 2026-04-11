@@ -72,6 +72,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Use repeated `--tag-id` and `--person-id` flags to attach tags and people.",
                 "If `--end-time` is omitted, the event is treated as open-ended.",
                 "Use recurrence flags to create a recurring series without renaming the resource.",
+                "When an agent creates events for a human, use `--person-id` to distinguish "
+                "human-only plans from agent-only or shared schedule blocks.",
             ),
         ),
     )
@@ -204,6 +206,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Do not mix a value flag with the matching clear flag in the same command.",
                 "Use `--scope single|all_future|all` for recurring series updates.",
                 "`--scope single` and `--scope all_future` require `--instance-start`.",
+                "Use repeated `--person-id` to keep human-only, agent-only, and shared "
+                "ownership explicit as plans change.",
             ),
         ),
     )

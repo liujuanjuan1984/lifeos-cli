@@ -30,11 +30,16 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary="Manage people and relationships",
             description=(
                 "Create and maintain people records for your social context.\n\n"
-                "This resource is for named people and relationship context, not "
-                "generic contact imports."
+                "This resource is for named people, relationship context, and explicit "
+                "execution subjects.\n\n"
+                "Use it for the human partner and, when useful, a named automation "
+                "identity so tasks, events, and timelogs can distinguish who the work "
+                "belongs to."
             ),
             examples=(
-                'lifeos people add "Alice" --nickname ally --location Toronto',
+                'lifeos people add "Human Partner" --nickname ally --location Toronto',
+                'lifeos people add "Local Agent" '
+                '--description "Automation identity for CLI workflows"',
                 "lifeos people list --search ali",
             ),
             notes=(
@@ -42,6 +47,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "Use `list` as the primary query entrypoint for this resource.",
                 "Use the `batch` namespace for multi-record write operations.",
                 "Delete operations in the CLI always perform soft deletion.",
+                "Agent callers should keep the human partner and the automation identity "
+                "as separate records when both can own work.",
             ),
         ),
     )
@@ -57,11 +64,18 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary="Create a person",
             description=(
                 "Create a new person.\n\n"
-                "Use tags, nicknames, and location to capture lightweight relationship context."
+                "Use tags, nicknames, and location to capture lightweight relationship "
+                "context or an execution subject that should appear in task, event, or "
+                "timelog ownership."
             ),
             examples=(
-                'lifeos people add "Alice" --nickname ally --location Toronto',
-                'lifeos people add "Bob" --tag-id 11111111-1111-1111-1111-111111111111',
+                'lifeos people add "Human Partner" --nickname ally --location Toronto',
+                'lifeos people add "Local Agent" '
+                '--description "Automation identity for CLI workflows"',
+            ),
+            notes=(
+                "Create separate records when the human and the agent should remain distinct "
+                "subjects in later workflow data.",
             ),
         ),
     )

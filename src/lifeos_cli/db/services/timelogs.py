@@ -25,6 +25,7 @@ from lifeos_cli.db.services.batching import (
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
+from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby_area_after_change
 from lifeos_cli.db.services.timelog_support import (
     TimelogAreaReferenceNotFoundError,
     TimelogNotFoundError,
@@ -220,6 +221,15 @@ async def create_timelog(
             old_task_id=None,
             new_task_id=timelog.task_id,
         )
+    await recompute_timelog_stats_groupby_area_after_change(
+        session,
+        old_start_time=None,
+        old_end_time=None,
+        old_area_id=None,
+        new_start_time=timelog.start_time,
+        new_end_time=timelog.end_time,
+        new_area_id=timelog.area_id,
+    )
     await session.refresh(timelog)
     return await _attach_timelog_links(session, timelog)
 
@@ -369,6 +379,9 @@ async def update_timelog(
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     old_task_id = timelog.task_id
+    old_area_id = timelog.area_id
+    old_start_time = timelog.start_time
+    old_end_time = timelog.end_time
 
     normalized_start_time = (
         normalize_timelog_datetime(start_time, field_name="start_time") if start_time else None
@@ -435,6 +448,15 @@ async def update_timelog(
         session,
         old_task_id=old_task_id,
         new_task_id=timelog.task_id,
+    )
+    await recompute_timelog_stats_groupby_area_after_change(
+        session,
+        old_start_time=old_start_time,
+        old_end_time=old_end_time,
+        old_area_id=old_area_id,
+        new_start_time=timelog.start_time,
+        new_end_time=timelog.end_time,
+        new_area_id=timelog.area_id,
     )
     await session.flush()
     await session.refresh(timelog)
@@ -578,11 +600,23 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     old_task_id = timelog.task_id
+    old_area_id = timelog.area_id
+    old_start_time = timelog.start_time
+    old_end_time = timelog.end_time
     timelog.soft_delete()
     await recompute_task_effort_after_timelog_change(
         session,
         old_task_id=old_task_id,
         new_task_id=None,
+    )
+    await recompute_timelog_stats_groupby_area_after_change(
+        session,
+        old_start_time=old_start_time,
+        old_end_time=old_end_time,
+        old_area_id=old_area_id,
+        new_start_time=None,
+        new_end_time=None,
+        new_area_id=None,
     )
     await session.flush()
 
@@ -601,6 +635,15 @@ async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> Timelog
         session,
         old_task_id=None,
         new_task_id=timelog.task_id,
+    )
+    await recompute_timelog_stats_groupby_area_after_change(
+        session,
+        old_start_time=None,
+        old_end_time=None,
+        old_area_id=None,
+        new_start_time=timelog.start_time,
+        new_end_time=timelog.end_time,
+        new_area_id=timelog.area_id,
     )
     await session.flush()
     await session.refresh(timelog)

@@ -1,0 +1,227 @@
+"""Data resource parser construction."""
+
+from __future__ import annotations
+
+import argparse
+
+from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.resources.data.handlers import (
+    handle_data_batch_delete,
+    handle_data_batch_update,
+    handle_data_export,
+    handle_data_import,
+)
+from lifeos_cli.db.services.data_ops import SUPPORTED_DATA_RESOURCES
+
+DATA_RESOURCE_CHOICES = tuple(SUPPORTED_DATA_RESOURCES)
+EXPORT_TARGET_CHOICES = (*DATA_RESOURCE_CHOICES, "all")
+IMPORT_TARGET_CHOICES = (*DATA_RESOURCE_CHOICES, "bundle")
+
+
+def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """Build the data command tree."""
+    data_parser = add_documented_parser(
+        subparsers,
+        "data",
+        help_content=HelpContent(
+            summary="Run unified data import/export and batch commands",
+            description=(
+                "Run canonical data operations across LifeOS resources.\n\n"
+                "Use this namespace for machine-oriented bulk workflows such as export, import, "
+                "batch update, batch delete, and full bundle backup or restore."
+            ),
+            examples=(
+                "lifeos data export timelog --format jsonl",
+                "lifeos data import timelog --file timelog.jsonl --format jsonl",
+                "lifeos data batch-update task --file task-patch.jsonl --format jsonl",
+                "lifeos data batch-delete event --ids-file event-ids.txt",
+                "lifeos data export all --output lifeos-bundle.zip",
+                "lifeos data import bundle --file lifeos-bundle.zip --replace-existing",
+            ),
+            notes=(
+                "This namespace uses canonical JSON/JSONL snapshot rows instead of ad-hoc "
+                "CLI flags.",
+                "Use `export` output as the round-trip contract for later `import` or "
+                "`batch-update`.",
+                "Bundle import/export preserves record identifiers and relationships across "
+                "resources.",
+                "Use resource-specific commands for higher-level behaviors such as recurring "
+                "event occurrence scopes.",
+                "Use `--dry-run` before applying large imports or batch changes.",
+            ),
+        ),
+    )
+    data_parser.set_defaults(handler=make_help_handler(data_parser))
+    data_subparsers = data_parser.add_subparsers(
+        dest="data_command", title="actions", metavar="action"
+    )
+
+    export_parser = add_documented_parser(
+        data_subparsers,
+        "export",
+        help_content=HelpContent(
+            summary="Export one resource or a full bundle",
+            description=(
+                "Export canonical snapshot rows for one resource, or create a full bundle zip "
+                "covering all supported resources. Bundle export is implied when the target "
+                "is `all`."
+            ),
+            examples=(
+                "lifeos data export task --format jsonl",
+                "lifeos data export people --format json --output people.json",
+                "lifeos data export all --output lifeos-bundle.zip",
+            ),
+        ),
+    )
+    export_parser.add_argument("target", choices=EXPORT_TARGET_CHOICES)
+    export_parser.add_argument(
+        "--format",
+        choices=("jsonl", "json", "bundle"),
+        default="jsonl",
+        help="Export format for one resource; bundle is implied for `all`",
+    )
+    export_parser.add_argument("--output", help="Write exported data to a file instead of stdout")
+    export_parser.add_argument(
+        "--exclude-deleted",
+        action="store_true",
+        help="Exclude soft-deleted rows from exported snapshots",
+    )
+    export_parser.set_defaults(handler=handle_data_export)
+
+    import_parser = add_documented_parser(
+        data_subparsers,
+        "import",
+        help_content=HelpContent(
+            summary="Import one resource or a full bundle",
+            description=(
+                "Import canonical snapshot rows for one resource, or restore a full bundle zip "
+                "containing multiple resources. Bundle import is implied when the target is "
+                "`bundle`."
+            ),
+            examples=(
+                "lifeos data import timelog --file timelog.jsonl --format jsonl",
+                "lifeos data import note --stdin --format json",
+                "lifeos data import bundle --file lifeos-bundle.zip --replace-existing",
+            ),
+            notes=(
+                "Use `import bundle` for full backup restore. Bundle restore is atomic and "
+                "restores base rows before relation links.",
+                "Single-resource imports expect referenced foreign rows to already exist.",
+            ),
+        ),
+    )
+    import_parser.add_argument("target", choices=IMPORT_TARGET_CHOICES)
+    import_parser.add_argument("--file", help="Read input data from a file")
+    import_parser.add_argument("--stdin", action="store_true", help="Read input data from stdin")
+    import_parser.add_argument(
+        "--format",
+        choices=("jsonl", "json", "bundle"),
+        default="jsonl",
+        help="Input format for one resource; bundle is implied for `import bundle`",
+    )
+    import_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate input without committing",
+    )
+    import_parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Continue processing later rows after a failure",
+    )
+    import_parser.add_argument(
+        "--replace-existing",
+        action="store_true",
+        help="For bundle imports, truncate supported data before restoring the bundle",
+    )
+    import_parser.add_argument("--error-file", help="Write row-level failures to a JSONL file")
+    import_parser.set_defaults(handler=handle_data_import)
+
+    batch_update_parser = add_documented_parser(
+        data_subparsers,
+        "batch-update",
+        help_content=HelpContent(
+            summary="Batch-update one resource from canonical patch rows",
+            description=(
+                "Apply patch rows to one resource using the same canonical record shape used by "
+                "data export. Omitted fields stay unchanged; explicit null clears clearable fields."
+            ),
+            examples=(
+                "lifeos data batch-update timelog --file timelog-patch.jsonl --format jsonl",
+                "lifeos data batch-update people --stdin --format json",
+            ),
+            notes=(
+                "Batch-update operates on stored records. Use public resource commands when "
+                "you need domain-specific verbs or scopes.",
+            ),
+        ),
+    )
+    batch_update_parser.add_argument("target", choices=DATA_RESOURCE_CHOICES)
+    batch_update_parser.add_argument("--file", help="Read patch rows from a file")
+    batch_update_parser.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Read patch rows from stdin",
+    )
+    batch_update_parser.add_argument("--format", choices=("jsonl", "json"), default="jsonl")
+    batch_update_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate without committing",
+    )
+    batch_update_parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Continue processing later rows after a failure",
+    )
+    batch_update_parser.add_argument(
+        "--error-file",
+        help="Write row-level failures to a JSONL file",
+    )
+    batch_update_parser.set_defaults(handler=handle_data_batch_update)
+
+    batch_delete_parser = add_documented_parser(
+        data_subparsers,
+        "batch-delete",
+        help_content=HelpContent(
+            summary="Batch-delete one resource by identifiers",
+            description=(
+                "Soft-delete multiple rows for one resource using repeated IDs, an IDs file, "
+                "or JSON/JSONL input containing row IDs."
+            ),
+            examples=(
+                "lifeos data batch-delete task --id <task-id-1> --id <task-id-2>",
+                "lifeos data batch-delete event --ids-file event-ids.txt",
+                "lifeos data batch-delete timelog --file timelog-export.jsonl --format jsonl",
+            ),
+        ),
+    )
+    batch_delete_parser.add_argument("target", choices=DATA_RESOURCE_CHOICES)
+    batch_delete_parser.add_argument(
+        "--id",
+        dest="record_ids",
+        action="append",
+        help="Repeat to delete one or more record identifiers",
+    )
+    batch_delete_parser.add_argument("--ids-file", help="Read one UUID per line from a file")
+    batch_delete_parser.add_argument("--file", help="Read identifiers or resource rows from a file")
+    batch_delete_parser.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Read identifiers from stdin",
+    )
+    batch_delete_parser.add_argument(
+        "--format",
+        choices=("plain", "jsonl", "json"),
+        default="plain",
+    )
+    batch_delete_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate without committing",
+    )
+    batch_delete_parser.add_argument(
+        "--error-file",
+        help="Write row-level failures to a JSONL file",
+    )
+    batch_delete_parser.set_defaults(handler=handle_data_batch_delete)
