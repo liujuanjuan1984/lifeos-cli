@@ -66,6 +66,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             notes=(
                 "Use `list` as the primary query entrypoint for timelogs.",
                 "Timelogs can optionally reference one area and one task.",
+                "Timelog list and show include `linked_notes_count` derived from "
+                "note associations.",
                 "Use `stats` for timelog stats grouped by area.",
                 "Delete operations in the public CLI always perform soft deletion.",
                 "Use `restore` to recover a soft-deleted timelog.",
@@ -146,6 +148,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
                 "Use `--query` for lightweight text filtering across titles and notes.",
+                "List output includes one `linked_notes_count` column after `task_id`.",
             ),
         ),
     )
@@ -186,7 +189,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "show",
         help_content=HelpContent(
             summary="Show a timelog",
-            description="Show one timelog with full metadata.",
+            description="Show one timelog with full metadata and derived note link counts.",
             examples=(
                 "lifeos timelog show 11111111-1111-1111-1111-111111111111",
                 "lifeos timelog show 11111111-1111-1111-1111-111111111111 --include-deleted",

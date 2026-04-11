@@ -22,7 +22,11 @@ def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     def fake_add(_: object) -> None:
         pass
 
+    async def fake_attach_note_links(_: object, note: object) -> object:
+        return note
+
     session.add = fake_add
+    monkeypatch.setattr(notes, "_attach_note_links", fake_attach_note_links)
 
     note = asyncio.run(notes.create_note(cast(Any, session), content="hello"))
 

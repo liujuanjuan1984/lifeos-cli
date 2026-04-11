@@ -4,17 +4,33 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
+from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.note import Note
+from lifeos_cli.db.models.person import Person
+from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.entity_associations import (
+    load_people_for_sources,
+    load_tasks_for_sources,
+    load_timelogs_for_sources,
+    set_association_links,
+)
 
 
 class NoteNotFoundError(LookupError):
     """Raised when a note cannot be found."""
+
+
+class NoteValidationError(ValueError):
+    """Raised when note input cannot be applied."""
 
 
 @dataclass(frozen=True)
@@ -28,10 +44,72 @@ class NoteBatchUpdateResult:
     replacement_count: int
 
 
-def _note_query(*, include_deleted: bool) -> Select[tuple[Note]]:
+def _normalize_note_content(content: str) -> str:
+    """Validate note content while preserving intentional formatting."""
+    if not content.strip():
+        raise NoteValidationError("Note content must not be empty.")
+    return content
+
+
+def _association_exists_clause(
+    *,
+    target_model: str,
+    target_id: UUID,
+    link_type: str,
+) -> ColumnElement[bool]:
+    target_table_by_model: dict[str, Any] = {
+        "person": Person,
+        "task": Task,
+        "timelog": Timelog,
+    }
+    target_table = target_table_by_model[target_model]
+    return exists(
+        select(1).where(
+            Association.source_model == "note",
+            Association.source_id == Note.id,
+            Association.target_model == target_model,
+            Association.target_id == target_id,
+            Association.link_type == link_type,
+            target_table.id == target_id,
+            target_table.deleted_at.is_(None),
+        )
+    )
+
+
+def _note_query(
+    *,
+    include_deleted: bool,
+    person_id: UUID | None = None,
+    task_id: UUID | None = None,
+    timelog_id: UUID | None = None,
+) -> Select[tuple[Note]]:
     stmt = select(Note)
     if not include_deleted:
         stmt = stmt.where(Note.deleted_at.is_(None))
+    if person_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="person",
+                target_id=person_id,
+                link_type="is_about",
+            )
+        )
+    if task_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="task",
+                target_id=task_id,
+                link_type="relates_to",
+            )
+        )
+    if timelog_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="timelog",
+                target_id=timelog_id,
+                link_type="captured_from",
+            )
+        )
     return stmt
 
 
@@ -67,13 +145,104 @@ def _apply_content_batch_operation(
     return replacements
 
 
-async def create_note(session: AsyncSession, *, content: str) -> Note:
+async def _attach_note_links(session: AsyncSession, note: Note) -> Note:
+    people_map = await load_people_for_sources(
+        session,
+        source_model="note",
+        source_ids=[note.id],
+        link_type="is_about",
+    )
+    task_map = await load_tasks_for_sources(
+        session,
+        source_model="note",
+        source_ids=[note.id],
+        link_type="relates_to",
+    )
+    timelog_map = await load_timelogs_for_sources(
+        session,
+        source_model="note",
+        source_ids=[note.id],
+        link_type="captured_from",
+    )
+    note.people = people_map.get(note.id, [])
+    note.task = task_map.get(note.id)
+    note.timelogs = timelog_map.get(note.id, [])
+    return note
+
+
+async def _attach_note_links_for_many(
+    session: AsyncSession,
+    note_records: list[Note],
+) -> list[Note]:
+    if not note_records:
+        return []
+    note_ids = [note.id for note in note_records]
+    people_map = await load_people_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="is_about",
+    )
+    task_map = await load_tasks_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="relates_to",
+    )
+    timelog_map = await load_timelogs_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="captured_from",
+    )
+    for note in note_records:
+        note.people = people_map.get(note.id, [])
+        note.task = task_map.get(note.id)
+        note.timelogs = timelog_map.get(note.id, [])
+    return note_records
+
+
+async def create_note(
+    session: AsyncSession,
+    *,
+    content: str,
+    person_ids: list[UUID] | None = None,
+    task_id: UUID | None = None,
+    timelog_ids: list[UUID] | None = None,
+) -> Note:
     """Create and persist a note."""
-    note = Note(content=content)
+    note = Note(content=_normalize_note_content(content))
     session.add(note)
     await session.flush()
+    if person_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="person",
+            target_ids=person_ids,
+            link_type="is_about",
+        )
+    if task_id is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="task",
+            target_ids=[task_id],
+            link_type="relates_to",
+        )
+    if timelog_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="timelog",
+            target_ids=timelog_ids,
+            link_type="captured_from",
+        )
     await session.refresh(note)
-    return note
+    return await _attach_note_links(session, note)
 
 
 async def get_note(
@@ -84,24 +253,35 @@ async def get_note(
 ) -> Note | None:
     """Fetch a note by identifier."""
     stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
-    return (await session.execute(stmt)).scalar_one_or_none()
+    note = (await session.execute(stmt)).scalar_one_or_none()
+    if note is None:
+        return None
+    return await _attach_note_links(session, note)
 
 
 async def list_notes(
     session: AsyncSession,
     *,
     include_deleted: bool = False,
+    person_id: UUID | None = None,
+    task_id: UUID | None = None,
+    timelog_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[Note]:
     """Return notes ordered from newest to oldest."""
     stmt = (
-        _note_query(include_deleted=include_deleted)
+        _note_query(
+            include_deleted=include_deleted,
+            person_id=person_id,
+            task_id=task_id,
+            timelog_id=timelog_id,
+        )
         .order_by(Note.created_at.desc(), Note.id.desc())
         .offset(offset)
         .limit(limit)
     )
-    return list((await session.execute(stmt)).scalars())
+    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
 
 
 async def search_notes(
@@ -109,27 +289,112 @@ async def search_notes(
     *,
     query: str,
     include_deleted: bool = False,
+    person_id: UUID | None = None,
+    task_id: UUID | None = None,
+    timelog_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[Note]:
     """Return notes whose content matches any token from the query."""
     tokens = _tokenize_search_query(query)
-    stmt = _note_query(include_deleted=include_deleted)
+    stmt = _note_query(
+        include_deleted=include_deleted,
+        person_id=person_id,
+        task_id=task_id,
+        timelog_id=timelog_id,
+    )
     if tokens:
         stmt = stmt.where(or_(*[Note.content.ilike(f"%{token}%") for token in tokens]))
     stmt = stmt.order_by(Note.created_at.desc(), Note.id.desc()).offset(offset).limit(limit)
-    return list((await session.execute(stmt)).scalars())
+    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
 
 
-async def update_note(session: AsyncSession, *, note_id: UUID, content: str) -> Note:
-    """Update note content."""
+async def update_note(
+    session: AsyncSession,
+    *,
+    note_id: UUID,
+    content: str | None = None,
+    person_ids: list[UUID] | None = None,
+    clear_people: bool = False,
+    task_id: UUID | None = None,
+    clear_task: bool = False,
+    timelog_ids: list[UUID] | None = None,
+    clear_timelogs: bool = False,
+) -> Note:
+    """Update note content and weak associations."""
     note = await get_note(session, note_id=note_id)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
-    note.content = content
+    if (
+        content is None
+        and person_ids is None
+        and not clear_people
+        and task_id is None
+        and not clear_task
+        and timelog_ids is None
+        and not clear_timelogs
+    ):
+        raise NoteValidationError("Provide at least one note field or association to update.")
+
+    if content is not None:
+        note.content = _normalize_note_content(content)
+    if clear_people:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="person",
+            target_ids=[],
+            link_type="is_about",
+        )
+    elif person_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="person",
+            target_ids=person_ids,
+            link_type="is_about",
+        )
+    if clear_task:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="task",
+            target_ids=[],
+            link_type="relates_to",
+        )
+    elif task_id is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="task",
+            target_ids=[task_id],
+            link_type="relates_to",
+        )
+    if clear_timelogs:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="timelog",
+            target_ids=[],
+            link_type="captured_from",
+        )
+    elif timelog_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="timelog",
+            target_ids=timelog_ids,
+            link_type="captured_from",
+        )
     await session.flush()
     await session.refresh(note)
-    return note
+    return await _attach_note_links(session, note)
 
 
 async def delete_note(

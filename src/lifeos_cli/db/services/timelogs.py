@@ -22,6 +22,7 @@ from lifeos_cli.db.services.batching import (
     batch_delete_records,
     batch_restore_records,
 )
+from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
@@ -57,8 +58,16 @@ async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Time
     people_map = await load_people_for_entities(
         session, entity_ids=[timelog.id], entity_type="timelog"
     )
+    note_count_map = await count_sources_for_targets(
+        session,
+        source_model="note",
+        target_model="timelog",
+        target_ids=[timelog.id],
+        link_type="captured_from",
+    )
     timelog.tags = tags_map.get(timelog.id, [])
     timelog.people = people_map.get(timelog.id, [])
+    timelog.linked_notes_count = note_count_map.get(timelog.id, 0)
     return timelog
 
 
@@ -73,9 +82,17 @@ async def _attach_timelog_links_for_many(
     people_map = await load_people_for_entities(
         session, entity_ids=timelog_ids, entity_type="timelog"
     )
+    note_count_map = await count_sources_for_targets(
+        session,
+        source_model="note",
+        target_model="timelog",
+        target_ids=timelog_ids,
+        link_type="captured_from",
+    )
     for timelog in timelogs:
         timelog.tags = tags_map.get(timelog.id, [])
         timelog.people = people_map.get(timelog.id, [])
+        timelog.linked_notes_count = note_count_map.get(timelog.id, 0)
     return timelogs
 
 

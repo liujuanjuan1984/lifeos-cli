@@ -22,7 +22,8 @@ def _format_timelog_summary(timelog: Timelog) -> str:
     status = "deleted" if timelog.deleted_at is not None else timelog.tracking_method
     return (
         f"{timelog.id}\t{status}\t{format_timestamp(timelog.start_time)}\t"
-        f"{format_timestamp(timelog.end_time)}\t{timelog.task_id or '-'}\t{timelog.title}"
+        f"{format_timestamp(timelog.end_time)}\t{timelog.task_id or '-'}\t"
+        f"{getattr(timelog, 'linked_notes_count', 0)}\t{timelog.title}"
     )
 
 
@@ -47,6 +48,7 @@ def _format_timelog_detail(timelog: Timelog) -> str:
             f"notes: {timelog.notes or '-'}",
             f"area_id: {timelog.area_id or '-'}",
             f"task_id: {timelog.task_id or '-'}",
+            f"linked_notes_count: {getattr(timelog, 'linked_notes_count', 0)}",
             f"tags: {tag_names}",
             f"people: {people_names}",
             f"created_at: {format_timestamp(timelog.created_at)}",

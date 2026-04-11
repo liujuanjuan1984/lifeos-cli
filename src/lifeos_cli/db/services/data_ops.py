@@ -45,6 +45,10 @@ from lifeos_cli.db.services import (
     timelogs,
     visions,
 )
+from lifeos_cli.db.services.entity_associations import (
+    get_target_ids_for_sources,
+    set_association_links,
+)
 from lifeos_cli.db.services.entity_people import sync_entity_people
 from lifeos_cli.db.services.entity_tags import sync_entity_tags
 
@@ -328,6 +332,9 @@ class PreparedSnapshotRow:
     direct_values: dict[str, Any]
     tag_ids: list[UUID] | None = None
     person_ids: list[UUID] | None = None
+    note_task_supplied: bool = False
+    note_task_id: UUID | None = None
+    note_timelog_ids: list[UUID] | None = None
     occurrence_exceptions: list[dict[str, Any]] | None = None
 
 
@@ -354,7 +361,18 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     )
     person_ids = (
         _parse_person_ids(payload["person_ids"])
-        if spec.person_entity_type and "person_ids" in payload
+        if (spec.person_entity_type and "person_ids" in payload)
+        or (resource == "note" and "person_ids" in payload)
+        else None
+    )
+    note_task_id = (
+        None
+        if "task_id" not in payload
+        else (None if payload["task_id"] is None else UUID(str(payload["task_id"])))
+    )
+    note_timelog_ids = (
+        _parse_person_ids(payload["timelog_ids"])
+        if resource == "note" and "timelog_ids" in payload
         else None
     )
     occurrence_exceptions = (
@@ -369,6 +387,9 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         direct_values=direct_values,
         tag_ids=tag_ids,
         person_ids=person_ids,
+        note_task_supplied=("task_id" in payload if resource == "note" else False),
+        note_task_id=note_task_id,
+        note_timelog_ids=note_timelog_ids,
         occurrence_exceptions=occurrence_exceptions,
     )
 
@@ -439,6 +460,52 @@ async def _load_event_occurrence_exceptions(
     return mapping
 
 
+async def _load_note_task_ids(
+    session: AsyncSession,
+    *,
+    note_ids: list[UUID],
+) -> dict[UUID, UUID | None]:
+    mapping = await get_target_ids_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        target_model="task",
+        link_type="relates_to",
+    )
+    return {
+        note_id: (linked_task_ids[0] if linked_task_ids else None)
+        for note_id, linked_task_ids in mapping.items()
+    }
+
+
+async def _load_note_person_ids(
+    session: AsyncSession,
+    *,
+    note_ids: list[UUID],
+) -> dict[UUID, list[UUID]]:
+    return await get_target_ids_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        target_model="person",
+        link_type="is_about",
+    )
+
+
+async def _load_note_timelog_ids(
+    session: AsyncSession,
+    *,
+    note_ids: list[UUID],
+) -> dict[UUID, list[UUID]]:
+    return await get_target_ids_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        target_model="timelog",
+        link_type="captured_from",
+    )
+
+
 async def export_resource_snapshot(
     session: AsyncSession,
     *,
@@ -480,6 +547,15 @@ async def export_resource_snapshot(
         if resource == "event"
         else {}
     )
+    note_task_map = (
+        await _load_note_task_ids(session, note_ids=entity_ids) if resource == "note" else {}
+    )
+    note_person_map = (
+        await _load_note_person_ids(session, note_ids=entity_ids) if resource == "note" else {}
+    )
+    note_timelog_map = (
+        await _load_note_timelog_ids(session, note_ids=entity_ids) if resource == "note" else {}
+    )
 
     for payload in payloads:
         entity_id = UUID(str(payload["id"]))
@@ -489,6 +565,16 @@ async def export_resource_snapshot(
             payload["person_ids"] = [str(person_id) for person_id in person_map.get(entity_id, [])]
         if resource == "event":
             payload["occurrence_exceptions"] = occurrence_map.get(entity_id, [])
+        if resource == "note":
+            payload["person_ids"] = [
+                str(person_id) for person_id in note_person_map.get(entity_id, [])
+            ]
+            payload["task_id"] = (
+                None if note_task_map.get(entity_id) is None else str(note_task_map[entity_id])
+            )
+            payload["timelog_ids"] = [
+                str(timelog_id) for timelog_id in note_timelog_map.get(entity_id, [])
+            ]
     return payloads
 
 
@@ -531,6 +617,34 @@ async def _sync_snapshot_relations(
             entity_type=spec.person_entity_type,
             desired_person_ids=prepared_row.person_ids,
         )
+    if prepared_row.resource == "note":
+        if prepared_row.person_ids is not None:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="person",
+                target_ids=prepared_row.person_ids,
+                link_type="is_about",
+            )
+        if prepared_row.note_task_supplied:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="task",
+                target_ids=[] if prepared_row.note_task_id is None else [prepared_row.note_task_id],
+                link_type="relates_to",
+            )
+        if prepared_row.note_timelog_ids is not None:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="timelog",
+                target_ids=prepared_row.note_timelog_ids,
+                link_type="captured_from",
+            )
     if prepared_row.resource == "event" and prepared_row.occurrence_exceptions is not None:
         await session.execute(
             delete(EventOccurrenceException).where(
@@ -631,6 +745,12 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
             normalized[field] = None if value is None else _parse_tag_ids(value)
             continue
         if field == "person_ids":
+            normalized[field] = None if value is None else _parse_person_ids(value)
+            continue
+        if field == "task_id" and resource == "note":
+            normalized[field] = None if value is None else UUID(str(value))
+            continue
+        if field == "timelog_ids" and resource == "note":
             normalized[field] = None if value is None else _parse_person_ids(value)
             continue
         normalized[field] = value
@@ -791,12 +911,20 @@ def _batch_update_timelog_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
-    if "content" not in payload:
-        raise DataOperationError("Note batch update requires `content`.")
-    return {
-        "note_id": UUID(str(payload["id"])),
-        "content": payload["content"],
-    }
+    kwargs: dict[str, Any] = {"note_id": UUID(str(payload["id"]))}
+    if "content" in payload:
+        if payload["content"] is None:
+            raise DataOperationError("Note batch update does not allow null `content`.")
+        kwargs["content"] = payload["content"]
+    kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
+    kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    kwargs.update(_null_means_clear(payload, field="timelog_ids", clear_flag="clear_timelogs"))
+    if len(kwargs) == 1:
+        raise DataOperationError(
+            "Note batch update requires at least one of `content`, `person_ids`, `task_id`, "
+            "or `timelog_ids`."
+        )
+    return kwargs
 
 
 UPDATE_KWARGS_BUILDERS: dict[str, Any] = {

@@ -210,7 +210,7 @@ def test_main_note_search_prints_matching_notes(
 
     assert exit_code == 0
     assert (
-        "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t"
+        "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t-\t0\t0\t"
         "meeting notes for april planning" in captured.out
     )
 
@@ -338,8 +338,8 @@ def test_main_note_list_prints_formatted_notes(
 
     assert exit_code == 0
     assert (
-        "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\tfirst note"
-        in captured.out
+        "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t-\t0\t0\t"
+        "first note" in captured.out
     )
 
 

@@ -30,7 +30,7 @@ def test_build_alembic_config_uses_packaged_migration_resources() -> None:
         ).is_file()
         assert script_location.joinpath(
             "versions",
-            "20260411_0900_add_timelog_stats_groupby_area_tables.py",
+            "20260411_1500_add_generic_associations.py",
         ).is_file()
 
 

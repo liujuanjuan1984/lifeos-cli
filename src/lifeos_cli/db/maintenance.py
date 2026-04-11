@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.config import get_database_settings
 from lifeos_cli.db.models import (
     Area,
+    Association,
     Event,
     Habit,
     HabitAction,
@@ -65,6 +66,13 @@ RESOURCE_PERSON_ENTITY_TYPES: dict[str, str] = {
     "timelog": "timelog",
     "vision": "vision",
     "task": "task",
+}
+
+RESOURCE_ASSOCIATION_MODEL_TYPES: dict[str, str] = {
+    "note": "note",
+    "people": "person",
+    "task": "task",
+    "timelog": "timelog",
 }
 
 
@@ -124,6 +132,20 @@ async def purge_soft_deleted_record(
             delete(person_associations).where(
                 person_associations.c.entity_type == person_entity_type,
                 person_associations.c.entity_id == record_id,
+            )
+        )
+    association_model_type = RESOURCE_ASSOCIATION_MODEL_TYPES.get(resource)
+    if association_model_type is not None:
+        await session.execute(
+            delete(Association).where(
+                (Association.source_model == association_model_type)
+                & (Association.source_id == record_id)
+            )
+        )
+        await session.execute(
+            delete(Association).where(
+                (Association.target_model == association_model_type)
+                & (Association.target_id == record_id)
             )
         )
     await session.delete(record)
