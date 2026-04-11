@@ -146,6 +146,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "When both window flags are given, overlapping events are returned.",
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
+                "Recurring series are expanded for bounded window queries and schedule views.",
                 "Use `--title-contains` for lightweight text filtering instead of a "
                 "separate search command.",
             ),
@@ -202,6 +203,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "Use `--clear-*` flags to explicitly remove optional values.",
                 "Do not mix a value flag with the matching clear flag in the same command.",
                 "Use `--scope single|all_future|all` for recurring series updates.",
+                "`--scope single` and `--scope all_future` require `--instance-start`.",
             ),
         ),
     )
@@ -281,6 +283,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
                 "--scope single --instance-start 2026-04-10T09:00:00-04:00",
+                "lifeos event delete 11111111-1111-1111-1111-111111111111 "
+                "--scope all_future --instance-start 2026-04-10T09:00:00-04:00",
+            ),
+            notes=(
+                "Use `--scope single|all_future|all` for recurring series deletes.",
+                "`--scope single` and `--scope all_future` require `--instance-start`.",
             ),
         ),
     )

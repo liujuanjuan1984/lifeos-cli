@@ -117,6 +117,80 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
     assert [item.title for item in days[1].events] == ["Late call"]
 
 
+def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkeypatch) -> None:
+    async def fake_load_tasks(session: object, *, start_date: date, end_date: date) -> list[object]:
+        assert start_date == date(2026, 4, 10)
+        assert end_date == date(2026, 4, 11)
+        return []
+
+    async def fake_load_habit_actions(
+        session: object, *, start_date: date, end_date: date
+    ) -> list[object]:
+        assert start_date == date(2026, 4, 10)
+        assert end_date == date(2026, 4, 11)
+        return []
+
+    calls: list[tuple[object, object]] = []
+
+    async def fake_list_event_occurrences(
+        session: object,
+        *,
+        window_start: object,
+        window_end: object,
+        **_: object,
+    ) -> list[object]:
+        calls.append((window_start, window_end))
+        return [
+            make_record(
+                id=UUID("33333333-3333-3333-3333-333333333333"),
+                title="Daily review",
+                status="planned",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                end_time=utc_datetime(2026, 4, 10, 13, 30),
+                task_id=None,
+            ),
+            make_record(
+                id=UUID("33333333-3333-3333-3333-333333333333"),
+                title="Daily review",
+                status="planned",
+                start_time=utc_datetime(2026, 4, 11, 13, 0),
+                end_time=utc_datetime(2026, 4, 11, 13, 30),
+                task_id=None,
+            ),
+        ]
+
+    def fake_get_utc_window_for_local_date(target_date: date):
+        if target_date == date(2026, 4, 10):
+            return utc_datetime(2026, 4, 10, 0, 0), utc_datetime(2026, 4, 11, 0, 0)
+        return utc_datetime(2026, 4, 11, 0, 0), utc_datetime(2026, 4, 12, 0, 0)
+
+    monkeypatch.setattr(schedule_queries, "_load_schedule_tasks", fake_load_tasks)
+    monkeypatch.setattr(schedule_queries, "_load_schedule_habit_actions", fake_load_habit_actions)
+    monkeypatch.setattr(schedule_queries, "list_event_occurrences", fake_list_event_occurrences)
+    monkeypatch.setattr(
+        schedule_queries,
+        "get_utc_window_for_local_date",
+        fake_get_utc_window_for_local_date,
+    )
+
+    days = asyncio.run(
+        schedule_queries.list_schedule_in_range(
+            cast(Any, object()),
+            start_date=date(2026, 4, 10),
+            end_date=date(2026, 4, 11),
+        )
+    )
+
+    assert calls == [
+        (
+            utc_datetime(2026, 4, 10, 0, 0),
+            utc_datetime(2026, 4, 11, 23, 59, 59).replace(microsecond=999999),
+        )
+    ]
+    assert [item.title for item in days[0].events] == ["Daily review"]
+    assert [item.title for item in days[1].events] == ["Daily review"]
+
+
 def test_list_schedule_in_range_rejects_inverted_date_range() -> None:
     try:
         asyncio.run(

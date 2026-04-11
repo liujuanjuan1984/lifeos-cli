@@ -63,6 +63,22 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert_ok(event_result)
     event_id = extract_created_id(event_result.stdout)
 
+    recurring_event_result = run_lifeos(
+        integration_context,
+        "event",
+        "add",
+        "Daily review",
+        "--start-time",
+        "2026-04-10T12:00:00-04:00",
+        "--end-time",
+        "2026-04-10T12:30:00-04:00",
+        "--recurrence-frequency",
+        "daily",
+        "--recurrence-count",
+        "2",
+    )
+    assert_ok(recurring_event_result)
+
     schedule_show_result = run_lifeos(
         integration_context,
         "schedule",
@@ -79,6 +95,7 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "Daily Review" in schedule_show_result.stdout
     assert event_id in schedule_show_result.stdout
     assert "Release planning block" in schedule_show_result.stdout
+    assert "Daily review" in schedule_show_result.stdout
 
     schedule_list_result = run_lifeos(
         integration_context,
@@ -93,3 +110,4 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "date: 2026-04-10" in schedule_list_result.stdout
     assert "date: 2026-04-11" in schedule_list_result.stdout
     assert task_id in schedule_list_result.stdout
+    assert schedule_list_result.stdout.count("Daily review") == 2

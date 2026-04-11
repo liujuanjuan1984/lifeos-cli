@@ -265,11 +265,12 @@ lifeos tag delete <tag-id>
 
 ```bash
 lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
+lifeos event add "Daily review" --start-time 2026-04-10T09:00:00-04:00 --recurrence-frequency daily --recurrence-count 5
 lifeos event list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
 lifeos event list --date 2026-04-10
 lifeos event show <event-id>
-lifeos event update <event-id> --status completed --clear-task
-lifeos event delete <event-id>
+lifeos event update <event-id> --scope single --instance-start 2026-04-10T09:00:00-04:00 --status completed
+lifeos event delete <event-id> --scope all_future --instance-start 2026-04-10T09:00:00-04:00
 ```
 
 Current event notes:
@@ -278,6 +279,7 @@ Current event notes:
 - in Compass backend terms, `event` is the simplified public equivalent of `planned_event`
 - use `--window-start` and `--window-end` to query overlapping calendar ranges
 - use `--date` to query one configured local day
+- recurring series are expanded for bounded window queries and schedule views
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
 - recurring series currently support `daily` and `weekly` cadence
 - use `event update|delete --scope single|all_future|all --instance-start ...` for recurring series
@@ -295,7 +297,7 @@ Current schedule notes:
 - output is grouped by local date
 - each date includes `tasks`, `habit_actions`, and `events`
 - task inclusion currently uses planning-cycle overlap
-- event inclusion currently covers one-off events only; recurring event expansion is not implemented
+- event inclusion covers overlapping one-off events and expanded recurring event occurrences
 
 ### Habit
 

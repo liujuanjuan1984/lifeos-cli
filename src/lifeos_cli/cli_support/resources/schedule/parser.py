@@ -23,7 +23,8 @@ def build_schedule_parser(
             summary="Inspect aggregated schedule views",
             description=(
                 "Show schedule views grouped by local date.\n\n"
-                "Schedule is a CLI read model built from tasks, habit actions, and events."
+                "Schedule is a CLI read model built from tasks, habit actions, and events, "
+                "including expanded recurring event occurrences."
             ),
             examples=(
                 "lifeos schedule show --date 2026-04-10",
@@ -32,6 +33,7 @@ def build_schedule_parser(
             notes=(
                 "Use `show` for one exact local day.",
                 "Use `list` for multi-day ranges.",
+                "Dates use the configured timezone and `day_starts_at` preference.",
                 "Schedule reads from existing domains and does not create a new stored entity.",
             ),
         ),
@@ -48,6 +50,7 @@ def build_schedule_parser(
             summary="Show one schedule day",
             description="Show the aggregated schedule for one local day.",
             examples=("lifeos schedule show --date 2026-04-10",),
+            notes=("The output groups tasks, habit actions, and event occurrences for the day.",),
         ),
     )
     show_parser.add_argument(
@@ -66,7 +69,10 @@ def build_schedule_parser(
             summary="List a schedule range",
             description="Show the aggregated schedule for a local-date range.",
             examples=("lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16",),
-            notes=("The range is inclusive on both start and end dates.",),
+            notes=(
+                "The range is inclusive on both start and end dates.",
+                "Recurring event occurrences are expanded inside the requested range.",
+            ),
         ),
     )
     list_parser.add_argument(

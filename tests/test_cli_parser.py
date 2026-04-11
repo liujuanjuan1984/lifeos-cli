@@ -130,6 +130,34 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
+def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Schedule is a CLI read model built from tasks, habit actions, and events" in captured.out
+    )
+    assert "expanded recurring event occurrences" in captured.out
+    assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+
+
+def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["event", "delete", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `--scope single|all_future|all` for recurring series deletes." in captured.out
+    assert "`--scope single` and `--scope all_future` require `--instance-start`." in captured.out
+    assert "--scope all_future --instance-start 2026-04-10T09:00:00-04:00" in captured.out
+
+
 def test_cli_parser_supports_area_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
