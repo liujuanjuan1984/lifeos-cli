@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -86,6 +87,40 @@ def test_main_event_add_creates_event(
 
     assert exit_code == 0
     assert "Created event 12121212-1212-1212-1212-121212121212" in captured.out
+
+
+def test_main_event_add_passes_recurrence_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_event(session: object, **kwargs: object) -> object:
+        assert kwargs["recurrence_frequency"] == "daily"
+        assert kwargs["recurrence_interval"] == 2
+        assert kwargs["recurrence_count"] == 5
+        return make_record(id=UUID("34343434-3434-3434-3434-343434343434"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(events, "create_event", fake_create_event)
+
+    exit_code = cli.main(
+        [
+            "event",
+            "add",
+            "Daily review",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+            "--recurrence-frequency",
+            "daily",
+            "--recurrence-interval",
+            "2",
+            "--recurrence-count",
+            "5",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created event 34343434-3434-3434-3434-343434343434" in captured.out
 
 
 def test_main_tag_add_creates_tag(
@@ -370,6 +405,69 @@ def test_main_event_update_rejects_conflicting_clear_area_flags(
 
     assert exit_code == 1
     assert "Use either --area-id or --clear-area, not both." in captured.err
+
+
+def test_main_event_update_passes_scope_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_update_event(session: object, **kwargs: object) -> object:
+        assert kwargs["scope"] == "single"
+        instance_start = cast(datetime, kwargs["instance_start"])
+        assert instance_start is not None
+        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00-04:00"
+        return make_record(id=UUID("56565656-5656-5656-5656-565656565656"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(events, "update_event", fake_update_event)
+
+    exit_code = cli.main(
+        [
+            "event",
+            "update",
+            "56565656-5656-5656-5656-565656565656",
+            "--scope",
+            "single",
+            "--instance-start",
+            "2026-04-10T09:00:00-04:00",
+            "--title",
+            "Updated review",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated event 56565656-5656-5656-5656-565656565656" in captured.out
+
+
+def test_main_event_delete_passes_scope_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_delete_event(session: object, **kwargs: object) -> None:
+        assert kwargs["scope"] == "all_future"
+        instance_start = cast(datetime, kwargs["instance_start"])
+        assert instance_start is not None
+        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00-04:00"
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(events, "delete_event", fake_delete_event)
+
+    exit_code = cli.main(
+        [
+            "event",
+            "delete",
+            "56565656-5656-5656-5656-565656565656",
+            "--scope",
+            "all_future",
+            "--instance-start",
+            "2026-04-10T09:00:00-04:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Soft-deleted event 56565656-5656-5656-5656-565656565656" in captured.out
 
 
 def test_main_people_update_can_clear_location(

@@ -201,6 +201,7 @@ The branch now exposes early CRUD-oriented command families for several addition
 
 - `lifeos area ...`
 - `lifeos event ...`
+- `lifeos schedule ...`
 - `lifeos habit ...`
 - `lifeos habit-action ...`
 - `lifeos tag ...`
@@ -214,6 +215,7 @@ Examples:
 ```bash
 lifeos area add "Health"
 lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
+lifeos schedule show --date 2026-04-10
 lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
 lifeos habit-action list --action-date 2026-04-09
 lifeos tag add "family" --entity-type person --category relation
@@ -273,9 +275,27 @@ lifeos event delete <event-id>
 Current event notes:
 
 - `event` is the planned schedule object, not the todo object
+- in Compass backend terms, `event` is the simplified public equivalent of `planned_event`
 - use `--window-start` and `--window-end` to query overlapping calendar ranges
 - use `--date` to query one configured local day
 - use repeated `--tag-id` and `--person-id` flags to attach tags and people
+- recurring series currently support `daily` and `weekly` cadence
+- use `event update|delete --scope single|all_future|all --instance-start ...` for recurring series
+
+### Schedule
+
+```bash
+lifeos schedule show --date 2026-04-10
+lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16
+```
+
+Current schedule notes:
+
+- `schedule` is a read model, not a stored domain entity
+- output is grouped by local date
+- each date includes `tasks`, `habit_actions`, and `events`
+- task inclusion currently uses planning-cycle overlap
+- event inclusion currently covers one-off events only; recurring event expansion is not implemented
 
 ### Habit
 
@@ -393,6 +413,7 @@ lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>
 Current timelog notes:
 
 - `timelog` is the actual time record and represents what really happened
+- in Compass backend terms, `timelog` is the simplified public equivalent of `actual_event`
 - use `--date` to query one configured local day
 - use `--query` to search timelog titles and notes
 - use `batch update` for repeated relation cleanup or title find/replace
@@ -485,6 +506,7 @@ Currently implemented:
 - `lifeos area batch delete`
 - `lifeos event add|list|show|update|delete`
 - `lifeos event batch delete`
+- `lifeos schedule show|list`
 - `lifeos tag add|list|show|update|delete`
 - `lifeos tag batch delete`
 - `lifeos people add|list|show|update|delete`
@@ -516,7 +538,7 @@ Not implemented yet:
 - note tags
 - note-to-task or note-to-person associations
 - batch update operations for the remaining structured resources
-- event/timelog recurrence or direct event-to-timelog conversion
+- direct event-to-timelog conversion
 - note ingestion jobs
 - richer search ranking or association-aware note search
 - public CLI access to hard delete

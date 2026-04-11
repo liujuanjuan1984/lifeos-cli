@@ -2,6 +2,7 @@
 
 from .area import Area
 from .event import Event
+from .event_occurrence_exception import EventOccurrenceException
 from .habit import Habit
 from .habit_action import HabitAction
 from .note import Note
@@ -14,6 +15,7 @@ from .vision import Vision
 __all__ = [
     "Area",
     "Event",
+    "EventOccurrenceException",
     "Habit",
     "HabitAction",
     "Note",
