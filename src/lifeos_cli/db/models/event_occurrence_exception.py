@@ -19,7 +19,7 @@ class EventOccurrenceException(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDelete
         Index("ix_event_occurrence_exceptions_master_event_id", "master_event_id"),
         Index("ix_event_occurrence_exceptions_instance_start", "instance_start"),
         Index(
-            "uq_event_occurrence_exceptions_master_event_id_instance_start_active",
+            "uq_evt_occur_exc_master_id_start_active",
             "master_event_id",
             "instance_start",
             unique=True,
