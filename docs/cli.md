@@ -133,6 +133,9 @@ If the caller is an agent or another automation layer:
 - use `show` before destructive or state-changing operations
 - treat help as the only authoritative command-level reference
 - keep flows identifier-driven after discovery
+- decide whether the record belongs to the human, the agent, or both before writing data
+- keep separate `people` records when the human partner and the agent should remain distinct subjects
+- use repeated `--person-id` flags on tasks, events, and timelogs to keep human-only, agent-only, and shared work separate
 
 Example pattern:
 

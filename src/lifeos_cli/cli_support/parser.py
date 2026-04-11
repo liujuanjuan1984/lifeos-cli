@@ -83,6 +83,9 @@ def build_parser() -> argparse.ArgumentParser:
                 "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
                 "primary command reference.",
                 "Each resource help page should explain scope, actions, and examples.",
+                "When automation acts on behalf of a human, model the acting subject "
+                "explicitly through `people` and repeated `--person-id` flags.",
+                "Keep human-only work, agent-only work, and truly shared work distinct.",
                 "Run `lifeos init` before using database-backed resource commands.",
             ),
         ),

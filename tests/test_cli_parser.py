@@ -128,6 +128,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "timelog" in captured.out
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
+    assert "When automation acts on behalf of a human" in captured.out
+    assert "human-only work, agent-only work, and truly shared work" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -144,6 +146,50 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     )
     assert "expanded recurring event occurrences" in captured.out
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+
+
+def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["people", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "human partner and, when useful, a named automation identity" in captured.out
+    assert "separate records when both can own work" in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_text"),
+    (
+        (
+            ["task", "add", "--help"],
+            "mark whether the task belongs to the human, the agent, or both",
+        ),
+        (
+            ["event", "add", "--help"],
+            "distinguish human-only plans from agent-only or shared schedule blocks",
+        ),
+        (
+            ["timelog", "add", "--help"],
+            "state whether the effort belongs to the human, the agent, or both",
+        ),
+    ),
+)
+def test_cli_action_help_describes_subject_disambiguation(
+    argv: list[str],
+    expected_text: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected_text in captured.out
 
 
 def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) -> None:

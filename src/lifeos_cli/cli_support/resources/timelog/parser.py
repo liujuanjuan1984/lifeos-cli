@@ -79,6 +79,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             notes=(
                 "Use repeated `--tag-id` and `--person-id` flags to attach tags and people.",
                 "Timelog end time is required because the record models completed time spent.",
+                "When an agent records actual work, use `--person-id` to state whether the "
+                "effort belongs to the human, the agent, or both.",
             ),
         ),
     )
@@ -198,6 +200,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             notes=(
                 "Use `--clear-*` flags to explicitly remove optional values.",
                 "Do not mix a value flag with the matching clear flag in the same command.",
+                "Use repeated `--person-id` to keep actual human effort, agent effort, "
+                "and shared effort distinct.",
             ),
         ),
     )
