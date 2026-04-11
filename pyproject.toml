@@ -66,6 +66,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 lifeos_cli = ["py.typed"]
+"lifeos_cli.alembic" = ["script.py.mako"]
 
 [tool.setuptools_scm]
 fallback_version = "0+unknown"

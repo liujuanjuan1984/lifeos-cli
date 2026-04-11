@@ -2,17 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 from logging.config import fileConfig
-from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool, text
-
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 import lifeos_cli.db.models  # noqa: F401, E402
 from lifeos_cli.config import get_database_settings  # noqa: E402

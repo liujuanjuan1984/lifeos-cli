@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import ExitStack
 from dataclasses import dataclass
-from pathlib import Path
+from importlib.resources import as_file, files
 from typing import Any, cast
 from uuid import UUID
 
@@ -28,8 +29,6 @@ from lifeos_cli.db.models import (
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.session import get_async_engine
-
-ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
 @dataclass(frozen=True)
@@ -76,12 +75,24 @@ async def ping_database() -> None:
         await connection.execute(text("SELECT 1"))
 
 
+def build_alembic_config(*, sqlalchemy_url: str, stack: ExitStack) -> Config:
+    """Build an Alembic config backed by packaged migration resources."""
+    script_location = stack.enter_context(as_file(files("lifeos_cli.alembic")))
+    alembic_config = Config()
+    alembic_config.set_main_option("script_location", str(script_location))
+    alembic_config.set_main_option("sqlalchemy.url", sqlalchemy_url)
+    return alembic_config
+
+
 def upgrade_database(revision: str = "head") -> None:
     """Apply Alembic migrations to the configured database."""
-    alembic_config = Config(str(ROOT_DIR / "alembic.ini"))
     settings = get_database_settings()
-    alembic_config.set_main_option("sqlalchemy.url", settings.require_database_url())
-    command.upgrade(alembic_config, revision)
+    with ExitStack() as stack:
+        alembic_config = build_alembic_config(
+            sqlalchemy_url=settings.require_database_url(),
+            stack=stack,
+        )
+        command.upgrade(alembic_config, revision)
 
 
 async def purge_soft_deleted_record(
