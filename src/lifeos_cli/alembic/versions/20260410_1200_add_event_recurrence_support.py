@@ -121,7 +121,7 @@ def upgrade() -> None:
         schema=schema_name,
     )
     op.create_index(
-        "uq_event_occurrence_exceptions_master_event_id_instance_start_active",
+        "uq_evt_occur_exc_master_id_start_active",
         "event_occurrence_exceptions",
         ["master_event_id", "instance_start"],
         unique=True,
@@ -134,7 +134,7 @@ def downgrade() -> None:
     schema_name = _schema_name()
 
     op.drop_index(
-        "uq_event_occurrence_exceptions_master_event_id_instance_start_active",
+        "uq_evt_occur_exc_master_id_start_active",
         table_name="event_occurrence_exceptions",
         schema=schema_name,
     )
