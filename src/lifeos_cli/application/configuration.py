@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
@@ -17,6 +17,7 @@ from lifeos_cli.config import (
     PreferencesSettings,
     detect_default_language,
     detect_default_timezone,
+    parse_boolean_value,
     resolve_config_path,
     validate_database_schema_name,
     validate_database_url,
@@ -55,11 +56,33 @@ class InitializationRequest:
     prompts: InitializationPrompts | None = None
 
 
+SUPPORTED_CONFIG_KEYS = (
+    "database.url",
+    "database.schema",
+    "database.echo",
+    "preferences.timezone",
+    "preferences.language",
+    "preferences.day_starts_at",
+    "preferences.week_starts_on",
+    "preferences.vision_experience_rate_per_hour",
+)
+
+
+@dataclass(frozen=True)
+class ConfigSetResult:
+    """Result of one config set write operation."""
+
+    key: str
+    config_path: Path
+    database_settings: DatabaseSettings
+    preferences_settings: PreferencesSettings
+
+
 def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     """Build database settings from explicit input, current config, and prompts."""
     config_path = resolve_config_path()
     try:
-        current = DatabaseSettings.from_env()
+        current = DatabaseSettings.from_env(include_overrides=False)
     except (ConfigurationError, ValueError):
         current = DatabaseSettings(
             database_url=None,
@@ -100,7 +123,7 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
     """Build preference settings from explicit input and current config."""
     config_path = resolve_config_path()
     try:
-        current = PreferencesSettings.from_env()
+        current = PreferencesSettings.from_env(include_overrides=False)
     except (ConfigurationError, ValueError):
         current = PreferencesSettings(
             timezone=detect_default_timezone(),
@@ -144,3 +167,69 @@ def persist_runtime_settings(
     )
     refresh_runtime_configuration()
     return config_path
+
+
+def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
+    """Persist one supported runtime config key and refresh caches."""
+    normalized_key = key.strip()
+    if normalized_key not in SUPPORTED_CONFIG_KEYS:
+        supported_keys = ", ".join(SUPPORTED_CONFIG_KEYS)
+        raise ConfigurationError(
+            f"Unsupported config key {normalized_key!r}. Supported keys: {supported_keys}"
+        )
+
+    database_settings = DatabaseSettings.from_env(include_overrides=False)
+    preferences_settings = PreferencesSettings.from_env(include_overrides=False)
+
+    if normalized_key == "database.url":
+        database_settings = replace(
+            database_settings,
+            database_url=validate_database_url(value),
+        )
+    elif normalized_key == "database.schema":
+        database_settings = replace(
+            database_settings,
+            database_schema=validate_database_schema_name(value),
+        )
+    elif normalized_key == "database.echo":
+        database_settings = replace(
+            database_settings,
+            database_echo=parse_boolean_value(value, field_name="Config key `database.echo`"),
+        )
+    elif normalized_key == "preferences.timezone":
+        preferences_settings = replace(
+            preferences_settings,
+            timezone=validate_timezone_name(value),
+        )
+    elif normalized_key == "preferences.language":
+        preferences_settings = replace(
+            preferences_settings,
+            language=validate_language(value),
+        )
+    elif normalized_key == "preferences.day_starts_at":
+        preferences_settings = replace(
+            preferences_settings,
+            day_starts_at=validate_day_starts_at(value),
+        )
+    elif normalized_key == "preferences.week_starts_on":
+        preferences_settings = replace(
+            preferences_settings,
+            week_starts_on=validate_week_starts_on(value),
+        )
+    elif normalized_key == "preferences.vision_experience_rate_per_hour":
+        preferences_settings = replace(
+            preferences_settings,
+            vision_experience_rate_per_hour=validate_vision_experience_rate_per_hour(value),
+        )
+
+    written_path = write_database_settings(
+        database_settings,
+        preferences=preferences_settings,
+    )
+    refresh_runtime_configuration()
+    return ConfigSetResult(
+        key=normalized_key,
+        config_path=written_path,
+        database_settings=database_settings,
+        preferences_settings=preferences_settings,
+    )
