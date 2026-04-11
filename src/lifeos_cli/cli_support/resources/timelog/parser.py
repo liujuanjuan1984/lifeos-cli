@@ -21,6 +21,12 @@ from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_list,
     handle_timelog_restore,
     handle_timelog_show,
+    handle_timelog_stats_day,
+    handle_timelog_stats_month,
+    handle_timelog_stats_range,
+    handle_timelog_stats_rebuild,
+    handle_timelog_stats_week,
+    handle_timelog_stats_year,
     handle_timelog_update,
 )
 
@@ -28,6 +34,11 @@ from lifeos_cli.cli_support.resources.timelog.handlers import (
 def _datetime_value(value: str) -> datetime:
     """Parse an ISO-8601 datetime value."""
     return datetime.fromisoformat(value)
+
+
+def _month_value(value: str) -> date:
+    """Parse a YYYY-MM month value."""
+    return date.fromisoformat(f"{value}-01")
 
 
 def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -44,6 +55,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=(
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",
+                "lifeos timelog stats day --date 2026-04-10",
                 "lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
@@ -54,6 +66,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             notes=(
                 "Use `list` as the primary query entrypoint for timelogs.",
                 "Timelogs can optionally reference one area and one task.",
+                "Use `stats` for timelog stats grouped by area.",
                 "Delete operations in the public CLI always perform soft deletion.",
                 "Use `restore` to recover a soft-deleted timelog.",
             ),
@@ -361,3 +374,171 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     add_identifier_list_argument(batch_delete_parser, dest="timelog_ids", noun="timelog")
     batch_delete_parser.set_defaults(handler=handle_timelog_batch_delete)
+
+    stats_parser = add_documented_parser(
+        timelog_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary="Query timelog stats grouped by area",
+            description=(
+                "Query timelog stats grouped by area.\n\n"
+                "Day, week, month, and year views use persisted stats when available and "
+                "fall back to direct aggregation when the cache has not been rebuilt yet."
+            ),
+            examples=(
+                "lifeos timelog stats day --date 2026-04-10",
+                "lifeos timelog stats range --start-date 2026-04-01 --end-date 2026-04-30",
+                "lifeos timelog stats week --date 2026-04-10",
+                "lifeos timelog stats month --month 2026-04",
+                "lifeos timelog stats rebuild --all",
+            ),
+            notes=(
+                "Stats are grouped only by area; task effort remains a separate task feature.",
+                "Run `timelog stats rebuild` after upgrading older datasets or importing "
+                "historical timelogs so persisted stats match historical records.",
+                "Range stats aggregate directly from source timelogs for the requested window.",
+            ),
+        ),
+    )
+    stats_parser.set_defaults(handler=make_help_handler(stats_parser))
+    stats_subparsers = stats_parser.add_subparsers(
+        dest="timelog_stats_command", title="stats actions", metavar="stats-action"
+    )
+
+    stats_day_parser = add_documented_parser(
+        stats_subparsers,
+        "day",
+        help_content=HelpContent(
+            summary="Show one day of timelog stats grouped by area",
+            description="Show one local operational day of timelog stats grouped by area.",
+            examples=("lifeos timelog stats day --date 2026-04-10",),
+        ),
+    )
+    stats_day_parser.add_argument(
+        "--date",
+        dest="target_date",
+        required=True,
+        type=date.fromisoformat,
+        help="Local operational date in YYYY-MM-DD format",
+    )
+    stats_day_parser.set_defaults(handler=handle_timelog_stats_day)
+
+    stats_range_parser = add_documented_parser(
+        stats_subparsers,
+        "range",
+        help_content=HelpContent(
+            summary="Show a date range of timelog stats grouped by area",
+            description="Show one local date range of timelog stats grouped by area.",
+            examples=("lifeos timelog stats range --start-date 2026-04-01 --end-date 2026-04-30",),
+        ),
+    )
+    stats_range_parser.add_argument(
+        "--start-date",
+        required=True,
+        type=date.fromisoformat,
+        help="Local range start date in YYYY-MM-DD format",
+    )
+    stats_range_parser.add_argument(
+        "--end-date",
+        required=True,
+        type=date.fromisoformat,
+        help="Local range end date in YYYY-MM-DD format",
+    )
+    stats_range_parser.set_defaults(handler=handle_timelog_stats_range)
+
+    stats_week_parser = add_documented_parser(
+        stats_subparsers,
+        "week",
+        help_content=HelpContent(
+            summary="Show one week of timelog stats grouped by area",
+            description="Show one configured local week of timelog stats grouped by area.",
+            examples=("lifeos timelog stats week --date 2026-04-10",),
+            notes=("The week boundary follows the configured `week_starts_on` preference.",),
+        ),
+    )
+    stats_week_parser.add_argument(
+        "--date",
+        dest="target_date",
+        required=True,
+        type=date.fromisoformat,
+        help="Reference local date in YYYY-MM-DD format",
+    )
+    stats_week_parser.set_defaults(handler=handle_timelog_stats_week)
+
+    stats_month_parser = add_documented_parser(
+        stats_subparsers,
+        "month",
+        help_content=HelpContent(
+            summary="Show one month of timelog stats grouped by area",
+            description="Show one calendar month of timelog stats grouped by area.",
+            examples=("lifeos timelog stats month --month 2026-04",),
+        ),
+    )
+    stats_month_parser.add_argument(
+        "--month",
+        required=True,
+        type=_month_value,
+        help="Calendar month in YYYY-MM format",
+    )
+    stats_month_parser.set_defaults(handler=handle_timelog_stats_month)
+
+    stats_year_parser = add_documented_parser(
+        stats_subparsers,
+        "year",
+        help_content=HelpContent(
+            summary="Show one year of timelog stats grouped by area",
+            description="Show one calendar year of timelog stats grouped by area.",
+            examples=("lifeos timelog stats year --year 2026",),
+        ),
+    )
+    stats_year_parser.add_argument(
+        "--year",
+        required=True,
+        type=int,
+        help="Calendar year, for example 2026",
+    )
+    stats_year_parser.set_defaults(handler=handle_timelog_stats_year)
+
+    stats_rebuild_parser = add_documented_parser(
+        stats_subparsers,
+        "rebuild",
+        help_content=HelpContent(
+            summary="Rebuild persisted timelog stats grouped by area",
+            description=(
+                "Rebuild persisted day, week, month, and year timelog stats grouped by area "
+                "for one selected local scope."
+            ),
+            examples=(
+                "lifeos timelog stats rebuild --date 2026-04-10",
+                "lifeos timelog stats rebuild --start-date 2026-01-01 --end-date 2026-03-31",
+                "lifeos timelog stats rebuild --all",
+            ),
+            notes=(
+                "Use rebuild after upgrading older datasets or importing historical timelogs.",
+                "Rebuild uses the configured timezone and `day_starts_at` preference.",
+            ),
+        ),
+    )
+    stats_rebuild_parser.add_argument(
+        "--date",
+        dest="target_date",
+        type=date.fromisoformat,
+        help="Rebuild one local operational date in YYYY-MM-DD format",
+    )
+    stats_rebuild_parser.add_argument(
+        "--start-date",
+        type=date.fromisoformat,
+        help="Rebuild range start date in YYYY-MM-DD format",
+    )
+    stats_rebuild_parser.add_argument(
+        "--end-date",
+        type=date.fromisoformat,
+        help="Rebuild range end date in YYYY-MM-DD format",
+    )
+    stats_rebuild_parser.add_argument(
+        "--all",
+        dest="rebuild_all",
+        action="store_true",
+        help="Rebuild every local date touched by active timelogs with linked areas",
+    )
+    stats_rebuild_parser.set_defaults(handler=handle_timelog_stats_rebuild)

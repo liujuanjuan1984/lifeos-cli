@@ -28,6 +28,10 @@ def test_build_alembic_config_uses_packaged_migration_resources() -> None:
             "versions",
             "20260410_1200_add_event_recurrence_support.py",
         ).is_file()
+        assert script_location.joinpath(
+            "versions",
+            "20260411_0900_add_timelog_stats_groupby_area_tables.py",
+        ).is_file()
 
 
 def test_upgrade_database_uses_packaged_alembic_config(

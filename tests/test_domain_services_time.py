@@ -488,6 +488,12 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         "recompute_task_effort_after_timelog_change",
         recompute_task_effort,
     )
+    recompute_timelog_stats = AsyncMock()
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_timelog_stats_groupby_area_after_change",
+        recompute_timelog_stats,
+    )
 
     updated_timelog = asyncio.run(
         timelogs.update_timelog(
@@ -513,6 +519,7 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         old_task_id=UUID("22222222-2222-2222-2222-222222222222"),
         new_task_id=None,
     )
+    recompute_timelog_stats.assert_awaited_once()
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -617,6 +624,8 @@ def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
         id=timelog_id,
         area_id=None,
         task_id=task_id,
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 14, 0),
         deleted_at=utc_datetime(2026, 4, 10, 15, 0),
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock())
@@ -649,6 +658,12 @@ def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
         "recompute_task_effort_after_timelog_change",
         recompute_task_effort,
     )
+    recompute_timelog_stats = AsyncMock()
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_timelog_stats_groupby_area_after_change",
+        recompute_timelog_stats,
+    )
 
     restored_timelog = asyncio.run(
         timelogs.restore_timelog(
@@ -663,6 +678,7 @@ def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
         old_task_id=None,
         new_task_id=task_id,
     )
+    recompute_timelog_stats.assert_awaited_once()
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(timelog)
 

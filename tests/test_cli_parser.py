@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 import pytest
@@ -148,6 +149,19 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
 
 
+def test_cli_timelog_stats_help_describes_persisted_area_stats(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "stats", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "persisted stats when available" in captured.out
+    assert "Stats are grouped only by area" in captured.out
+    assert "timelog stats rebuild" in captured.out
+
+
 def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:
     parser = build_parser()
 
@@ -158,6 +172,23 @@ def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> N
 
     assert "human partner and, when useful, a named automation identity" in captured.out
     assert "separate records when both can own work" in captured.out
+
+
+def test_cli_parser_supports_timelog_stats_commands() -> None:
+    parser = build_parser()
+
+    day_args = parser.parse_args(["timelog", "stats", "day", "--date", "2026-04-10"])
+    month_args = parser.parse_args(["timelog", "stats", "month", "--month", "2026-04"])
+    rebuild_args = parser.parse_args(["timelog", "stats", "rebuild", "--all"])
+
+    assert day_args.resource == "timelog"
+    assert day_args.timelog_command == "stats"
+    assert day_args.timelog_stats_command == "day"
+    assert day_args.target_date == date(2026, 4, 10)
+    assert month_args.timelog_stats_command == "month"
+    assert month_args.month == date(2026, 4, 1)
+    assert rebuild_args.timelog_stats_command == "rebuild"
+    assert rebuild_args.rebuild_all is True
 
 
 @pytest.mark.parametrize(
