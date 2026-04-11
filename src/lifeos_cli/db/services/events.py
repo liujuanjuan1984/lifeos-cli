@@ -40,6 +40,7 @@ from lifeos_cli.db.services.event_support import (
     validate_event_status,
     validate_event_time_range,
     validate_event_title,
+    validate_event_type,
 )
 
 
@@ -50,6 +51,7 @@ class EventOccurrence:
     id: UUID
     title: str
     status: str
+    event_type: str
     start_time: datetime
     end_time: datetime | None
     task_id: UUID | None
@@ -201,6 +203,42 @@ async def _apply_event_links(
         )
 
 
+def _apply_event_query_filters(
+    stmt: Any,
+    *,
+    title_contains: str | None,
+    normalized_status: str | None,
+    normalized_event_type: str | None,
+    area_id: UUID | None,
+    task_id: UUID | None,
+    person_id: UUID | None,
+    tag_id: UUID | None,
+) -> Any:
+    if title_contains:
+        stmt = stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
+    if normalized_status is not None:
+        stmt = stmt.where(Event.status == normalized_status)
+    if normalized_event_type is not None:
+        stmt = stmt.where(Event.event_type == normalized_event_type)
+    if area_id is not None:
+        stmt = stmt.where(Event.area_id == area_id)
+    if task_id is not None:
+        stmt = stmt.where(Event.task_id == task_id)
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Event.id)
+            & (person_associations.c.entity_type == "event"),
+        ).where(person_associations.c.person_id == person_id)
+    if tag_id is not None:
+        stmt = stmt.join(
+            tag_associations,
+            (tag_associations.c.entity_id == Event.id)
+            & (tag_associations.c.entity_type == "event"),
+        ).where(tag_associations.c.tag_id == tag_id)
+    return stmt
+
+
 def _build_event_values(
     *,
     title: str,
@@ -209,6 +247,7 @@ def _build_event_values(
     description: str | None,
     priority: int,
     status: str,
+    event_type: str,
     is_all_day: bool,
     area_id: UUID | None,
     task_id: UUID | None,
@@ -226,6 +265,7 @@ def _build_event_values(
         "description": description,
         "priority": priority,
         "status": status,
+        "event_type": event_type,
         "is_all_day": is_all_day,
         "area_id": area_id,
         "task_id": task_id,
@@ -247,6 +287,7 @@ async def create_event(
     description: str | None = None,
     priority: int = 0,
     status: str = "planned",
+    event_type: str = "appointment",
     is_all_day: bool = False,
     area_id: UUID | None = None,
     task_id: UUID | None = None,
@@ -274,6 +315,7 @@ async def create_event(
     validate_event_time_range(start_time=normalized_start_time, end_time=normalized_end_time)
     normalized_priority = validate_event_priority(priority)
     normalized_status = validate_event_status(status)
+    normalized_event_type = validate_event_type(event_type)
     (
         normalized_recurrence_frequency,
         normalized_recurrence_interval,
@@ -296,6 +338,7 @@ async def create_event(
             description=description,
             priority=normalized_priority,
             status=normalized_status,
+            event_type=normalized_event_type,
             is_all_day=is_all_day,
             area_id=area_id,
             task_id=task_id,
@@ -342,6 +385,7 @@ async def list_event_occurrences(
     window_end: datetime,
     title_contains: str | None = None,
     status: str | None = None,
+    event_type: str | None = None,
     area_id: UUID | None = None,
     task_id: UUID | None = None,
     person_id: UUID | None = None,
@@ -349,6 +393,9 @@ async def list_event_occurrences(
     include_deleted: bool = False,
 ) -> list[EventOccurrence]:
     """List expanded event occurrences that overlap one time window."""
+    normalized_status = validate_event_status(status) if status is not None else None
+    normalized_event_type = validate_event_type(event_type) if event_type is not None else None
+
     master_stmt = select(Event).where(
         Event.recurrence_parent_event_id.is_(None),
         Event.start_time <= window_end,
@@ -360,26 +407,16 @@ async def list_event_occurrences(
     )
     if not include_deleted:
         master_stmt = master_stmt.where(Event.deleted_at.is_(None))
-    if title_contains:
-        master_stmt = master_stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
-    if status is not None:
-        master_stmt = master_stmt.where(Event.status == validate_event_status(status))
-    if area_id is not None:
-        master_stmt = master_stmt.where(Event.area_id == area_id)
-    if task_id is not None:
-        master_stmt = master_stmt.where(Event.task_id == task_id)
-    if person_id is not None:
-        master_stmt = master_stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Event.id)
-            & (person_associations.c.entity_type == "event"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
-        master_stmt = master_stmt.join(
-            tag_associations,
-            (tag_associations.c.entity_id == Event.id)
-            & (tag_associations.c.entity_type == "event"),
-        ).where(tag_associations.c.tag_id == tag_id)
+    master_stmt = _apply_event_query_filters(
+        master_stmt,
+        title_contains=title_contains,
+        normalized_status=normalized_status,
+        normalized_event_type=normalized_event_type,
+        area_id=area_id,
+        task_id=task_id,
+        person_id=person_id,
+        tag_id=tag_id,
+    )
     masters = list((await session.execute(master_stmt)).scalars())
     master_ids = [event.id for event in masters if event_is_recurring(event)]
     skip_map = await _load_skip_exceptions(session, master_event_ids=master_ids)
@@ -391,26 +428,16 @@ async def list_event_occurrences(
     )
     if not include_deleted:
         override_stmt = override_stmt.where(Event.deleted_at.is_(None))
-    if title_contains:
-        override_stmt = override_stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
-    if status is not None:
-        override_stmt = override_stmt.where(Event.status == validate_event_status(status))
-    if area_id is not None:
-        override_stmt = override_stmt.where(Event.area_id == area_id)
-    if task_id is not None:
-        override_stmt = override_stmt.where(Event.task_id == task_id)
-    if person_id is not None:
-        override_stmt = override_stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Event.id)
-            & (person_associations.c.entity_type == "event"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
-        override_stmt = override_stmt.join(
-            tag_associations,
-            (tag_associations.c.entity_id == Event.id)
-            & (tag_associations.c.entity_type == "event"),
-        ).where(tag_associations.c.tag_id == tag_id)
+    override_stmt = _apply_event_query_filters(
+        override_stmt,
+        title_contains=title_contains,
+        normalized_status=normalized_status,
+        normalized_event_type=normalized_event_type,
+        area_id=area_id,
+        task_id=task_id,
+        person_id=person_id,
+        tag_id=tag_id,
+    )
     overrides = list((await session.execute(override_stmt)).scalars())
     override_keys = {
         (override.recurrence_parent_event_id, override.recurrence_instance_start): override
@@ -428,6 +455,7 @@ async def list_event_occurrences(
                         id=master.id,
                         title=master.title,
                         status=master.status,
+                        event_type=getattr(master, "event_type", "appointment"),
                         start_time=master.start_time,
                         end_time=master.end_time,
                         task_id=master.task_id,
@@ -453,6 +481,7 @@ async def list_event_occurrences(
                     id=master.id,
                     title=master.title,
                     status=master.status,
+                    event_type=getattr(master, "event_type", "appointment"),
                     start_time=occurrence_start,
                     end_time=_event_occurrence_end(master, occurrence_start=occurrence_start),
                     task_id=master.task_id,
@@ -469,6 +498,7 @@ async def list_event_occurrences(
                 id=override.id,
                 title=override.title,
                 status=override.status,
+                event_type=getattr(override, "event_type", "appointment"),
                 start_time=override.start_time,
                 end_time=override.end_time,
                 task_id=override.task_id,
@@ -487,6 +517,7 @@ async def list_events(
     *,
     title_contains: str | None = None,
     status: str | None = None,
+    event_type: str | None = None,
     area_id: UUID | None = None,
     task_id: UUID | None = None,
     person_id: UUID | None = None,
@@ -499,6 +530,9 @@ async def list_events(
     offset: int = 0,
 ) -> list[object]:
     """List events with optional filters."""
+    normalized_status = validate_event_status(status) if status is not None else None
+    normalized_event_type = validate_event_type(event_type) if event_type is not None else None
+
     if local_date is not None:
         local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
         window_start = local_window_start
@@ -510,7 +544,8 @@ async def list_events(
             window_start=window_start,
             window_end=window_end,
             title_contains=title_contains,
-            status=status,
+            status=normalized_status,
+            event_type=normalized_event_type,
             area_id=area_id,
             task_id=task_id,
             person_id=person_id,
@@ -522,30 +557,20 @@ async def list_events(
     stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
     if not include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
-    if title_contains:
-        stmt = stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
-    if status is not None:
-        stmt = stmt.where(Event.status == validate_event_status(status))
-    if area_id is not None:
-        stmt = stmt.where(Event.area_id == area_id)
-    if task_id is not None:
-        stmt = stmt.where(Event.task_id == task_id)
+    stmt = _apply_event_query_filters(
+        stmt,
+        title_contains=title_contains,
+        normalized_status=normalized_status,
+        normalized_event_type=normalized_event_type,
+        area_id=area_id,
+        task_id=task_id,
+        person_id=person_id,
+        tag_id=tag_id,
+    )
     if window_start is not None:
         stmt = stmt.where(or_(Event.end_time.is_(None), Event.end_time >= window_start))
     if window_end is not None:
         stmt = stmt.where(Event.start_time <= window_end)
-    if person_id is not None:
-        stmt = stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Event.id)
-            & (person_associations.c.entity_type == "event"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
-        stmt = stmt.join(
-            tag_associations,
-            (tag_associations.c.entity_id == Event.id)
-            & (tag_associations.c.entity_type == "event"),
-        ).where(tag_associations.c.tag_id == tag_id)
     stmt = stmt.order_by(Event.start_time.desc(), Event.id.desc()).offset(offset).limit(limit)
     events = list((await session.execute(stmt)).scalars())
     return list(await _attach_event_links_for_many(session, events))
@@ -563,6 +588,7 @@ async def _update_event_record(
     clear_end_time: bool,
     priority: int | None,
     status: str | None,
+    event_type: str | None,
     is_all_day: bool | None,
     area_id: UUID | None,
     clear_area: bool,
@@ -653,6 +679,8 @@ async def _update_event_record(
         event.priority = validate_event_priority(priority)
     if status is not None:
         event.status = validate_event_status(status)
+    if event_type is not None:
+        event.event_type = validate_event_type(event_type)
     if is_all_day is not None:
         event.is_all_day = is_all_day
     if clear_area:
@@ -710,6 +738,7 @@ async def _update_single_occurrence(
     clear_end_time: bool,
     priority: int | None,
     status: str | None,
+    event_type: str | None,
     is_all_day: bool | None,
     area_id: UUID | None,
     clear_area: bool,
@@ -756,6 +785,7 @@ async def _update_single_occurrence(
             end_time=override_end_time,
             priority=priority if priority is not None else master_event.priority,
             status=status or master_event.status,
+            event_type=event_type or master_event.event_type,
             is_all_day=is_all_day if is_all_day is not None else master_event.is_all_day,
             area_id=(
                 None if clear_area else area_id if area_id is not None else master_event.area_id
@@ -781,6 +811,7 @@ async def _update_single_occurrence(
             clear_end_time=clear_end_time,
             priority=priority,
             status=status,
+            event_type=event_type,
             is_all_day=is_all_day,
             area_id=area_id,
             clear_area=clear_area,
@@ -817,6 +848,7 @@ async def _update_future_series(
     clear_end_time: bool,
     priority: int | None,
     status: str | None,
+    event_type: str | None,
     is_all_day: bool | None,
     area_id: UUID | None,
     clear_area: bool,
@@ -848,6 +880,7 @@ async def _update_future_series(
             clear_end_time=clear_end_time,
             priority=priority,
             status=status,
+            event_type=event_type,
             is_all_day=is_all_day,
             area_id=area_id,
             clear_area=clear_area,
@@ -925,6 +958,7 @@ async def _update_future_series(
         else _event_occurrence_end(master_event, occurrence_start=instance_start),
         priority=priority if priority is not None else master_event.priority,
         status=status or master_event.status,
+        event_type=event_type or master_event.event_type,
         is_all_day=is_all_day if is_all_day is not None else master_event.is_all_day,
         area_id=None if clear_area else area_id if area_id is not None else master_event.area_id,
         task_id=None if clear_task else task_id if task_id is not None else master_event.task_id,
@@ -949,6 +983,7 @@ async def update_event(
     clear_end_time: bool = False,
     priority: int | None = None,
     status: str | None = None,
+    event_type: str | None = None,
     is_all_day: bool | None = None,
     area_id: UUID | None = None,
     clear_area: bool = False,
@@ -994,6 +1029,7 @@ async def update_event(
             clear_end_time=clear_end_time,
             priority=priority,
             status=status,
+            event_type=event_type,
             is_all_day=is_all_day,
             area_id=area_id,
             clear_area=clear_area,
@@ -1018,6 +1054,7 @@ async def update_event(
             clear_end_time=clear_end_time,
             priority=priority,
             status=status,
+            event_type=event_type,
             is_all_day=is_all_day,
             area_id=area_id,
             clear_area=clear_area,
@@ -1044,6 +1081,7 @@ async def update_event(
         clear_end_time=clear_end_time,
         priority=priority,
         status=status,
+        event_type=event_type,
         is_all_day=is_all_day,
         area_id=area_id,
         clear_area=clear_area,

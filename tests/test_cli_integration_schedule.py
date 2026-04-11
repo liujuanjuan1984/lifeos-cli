@@ -53,6 +53,8 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
         "event",
         "add",
         "Release planning block",
+        "--type",
+        "timeblock",
         "--start-time",
         "2026-04-10T09:00:00-04:00",
         "--end-time",
@@ -68,6 +70,8 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
         "event",
         "add",
         "Daily review",
+        "--type",
+        "deadline",
         "--start-time",
         "2026-04-10T12:00:00-04:00",
         "--end-time",
@@ -90,7 +94,9 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "date: 2026-04-10" in schedule_show_result.stdout
     assert "tasks:" in schedule_show_result.stdout
     assert "habit_actions:" in schedule_show_result.stdout
-    assert "events:" in schedule_show_result.stdout
+    assert "appointments:" in schedule_show_result.stdout
+    assert "timeblocks:" in schedule_show_result.stdout
+    assert "deadlines:" in schedule_show_result.stdout
     assert task_id in schedule_show_result.stdout
     assert "Daily Review" in schedule_show_result.stdout
     assert event_id in schedule_show_result.stdout

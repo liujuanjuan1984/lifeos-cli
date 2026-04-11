@@ -66,6 +66,7 @@ def test_main_event_add_creates_event(
 ) -> None:
     async def fake_create_event(session: object, **kwargs: object) -> object:
         assert kwargs["title"] == "Doctor appointment"
+        assert kwargs["event_type"] == "appointment"
         assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("12121212-1212-1212-1212-121212121212"))
 
@@ -121,6 +122,34 @@ def test_main_event_add_passes_recurrence_fields(
 
     assert exit_code == 0
     assert "Created event 34343434-3434-3434-3434-343434343434" in captured.out
+
+
+def test_main_event_add_passes_event_type(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_event(session: object, **kwargs: object) -> object:
+        assert kwargs["event_type"] == "timeblock"
+        return make_record(id=UUID("45454545-4545-4545-4545-454545454545"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(events, "create_event", fake_create_event)
+
+    exit_code = cli.main(
+        [
+            "event",
+            "add",
+            "Focus Work",
+            "--type",
+            "timeblock",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created event 45454545-4545-4545-4545-454545454545" in captured.out
 
 
 def test_main_tag_add_creates_tag(
@@ -413,6 +442,7 @@ def test_main_event_update_passes_scope_fields(
 ) -> None:
     async def fake_update_event(session: object, **kwargs: object) -> object:
         assert kwargs["scope"] == "single"
+        assert kwargs["event_type"] == "deadline"
         instance_start = cast(datetime, kwargs["instance_start"])
         assert instance_start is not None
         assert str(instance_start.isoformat()) == "2026-04-10T09:00:00-04:00"
@@ -430,6 +460,8 @@ def test_main_event_update_passes_scope_fields(
             "single",
             "--instance-start",
             "2026-04-10T09:00:00-04:00",
+            "--type",
+            "deadline",
             "--title",
             "Updated review",
         ]

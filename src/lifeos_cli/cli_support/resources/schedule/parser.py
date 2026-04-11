@@ -34,6 +34,7 @@ def build_schedule_parser(
                 "Use `show` for one exact local day.",
                 "Use `list` for multi-day ranges.",
                 "Dates use the configured timezone and `day_starts_at` preference.",
+                "Event output is segmented into appointment, timeblock, and deadline sections.",
                 "Schedule reads from existing domains and does not create a new stored entity.",
             ),
         ),
@@ -50,7 +51,10 @@ def build_schedule_parser(
             summary="Show one schedule day",
             description="Show the aggregated schedule for one local day.",
             examples=("lifeos schedule show --date 2026-04-10",),
-            notes=("The output groups tasks, habit actions, and event occurrences for the day.",),
+            notes=(
+                "The output groups tasks, habit actions, and event occurrences for the day.",
+                "Event occurrences are split into appointment, timeblock, and deadline sections.",
+            ),
         ),
     )
     show_parser.add_argument(
@@ -72,6 +76,7 @@ def build_schedule_parser(
             notes=(
                 "The range is inclusive on both start and end dates.",
                 "Recurring event occurrences are expanded inside the requested range.",
+                "Event occurrences remain segmented by type inside each day block.",
             ),
         ),
     )

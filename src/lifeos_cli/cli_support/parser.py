@@ -68,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
                 'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
                 'lifeos task add "Draft release plan" --vision-id <vision-id>',
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
+                'lifeos event add "Focus Work" --type timeblock '
+                "--start-time 2026-04-10T13:00:00-04:00",
                 "lifeos schedule show --date 2026-04-10",
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",

@@ -14,8 +14,9 @@ from lifeos_cli.db.services import events as event_services
 
 def _format_event_summary(event: Any) -> str:
     status = "deleted" if getattr(event, "deleted_at", None) is not None else event.status
+    event_type = getattr(event, "event_type", "appointment")
     return (
-        f"{event.id}\t{status}\t{format_timestamp(event.start_time)}\t"
+        f"{event.id}\t{status}\t{event_type}\t{format_timestamp(event.start_time)}\t"
         f"{format_timestamp(event.end_time)}\t{event.task_id or '-'}\t{event.title}"
     )
 
@@ -31,6 +32,7 @@ def _format_event_detail(event: Any) -> str:
             f"title: {event.title}",
             f"description: {event.description or '-'}",
             f"status: {event.status}",
+            f"event_type: {getattr(event, 'event_type', 'appointment')}",
             f"priority: {event.priority}",
             f"is_all_day: {event.is_all_day}",
             f"start_time: {format_timestamp(event.start_time)}",
@@ -70,6 +72,7 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
                 end_time=args.end_time,
                 priority=args.priority,
                 status=args.status,
+                event_type=args.event_type,
                 is_all_day=args.all_day,
                 area_id=args.area_id,
                 task_id=args.task_id,
@@ -110,6 +113,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                 session,
                 title_contains=args.title_contains,
                 status=args.status,
+                event_type=args.event_type,
                 area_id=args.area_id,
                 task_id=args.task_id,
                 person_id=args.person_id,
@@ -197,6 +201,7 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
                 clear_end_time=args.clear_end_time,
                 priority=args.priority,
                 status=args.status,
+                event_type=args.event_type,
                 is_all_day=args.all_day,
                 area_id=args.area_id,
                 clear_area=args.clear_area,
