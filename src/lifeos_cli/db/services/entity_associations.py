@@ -31,7 +31,9 @@ def validate_association_model(model_name: str) -> str:
     normalized = model_name.strip().lower()
     if normalized not in VALID_ASSOCIATION_MODELS:
         allowed = ", ".join(sorted(VALID_ASSOCIATION_MODELS))
-        raise ValueError(f"Unsupported association model {normalized!r}. Expected one of: {allowed}")
+        raise ValueError(
+            f"Unsupported association model {normalized!r}. Expected one of: {allowed}"
+        )
     return normalized
 
 
@@ -94,7 +96,9 @@ async def set_association_links(
         model_name=normalized_target_model,
         identifiers=unique_target_ids,
     )
-    missing_target_ids = [str(target_id) for target_id in unique_target_ids if target_id not in existing_target_ids]
+    missing_target_ids = [
+        str(target_id) for target_id in unique_target_ids if target_id not in existing_target_ids
+    ]
     if missing_target_ids:
         raise LookupError(
             "Unknown target IDs for association "
@@ -150,11 +154,15 @@ async def get_target_ids_for_sources(
         return {}
     normalized_source_model = validate_association_model(source_model)
     normalized_target_model = validate_association_model(target_model)
-    stmt = select(Association.source_id, Association.target_id).where(
-        Association.source_model == normalized_source_model,
-        Association.source_id.in_(source_ids),
-        Association.target_model == normalized_target_model,
-    ).order_by(Association.created_at.asc(), Association.id.asc())
+    stmt = (
+        select(Association.source_id, Association.target_id)
+        .where(
+            Association.source_model == normalized_source_model,
+            Association.source_id.in_(source_ids),
+            Association.target_model == normalized_target_model,
+        )
+        .order_by(Association.created_at.asc(), Association.id.asc())
+    )
     if link_type is not None:
         stmt = stmt.where(Association.link_type == validate_association_link_type(link_type))
     rows = await session.execute(stmt)
@@ -175,11 +183,15 @@ async def get_source_ids_for_target(
     """Return linked source identifiers for one weak-link target."""
     normalized_source_model = validate_association_model(source_model)
     normalized_target_model = validate_association_model(target_model)
-    stmt = select(Association.source_id).where(
-        Association.source_model == normalized_source_model,
-        Association.target_model == normalized_target_model,
-        Association.target_id == target_id,
-    ).order_by(Association.created_at.asc(), Association.id.asc())
+    stmt = (
+        select(Association.source_id)
+        .where(
+            Association.source_model == normalized_source_model,
+            Association.target_model == normalized_target_model,
+            Association.target_id == target_id,
+        )
+        .order_by(Association.created_at.asc(), Association.id.asc())
+    )
     if link_type is not None:
         stmt = stmt.where(Association.link_type == validate_association_link_type(link_type))
     rows = await session.execute(stmt)
@@ -236,7 +248,9 @@ async def load_people_for_sources(
     rows = await session.execute(stmt)
     people_by_id = {person.id: person for person in rows.scalars().all()}
     return {
-        source_id: [people_by_id[person_id] for person_id in person_ids if person_id in people_by_id]
+        source_id: [
+            people_by_id[person_id] for person_id in person_ids if person_id in people_by_id
+        ]
         for source_id, person_ids in mapping.items()
     }
 
@@ -295,47 +309,7 @@ async def load_timelogs_for_sources(
     timelogs_by_id = {timelog.id: timelog for timelog in rows.scalars().all()}
     return {
         source_id: [
-            timelogs_by_id[timelog_id]
-            for timelog_id in timelog_ids
-            if timelog_id in timelogs_by_id
+            timelogs_by_id[timelog_id] for timelog_id in timelog_ids if timelog_id in timelogs_by_id
         ]
         for source_id, timelog_ids in mapping.items()
-    }
-
-
-async def load_notes_for_targets(
-    session: AsyncSession,
-    *,
-    target_model: str,
-    target_ids: list[UUID],
-    link_type: str,
-) -> dict[UUID, list[Note]]:
-    """Load notes grouped by target identifier."""
-    if not target_ids:
-        return {}
-    normalized_target_model = validate_association_model(target_model)
-    normalized_link_type = validate_association_link_type(link_type)
-    stmt = select(Association.target_id, Association.source_id).where(
-        Association.source_model == "note",
-        Association.target_model == normalized_target_model,
-        Association.target_id.in_(target_ids),
-        Association.link_type == normalized_link_type,
-    ).order_by(Association.created_at.asc(), Association.id.asc())
-    rows = await session.execute(stmt)
-    reverse_mapping: dict[UUID, list[UUID]] = defaultdict(list)
-    for target_id, note_id in rows.all():
-        reverse_mapping[target_id].append(note_id)
-    all_note_ids = {note_id for note_ids in reverse_mapping.values() for note_id in note_ids}
-    if not all_note_ids:
-        return {}
-    note_stmt = (
-        select(Note)
-        .where(Note.id.in_(all_note_ids), Note.deleted_at.is_(None))
-        .order_by(Note.created_at.desc(), Note.id.desc())
-    )
-    rows = await session.execute(note_stmt)
-    notes_by_id = {note.id: note for note in rows.scalars().all()}
-    return {
-        target_id: [notes_by_id[note_id] for note_id in note_ids if note_id in notes_by_id]
-        for target_id, note_ids in reverse_mapping.items()
     }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Select, exists, or_, select
@@ -12,6 +13,9 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.note import Note
+from lifeos_cli.db.models.person import Person
+from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_associations import (
     load_people_for_sources,
@@ -53,6 +57,12 @@ def _association_exists_clause(
     target_id: UUID,
     link_type: str,
 ) -> ColumnElement[bool]:
+    target_table_by_model: dict[str, Any] = {
+        "person": Person,
+        "task": Task,
+        "timelog": Timelog,
+    }
+    target_table = target_table_by_model[target_model]
     return exists(
         select(1).where(
             Association.source_model == "note",
@@ -60,6 +70,8 @@ def _association_exists_clause(
             Association.target_model == target_model,
             Association.target_id == target_id,
             Association.link_type == link_type,
+            target_table.id == target_id,
+            target_table.deleted_at.is_(None),
         )
     )
 
