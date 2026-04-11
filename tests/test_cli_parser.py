@@ -127,6 +127,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "Manage dated habit actions" in captured.out
     assert "timelog" in captured.out
     assert "Manage actual time records" in captured.out
+    assert "primary command reference" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 

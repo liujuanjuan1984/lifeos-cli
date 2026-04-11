@@ -1,65 +1,49 @@
 # CLI Guide
 
-This document describes the current `lifeos` command structure exposed by the branch.
-It is intended for both human operators and agents that need stable command patterns.
+This document is a secondary overview of the current `lifeos` CLI.
+
+Command-specific facts such as arguments, examples, constraints, and command notes must live in
+`lifeos --help`, `lifeos <resource> --help`, and `lifeos <resource> <action> --help`.
+
+Use this document for cross-command guidance only. Do not treat it as the source of truth for
+resource-level command details.
 
 ## Command Grammar
 
-The CLI follows a consistent grammar:
+The CLI follows one stable grammar:
 
 ```text
 lifeos <resource> <action> [arguments] [options]
 ```
 
-Command design conventions:
+The public command tree prefers:
 
-- resource names stay short and stable; most are singular nouns such as `note` or `task`
-- use natural exceptions such as `people` when they are clearer than forced regular forms
-- action names stay short verbs, such as `add`, `list`, `show`, `search`, and `delete`
-- when one command targets multiple records, it should live under a grouped namespace such as
-  `batch`
-- for structured resources, `list` is the primary query entrypoint and should grow richer filters
-  over time
-- the public CLI only performs soft deletion; permanent cleanup is reserved for internal
-  maintenance scripts
+- short resource names
+- short action verbs such as `add`, `list`, `show`, `update`, and `delete`
+- `list` as the main query entrypoint for structured resources
+- grouped namespaces such as `batch` for multi-record writes
 
-## Operating Model
+## Documentation Model
 
-The CLI is designed around a few stable patterns:
+To avoid duplicate maintenance, the documentation boundary is:
 
-- create a record with `add`
-- inspect collections with `list`
-- inspect one record with `show`
-- mutate one record with `update`
-- soft-delete records with `delete`
-- group multi-record write operations under `batch`
+- Help is the primary command reference.
+- Repository docs summarize cross-resource concepts and operating rules.
+- When command behavior changes, update help first.
+- Only update this file when a cross-command model, workflow, or policy changes.
 
-For structured resources such as `area`, `tag`, `people`, `vision`, `task`, `event`, and `timelog`:
+Practical rule:
 
-- prefer `list` as the main query command
-- expect future filtering and pagination growth on `list`
-- do not expect a separate public `search` command yet
-
-For text-heavy resources such as `note`:
-
-- `search` exists because it is a distinct retrieval mode
-- `show` is the correct way to inspect full multi-line content
+- If a user needs to know how to run one command correctly, that information belongs in help.
 
 ## Output Conventions
 
-The current CLI output is intentionally simple and scriptable.
+The current CLI output stays intentionally simple and scriptable.
 
-- `list` commands print tab-separated summary rows
-- `show` commands print labeled detail fields
-- `add` and `update` commands print a short confirmation plus the resulting identifier
-- `delete` and `batch delete` commands print soft-delete results only
-
-Practical guidance:
-
-- use `list` when a human or agent needs compact summaries
-- use `show` when exact field values or multi-line content matter
-- keep identifiers from `add` or `list` output and feed them into later commands
-- do not assume `list` output preserves multi-line formatting; use `show` for that
+- `list` commands print compact summary rows
+- `show` commands print labeled fields
+- `add` and `update` commands print short confirmation messages
+- public `delete` commands report soft-delete results only
 
 ## Installation and Initialization
 
@@ -69,413 +53,86 @@ Install the published CLI:
 uv tool install lifeos-cli
 ```
 
-Initialize local configuration and database access:
+Initialize local configuration:
 
 ```bash
 lifeos init
 ```
 
-Initialize while persisting user preferences:
-
-```bash
-lifeos init --timezone America/Toronto --language zh-Hans --day-starts-at 04:00 --week-starts-on sunday --vision-experience-rate-per-hour 120
-```
-
-Re-run `lifeos init` to edit stored preferences later.
-
-Inspect the effective configuration:
+Inspect the effective runtime configuration:
 
 ```bash
 lifeos config show
 ```
 
-Check database connectivity and apply migrations:
+Check database connectivity and migrations:
 
 ```bash
 lifeos db ping
 lifeos db upgrade
 ```
 
-Recommended first-run flow:
+## Runtime Preferences
 
-```bash
-lifeos init
-lifeos db ping
-lifeos db upgrade
-```
+The CLI persists a small set of runtime preferences:
 
-Current persisted preference keys:
+- `timezone`
+- `language`
+- `day_starts_at`
+- `week_starts_on`
+- `vision_experience_rate_per_hour`
 
-- `timezone`: default IANA timezone used for local timestamp rendering and local day boundaries
-- `language`: preferred language tag such as `en`, `en-CA`, or `zh-Hans`
-- `day_starts_at`: local day boundary in `HH:MM` for date-based event/timelog queries and habit
-  day semantics
-- `week_starts_on`: preferred first day of the week (`monday` or `sunday`) for weekly habit stats
-- `vision_experience_rate_per_hour`: default vision experience points gained per hour of actual
-  effort, used when a vision does not define its own rate
+Time-oriented behavior follows these rules:
 
-Time storage and rendering rules:
+- `event` and `timelog` datetimes are stored in UTC-normalized form
+- CLI timestamp rendering uses the configured `timezone`
+- date-based queries also use the configured `day_starts_at`
+- weekly habit summaries use the configured `week_starts_on`
 
-- `event` and `timelog` datetimes are stored in UTC-normalized form in PostgreSQL
-- CLI output renders timestamps in the configured `timezone`
-- `event list --date` and `timelog list --date` use the configured `timezone` and
-  `day_starts_at` together
-- habit "today" and weekly stats use the configured local operational day instead of raw server
-  midnight
-- vision experience sync uses `vision_experience_rate_per_hour` unless the vision has a
-  per-record `experience_rate_per_hour` override
+## Resource Map
 
-## Notes
+Use help as the first-stop reference for each command family:
 
-Create a note from inline content:
+- `lifeos area --help`
+- `lifeos event --help`
+- `lifeos schedule --help`
+- `lifeos habit --help`
+- `lifeos habit-action --help`
+- `lifeos tag --help`
+- `lifeos people --help`
+- `lifeos vision --help`
+- `lifeos task --help`
+- `lifeos timelog --help`
+- `lifeos note --help`
 
-```bash
-lifeos note add "a new note"
-```
+Current high-level domain roles:
 
-Create a multi-line note from standard input:
+- `event`: planned schedule blocks
+- `schedule`: aggregated day and range read model
+- `timelog`: actual time records
+- `habit`: recurring intention that generates dated habit actions
+- `habit-action`: one dated habit execution row
+- `task`: execution unit with planning-cycle and hierarchy support
+- `vision`: longer-horizon outcome and experience container
 
-```bash
-cat <<'EOF' | lifeos note add --stdin
-This is a multi-line note.
-The second line stays intact.
-EOF
-```
+## Safety Model
 
-Create a note from a file:
+The public CLI is intentionally conservative.
 
-```bash
-lifeos note add --file ./note.md
-```
+- public `delete` commands only soft-delete records
+- public `batch delete` commands also only soft-delete records
+- hard delete stays outside the public CLI
 
-List notes:
+This boundary should remain stable as more resources are added.
 
-```bash
-lifeos note list
-lifeos note list --limit 20 --offset 20
-lifeos note list --include-deleted
-```
+## Agent Guidance
 
-Show the full note body with preserved line breaks:
-
-```bash
-lifeos note show 11111111-1111-1111-1111-111111111111
-```
-
-Update or delete a note:
-
-```bash
-lifeos note update 11111111-1111-1111-1111-111111111111 "updated content"
-lifeos note delete 11111111-1111-1111-1111-111111111111
-```
-
-Minimal note workflow:
-
-```bash
-lifeos note add "capture an idea"
-lifeos note list
-lifeos note show <note-id>
-lifeos note update <note-id> "capture a better idea"
-lifeos note delete <note-id>
-```
-
-## Note Search
-
-Search currently uses PostgreSQL-backed `ILIKE` token matching against note content.
-
-```bash
-lifeos note search "meeting notes"
-lifeos note search "budget q2" --limit 20
-lifeos note search "archived idea" --include-deleted
-```
-
-Current behavior:
-
-- multi-word queries are split into tokens
-- tokens are matched with OR semantics
-- results use the same summary format as `lifeos note list`
-
-## Core Domains
-
-The branch now exposes early CRUD-oriented command families for several additional domains:
-
-- `lifeos area ...`
-- `lifeos event ...`
-- `lifeos schedule ...`
-- `lifeos habit ...`
-- `lifeos habit-action ...`
-- `lifeos tag ...`
-- `lifeos people ...`
-- `lifeos task ...`
-- `lifeos timelog ...`
-- `lifeos vision ...`
-
-Examples:
-
-```bash
-lifeos area add "Health"
-lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
-lifeos schedule show --date 2026-04-10
-lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
-lifeos habit-action list --action-date 2026-04-09
-lifeos tag add "family" --entity-type person --category relation
-lifeos people add "Alice" --nickname ally --location Toronto
-lifeos vision add "Launch lifeos-cli"
-lifeos task add "Draft release checklist" --vision-id <vision-id>
-lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
-lifeos task batch delete --ids <task-id-1> <task-id-2>
-```
-
-Current intent:
-
-- `list` is the query entrypoint for these structured resources
-- standalone `search` is intentionally deferred for now
-- `batch` is the grouped namespace for multi-record write operations
-- `habit-action` is a top-level resource instead of a nested `habit action` command tree
-- repeated `--person-id` flags attach people to supported resources such as `tag`, `vision`,
-  `task`, `event`, and `timelog`
-
-## Structured Resource Workflows
-
-These examples show the current intended command shape for the new structured resources.
-
-### Area
-
-```bash
-lifeos area add "Health" --description "Long-term wellbeing" --icon heart
-lifeos area list
-lifeos area show <area-id>
-lifeos area update <area-id> --name "Fitness" --clear-icon
-lifeos area delete <area-id>
-```
-
-### Tag
-
-```bash
-lifeos tag add "family" --entity-type person --category relation --color green
-lifeos tag update <tag-id> --person-id <person-id>
-lifeos tag list --person-id <person-id>
-lifeos tag list
-lifeos tag show <tag-id>
-lifeos tag update <tag-id> --clear-color
-lifeos tag delete <tag-id>
-```
-
-### Event
-
-```bash
-lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00
-lifeos event add "Daily review" --start-time 2026-04-10T09:00:00-04:00 --recurrence-frequency daily --recurrence-count 5
-lifeos event list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
-lifeos event list --date 2026-04-10
-lifeos event show <event-id>
-lifeos event update <event-id> --scope single --instance-start 2026-04-10T09:00:00-04:00 --status completed
-lifeos event delete <event-id> --scope all_future --instance-start 2026-04-10T09:00:00-04:00
-```
-
-Current event notes:
-
-- `event` is the planned schedule object, not the todo object
-- in Compass backend terms, `event` is the simplified public equivalent of `planned_event`
-- use `--window-start` and `--window-end` to query overlapping calendar ranges
-- use `--date` to query one configured local day
-- recurring series are expanded for bounded window queries and schedule views
-- use repeated `--tag-id` and `--person-id` flags to attach tags and people
-- recurring series currently support `daily` and `weekly` cadence
-- use `event update|delete --scope single|all_future|all --instance-start ...` for recurring series
-
-### Schedule
-
-```bash
-lifeos schedule show --date 2026-04-10
-lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16
-```
-
-Current schedule notes:
-
-- `schedule` is a read model, not a stored domain entity
-- output is grouped by local date
-- each date includes `tasks`, `habit_actions`, and `events`
-- task inclusion currently uses planning-cycle overlap
-- event inclusion covers overlapping one-off events and expanded recurring event occurrences
-
-### Habit
-
-```bash
-lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21
-lifeos habit list --with-stats
-lifeos habit list --status active --count
-lifeos habit show <habit-id>
-lifeos habit update <habit-id> --status paused
-lifeos habit stats <habit-id>
-lifeos habit task-associations
-lifeos habit delete <habit-id>
-```
-
-Current habit notes:
-
-- a habit generates one dated `habit-action` row per day in its duration
-- updating start dates or duration automatically reconciles generated action rows
-- current-day and weekly stats use the configured timezone, `day_starts_at`, and `week_starts_on`
-- task associations include non-deleted habits linked to non-deleted tasks
-- habit deletion is soft deletion only in the public CLI
-
-### Habit Action
-
-```bash
-lifeos habit-action list --habit-id <habit-id>
-lifeos habit-action list --action-date 2026-04-09 --count
-lifeos habit-action show <action-id>
-lifeos habit-action update <action-id> --status done
-lifeos habit-action log --habit-id <habit-id> --action-date 2026-04-09 --status done
-lifeos habit-action update <action-id> --clear-notes
-```
-
-Current habit-action notes:
-
-- public CLI does not create or delete habit actions directly
-- use `list` for both per-habit and by-date inspection flows
-- use `log` to update one action by habit and date without first looking up the action ID
-- updates respect the habit-action editable window enforced by the service layer
-
-### People
-
-```bash
-lifeos people add "Alice" --nickname ally --location Toronto
-lifeos people list
-lifeos people show <person-id>
-lifeos people update <person-id> --clear-location
-lifeos people delete <person-id>
-```
-
-### Vision
-
-```bash
-lifeos vision add "Launch lifeos-cli" --area-id <area-id> --status active
-lifeos vision update <vision-id> --person-id <person-id-1> --person-id <person-id-2>
-lifeos vision list --person-id <person-id>
-lifeos vision list --status active
-lifeos vision show <vision-id>
-lifeos vision with-tasks <vision-id>
-lifeos vision stats <vision-id>
-lifeos vision update <vision-id> --status archived --clear-area
-lifeos vision sync-experience <vision-id>
-lifeos vision add-experience <vision-id> --points 120
-lifeos vision harvest <vision-id>
-lifeos vision delete <vision-id>
-```
-
-### Task
-
-```bash
-lifeos task add "Draft release checklist" --vision-id <vision-id> --status todo
-lifeos task update <task-id> --person-id <person-id>
-lifeos task list --person-id <person-id>
-lifeos task list --vision-id <vision-id>
-lifeos task list --status-in todo,in_progress --exclude-status cancelled
-lifeos task list --planning-cycle-type week --planning-cycle-start-date 2026-04-10
-lifeos task show <task-id>
-lifeos task with-subtasks <task-id>
-lifeos task hierarchy <vision-id>
-lifeos task stats <task-id>
-lifeos task move <task-id> --new-parent-task-id <parent-task-id> --new-display-order 1
-lifeos task reorder --order <task-id-1>:0 --order <task-id-2>:1
-lifeos task update <task-id> --status in_progress
-lifeos task update <child-task-id> --clear-parent
-lifeos task delete <task-id>
-```
-
-Current task notes:
-
-- `task` is the execution unit and supports tree structure through parent-child links
-- use `with-subtasks`, `hierarchy`, and `stats` for task-tree read models
-- use `--clear-parent` to move a child task back to the root level
-- use `move` for parent or vision changes and `reorder` for display order changes
-- repeated `--person-id` flags link a task to one or more people without changing its place in
-  the task tree
-- use `--clear-*` flags when a field should become empty instead of being replaced
-
-### Timelog
-
-```bash
-lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 --end-time 2026-04-10T14:30:00-04:00
-lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 --window-end 2026-04-10T23:59:59-04:00
-lifeos timelog list --date 2026-04-10
-lifeos timelog list --query "deep work" --count
-lifeos timelog list --area-name Work --without-task
-lifeos timelog show <timelog-id>
-lifeos timelog update <timelog-id> --notes "Felt strong" --clear-task
-lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task
-lifeos timelog batch update --ids <timelog-id-1> --find-title-text "deep" --replace-title-text "focused"
-lifeos timelog delete <timelog-id>
-lifeos timelog restore <timelog-id>
-lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>
-```
-
-Current timelog notes:
-
-- `timelog` is the actual time record and represents what really happened
-- in Compass backend terms, `timelog` is the simplified public equivalent of `actual_event`
-- use `--date` to query one configured local day
-- use `--query` to search timelog titles and notes
-- use `batch update` for repeated relation cleanup or title find/replace
-- use `restore` or `batch restore` to recover soft-deleted timelogs
-- use repeated `--tag-id` and `--person-id` flags to attach tags and people
-- timelog end time is currently required because the record models completed time spent
-
-## Note Batch Operations
-
-The first grouped bulk namespace is `lifeos note batch`.
-
-Bulk content find/replace:
-
-```bash
-lifeos note batch update-content --ids \
-  11111111-1111-1111-1111-111111111111 \
-  22222222-2222-2222-2222-222222222222 \
-  --find-text "draft" \
-  --replace-text "final"
-```
-
-Bulk delete:
-
-```bash
-lifeos note batch delete --ids \
-  11111111-1111-1111-1111-111111111111 \
-  22222222-2222-2222-2222-222222222222
-```
-
-Internal maintenance purge:
-
-```bash
-uv run python scripts/purge_deleted_records.py note \
-  --ids \
-  11111111-1111-1111-1111-111111111111 \
-  22222222-2222-2222-2222-222222222222 \
-  --confirm permanently-delete-soft-deleted-records
-```
-
-Structured resources also expose batch soft delete:
-
-```bash
-lifeos area batch delete --ids <area-id-1> <area-id-2>
-lifeos event batch delete --ids <event-id-1> <event-id-2>
-lifeos tag batch delete --ids <tag-id-1> <tag-id-2>
-lifeos people batch delete --ids <person-id-1> <person-id-2>
-lifeos vision batch delete --ids <vision-id-1> <vision-id-2>
-lifeos task batch delete --ids <task-id-1> <task-id-2>
-lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>
-```
-
-## Agent Usage Patterns
-
-If the caller is an agent or another automation layer, prefer these patterns:
+If the caller is an agent or another automation layer:
 
 - start from `list` to discover identifiers
-- switch to `show` before making a destructive or state-changing update
-- treat all public `delete` commands as soft delete only
-- use `batch delete` for coordinated cleanup instead of issuing many single deletes
-- keep command flows id-driven instead of name-driven after discovery
+- use `show` before destructive or state-changing operations
+- treat help as the only authoritative command-level reference
+- keep flows identifier-driven after discovery
 
 Example pattern:
 
@@ -484,63 +141,3 @@ lifeos people list
 lifeos people show <person-id>
 lifeos people update <person-id> --location "Montreal"
 ```
-
-## Safety Model
-
-The public CLI is intentionally conservative:
-
-- public `delete` commands only soft-delete records
-- public `batch delete` commands also only soft-delete records
-- public CLI commands do not expose hard delete
-- permanent cleanup requires internal maintenance scripts and explicit confirmation text
-
-This separation is intentional and should remain stable as more domains are added.
-
-## Scope on This Branch
-
-Currently implemented:
-
-- `lifeos init`
-- `lifeos config show`
-- `lifeos db ping`
-- `lifeos db upgrade`
-- `lifeos area add|list|show|update|delete`
-- `lifeos area batch delete`
-- `lifeos event add|list|show|update|delete`
-- `lifeos event batch delete`
-- `lifeos schedule show|list`
-- `lifeos tag add|list|show|update|delete`
-- `lifeos tag batch delete`
-- `lifeos people add|list|show|update|delete`
-- `lifeos people batch delete`
-- `lifeos vision add|list|show|update|delete`
-- `lifeos vision with-tasks|stats`
-- `lifeos vision add-experience|sync-experience|harvest`
-- `lifeos vision batch delete`
-- `lifeos task add|list|show|with-subtasks|hierarchy|stats|move|reorder|update|delete`
-- `lifeos task batch delete`
-- `lifeos habit add|list|show|stats|task-associations|update|delete`
-- `lifeos habit batch delete`
-- `lifeos habit-action list|show|update|log`
-- `lifeos timelog add|list|show|update|delete|restore`
-- `lifeos timelog batch update`
-- `lifeos timelog batch restore`
-- `lifeos timelog batch delete`
-- `lifeos note add`
-- `lifeos note list`
-- `lifeos note search`
-- `lifeos note show`
-- `lifeos note update`
-- `lifeos note delete`
-- `lifeos note batch update-content`
-- `lifeos note batch delete`
-
-Not implemented yet:
-
-- note tags
-- note-to-task or note-to-person associations
-- batch update operations for the remaining structured resources
-- direct event-to-timelog conversion
-- note ingestion jobs
-- richer search ranking or association-aware note search
-- public CLI access to hard delete

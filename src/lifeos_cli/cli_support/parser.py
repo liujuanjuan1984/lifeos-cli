@@ -80,6 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
                 "For structured resources, prefer `list` with filters and pagination over "
                 "separate query verbs.",
                 "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
+                "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
+                "primary command reference.",
                 "Each resource help page should explain scope, actions, and examples.",
                 "Run `lifeos init` before using database-backed resource commands.",
             ),
