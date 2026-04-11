@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Iterator
 from pathlib import Path
 from uuid import UUID
 
@@ -18,6 +19,14 @@ from lifeos_cli.db.services.notes import (
     NoteNotFoundError,
 )
 from tests.support import make_record, make_session_scope, utc_datetime
+
+
+@pytest.fixture(autouse=True)
+def _use_stable_note_timezone(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+    yield
+    clear_config_cache()
 
 
 def test_main_note_add_creates_note(

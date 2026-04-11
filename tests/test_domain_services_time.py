@@ -126,6 +126,42 @@ def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.Mon
     assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
 
 
+def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_attach_event_links(_: object, event: object) -> object:
+        return event
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            title="Daily review",
+            start_time=utc_datetime(2026, 4, 10, 13, 0),
+            recurrence_frequency="daily",
+            recurrence_interval=2,
+            recurrence_count=5,
+        )
+    )
+
+    assert created.recurrence_frequency == "daily"
+    assert created.recurrence_interval == 2
+    assert created.recurrence_count == 5
+
+
 def test_create_timelog_rejects_naive_datetimes() -> None:
     session = SimpleNamespace()
 
@@ -164,6 +200,10 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
         priority=3,
         status="planned",
         is_all_day=False,
+        recurrence_frequency=None,
+        recurrence_interval=None,
+        recurrence_count=None,
+        recurrence_until=None,
         area_id=UUID("11111111-1111-1111-1111-111111111111"),
         task_id=UUID("22222222-2222-2222-2222-222222222222"),
     )
@@ -207,6 +247,201 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
     assert updated_event.task_id is None
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    event = SimpleNamespace(
+        id=UUID("abababab-abab-abab-abab-abababababab"),
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 14, 0),
+        recurrence_frequency="daily",
+        recurrence_interval=1,
+        recurrence_count=3,
+        recurrence_until=None,
+        recurrence_parent_event_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock())
+    record_skip = AsyncMock()
+
+    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+        assert event_id == UUID("abababab-abab-abab-abab-abababababab")
+        assert include_deleted is False
+        return event
+
+    async def fake_get_override_event(
+        _: object,
+        *,
+        master_event_id: UUID,
+        instance_start: datetime,
+    ) -> object | None:
+        assert master_event_id == event.id
+        assert instance_start == utc_datetime(2026, 4, 11, 13, 0)
+        return None
+
+    monkeypatch.setattr(events, "get_event", fake_get_event)
+    monkeypatch.setattr(events, "_get_override_event_for_instance", fake_get_override_event)
+    monkeypatch.setattr(events, "_record_skip_exception", record_skip)
+
+    asyncio.run(
+        events.delete_event(
+            cast(Any, session),
+            event_id=UUID("abababab-abab-abab-abab-abababababab"),
+            scope="single",
+            instance_start=utc_datetime(2026, 4, 11, 13, 0),
+        )
+    )
+
+    record_skip.assert_awaited_once()
+    session.flush.assert_awaited_once()
+
+
+def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() -> None:
+    class _Result:
+        def __init__(self, values: list[object]) -> None:
+            self._values = values
+
+        def scalars(self) -> list[object]:
+            return self._values
+
+    class _Session:
+        def __init__(self) -> None:
+            self._results = [
+                _Result(
+                    [
+                        SimpleNamespace(
+                            id=UUID("abababab-abab-abab-abab-abababababab"),
+                            title="Daily review",
+                            status="planned",
+                            start_time=utc_datetime(2026, 4, 10, 13, 0),
+                            end_time=utc_datetime(2026, 4, 10, 14, 0),
+                            task_id=None,
+                            deleted_at=None,
+                            recurrence_frequency="daily",
+                            recurrence_interval=1,
+                            recurrence_count=3,
+                            recurrence_until=None,
+                            recurrence_parent_event_id=None,
+                        )
+                    ]
+                ),
+                _Result(
+                    [
+                        SimpleNamespace(
+                            master_event_id=UUID("abababab-abab-abab-abab-abababababab"),
+                            instance_start=utc_datetime(2026, 4, 11, 13, 0),
+                        )
+                    ]
+                ),
+                _Result([]),
+            ]
+
+        async def execute(self, statement: object) -> _Result:
+            return self._results.pop(0)
+
+    occurrences = asyncio.run(
+        events.list_event_occurrences(
+            cast(Any, _Session()),
+            window_start=utc_datetime(2026, 4, 10, 0, 0),
+            window_end=utc_datetime(2026, 4, 12, 23, 59),
+        )
+    )
+
+    assert [item.start_time for item in occurrences] == [
+        utc_datetime(2026, 4, 10, 13, 0),
+        utc_datetime(2026, 4, 12, 13, 0),
+    ]
+
+
+def test_list_event_occurrences_applies_all_supported_filters() -> None:
+    class _Result:
+        def __init__(self, values: list[object]) -> None:
+            self._values = values
+
+        def scalars(self) -> list[object]:
+            return self._values
+
+    class _Session:
+        def __init__(self) -> None:
+            self.statements: list[object] = []
+            self._results = [_Result([]), _Result([])]
+
+        async def execute(self, statement: object) -> _Result:
+            self.statements.append(statement)
+            return self._results.pop(0)
+
+    area_id = UUID("11111111-1111-1111-1111-111111111111")
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    person_id = UUID("33333333-3333-3333-3333-333333333333")
+    tag_id = UUID("44444444-4444-4444-4444-444444444444")
+    session = _Session()
+
+    occurrences = asyncio.run(
+        events.list_event_occurrences(
+            cast(Any, session),
+            window_start=utc_datetime(2026, 4, 10, 0, 0),
+            window_end=utc_datetime(2026, 4, 12, 23, 59),
+            title_contains="review",
+            status="planned",
+            area_id=area_id,
+            task_id=task_id,
+            person_id=person_id,
+            tag_id=tag_id,
+        )
+    )
+
+    assert occurrences == []
+    assert len(session.statements) == 2
+    master_sql = str(session.statements[0])
+    override_sql = str(session.statements[1])
+
+    for statement_sql in (master_sql, override_sql):
+        assert "person_associations" in statement_sql
+        assert "tag_associations" in statement_sql
+        assert "events.area_id" in statement_sql
+        assert "events.task_id" in statement_sql
+        assert "events.status" in statement_sql
+        assert "title" in statement_sql
+
+
+def test_list_events_with_one_sided_window_uses_overlap_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    class _Session:
+        def __init__(self) -> None:
+            self.statements: list[object] = []
+
+        async def execute(self, statement: object) -> _Result:
+            self.statements.append(statement)
+            return _Result()
+
+    list_occurrences = AsyncMock(return_value=[])
+
+    async def fake_attach_event_links_for_many(
+        _: object, event_records: list[object]
+    ) -> list[object]:
+        return event_records
+
+    monkeypatch.setattr(events, "list_event_occurrences", list_occurrences)
+    monkeypatch.setattr(events, "_attach_event_links_for_many", fake_attach_event_links_for_many)
+
+    session = _Session()
+    listed = asyncio.run(
+        events.list_events(
+            cast(Any, session),
+            window_start=utc_datetime(2026, 4, 10, 12, 0),
+        )
+    )
+
+    assert listed == []
+    list_occurrences.assert_not_awaited()
+    assert len(session.statements) == 1
+    statement_sql = str(session.statements[0])
+    assert "end_time IS NULL OR" in statement_sql
+    assert "end_time >=" in statement_sql
 
 
 def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:

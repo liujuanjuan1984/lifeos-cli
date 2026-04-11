@@ -119,13 +119,44 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "Initialize local configuration" in captured.out
     assert "event" in captured.out
     assert "Manage planned schedule events" in captured.out
+    assert "schedule" in captured.out
+    assert "Inspect aggregated schedule views" in captured.out
     assert "people" in captured.out
     assert "Manage people and relationships" in captured.out
     assert "habit-action" in captured.out
     assert "Manage dated habit actions" in captured.out
     assert "timelog" in captured.out
     assert "Manage actual time records" in captured.out
+    assert "primary command reference" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Schedule is a CLI read model built from tasks, habit actions, and events" in captured.out
+    )
+    assert "expanded recurring event occurrences" in captured.out
+    assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+
+
+def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["event", "delete", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `--scope single|all_future|all` for recurring series deletes." in captured.out
+    assert "`--scope single` and `--scope all_future` require `--instance-start`." in captured.out
+    assert "--scope all_future --instance-start 2026-04-10T09:00:00-04:00" in captured.out
 
 
 def test_cli_parser_supports_area_add_command() -> None:
@@ -191,6 +222,51 @@ def test_cli_parser_supports_event_list_by_local_date() -> None:
     assert str(args.local_date) == "2026-04-10"
 
 
+def test_cli_parser_supports_event_recurrence_add_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "add",
+            "Daily review",
+            "--start-time",
+            "2026-04-10T09:00:00-04:00",
+            "--recurrence-frequency",
+            "daily",
+            "--recurrence-interval",
+            "2",
+            "--recurrence-count",
+            "5",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "add"
+    assert args.recurrence_frequency == "daily"
+    assert args.recurrence_interval == 2
+    assert args.recurrence_count == 5
+
+
+def test_cli_parser_supports_event_update_scope_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--scope",
+            "single",
+            "--instance-start",
+            "2026-04-10T09:00:00-04:00",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "update"
+    assert args.scope == "single"
+    assert args.instance_start.isoformat() == "2026-04-10T09:00:00-04:00"
+
+
 def test_cli_parser_supports_people_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["people", "add", "Alice", "--nickname", "ally"])
@@ -199,6 +275,27 @@ def test_cli_parser_supports_people_add_command() -> None:
     assert args.people_command == "add"
     assert args.name == "Alice"
     assert args.nickname == ["ally"]
+
+
+def test_cli_parser_supports_schedule_show_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["schedule", "show", "--date", "2026-04-10"])
+
+    assert args.resource == "schedule"
+    assert args.schedule_command == "show"
+    assert str(args.target_date) == "2026-04-10"
+
+
+def test_cli_parser_supports_schedule_list_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        ["schedule", "list", "--start-date", "2026-04-10", "--end-date", "2026-04-16"]
+    )
+
+    assert args.resource == "schedule"
+    assert args.schedule_command == "list"
+    assert str(args.start_date) == "2026-04-10"
+    assert str(args.end_date) == "2026-04-16"
 
 
 def test_cli_parser_supports_people_update_clear_location_command() -> None:

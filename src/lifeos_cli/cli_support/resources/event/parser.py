@@ -71,6 +71,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(
                 "Use repeated `--tag-id` and `--person-id` flags to attach tags and people.",
                 "If `--end-time` is omitted, the event is treated as open-ended.",
+                "Use recurrence flags to create a recurring series without renaming the resource.",
             ),
         ),
     )
@@ -88,6 +89,25 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     add_parser.add_argument("--area-id", type=UUID, help="Optional linked area identifier")
     add_parser.add_argument("--task-id", type=UUID, help="Optional linked task identifier")
+    add_parser.add_argument(
+        "--recurrence-frequency",
+        help="Optional recurrence frequency: daily or weekly",
+    )
+    add_parser.add_argument(
+        "--recurrence-interval",
+        type=int,
+        help="Optional recurrence interval, default 1",
+    )
+    add_parser.add_argument(
+        "--recurrence-count",
+        type=int,
+        help="Optional total occurrence count",
+    )
+    add_parser.add_argument(
+        "--recurrence-until",
+        type=_datetime_value,
+        help="Optional final allowed occurrence start time",
+    )
     add_parser.add_argument(
         "--tag-id",
         dest="tag_ids",
@@ -126,6 +146,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "When both window flags are given, overlapping events are returned.",
                 "Use `--date` to query one configured local day using your timezone and "
                 "`day_starts_at` preference.",
+                "Recurring series are expanded for bounded window queries and schedule views.",
                 "Use `--title-contains` for lightweight text filtering instead of a "
                 "separate search command.",
             ),
@@ -181,6 +202,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(
                 "Use `--clear-*` flags to explicitly remove optional values.",
                 "Do not mix a value flag with the matching clear flag in the same command.",
+                "Use `--scope single|all_future|all` for recurring series updates.",
+                "`--scope single` and `--scope all_future` require `--instance-start`.",
             ),
         ),
     )
@@ -203,6 +226,33 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--clear-area", action="store_true", help="Clear linked area")
     update_parser.add_argument("--task-id", type=UUID, help="Updated linked task identifier")
     update_parser.add_argument("--clear-task", action="store_true", help="Clear linked task")
+    update_parser.add_argument("--recurrence-frequency", help="Updated recurrence frequency")
+    update_parser.add_argument(
+        "--recurrence-interval",
+        type=int,
+        help="Updated recurrence interval",
+    )
+    update_parser.add_argument("--recurrence-count", type=int, help="Updated recurrence count")
+    update_parser.add_argument(
+        "--recurrence-until",
+        type=_datetime_value,
+        help="Updated recurrence until datetime",
+    )
+    update_parser.add_argument(
+        "--clear-recurrence",
+        action="store_true",
+        help="Remove recurrence from the event",
+    )
+    update_parser.add_argument(
+        "--scope",
+        default="all",
+        help="Update scope for recurring events: single, all_future, or all",
+    )
+    update_parser.add_argument(
+        "--instance-start",
+        type=_datetime_value,
+        help="Instance start time for single or all_future recurring updates",
+    )
     update_parser.add_argument(
         "--tag-id",
         dest="tag_ids",
@@ -229,10 +279,30 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help_content=HelpContent(
             summary="Delete an event",
             description="Soft-delete one event.",
-            examples=("lifeos event delete 11111111-1111-1111-1111-111111111111",),
+            examples=(
+                "lifeos event delete 11111111-1111-1111-1111-111111111111",
+                "lifeos event delete 11111111-1111-1111-1111-111111111111 "
+                "--scope single --instance-start 2026-04-10T09:00:00-04:00",
+                "lifeos event delete 11111111-1111-1111-1111-111111111111 "
+                "--scope all_future --instance-start 2026-04-10T09:00:00-04:00",
+            ),
+            notes=(
+                "Use `--scope single|all_future|all` for recurring series deletes.",
+                "`--scope single` and `--scope all_future` require `--instance-start`.",
+            ),
         ),
     )
     delete_parser.add_argument("event_id", type=UUID, help="Event identifier")
+    delete_parser.add_argument(
+        "--scope",
+        default="all",
+        help="Delete scope for recurring events: single, all_future, or all",
+    )
+    delete_parser.add_argument(
+        "--instance-start",
+        type=_datetime_value,
+        help="Instance start time for single or all_future recurring deletes",
+    )
     delete_parser.set_defaults(handler=handle_event_delete)
 
     batch_parser = add_documented_parser(

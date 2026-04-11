@@ -24,6 +24,8 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         Index("ix_events_status_start_time", "status", "start_time"),
         Index("ix_events_area_id", "area_id"),
         Index("ix_events_task_id", "task_id"),
+        Index("ix_events_recurrence_parent_event_id", "recurrence_parent_event_id"),
+        Index("ix_events_recurrence_instance_start", "recurrence_instance_start"),
     )
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
@@ -37,6 +39,12 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="planned", index=True)
     is_all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    recurrence_frequency: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    recurrence_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recurrence_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recurrence_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     area_id: Mapped[UUID | None] = mapped_column(
         Uuid,
         ForeignKey("areas.id", ondelete="SET NULL"),
@@ -47,9 +55,18 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         ForeignKey("tasks.id", ondelete="SET NULL"),
         nullable=True,
     )
+    recurrence_parent_event_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("events.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    recurrence_instance_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     area = relationship("Area", foreign_keys=[area_id])
     task = relationship("Task", foreign_keys=[task_id])
+    recurrence_parent_event = relationship("Event", remote_side="Event.id")
 
     if TYPE_CHECKING:
         tags: list[Tag]

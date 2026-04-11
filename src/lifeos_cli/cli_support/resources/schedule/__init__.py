@@ -1,0 +1,1 @@
+"""Schedule CLI resource package."""

@@ -74,3 +74,10 @@ Update docs together with code whenever you change:
 - validation or dependency workflows
 - release or publishing behavior
 - security or disclosure guidance
+
+For CLI-facing changes:
+
+- Treat CLI help as the primary command reference.
+- Update `lifeos --help`, `lifeos <resource> --help`, or `lifeos <resource> <action> --help` when command behavior, examples, arguments, or constraints change.
+- Keep repository CLI docs focused on cross-command guidance rather than duplicating command-level facts.
+- Review and update the related CLI tests so help text and user-visible behavior stay covered together.
