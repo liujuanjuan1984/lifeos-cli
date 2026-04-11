@@ -6,11 +6,13 @@ import argparse
 import sys
 
 from lifeos_cli.application.configuration import (
+    SUPPORTED_CONFIG_KEYS,
     InitializationPrompts,
     InitializationRequest,
     build_database_settings,
     build_preferences_settings,
     persist_runtime_settings,
+    set_runtime_config_value,
 )
 from lifeos_cli.application.database import (
     ping_configured_database,
@@ -98,6 +100,21 @@ def _handle_config_show(args: argparse.Namespace) -> int:
         format_config_summary(
             get_database_settings(),
             get_preferences_settings(),
+            show_secrets=args.show_secrets,
+        )
+    )
+    return 0
+
+
+def _handle_config_set(args: argparse.Namespace) -> int:
+    """Persist one supported config key to the local config file."""
+    result = set_runtime_config_value(key=args.key, value=args.value)
+    print(f"Updated config file: {result.config_path}")
+    print(f"Updated key: {result.key}")
+    print(
+        format_config_summary(
+            result.database_settings,
+            result.preferences_settings,
             show_secrets=args.show_secrets,
         )
     )
@@ -206,6 +223,11 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             examples=(
                 "lifeos config show",
                 "lifeos config show --show-secrets",
+                "lifeos config set preferences.timezone America/Toronto",
+            ),
+            notes=(
+                "Use `set` to persist supported keys into the local config file.",
+                "Environment variables still override config-file values at runtime.",
             ),
         ),
     )
@@ -236,3 +258,30 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help="Print sensitive values such as database passwords in full",
     )
     show_parser.set_defaults(handler=_handle_config_show)
+
+    set_parser = add_documented_parser(
+        config_subparsers,
+        "set",
+        help_content=HelpContent(
+            summary="Persist one config value",
+            description="Write one supported config key to the local config file.",
+            examples=(
+                "lifeos config set preferences.timezone America/Toronto",
+                "lifeos config set database.echo true",
+                "lifeos config set preferences.vision_experience_rate_per_hour 120",
+            ),
+            notes=(
+                "This command writes the config file, not environment variables.",
+                "Supported keys: " + ", ".join(SUPPORTED_CONFIG_KEYS),
+                "Use `config show` to inspect the effective values after environment overrides.",
+            ),
+        ),
+    )
+    set_parser.add_argument("key", help="Supported config key to update")
+    set_parser.add_argument("value", help="New value to persist for the selected key")
+    set_parser.add_argument(
+        "--show-secrets",
+        action="store_true",
+        help="Print sensitive values such as database passwords in full after writing",
+    )
+    set_parser.set_defaults(handler=_handle_config_set)

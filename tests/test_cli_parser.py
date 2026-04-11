@@ -71,6 +71,16 @@ def test_cli_parser_supports_init_preference_flags() -> None:
     assert args.vision_experience_rate_per_hour == 120
 
 
+def test_cli_parser_supports_config_set_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["config", "set", "preferences.timezone", "America/Toronto"])
+
+    assert args.resource == "config"
+    assert args.config_command == "set"
+    assert args.key == "preferences.timezone"
+    assert args.value == "America/Toronto"
+
+
 def test_cli_parser_supports_note_search_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["note", "search", "meeting notes", "--limit", "20"])
@@ -118,6 +128,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "resources:" in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
+    assert "lifeos config set preferences.timezone America/Toronto" in captured.out
     assert "data" in captured.out
     assert "Run unified data import/export and batch commands" in captured.out
     assert "event" in captured.out
@@ -149,6 +160,19 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
     )
     assert "expanded recurring event occurrences" in captured.out
     assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
+
+
+def test_cli_config_help_describes_set_command(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "show" in captured.out
+    assert "set" in captured.out
+    assert "Environment variables still override config-file values at runtime." in captured.out
 
 
 def test_cli_data_help_describes_snapshot_and_bundle_model(capsys) -> None:

@@ -13,6 +13,7 @@ from lifeos_cli.config import (
     DatabaseSettings,
     PreferencesSettings,
     detect_default_language,
+    parse_boolean_value,
     validate_database_schema_name,
     validate_database_url,
     validate_day_starts_at,
@@ -48,6 +49,36 @@ def test_database_settings_honors_env_values(tmp_path: Path) -> None:
     assert settings.database_url == "postgresql+psycopg://localhost/custom"
     assert settings.database_schema == "lifeos_dev"
     assert settings.database_echo is True
+
+
+def test_database_settings_can_ignore_env_overrides(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "postgresql+psycopg://localhost/from_file"',
+                'schema = "lifeos_notes"',
+                "echo = false",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    settings = DatabaseSettings.from_env(
+        {
+            "LIFEOS_CONFIG_FILE": str(config_path),
+            "LIFEOS_DATABASE_URL": "postgresql+psycopg://localhost/from_env",
+            "LIFEOS_DATABASE_SCHEMA": "lifeos_dev",
+            "LIFEOS_DATABASE_ECHO": "true",
+        },
+        include_overrides=False,
+    )
+
+    assert settings.database_url == "postgresql+psycopg://localhost/from_file"
+    assert settings.database_schema == "lifeos_notes"
+    assert settings.database_echo is False
 
 
 def test_database_settings_reads_config_file(tmp_path: Path) -> None:
@@ -129,6 +160,42 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
     )
 
     settings = PreferencesSettings.from_env({"LIFEOS_CONFIG_FILE": str(config_path)})
+
+    assert settings.timezone == "America/Toronto"
+    assert settings.language == "zh-Hans"
+    assert settings.day_starts_at == "04:00"
+    assert settings.week_starts_on == "sunday"
+    assert settings.vision_experience_rate_per_hour == 90
+
+
+def test_preferences_settings_can_ignore_env_overrides(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[preferences]",
+                'timezone = "America/Toronto"',
+                'language = "zh-Hans"',
+                'day_starts_at = "04:00"',
+                'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 90",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    settings = PreferencesSettings.from_env(
+        {
+            "LIFEOS_CONFIG_FILE": str(config_path),
+            "LIFEOS_TIMEZONE": "UTC",
+            "LIFEOS_LANGUAGE": "en",
+            "LIFEOS_DAY_STARTS_AT": "00:00",
+            "LIFEOS_WEEK_STARTS_ON": "monday",
+            "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR": "120",
+        },
+        include_overrides=False,
+    )
 
     assert settings.timezone == "America/Toronto"
     assert settings.language == "zh-Hans"
@@ -228,6 +295,45 @@ def test_validate_vision_experience_rate_per_hour_rejects_invalid_values() -> No
         assert "between 1 and 3600" in str(exc)
     else:
         raise AssertionError("invalid vision experience rate should fail")
+
+
+def test_parse_boolean_value_rejects_invalid_values() -> None:
+    assert parse_boolean_value("true", field_name="Config key `database.echo`") is True
+    assert parse_boolean_value("0", field_name="Config key `database.echo`") is False
+
+    try:
+        parse_boolean_value("maybe", field_name="Config key `database.echo`")
+    except ConfigurationError as exc:
+        assert "true, false" in str(exc)
+    else:
+        raise AssertionError("invalid boolean string should fail")
+
+
+def test_write_database_settings_can_write_preferences_without_database_url(tmp_path: Path) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    database_settings = DatabaseSettings(
+        database_url=None,
+        database_schema="lifeos",
+        database_echo=False,
+        config_file=config_path,
+    )
+    preferences_settings = PreferencesSettings(
+        timezone="America/Toronto",
+        language="zh-Hans",
+        day_starts_at="04:00",
+        week_starts_on="sunday",
+        vision_experience_rate_per_hour=90,
+        config_file=config_path,
+    )
+
+    written_path = write_database_settings(database_settings, preferences=preferences_settings)
+
+    assert written_path == config_path
+    content = config_path.read_text(encoding="utf-8")
+    assert "[database]" in content
+    assert "url =" not in content
+    assert 'schema = "lifeos"' in content
+    assert 'timezone = "America/Toronto"' in content
 
 
 def test_write_database_settings_persists_toml(tmp_path: Path) -> None:

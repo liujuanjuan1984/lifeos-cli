@@ -203,6 +203,144 @@ def test_main_config_show_masks_database_password(
     clear_config_cache()
 
 
+def test_main_config_set_updates_preference_value(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+                "[notes]",
+                'default_editor = "nvim"',
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "set", "preferences.timezone", "America/Toronto"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated key: preferences.timezone" in captured.out
+    assert "Preference timezone: America/Toronto" in captured.out
+    content = config_path.read_text(encoding="utf-8")
+    assert 'timezone = "America/Toronto"' in content
+    assert "[notes]" in content
+    assert 'default_editor = "nvim"' in content
+    clear_config_cache()
+
+
+def test_main_config_set_updates_database_echo_strictly(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"',
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "set", "database.echo", "true"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Database echo: true" in captured.out
+    assert "db-user:***" in captured.out
+    assert "echo = true" in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
+def test_main_config_set_rejects_unknown_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "set", "preferences.unknown", "value"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Unsupported config key" in captured.err
+    assert not config_path.exists()
+    clear_config_cache()
+
+
+def test_main_config_set_ignores_runtime_env_overrides_when_persisting(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "America/Toronto"',
+                'language = "zh-Hans"',
+                'day_starts_at = "04:00"',
+                'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 90",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+
+    exit_code = cli.main(["config", "set", "preferences.language", "en-CA"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated key: preferences.language" in captured.out
+    content = config_path.read_text(encoding="utf-8")
+    assert 'timezone = "America/Toronto"' in content
+    assert 'language = "en-CA"' in content
+    clear_config_cache()
+
+
 def test_main_init_can_repair_invalid_existing_config(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

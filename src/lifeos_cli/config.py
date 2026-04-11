@@ -176,6 +176,16 @@ def _parse_bool(value: str) -> bool:
     return normalized in {"1", "true", "yes", "on"}
 
 
+def parse_boolean_value(value: str, *, field_name: str) -> bool:
+    """Parse a strict boolean string used by explicit CLI write commands."""
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ConfigurationError(f"{field_name} must be one of: true, false, yes, no, on, off, 1, 0.")
+
+
 def _serialize_toml_string(value: str) -> str:
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
@@ -183,14 +193,16 @@ def _serialize_toml_string(value: str) -> str:
 
 def _render_database_table(settings: DatabaseSettings) -> str:
     """Render the `[database]` TOML table for persisted settings."""
-    return "\n".join(
+    lines = ["[database]"]
+    if settings.database_url is not None:
+        lines.append(f"url = {_serialize_toml_string(settings.database_url)}")
+    lines.extend(
         (
-            "[database]",
-            f"url = {_serialize_toml_string(settings.require_database_url())}",
             f"schema = {_serialize_toml_string(settings.database_schema)}",
             f"echo = {'true' if settings.database_echo else 'false'}",
         )
     )
+    return "\n".join(lines)
 
 
 def _render_preferences_table(settings: PreferencesSettings) -> str:
@@ -258,6 +270,20 @@ def load_config_file(config_path: Path) -> dict[str, Any]:
     return loaded
 
 
+def _get_config_table(
+    file_values: Mapping[str, Any],
+    *,
+    config_path: Path,
+    table_name: str,
+) -> dict[str, Any]:
+    table_values = file_values.get(table_name, {})
+    if table_values and not isinstance(table_values, dict):
+        raise ConfigurationError(
+            f"Config file {config_path} must define [{table_name}] as a TOML table"
+        )
+    return table_values if isinstance(table_values, dict) else {}
+
+
 @dataclass(frozen=True)
 class DatabaseSettings:
     """Database settings loaded from config files and environment variables."""
@@ -268,34 +294,38 @@ class DatabaseSettings:
     config_file: Path
 
     @classmethod
-    def from_env(cls, env: Mapping[str, str] | None = None) -> DatabaseSettings:
+    def from_env(
+        cls,
+        env: Mapping[str, str] | None = None,
+        *,
+        include_overrides: bool = True,
+    ) -> DatabaseSettings:
         """Build database settings from config files and environment variables."""
-        source = env or os.environ
+        source = os.environ if env is None else env
         config_path = resolve_config_path(source)
         file_values = load_config_file(config_path)
-        database_values = file_values.get("database", {})
-        if database_values and not isinstance(database_values, dict):
-            raise ConfigurationError(
-                f"Config file {config_path} must define [database] as a TOML table"
-            )
-        database_values = database_values if isinstance(database_values, dict) else {}
+        database_values = _get_config_table(
+            file_values,
+            config_path=config_path,
+            table_name="database",
+        )
 
         file_url = database_values.get("url")
         file_schema = database_values.get("schema")
         file_echo = database_values.get("echo")
 
-        database_url = source.get("LIFEOS_DATABASE_URL")
+        database_url = source.get("LIFEOS_DATABASE_URL") if include_overrides else None
         if database_url is None and isinstance(file_url, str):
             database_url = file_url
         if database_url is not None:
             database_url = validate_database_url(database_url)
 
-        database_schema = source.get("LIFEOS_DATABASE_SCHEMA")
+        database_schema = source.get("LIFEOS_DATABASE_SCHEMA") if include_overrides else None
         if database_schema is None and isinstance(file_schema, str):
             database_schema = file_schema
         database_schema = database_schema or DEFAULT_DATABASE_SCHEMA
 
-        database_echo_value = source.get("LIFEOS_DATABASE_ECHO")
+        database_echo_value = source.get("LIFEOS_DATABASE_ECHO") if include_overrides else None
         if database_echo_value is not None:
             database_echo = _parse_bool(database_echo_value)
         elif isinstance(file_echo, bool):
@@ -345,17 +375,21 @@ class PreferencesSettings:
     config_file: Path
 
     @classmethod
-    def from_env(cls, env: Mapping[str, str] | None = None) -> PreferencesSettings:
+    def from_env(
+        cls,
+        env: Mapping[str, str] | None = None,
+        *,
+        include_overrides: bool = True,
+    ) -> PreferencesSettings:
         """Build preferences from config files and optional environment overrides."""
-        source = env or os.environ
+        source = os.environ if env is None else env
         config_path = resolve_config_path(source)
         file_values = load_config_file(config_path)
-        preference_values = file_values.get("preferences", {})
-        if preference_values and not isinstance(preference_values, dict):
-            raise ConfigurationError(
-                f"Config file {config_path} must define [preferences] as a TOML table"
-            )
-        preference_values = preference_values if isinstance(preference_values, dict) else {}
+        preference_values = _get_config_table(
+            file_values,
+            config_path=config_path,
+            table_name="preferences",
+        )
 
         file_timezone = preference_values.get("timezone")
         file_language = preference_values.get("language")
@@ -363,30 +397,30 @@ class PreferencesSettings:
         file_week_starts_on = preference_values.get("week_starts_on")
         file_vision_experience_rate = preference_values.get("vision_experience_rate_per_hour")
 
-        timezone_value = source.get("LIFEOS_TIMEZONE")
+        timezone_value = source.get("LIFEOS_TIMEZONE") if include_overrides else None
         if timezone_value is None and isinstance(file_timezone, str):
             timezone_value = file_timezone
         timezone_value = validate_timezone_name(timezone_value or detect_default_timezone(source))
 
-        language_value = source.get("LIFEOS_LANGUAGE")
+        language_value = source.get("LIFEOS_LANGUAGE") if include_overrides else None
         if language_value is None and isinstance(file_language, str):
             language_value = file_language
         language_value = validate_language(language_value or detect_default_language(source))
 
-        day_starts_at_value = source.get("LIFEOS_DAY_STARTS_AT")
+        day_starts_at_value = source.get("LIFEOS_DAY_STARTS_AT") if include_overrides else None
         if day_starts_at_value is None and isinstance(file_day_starts_at, str):
             day_starts_at_value = file_day_starts_at
         day_starts_at_value = validate_day_starts_at(day_starts_at_value or DEFAULT_DAY_STARTS_AT)
 
-        week_starts_on_value = source.get("LIFEOS_WEEK_STARTS_ON")
+        week_starts_on_value = source.get("LIFEOS_WEEK_STARTS_ON") if include_overrides else None
         if week_starts_on_value is None and isinstance(file_week_starts_on, str):
             week_starts_on_value = file_week_starts_on
         week_starts_on_value = validate_week_starts_on(
             week_starts_on_value or DEFAULT_WEEK_STARTS_ON
         )
 
-        vision_experience_rate_value: int | str | None = source.get(
-            "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR"
+        vision_experience_rate_value: int | str | None = (
+            source.get("LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR") if include_overrides else None
         )
         if vision_experience_rate_value is None and file_vision_experience_rate is not None:
             vision_experience_rate_value = file_vision_experience_rate

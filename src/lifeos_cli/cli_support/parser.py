@@ -60,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
             examples=(
                 "lifeos init",
                 "lifeos config show",
+                "lifeos config set preferences.timezone America/Toronto",
                 "lifeos db ping",
                 "lifeos data export all --output lifeos-bundle.zip",
                 'lifeos area add "Health"',
