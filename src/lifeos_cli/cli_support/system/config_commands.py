@@ -34,6 +34,7 @@ from lifeos_cli.config import (
     get_database_settings,
     get_preferences_settings,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 async def _run_init_ping() -> int:
@@ -60,8 +61,9 @@ def _handle_init(args: argparse.Namespace) -> int:
             prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
                 default=default
             ),
+            prompt_language=lambda default: init_prompts.prompt_language(default=default),
             prompt_database_echo=lambda default: init_prompts.prompt_bool(
-                "Enable SQL echo logging",
+                _("Enable SQL echo logging"),
                 default=default,
             ),
         ),
@@ -127,11 +129,13 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "init",
         help_content=HelpContent(
-            summary="Initialize local configuration",
+            summary=_("Initialize local configuration"),
             description=(
-                "Create or update the local LifeOS config file and verify that the database\n"
-                "is reachable.\n\n"
-                "This command is the recommended first step after installing lifeos-cli."
+                _("Create or update the local LifeOS config file and verify that the database")
+                + "\n"
+                + _("is reachable.")
+                + "\n\n"
+                + _("This command is the recommended first step after installing lifeos-cli.")
             ),
             examples=(
                 "lifeos init",
@@ -142,69 +146,73 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "--timezone America/Toronto --language zh-Hans --skip-migrate",
             ),
             notes=(
-                "Configuration is written to ~/.config/lifeos/config.toml by default.",
-                "Environment variables still override config file values at runtime.",
-                "Database credentials may be stored in plain text in the config file.",
-                "Preference values are also stored in the config file under [preferences].",
-                "Re-run `lifeos init` at any time to update stored preferences.",
+                _("Configuration is written to ~/.config/lifeos/config.toml by default."),
+                _("Environment variables still override config file values at runtime."),
+                _("Database credentials may be stored in plain text in the config file."),
+                _("Preference values are also stored in the config file under [preferences]."),
+                _(
+                    "Interactive init explicitly confirms the language preference because agents "
+                    "should use it for human-authored payload data."
+                ),
+                _("Re-run `lifeos init` at any time to update stored preferences."),
             ),
         ),
     )
     init_parser.add_argument(
         "--database-url",
-        help="PostgreSQL connection URL to persist in the config file",
+        help=_("PostgreSQL connection URL to persist in the config file"),
     )
     init_parser.add_argument(
         "--schema",
         default=None,
-        help="PostgreSQL schema name to use for application tables",
+        help=_("PostgreSQL schema name to use for application tables"),
     )
     init_parser.add_argument(
         "--echo",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help="Enable SQLAlchemy SQL echo logging in the config file",
+        help=_("Enable SQLAlchemy SQL echo logging in the config file"),
     )
     init_parser.add_argument(
         "--timezone",
         default=None,
-        help="Default IANA timezone for local day boundaries and time-based summaries",
+        help=_("Default IANA timezone for local day boundaries and time-based summaries"),
     )
     init_parser.add_argument(
         "--language",
         default=None,
-        help="Preferred language tag, for example en, en-CA, or zh-Hans",
+        help=_("Preferred language tag, for example en, en-CA, or zh-Hans"),
     )
     init_parser.add_argument(
         "--day-starts-at",
         default=None,
-        help="Local day boundary in HH:MM, used for future time-based grouping logic",
+        help=_("Local day boundary in HH:MM, used for future time-based grouping logic"),
     )
     init_parser.add_argument(
         "--week-starts-on",
         default=None,
-        help="Preferred first day of week: monday or sunday",
+        help=_("Preferred first day of week: monday or sunday"),
     )
     init_parser.add_argument(
         "--vision-experience-rate-per-hour",
         type=int,
         default=None,
-        help="Default vision experience points gained per hour of actual effort",
+        help=_("Default vision experience points gained per hour of actual effort"),
     )
     init_parser.add_argument(
         "--non-interactive",
         action="store_true",
-        help="Do not prompt for missing values; require flags or existing config values",
+        help=_("Do not prompt for missing values; require flags or existing config values"),
     )
     init_parser.add_argument(
         "--skip-ping",
         action="store_true",
-        help="Do not check database connectivity after writing the config file",
+        help=_("Do not check database connectivity after writing the config file"),
     )
     init_parser.add_argument(
         "--skip-migrate",
         action="store_true",
-        help="Do not run database migrations after writing the config file",
+        help=_("Do not run database migrations after writing the config file"),
     )
     init_parser.set_defaults(handler=_handle_init)
 
@@ -215,10 +223,11 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "config",
         help_content=HelpContent(
-            summary="Inspect runtime configuration",
+            summary=_("Inspect runtime configuration"),
             description=(
-                "Inspect the effective configuration resolved from the config file and\n"
-                "environment variables."
+                _("Inspect the effective configuration resolved from the config file and")
+                + "\n"
+                + _("environment variables.")
             ),
             examples=(
                 "lifeos config show",
@@ -226,36 +235,46 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config set preferences.timezone America/Toronto",
             ),
             notes=(
-                "Use `set` to persist supported keys into the local config file.",
-                "Environment variables still override config-file values at runtime.",
+                _("Use `set` to persist supported keys into the local config file."),
+                _("Environment variables still override config-file values at runtime."),
+                _(
+                    "Agents should inspect `Preference language` before writing human-authored "
+                    "titles, descriptions, or note content."
+                ),
             ),
         ),
     )
     config_parser.set_defaults(handler=make_help_handler(config_parser))
     config_subparsers = config_parser.add_subparsers(
         dest="config_command",
-        title="actions",
-        metavar="action",
+        title=_("actions"),
+        metavar=_("action"),
     )
 
     show_parser = add_documented_parser(
         config_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show effective configuration",
-            description="Print the effective config values used by the current process.",
+            summary=_("Show effective configuration"),
+            description=_("Print the effective config values used by the current process."),
             examples=("lifeos config show",),
             notes=(
-                "Database URLs hide passwords by default. Use --show-secrets when needed.",
-                "Preferences are resolved from the [preferences] TOML table and optional "
-                "LIFEOS_* overrides.",
+                _("Database URLs hide passwords by default. Use --show-secrets when needed."),
+                _(
+                    "Preferences are resolved from the [preferences] TOML table and optional "
+                    "LIFEOS_* overrides."
+                ),
+                _(
+                    "Agents should read the effective language and use it for human-authored "
+                    "payload data unless the human explicitly overrides it."
+                ),
             ),
         ),
     )
     show_parser.add_argument(
         "--show-secrets",
         action="store_true",
-        help="Print sensitive values such as database passwords in full",
+        help=_("Print sensitive values such as database passwords in full"),
     )
     show_parser.set_defaults(handler=_handle_config_show)
 
@@ -263,25 +282,25 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         config_subparsers,
         "set",
         help_content=HelpContent(
-            summary="Persist one config value",
-            description="Write one supported config key to the local config file.",
+            summary=_("Persist one config value"),
+            description=_("Write one supported config key to the local config file."),
             examples=(
                 "lifeos config set preferences.timezone America/Toronto",
                 "lifeos config set database.echo true",
                 "lifeos config set preferences.vision_experience_rate_per_hour 120",
             ),
             notes=(
-                "This command writes the config file, not environment variables.",
-                "Supported keys: " + ", ".join(SUPPORTED_CONFIG_KEYS),
-                "Use `config show` to inspect the effective values after environment overrides.",
+                _("This command writes the config file, not environment variables."),
+                _("Supported keys: {keys}").format(keys=", ".join(SUPPORTED_CONFIG_KEYS)),
+                _("Use `config show` to inspect the effective values after environment overrides."),
             ),
         ),
     )
-    set_parser.add_argument("key", help="Supported config key to update")
-    set_parser.add_argument("value", help="New value to persist for the selected key")
+    set_parser.add_argument("key", help=_("Supported config key to update"))
+    set_parser.add_argument("value", help=_("New value to persist for the selected key"))
     set_parser.add_argument(
         "--show-secrets",
         action="store_true",
-        help="Print sensitive values such as database passwords in full after writing",
+        help=_("Print sensitive values such as database passwords in full after writing"),
     )
     set_parser.set_defaults(handler=_handle_config_set)

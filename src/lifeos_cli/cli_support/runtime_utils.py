@@ -44,10 +44,13 @@ def format_config_summary(
         f"Database echo: {'true' if database_settings.database_echo else 'false'}",
         f"Preference timezone: {preferences_settings.timezone}",
         f"Preference language: {preferences_settings.language}",
+        f"Payload language for agent-authored records: {preferences_settings.language}",
         f"Preference day starts at: {preferences_settings.day_starts_at}",
         f"Preference week starts on: {preferences_settings.week_starts_on}",
         "Preference vision experience rate per hour: "
         f"{preferences_settings.vision_experience_rate_per_hour}",
+        "Agent payload rule: use the preference language for human-authored titles, "
+        "descriptions, and note content unless the human explicitly asks for another language.",
     ]
     return "\n".join(lines)
 

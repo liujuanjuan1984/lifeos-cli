@@ -444,6 +444,7 @@ def test_build_database_settings_uses_injected_prompts(
                 "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"
             ),
             prompt_database_schema=lambda default: "lifeos_dev",
+            prompt_language=lambda default: "zh-Hans",
             prompt_database_echo=lambda default: True,
         ),
     )
@@ -540,3 +541,39 @@ def test_build_preferences_settings_uses_environment_defaults(monkeypatch, tmp_p
     assert settings.day_starts_at == "00:00"
     assert settings.week_starts_on == "monday"
     assert settings.vision_experience_rate_per_hour == 60
+
+
+def test_build_preferences_settings_uses_injected_language_prompt(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone="America/Toronto",
+        language=None,
+        day_starts_at="04:00",
+        week_starts_on="sunday",
+        vision_experience_rate_per_hour=120,
+        non_interactive=False,
+        is_interactive=True,
+        prompts=InitializationPrompts(
+            prompt_database_url=lambda default: (
+                "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"
+            ),
+            prompt_database_schema=lambda default: "lifeos",
+            prompt_language=lambda default: "zh-Hans",
+            prompt_database_echo=lambda default: False,
+        ),
+    )
+
+    settings = build_preferences_settings(request)
+
+    assert settings.timezone == "America/Toronto"
+    assert settings.language == "zh-Hans"
+    assert settings.day_starts_at == "04:00"
+    assert settings.week_starts_on == "sunday"
+    assert settings.vision_experience_rate_per_hour == 120

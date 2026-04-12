@@ -10,6 +10,7 @@ from lifeos_cli.cli_support.resources.schedule.handlers import (
     handle_schedule_list,
     handle_schedule_show,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 def build_schedule_parser(
@@ -20,40 +21,54 @@ def build_schedule_parser(
         subparsers,
         "schedule",
         help_content=HelpContent(
-            summary="Inspect aggregated schedule views",
+            summary=_("Inspect aggregated schedule views"),
             description=(
-                "Show schedule views grouped by local date.\n\n"
-                "Schedule is a CLI read model built from tasks, habit actions, and events, "
-                "including expanded recurring event occurrences."
+                _("Show schedule views grouped by local date.")
+                + "\n\n"
+                + _(
+                    "Schedule is a CLI read model built from tasks, habit actions, and events, "
+                    "including expanded recurring event occurrences."
+                )
             ),
             examples=(
                 "lifeos schedule show --date 2026-04-10",
                 "lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16",
             ),
             notes=(
-                "Use `show` for one exact local day.",
-                "Use `list` for multi-day ranges.",
-                "Dates use the configured timezone and `day_starts_at` preference.",
-                "Event output is segmented into appointment, timeblock, and deadline sections.",
-                "Schedule reads from existing domains and does not create a new stored entity.",
+                _("Use `show` for one exact local day."),
+                _("Use `list` for multi-day ranges."),
+                _("Dates use the configured timezone and `day_starts_at` preference."),
+                _("Event output is segmented into appointment, timeblock, and deadline sections."),
+                _("Schedule reads from existing domains and does not create a new stored entity."),
             ),
         ),
     )
     schedule_parser.set_defaults(handler=make_help_handler(schedule_parser))
     schedule_subparsers = schedule_parser.add_subparsers(
-        dest="schedule_command", title="actions", metavar="action"
+        dest="schedule_command", title=_("actions"), metavar=_("action")
     )
 
     show_parser = add_documented_parser(
         schedule_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show one schedule day",
-            description="Show the aggregated schedule for one local day.",
+            summary=_("Show one schedule day"),
+            description=(
+                _("Show the aggregated schedule for one local day.")
+                + "\n\n"
+                + _(
+                    "Tasks appear when the requested local date falls inside their planning-cycle "
+                    "window, while events appear when their scheduled time overlaps that day."
+                )
+            ),
             examples=("lifeos schedule show --date 2026-04-10",),
             notes=(
-                "The output groups tasks, habit actions, and event occurrences for the day.",
-                "Event occurrences are split into appointment, timeblock, and deadline sections.",
+                _("The output groups tasks, habit actions, and event occurrences for the day."),
+                _("Task rows come from planning-cycle overlap, not from event timeblocks."),
+                _(
+                    "Event occurrences are split into appointment, timeblock, and deadline "
+                    "sections."
+                ),
             ),
         ),
     )
@@ -62,7 +77,7 @@ def build_schedule_parser(
         dest="target_date",
         required=True,
         type=date.fromisoformat,
-        help="Target local date in YYYY-MM-DD format",
+        help=_("Target local date in YYYY-MM-DD format"),
     )
     show_parser.set_defaults(handler=handle_schedule_show)
 
@@ -70,13 +85,13 @@ def build_schedule_parser(
         schedule_subparsers,
         "list",
         help_content=HelpContent(
-            summary="List a schedule range",
-            description="Show the aggregated schedule for a local-date range.",
+            summary=_("List a schedule range"),
+            description=_("Show the aggregated schedule for a local-date range."),
             examples=("lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16",),
             notes=(
-                "The range is inclusive on both start and end dates.",
-                "Recurring event occurrences are expanded inside the requested range.",
-                "Event occurrences remain segmented by type inside each day block.",
+                _("The range is inclusive on both start and end dates."),
+                _("Recurring event occurrences are expanded inside the requested range."),
+                _("Event occurrences remain segmented by type inside each day block."),
             ),
         ),
     )
@@ -84,12 +99,12 @@ def build_schedule_parser(
         "--start-date",
         required=True,
         type=date.fromisoformat,
-        help="Range start date in YYYY-MM-DD format",
+        help=_("Range start date in YYYY-MM-DD format"),
     )
     list_parser.add_argument(
         "--end-date",
         required=True,
         type=date.fromisoformat,
-        help="Range end date in YYYY-MM-DD format",
+        help=_("Range end date in YYYY-MM-DD format"),
     )
     list_parser.set_defaults(handler=handle_schedule_list)

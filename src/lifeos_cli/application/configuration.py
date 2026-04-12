@@ -36,6 +36,7 @@ class InitializationPrompts:
 
     prompt_database_url: Callable[[str | None], str]
     prompt_database_schema: Callable[[str | None], str]
+    prompt_language: Callable[[str | None], str]
     prompt_database_echo: Callable[[bool], bool]
 
 
@@ -143,6 +144,13 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
         if request.vision_experience_rate_per_hour is None
         else request.vision_experience_rate_per_hour
     )
+
+    if not request.non_interactive and request.is_interactive and request.language is None:
+        if request.prompts is None:
+            raise ConfigurationError(
+                "Interactive initialization requires prompt handlers to collect missing values."
+            )
+        language_value = request.prompts.prompt_language(language_value)
 
     return PreferencesSettings(
         timezone=validate_timezone_name(timezone_value),

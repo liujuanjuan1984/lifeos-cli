@@ -29,6 +29,8 @@ from lifeos_cli.cli_support.system.config_commands import (
 )
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
 from lifeos_cli.config import ConfigurationError
+from lifeos_cli.i18n import configure_argparse_translations
+from lifeos_cli.i18n import gettext_message as _
 
 
 def get_version() -> str:
@@ -41,20 +43,31 @@ def get_version() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
+    configure_argparse_translations()
     parser = argparse.ArgumentParser(
         prog="lifeos",
         description=(
-            "Run LifeOS resource commands from the terminal.\n\n"
-            "Command grammar:\n"
+            _("Run LifeOS resource commands from the terminal.")
+            + "\n\n"
+            + _("Command grammar:")
+            + "\n"
             "  lifeos <resource> <action> [arguments] [options]\n\n"
-            "Resources model domains such as areas, people, visions, tasks, and notes.\n"
-            "Time-oriented domains use `event` for planned schedule blocks and `timelog` "
-            "for actual time records.\n"
-            "Use `schedule` for aggregated day and range views across planned work.\n"
-            "Habits and habit actions are exposed as separate top-level resources.\n"
-            "System commands such as init, config, and db manage runtime setup.\n"
-            "Use `data` for canonical import/export, bundle backup, and batch operations.\n"
-            "Actions are short verbs that operate on records or runtime state."
+            + _("Resources model domains such as areas, people, visions, tasks, and notes.")
+            + "\n"
+            + _(
+                "Time-oriented domains use `event` for planned schedule blocks and `timelog` "
+                "for actual time records."
+            )
+            + "\n"
+            + _("Use `schedule` for aggregated day and range views across planned work.")
+            + "\n"
+            + _("Habits and habit actions are exposed as separate top-level resources.")
+            + "\n"
+            + _("System commands such as init, config, and db manage runtime setup.")
+            + "\n"
+            + _("Use `data` for canonical import/export, bundle backup, and batch operations.")
+            + "\n"
+            + _("Actions are short verbs that operate on records or runtime state.")
         ),
         epilog=build_epilog(
             examples=(
@@ -79,26 +92,51 @@ def build_parser() -> argparse.ArgumentParser:
                 'lifeos note search "meeting notes"',
             ),
             notes=(
-                "Prefer short, stable resource names so new command families stay consistent.",
-                "Use natural exceptions such as `people` when they are clearer than "
-                "forced regular forms.",
-                "Prefer short action verbs such as add, list, update, and delete.",
-                "For structured resources, prefer `list` with filters and pagination over "
-                "separate query verbs.",
-                "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations.",
-                "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
-                "primary command reference.",
-                "Each resource help page should explain scope, actions, and examples.",
-                "When automation acts on behalf of a human, model the acting subject "
-                "explicitly through `people` and repeated `--person-id` flags.",
-                "Keep human-only work, agent-only work, and truly shared work distinct.",
-                "Run `lifeos init` before using database-backed resource commands.",
+                _("Prefer short, stable resource names so new command families stay consistent."),
+                _(
+                    "Use natural exceptions such as `people` when they are clearer than "
+                    "forced regular forms."
+                ),
+                _("Prefer short action verbs such as add, list, update, and delete."),
+                _(
+                    "For structured resources, prefer `list` with filters and pagination over "
+                    "separate query verbs."
+                ),
+                _(
+                    "Use sub-namespaces such as `batch` when a resource needs grouped bulk "
+                    "operations."
+                ),
+                _(
+                    "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
+                    "primary command reference."
+                ),
+                _("Each resource help page should explain scope, actions, and examples."),
+                _(
+                    "When automation acts on behalf of a human, model the acting subject "
+                    "explicitly through `people` and repeated `--person-id` flags."
+                ),
+                _(
+                    "Agents that create records for a human should run `lifeos config show` and "
+                    "use the effective preference language for titles, descriptions, and note "
+                    "content unless the human explicitly asks for another language."
+                ),
+                _("Keep human-only work, agent-only work, and truly shared work distinct."),
+                _("Run `lifeos init` before using database-backed resource commands."),
             ),
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {get_version()}")
-    subparsers = parser.add_subparsers(dest="resource", title="resources", metavar="resource")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {get_version()}",
+        help=_("Show the program version and exit"),
+    )
+    subparsers = parser.add_subparsers(
+        dest="resource",
+        title=_("resources"),
+        metavar=_("resource"),
+    )
     build_init_parser(subparsers)
     build_config_parser(subparsers)
     build_db_parser(subparsers)

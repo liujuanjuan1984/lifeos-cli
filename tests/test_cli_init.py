@@ -46,6 +46,8 @@ def test_main_init_non_interactive_writes_config(
     assert "Database URL: postgresql+psycopg://db-user:***@localhost:5432/lifeos" in captured.out
     assert "Preference timezone: America/Toronto" in captured.out
     assert "Preference language: zh-Hans" in captured.out
+    assert "Payload language for agent-authored records: zh-Hans" in captured.out
+    assert "Agent payload rule:" in captured.out
     assert "Preference vision experience rate per hour: 120" in captured.out
     content = config_path.read_text(encoding="utf-8")
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
@@ -74,6 +76,8 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
         prompts.append(prompt)
         if prompt.startswith("Database schema"):
             return ""
+        if prompt.startswith("Preferred language tag for human-authored payloads"):
+            return ""
         if prompt.startswith("Enable SQL echo logging"):
             return ""
         raise AssertionError(f"unexpected prompt: {prompt}")
@@ -93,6 +97,10 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     assert "Wrote config file:" in captured.out
     assert all(not prompt.startswith("Database URL") for prompt in prompts)
     assert any(prompt.startswith("Database schema") for prompt in prompts)
+    assert any(
+        prompt.startswith("Preferred language tag for human-authored payloads")
+        for prompt in prompts
+    )
     clear_config_cache()
 
 
@@ -103,7 +111,7 @@ def test_main_init_reprompts_invalid_schema_in_interactive_mode(
 ) -> None:
     config_path = tmp_path / "config.toml"
     prompts: list[str] = []
-    responses = iter(["lifeos-dev", "lifeos_dev", ""])
+    responses = iter(["lifeos-dev", "lifeos_dev", "", "", ""])
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
@@ -197,6 +205,8 @@ def test_main_config_show_masks_database_password(
     assert "<db-password>" not in captured.out
     assert "Preference timezone: America/Toronto" in captured.out
     assert "Preference language: zh-Hans" in captured.out
+    assert "Payload language for agent-authored records: zh-Hans" in captured.out
+    assert "Agent payload rule:" in captured.out
     assert "Preference day starts at: 04:00" in captured.out
     assert "Preference week starts on: sunday" in captured.out
     assert "Preference vision experience rate per hour: 90" in captured.out

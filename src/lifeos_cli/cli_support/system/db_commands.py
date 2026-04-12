@@ -16,6 +16,7 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.runtime_utils import (
     run_async,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 async def run_db_ping(_: argparse.Namespace) -> int:
@@ -43,11 +44,13 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         subparsers,
         "db",
         help_content=HelpContent(
-            summary="Run database maintenance commands",
+            summary=_("Run database maintenance commands"),
             description=(
-                "Inspect database connectivity and apply migrations.\n\n"
-                "These commands operate on the database configured through `lifeos init`,\n"
-                "the config file, or LIFEOS_* environment variables."
+                _("Inspect database connectivity and apply migrations.")
+                + "\n\n"
+                + _("These commands operate on the database configured through `lifeos init`,")
+                + "\n"
+                + _("the config file, or LIFEOS_* environment variables.")
             ),
             examples=(
                 "lifeos db ping",
@@ -56,14 +59,16 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         ),
     )
     db_parser.set_defaults(handler=make_help_handler(db_parser))
-    db_subparsers = db_parser.add_subparsers(dest="db_command", title="actions", metavar="action")
+    db_subparsers = db_parser.add_subparsers(
+        dest="db_command", title=_("actions"), metavar=_("action")
+    )
 
     ping_parser = add_documented_parser(
         db_subparsers,
         "ping",
         help_content=HelpContent(
-            summary="Check database connectivity",
-            description="Open a database connection and run a minimal health check query.",
+            summary=_("Check database connectivity"),
+            description=_("Open a database connection and run a minimal health check query."),
             examples=("lifeos db ping",),
         ),
     )
@@ -73,8 +78,8 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         db_subparsers,
         "upgrade",
         help_content=HelpContent(
-            summary="Apply migrations",
-            description="Apply Alembic migrations to the configured PostgreSQL database.",
+            summary=_("Apply migrations"),
+            description=_("Apply Alembic migrations to the configured PostgreSQL database."),
             examples=("lifeos db upgrade",),
         ),
     )

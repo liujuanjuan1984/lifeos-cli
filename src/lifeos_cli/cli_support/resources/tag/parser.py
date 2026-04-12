@@ -19,6 +19,7 @@ from lifeos_cli.cli_support.resources.tag.handlers import (
     handle_tag_show,
     handle_tag_update,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -27,36 +28,38 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         subparsers,
         "tag",
         help_content=HelpContent(
-            summary="Manage tags",
+            summary=_("Manage tags"),
             description=(
-                "Create and maintain tags for notes, people, visions, tasks, and areas.\n\n"
-                "Tags provide cross-cutting classification across otherwise separate domains."
+                _("Create and maintain tags for notes, people, visions, tasks, and areas.")
+                + "\n\n"
+                + _("Tags provide cross-cutting classification across otherwise separate domains.")
             ),
             examples=(
                 'lifeos tag add "family" --entity-type person --category relation',
                 "lifeos tag list --entity-type note",
             ),
             notes=(
-                "Use `list` as the primary query entrypoint for this resource.",
-                "A tag is scoped by name, entity type, and category.",
-                "Use the `batch` namespace for multi-record write operations.",
-                "Delete operations in the CLI always perform soft deletion.",
+                _("Use `list` as the primary query entrypoint for this resource."),
+                _("A tag is scoped by name, entity type, and category."),
+                _("Use the `batch` namespace for multi-record write operations."),
+                _("Delete operations in the CLI always perform soft deletion."),
             ),
         ),
     )
     tag_parser.set_defaults(handler=make_help_handler(tag_parser))
     tag_subparsers = tag_parser.add_subparsers(
-        dest="tag_command", title="actions", metavar="action"
+        dest="tag_command", title=_("actions"), metavar=_("action")
     )
 
     add_parser = add_documented_parser(
         tag_subparsers,
         "add",
         help_content=HelpContent(
-            summary="Create a tag",
+            summary=_("Create a tag"),
             description=(
-                "Create a new tag.\n\n"
-                "Tags are intended for structured labeling, not free-form note content."
+                _("Create a new tag.")
+                + "\n\n"
+                + _("Tags are intended for structured labeling, not free-form note content.")
             ),
             examples=(
                 'lifeos tag add "family" --entity-type person --category relation',
@@ -67,18 +70,18 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             ),
         ),
     )
-    add_parser.add_argument("name", help="Tag name")
-    add_parser.add_argument("--entity-type", required=True, help="Target entity type")
-    add_parser.add_argument("--category", default="general", help="Tag category")
-    add_parser.add_argument("--description", help="Optional tag description")
-    add_parser.add_argument("--color", help="Optional hex color code")
+    add_parser.add_argument("name", help=_("Tag name"))
+    add_parser.add_argument("--entity-type", required=True, help=_("Target entity type"))
+    add_parser.add_argument("--category", default="general", help=_("Tag category"))
+    add_parser.add_argument("--description", help=_("Optional tag description"))
+    add_parser.add_argument("--color", help=_("Optional hex color code"))
     add_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to associate one or more people",
+        help=_("Repeat to associate one or more people"),
     )
     add_parser.set_defaults(handler=handle_tag_add)
 
@@ -86,11 +89,14 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "list",
         help_content=HelpContent(
-            summary="List tags",
+            summary=_("List tags"),
             description=(
-                "List tags with optional filters.\n\n"
-                "Use entity type and category to narrow the result set before inspecting "
-                "one tag in detail."
+                _("List tags with optional filters.")
+                + "\n\n"
+                + _(
+                    "Use entity type and category to narrow the result set before inspecting "
+                    "one tag in detail."
+                )
             ),
             examples=(
                 "lifeos tag list",
@@ -98,12 +104,12 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos tag list --entity-type task --category priority --limit 20",
             ),
-            notes=("Use `--include-deleted` to review previously deleted tags.",),
+            notes=(_("Use `--include-deleted` to review previously deleted tags."),),
         ),
     )
-    list_parser.add_argument("--entity-type", help="Filter by entity type")
-    list_parser.add_argument("--category", help="Filter by category")
-    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
+    list_parser.add_argument("--entity-type", help=_("Filter by entity type"))
+    list_parser.add_argument("--category", help=_("Filter by category"))
+    list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person identifier"))
     add_include_deleted_argument(list_parser, noun="tags")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_tag_list)
@@ -112,15 +118,15 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show a tag",
-            description="Show one tag with full metadata.",
+            summary=_("Show a tag"),
+            description=_("Show one tag with full metadata."),
             examples=(
                 "lifeos tag show 11111111-1111-1111-1111-111111111111",
                 "lifeos tag show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
+    show_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
     add_include_deleted_argument(show_parser, noun="tags", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_tag_show)
 
@@ -128,10 +134,11 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update a tag",
+            summary=_("Update a tag"),
             description=(
-                "Update mutable tag fields.\n\n"
-                "Only explicitly provided flags are changed; omitted values are preserved."
+                _("Update mutable tag fields.")
+                + "\n\n"
+                + _("Only explicitly provided flags are changed; omitted values are preserved.")
             ),
             examples=(
                 'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
@@ -140,26 +147,28 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
             ),
             notes=(
-                "Use `--clear-description`, `--clear-color`, or `--clear-people` "
-                "to remove optional values.",
+                _(
+                    "Use `--clear-description`, `--clear-color`, or `--clear-people` "
+                    "to remove optional values."
+                ),
             ),
         ),
     )
-    update_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
-    update_parser.add_argument("--name", help="Updated tag name")
-    update_parser.add_argument("--entity-type", help="Updated entity type")
-    update_parser.add_argument("--category", help="Updated tag category")
-    update_parser.add_argument("--description", help="Updated tag description")
+    update_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
+    update_parser.add_argument("--name", help=_("Updated tag name"))
+    update_parser.add_argument("--entity-type", help=_("Updated entity type"))
+    update_parser.add_argument("--category", help=_("Updated tag category"))
+    update_parser.add_argument("--description", help=_("Updated tag description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help="Clear the optional tag description",
+        help=_("Clear the optional tag description"),
     )
-    update_parser.add_argument("--color", help="Updated hex color code")
+    update_parser.add_argument("--color", help=_("Updated hex color code"))
     update_parser.add_argument(
         "--clear-color",
         action="store_true",
-        help="Clear the optional tag color",
+        help=_("Clear the optional tag color"),
     )
     update_parser.add_argument(
         "--person-id",
@@ -167,35 +176,42 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to replace people with one or more identifiers",
+        help=_("Repeat to replace people with one or more identifiers"),
     )
-    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
+    update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
     update_parser.set_defaults(handler=handle_tag_update)
 
     delete_parser = add_documented_parser(
         tag_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete a tag",
+            summary=_("Delete a tag"),
             description=(
-                "Soft-delete a tag.\n\n"
-                "This keeps historical references recoverable while removing the tag "
-                "from normal views."
+                _("Soft-delete a tag.")
+                + "\n\n"
+                + _(
+                    "This keeps historical references recoverable while removing the tag "
+                    "from normal views."
+                )
             ),
             examples=("lifeos tag delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("tag_id", type=UUID, help="Tag identifier")
+    delete_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
     delete_parser.set_defaults(handler=handle_tag_delete)
 
     batch_parser = add_documented_parser(
         tag_subparsers,
         "batch",
         help_content=HelpContent(
-            summary="Run batch tag operations",
+            summary=_("Run batch tag operations"),
             description=(
-                "Run write operations that target multiple tags in one command.\n\n"
-                "Use this namespace for bulk maintenance rather than adding many top-level verbs."
+                _("Run write operations that target multiple tags in one command.")
+                + "\n\n"
+                + _(
+                    "Use this namespace for bulk maintenance rather than adding many top-level "
+                    "verbs."
+                )
             ),
             examples=(
                 "lifeos tag batch delete --ids "
@@ -207,17 +223,17 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="tag_batch_command",
-        title="batch actions",
-        metavar="batch_action",
+        title=_("batch actions"),
+        metavar=_("batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete multiple tags",
-            description="Soft-delete multiple tags by identifier.",
-            notes=("Batch delete never performs hard deletion from the public CLI.",),
+            summary=_("Delete multiple tags"),
+            description=_("Soft-delete multiple tags by identifier."),
+            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="tag_ids", noun="tag")

@@ -143,6 +143,10 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
     assert "When automation acts on behalf of a human" in captured.out
+    assert (
+        "use the effective preference language for titles, descriptions, and note content"
+        in captured.out
+    )
     assert "human-only work, agent-only work, and truly shared work" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
@@ -164,6 +168,134 @@ def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
         "Event output is segmented into appointment, timeblock, and deadline sections."
         in captured.out
     )
+
+
+def test_cli_config_show_help_describes_agent_language_guidance(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "show", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "effective language" in captured.out
+    assert "human-authored payload data" in captured.out
+
+
+def test_cli_task_help_describes_event_and_schedule_bridge(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `lifeos event add --task-id <task-id>`" in captured.out
+    assert "A task appears in `lifeos schedule show`" in captured.out
+
+
+def test_cli_task_add_help_describes_planning_cycle_semantics(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Planning cycle type: year, month, week, or day" in captured.out
+    assert "Start date of the enclosing planning cycle window" in captured.out
+    assert "not a clock-time execution slot" in captured.out
+    assert "--planning-cycle-type week --planning-cycle-days 7" in captured.out
+
+
+def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "show", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Tasks appear when the requested local date falls inside their planning-cycle window"
+        in captured.out
+    )
+    assert "Task rows come from planning-cycle overlap" in captured.out
+
+
+def test_cli_task_help_supports_zh_hans_locale(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "创建并维护属于某个 `vision` 的 `task` 树。" in captured.out
+    assert "创建 `task`" in captured.out
+    assert "说明:" in captured.out
+
+
+def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--help"])
+
+    captured = capsys.readouterr()
+
+    assert "用法：" in captured.out
+    assert "选项：" in captured.out
+    assert "显示此帮助信息并退出" in captured.out
+    assert "area          管理 `area`" in captured.out
+    assert "people        管理 `people` 和关系" in captured.out
+    assert "timelog       管理 `timelog`" in captured.out
+
+
+def test_cli_schedule_show_help_supports_zh_hans_locale(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "show", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "显示某一个本地日期的聚合 `schedule`。" in captured.out
+    assert "`task` 行来自 planning-cycle 的时间重叠" in captured.out
+    assert "示例:" in captured.out
+
+
+def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    cases = [
+        (["people", "--help"], ["`people`", "`person`"]),
+        (["timelog", "--help"], ["`timelog`", "`area`", "`task`"]),
+        (["schedule", "--help"], ["`schedule`", "`task`", "`habit-action`", "`event`"]),
+    ]
+
+    for argv, expected_terms in cases:
+        with pytest.raises(SystemExit):
+            parser.parse_args([*argv[:-1], argv[-1]])
+        captured = capsys.readouterr()
+        for term in expected_terms:
+            assert term in captured.out
 
 
 def test_cli_config_help_describes_set_command(capsys) -> None:

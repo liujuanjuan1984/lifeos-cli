@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
+from lifeos_cli.i18n import gettext_message as _
+
 
 def add_include_deleted_argument(
     parser: argparse.ArgumentParser,
@@ -16,7 +18,7 @@ def add_include_deleted_argument(
     parser.add_argument(
         "--include-deleted",
         action="store_true",
-        help=f"{help_prefix} soft-deleted {noun}",
+        help=_("{help_prefix} soft-deleted {noun}").format(help_prefix=help_prefix, noun=noun),
     )
 
 
@@ -30,13 +32,13 @@ def add_limit_offset_arguments(
         "--limit",
         type=int,
         default=100,
-        help=f"Maximum number of {row_noun}",
+        help=_("Maximum number of {row_noun}").format(row_noun=row_noun),
     )
     parser.add_argument(
         "--offset",
         type=int,
         default=0,
-        help=f"Number of {row_noun} to skip",
+        help=_("Number of {row_noun} to skip").format(row_noun=row_noun),
     )
 
 
@@ -54,5 +56,5 @@ def add_identifier_list_argument(
         type=UUID,
         nargs="+",
         required=True,
-        help=f"{noun.capitalize()} identifiers to delete",
+        help=_("{noun} identifiers to delete").format(noun=noun.capitalize()),
     )

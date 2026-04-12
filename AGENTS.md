@@ -18,7 +18,12 @@ The following rules apply to coding agent collaboration in this repository. Thes
 ## 3. Text and Language Conventions
 
 - Use Simplified Chinese for issues, PR descriptions, comments, and review notes.
-- Use English for repository files, code, comments, commit messages, and Markdown documentation stored in the repository.
+- Use English for code, comments, commit messages, and canonical repository documents.
+- Localized Markdown companions are allowed when they are explicitly scoped, linked from the
+  canonical English document, and kept aligned with it.
+- Keep the root `README.md` in English as the canonical repository entrypoint. Localized companions
+  such as `README.zh-Hans.md` must link back to `README.md`, and `README.md` should link to the
+  available localized companion documents.
 - For multi-line PR bodies or comments, write to a temporary file first and pass it through `gh`.
 
 ## 4. Validation and Release Safety
@@ -38,7 +43,8 @@ The following rules apply to coding agent collaboration in this repository. Thes
 
 - Never commit secrets, tokens, private keys, or `.env` contents.
 - Ensure logs and examples do not expose credentials or sensitive local paths unintentionally.
-- Update [SECURITY.md](SECURITY.md), [README.md](README.md), and release-related docs when changing publishing, dependency, or security-sensitive behavior.
+- Update [SECURITY.md](SECURITY.md), [README.md](README.md), localized README companions, and
+  release-related docs when changing publishing, dependency, or security-sensitive behavior.
 
 ## 6. CLI Help and Tests
 

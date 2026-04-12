@@ -14,6 +14,7 @@ from lifeos_cli.cli_support.resources.note.parser_actions import (
     build_note_show_parser,
     build_note_update_parser,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -22,12 +23,15 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "note",
         help_content=HelpContent(
-            summary="Capture and manage notes",
+            summary=_("Capture and manage notes"),
             description=(
-                "Create, inspect, update, and delete note records.\n\n"
-                "The note resource is the reference command family for LifeOS.\n"
-                "Future resources should follow the same command grammar:\n"
-                "  lifeos <resource> <action> [arguments] [options]"
+                _("Create, inspect, update, and delete note records.")
+                + "\n\n"
+                + _("The note resource is the reference command family for LifeOS.")
+                + "\n"
+                + _("Future resources should follow the same command grammar:")
+                + "\n"
+                + "  lifeos <resource> <action> [arguments] [options]"
             ),
             examples=(
                 "lifeos init",
@@ -43,22 +47,24 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos note delete 11111111-1111-1111-1111-111111111111",
             ),
             notes=(
-                "Run `lifeos init` before using note commands for the first time.",
-                "Prefer short, stable resource names, such as note, task, or people.",
-                "Action names stay short verbs, such as add, list, update, and delete.",
-                "Use the `batch` namespace when one command operates on multiple note records.",
-                "The list command prints tab-separated columns: id, status, created_at, "
-                "task_id, people_count, timelog_count, content.",
-                "Use `show` to inspect the full note body with preserved line breaks.",
-                "Delete operations in the CLI always perform soft deletion.",
+                _("Run `lifeos init` before using note commands for the first time."),
+                _("Prefer short, stable resource names, such as note, task, or people."),
+                _("Action names stay short verbs, such as add, list, update, and delete."),
+                _("Use the `batch` namespace when one command operates on multiple note records."),
+                _(
+                    "The list command prints tab-separated columns: id, status, created_at, "
+                    "task_id, people_count, timelog_count, content."
+                ),
+                _("Use `show` to inspect the full note body with preserved line breaks."),
+                _("Delete operations in the CLI always perform soft deletion."),
             ),
         ),
     )
     note_parser.set_defaults(handler=make_help_handler(note_parser))
     note_subparsers = note_parser.add_subparsers(
         dest="note_command",
-        title="actions",
-        metavar="action",
+        title=_("actions"),
+        metavar=_("action"),
     )
     build_note_add_parser(note_subparsers)
     build_note_list_parser(note_subparsers)

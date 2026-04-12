@@ -51,7 +51,9 @@ rm -rf build dist && uv build --no-sources
 
 ## Change Expectations
 
-- Keep code, comments, commit messages, and repository docs in English.
+- Keep code, comments, commit messages, and canonical repository docs in English.
+- Localized Markdown companions are allowed when the English source stays canonical, the documents
+  are cross-linked, and the localized copy is updated together with the source.
 - Keep issue and PR collaboration in Simplified Chinese for this repository.
 - Prefer explicit, additive changes over hidden behavioral shifts.
 - Keep Python compatibility declarations, CI matrices, and packaging metadata consistent with each other.
@@ -74,6 +76,14 @@ Update docs together with code whenever you change:
 - validation or dependency workflows
 - release or publishing behavior
 - security or disclosure guidance
+
+Documentation language policy:
+
+- Keep `README.md` as the canonical English entry document.
+- Localized entry documents such as `README.zh-Hans.md` are allowed when they clearly link to the
+  canonical English version and the English version links back to them.
+- Avoid duplicating command-level facts in repository docs across languages. CLI help remains the
+  primary command reference.
 
 For CLI-facing changes:
 
