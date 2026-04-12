@@ -461,6 +461,7 @@ async def update_timelog(
             entity_type="timelog",
             desired_person_ids=person_ids,
         )
+    await session.flush()
     await recompute_task_effort_after_timelog_change(
         session,
         old_task_id=old_task_id,
@@ -621,6 +622,7 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     old_start_time = timelog.start_time
     old_end_time = timelog.end_time
     timelog.soft_delete()
+    await session.flush()
     await recompute_task_effort_after_timelog_change(
         session,
         old_task_id=old_task_id,
@@ -648,6 +650,7 @@ async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> Timelog
     await ensure_timelog_area_exists(session, timelog.area_id)
     await ensure_timelog_task_exists(session, timelog.task_id)
     timelog.deleted_at = None
+    await session.flush()
     await recompute_task_effort_after_timelog_change(
         session,
         old_task_id=None,

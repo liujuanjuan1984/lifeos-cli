@@ -556,7 +556,7 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         new_task_id=None,
     )
     recompute_timelog_stats.assert_awaited_once()
-    session.flush.assert_awaited_once()
+    assert session.flush.await_count == 2
     session.commit.assert_not_called()
 
 
@@ -715,7 +715,7 @@ def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
         new_task_id=task_id,
     )
     recompute_timelog_stats.assert_awaited_once()
-    session.flush.assert_awaited_once()
+    assert session.flush.await_count == 2
     session.refresh.assert_awaited_once_with(timelog)
 
 
