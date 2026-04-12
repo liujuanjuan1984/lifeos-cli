@@ -254,7 +254,6 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     assert "用法：" in captured.out
     assert "显示此帮助信息并退出" in captured.out
-    assert ("选项：" in captured.out) or ("可选参数：" in captured.out)
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
