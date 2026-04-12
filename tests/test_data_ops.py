@@ -120,6 +120,39 @@ def test_batch_update_note_rejects_legacy_single_task_field() -> None:
     )
 
 
+def test_batch_update_resource_reports_attempted_rows_on_stopping_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    call_count = 0
+
+    async def fake_update(session: object, **kwargs: object) -> None:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:
+            raise ValueError("boom")
+
+    monkeypatch.setitem(data_ops.UPDATE_OPERATIONS, "tag", fake_update)
+
+    report = asyncio.run(
+        data_ops.batch_update_resource(
+            cast(AsyncSession, FakeBatchSession()),
+            resource="tag",
+            rows=[
+                {"id": "11111111-1111-1111-1111-111111111111", "name": "alpha"},
+                {"id": "22222222-2222-2222-2222-222222222222", "name": "beta"},
+                {"id": "33333333-3333-3333-3333-333333333333", "name": "gamma"},
+            ],
+            continue_on_error=False,
+        )
+    )
+
+    assert call_count == 2
+    assert report.processed_count == 2
+    assert report.updated_count == 1
+    assert report.failed_count == 1
+    assert report.failures[0].index == 2
+
+
 def test_import_bundle_applies_base_rows_before_relations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

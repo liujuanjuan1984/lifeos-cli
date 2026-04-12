@@ -1062,11 +1062,13 @@ async def batch_update_resource(
     if resource not in UPDATE_OPERATIONS:
         raise DataOperationError(f"Resource {resource!r} does not support batch update.")
     failures: list[DataOperationFailure] = []
+    processed_count = 0
     updated_count = 0
     build_kwargs = UPDATE_KWARGS_BUILDERS[resource]
     operation = UPDATE_OPERATIONS[resource]
 
     for index, row in enumerate(rows, start=1):
+        processed_count = index
         try:
             async with session.begin_nested():
                 kwargs = build_kwargs(_normalize_patch_payload(resource, row))
@@ -1087,7 +1089,7 @@ async def batch_update_resource(
 
     return DataBatchUpdateReport(
         resource=resource,
-        processed_count=len(rows),
+        processed_count=processed_count,
         updated_count=updated_count,
         failed_count=len(failures),
         failures=tuple(failures),
