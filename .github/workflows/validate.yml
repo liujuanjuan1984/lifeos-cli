@@ -72,3 +72,45 @@ jobs:
 
       - name: Run runtime regression tests
         run: uv run pytest
+
+  integration-postgres:
+    name: Validate CLI Integration (PostgreSQL)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lifeos_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres # pragma: allowlist secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lifeos_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+
+      - name: Sync locked dependencies
+        run: uv sync --all-extras --frozen
+
+      - name: Run CLI integration tests
+        env:
+          LIFEOS_RUN_INTEGRATION: "1"
+          LIFEOS_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/lifeos_test # pragma: allowlist secret
+        run: uv run pytest tests/test_cli_integration_*.py

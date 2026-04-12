@@ -31,6 +31,8 @@ Run the default validation baseline before opening a PR:
 bash ./scripts/doctor.sh
 ```
 
+The default validation baseline includes dead-code scanning through `vulture`.
+
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
 ```bash
@@ -48,6 +50,16 @@ uv export --format requirements.txt --no-dev --locked --no-emit-project --output
 uv run pip-audit --requirement /tmp/runtime-requirements.txt
 rm -rf build dist && uv build --no-sources
 ```
+
+Static-analysis governance:
+
+- Treat framework-driven symbols as intentional API surface when they are required by the toolchain.
+  Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`,
+  SQLAlchemy declarative hooks, and gettext extraction constants.
+- Do not delete those symbols just to satisfy a generic dead-code scanner.
+- Keep intentional false positives documented in `scripts/vulture_whitelist.py`.
+- If you add a new framework-driven symbol that `vulture` cannot resolve, update the whitelist in
+  the same change.
 
 ## Change Expectations
 
