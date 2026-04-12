@@ -284,6 +284,7 @@ async def create_timelog(
         task_id=task_id,
     )
     session.add(timelog)
+    await session.flush()
     if tag_ids is not None:
         await sync_entity_tags(
             session, entity_id=timelog.id, entity_type="timelog", desired_tag_ids=tag_ids

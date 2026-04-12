@@ -78,9 +78,23 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
     async def fake_flush_and_recompute(_: object, **__: object) -> None:
         await session.flush()
 
-    session.add = fake_add
+    async def fake_sync_tags(_: object, **kwargs: object) -> None:
+        assert kwargs["entity_id"] == UUID("11111111-1111-1111-1111-111111111111")
+
+    def record_add(timelog: object) -> None:
+        session.added_timelog = timelog
+        fake_add(timelog)
+
+    async def fake_flush() -> None:
+        added_timelog = getattr(session, "added_timelog", None)
+        if added_timelog is not None and getattr(added_timelog, "id", None) is None:
+            added_timelog.id = UUID("11111111-1111-1111-1111-111111111111")
+
+    session.add = record_add
+    session.flush = AsyncMock(side_effect=fake_flush)
     monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(timelogs, "sync_entity_tags", fake_sync_tags)
     monkeypatch.setattr(
         timelogs,
         "_flush_and_recompute_timelog_dependents",
@@ -94,13 +108,14 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
             title="Deep work",
             start_time=utc_datetime(2026, 4, 10, 13, 0),
             end_time=utc_datetime(2026, 4, 10, 14, 0),
+            tag_ids=[UUID("22222222-2222-2222-2222-222222222222")],
         )
     )
 
     assert timelog.title == "Deep work"
     assert timelog.start_time == utc_datetime(2026, 4, 10, 13, 0)
     assert timelog.end_time == utc_datetime(2026, 4, 10, 14, 0)
-    session.flush.assert_awaited_once()
+    assert session.flush.await_count == 2
     session.commit.assert_not_called()
 
 
