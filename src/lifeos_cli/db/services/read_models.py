@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 if TYPE_CHECKING:
