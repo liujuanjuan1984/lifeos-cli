@@ -96,12 +96,6 @@ lifeos --help
 
 CI 也会通过同一个独立入口，在临时 PostgreSQL 服务上真实运行 CLI integration tests。
 
-如需一次性把旧版 v1 data bundle 迁移到当前格式，可运行：
-
-```bash
-uv run python scripts/convert_bundle_v1_to_v2.py legacy-bundle.zip converted-bundle.zip
-```
-
 ## 项目策略
 
 - 贡献流程：[CONTRIBUTING.md](CONTRIBUTING.md)
