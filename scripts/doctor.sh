@@ -12,4 +12,7 @@ echo "[doctor] run lint"
 uv run pre-commit run --all-files
 
 echo "[doctor] run tests"
-uv run pytest
+uv run pytest -m "not integration"
+
+echo "[doctor] run integration tests"
+bash ./scripts/integration_tests.sh

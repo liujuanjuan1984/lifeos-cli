@@ -1056,6 +1056,7 @@ async def batch_update_resource(
     *,
     resource: str,
     rows: list[dict[str, Any]],
+    continue_on_error: bool = False,
 ) -> DataBatchUpdateReport:
     """Apply batch updates for one resource using domain services."""
     if resource not in UPDATE_OPERATIONS:
@@ -1067,8 +1068,9 @@ async def batch_update_resource(
 
     for index, row in enumerate(rows, start=1):
         try:
-            kwargs = build_kwargs(_normalize_patch_payload(resource, row))
-            await operation(session, **kwargs)
+            async with session.begin_nested():
+                kwargs = build_kwargs(_normalize_patch_payload(resource, row))
+                await operation(session, **kwargs)
             updated_count += 1
         except Exception as exc:  # noqa: BLE001
             failures.append(
@@ -1080,7 +1082,8 @@ async def batch_update_resource(
                     record_id=(UUID(str(row["id"])) if "id" in row else None),
                 )
             )
-            raise
+            if not continue_on_error:
+                break
 
     return DataBatchUpdateReport(
         resource=resource,

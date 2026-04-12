@@ -315,44 +315,19 @@ async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
     try:
         rows = _read_rows(args.file, stdin=args.stdin, input_format=args.format)
         session = db_session.get_async_session_factory()()
-        updated_count = 0
-        failures: list[data_ops.DataOperationFailure] = []
         try:
-            for index, row in enumerate(rows, start=1):
-                try:
-                    async with session.begin_nested():
-                        report = await data_ops.batch_update_resource(
-                            session,
-                            resource=args.target,
-                            rows=[row],
-                        )
-                        updated_count += report.updated_count
-                except Exception as exc:  # noqa: BLE001
-                    failures.append(
-                        data_ops.DataOperationFailure(
-                            index=index,
-                            resource=args.target,
-                            message=str(exc),
-                            payload=row,
-                            record_id=_maybe_record_id(row),
-                        )
-                    )
-                    if not args.continue_on_error:
-                        break
-            if args.dry_run or failures and not args.continue_on_error:
+            report = await data_ops.batch_update_resource(
+                session,
+                resource=args.target,
+                rows=rows,
+                continue_on_error=args.continue_on_error,
+            )
+            if args.dry_run or report.failed_count and not args.continue_on_error:
                 await session.rollback()
             else:
                 await session.commit()
         finally:
             await session.close()
-
-        report = data_ops.DataBatchUpdateReport(
-            resource=args.target,
-            processed_count=len(rows),
-            updated_count=updated_count,
-            failed_count=len(failures),
-            failures=tuple(failures),
-        )
         _write_failures(failure_path=args.error_file, failures=report.failures)
         print(f"Resource: {report.resource}")
         print(f"Processed rows: {report.processed_count}")

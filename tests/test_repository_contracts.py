@@ -42,6 +42,8 @@ def test_dependency_scripts_keep_separate_scopes() -> None:
 def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert "bash ./scripts/dead_code_check.sh" in PRE_COMMIT_TEXT
     assert "uv run pre-commit run --all-files" in DOCTOR_TEXT
+    assert 'uv run pytest -m "not integration"' in DOCTOR_TEXT
+    assert "bash ./scripts/integration_tests.sh" in DOCTOR_TEXT
 
 
 def test_validate_workflow_runs_real_cli_integration_tests() -> None:
@@ -52,7 +54,8 @@ def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     assert "integration-postgres" in VALIDATE_WORKFLOW_TEXT
     assert 'LIFEOS_RUN_INTEGRATION: "1"' in VALIDATE_WORKFLOW_TEXT
     assert expected_database_url in VALIDATE_WORKFLOW_TEXT
-    assert "uv run pytest tests/test_cli_integration_*.py" in VALIDATE_WORKFLOW_TEXT
+    assert 'uv run pytest -m "not integration"' in VALIDATE_WORKFLOW_TEXT
+    assert "bash ./scripts/integration_tests.sh" in VALIDATE_WORKFLOW_TEXT
 
 
 def test_static_analysis_governance_is_documented_and_whitelisted() -> None:

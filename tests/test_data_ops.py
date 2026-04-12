@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 from uuid import UUID
@@ -10,6 +11,12 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.services import data_ops
+
+
+class FakeBatchSession:
+    @asynccontextmanager
+    async def begin_nested(self):
+        yield self
 
 
 def test_batch_update_resource_parses_typed_timelog_fields(
@@ -24,7 +31,7 @@ def test_batch_update_resource_parses_typed_timelog_fields(
 
     report = asyncio.run(
         data_ops.batch_update_resource(
-            cast(AsyncSession, object()),
+            cast(AsyncSession, FakeBatchSession()),
             resource="timelog",
             rows=[
                 {
@@ -62,7 +69,7 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
 
     report = asyncio.run(
         data_ops.batch_update_resource(
-            cast(AsyncSession, object()),
+            cast(AsyncSession, FakeBatchSession()),
             resource="note",
             rows=[
                 {
@@ -93,19 +100,24 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
 
 
 def test_batch_update_note_rejects_legacy_single_task_field() -> None:
-    with pytest.raises(data_ops.DataOperationError, match="task_ids"):
-        asyncio.run(
-            data_ops.batch_update_resource(
-                cast(AsyncSession, object()),
-                resource="note",
-                rows=[
-                    {
-                        "id": "11111111-1111-1111-1111-111111111111",
-                        "task_id": "33333333-3333-3333-3333-333333333333",
-                    }
-                ],
-            )
+    report = asyncio.run(
+        data_ops.batch_update_resource(
+            cast(AsyncSession, FakeBatchSession()),
+            resource="note",
+            rows=[
+                {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "task_id": "33333333-3333-3333-3333-333333333333",
+                }
+            ],
         )
+    )
+
+    assert report.updated_count == 0
+    assert report.failed_count == 1
+    assert report.failures[0].message.endswith(
+        "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+    )
 
 
 def test_import_bundle_applies_base_rows_before_relations(

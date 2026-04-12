@@ -290,8 +290,24 @@ def test_main_data_batch_update_records_lookup_failures_without_crashing(
         *,
         resource: str,
         rows: list[dict[str, object]],
+        continue_on_error: bool = False,
     ) -> data_ops.DataBatchUpdateReport:
-        raise LookupError("Unknown tag IDs for entity type person: missing-tag")
+        assert continue_on_error is False
+        return data_ops.DataBatchUpdateReport(
+            resource=resource,
+            processed_count=len(rows),
+            updated_count=0,
+            failed_count=1,
+            failures=(
+                data_ops.DataOperationFailure(
+                    index=1,
+                    resource=resource,
+                    message="Unknown tag IDs for entity type person: missing-tag",
+                    payload=rows[0],
+                    record_id=UUID("11111111-1111-1111-1111-111111111111"),
+                ),
+            ),
+        )
 
     monkeypatch.setattr(
         db_session,
