@@ -1,0 +1,95 @@
+# lifeos-cli
+
+English: [README.md](README.md)
+
+`lifeos-cli` 是一个以 CLI 为核心的 LifeOS：既适合人类直接使用，也适合 agent 自动化调用，
+用于承载连接“意图”和“现实”的结构化数字生活数据。
+
+## 价值主张
+
+大多数个人系统会把生活拆散到多个互不相通的工具里，因此很难回答这些关键问题：
+
+- 我原本打算做什么？
+- 实际上发生了什么？
+- 我的时间和精力究竟流向了哪里？
+- 我真正活出来的关系、习惯和优先级是什么？
+
+`lifeos-cli` 把这些问题当作同一个系统问题来处理。它同时为生活的两侧提供结构：
+
+- intention：visions、tasks、habits、planned events
+- reality：notes、timelogs、completed habit actions、relationship records
+
+目标不只是存储个人数据，而是让自我管理、复盘反思和自动化都建立在同一个可持续的事实源之上。
+
+## 为什么是 CLI
+
+CLI 是统一接口。人可以直接使用它，现有 agent 也可以调用同一套命令，而不需要额外再嵌入一层
+agent 专用接口。
+
+## 当前范围
+
+当前系统已经覆盖 LifeOS 的核心积木：
+
+- notes
+- areas
+- tags
+- people
+- visions
+- tasks
+- habits and habit actions
+- events
+- timelogs
+
+这些模块已经覆盖了“什么重要、计划了什么、正在执行什么、实际发生了什么”这条主链路。
+
+## 快速开始
+
+从 PyPI 安装：
+
+```bash
+uv tool install lifeos-cli
+```
+
+初始化本地环境：
+
+```bash
+lifeos init
+```
+
+查看 CLI 命令面：
+
+```bash
+lifeos --help
+```
+
+完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
+
+## 开发
+
+1. 安装 `uv`。
+2. 同步开发环境：
+
+   ```bash
+   uv sync --all-extras
+   ```
+
+3. 运行默认校验入口：
+
+   ```bash
+   bash ./scripts/doctor.sh
+   ```
+
+4. 有意识地使用仓库依赖管理工作流：
+
+   - `.github/dependabot.yml` 会为 `uv` 依赖更新创建单个、按周聚合的 PR。
+   - `bash ./scripts/dependency_health.sh` 仍然是维护者显式执行的过期依赖与开发期漏洞审计流程。
+
+## 项目策略
+
+- 贡献流程：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 安全披露：[SECURITY.md](SECURITY.md)
+- 社区行为规范：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+## 许可证
+
+本项目使用 Apache License 2.0。详见 [LICENSE](LICENSE)。

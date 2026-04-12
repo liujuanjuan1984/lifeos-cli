@@ -20,6 +20,7 @@ from lifeos_cli.cli_support.resources.event.handlers import (
     handle_event_show,
     handle_event_update,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 def _datetime_value(value: str) -> datetime:
@@ -33,10 +34,11 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "event",
         help_content=HelpContent(
-            summary="Manage planned schedule events",
+            summary=_("Manage planned schedule events"),
             description=(
-                "Create and maintain planned schedule blocks.\n\n"
-                "Events represent calendar intent and time allocation, not todo semantics."
+                _("Create and maintain planned schedule blocks.")
+                + "\n\n"
+                + _("Events represent calendar intent and time allocation, not todo semantics.")
             ),
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
@@ -47,24 +49,24 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
             ),
             notes=(
-                "Use `list` as the primary query entrypoint for events.",
-                "Events can optionally reference one area and one task.",
-                "Event types distinguish hard appointments, flexible timeblocks, and deadlines.",
-                "Delete operations in the public CLI always perform soft deletion.",
+                _("Use `list` as the primary query entrypoint for events."),
+                _("Events can optionally reference one area and one task."),
+                _("Event types distinguish hard appointments, flexible timeblocks, and deadlines."),
+                _("Delete operations in the public CLI always perform soft deletion."),
             ),
         ),
     )
     event_parser.set_defaults(handler=make_help_handler(event_parser))
     event_subparsers = event_parser.add_subparsers(
-        dest="event_command", title="actions", metavar="action"
+        dest="event_command", title=_("actions"), metavar=_("action")
     )
 
     add_parser = add_documented_parser(
         event_subparsers,
         "add",
         help_content=HelpContent(
-            summary="Create an event",
-            description="Create a planned schedule event.",
+            summary=_("Create an event"),
+            description=_("Create a planned schedule event."),
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00 '
                 "--end-time 2026-04-10T10:00:00-04:00",
@@ -73,53 +75,60 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--task-id <task-id> --area-id <area-id>",
             ),
             notes=(
-                "`appointment` is the default type. Use `--type` for timeblocks and deadlines.",
-                "Use repeated `--tag-id` and `--person-id` flags to attach tags and people.",
-                "If `--end-time` is omitted, the event is treated as open-ended.",
-                "Use recurrence flags to create a recurring series without renaming the resource.",
-                "When an agent creates events for a human, use `--person-id` to distinguish "
-                "human-only plans from agent-only or shared schedule blocks.",
+                _("`appointment` is the default type. Use `--type` for timeblocks and deadlines."),
+                _("Use repeated `--tag-id` and `--person-id` flags to attach tags and people."),
+                _("If `--end-time` is omitted, the event is treated as open-ended."),
+                _(
+                    "Use recurrence flags to create a recurring series without renaming the "
+                    "resource."
+                ),
+                _(
+                    "When an agent creates events for a human, use `--person-id` to distinguish "
+                    "human-only plans from agent-only or shared schedule blocks."
+                ),
             ),
         ),
     )
-    add_parser.add_argument("title", help="Event title")
-    add_parser.add_argument("--description", help="Optional event description")
-    add_parser.add_argument("--start-time", required=True, type=_datetime_value, help="Start time")
-    add_parser.add_argument("--end-time", type=_datetime_value, help="Optional end time")
-    add_parser.add_argument("--priority", type=int, default=0, help="Priority from 0 to 5")
-    add_parser.add_argument("--status", default="planned", help="Event status")
+    add_parser.add_argument("title", help=_("Event title"))
+    add_parser.add_argument("--description", help=_("Optional event description"))
+    add_parser.add_argument(
+        "--start-time", required=True, type=_datetime_value, help=_("Start time")
+    )
+    add_parser.add_argument("--end-time", type=_datetime_value, help=_("Optional end time"))
+    add_parser.add_argument("--priority", type=int, default=0, help=_("Priority from 0 to 5"))
+    add_parser.add_argument("--status", default="planned", help=_("Event status"))
     add_parser.add_argument(
         "--type",
         dest="event_type",
         default="appointment",
-        help="Event type: appointment, timeblock, or deadline",
+        help=_("Event type: appointment, timeblock, or deadline"),
     )
     add_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Mark the event as all-day",
+        help=_("Mark the event as all-day"),
     )
-    add_parser.add_argument("--area-id", type=UUID, help="Optional linked area identifier")
-    add_parser.add_argument("--task-id", type=UUID, help="Optional linked task identifier")
+    add_parser.add_argument("--area-id", type=UUID, help=_("Optional linked area identifier"))
+    add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
     add_parser.add_argument(
         "--recurrence-frequency",
-        help="Optional recurrence frequency: daily or weekly",
+        help=_("Optional recurrence frequency: daily or weekly"),
     )
     add_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help="Optional recurrence interval, default 1",
+        help=_("Optional recurrence interval, default 1"),
     )
     add_parser.add_argument(
         "--recurrence-count",
         type=int,
-        help="Optional total occurrence count",
+        help=_("Optional total occurrence count"),
     )
     add_parser.add_argument(
         "--recurrence-until",
         type=_datetime_value,
-        help="Optional final allowed occurrence start time",
+        help=_("Optional final allowed occurrence start time"),
     )
     add_parser.add_argument(
         "--tag-id",
@@ -127,7 +136,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to attach one or more event tags",
+        help=_("Repeat to attach one or more event tags"),
     )
     add_parser.add_argument(
         "--person-id",
@@ -135,7 +144,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to attach one or more people",
+        help=_("Repeat to attach one or more people"),
     )
     add_parser.set_defaults(handler=handle_event_add)
 
@@ -143,10 +152,11 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         event_subparsers,
         "list",
         help_content=HelpContent(
-            summary="List events",
+            summary=_("List events"),
             description=(
-                "List events with optional time-window and relation filters.\n\n"
-                "Use this command as the main query entrypoint for scheduled events."
+                _("List events with optional time-window and relation filters.")
+                + "\n\n"
+                + _("Use this command as the main query entrypoint for scheduled events.")
             ),
             examples=(
                 "lifeos event list",
@@ -157,35 +167,39 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                "When both window flags are given, overlapping events are returned.",
-                "Use `--date` to query one configured local day using your timezone and "
-                "`day_starts_at` preference.",
-                "Recurring series are expanded for bounded window queries and schedule views.",
-                "Use `--type` to narrow results to one event topology.",
-                "Use `--title-contains` for lightweight text filtering instead of a "
-                "separate search command.",
+                _("When both window flags are given, overlapping events are returned."),
+                _(
+                    "Use `--date` to query one configured local day using your timezone and "
+                    "`day_starts_at` preference."
+                ),
+                _("Recurring series are expanded for bounded window queries and schedule views."),
+                _("Use `--type` to narrow results to one event topology."),
+                _(
+                    "Use `--title-contains` for lightweight text filtering instead of a "
+                    "separate search command."
+                ),
             ),
         ),
     )
-    list_parser.add_argument("--title-contains", help="Filter by title substring")
-    list_parser.add_argument("--status", help="Filter by event status")
+    list_parser.add_argument("--title-contains", help=_("Filter by title substring"))
+    list_parser.add_argument("--status", help=_("Filter by event status"))
     list_parser.add_argument(
         "--type",
         dest="event_type",
-        help="Filter by event type: appointment, timeblock, or deadline",
+        help=_("Filter by event type: appointment, timeblock, or deadline"),
     )
-    list_parser.add_argument("--area-id", type=UUID, help="Filter by linked area")
-    list_parser.add_argument("--task-id", type=UUID, help="Filter by linked task")
-    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person")
-    list_parser.add_argument("--tag-id", type=UUID, help="Filter by linked tag")
+    list_parser.add_argument("--area-id", type=UUID, help=_("Filter by linked area"))
+    list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
+    list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
+    list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
     list_parser.add_argument(
         "--date",
         dest="local_date",
         type=date.fromisoformat,
-        help="Filter one configured local day in YYYY-MM-DD format",
+        help=_("Filter one configured local day in YYYY-MM-DD format"),
     )
-    list_parser.add_argument("--window-start", type=_datetime_value, help="Window start time")
-    list_parser.add_argument("--window-end", type=_datetime_value, help="Window end time")
+    list_parser.add_argument("--window-start", type=_datetime_value, help=_("Window start time"))
+    list_parser.add_argument("--window-end", type=_datetime_value, help=_("Window end time"))
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_event_list)
@@ -194,15 +208,15 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         event_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show an event",
-            description="Show one event with full metadata.",
+            summary=_("Show an event"),
+            description=_("Show one event with full metadata."),
             examples=(
                 "lifeos event show 11111111-1111-1111-1111-111111111111",
                 "lifeos event show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("event_id", type=UUID, help="Event identifier")
+    show_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
     add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_event_show)
 
@@ -210,8 +224,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         event_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update an event",
-            description="Update mutable event fields.",
+            summary=_("Update an event"),
+            description=_("Update mutable event fields."),
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
@@ -221,66 +235,70 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--clear-people --clear-tags",
             ),
             notes=(
-                "Use `--type` to retag an event as appointment, timeblock, or deadline.",
-                "Use `--clear-*` flags to explicitly remove optional values.",
-                "Do not mix a value flag with the matching clear flag in the same command.",
-                "Use `--scope single|all_future|all` for recurring series updates.",
-                "`--scope single` and `--scope all_future` require `--instance-start`.",
-                "Use repeated `--person-id` to keep human-only, agent-only, and shared "
-                "ownership explicit as plans change.",
+                _("Use `--type` to retag an event as appointment, timeblock, or deadline."),
+                _("Use `--clear-*` flags to explicitly remove optional values."),
+                _("Do not mix a value flag with the matching clear flag in the same command."),
+                _("Use `--scope single|all_future|all` for recurring series updates."),
+                _("`--scope single` and `--scope all_future` require `--instance-start`."),
+                _(
+                    "Use repeated `--person-id` to keep human-only, agent-only, and shared "
+                    "ownership explicit as plans change."
+                ),
             ),
         ),
     )
-    update_parser.add_argument("event_id", type=UUID, help="Event identifier")
-    update_parser.add_argument("--title", help="Updated event title")
-    update_parser.add_argument("--description", help="Updated description")
-    update_parser.add_argument("--clear-description", action="store_true", help="Clear description")
-    update_parser.add_argument("--start-time", type=_datetime_value, help="Updated start time")
-    update_parser.add_argument("--end-time", type=_datetime_value, help="Updated end time")
-    update_parser.add_argument("--clear-end-time", action="store_true", help="Clear end time")
-    update_parser.add_argument("--priority", type=int, help="Updated priority from 0 to 5")
-    update_parser.add_argument("--status", help="Updated event status")
+    update_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
+    update_parser.add_argument("--title", help=_("Updated event title"))
+    update_parser.add_argument("--description", help=_("Updated description"))
+    update_parser.add_argument(
+        "--clear-description", action="store_true", help=_("Clear description")
+    )
+    update_parser.add_argument("--start-time", type=_datetime_value, help=_("Updated start time"))
+    update_parser.add_argument("--end-time", type=_datetime_value, help=_("Updated end time"))
+    update_parser.add_argument("--clear-end-time", action="store_true", help=_("Clear end time"))
+    update_parser.add_argument("--priority", type=int, help=_("Updated priority from 0 to 5"))
+    update_parser.add_argument("--status", help=_("Updated event status"))
     update_parser.add_argument(
         "--type",
         dest="event_type",
-        help="Updated event type: appointment, timeblock, or deadline",
+        help=_("Updated event type: appointment, timeblock, or deadline"),
     )
     update_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help="Toggle all-day status",
+        help=_("Toggle all-day status"),
     )
-    update_parser.add_argument("--area-id", type=UUID, help="Updated linked area identifier")
-    update_parser.add_argument("--clear-area", action="store_true", help="Clear linked area")
-    update_parser.add_argument("--task-id", type=UUID, help="Updated linked task identifier")
-    update_parser.add_argument("--clear-task", action="store_true", help="Clear linked task")
-    update_parser.add_argument("--recurrence-frequency", help="Updated recurrence frequency")
+    update_parser.add_argument("--area-id", type=UUID, help=_("Updated linked area identifier"))
+    update_parser.add_argument("--clear-area", action="store_true", help=_("Clear linked area"))
+    update_parser.add_argument("--task-id", type=UUID, help=_("Updated linked task identifier"))
+    update_parser.add_argument("--clear-task", action="store_true", help=_("Clear linked task"))
+    update_parser.add_argument("--recurrence-frequency", help=_("Updated recurrence frequency"))
     update_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help="Updated recurrence interval",
+        help=_("Updated recurrence interval"),
     )
-    update_parser.add_argument("--recurrence-count", type=int, help="Updated recurrence count")
+    update_parser.add_argument("--recurrence-count", type=int, help=_("Updated recurrence count"))
     update_parser.add_argument(
         "--recurrence-until",
         type=_datetime_value,
-        help="Updated recurrence until datetime",
+        help=_("Updated recurrence until datetime"),
     )
     update_parser.add_argument(
         "--clear-recurrence",
         action="store_true",
-        help="Remove recurrence from the event",
+        help=_("Remove recurrence from the event"),
     )
     update_parser.add_argument(
         "--scope",
         default="all",
-        help="Update scope for recurring events: single, all_future, or all",
+        help=_("Update scope for recurring events: single, all_future, or all"),
     )
     update_parser.add_argument(
         "--instance-start",
         type=_datetime_value,
-        help="Instance start time for single or all_future recurring updates",
+        help=_("Instance start time for single or all_future recurring updates"),
     )
     update_parser.add_argument(
         "--tag-id",
@@ -288,26 +306,26 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to replace tags with one or more identifiers",
+        help=_("Repeat to replace tags with one or more identifiers"),
     )
-    update_parser.add_argument("--clear-tags", action="store_true", help="Remove all tags")
+    update_parser.add_argument("--clear-tags", action="store_true", help=_("Remove all tags"))
     update_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to replace people with one or more identifiers",
+        help=_("Repeat to replace people with one or more identifiers"),
     )
-    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
+    update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
     update_parser.set_defaults(handler=handle_event_update)
 
     delete_parser = add_documented_parser(
         event_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete an event",
-            description="Soft-delete one event.",
+            summary=_("Delete an event"),
+            description=_("Soft-delete one event."),
             examples=(
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
@@ -316,21 +334,21 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--scope all_future --instance-start 2026-04-10T09:00:00-04:00",
             ),
             notes=(
-                "Use `--scope single|all_future|all` for recurring series deletes.",
-                "`--scope single` and `--scope all_future` require `--instance-start`.",
+                _("Use `--scope single|all_future|all` for recurring series deletes."),
+                _("`--scope single` and `--scope all_future` require `--instance-start`."),
             ),
         ),
     )
-    delete_parser.add_argument("event_id", type=UUID, help="Event identifier")
+    delete_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
     delete_parser.add_argument(
         "--scope",
         default="all",
-        help="Delete scope for recurring events: single, all_future, or all",
+        help=_("Delete scope for recurring events: single, all_future, or all"),
     )
     delete_parser.add_argument(
         "--instance-start",
         type=_datetime_value,
-        help="Instance start time for single or all_future recurring deletes",
+        help=_("Instance start time for single or all_future recurring deletes"),
     )
     delete_parser.set_defaults(handler=handle_event_delete)
 
@@ -338,21 +356,21 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         event_subparsers,
         "batch",
         help_content=HelpContent(
-            summary="Run batch event operations",
-            description="Grouped namespace for multi-record event writes.",
+            summary=_("Run batch event operations"),
+            description=_("Grouped namespace for multi-record event writes."),
             examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
-        dest="event_batch_command", title="batch actions", metavar="batch-action"
+        dest="event_batch_command", title=_("batch actions"), metavar=_("batch-action")
     )
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete multiple events",
-            description="Soft-delete multiple events by identifier.",
+            summary=_("Delete multiple events"),
+            description=_("Soft-delete multiple events by identifier."),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="event_ids", noun="event")

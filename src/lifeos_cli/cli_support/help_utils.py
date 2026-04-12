@@ -6,6 +6,8 @@ import argparse
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from lifeos_cli.i18n import gettext_message as _
+
 
 @dataclass(frozen=True)
 class HelpContent:
@@ -22,10 +24,10 @@ def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ())
     sections: list[str] = []
     if examples:
         example_lines = "\n".join(f"  {example}" for example in examples)
-        sections.append(f"Examples:\n{example_lines}")
+        sections.append(f"{_('Examples')}:\n{example_lines}")
     if notes:
         note_lines = "\n".join(f"  {note}" for note in notes)
-        sections.append(f"Notes:\n{note_lines}")
+        sections.append(f"{_('Notes')}:\n{note_lines}")
     if not sections:
         return None
     return "\n\n".join(sections)

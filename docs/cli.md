@@ -134,6 +134,8 @@ If the caller is an agent or another automation layer:
 - start from `list` to discover identifiers
 - use `show` before destructive or state-changing operations
 - treat help as the only authoritative command-level reference
+- run `lifeos config show` before writing human-authored payload fields
+- use `Preference language` as the payload language for titles, descriptions, and note content unless the human explicitly asks for another language
 - keep flows identifier-driven after discovery
 - decide whether the record belongs to the human, the agent, or both before writing data
 - keep separate `people` records when the human partner and the agent should remain distinct subjects

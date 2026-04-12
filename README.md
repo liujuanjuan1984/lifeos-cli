@@ -1,5 +1,7 @@
 # lifeos-cli
 
+Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)
+
 `lifeos-cli` is a CLI-first LifeOS for self-managing super individuals: human-friendly in direct
 use, agent-friendly in automation, and built to hold the structured digital life data that connects
 intention with reality.

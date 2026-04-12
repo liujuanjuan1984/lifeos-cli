@@ -8,6 +8,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     validate_database_schema_name,
     validate_database_url,
+    validate_language,
 )
 
 
@@ -39,6 +40,20 @@ def prompt_database_schema(*, default: str | None = None) -> str:
         candidate = prompt_text("Database schema", default=default)
         try:
             return validate_database_schema_name(candidate)
+        except ConfigurationError as exc:
+            print(str(exc), file=sys.stderr)
+            default = None
+
+
+def prompt_language(*, default: str | None = None) -> str:
+    """Prompt until a valid language tag is provided."""
+    while True:
+        candidate = prompt_text(
+            "Preferred language tag for human-authored payloads",
+            default=default,
+        )
+        try:
+            return validate_language(candidate)
         except ConfigurationError as exc:
             print(str(exc), file=sys.stderr)
             default = None

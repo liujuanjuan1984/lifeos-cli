@@ -14,6 +14,14 @@ from tests.cli_integration_support import (
 )
 
 
+@pytest.fixture(autouse=True)
+def isolated_runtime_locale(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(tmp_path / "isolated-lifeos-config.toml"))
+    monkeypatch.delenv("LIFEOS_LANGUAGE", raising=False)
+    monkeypatch.delenv("LC_ALL", raising=False)
+    monkeypatch.setenv("LANG", "C.UTF-8")
+
+
 @pytest.fixture
 def integration_context(tmp_path: Path) -> Iterator[IntegrationContext]:
     assert TEST_DATABASE_URL is not None

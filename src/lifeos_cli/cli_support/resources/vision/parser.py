@@ -24,6 +24,7 @@ from lifeos_cli.cli_support.resources.vision.handlers import (
     handle_vision_update,
     handle_vision_with_tasks,
 )
+from lifeos_cli.i18n import gettext_message as _
 
 
 def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -32,10 +33,11 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "vision",
         help_content=HelpContent(
-            summary="Manage visions",
+            summary=_("Manage visions"),
             description=(
-                "Create and maintain high-level containers composed of one or more task trees.\n\n"
-                "A vision is broader than a single task and usually lives under an area."
+                _("Create and maintain high-level containers composed of one or more task trees.")
+                + "\n\n"
+                + _("A vision is broader than a single task and usually lives under an area.")
             ),
             examples=(
                 'lifeos vision add "Launch lifeos-cli" '
@@ -43,29 +45,32 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision list --status active",
             ),
             notes=(
-                "Use `list` as the primary query entrypoint for this resource.",
-                "Visions are intended to group related task trees.",
-                "Use the `batch` namespace for multi-record write operations.",
-                "Delete operations in the CLI always perform soft deletion.",
+                _("Use `list` as the primary query entrypoint for this resource."),
+                _("Visions are intended to group related task trees."),
+                _("Use the `batch` namespace for multi-record write operations."),
+                _("Delete operations in the CLI always perform soft deletion."),
             ),
         ),
     )
     vision_parser.set_defaults(handler=make_help_handler(vision_parser))
     vision_subparsers = vision_parser.add_subparsers(
         dest="vision_command",
-        title="actions",
-        metavar="action",
+        title=_("actions"),
+        metavar=_("action"),
     )
 
     add_parser = add_documented_parser(
         vision_subparsers,
         "add",
         help_content=HelpContent(
-            summary="Create a vision",
+            summary=_("Create a vision"),
             description=(
-                "Create a new vision.\n\n"
-                "Visions usually represent medium- or long-running themes that will "
-                "own multiple tasks."
+                _("Create a new vision.")
+                + "\n\n"
+                + _(
+                    "Visions usually represent medium- or long-running themes that will own "
+                    "multiple tasks."
+                )
             ),
             examples=(
                 'lifeos vision add "Launch lifeos-cli" '
@@ -76,22 +81,22 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
         ),
     )
-    add_parser.add_argument("name", help="Vision name")
-    add_parser.add_argument("--description", help="Optional vision description")
-    add_parser.add_argument("--status", default="active", help="Vision status")
-    add_parser.add_argument("--area-id", type=UUID, help="Owning area identifier")
+    add_parser.add_argument("name", help=_("Vision name"))
+    add_parser.add_argument("--description", help=_("Optional vision description"))
+    add_parser.add_argument("--status", default="active", help=_("Vision status"))
+    add_parser.add_argument("--area-id", type=UUID, help=_("Owning area identifier"))
     add_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to associate one or more people",
+        help=_("Repeat to associate one or more people"),
     )
     add_parser.add_argument(
         "--experience-rate-per-hour",
         type=int,
-        help="Optional experience rate",
+        help=_("Optional experience rate"),
     )
     add_parser.set_defaults(handler=handle_vision_add)
 
@@ -99,10 +104,11 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "list",
         help_content=HelpContent(
-            summary="List visions",
+            summary=_("List visions"),
             description=(
-                "List visions with optional status or area filters.\n\n"
-                "Use this as the main query entrypoint for visions."
+                _("List visions with optional status or area filters.")
+                + "\n\n"
+                + _("Use this as the main query entrypoint for visions.")
             ),
             examples=(
                 "lifeos vision list",
@@ -112,9 +118,9 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
         ),
     )
-    list_parser.add_argument("--status", help="Filter by status")
-    list_parser.add_argument("--area-id", type=UUID, help="Filter by area identifier")
-    list_parser.add_argument("--person-id", type=UUID, help="Filter by linked person identifier")
+    list_parser.add_argument("--status", help=_("Filter by status"))
+    list_parser.add_argument("--area-id", type=UUID, help=_("Filter by area identifier"))
+    list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person identifier"))
     add_include_deleted_argument(list_parser, noun="visions")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_vision_list)
@@ -123,15 +129,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "show",
         help_content=HelpContent(
-            summary="Show a vision",
-            description="Show one vision with full metadata.",
+            summary=_("Show a vision"),
+            description=_("Show one vision with full metadata."),
             examples=(
                 "lifeos vision show 11111111-1111-1111-1111-111111111111",
                 "lifeos vision show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    show_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
     show_parser.set_defaults(handler=handle_vision_show)
 
@@ -139,34 +145,35 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "with-tasks",
         help_content=HelpContent(
-            summary="Show a vision task tree",
-            description="Show one vision with its active tasks.",
+            summary=_("Show a vision task tree"),
+            description=_("Show one vision with its active tasks."),
             examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    with_tasks_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    with_tasks_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     with_tasks_parser.set_defaults(handler=handle_vision_with_tasks)
 
     stats_parser = add_documented_parser(
         vision_subparsers,
         "stats",
         help_content=HelpContent(
-            summary="Show vision stats",
-            description="Show task counts and effort totals for one vision.",
+            summary=_("Show vision stats"),
+            description=_("Show task counts and effort totals for one vision."),
             examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    stats_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    stats_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     stats_parser.set_defaults(handler=handle_vision_stats)
 
     update_parser = add_documented_parser(
         vision_subparsers,
         "update",
         help_content=HelpContent(
-            summary="Update a vision",
+            summary=_("Update a vision"),
             description=(
-                "Update mutable vision fields.\n\n"
-                "Only explicitly provided flags are changed; omitted values are preserved."
+                _("Update mutable vision fields.")
+                + "\n\n"
+                + _("Only explicitly provided flags are changed; omitted values are preserved.")
             ),
             examples=(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
@@ -177,25 +184,25 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
             ),
             notes=(
-                "Valid statuses currently include `active`, `archived`, and `fruit`.",
-                "Use `--clear-*` flags to remove optional values, including people.",
+                _("Valid statuses currently include `active`, `archived`, and `fruit`."),
+                _("Use `--clear-*` flags to remove optional values, including people."),
             ),
         ),
     )
-    update_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
-    update_parser.add_argument("--name", help="Updated vision name")
-    update_parser.add_argument("--description", help="Updated vision description")
+    update_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    update_parser.add_argument("--name", help=_("Updated vision name"))
+    update_parser.add_argument("--description", help=_("Updated vision description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help="Clear the optional vision description",
+        help=_("Clear the optional vision description"),
     )
-    update_parser.add_argument("--status", help="Updated status")
-    update_parser.add_argument("--area-id", type=UUID, help="Updated area identifier")
+    update_parser.add_argument("--status", help=_("Updated status"))
+    update_parser.add_argument("--area-id", type=UUID, help=_("Updated area identifier"))
     update_parser.add_argument(
         "--clear-area",
         action="store_true",
-        help="Clear the optional area reference",
+        help=_("Clear the optional area reference"),
     )
     update_parser.add_argument(
         "--person-id",
@@ -203,16 +210,16 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         type=UUID,
         action="append",
         default=None,
-        help="Repeat to replace people with one or more identifiers",
+        help=_("Repeat to replace people with one or more identifiers"),
     )
-    update_parser.add_argument("--clear-people", action="store_true", help="Remove all people")
+    update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
     update_parser.add_argument(
-        "--experience-rate-per-hour", type=int, help="Updated experience rate"
+        "--experience-rate-per-hour", type=int, help=_("Updated experience rate")
     )
     update_parser.add_argument(
         "--clear-experience-rate",
         action="store_true",
-        help="Clear the optional experience rate",
+        help=_("Clear the optional experience rate"),
     )
     update_parser.set_defaults(handler=handle_vision_update)
 
@@ -220,20 +227,20 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "add-experience",
         help_content=HelpContent(
-            summary="Add vision experience",
-            description="Add manual experience points to an active vision.",
+            summary=_("Add vision experience"),
+            description=_("Add manual experience points to an active vision."),
             examples=(
                 "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
             ),
         ),
     )
-    add_experience_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    add_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     add_experience_parser.add_argument(
         "--points",
         dest="experience_points",
         type=int,
         required=True,
-        help="Experience points to add",
+        help=_("Experience points to add"),
     )
     add_experience_parser.set_defaults(handler=handle_vision_add_experience)
 
@@ -241,50 +248,57 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         vision_subparsers,
         "sync-experience",
         help_content=HelpContent(
-            summary="Sync vision experience",
-            description="Synchronize experience points from root task actual effort totals.",
+            summary=_("Sync vision experience"),
+            description=_("Synchronize experience points from root task actual effort totals."),
             examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    sync_experience_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    sync_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     sync_experience_parser.set_defaults(handler=handle_vision_sync_experience)
 
     harvest_parser = add_documented_parser(
         vision_subparsers,
         "harvest",
         help_content=HelpContent(
-            summary="Harvest a vision",
-            description="Convert a mature active vision to fruit status.",
+            summary=_("Harvest a vision"),
+            description=_("Convert a mature active vision to fruit status."),
             examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    harvest_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    harvest_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     harvest_parser.set_defaults(handler=handle_vision_harvest)
 
     delete_parser = add_documented_parser(
         vision_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete a vision",
+            summary=_("Delete a vision"),
             description=(
-                "Soft-delete a vision.\n\n"
-                "The record remains in the database and can still be inspected with "
-                "deleted-aware commands."
+                _("Soft-delete a vision.")
+                + "\n\n"
+                + _(
+                    "The record remains in the database and can still be inspected with "
+                    "deleted-aware commands."
+                )
             ),
             examples=("lifeos vision delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("vision_id", type=UUID, help="Vision identifier")
+    delete_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     delete_parser.set_defaults(handler=handle_vision_delete)
 
     batch_parser = add_documented_parser(
         vision_subparsers,
         "batch",
         help_content=HelpContent(
-            summary="Run batch vision operations",
+            summary=_("Run batch vision operations"),
             description=(
-                "Run write operations that target multiple visions in one command.\n\n"
-                "Use this namespace for bulk maintenance instead of adding many top-level verbs."
+                _("Run write operations that target multiple visions in one command.")
+                + "\n\n"
+                + _(
+                    "Use this namespace for bulk maintenance instead of adding many top-level "
+                    "verbs."
+                )
             ),
             examples=(
                 "lifeos vision batch delete --ids "
@@ -296,17 +310,17 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="vision_batch_command",
-        title="batch actions",
-        metavar="batch_action",
+        title=_("batch actions"),
+        metavar=_("batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary="Delete multiple visions",
-            description="Soft-delete multiple visions by identifier.",
-            notes=("Batch delete never performs hard deletion from the public CLI.",),
+            summary=_("Delete multiple visions"),
+            description=_("Soft-delete multiple visions by identifier."),
+            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")
