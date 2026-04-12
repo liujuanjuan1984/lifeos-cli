@@ -631,7 +631,7 @@ def test_get_task_stats_summarizes_subtree(monkeypatch: pytest.MonkeyPatch) -> N
     assert stats.total_actual_effort == 60
 
 
-def test_create_habit_generates_actions_without_committing(
+def test_create_habit_does_not_pre_generate_actions_without_committing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class Result:
@@ -677,12 +677,13 @@ def test_create_habit_generates_actions_without_committing(
     )
 
     assert habit.title == "Daily Exercise"
-    assert len(added_records) == 8
+    assert len(added_records) == 1
+    assert not any(hasattr(record, "action_date") for record in added_records)
     session.flush.assert_awaited()
     session.commit.assert_not_called()
 
 
-def test_create_habit_generates_weekend_actions_for_weekly_cadence(
+def test_create_habit_keeps_weekly_cadence_without_pre_generation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class Result:
@@ -730,18 +731,15 @@ def test_create_habit_generates_weekend_actions_for_weekly_cadence(
         )
     )
 
-    action_dates = sorted(
-        cast(Any, record).action_date for record in added_records if hasattr(record, "action_date")
-    )
     assert habit.cadence_frequency == "weekly"
     assert habit.cadence_weekdays == ["saturday", "sunday"]
     assert habit.target_per_cycle == 1
-    assert action_dates == [date(2026, 4, 11), date(2026, 4, 12)]
+    assert not any(hasattr(record, "action_date") for record in added_records)
     session.flush.assert_awaited()
     session.commit.assert_not_called()
 
 
-def test_create_habit_generates_monthly_cycle_actions(
+def test_create_habit_keeps_monthly_cadence_without_pre_generation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class Result:
@@ -788,14 +786,9 @@ def test_create_habit_generates_monthly_cycle_actions(
         )
     )
 
-    action_dates = sorted(
-        cast(Any, record).action_date for record in added_records if hasattr(record, "action_date")
-    )
     assert habit.cadence_frequency == "monthly"
     assert habit.target_per_cycle == 2
-    assert action_dates[0] == date(2026, 4, 9)
-    assert action_dates[-1] == date(2026, 7, 17)
-    assert len(action_dates) == 100
+    assert not any(hasattr(record, "action_date") for record in added_records)
     session.flush.assert_awaited()
     session.commit.assert_not_called()
 
@@ -999,3 +992,61 @@ def test_update_habit_action_by_date_uses_existing_update_rules(
     )
 
     assert updated_action is action
+
+
+def test_update_habit_action_by_date_materializes_missing_occurrence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    action_id = UUID("88888888-8888-8888-8888-888888888888")
+    action_date = date(2026, 4, 9)
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+    added_records: list[object] = []
+
+    class Result:
+        def scalar_one_or_none(self) -> object:
+            return None
+
+    def fake_add(record: object) -> None:
+        cast(Any, record).id = action_id
+        added_records.append(record)
+
+    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
+        assert include_deleted is False
+        return SimpleNamespace(
+            id=habit_id,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 30),
+            cadence_weekdays=None,
+        )
+
+    async def fake_execute(statement: object) -> Result:
+        return Result()
+
+    async def fake_update_habit_action(_: object, **kwargs: object) -> object:
+        assert kwargs == {
+            "action_id": action_id,
+            "status": "done",
+            "notes": "Completed",
+            "clear_notes": False,
+        }
+        return SimpleNamespace(id=action_id, action_date=action_date)
+
+    session.add = fake_add
+    session.execute = fake_execute
+    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
+    monkeypatch.setattr(habit_mutations, "update_habit_action", fake_update_habit_action)
+
+    updated_action = asyncio.run(
+        habits.update_habit_action_by_date(
+            cast(Any, session),
+            habit_id=habit_id,
+            action_date=action_date,
+            status="done",
+            notes="Completed",
+        )
+    )
+
+    assert updated_action.id == action_id
+    assert len(added_records) == 1
+    assert cast(Any, added_records[0]).action_date == action_date

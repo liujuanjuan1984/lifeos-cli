@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lifeos-cli 0+unknown\n"
 "Report-Msgid-Bugs-To: noreply@example.com\n"
-"POT-Creation-Date: 2026-04-12 05:50-0400\n"
+"POT-Creation-Date: 2026-04-12 08:54-0400\n"
 "PO-Revision-Date: 2026-04-12 02:07-0400\n"
 "Last-Translator: Codex <noreply@example.com>\n"
 "Language: zh_Hans\n"
@@ -208,8 +208,8 @@ msgstr "CLI 中的删除操作始终执行软删除。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:59
 #: src/lifeos_cli/cli_support/resources/data/parser.py:69
-#: src/lifeos_cli/cli_support/resources/event/parser.py:61
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:77
+#: src/lifeos_cli/cli_support/resources/event/parser.py:63
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:83
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:59
 #: src/lifeos_cli/cli_support/resources/note/parser.py:70
 #: src/lifeos_cli/cli_support/resources/people/parser.py:66
@@ -225,8 +225,8 @@ msgstr "操作"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:59
 #: src/lifeos_cli/cli_support/resources/data/parser.py:69
-#: src/lifeos_cli/cli_support/resources/event/parser.py:61
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:78
+#: src/lifeos_cli/cli_support/resources/event/parser.py:63
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:84
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:60
 #: src/lifeos_cli/cli_support/resources/note/parser.py:71
 #: src/lifeos_cli/cli_support/resources/people/parser.py:66
@@ -356,7 +356,7 @@ msgid "Updated area name"
 msgstr "更新的 `area` 名称"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:169
-#: src/lifeos_cli/cli_support/resources/event/parser.py:252
+#: src/lifeos_cli/cli_support/resources/event/parser.py:254
 #: src/lifeos_cli/cli_support/resources/people/parser.py:172
 #: src/lifeos_cli/cli_support/resources/task/parser.py:358
 msgid "Updated description"
@@ -419,8 +419,8 @@ msgid ""
 msgstr "使用此命名空间进行批量维护，以便资源保持稳定的 CLI 形状。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:233
-#: src/lifeos_cli/cli_support/resources/event/parser.py:366
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:342
+#: src/lifeos_cli/cli_support/resources/event/parser.py:371
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:353
 #: src/lifeos_cli/cli_support/resources/people/parser.py:246
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:226
 #: src/lifeos_cli/cli_support/resources/task/parser.py:452
@@ -647,101 +647,103 @@ msgstr "创建并维护计划中的 `event` 时间块。"
 msgid "Events represent calendar intent and time allocation, not todo semantics."
 msgstr "`event` 表示日历意图和时间分配，而不是待办事项语义。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:52
+#: src/lifeos_cli/cli_support/resources/event/parser.py:54
 msgid "Use `list` as the primary query entrypoint for events."
 msgstr "将 `list` 作为 `event` 的主要查询入口。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:53
+#: src/lifeos_cli/cli_support/resources/event/parser.py:55
 msgid "Events can optionally reference one area and one task."
 msgstr "`event` 可以选择关联一个 `area` 和一个 `task`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:54
+#: src/lifeos_cli/cli_support/resources/event/parser.py:56
 msgid ""
 "Event types distinguish hard appointments, flexible timeblocks, and "
 "deadlines."
 msgstr "`event` 类型区分刚性约会、灵活时间块和截止日期。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:55
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:70
+#: src/lifeos_cli/cli_support/resources/event/parser.py:57
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:76
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:76
 msgid "Delete operations in the public CLI always perform soft deletion."
 msgstr "公共 CLI 中的删除操作始终执行软删除。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:68
+#: src/lifeos_cli/cli_support/resources/event/parser.py:70
 msgid "Create an event"
 msgstr "创建 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:69
+#: src/lifeos_cli/cli_support/resources/event/parser.py:71
 msgid "Create a planned schedule event."
 msgstr "创建一个有计划的浙江活动。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:78
+#: src/lifeos_cli/cli_support/resources/event/parser.py:80
 msgid ""
 "`appointment` is the default type. Use `--type` for timeblocks and "
 "deadlines."
 msgstr "`appointment` 是默认类型。使用 `--type` 来确定时间限制和截止日期。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:79
+#: src/lifeos_cli/cli_support/resources/event/parser.py:81
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:99
 msgid "Use repeated `--tag-id` and `--person-id` flags to attach tags and people."
 msgstr "使用重复的 `--tag-id ` 和 `--person-id ` 标志来附加 `tag` 和 `people`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:80
+#: src/lifeos_cli/cli_support/resources/event/parser.py:82
 msgid "If `--end-time` is omitted, the event is treated as open-ended."
 msgstr "如果省略 `--end-time`，则 `event` 被视为开放式。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:82
+#: src/lifeos_cli/cli_support/resources/event/parser.py:84
 msgid ""
 "Use recurrence flags to create a recurring series with shared cadence "
 "primitives across daily, weekly, monthly, and yearly patterns."
-msgstr "使用 recurrence 参数创建重复序列，并在 daily、weekly、monthly、yearly 模式之间共享同一套 cadence primitives。"
+msgstr ""
+"使用 recurrence 参数创建重复序列，并在 daily、weekly、monthly、yearly 模式之间共享同一套 cadence "
+"primitives。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:86
+#: src/lifeos_cli/cli_support/resources/event/parser.py:88
 msgid ""
 "When an agent creates events for a human, use `--person-id` to "
 "distinguish human-only plans from agent-only or shared schedule blocks."
 msgstr "当代理为人类创建 `event` 时，使用 `--person-id ` 来区分仅限人类的计划与仅限代理或共享的路线块。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:92
+#: src/lifeos_cli/cli_support/resources/event/parser.py:94
 msgid "Event title"
 msgstr "活动标题"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:93
+#: src/lifeos_cli/cli_support/resources/event/parser.py:95
 msgid "Optional event description"
 msgstr "可选 `event` 描述"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:95
+#: src/lifeos_cli/cli_support/resources/event/parser.py:97
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:110
 msgid "Start time"
 msgstr "开始时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:97
+#: src/lifeos_cli/cli_support/resources/event/parser.py:99
 msgid "Optional end time"
 msgstr "可选结束时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:98
+#: src/lifeos_cli/cli_support/resources/event/parser.py:100
 msgid "Priority from 0 to 5"
 msgstr "优先级从 0 到 5"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:99
+#: src/lifeos_cli/cli_support/resources/event/parser.py:101
 msgid "Event status"
 msgstr "`event` 状态"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:104
+#: src/lifeos_cli/cli_support/resources/event/parser.py:106
 msgid "Event type: appointment, timeblock, or deadline"
 msgstr "`event` 类型：预约、时间限制或截止日期"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:110
+#: src/lifeos_cli/cli_support/resources/event/parser.py:112
 msgid "Mark the event as all-day"
 msgstr "将活动标记为全天"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:112
+#: src/lifeos_cli/cli_support/resources/event/parser.py:114
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:117
 msgid "Optional linked area identifier"
 msgstr "可选的链接 `area` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:113
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:149
+#: src/lifeos_cli/cli_support/resources/event/parser.py:115
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:158
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:118
 msgid "Optional linked task identifier"
 msgstr "可选的链接 `task` 标识符"
@@ -750,275 +752,275 @@ msgstr "可选的链接 `task` 标识符"
 msgid "Optional recurrence frequency: daily, weekly, monthly, or yearly"
 msgstr "可选的 recurrence frequency：daily、weekly、monthly 或 yearly"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:121
+#: src/lifeos_cli/cli_support/resources/event/parser.py:123
 msgid "Optional recurrence interval, default 1"
 msgstr "可选的重复间隔，默认1"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:126
+#: src/lifeos_cli/cli_support/resources/event/parser.py:128
 msgid "Optional total occurrence count"
 msgstr "可选的总出现次数"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:131
+#: src/lifeos_cli/cli_support/resources/event/parser.py:133
 msgid "Optional final allowed occurrence start time"
 msgstr "可选的最终允许发生开始时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:139
+#: src/lifeos_cli/cli_support/resources/event/parser.py:141
 msgid "Repeat to attach one or more event tags"
 msgstr "重复附加一个或多个 `event``tag`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:147
+#: src/lifeos_cli/cli_support/resources/event/parser.py:149
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:133
 msgid "Repeat to attach one or more people"
 msgstr "重复附加一个或多个 `people`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:155
+#: src/lifeos_cli/cli_support/resources/event/parser.py:157
 msgid "List events"
 msgstr "列出 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:157
+#: src/lifeos_cli/cli_support/resources/event/parser.py:159
 msgid "List events with optional time-window and relation filters."
 msgstr "列出具有可选时间窗口和关系过滤器的 `event`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:159
+#: src/lifeos_cli/cli_support/resources/event/parser.py:161
 msgid "Use this command as the main query entrypoint for scheduled events."
 msgstr "使用此命令作为预定 `event` 的主要查询入口点。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:170
+#: src/lifeos_cli/cli_support/resources/event/parser.py:172
 msgid "When both window flags are given, overlapping events are returned."
 msgstr "当给出两个窗口标志时，返回重叠 `event`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:172
+#: src/lifeos_cli/cli_support/resources/event/parser.py:174
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:158
 msgid ""
 "Use `--date` to query one configured local day using your timezone and "
 "`day_starts_at` preference."
 msgstr "使用 `--date ` 使用您的时区和 `day_starts_at ` 首选项查询配置的本地日期。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:175
+#: src/lifeos_cli/cli_support/resources/event/parser.py:177
 msgid ""
 "Recurring series are expanded for bounded window queries and schedule "
 "views."
 msgstr "循环序列针对有界窗口查询和路线视图进行了扩展。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:176
+#: src/lifeos_cli/cli_support/resources/event/parser.py:178
 msgid "Use `--type` to narrow results to one event topology."
 msgstr "使用 `--type ` 将结果缩小到一种 `event` 拓扑。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:178
+#: src/lifeos_cli/cli_support/resources/event/parser.py:180
 msgid ""
 "Use `--title-contains` for lightweight text filtering instead of a "
 "separate search command."
 msgstr "使用 `--title-contains ` 进行轻量级文本过滤，而不是单独的搜索命令。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:184
+#: src/lifeos_cli/cli_support/resources/event/parser.py:186
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:166
 msgid "Filter by title substring"
 msgstr "按标题子字符串过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:185
+#: src/lifeos_cli/cli_support/resources/event/parser.py:187
 msgid "Filter by event status"
 msgstr "按 `event` 状态过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:189
+#: src/lifeos_cli/cli_support/resources/event/parser.py:191
 msgid "Filter by event type: appointment, timeblock, or deadline"
 msgstr "按 `event` 类型过滤：约会、时间段或截止日期"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:191
+#: src/lifeos_cli/cli_support/resources/event/parser.py:193
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:170
 msgid "Filter by linked area"
 msgstr "按链接 `area` 过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:192
+#: src/lifeos_cli/cli_support/resources/event/parser.py:194
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:153
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:195
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:177
 msgid "Filter by linked task"
 msgstr "按链接 `task` 过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:193
+#: src/lifeos_cli/cli_support/resources/event/parser.py:195
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:152
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:194
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:183
 msgid "Filter by linked person"
 msgstr "按相关 `people` 过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:194
+#: src/lifeos_cli/cli_support/resources/event/parser.py:196
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:150
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:192
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:184
 msgid "Filter by linked tag"
 msgstr "按链接 `tag` 过滤"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:199
+#: src/lifeos_cli/cli_support/resources/event/parser.py:201
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:189
 msgid "Filter one configured local day in YYYY-MM-DD format"
 msgstr "以 YYYY-MM-DD 格式过滤配置的本地日期"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:201
+#: src/lifeos_cli/cli_support/resources/event/parser.py:203
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:191
 msgid "Window start time"
 msgstr "窗口开始时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:202
+#: src/lifeos_cli/cli_support/resources/event/parser.py:204
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:192
 msgid "Window end time"
 msgstr "窗口结束时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:211
+#: src/lifeos_cli/cli_support/resources/event/parser.py:213
 msgid "Show an event"
 msgstr "显示 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:212
+#: src/lifeos_cli/cli_support/resources/event/parser.py:214
 msgid "Show one event with full metadata."
 msgstr "显示一个具有完整元数据的 `event`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:219
-#: src/lifeos_cli/cli_support/resources/event/parser.py:250
-#: src/lifeos_cli/cli_support/resources/event/parser.py:342
+#: src/lifeos_cli/cli_support/resources/event/parser.py:221
+#: src/lifeos_cli/cli_support/resources/event/parser.py:252
+#: src/lifeos_cli/cli_support/resources/event/parser.py:347
 msgid "Event identifier"
 msgstr "`event` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:227
+#: src/lifeos_cli/cli_support/resources/event/parser.py:229
 msgid "Update an event"
 msgstr "更新 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:228
+#: src/lifeos_cli/cli_support/resources/event/parser.py:230
 msgid "Update mutable event fields."
 msgstr "更新可变 `event` 字段。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:238
+#: src/lifeos_cli/cli_support/resources/event/parser.py:240
 msgid "Use `--type` to retag an event as appointment, timeblock, or deadline."
 msgstr "使用 `--type ` 将 `event` 重新标记为约会、时间块或截止日期。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:239
+#: src/lifeos_cli/cli_support/resources/event/parser.py:241
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:228
 msgid "Use `--clear-*` flags to explicitly remove optional values."
 msgstr "使用 `--clear-* ` 标志显式删除可选值。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:240
+#: src/lifeos_cli/cli_support/resources/event/parser.py:242
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:229
 msgid "Do not mix a value flag with the matching clear flag in the same command."
 msgstr "不要在同一命令中将值标志与匹配的清除标志混合使用。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:241
+#: src/lifeos_cli/cli_support/resources/event/parser.py:243
 msgid "Use `--scope single|all_future|all` for recurring series updates."
 msgstr "使用 `--scope single|all_future|all ` 进行定期系列更新。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:242
-#: src/lifeos_cli/cli_support/resources/event/parser.py:338
+#: src/lifeos_cli/cli_support/resources/event/parser.py:244
+#: src/lifeos_cli/cli_support/resources/event/parser.py:343
 msgid "`--scope single` and `--scope all_future` require `--instance-start`."
 msgstr "`--scope single` 和 `--scope all_future` 需要 `--instance-start`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:244
+#: src/lifeos_cli/cli_support/resources/event/parser.py:246
 msgid ""
 "Use repeated `--person-id` to keep human-only, agent-only, and shared "
 "ownership explicit as plans change."
 msgstr "当计划发生变化时，使用重复的 `--person-id ` 来保持仅限人类、仅限代理和共享所有权的明确性。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:251
+#: src/lifeos_cli/cli_support/resources/event/parser.py:253
 msgid "Updated event title"
 msgstr "更新了活动标题"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:254
+#: src/lifeos_cli/cli_support/resources/event/parser.py:256
 msgid "Clear description"
 msgstr "清晰的描述"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:256
+#: src/lifeos_cli/cli_support/resources/event/parser.py:258
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:239
 msgid "Updated start time"
 msgstr "更新开始时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:257
+#: src/lifeos_cli/cli_support/resources/event/parser.py:259
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:240
 msgid "Updated end time"
 msgstr "更新结束时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:258
+#: src/lifeos_cli/cli_support/resources/event/parser.py:260
 msgid "Clear end time"
 msgstr "明确结束时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:259
+#: src/lifeos_cli/cli_support/resources/event/parser.py:261
 msgid "Updated priority from 0 to 5"
 msgstr "将优先级从 0 更新为 5"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:260
+#: src/lifeos_cli/cli_support/resources/event/parser.py:262
 msgid "Updated event status"
 msgstr "更新了活动状态"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:264
+#: src/lifeos_cli/cli_support/resources/event/parser.py:266
 msgid "Updated event type: appointment, timeblock, or deadline"
 msgstr "更新的 `event` 类型：约会、时间块或截止日期"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:270
+#: src/lifeos_cli/cli_support/resources/event/parser.py:272
 msgid "Toggle all-day status"
 msgstr "切换全天状态"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:272
+#: src/lifeos_cli/cli_support/resources/event/parser.py:274
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:254
 msgid "Updated linked area identifier"
 msgstr "更新了链接的 `area` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:273
+#: src/lifeos_cli/cli_support/resources/event/parser.py:275
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:255
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:348
 msgid "Clear linked area"
 msgstr "清除链接 `area`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:274
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:287
+#: src/lifeos_cli/cli_support/resources/event/parser.py:276
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:298
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:256
 msgid "Updated linked task identifier"
 msgstr "更新了链接 `task` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:275
+#: src/lifeos_cli/cli_support/resources/event/parser.py:277
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:257
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:352
 msgid "Clear linked task"
 msgstr "明确链接 `task`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:276
+#: src/lifeos_cli/cli_support/resources/event/parser.py:280
 msgid "Updated recurrence frequency: daily, weekly, monthly, or yearly"
 msgstr "更新后的 recurrence frequency：daily、weekly、monthly 或 yearly"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:280
+#: src/lifeos_cli/cli_support/resources/event/parser.py:285
 msgid "Updated recurrence interval"
 msgstr "更新的重复间隔"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:282
+#: src/lifeos_cli/cli_support/resources/event/parser.py:287
 msgid "Updated recurrence count"
 msgstr "更新的重复计数"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:286
+#: src/lifeos_cli/cli_support/resources/event/parser.py:291
 msgid "Updated recurrence until datetime"
 msgstr "更新了日期时间之前的重复周期"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:291
+#: src/lifeos_cli/cli_support/resources/event/parser.py:296
 msgid "Remove recurrence from the event"
 msgstr "从 `event` 中删除重复 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:296
+#: src/lifeos_cli/cli_support/resources/event/parser.py:301
 msgid "Update scope for recurring events: single, all_future, or all"
 msgstr "重复 `event` 的更新范围：single、all_future 或 all"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:301
+#: src/lifeos_cli/cli_support/resources/event/parser.py:306
 msgid "Instance start time for single or all_future recurring updates"
 msgstr "单次或 all_future 定期更新的实例启动时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:309
+#: src/lifeos_cli/cli_support/resources/event/parser.py:314
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:267
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:264
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:360
 msgid "Repeat to replace tags with one or more identifiers"
 msgstr "重复此操作以将 `tag` 替换为一个或多个标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:311
+#: src/lifeos_cli/cli_support/resources/event/parser.py:316
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:269
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:266
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:362
 msgid "Remove all tags"
 msgstr "删除所有 `tag`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:318
+#: src/lifeos_cli/cli_support/resources/event/parser.py:323
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:276
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:179
 #: src/lifeos_cli/cli_support/resources/task/parser.py:381
@@ -1028,7 +1030,7 @@ msgstr "删除所有 `tag`"
 msgid "Repeat to replace people with one or more identifiers"
 msgstr "重复此操作，将 `people` 替换为一个或多个标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:320
+#: src/lifeos_cli/cli_support/resources/event/parser.py:325
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:278
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:181
 #: src/lifeos_cli/cli_support/resources/task/parser.py:383
@@ -1038,45 +1040,45 @@ msgstr "重复此操作，将 `people` 替换为一个或多个标识符"
 msgid "Remove all people"
 msgstr "撤走所有 `people`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:327
+#: src/lifeos_cli/cli_support/resources/event/parser.py:332
 msgid "Delete an event"
 msgstr "删除 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:328
+#: src/lifeos_cli/cli_support/resources/event/parser.py:333
 msgid "Soft-delete one event."
 msgstr "软删除一个 `event`。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:337
+#: src/lifeos_cli/cli_support/resources/event/parser.py:342
 msgid "Use `--scope single|all_future|all` for recurring series deletes."
 msgstr "使用 `--scope single|all_future|all ` 进行重复系列删除。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:346
+#: src/lifeos_cli/cli_support/resources/event/parser.py:351
 msgid "Delete scope for recurring events: single, all_future, or all"
 msgstr "删除重复 `event` 的范围：single、all_future 或 all"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:351
+#: src/lifeos_cli/cli_support/resources/event/parser.py:356
 msgid "Instance start time for single or all_future recurring deletes"
 msgstr "单次或 all_future 重复删除的实例开始时间"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:359
+#: src/lifeos_cli/cli_support/resources/event/parser.py:364
 msgid "Run batch event operations"
 msgstr "执行批量 `event` 操作"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:360
+#: src/lifeos_cli/cli_support/resources/event/parser.py:365
 msgid "Grouped namespace for multi-record event writes."
 msgstr "用于多记录 `event` 写入的分组命名空间。"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:366
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:343
+#: src/lifeos_cli/cli_support/resources/event/parser.py:371
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:354
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:318
 msgid "batch-action"
 msgstr "批量操作"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:372
+#: src/lifeos_cli/cli_support/resources/event/parser.py:377
 msgid "Delete multiple events"
 msgstr "删除多个 `event`"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:373
+#: src/lifeos_cli/cli_support/resources/event/parser.py:378
 msgid "Soft-delete multiple events by identifier."
 msgstr "通过标识符软删除多个 `event`。"
 
@@ -1090,262 +1092,268 @@ msgstr "创建并维护具有明确 cadence 规则的周期性 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:52
 msgid ""
-"A habit acts as a template. Scheduled dates generate habit-action rows, "
-"while cadence controls how progress is evaluated across daily, weekly, "
-"monthly, or yearly cycles."
-msgstr "一个 `habit` 充当模板。被调度到的日期会生成 `habit-action` 行，而 cadence 决定 progress 如何按 daily、weekly、monthly 或 yearly cycle 评估。"
+"A habit acts as a recurring definition. Query windows materialize habit-"
+"action occurrences on demand, while cadence controls how progress is "
+"evaluated across daily, weekly, monthly, or yearly cycles."
+msgstr ""
+"一个 `habit` 表示一条周期定义。查询窗口会按需物化 `habit-action` occurrence，而 cadence 决定 "
+"progress 如何按 daily、weekly、monthly 或 yearly cycle 评估。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:64
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:67
 msgid "Use `list` as the primary query entrypoint for habits."
 msgstr "将 `list` 作为 `habit` 的主要查询入口。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:66
-msgid ""
-"Habit creation and timing updates automatically generate or reconcile "
-"habit-action rows."
-msgstr "创建 `habit` 或调整时间参数时，会自动生成或对齐 `habit-action` 行。"
-
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:69
 msgid ""
-"Cadence cycles can be daily, weekly, monthly, or yearly, while generated "
-"habit-action rows remain date-based."
-msgstr "cadence cycle 可以是 daily、weekly、monthly 或 yearly，而生成的 `habit-action` 行仍然保持按日期记录。"
+"Habit creation and timing updates no longer pre-generate full habit-"
+"action histories."
+msgstr "创建 `habit` 或调整时间参数时，不再预生成完整的 `habit-action` 历史。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:85
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:73
+msgid ""
+"Cadence cycles can be daily, weekly, monthly, or yearly, while habit-"
+"action occurrences remain date-based."
+msgstr ""
+"cadence cycle 可以是 daily、weekly、monthly 或 yearly，而 `habit-action` "
+"occurrence 仍然保持按日期记录。"
+
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:91
 msgid "Create a habit"
 msgstr "创建 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:87
-msgid "Create a recurring habit and generate cadence-aligned habit-action rows."
-msgstr "创建一个周期性 `habit` 并生成与 cadence 对齐的 `habit-action` 行。"
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:92
+msgid "Create a recurring habit with cadence-aligned on-demand occurrences."
+msgstr "创建一个周期性 `habit`，其 `habit-action` occurrence 会按需物化并遵循 cadence。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:98
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:104
 msgid "Duration must be one of the supported program lengths."
 msgstr "持续时间必须是支持的节目长度之一。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:100
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:106
 msgid ""
 "Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
 "evaluation cycles."
 msgstr "使用 `--cadence-frequency` 选择 daily、weekly、monthly 或 yearly 的评估 cycle。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:103
-msgid "`--weekdays` restricts generated habit-action rows to selected weekdays."
-msgstr "`--weekdays` 将生成的 `habit-action` 行限制在选定的工作日。"
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:110
+msgid ""
+"`--weekdays` restricts on-demand habit-action occurrences to selected "
+"weekdays."
+msgstr "`--weekdays` 将按需物化的 `habit-action` occurrence 限制在选定的 weekday。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:104
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:113
 msgid "If `--task-id` is provided, the task must already exist."
 msgstr "如果提供了 `--task-id`，则 `task` 必须已经存在。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:108
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:117
 msgid "Habit title"
 msgstr "`habit` 标题"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:109
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:118
 msgid "Optional habit description"
 msgstr "可选的 `habit` 描述"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:114
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:123
 msgid "Habit start date in YYYY-MM-DD format"
 msgstr "`habit` 开始日期，格式为 YYYY-MM-DD"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:120
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:129
 msgid "Habit duration in days"
 msgstr "`habit` 持续时间（天）"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:125
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:134
 msgid "Habit cadence frequency: daily, weekly, monthly, or yearly"
 msgstr "`habit` cadence frequency：daily、weekly、monthly 或 yearly"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:130
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:139
 msgid "Allowed weekdays, for example monday,wednesday,friday"
 msgstr "允许的 weekday，例如 monday,wednesday,friday"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:135
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:267
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:144
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:278
 msgid "Shortcut for `--weekdays saturday,sunday`"
 msgstr "`--weekdays saturday,sunday` 的快捷写法"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:141
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:150
 msgid "Cadence target count for one cycle. Daily habits must keep 1."
 msgstr "单个 cycle 的 cadence 目标次数。daily `habit` 必须保持为 1。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:147
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:284
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:156
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:295
 msgid "Weekly alias for `--target-per-cycle`"
 msgstr "`--target-per-cycle` 的 weekly 别名"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:156
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:165
 msgid "List habits"
 msgstr "列出 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:158
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:167
 msgid "List habits with optional status, title, and activity-window filters."
 msgstr "列出带有可选状态、标题和活动窗口过滤器的 `habit`。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:160
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:169
 msgid "Use this command as the main habit query entrypoint."
 msgstr "使用此命令作为主要的 `habit` 查询入口点。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:170
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:179
 msgid ""
 "Use `--with-stats` when the summary should include cycle progress and "
 "streak fields."
 msgstr "当摘要需要包含 cycle 进度和 streak 字段时，使用 `--with-stats`。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:173
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:182
 msgid ""
 "Use `--active-window-only` to show habits whose duration still covers "
 "today."
 msgstr "使用 `--active-window-only` 来展示其持续至今的 `habit`。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:177
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:186
 msgid "Filter by habit status"
 msgstr "按 `habit` 状态过滤"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:178
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:187
 msgid "Filter by exact habit title"
 msgstr "按确切的 `habit` 标题过滤"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:182
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:191
 msgid "Restrict results to habits whose duration still covers today"
 msgstr "将结果限制为持续时间仍然覆盖今天的 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:187
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:196
 msgid "Include progress and streak information in each summary row"
 msgstr "在每个摘要行中包含进度和连胜信息"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:189
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:198
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:99
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:193
 msgid "Print total matched count"
 msgstr "打印总匹配数"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:198
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:207
 msgid "Show a habit"
 msgstr "显示 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:199
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:208
 msgid "Show one habit with full metadata and derived statistics."
 msgstr "显示一个具有完整元数据和派生统计数据的 `habit`。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:206
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:241
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:304
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:316
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:215
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:252
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:315
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:327
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:167
 msgid "Habit identifier"
 msgstr "`habit` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:214
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:223
 msgid "Update a habit"
 msgstr "更新 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:216
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:225
 msgid "Update mutable habit fields."
 msgstr "更新可变的 `habit` 字段。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:219
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:228
 msgid ""
-"Cadence and timing changes automatically reconcile generated habit-action"
-" rows."
-msgstr "cadence 与时间参数变化会自动对齐已生成的 `habit-action` 行。"
+"Cadence and timing changes reconcile materialized habit-action records "
+"without regenerating full histories."
+msgstr "cadence 与时间参数变化会对齐已物化的 `habit-action` 记录，而不会重新生成完整历史。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:232
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:243
 msgid "Use `--clear-description` or `--clear-task` to remove optional values."
 msgstr "使用 `--clear-description ` 或 `--clear-task ` 删除可选值。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:234
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:245
 msgid ""
 "Use `--clear-weekdays` to remove weekday restrictions without resetting "
 "cadence."
 msgstr "使用 `--clear-weekdays` 移除 weekday 限制，而不重置 cadence。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:237
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:248
 msgid "Reactivating a habit still respects the active habit limit."
 msgstr "重新激活 `habit` 仍然遵循主动 `habit` 限制。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:242
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:253
 msgid "Updated habit title"
 msgstr "更新了 `habit` 标题"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:243
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:254
 msgid "Updated habit description"
 msgstr "更新了 `habit` 描述"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:247
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:258
 msgid "Clear the optional habit description"
 msgstr "清除可选的 `habit` 描述"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:252
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:263
 msgid "Updated habit start date in YYYY-MM-DD format"
 msgstr "以 YYYY-MM-DD 格式更新 `habit` 开始日期"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:254
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:265
 msgid "Updated duration in days"
 msgstr "更新持续时间（以天为单位）"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:257
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:268
 msgid "Updated cadence frequency: daily, weekly, monthly, or yearly"
 msgstr "更新后的 cadence frequency：daily、weekly、monthly 或 yearly"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:262
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:273
 msgid "Updated allowed weekdays, for example monday,wednesday,friday"
 msgstr "更新后的允许 weekday，例如 monday,wednesday,friday"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:272
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:283
 msgid "Remove weekday restrictions from the habit cadence"
 msgstr "移除该 `habit` cadence 的 weekday 限制"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:278
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:289
 msgid "Updated cadence target count for one cycle"
 msgstr "更新后的单个 cycle cadence 目标次数"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:286
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:297
 msgid "Updated habit status"
 msgstr "更新了 `habit` 状态"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:291
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:302
 msgid "Remove the linked task reference"
 msgstr "删除链接的 `task` 参考"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:299
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:310
 msgid "Soft-delete a habit"
 msgstr "软删除 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:300
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:311
 msgid "Soft-delete one habit. Public CLI deletion is never permanent."
 msgstr "软删除一个 `habit`。公共 CLI 删除永远不会是永久的。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:311
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:322
 msgid "Show habit statistics"
 msgstr "显示 `habit` 统计数据"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:312
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:323
 msgid "Show derived completion and streak statistics for one habit."
 msgstr "显示一个 `habit` 的派生完成和连胜统计数据。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:323
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:334
 msgid "List task-to-habit associations"
 msgstr "列出 `task` 与 `habit` 的关联"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:324
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:335
 msgid "Show active habits currently linked to tasks."
 msgstr "显示当前与 `task` 相关联的活跃 `habit`。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:334
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:345
 msgid "Run bulk habit operations"
 msgstr "执行批量 `habit` 操作"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:335
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:346
 msgid "Grouped namespace for multi-record habit writes."
 msgstr "用于多记录 `habit` 写入的分组命名空间。"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:349
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:360
 msgid "Soft-delete multiple habits"
 msgstr "软删除多个 `habit`"
 
-#: src/lifeos_cli/cli_support/resources/habit/parser.py:350
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:361
 msgid "Soft-delete multiple habits in one command."
 msgstr "在一个命令中软删除多个 `habit`。"
 
@@ -1354,12 +1362,14 @@ msgid "Manage dated habit actions"
 msgstr "管理按日期生成的 `habit-action`"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:33
-msgid "Inspect and update dated habit-action rows generated from habits."
-msgstr "查看并更新由 `habit` 按日期生成的 `habit-action` 记录。"
+msgid ""
+"Inspect and update dated habit-action occurrences materialized from "
+"habits."
+msgstr "查看并更新从 `habit` 按需物化的按日期 `habit-action` occurrence。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:35
-msgid "Habit actions are generated automatically and are updated in place."
-msgstr "`habit-action` 会自动生成，并在原记录上更新。"
+msgid "Habit actions are materialized on demand when queried or logged."
+msgstr "`habit-action` 会在查询或记录时按需物化。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:38
 msgid ""
@@ -1376,8 +1386,8 @@ msgid "Habit cadence decides how rows are grouped into completion cycles."
 msgstr "`habit` cadence 决定这些行如何被分组到 completion cycles 中。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:52
-msgid "Public CLI does not create or delete habit actions directly."
-msgstr "公共 CLI 不直接创建或删除 `habit-action`。"
+msgid "Use `log` to materialize and update an occurrence by habit and date."
+msgstr "使用 `log` 可按 `habit` 和日期物化并更新某个 occurrence。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:67
 msgid "List habit actions"
@@ -1388,8 +1398,10 @@ msgid "List habit actions for one habit or by date/window filters."
 msgstr "按单个 `habit` 或按日期/窗口过滤条件列出 `habit-action`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:71
-msgid "Use this command to inspect daily execution records."
-msgstr "使用此命令查看每日执行记录。"
+msgid ""
+"Use this command to inspect daily occurrence views and materialized "
+"records."
+msgstr "使用此命令查看每日 occurrence 视图和已物化记录。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:80
 msgid "Use `--action-date` for one exact day."
@@ -1441,8 +1453,8 @@ msgid "Update a habit action"
 msgstr "更新 `habit-action`"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:126
-msgid "Update a generated habit action."
-msgstr "更新生成的 `habit-action`。"
+msgid "Update one materialized habit action."
+msgstr "更新一个已物化的 `habit-action`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:128
 msgid ""
@@ -1475,8 +1487,8 @@ msgid "Update a habit action by date"
 msgstr "按日期更新 `habit-action`"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:154
-msgid "Update a generated habit action by habit identifier and action date."
-msgstr "通过 `habit` 标识符和操作日期更新生成的 `habit-action`。"
+msgid "Materialize or update a habit action by habit identifier and action date."
+msgstr "通过 `habit` 标识符和 action date 物化或更新一个 `habit-action`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:156
 msgid "Use this command when checking in without first looking up the action ID."
@@ -1703,7 +1715,7 @@ msgstr "使用 `--include-deleted ` 检查软删除的 `note`。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:226
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:259
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:355
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:354
 msgid "Note identifier"
 msgstr "`note` 标识符"
 
@@ -1737,43 +1749,43 @@ msgstr "替换 `note` 内容"
 msgid "Repeat to replace tasks with one or more identifiers"
 msgstr "重复以使用一个或多个标识符替换 `task`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:292
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:291
 msgid "Remove all linked tasks"
 msgstr "移除所有关联的 `task`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:300
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:299
 msgid "Repeat to replace visions with one or more identifiers"
 msgstr "重复以使用一个或多个标识符替换 `vision`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:305
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:304
 msgid "Remove all linked visions"
 msgstr "移除所有关联的 `vision`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:313
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:312
 msgid "Repeat to replace events with one or more identifiers"
 msgstr "重复以使用一个或多个标识符替换 `event`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:318
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:317
 msgid "Remove all linked events"
 msgstr "移除所有关联的 `event`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:326
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:325
 msgid "Repeat to replace timelogs with one or more identifiers"
 msgstr "重复以将 `timelog` 替换为一个或多个标识符"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:331
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:330
 msgid "Remove all linked timelogs"
 msgstr "删除所有链接的 `timelog`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:343
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:342
 msgid "Delete a note"
 msgstr "删除 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:345
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:344
 msgid "Delete a note by identifier."
 msgstr "通过标识符删除 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:348
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:347
 msgid ""
 "By default the note is soft-deleted so it can remain visible in audit\n"
 "or recovery flows."
@@ -1781,15 +1793,15 @@ msgstr ""
 "默认情况下，`note` 是软删除的，因此它可以在审核中保持可见\n"
 "或恢复流量。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:366
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:365
 msgid "Run batch note operations"
 msgstr "执行批量 `note` 操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:368
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:367
 msgid "Run operations that target multiple notes in a single command."
 msgstr "在单条命令中执行针对多个 `note` 的操作。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:371
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:370
 msgid ""
 "Use this namespace for bulk workflows so the CLI keeps a stable shape as\n"
 "new note capabilities are introduced."
@@ -1797,31 +1809,31 @@ msgstr ""
 "使用此命名空间进行批量工作流程，以便 CLI 保持稳定的形状\n"
 "引入了新的 `note` 功能。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:385
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:384
 msgid "Batch commands currently accept note IDs directly."
 msgstr "批处理命令目前直接接受 `note` ID。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:386
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:385
 msgid "Future note batch operations should be added under this namespace."
 msgstr "以后的 `note` 批量操作应该添加到这个命名空间下。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:393
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:392
 msgid "operations"
 msgstr "操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:394
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:393
 msgid "operation"
 msgstr "操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:401
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:400
 msgid "Find and replace note content in bulk"
 msgstr "批量查找并替换 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:403
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:402
 msgid "Apply a find/replace operation across multiple active notes."
 msgstr "在多个活动 `note` 中应用查找/替换操作。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:406
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:405
 msgid ""
 "This is the first batch-editing primitive for notes and provides a base\n"
 "shape for future bulk operations."
@@ -1829,55 +1841,55 @@ msgstr ""
 "这是 `note` 的第一个批量编辑原语，并提供了基础\n"
 "为未来的批量操作奠定基础。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:420
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:419
 msgid "Only active notes are updated by this command."
 msgstr "此命令仅更新活动 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:421
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:420
 msgid ""
 "Failed note IDs are printed to stderr while successful updates stay on "
 "stdout."
 msgstr "失败的 `note` ID 会打印到 stderr，而成功的更新则保留在 stdout 上。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:432
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:431
 msgid "One or more note identifiers to update"
 msgstr "要更新的一个或多个 `note` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:435
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:434
 msgid "Text to find in each target note"
 msgstr "在每个目标 `note` 中查找的文本"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:438
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:437
 msgid "Replacement text for matched content"
 msgstr "匹配内容的替换文本"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:443
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:442
 msgid "Use a case-sensitive find/replace instead of case-insensitive matching"
 msgstr "使用区分大小写的查找/替换而不是不区分大小写的匹配"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:451
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:450
 msgid "Delete multiple notes"
 msgstr "删除多个 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:453
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:452
 msgid "Delete multiple notes in one command."
 msgstr "在一个命令中删除多个 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:455
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:454
 msgid "This command mirrors `lifeos note delete`, but works across many note IDs."
 msgstr "此命令镜像 `lifeos note delete`，但适用于许多 `note` ID。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:463
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:462
 msgid "CLI batch delete performs soft deletion only."
 msgstr "CLI 批量删除仅执行软删除。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:464
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:463
 msgid ""
 "Failed note IDs are printed to stderr while successful deletes stay on "
 "stdout."
 msgstr "失败的 `note` ID 会打印到 stderr，而成功的删除则保留在 stdout 上。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:475
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:474
 msgid "One or more note identifiers to delete"
 msgstr "要删除的一个或多个 `note` 标识符"
 
@@ -3724,3 +3736,9 @@ msgstr "将 Alembic 迁移应用到配置的 PostgreSQL 数据库。"
 #~ " day in its duration produces one "
 #~ "habit-action record."
 #~ msgstr "`habit` 相当于模板；其持续期内的每一天都会生成一条 `habit-action` 记录。"
+
+#~ msgid "Habit actions are generated automatically and are updated in place."
+#~ msgstr "`habit-action` 会自动生成，并在原记录上更新。"
+
+#~ msgid "Public CLI does not create or delete habit actions directly."
+#~ msgstr "公共 CLI 不直接创建或删除 `habit-action`。"

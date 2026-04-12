@@ -1,4 +1,4 @@
-"""Habit action model for dated habit execution records."""
+"""Habit action model for sparse dated habit occurrence records."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from lifeos_cli.db.services.habit_support import get_default_habit_action_status
 
 
 class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
-    """One dated execution record for a habit."""
+    """One materialized dated occurrence record for a habit."""
 
     __tablename__ = "habit_actions"
     __table_args__ = (

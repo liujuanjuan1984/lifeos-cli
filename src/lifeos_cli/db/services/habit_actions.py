@@ -10,6 +10,7 @@ from lifeos_cli.db.services.habit_queries import (
     count_habit_actions,
     get_habit_action,
     list_habit_actions,
+    list_habit_actions_in_range,
 )
 from lifeos_cli.db.services.habit_support import (
     DEFAULT_HABIT_ACTION_WINDOW_DAYS,
@@ -35,6 +36,7 @@ __all__ = [
     "count_habit_actions",
     "get_habit_action",
     "list_habit_actions",
+    "list_habit_actions_in_range",
     "update_habit_action",
     "update_habit_action_by_date",
     "validate_habit_action_status",

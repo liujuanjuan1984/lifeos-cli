@@ -174,6 +174,21 @@ class EventView:
 
 
 @dataclass(frozen=True)
+class HabitActionView:
+    """CLI-facing habit-action occurrence view."""
+
+    id: UUID | None
+    habit_id: UUID
+    habit_title: str
+    action_date: date
+    status: str
+    notes: str | None
+    created_at: datetime | None
+    updated_at: datetime | None
+    deleted_at: datetime | None
+
+
+@dataclass(frozen=True)
 class TimelogView:
     """CLI-facing timelog record."""
 

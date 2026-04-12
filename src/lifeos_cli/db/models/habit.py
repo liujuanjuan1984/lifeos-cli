@@ -1,4 +1,4 @@
-"""Habit model for recurring practices that generate dated actions."""
+"""Habit model for recurring practices with on-demand dated occurrences."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrim
 
 
 class Habit(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
-    """Recurring habit template that can generate dated action rows."""
+    """Recurring habit definition that materializes dated actions on demand."""
 
     __tablename__ = "habits"
     __table_args__ = (

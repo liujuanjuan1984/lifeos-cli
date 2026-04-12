@@ -23,12 +23,12 @@ from lifeos_cli.db.services.habit_support import (
     deduplicate_habit_ids,
     ensure_active_capacity,
     ensure_task_exists,
-    get_default_habit_action_status,
-    iter_habit_scheduled_dates,
+    habit_occurs_on_date,
     refresh_habit_expiration,
     validate_habit_action_status,
     validate_habit_cadence,
     validate_habit_duration,
+    validate_habit_schedule_window,
     validate_habit_start_date,
     validate_habit_status,
 )
@@ -46,7 +46,7 @@ async def create_habit(
     target_per_cycle: int | None = None,
     task_id: UUID | None = None,
 ) -> Habit:
-    """Create a new habit and generate its dated action rows."""
+    """Create a new habit without pre-generating dated action rows."""
     normalized_title = title.strip()
     validate_habit_start_date(start_date)
     validate_habit_duration(duration_days)
@@ -76,7 +76,12 @@ async def create_habit(
     )
     session.add(habit)
     await session.flush()
-    await _reconcile_habit_actions(session, habit)
+    validate_habit_schedule_window(
+        start_date=habit.start_date,
+        end_date=habit.end_date,
+        cadence_frequency=habit.cadence_frequency,
+        cadence_weekdays=habit.cadence_weekdays,
+    )
     await refresh_habit_expiration(session, habit_id=habit.id)
     await session.refresh(habit)
     return habit
@@ -99,7 +104,7 @@ async def update_habit(
     task_id: UUID | None = None,
     clear_task: bool = False,
 ) -> Habit:
-    """Update a habit and adjust generated actions when timing changes."""
+    """Update a habit and reconcile materialized dated actions."""
     habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
@@ -158,7 +163,13 @@ async def update_habit(
         habit.status = normalized_status
 
     if schedule_changed:
-        await _reconcile_habit_actions(session, habit)
+        validate_habit_schedule_window(
+            start_date=habit.start_date,
+            end_date=habit.end_date,
+            cadence_frequency=habit.cadence_frequency,
+            cadence_weekdays=habit.cadence_weekdays,
+        )
+        await _soft_delete_unscheduled_habit_actions(session, habit)
 
     await session.flush()
     await refresh_habit_expiration(session, habit_id=habit.id)
@@ -225,7 +236,7 @@ async def update_habit_action_by_date(
     notes: str | None = None,
     clear_notes: bool = False,
 ) -> HabitAction:
-    """Update one habit action by habit and action date."""
+    """Update one habit action by habit and action date, materializing it if needed."""
     habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
@@ -239,8 +250,10 @@ async def update_habit_action_by_date(
         )
     ).scalar_one_or_none()
     if action is None:
-        raise HabitActionNotFoundError(
-            f"Habit action for habit {habit_id} on {action_date} was not found"
+        action = await _materialize_habit_action_for_date(
+            session,
+            habit=habit,
+            action_date=action_date,
         )
     return await update_habit_action(
         session,
@@ -251,37 +264,44 @@ async def update_habit_action_by_date(
     )
 
 
-async def _reconcile_habit_actions(session: AsyncSession, habit: Habit) -> None:
-    desired_dates = set(
-        iter_habit_scheduled_dates(
+async def _soft_delete_unscheduled_habit_actions(session: AsyncSession, habit: Habit) -> None:
+    """Soft-delete materialized action rows that no longer belong to the habit schedule."""
+    existing_actions = await _load_active_actions(session, habit)
+    for action in existing_actions:
+        if not habit_occurs_on_date(
             start_date=habit.start_date,
             end_date=habit.end_date,
-            cadence_frequency=habit.cadence_frequency,
             cadence_weekdays=habit.cadence_weekdays,
-        )
-    )
-    if not desired_dates:
-        raise InvalidHabitOperationError(
-            "Habit cadence does not produce any scheduled action dates inside the requested window."
-        )
-
-    existing_actions = await _load_active_actions(session, habit)
-    existing_by_date = {action.action_date: action for action in existing_actions}
-
-    for action in existing_actions:
-        if action.action_date not in desired_dates:
+            target_date=action.action_date,
+        ):
             action.deleted_at = utc_now()
-
-    for desired_date in sorted(desired_dates):
-        if desired_date not in existing_by_date:
-            session.add(
-                HabitAction(
-                    habit_id=habit.id,
-                    action_date=desired_date,
-                    status=get_default_habit_action_status(),
-                )
-            )
     await session.flush()
+
+
+async def _materialize_habit_action_for_date(
+    session: AsyncSession,
+    *,
+    habit: Habit,
+    action_date: date,
+) -> HabitAction:
+    """Create one materialized dated action when a scheduled occurrence is touched."""
+    if not habit_occurs_on_date(
+        start_date=habit.start_date,
+        end_date=habit.end_date,
+        cadence_weekdays=habit.cadence_weekdays,
+        target_date=action_date,
+    ):
+        raise HabitActionNotFoundError(
+            f"Habit action for habit {habit.id} on {action_date} was not found"
+        )
+    action = HabitAction(
+        habit_id=habit.id,
+        action_date=action_date,
+    )
+    session.add(action)
+    await session.flush()
+    await session.refresh(action)
+    return action
 
 
 async def _load_active_actions(session: AsyncSession, habit: Habit) -> list[HabitAction]:

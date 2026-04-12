@@ -49,9 +49,9 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 _("Create and maintain recurring habits with explicit cadence rules.")
                 + "\n\n"
                 + _(
-                    "A habit acts as a template. Scheduled dates generate habit-action rows, "
-                    "while cadence controls how progress is evaluated across daily, weekly, "
-                    "monthly, or yearly cycles."
+                    "A habit acts as a recurring definition. Query windows materialize "
+                    "habit-action occurrences on demand, while cadence controls how progress "
+                    "is evaluated across daily, weekly, monthly, or yearly cycles."
                 )
             ),
             examples=(
@@ -66,12 +66,12 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(
                 _("Use `list` as the primary query entrypoint for habits."),
                 _(
-                    "Habit creation and timing updates automatically generate or reconcile "
-                    "habit-action rows."
+                    "Habit creation and timing updates no longer pre-generate full "
+                    "habit-action histories."
                 ),
                 _(
-                    "Cadence cycles can be daily, weekly, monthly, or yearly, while generated "
-                    "habit-action rows remain date-based."
+                    "Cadence cycles can be daily, weekly, monthly, or yearly, while "
+                    "habit-action occurrences remain date-based."
                 ),
                 _("Delete operations in the public CLI always perform soft deletion."),
             ),
@@ -89,9 +89,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         "add",
         help_content=HelpContent(
             summary=_("Create a habit"),
-            description=_(
-                "Create a recurring habit and generate cadence-aligned habit-action rows."
-            ),
+            description=_("Create a recurring habit with cadence-aligned on-demand occurrences."),
             examples=(
                 'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
                 'lifeos habit add "Morning Review" --start-date 2026-04-09 --duration-days 100 '
@@ -108,7 +106,10 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                     "Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
                     "evaluation cycles."
                 ),
-                _("`--weekdays` restricts generated habit-action rows to selected weekdays."),
+                _(
+                    "`--weekdays` restricts on-demand habit-action occurrences "
+                    "to selected weekdays."
+                ),
                 _("If `--task-id` is provided, the task must already exist."),
             ),
         ),
@@ -224,8 +225,8 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 _("Update mutable habit fields.")
                 + "\n\n"
                 + _(
-                    "Cadence and timing changes automatically reconcile generated "
-                    "habit-action rows."
+                    "Cadence and timing changes reconcile materialized habit-action records "
+                    "without regenerating full histories."
                 )
             ),
             examples=(
