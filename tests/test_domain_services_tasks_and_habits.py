@@ -1050,3 +1050,57 @@ def test_update_habit_action_by_date_materializes_missing_occurrence(
     assert updated_action.id == action_id
     assert len(added_records) == 1
     assert cast(Any, added_records[0]).action_date == action_date
+
+
+def test_list_habit_actions_materializes_listed_occurrences(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    action_id = UUID("88888888-8888-8888-8888-888888888888")
+    action_date = date(2026, 4, 9)
+
+    class Result:
+        def scalars(self) -> list[object]:
+            return [SimpleNamespace(id=habit_id, title="Daily Exercise", deleted_at=None)]
+
+    session = SimpleNamespace()
+
+    async def fake_execute(statement: object) -> Result:
+        return Result()
+
+    async def fake_build_views(*args: object, **kwargs: object) -> list[object]:
+        return [
+            SimpleNamespace(
+                id=None,
+                habit_id=habit_id,
+                habit_title="Daily Exercise",
+                action_date=action_date,
+                status="pending",
+                notes=None,
+                created_at=None,
+                updated_at=None,
+                deleted_at=None,
+            )
+        ]
+
+    async def fake_materialize(*args: object, **kwargs: object) -> object:
+        return SimpleNamespace(
+            id=action_id,
+            habit_id=habit_id,
+            action_date=action_date,
+            status="pending",
+            notes=None,
+            created_at=None,
+            updated_at=None,
+            deleted_at=None,
+        )
+
+    session.execute = fake_execute
+    monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(habit_queries, "_materialize_habit_action_for_date", fake_materialize)
+
+    views = asyncio.run(habits.list_habit_actions(cast(Any, session), habit_id=habit_id))
+
+    assert len(views) == 1
+    assert views[0].id == action_id
+    assert views[0].habit_title == "Daily Exercise"

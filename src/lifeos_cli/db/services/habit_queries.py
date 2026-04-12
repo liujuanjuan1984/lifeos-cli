@@ -18,6 +18,7 @@ from lifeos_cli.db.services.habit_support import (
     DEFAULT_HABIT_ACTION_WINDOW_DAYS,
     MAX_HABIT_ACTION_WINDOW_DAYS,
     HabitActionLike,
+    HabitActionNotFoundError,
     HabitNotFoundError,
     HabitValidationError,
     build_habit_stats_payload,
@@ -115,6 +116,32 @@ def _build_synthetic_action_view(
         updated_at=None,
         deleted_at=None,
     )
+
+
+async def _materialize_habit_action_for_date(
+    session: AsyncSession,
+    *,
+    habit: Habit,
+    action_date: date,
+) -> HabitAction:
+    """Create one materialized dated action for a scheduled occurrence."""
+    if not habit_occurs_on_date(
+        start_date=habit.start_date,
+        end_date=habit.end_date,
+        cadence_weekdays=habit.cadence_weekdays,
+        target_date=action_date,
+    ):
+        raise HabitActionNotFoundError(
+            f"Habit action for habit {habit.id} on {action_date} was not found"
+        )
+    action = HabitAction(
+        habit_id=habit.id,
+        action_date=action_date,
+    )
+    session.add(action)
+    await session.flush()
+    await session.refresh(action)
+    return action
 
 
 def _iter_habit_window_dates(
@@ -506,7 +533,38 @@ async def list_habit_actions(
         explicit_action_window=None,
         include_deleted=include_deleted,
     )
-    return views[offset : offset + limit]
+    paged_views = views[offset : offset + limit]
+    synthetic_views = [view for view in paged_views if view.id is None]
+    if not synthetic_views or include_deleted:
+        return paged_views
+
+    habit_ids = {view.habit_id for view in synthetic_views}
+    habits = list(
+        (
+            await session.execute(
+                select(Habit).where(Habit.id.in_(habit_ids), Habit.deleted_at.is_(None))
+            )
+        ).scalars()
+    )
+    habits_by_id = {habit.id: habit for habit in habits}
+    materialized_by_key: dict[tuple[UUID, date], HabitActionView] = {}
+    for view in synthetic_views:
+        habit = habits_by_id.get(view.habit_id)
+        if habit is None:
+            continue
+        action = await _materialize_habit_action_for_date(
+            session,
+            habit=habit,
+            action_date=view.action_date,
+        )
+        materialized_by_key[(view.habit_id, view.action_date)] = _build_materialized_action_view(
+            action,
+            habit_title=habit.title,
+        )
+
+    return [
+        materialized_by_key.get((view.habit_id, view.action_date), view) for view in paged_views
+    ]
 
 
 async def list_habit_actions_in_range(

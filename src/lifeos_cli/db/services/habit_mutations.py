@@ -14,7 +14,11 @@ from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
-from lifeos_cli.db.services.habit_queries import get_habit, get_habit_action
+from lifeos_cli.db.services.habit_queries import (
+    _materialize_habit_action_for_date,
+    get_habit,
+    get_habit_action,
+)
 from lifeos_cli.db.services.habit_support import (
     HABIT_EDITABLE_DAYS,
     HabitActionNotFoundError,
@@ -276,32 +280,6 @@ async def _soft_delete_unscheduled_habit_actions(session: AsyncSession, habit: H
         ):
             action.deleted_at = utc_now()
     await session.flush()
-
-
-async def _materialize_habit_action_for_date(
-    session: AsyncSession,
-    *,
-    habit: Habit,
-    action_date: date,
-) -> HabitAction:
-    """Create one materialized dated action when a scheduled occurrence is touched."""
-    if not habit_occurs_on_date(
-        start_date=habit.start_date,
-        end_date=habit.end_date,
-        cadence_weekdays=habit.cadence_weekdays,
-        target_date=action_date,
-    ):
-        raise HabitActionNotFoundError(
-            f"Habit action for habit {habit.id} on {action_date} was not found"
-        )
-    action = HabitAction(
-        habit_id=habit.id,
-        action_date=action_date,
-    )
-    session.add(action)
-    await session.flush()
-    await session.refresh(action)
-    return action
 
 
 async def _load_active_actions(session: AsyncSession, habit: Habit) -> list[HabitAction]:
