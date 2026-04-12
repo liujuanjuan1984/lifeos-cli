@@ -89,6 +89,7 @@ class SeriesDefinition:
     rule: RecurrenceRule
     evaluation: EvaluationPolicy = field(default_factory=EvaluationPolicy)
 
+
 def normalize_weekday_names(weekdays: Sequence[str] | None) -> tuple[str, ...] | None:
     """Normalize an optional weekday name set."""
     if weekdays is None:
@@ -180,9 +181,7 @@ def normalize_evaluation_policy(
     if target_per_cycle <= 0:
         raise RecurrenceValidationError("target_per_cycle must be greater than zero.")
     if normalized_mode == "per_occurrence" and target_per_cycle != 1:
-        raise RecurrenceValidationError(
-            "per_occurrence evaluation requires target_per_cycle 1."
-        )
+        raise RecurrenceValidationError("per_occurrence evaluation requires target_per_cycle 1.")
     return EvaluationPolicy(
         mode=normalized_mode,
         cycle_frequency=normalized_cycle_frequency,

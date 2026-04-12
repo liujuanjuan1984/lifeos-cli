@@ -92,6 +92,22 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
     assert captured["timelog_ids"] == [UUID("77777777-7777-7777-7777-777777777777")]
 
 
+def test_batch_update_note_rejects_legacy_single_task_field() -> None:
+    with pytest.raises(data_ops.DataOperationError, match="task_ids"):
+        asyncio.run(
+            data_ops.batch_update_resource(
+                cast(AsyncSession, object()),
+                resource="note",
+                rows=[
+                    {
+                        "id": "11111111-1111-1111-1111-111111111111",
+                        "task_id": "33333333-3333-3333-3333-333333333333",
+                    }
+                ],
+            )
+        )
+
+
 def test_import_bundle_applies_base_rows_before_relations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

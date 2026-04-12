@@ -702,14 +702,14 @@ def test_cli_parser_supports_note_update_relation_only_command() -> None:
     assert args.clear_timelogs is True
 
 
-def test_cli_parser_supports_note_update_clear_tasks_alias() -> None:
+def test_cli_parser_supports_note_update_clear_tasks_flag() -> None:
     parser = build_parser()
     args = parser.parse_args(
         [
             "note",
             "update",
             "11111111-1111-1111-1111-111111111111",
-            "--clear-task",
+            "--clear-tasks",
         ]
     )
 

@@ -366,15 +366,10 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         or (resource == "note" and "person_ids" in payload)
         else None
     )
-    legacy_note_task_ids = (
-        ([] if payload.get("task_id") is None else [UUID(str(payload["task_id"]))])
-        if resource == "note" and "task_id" in payload
-        else None
-    )
     note_task_ids = (
         _parse_person_ids(payload["task_ids"])
         if resource == "note" and "task_ids" in payload
-        else legacy_note_task_ids
+        else None
     )
     note_vision_ids = (
         _parse_person_ids(payload["vision_ids"])
@@ -823,11 +818,8 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
         if field == "person_ids":
             normalized[field] = None if value is None else _parse_person_ids(value)
             continue
-        if field in {"task_id", "task_ids", "vision_ids", "event_ids"} and resource == "note":
-            if field == "task_id":
-                normalized[field] = None if value is None else UUID(str(value))
-            else:
-                normalized[field] = None if value is None else _parse_person_ids(value)
+        if field in {"task_ids", "vision_ids", "event_ids"} and resource == "note":
+            normalized[field] = None if value is None else _parse_person_ids(value)
             continue
         if field == "timelog_ids" and resource == "note":
             normalized[field] = None if value is None else _parse_person_ids(value)
@@ -1007,28 +999,15 @@ def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         kwargs["content"] = payload["content"]
     kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
     kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
-    if "task_id" in payload and "task_ids" in payload:
-        raise DataOperationError("Note batch update accepts `task_id` or `task_ids`, not both.")
     if "task_ids" in payload:
         kwargs.update(_null_means_clear(payload, field="task_ids", clear_flag="clear_tasks"))
-    else:
-        kwargs.update(
-            _null_means_clear(
-                payload,
-                field="task_id",
-                target_field="task_ids",
-                clear_flag="clear_tasks",
-            )
-        )
-        if "task_id" in payload and payload["task_id"] is not None:
-            kwargs["task_ids"] = [payload["task_id"]]
     kwargs.update(_null_means_clear(payload, field="vision_ids", clear_flag="clear_visions"))
     kwargs.update(_null_means_clear(payload, field="event_ids", clear_flag="clear_events"))
     kwargs.update(_null_means_clear(payload, field="timelog_ids", clear_flag="clear_timelogs"))
     if len(kwargs) == 1:
         raise DataOperationError(
             "Note batch update requires at least one of `content`, `tag_ids`, `person_ids`, "
-            "`task_id`, `task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+            "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
         )
     return kwargs
 
