@@ -213,3 +213,15 @@ def test_read_bundle_rejects_missing_manifest(tmp_path: Path) -> None:
 
     with pytest.raises(data_ops.DataOperationError, match="manifest.json"):
         data_ops.read_bundle(bundle_path)
+
+
+def test_read_bundle_rejects_legacy_schema_version(tmp_path: Path) -> None:
+    bundle_path = tmp_path / "legacy-bundle.zip"
+    with ZipFile(bundle_path, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("manifest.json", '{"schema_version": 1}\n')
+
+    with pytest.raises(
+        data_ops.DataOperationError,
+        match="Older bundle schemas are not supported after sparse habit-action materialization",
+    ):
+        data_ops.read_bundle(bundle_path)

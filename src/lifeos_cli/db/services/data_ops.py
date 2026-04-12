@@ -65,6 +65,7 @@ SUPPORTED_DATA_RESOURCES = (
     "note",
 )
 BUNDLE_RESOURCE_ORDER = SUPPORTED_DATA_RESOURCES
+BUNDLE_SCHEMA_VERSION = 2
 
 
 class DataOperationError(RuntimeError):
@@ -1200,7 +1201,7 @@ async def run_post_import_hooks(session: AsyncSession, *, resources: set[str]) -
 def _bundle_manifest(resource_counts: dict[str, int]) -> dict[str, Any]:
     preferences = get_preferences_settings()
     return {
-        "schema_version": 1,
+        "schema_version": BUNDLE_SCHEMA_VERSION,
         "exported_at": datetime.now().astimezone().isoformat(),
         "app_version": _get_app_version(),
         "database_schema": get_database_settings().database_schema,
@@ -1248,9 +1249,12 @@ def read_bundle(path: Path) -> BundlePayload:
             if not isinstance(manifest, dict):
                 raise DataOperationError("Bundle manifest must be a JSON object.")
             schema_version = manifest.get("schema_version")
-            if schema_version != 1:
+            if schema_version != BUNDLE_SCHEMA_VERSION:
                 raise DataOperationError(
-                    f"Unsupported bundle schema version {schema_version!r}. Expected 1."
+                    "Unsupported bundle schema version "
+                    f"{schema_version!r}. Expected {BUNDLE_SCHEMA_VERSION}. "
+                    "Older bundle schemas are not supported after sparse habit-action "
+                    "materialization."
                 )
             for resource in BUNDLE_RESOURCE_ORDER:
                 entry_name = f"{resource}.jsonl"
