@@ -132,38 +132,42 @@ msgid "options"
 msgstr "选项"
 
 #: src/lifeos_cli/i18n.py:42
+msgid "optional arguments"
+msgstr "可选参数"
+
+#: src/lifeos_cli/i18n.py:43
 msgid "positional arguments"
 msgstr "位置参数"
 
-#: src/lifeos_cli/i18n.py:43
+#: src/lifeos_cli/i18n.py:44
 msgid "show this help message and exit"
 msgstr "显示此帮助信息并退出"
 
-#: src/lifeos_cli/i18n.py:44
+#: src/lifeos_cli/i18n.py:45
 msgid "subcommands"
 msgstr "子命令"
 
-#: src/lifeos_cli/i18n.py:45
+#: src/lifeos_cli/i18n.py:46
 #, python-format
 msgid "the following arguments are required: %s"
 msgstr "以下参数是必需的：%s"
 
-#: src/lifeos_cli/i18n.py:46
+#: src/lifeos_cli/i18n.py:47
 #, python-format
 msgid "unexpected option string: %s"
 msgstr "意外的选项字符串：%s"
 
-#: src/lifeos_cli/i18n.py:47
+#: src/lifeos_cli/i18n.py:48
 #, python-format
 msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
 msgstr "未知的 parser %(parser_name)r（可选值：%(choices)s）"
 
-#: src/lifeos_cli/i18n.py:48
+#: src/lifeos_cli/i18n.py:49
 #, python-format
 msgid "unrecognized arguments: %s"
 msgstr "无法识别的参数：%s"
 
-#: src/lifeos_cli/i18n.py:49
+#: src/lifeos_cli/i18n.py:50
 msgid "usage: "
 msgstr "用法："
 

@@ -2,51 +2,59 @@
 
 from __future__ import annotations
 
+import argparse
 import gettext
 import os
-import argparse
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, cast
 
 from lifeos_cli.config import ConfigurationError, detect_default_language, get_preferences_settings
 
 DOMAIN = "lifeos_cli"
 LOCALES_DIR = Path(__file__).with_name("locales")
 DEFAULT_LOCALE = "en"
-_ = lambda message: message
+
+
+def _identity(message: str) -> str:
+    """Return one untranslated message literal for catalog extraction."""
+    return message
+
+
 ARGPARSE_MESSAGE_IDS = (
-    _(" (default: %(default)s)"),
-    _("%(heading)s:"),
-    _("%(prog)s: error: %(message)s\n"),
-    _("%r is not callable"),
-    _(".__call__() not defined"),
-    _("ambiguous option: %(option)s could match %(matches)s"),
-    _("argument \"-\" with mode %r"),
-    _("argument %(argument_name)s: %(message)s"),
-    _("cannot have multiple subparser arguments"),
-    _("cannot merge actions - two groups are named %r"),
-    _("conflicting subparser alias: %s"),
-    _("conflicting subparser: %s"),
-    _("dest= is required for options like %r"),
-    _("expected at least one argument"),
-    _("expected at most one argument"),
-    _("expected one argument"),
-    _("ignored explicit argument %r"),
-    _("invalid %(type)s value: %(value)r"),
-    _("invalid choice: %(value)r (choose from %(choices)s)"),
-    _("invalid conflict_resolution value: %r"),
-    _("mutually exclusive arguments must be optional"),
-    _("not allowed with argument %s"),
-    _("one of the arguments %s is required"),
-    _("options"),
-    _("positional arguments"),
-    _("show this help message and exit"),
-    _("subcommands"),
-    _("the following arguments are required: %s"),
-    _("unexpected option string: %s"),
-    _("unknown parser %(parser_name)r (choices: %(choices)s)"),
-    _("unrecognized arguments: %s"),
-    _("usage: "),
+    _identity(" (default: %(default)s)"),
+    _identity("%(heading)s:"),
+    _identity("%(prog)s: error: %(message)s\n"),
+    _identity("%r is not callable"),
+    _identity(".__call__() not defined"),
+    _identity("ambiguous option: %(option)s could match %(matches)s"),
+    _identity('argument "-" with mode %r'),
+    _identity("argument %(argument_name)s: %(message)s"),
+    _identity("cannot have multiple subparser arguments"),
+    _identity("cannot merge actions - two groups are named %r"),
+    _identity("conflicting subparser alias: %s"),
+    _identity("conflicting subparser: %s"),
+    _identity("dest= is required for options like %r"),
+    _identity("expected at least one argument"),
+    _identity("expected at most one argument"),
+    _identity("expected one argument"),
+    _identity("ignored explicit argument %r"),
+    _identity("invalid %(type)s value: %(value)r"),
+    _identity("invalid choice: %(value)r (choose from %(choices)s)"),
+    _identity("invalid conflict_resolution value: %r"),
+    _identity("mutually exclusive arguments must be optional"),
+    _identity("not allowed with argument %s"),
+    _identity("one of the arguments %s is required"),
+    _identity("options"),
+    _identity("optional arguments"),
+    _identity("positional arguments"),
+    _identity("show this help message and exit"),
+    _identity("subcommands"),
+    _identity("the following arguments are required: %s"),
+    _identity("unexpected option string: %s"),
+    _identity("unknown parser %(parser_name)r (choices: %(choices)s)"),
+    _identity("unrecognized arguments: %s"),
+    _identity("usage: "),
 )
 
 
@@ -107,5 +115,6 @@ def pgettext_message(context: str, message: str) -> str:
 
 def configure_argparse_translations() -> None:
     """Route argparse built-in help and error text through the active gettext catalog."""
-    setattr(argparse, "_", gettext_message)
-    setattr(argparse, "ngettext", ngettext_message)
+    argparse_module = cast(Any, argparse)
+    argparse_module._ = gettext_message
+    argparse_module.ngettext = ngettext_message
