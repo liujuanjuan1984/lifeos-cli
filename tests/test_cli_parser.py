@@ -1104,6 +1104,32 @@ def test_cli_parser_supports_habit_add_command() -> None:
     assert args.duration_days == 21
 
 
+def test_cli_parser_supports_habit_add_weekly_cadence_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Call Parents",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "100",
+            "--cadence-frequency",
+            "weekly",
+            "--weekends-only",
+            "--target-per-week",
+            "1",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.cadence_frequency == "weekly"
+    assert args.weekends_only is True
+    assert args.target_per_cycle == 1
+
+
 def test_cli_parser_supports_habit_list_count_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["habit", "list", "--status", "active", "--count"])
@@ -1129,6 +1155,23 @@ def test_cli_parser_supports_habit_update_clear_task_command() -> None:
     assert args.habit_command == "update"
     assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
     assert args.clear_task is True
+
+
+def test_cli_parser_supports_habit_update_clear_weekdays_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-weekdays",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "update"
+    assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_weekdays is True
 
 
 def test_cli_parser_supports_habit_action_list_by_date_command() -> None:

@@ -1099,6 +1099,9 @@ def test_main_habit_add_creates_habit(
         assert kwargs["title"] == "Daily Exercise"
         assert str(kwargs["start_date"]) == "2026-04-09"
         assert kwargs["duration_days"] == 21
+        assert kwargs["cadence_frequency"] == "daily"
+        assert kwargs["cadence_weekdays"] is None
+        assert kwargs["target_per_cycle"] is None
         return make_record(id=UUID("77777777-7777-7777-7777-777777777777"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -1119,6 +1122,41 @@ def test_main_habit_add_creates_habit(
 
     assert exit_code == 0
     assert "Created habit 77777777-7777-7777-7777-777777777777" in captured.out
+
+
+def test_main_habit_add_passes_weekly_cadence_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_create_habit(session: object, **kwargs: object) -> object:
+        assert kwargs["cadence_frequency"] == "weekly"
+        assert kwargs["cadence_weekdays"] == ["saturday", "sunday"]
+        assert kwargs["target_per_cycle"] == 1
+        return make_record(id=UUID("78787878-7878-7878-7878-787878787878"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habits, "create_habit", fake_create_habit)
+
+    exit_code = cli.main(
+        [
+            "habit",
+            "add",
+            "Call Parents",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "100",
+            "--cadence-frequency",
+            "weekly",
+            "--weekends-only",
+            "--target-per-week",
+            "1",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created habit 78787878-7878-7878-7878-787878787878" in captured.out
 
 
 def test_main_habit_list_prints_count(
@@ -1172,6 +1210,25 @@ def test_main_habit_update_rejects_conflicting_clear_task_flags(
 
     assert exit_code == 1
     assert "Use either --task-id or --clear-task, not both." in captured.err
+
+
+def test_main_habit_update_rejects_conflicting_clear_weekdays_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "habit",
+            "update",
+            "77777777-7777-7777-7777-777777777777",
+            "--weekdays",
+            "monday,wednesday,friday",
+            "--clear-weekdays",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --weekdays / --weekends-only or --clear-weekdays, not both." in captured.err
 
 
 def test_main_habit_action_list_prints_count(

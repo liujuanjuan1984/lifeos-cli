@@ -33,6 +33,11 @@ def build_habit_action_parser(
                 _("Inspect and update dated habit-action rows generated from habits.")
                 + "\n\n"
                 + _("Habit actions are generated automatically and are updated in place.")
+                + "\n\n"
+                + _(
+                    "Weekly cadence habits still log dated rows, but progress and streaks are "
+                    "evaluated per weekly cycle."
+                )
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
@@ -43,6 +48,7 @@ def build_habit_action_parser(
             ),
             notes=(
                 _("Use `list` for both per-habit and by-date views."),
+                _("Habit cadence decides how rows are grouped into completion cycles."),
                 _("Public CLI does not create or delete habit actions directly."),
             ),
         ),

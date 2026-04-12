@@ -58,15 +58,20 @@ def get_utc_window_for_local_date(target_date: date) -> tuple[datetime, datetime
     )
 
 
-def get_current_week_bounds(reference_date: date | None = None) -> tuple[date, date]:
-    """Return the configured current week start and end dates."""
-    active_date = reference_date or get_operational_date()
+def get_week_bounds(reference_date: date) -> tuple[date, date]:
+    """Return the configured week start and end dates for one local date."""
     week_starts_on = get_preferences_settings().week_starts_on
-    weekday = active_date.weekday()
+    weekday = reference_date.weekday()
     if week_starts_on == "sunday":
         days_since_week_start = (weekday + 1) % 7
     else:
         days_since_week_start = weekday
-    week_start = active_date - timedelta(days=days_since_week_start)
+    week_start = reference_date - timedelta(days=days_since_week_start)
     week_end = week_start + timedelta(days=6)
     return week_start, week_end
+
+
+def get_current_week_bounds(reference_date: date | None = None) -> tuple[date, date]:
+    """Return the configured current week start and end dates."""
+    active_date = reference_date or get_operational_date()
+    return get_week_bounds(active_date)

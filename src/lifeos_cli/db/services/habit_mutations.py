@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from collections.abc import Sequence
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import select
@@ -23,8 +24,10 @@ from lifeos_cli.db.services.habit_support import (
     ensure_active_capacity,
     ensure_task_exists,
     get_default_habit_action_status,
+    iter_habit_scheduled_dates,
     refresh_habit_expiration,
     validate_habit_action_status,
+    validate_habit_cadence,
     validate_habit_duration,
     validate_habit_start_date,
     validate_habit_status,
@@ -38,12 +41,24 @@ async def create_habit(
     description: str | None = None,
     start_date: date,
     duration_days: int,
+    cadence_frequency: str | None = None,
+    cadence_weekdays: Sequence[str] | None = None,
+    target_per_cycle: int | None = None,
     task_id: UUID | None = None,
 ) -> Habit:
     """Create a new habit and generate its dated action rows."""
     normalized_title = title.strip()
     validate_habit_start_date(start_date)
     validate_habit_duration(duration_days)
+    (
+        normalized_cadence_frequency,
+        normalized_cadence_weekdays,
+        normalized_target_per_cycle,
+    ) = validate_habit_cadence(
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        target_per_cycle=target_per_cycle,
+    )
     await ensure_active_capacity(session)
     await ensure_task_exists(session, task_id)
     habit = Habit(
@@ -51,12 +66,17 @@ async def create_habit(
         description=description,
         start_date=start_date,
         duration_days=duration_days,
+        cadence_frequency=normalized_cadence_frequency,
+        cadence_weekdays=(
+            None if normalized_cadence_weekdays is None else list(normalized_cadence_weekdays)
+        ),
+        target_per_cycle=normalized_target_per_cycle,
         status="active",
         task_id=task_id,
     )
     session.add(habit)
     await session.flush()
-    await _generate_habit_actions(session, habit)
+    await _reconcile_habit_actions(session, habit)
     await refresh_habit_expiration(session, habit_id=habit.id)
     await session.refresh(habit)
     return habit
@@ -71,6 +91,10 @@ async def update_habit(
     clear_description: bool = False,
     start_date: date | None = None,
     duration_days: int | None = None,
+    cadence_frequency: str | None = None,
+    cadence_weekdays: Sequence[str] | None = None,
+    clear_weekdays: bool = False,
+    target_per_cycle: int | None = None,
     status: str | None = None,
     task_id: UUID | None = None,
     clear_task: bool = False,
@@ -80,10 +104,7 @@ async def update_habit(
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
 
-    old_start_date = habit.start_date
-    old_duration = habit.duration_days
-    start_date_changed = False
-    duration_changed = False
+    schedule_changed = False
 
     if title is not None:
         habit.title = title.strip()
@@ -94,10 +115,37 @@ async def update_habit(
     if start_date is not None:
         validate_habit_start_date(start_date)
         habit.start_date = start_date
-        start_date_changed = start_date != old_start_date
+        schedule_changed = True
     if duration_days is not None:
         habit.duration_days = validate_habit_duration(duration_days)
-        duration_changed = duration_days != old_duration
+        schedule_changed = True
+    if clear_weekdays:
+        next_cadence_weekdays: Sequence[str] | None = None
+    elif cadence_weekdays is not None:
+        next_cadence_weekdays = cadence_weekdays
+    else:
+        next_cadence_weekdays = getattr(habit, "cadence_weekdays", None)
+    if (
+        cadence_frequency is not None
+        or cadence_weekdays is not None
+        or clear_weekdays
+        or target_per_cycle is not None
+    ):
+        (
+            normalized_cadence_frequency,
+            normalized_cadence_weekdays,
+            normalized_target_per_cycle,
+        ) = validate_habit_cadence(
+            cadence_frequency=cadence_frequency or getattr(habit, "cadence_frequency", None),
+            cadence_weekdays=next_cadence_weekdays,
+            target_per_cycle=target_per_cycle or getattr(habit, "target_per_cycle", None),
+        )
+        habit.cadence_frequency = normalized_cadence_frequency
+        habit.cadence_weekdays = (
+            None if normalized_cadence_weekdays is None else list(normalized_cadence_weekdays)
+        )
+        habit.target_per_cycle = normalized_target_per_cycle
+        schedule_changed = True
     if clear_task:
         habit.task_id = None
     elif task_id is not None:
@@ -109,12 +157,8 @@ async def update_habit(
             await ensure_active_capacity(session, exclude_habit_id=habit.id)
         habit.status = normalized_status
 
-    if start_date_changed and duration_changed:
-        await _adjust_actions_for_both_changes(session, habit)
-    elif start_date_changed:
-        await _adjust_actions_for_start_change(session, habit)
-    elif duration_changed:
-        await _adjust_actions_for_duration_change(session, habit, old_duration=old_duration)
+    if schedule_changed:
+        await _reconcile_habit_actions(session, habit)
 
     await session.flush()
     await refresh_habit_expiration(session, habit_id=habit.id)
@@ -207,73 +251,18 @@ async def update_habit_action_by_date(
     )
 
 
-async def _generate_habit_actions(session: AsyncSession, habit: Habit) -> None:
-    current_date = habit.start_date
-    while current_date <= habit.end_date:
-        session.add(
-            HabitAction(
-                habit_id=habit.id,
-                action_date=current_date,
-                status=get_default_habit_action_status(),
-            )
+async def _reconcile_habit_actions(session: AsyncSession, habit: Habit) -> None:
+    desired_dates = set(
+        iter_habit_scheduled_dates(
+            start_date=habit.start_date,
+            end_date=habit.end_date,
+            cadence_weekdays=habit.cadence_weekdays,
         )
-        current_date += timedelta(days=1)
-    await session.flush()
-
-
-async def _adjust_actions_for_duration_change(
-    session: AsyncSession,
-    habit: Habit,
-    *,
-    old_duration: int,
-) -> None:
-    new_end_date = habit.end_date
-    old_end_date = habit.start_date + timedelta(days=old_duration - 1)
-    if habit.duration_days > old_duration:
-        current_date = old_end_date + timedelta(days=1)
-        while current_date <= new_end_date:
-            exists = (
-                await session.execute(
-                    select(HabitAction.id).where(
-                        HabitAction.habit_id == habit.id,
-                        HabitAction.action_date == current_date,
-                        HabitAction.deleted_at.is_(None),
-                    )
-                )
-            ).scalar_one_or_none()
-            if exists is None:
-                session.add(
-                    HabitAction(
-                        habit_id=habit.id,
-                        action_date=current_date,
-                        status=get_default_habit_action_status(),
-                    )
-                )
-            current_date += timedelta(days=1)
-    else:
-        cutoff_date = habit.start_date + timedelta(days=habit.duration_days - 1)
-        actions = list(
-            (
-                await session.execute(
-                    select(HabitAction).where(
-                        HabitAction.habit_id == habit.id,
-                        HabitAction.action_date > cutoff_date,
-                        HabitAction.deleted_at.is_(None),
-                    )
-                )
-            ).scalars()
+    )
+    if not desired_dates:
+        raise InvalidHabitOperationError(
+            "Habit cadence does not produce any scheduled action dates inside the requested window."
         )
-        for action in actions:
-            action.deleted_at = utc_now()
-    await session.flush()
-
-
-async def _adjust_actions_for_start_change(session: AsyncSession, habit: Habit) -> None:
-    desired_dates: set[date] = set()
-    current_date = habit.start_date
-    while current_date <= habit.end_date:
-        desired_dates.add(current_date)
-        current_date += timedelta(days=1)
 
     existing_actions = await _load_active_actions(session, habit)
     existing_by_date = {action.action_date: action for action in existing_actions}
@@ -292,10 +281,6 @@ async def _adjust_actions_for_start_change(session: AsyncSession, habit: Habit) 
                 )
             )
     await session.flush()
-
-
-async def _adjust_actions_for_both_changes(session: AsyncSession, habit: Habit) -> None:
-    await _adjust_actions_for_start_change(session, habit)
 
 
 async def _load_active_actions(session: AsyncSession, habit: Habit) -> list[HabitAction]:

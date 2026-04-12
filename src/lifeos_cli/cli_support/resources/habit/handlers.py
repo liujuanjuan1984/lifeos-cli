@@ -4,18 +4,41 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import cast
 
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import habits as habit_services
+from lifeos_cli.db.services.habit_support import WEEKEND_HABIT_WEEKDAYS
+
+
+def _resolve_weekday_selection(args: argparse.Namespace) -> list[str] | None:
+    weekdays = getattr(args, "weekdays", None)
+    if getattr(args, "weekends_only", False):
+        return list(WEEKEND_HABIT_WEEKDAYS)
+    return weekdays
+
+
+def _format_cadence_weekdays(habit: Habit) -> str:
+    weekdays = getattr(habit, "cadence_weekdays", None)
+    if not weekdays:
+        return "-"
+    return ",".join(str(weekday) for weekday in weekdays)
+
+
+def _format_habit_cadence(habit: Habit) -> str:
+    cadence_frequency = getattr(habit, "cadence_frequency", "daily")
+    target_per_cycle = getattr(habit, "target_per_cycle", 1)
+    cadence_weekdays = _format_cadence_weekdays(habit)
+    return f"{cadence_frequency}:{target_per_cycle}:{cadence_weekdays}"
 
 
 def _format_habit_summary(habit: Habit) -> str:
     status = "deleted" if habit.deleted_at is not None else habit.status
     return (
-        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t"
+        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t{_format_habit_cadence(habit)}\t"
         f"{habit.task_id or '-'}\t{habit.title}"
     )
 
@@ -27,7 +50,7 @@ def _format_habit_summary_with_stats(overview: dict[str, object]) -> str:
     assert isinstance(stats, dict)
     status = "deleted" if habit.deleted_at is not None else habit.status
     return (
-        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t"
+        f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t{_format_habit_cadence(habit)}\t"
         f"{stats['progress_percentage']:.1f}\t{stats['current_streak']}\t"
         f"{stats['longest_streak']}\t{habit.title}"
     )
@@ -43,10 +66,18 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
             f"start_date: {habit.start_date}",
             f"end_date: {habit.end_date}",
             f"duration_days: {habit.duration_days}",
+            f"cadence_frequency: {getattr(habit, 'cadence_frequency', 'daily')}",
+            f"cadence_weekdays: {_format_cadence_weekdays(habit)}",
+            f"target_per_cycle: {getattr(habit, 'target_per_cycle', 1)}",
             f"task_id: {habit.task_id or '-'}",
             f"progress_percentage: {stats['progress_percentage']:.1f}",
+            f"total_cycles: {stats['total_cycles']}",
+            f"eligible_cycles: {stats['eligible_cycles']}",
+            f"completed_cycles: {stats['completed_cycles']}",
             f"current_streak: {stats['current_streak']}",
             f"longest_streak: {stats['longest_streak']}",
+            f"current_cycle_start: {stats['current_cycle_start']}",
+            f"current_cycle_end: {stats['current_cycle_end']}",
             f"current_week_start: {stats['current_week_start']}",
             f"current_week_end: {stats['current_week_end']}",
             f"completed_actions: {stats['completed_actions']}",
@@ -61,16 +92,26 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
 
 
 def _format_habit_stats(stats: dict[str, object]) -> str:
+    cadence_weekdays = cast(tuple[str, ...] | None, stats["cadence_weekdays"])
+    cadence_weekdays_text = "-" if not cadence_weekdays else ",".join(cadence_weekdays)
     return "\n".join(
         (
             f"habit_id: {stats['habit_id']}",
+            f"cadence_frequency: {stats['cadence_frequency']}",
+            f"cadence_weekdays: {cadence_weekdays_text}",
+            f"target_per_cycle: {stats['target_per_cycle']}",
             f"total_actions: {stats['total_actions']}",
             f"completed_actions: {stats['completed_actions']}",
             f"missed_actions: {stats['missed_actions']}",
             f"skipped_actions: {stats['skipped_actions']}",
+            f"total_cycles: {stats['total_cycles']}",
+            f"eligible_cycles: {stats['eligible_cycles']}",
+            f"completed_cycles: {stats['completed_cycles']}",
             f"progress_percentage: {stats['progress_percentage']:.1f}",
             f"current_streak: {stats['current_streak']}",
             f"longest_streak: {stats['longest_streak']}",
+            f"current_cycle_start: {stats['current_cycle_start']}",
+            f"current_cycle_end: {stats['current_cycle_end']}",
             f"current_week_start: {stats['current_week_start']}",
             f"current_week_end: {stats['current_week_end']}",
         )
@@ -86,6 +127,9 @@ async def handle_habit_add_async(args: argparse.Namespace) -> int:
                 description=args.description,
                 start_date=args.start_date,
                 duration_days=args.duration_days,
+                cadence_frequency=args.cadence_frequency,
+                cadence_weekdays=_resolve_weekday_selection(args),
+                target_per_cycle=args.target_per_cycle,
                 task_id=args.task_id,
             )
         except (
@@ -211,6 +255,11 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             "--task-id",
             "--clear-task",
         ),
+        (
+            args.clear_weekdays and (args.weekdays is not None or args.weekends_only),
+            "--weekdays / --weekends-only",
+            "--clear-weekdays",
+        ),
     )
     for is_conflict, value_flag, clear_flag in conflicts:
         if is_conflict:
@@ -226,6 +275,10 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
                 clear_description=args.clear_description,
                 start_date=args.start_date,
                 duration_days=args.duration_days,
+                cadence_frequency=args.cadence_frequency,
+                cadence_weekdays=_resolve_weekday_selection(args),
+                clear_weekdays=args.clear_weekdays,
+                target_per_cycle=args.target_per_cycle,
                 status=args.status,
                 task_id=args.task_id,
                 clear_task=args.clear_task,

@@ -932,11 +932,21 @@ def _batch_update_task_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _batch_update_habit_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     kwargs: dict[str, Any] = {"habit_id": UUID(str(payload["id"]))}
-    for field in ("title", "start_date", "duration_days", "status"):
+    for field in (
+        "title",
+        "start_date",
+        "duration_days",
+        "cadence_frequency",
+        "cadence_weekdays",
+        "target_per_cycle",
+        "status",
+    ):
         if field in payload:
             kwargs[field] = payload[field]
     kwargs.update(_null_means_clear(payload, field="description", clear_flag="clear_description"))
     kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    if "cadence_weekdays" in payload and payload["cadence_weekdays"] is None:
+        kwargs["clear_weekdays"] = True
     return kwargs
 
 
