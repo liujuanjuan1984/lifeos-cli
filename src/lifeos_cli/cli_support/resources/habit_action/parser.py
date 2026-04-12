@@ -35,8 +35,8 @@ def build_habit_action_parser(
                 + _("Habit actions are generated automatically and are updated in place.")
                 + "\n\n"
                 + _(
-                    "Weekly cadence habits still log dated rows, but progress and streaks are "
-                    "evaluated per weekly cycle."
+                    "Cadence-based habits still log dated rows, but progress and streaks are "
+                    "evaluated per configured cycle."
                 )
             ),
             examples=(

@@ -692,9 +692,9 @@ msgstr "如果省略 `--end-time`，则 `event` 被视为开放式。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:82
 msgid ""
-"Use recurrence flags to create a recurring series without renaming the "
-"resource."
-msgstr "使用重复标志创建重复系列而不重命名资源。"
+"Use recurrence flags to create a recurring series with shared cadence "
+"primitives across daily, weekly, monthly, and yearly patterns."
+msgstr "使用 recurrence 参数创建重复序列，并在 daily、weekly、monthly、yearly 模式之间共享同一套 cadence primitives。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:86
 msgid ""
@@ -746,9 +746,9 @@ msgstr "可选的链接 `area` 标识符"
 msgid "Optional linked task identifier"
 msgstr "可选的链接 `task` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/event/parser.py:116
-msgid "Optional recurrence frequency: daily or weekly"
-msgstr "可选的重复频率：每​​天或每周"
+#: src/lifeos_cli/cli_support/resources/event/parser.py:118
+msgid "Optional recurrence frequency: daily, weekly, monthly, or yearly"
+msgstr "可选的 recurrence frequency：daily、weekly、monthly 或 yearly"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:121
 msgid "Optional recurrence interval, default 1"
@@ -977,8 +977,8 @@ msgid "Clear linked task"
 msgstr "明确链接 `task`"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:276
-msgid "Updated recurrence frequency"
-msgstr "更新的复发频率"
+msgid "Updated recurrence frequency: daily, weekly, monthly, or yearly"
+msgstr "更新后的 recurrence frequency：daily、weekly、monthly 或 yearly"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:280
 msgid "Updated recurrence interval"
@@ -1091,8 +1091,9 @@ msgstr "创建并维护具有明确 cadence 规则的周期性 `habit`。"
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:52
 msgid ""
 "A habit acts as a template. Scheduled dates generate habit-action rows, "
-"while cadence controls whether success is evaluated per day or per week."
-msgstr "一个 `habit` 充当模板。被调度到的日期会生成 `habit-action` 行，而 cadence 决定成功是按天还是按周评估。"
+"while cadence controls how progress is evaluated across daily, weekly, "
+"monthly, or yearly cycles."
+msgstr "一个 `habit` 充当模板。被调度到的日期会生成 `habit-action` 行，而 cadence 决定 progress 如何按 daily、weekly、monthly 或 yearly cycle 评估。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:64
 msgid "Use `list` as the primary query entrypoint for habits."
@@ -1105,8 +1106,10 @@ msgid ""
 msgstr "创建 `habit` 或调整时间参数时，会自动生成或对齐 `habit-action` 行。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:69
-msgid "Weekly cadence evaluates progress and streaks by cycle instead of per day."
-msgstr "weekly cadence 会按 cycle 而不是按天评估进度和 streak。"
+msgid ""
+"Cadence cycles can be daily, weekly, monthly, or yearly, while generated "
+"habit-action rows remain date-based."
+msgstr "cadence cycle 可以是 daily、weekly、monthly 或 yearly，而生成的 `habit-action` 行仍然保持按日期记录。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:85
 msgid "Create a habit"
@@ -1122,9 +1125,9 @@ msgstr "持续时间必须是支持的节目长度之一。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:100
 msgid ""
-"Use `--cadence-frequency weekly` to switch stats and streaks to weekly "
-"cycles."
-msgstr "使用 `--cadence-frequency weekly` 将 stats 和 streaks 切换为按 weekly cycle 计算。"
+"Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
+"evaluation cycles."
+msgstr "使用 `--cadence-frequency` 选择 daily、weekly、monthly 或 yearly 的评估 cycle。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:103
 msgid "`--weekdays` restricts generated habit-action rows to selected weekdays."
@@ -1151,8 +1154,8 @@ msgid "Habit duration in days"
 msgstr "`habit` 持续时间（天）"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:125
-msgid "Habit cadence frequency: daily or weekly"
-msgstr "`habit` cadence frequency：daily 或 weekly"
+msgid "Habit cadence frequency: daily, weekly, monthly, or yearly"
+msgstr "`habit` cadence frequency：daily、weekly、monthly 或 yearly"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:130
 msgid "Allowed weekdays, for example monday,wednesday,friday"
@@ -1283,8 +1286,8 @@ msgid "Updated duration in days"
 msgstr "更新持续时间（以天为单位）"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:257
-msgid "Updated cadence frequency: daily or weekly"
-msgstr "更新后的 cadence frequency：daily 或 weekly"
+msgid "Updated cadence frequency: daily, weekly, monthly, or yearly"
+msgstr "更新后的 cadence frequency：daily、weekly、monthly 或 yearly"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:262
 msgid "Updated allowed weekdays, for example monday,wednesday,friday"
@@ -1360,9 +1363,9 @@ msgstr "`habit-action` 会自动生成，并在原记录上更新。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:38
 msgid ""
-"Weekly cadence habits still log dated rows, but progress and streaks are "
-"evaluated per weekly cycle."
-msgstr "采用 weekly cadence 的 `habit` 仍然按日期记录行，但 progress 和 streaks 会按 weekly cycle 评估。"
+"Cadence-based habits still log dated rows, but progress and streaks are "
+"evaluated per configured cycle."
+msgstr "采用 cadence 的 `habit` 仍然按日期记录行，但 progress 和 streaks 会按配置好的 cycle 评估。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:50
 msgid "Use `list` for both per-habit and by-date views."

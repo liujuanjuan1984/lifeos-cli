@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date, timedelta
+from datetime import date
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, Mock
@@ -741,6 +741,65 @@ def test_create_habit_generates_weekend_actions_for_weekly_cadence(
     session.commit.assert_not_called()
 
 
+def test_create_habit_generates_monthly_cycle_actions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace(
+        add=None,
+        execute=AsyncMock(return_value=Result()),
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+    added_records: list[object] = []
+
+    def fake_add(record: object) -> None:
+        if getattr(record, "id", None) is None:
+            cast(Any, record).id = UUID("99999999-9999-9999-9999-999999999999")
+        added_records.append(record)
+
+    async def fake_ensure_active_capacity(_: object, **__: object) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("99999999-9999-9999-9999-999999999999")
+        return 0
+
+    session.add = fake_add
+    monkeypatch.setattr(habit_mutations, "ensure_active_capacity", fake_ensure_active_capacity)
+    monkeypatch.setattr(habit_mutations, "ensure_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(habit_mutations, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    habit = asyncio.run(
+        habits.create_habit(
+            cast(Any, session),
+            title="Monthly cleanup",
+            start_date=date(2026, 4, 9),
+            duration_days=100,
+            cadence_frequency="monthly",
+            target_per_cycle=2,
+        )
+    )
+
+    action_dates = sorted(
+        cast(Any, record).action_date for record in added_records if hasattr(record, "action_date")
+    )
+    assert habit.cadence_frequency == "monthly"
+    assert habit.target_per_cycle == 2
+    assert action_dates[0] == date(2026, 4, 9)
+    assert action_dates[-1] == date(2026, 7, 17)
+    assert len(action_dates) == 100
+    session.flush.assert_awaited()
+    session.commit.assert_not_called()
+
+
 def test_create_habit_rejects_daily_quota_targets() -> None:
     with pytest.raises(habits.HabitValidationError):
         asyncio.run(
@@ -811,17 +870,10 @@ def test_build_habit_stats_payload_uses_weekly_cycle_targets(
         "get_current_week_bounds",
         lambda reference_date=None: (date(2026, 4, 13), date(2026, 4, 19)),
     )
-    monkeypatch.setattr(
-        habit_support,
-        "get_week_bounds",
-        lambda reference_date: (
-            reference_date - timedelta(days=reference_date.weekday()),
-            reference_date - timedelta(days=reference_date.weekday()) + timedelta(days=6),
-        ),
-    )
 
     habit = SimpleNamespace(
         id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+        start_date=date(2026, 4, 9),
         cadence_frequency="weekly",
         cadence_weekdays=["saturday", "sunday"],
         target_per_cycle=1,
@@ -838,6 +890,39 @@ def test_build_habit_stats_payload_uses_weekly_cycle_targets(
     assert stats["progress_percentage"] == 100.0
     assert stats["current_streak"] == 1
     assert stats["longest_streak"] == 1
+
+
+def test_build_habit_stats_payload_uses_monthly_cycle_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(habit_support, "get_operational_date", lambda value=None: date(2026, 4, 20))
+    monkeypatch.setattr(
+        habit_support,
+        "get_current_week_bounds",
+        lambda reference_date=None: (date(2026, 4, 20), date(2026, 4, 26)),
+    )
+
+    habit = SimpleNamespace(
+        id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+        start_date=date(2026, 4, 1),
+        cadence_frequency="monthly",
+        cadence_weekdays=None,
+        target_per_cycle=2,
+    )
+    actions = [
+        SimpleNamespace(action_date=date(2026, 4, 2), status="done"),
+        SimpleNamespace(action_date=date(2026, 4, 16), status="done"),
+        SimpleNamespace(action_date=date(2026, 4, 20), status="pending"),
+    ]
+
+    stats = habit_support.build_habit_stats_payload(cast(Any, habit), cast(Any, actions))
+
+    assert stats["cadence_frequency"] == "monthly"
+    assert stats["completed_cycles"] == 1
+    assert stats["eligible_cycles"] == 1
+    assert stats["progress_percentage"] == 100.0
+    assert stats["current_cycle_start"] == date(2026, 4, 1)
+    assert stats["current_cycle_end"] == date(2026, 4, 30)
 
 
 def test_habit_task_associations_require_active_tasks(

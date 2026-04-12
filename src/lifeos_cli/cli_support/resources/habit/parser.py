@@ -50,13 +50,16 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 + "\n\n"
                 + _(
                     "A habit acts as a template. Scheduled dates generate habit-action rows, "
-                    "while cadence controls whether success is evaluated per day or per week."
+                    "while cadence controls how progress is evaluated across daily, weekly, "
+                    "monthly, or yearly cycles."
                 )
             ),
             examples=(
                 'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
                 'lifeos habit add "Call Parents" --start-date 2026-04-09 --duration-days 100 '
                 "--cadence-frequency weekly --weekends-only --target-per-week 1",
+                'lifeos habit add "Monthly cleanup" --start-date 2026-04-09 --duration-days 365 '
+                "--cadence-frequency monthly --target-per-cycle 2",
                 "lifeos habit list --with-stats",
                 "lifeos habit task-associations",
             ),
@@ -66,7 +69,10 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                     "Habit creation and timing updates automatically generate or reconcile "
                     "habit-action rows."
                 ),
-                _("Weekly cadence evaluates progress and streaks by cycle instead of per day."),
+                _(
+                    "Cadence cycles can be daily, weekly, monthly, or yearly, while generated "
+                    "habit-action rows remain date-based."
+                ),
                 _("Delete operations in the public CLI always perform soft deletion."),
             ),
         ),
@@ -93,10 +99,15 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 'lifeos habit add "Gym" --start-date 2026-04-09 --duration-days 100 '
                 "--cadence-frequency weekly --weekdays monday,wednesday,friday "
                 "--target-per-week 3",
+                'lifeos habit add "Read annual plan" --start-date 2026-01-01 --duration-days 365 '
+                "--cadence-frequency yearly --target-per-cycle 6",
             ),
             notes=(
                 _("Duration must be one of the supported program lengths."),
-                _("Use `--cadence-frequency weekly` to switch stats and streaks to weekly cycles."),
+                _(
+                    "Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
+                    "evaluation cycles."
+                ),
                 _("`--weekdays` restricts generated habit-action rows to selected weekdays."),
                 _("If `--task-id` is provided, the task must already exist."),
             ),
@@ -119,7 +130,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     add_parser.add_argument(
         "--cadence-frequency",
         default="daily",
-        help=_("Habit cadence frequency: daily or weekly"),
+        help=_("Habit cadence frequency: daily, weekly, monthly, or yearly"),
     )
     add_parser.add_argument(
         "--weekdays",
@@ -223,6 +234,8 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--duration-days 100 --start-date 2026-04-10",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 "
                 "--cadence-frequency weekly --weekends-only --target-per-week 1",
+                "lifeos habit update 11111111-1111-1111-1111-111111111111 "
+                "--cadence-frequency monthly --target-per-cycle 2",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-task",
             ),
             notes=(
@@ -251,7 +264,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--duration-days", type=int, help=_("Updated duration in days"))
     update_parser.add_argument(
         "--cadence-frequency",
-        help=_("Updated cadence frequency: daily or weekly"),
+        help=_("Updated cadence frequency: daily, weekly, monthly, or yearly"),
     )
     update_parser.add_argument(
         "--weekdays",

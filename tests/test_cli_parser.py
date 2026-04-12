@@ -223,6 +223,32 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     assert "Task rows come from planning-cycle overlap" in captured.out
 
 
+def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["event", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "monthly" in captured.out
+    assert "yearly" in captured.out
+    assert "shared cadence primitives" in captured.out
+
+
+def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "monthly" in captured.out
+    assert "yearly" in captured.out
+    assert "Read annual plan" in captured.out
+
+
 def test_cli_task_help_supports_zh_hans_locale(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -536,6 +562,25 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
     assert args.recurrence_frequency == "daily"
     assert args.recurrence_interval == 2
     assert args.recurrence_count == 5
+
+
+def test_cli_parser_supports_event_monthly_recurrence_add_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "add",
+            "Monthly review",
+            "--start-time",
+            "2026-04-30T16:00:00-04:00",
+            "--recurrence-frequency",
+            "monthly",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "add"
+    assert args.recurrence_frequency == "monthly"
 
 
 def test_cli_parser_supports_event_type_flags() -> None:
@@ -1128,6 +1173,30 @@ def test_cli_parser_supports_habit_add_weekly_cadence_command() -> None:
     assert args.cadence_frequency == "weekly"
     assert args.weekends_only is True
     assert args.target_per_cycle == 1
+
+
+def test_cli_parser_supports_habit_add_monthly_cadence_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Monthly cleanup",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "365",
+            "--cadence-frequency",
+            "monthly",
+            "--target-per-cycle",
+            "2",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.cadence_frequency == "monthly"
+    assert args.target_per_cycle == 2
 
 
 def test_cli_parser_supports_habit_list_count_command() -> None:

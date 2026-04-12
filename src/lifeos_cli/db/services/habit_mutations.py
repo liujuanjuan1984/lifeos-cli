@@ -256,6 +256,7 @@ async def _reconcile_habit_actions(session: AsyncSession, habit: Habit) -> None:
         iter_habit_scheduled_dates(
             start_date=habit.start_date,
             end_date=habit.end_date,
+            cadence_frequency=habit.cadence_frequency,
             cadence_weekdays=habit.cadence_weekdays,
         )
     )

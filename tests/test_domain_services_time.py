@@ -182,6 +182,37 @@ def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch)
     assert created.recurrence_count == 5
 
 
+def test_create_event_accepts_monthly_recurrence(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            title="Monthly review",
+            start_time=utc_datetime(2026, 4, 30, 20, 0),
+            recurrence_frequency="monthly",
+        )
+    )
+
+    assert created.recurrence_frequency == "monthly"
+    assert created.recurrence_interval == 1
+    assert created.recurrence_count is None
+
+
 def test_create_event_accepts_event_type(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
 
@@ -397,6 +428,58 @@ def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() 
     assert [item.start_time for item in occurrences] == [
         utc_datetime(2026, 4, 10, 13, 0),
         utc_datetime(2026, 4, 12, 13, 0),
+    ]
+
+
+def test_list_event_occurrences_expands_monthly_series() -> None:
+    class _Result:
+        def __init__(self, values: list[object]) -> None:
+            self._values = values
+
+        def scalars(self) -> list[object]:
+            return self._values
+
+    class _Session:
+        def __init__(self) -> None:
+            self._results = [
+                _Result(
+                    [
+                        SimpleNamespace(
+                            id=UUID("acacacac-acac-acac-acac-acacacacacac"),
+                            title="Monthly review",
+                            status="planned",
+                            event_type="appointment",
+                            start_time=utc_datetime(2026, 4, 30, 20, 0),
+                            end_time=utc_datetime(2026, 4, 30, 21, 0),
+                            task_id=None,
+                            deleted_at=None,
+                            recurrence_frequency="monthly",
+                            recurrence_interval=1,
+                            recurrence_count=3,
+                            recurrence_until=None,
+                            recurrence_parent_event_id=None,
+                        )
+                    ]
+                ),
+                _Result([]),
+                _Result([]),
+            ]
+
+        async def execute(self, statement: object) -> _Result:
+            return self._results.pop(0)
+
+    occurrences = asyncio.run(
+        events.list_event_occurrences(
+            cast(Any, _Session()),
+            window_start=utc_datetime(2026, 4, 1, 0, 0),
+            window_end=utc_datetime(2026, 6, 30, 23, 59),
+        )
+    )
+
+    assert [item.start_time for item in occurrences] == [
+        utc_datetime(2026, 4, 30, 20, 0),
+        utc_datetime(2026, 5, 30, 20, 0),
+        utc_datetime(2026, 6, 30, 20, 0),
     ]
 
 

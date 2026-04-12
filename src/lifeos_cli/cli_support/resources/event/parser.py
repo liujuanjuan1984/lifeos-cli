@@ -44,6 +44,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
                 'lifeos event add "Focus Work" --type timeblock '
                 "--start-time 2026-04-10T13:00:00-04:00",
+                'lifeos event add "Monthly review" --start-time 2026-04-30T16:00:00-04:00 '
+                "--recurrence-frequency monthly",
                 "lifeos event list --window-start 2026-04-10T00:00:00-04:00 "
                 "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
@@ -79,8 +81,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 _("Use repeated `--tag-id` and `--person-id` flags to attach tags and people."),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
                 _(
-                    "Use recurrence flags to create a recurring series without renaming the "
-                    "resource."
+                    "Use recurrence flags to create a recurring series with shared cadence "
+                    "primitives across daily, weekly, monthly, and yearly patterns."
                 ),
                 _(
                     "When an agent creates events for a human, use `--person-id` to distinguish "
@@ -113,7 +115,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
     add_parser.add_argument(
         "--recurrence-frequency",
-        help=_("Optional recurrence frequency: daily or weekly"),
+        help=_("Optional recurrence frequency: daily, weekly, monthly, or yearly"),
     )
     add_parser.add_argument(
         "--recurrence-interval",
@@ -273,7 +275,10 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--clear-area", action="store_true", help=_("Clear linked area"))
     update_parser.add_argument("--task-id", type=UUID, help=_("Updated linked task identifier"))
     update_parser.add_argument("--clear-task", action="store_true", help=_("Clear linked task"))
-    update_parser.add_argument("--recurrence-frequency", help=_("Updated recurrence frequency"))
+    update_parser.add_argument(
+        "--recurrence-frequency",
+        help=_("Updated recurrence frequency: daily, weekly, monthly, or yearly"),
+    )
     update_parser.add_argument(
         "--recurrence-interval",
         type=int,
