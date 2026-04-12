@@ -16,11 +16,7 @@ from lifeos_cli.db.services.read_models import HabitActionView
 def _format_habit_action_summary(action: HabitActionView) -> str:
     status = "deleted" if action.deleted_at is not None else action.status
     action_id = "-" if action.id is None else str(action.id)
-    habit_title = getattr(action, "habit_title", None)
-    if habit_title is None:
-        habit = getattr(action, "habit", None)
-        habit_title = "-" if habit is None else getattr(habit, "title", "-")
-    return f"{action_id}\t{status}\t{action.action_date}\t{action.habit_id}\t{habit_title}"
+    return f"{action_id}\t{status}\t{action.action_date}\t{action.habit_id}\t{action.habit_title}"
 
 
 def _format_habit_action_detail(action: HabitAction) -> str:

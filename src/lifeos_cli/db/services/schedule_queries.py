@@ -152,15 +152,10 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
 
 
 def _map_habit_action_item(action: HabitActionView) -> ScheduleHabitActionItem:
-    habit_title = getattr(action, "habit_title", None)
-    if habit_title is None:
-        habit = getattr(action, "habit", None)
-        habit_title = "-" if habit is None else getattr(habit, "title", "-")
-    habit_title_text = "-" if habit_title is None else str(habit_title)
     return ScheduleHabitActionItem(
         id=action.id,
         habit_id=action.habit_id,
-        habit_title=habit_title_text,
+        habit_title=action.habit_title,
         action_date=action.action_date,
         status=action.status,
         notes=action.notes,

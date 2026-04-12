@@ -61,7 +61,7 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
                 action_date=date(2026, 4, 10),
                 status="todo",
                 notes=None,
-                habit=make_record(title="Daily Review"),
+                habit_title="Daily Review",
             )
         ]
 

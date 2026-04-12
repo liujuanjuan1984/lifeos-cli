@@ -222,7 +222,7 @@ async def _import_rows(
                     )
                     created_count += report.created_count
                     updated_count += report.updated_count
-            except Exception as exc:  # noqa: BLE001
+            except (data_ops.DataOperationError, LookupError, ValueError) as exc:
                 failures.append(
                     data_ops.DataOperationFailure(
                         index=index,
@@ -352,7 +352,7 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
             stdin=args.stdin,
             input_format=args.format,
         )
-    except Exception as exc:  # noqa: BLE001
+    except data_ops.DataOperationError as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
@@ -367,7 +367,7 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
             await session.rollback()
         else:
             await session.commit()
-    except Exception as exc:  # noqa: BLE001
+    except (data_ops.DataOperationError, LookupError, ValueError) as exc:
         await session.rollback()
         await session.close()
         print(str(exc), file=sys.stderr)

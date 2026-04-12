@@ -1075,7 +1075,7 @@ async def batch_update_resource(
                 kwargs = build_kwargs(_normalize_patch_payload(resource, row))
                 await operation(session, **kwargs)
             updated_count += 1
-        except Exception as exc:  # noqa: BLE001
+        except (DataOperationError, LookupError, ValueError) as exc:
             failures.append(
                 DataOperationFailure(
                     index=index,

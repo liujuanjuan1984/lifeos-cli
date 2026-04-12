@@ -1306,7 +1306,7 @@ def test_main_habit_action_list_prints_count(
                 status="pending",
                 action_date=date(2026, 4, 9),
                 habit_id=UUID("77777777-7777-7777-7777-777777777777"),
-                habit=make_record(title="Daily Exercise"),
+                habit_title="Daily Exercise",
             )
         ]
 

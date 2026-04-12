@@ -13,6 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 try:
     import tomllib  # type: ignore[import-not-found]
@@ -43,7 +44,7 @@ def validate_database_url(database_url: str) -> str:
         raise ConfigurationError("Database URL is required.")
     try:
         parsed = make_url(normalized)
-    except Exception as exc:
+    except ArgumentError as exc:
         raise ConfigurationError(f"Database URL is invalid: {exc}") from exc
     if parsed.drivername != "postgresql+psycopg":
         raise ConfigurationError(
@@ -358,7 +359,7 @@ class DatabaseSettings:
             return "<unset>"
         try:
             parsed = make_url(self.database_url)
-        except Exception:
+        except ArgumentError:
             return self.database_url
         return parsed.render_as_string(hide_password=not show_secrets)
 

@@ -22,16 +22,11 @@ class BatchResult(Protocol):
     def errors(self) -> Sequence[str]: ...
 
 
-def format_timestamp(value: object | None) -> str:
-    """Render a timestamp-like object."""
+def format_timestamp(value: datetime | None) -> str:
+    """Render one timestamp for CLI output."""
     if value is None:
         return "-"
-    if isinstance(value, datetime):
-        return to_preferred_timezone(value).isoformat()
-    isoformat = getattr(value, "isoformat", None)
-    if callable(isoformat):
-        return str(isoformat())
-    return str(value)
+    return to_preferred_timezone(value).isoformat()
 
 
 def format_id_lines(label: str, identifiers: Sequence[UUID]) -> str:
