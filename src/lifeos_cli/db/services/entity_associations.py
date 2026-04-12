@@ -176,32 +176,6 @@ async def get_target_ids_for_sources(
     return dict(mapping)
 
 
-async def get_source_ids_for_target(
-    session: AsyncSession,
-    *,
-    source_model: str,
-    target_model: str,
-    target_id: UUID,
-    link_type: str | None = None,
-) -> list[UUID]:
-    """Return linked source identifiers for one weak-link target."""
-    normalized_source_model = validate_association_model(source_model)
-    normalized_target_model = validate_association_model(target_model)
-    stmt = (
-        select(Association.source_id)
-        .where(
-            Association.source_model == normalized_source_model,
-            Association.target_model == normalized_target_model,
-            Association.target_id == target_id,
-        )
-        .order_by(Association.created_at.asc(), Association.id.asc())
-    )
-    if link_type is not None:
-        stmt = stmt.where(Association.link_type == validate_association_link_type(link_type))
-    rows = await session.execute(stmt)
-    return list(rows.scalars().all())
-
-
 async def count_sources_for_targets(
     session: AsyncSession,
     *,
@@ -257,37 +231,6 @@ async def load_people_for_sources(
         ]
         for source_id, person_ids in mapping.items()
     }
-
-
-async def load_tasks_for_sources(
-    session: AsyncSession,
-    *,
-    source_model: str,
-    source_ids: list[UUID],
-    link_type: str,
-) -> dict[UUID, Task]:
-    """Load one linked task per source identifier."""
-    mapping = await get_target_ids_for_sources(
-        session,
-        source_model=source_model,
-        source_ids=source_ids,
-        target_model="task",
-        link_type=link_type,
-    )
-    all_task_ids = {task_id for task_ids in mapping.values() for task_id in task_ids}
-    if not all_task_ids:
-        return {}
-    stmt = select(Task).where(Task.id.in_(all_task_ids), Task.deleted_at.is_(None))
-    rows = await session.execute(stmt)
-    tasks_by_id = {task.id: task for task in rows.scalars().all()}
-    loaded: dict[UUID, Task] = {}
-    for source_id, task_ids in mapping.items():
-        for task_id in task_ids:
-            task = tasks_by_id.get(task_id)
-            if task is not None:
-                loaded[source_id] = task
-                break
-    return loaded
 
 
 async def load_task_lists_for_sources(

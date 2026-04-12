@@ -82,7 +82,6 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     area = relationship("Area", foreign_keys=[area_id])
     task = relationship("Task", foreign_keys=[task_id])
-    recurrence_parent_event = relationship("Event", remote_side="Event.id")
 
     if TYPE_CHECKING:
         tags: list[Tag]

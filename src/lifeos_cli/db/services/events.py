@@ -56,9 +56,7 @@ class EventOccurrence:
     end_time: datetime | None
     task_id: UUID | None
     deleted_at: datetime | None
-    source_event_id: UUID
     instance_start: datetime
-    is_override: bool
 
 
 async def _attach_event_links(session: AsyncSession, event: Event) -> Event:
@@ -460,9 +458,7 @@ async def list_event_occurrences(
                         end_time=master.end_time,
                         task_id=master.task_id,
                         deleted_at=master.deleted_at,
-                        source_event_id=master.id,
                         instance_start=master.start_time,
-                        is_override=False,
                     )
                 )
             continue
@@ -486,9 +482,7 @@ async def list_event_occurrences(
                     end_time=_event_occurrence_end(master, occurrence_start=occurrence_start),
                     task_id=master.task_id,
                     deleted_at=master.deleted_at,
-                    source_event_id=master.id,
                     instance_start=occurrence_start,
-                    is_override=False,
                 )
             )
 
@@ -503,9 +497,7 @@ async def list_event_occurrences(
                 end_time=override.end_time,
                 task_id=override.task_id,
                 deleted_at=override.deleted_at,
-                source_event_id=override.recurrence_parent_event_id or override.id,
                 instance_start=override.recurrence_instance_start or override.start_time,
-                is_override=True,
             )
         )
 

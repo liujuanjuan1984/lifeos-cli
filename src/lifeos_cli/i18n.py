@@ -108,11 +108,6 @@ def ngettext_message(singular: str, plural: str, count: int) -> str:
     return _load_translation(resolve_locale()).ngettext(singular, plural, count)
 
 
-def pgettext_message(context: str, message: str) -> str:
-    """Translate one contextualized message with locale fallback."""
-    return _load_translation(resolve_locale()).pgettext(context, message)
-
-
 def configure_argparse_translations() -> None:
     """Route argparse built-in help and error text through the active gettext catalog."""
     argparse_module = cast(Any, argparse)
