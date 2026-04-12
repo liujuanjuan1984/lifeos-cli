@@ -79,7 +79,7 @@ def test_real_cli_data_round_trip_and_batch_workflow(
         "--start-date",
         "2026-04-10",
         "--duration-days",
-        "5",
+        "7",
         "--task-id",
         task_id,
     )

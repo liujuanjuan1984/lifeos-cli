@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 from lifeos_cli.config import (
     MAX_VISION_EXPERIENCE_RATE_PER_HOUR,
@@ -344,7 +345,7 @@ async def get_vision_with_tasks(
     vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
-    vision.tasks = await _load_active_tasks_for_vision(session, vision.id)
+    set_committed_value(vision, "tasks", await _load_active_tasks_for_vision(session, vision.id))
     return vision
 
 
