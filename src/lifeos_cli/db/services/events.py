@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -42,6 +42,7 @@ from lifeos_cli.db.services.event_support import (
     validate_event_title,
     validate_event_type,
 )
+from lifeos_cli.db.services.read_models import EventView, build_event_view
 
 
 @dataclass(frozen=True)
@@ -59,44 +60,82 @@ class EventOccurrence:
     instance_start: datetime
 
 
-async def _attach_event_links(session: AsyncSession, event: Event) -> Event:
-    tags_map = await load_tags_for_entities(session, entity_ids=[event.id], entity_type="event")
-    people_map = await load_people_for_entities(session, entity_ids=[event.id], entity_type="event")
-    event.tags = tags_map.get(event.id, [])
-    event.people = people_map.get(event.id, [])
-    return event
-
-
-async def _attach_event_links_for_many(session: AsyncSession, events: list[Event]) -> list[Event]:
+async def _build_event_views(session: AsyncSession, events: list[Event]) -> list[EventView]:
     if not events:
         return []
     event_ids = [event.id for event in events]
     tags_map = await load_tags_for_entities(session, entity_ids=event_ids, entity_type="event")
     people_map = await load_people_for_entities(session, entity_ids=event_ids, entity_type="event")
-    for event in events:
-        event.tags = tags_map.get(event.id, [])
-        event.people = people_map.get(event.id, [])
-    return events
+    return [
+        build_event_view(
+            event,
+            tags=tags_map.get(event.id, ()),
+            people=people_map.get(event.id, ()),
+        )
+        for event in events
+    ]
 
 
-def _event_duration(event: Event | Any) -> timedelta | None:
-    end_time = getattr(event, "end_time", None)
+async def _build_event_view(session: AsyncSession, event: Event) -> EventView:
+    views = await _build_event_views(session, [event])
+    return views[0]
+
+
+async def _get_event_model(
+    session: AsyncSession,
+    *,
+    event_id: UUID,
+    include_deleted: bool,
+) -> Event | None:
+    stmt = (
+        select(Event)
+        .options(selectinload(Event.area), selectinload(Event.task))
+        .where(Event.id == event_id)
+        .limit(1)
+    )
+    if not include_deleted:
+        stmt = stmt.where(Event.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _load_event_link_ids(
+    session: AsyncSession,
+    *,
+    event_id: UUID,
+) -> tuple[list[UUID], list[UUID]]:
+    tags_map = await load_tags_for_entities(session, entity_ids=[event_id], entity_type="event")
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[event_id],
+        entity_type="event",
+    )
+    tag_ids = [tag.id for tag in tags_map.get(event_id, ())]
+    person_ids = [person.id for person in people_map.get(event_id, ())]
+    return tag_ids, person_ids
+
+
+def _event_duration(event: Event | EventOccurrence) -> timedelta | None:
+    end_time = event.end_time
     if end_time is None:
         return None
-    return cast(datetime, end_time) - cast(datetime, event.start_time)
+    return end_time - event.start_time
 
 
 def _event_overlaps_window(
-    event: Event | Any,
+    event: Event | EventOccurrence,
     *,
     window_start: datetime,
     window_end: datetime,
 ) -> bool:
-    end_time = getattr(event, "end_time", None)
+    end_time = event.end_time
     return event.start_time <= window_end and (end_time is None or end_time >= window_start)
 
 
-def _event_occurrence_end(event: Event | Any, *, occurrence_start: datetime) -> datetime | None:
+def _event_occurrence_end(
+    event: Event | EventOccurrence,
+    *,
+    occurrence_start: datetime,
+) -> datetime | None:
     duration = _event_duration(event)
     return occurrence_start + duration if duration is not None else None
 
@@ -169,13 +208,13 @@ def _resolve_link_ids(
     *,
     explicit_ids: list[UUID] | None,
     clear_flag: bool,
-    existing_items: list[Any] | None,
+    existing_ids: list[UUID] | None,
 ) -> list[UUID]:
     if clear_flag:
         return []
     if explicit_ids is not None:
         return explicit_ids
-    return [item.id for item in (existing_items or [])]
+    return list(existing_ids or [])
 
 
 async def _apply_event_links(
@@ -297,7 +336,7 @@ async def create_event(
     recurrence_until: datetime | None = None,
     recurrence_parent_event_id: UUID | None = None,
     recurrence_instance_start: datetime | None = None,
-) -> Event:
+) -> EventView:
     """Create a new event."""
     normalized_start_time = normalize_event_datetime(start_time, field_name="start_time")
     normalized_end_time = normalize_optional_event_datetime(end_time, field_name="end_time")
@@ -352,7 +391,7 @@ async def create_event(
     await session.flush()
     await _apply_event_links(session, event=event, tag_ids=tag_ids, person_ids=person_ids)
     await session.refresh(event)
-    return await _attach_event_links(session, event)
+    return await _build_event_view(session, event)
 
 
 async def get_event(
@@ -360,20 +399,12 @@ async def get_event(
     *,
     event_id: UUID,
     include_deleted: bool = False,
-) -> Event | None:
+) -> EventView | None:
     """Load an event by identifier."""
-    stmt = (
-        select(Event)
-        .options(selectinload(Event.area), selectinload(Event.task))
-        .where(Event.id == event_id)
-        .limit(1)
-    )
-    if not include_deleted:
-        stmt = stmt.where(Event.deleted_at.is_(None))
-    event = (await session.execute(stmt)).scalar_one_or_none()
+    event = await _get_event_model(session, event_id=event_id, include_deleted=include_deleted)
     if event is None:
         return None
-    return await _attach_event_links(session, event)
+    return await _build_event_view(session, event)
 
 
 async def list_event_occurrences(
@@ -453,7 +484,7 @@ async def list_event_occurrences(
                         id=master.id,
                         title=master.title,
                         status=master.status,
-                        event_type=getattr(master, "event_type", "appointment"),
+                        event_type=master.event_type,
                         start_time=master.start_time,
                         end_time=master.end_time,
                         task_id=master.task_id,
@@ -477,7 +508,7 @@ async def list_event_occurrences(
                     id=master.id,
                     title=master.title,
                     status=master.status,
-                    event_type=getattr(master, "event_type", "appointment"),
+                    event_type=master.event_type,
                     start_time=occurrence_start,
                     end_time=_event_occurrence_end(master, occurrence_start=occurrence_start),
                     task_id=master.task_id,
@@ -492,7 +523,7 @@ async def list_event_occurrences(
                 id=override.id,
                 title=override.title,
                 status=override.status,
-                event_type=getattr(override, "event_type", "appointment"),
+                event_type=override.event_type,
                 start_time=override.start_time,
                 end_time=override.end_time,
                 task_id=override.task_id,
@@ -520,7 +551,7 @@ async def list_events(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[object]:
+) -> list[EventOccurrence | EventView]:
     """List events with optional filters."""
     normalized_status = validate_event_status(status) if status is not None else None
     normalized_event_type = validate_event_type(event_type) if event_type is not None else None
@@ -565,7 +596,7 @@ async def list_events(
         stmt = stmt.where(Event.start_time <= window_end)
     stmt = stmt.order_by(Event.start_time.desc(), Event.id.desc()).offset(offset).limit(limit)
     events = list((await session.execute(stmt)).scalars())
-    return list(await _attach_event_links_for_many(session, events))
+    return list(await _build_event_views(session, events))
 
 
 async def _update_event_record(
@@ -595,7 +626,7 @@ async def _update_event_record(
     recurrence_count: int | None,
     recurrence_until: datetime | None,
     clear_recurrence: bool,
-) -> Event:
+) -> EventView:
     normalized_start_time = normalize_optional_event_datetime(start_time, field_name="start_time")
     normalized_end_time = normalize_optional_event_datetime(end_time, field_name="end_time")
     normalized_recurrence_until = normalize_optional_event_datetime(
@@ -619,28 +650,28 @@ async def _update_event_record(
         if clear_recurrence
         else recurrence_frequency
         if recurrence_frequency is not None
-        else getattr(event, "recurrence_frequency", None)
+        else event.recurrence_frequency
     )
     next_recurrence_interval = (
         None
         if clear_recurrence
         else recurrence_interval
         if recurrence_interval is not None
-        else getattr(event, "recurrence_interval", None)
+        else event.recurrence_interval
     )
     next_recurrence_count = (
         None
         if clear_recurrence
         else recurrence_count
         if recurrence_count is not None
-        else getattr(event, "recurrence_count", None)
+        else event.recurrence_count
     )
     next_recurrence_until = (
         None
         if clear_recurrence
         else normalized_recurrence_until
         if normalized_recurrence_until is not None
-        else getattr(event, "recurrence_until", None)
+        else event.recurrence_until
     )
     (
         validated_recurrence_frequency,
@@ -714,7 +745,7 @@ async def _update_event_record(
         )
     await session.flush()
     await session.refresh(event)
-    return await _attach_event_links(session, event)
+    return await _build_event_view(session, event)
 
 
 async def _update_single_occurrence(
@@ -740,13 +771,17 @@ async def _update_single_occurrence(
     clear_tags: bool,
     person_ids: list[UUID] | None,
     clear_people: bool,
-) -> Event:
-    override_event = await _get_override_event_for_instance(
+) -> EventView:
+    override_event_model = await _get_override_event_for_instance(
         session,
         master_event_id=master_event.id,
         instance_start=instance_start,
     )
-    if override_event is None:
+    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+        session,
+        event_id=master_event.id,
+    )
+    if override_event_model is None:
         override_start_time = start_time if start_time is not None else instance_start
         override_end_time = (
             None
@@ -758,14 +793,14 @@ async def _update_single_occurrence(
         resolved_tag_ids = _resolve_link_ids(
             explicit_ids=tag_ids,
             clear_flag=clear_tags,
-            existing_items=getattr(master_event, "tags", None),
+            existing_ids=existing_tag_ids,
         )
         resolved_person_ids = _resolve_link_ids(
             explicit_ids=person_ids,
             clear_flag=clear_people,
-            existing_items=getattr(master_event, "people", None),
+            existing_ids=existing_person_ids,
         )
-        override_event = await create_event(
+        override_event_view = await create_event(
             session,
             title=title or master_event.title,
             description=None
@@ -791,10 +826,9 @@ async def _update_single_occurrence(
             recurrence_instance_start=instance_start,
         )
     else:
-        override_event = await _attach_event_links(session, override_event)
-        override_event = await _update_event_record(
+        override_event_view = await _update_event_record(
             session,
-            event=override_event,
+            event=override_event_model,
             title=title,
             description=description,
             clear_description=clear_description,
@@ -824,7 +858,7 @@ async def _update_single_occurrence(
         master_event_id=master_event.id,
         instance_start=instance_start,
     )
-    return override_event
+    return override_event_view
 
 
 async def _update_future_series(
@@ -855,7 +889,7 @@ async def _update_future_series(
     recurrence_count: int | None,
     recurrence_until: datetime | None,
     clear_recurrence: bool,
-) -> Event:
+) -> EventView:
     previous_start = get_previous_event_occurrence_start(
         master_event,
         instance_start=instance_start,
@@ -891,16 +925,20 @@ async def _update_future_series(
 
     master_event.recurrence_until = previous_start
     await session.flush()
+    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+        session,
+        event_id=master_event.id,
+    )
 
     resolved_tag_ids = _resolve_link_ids(
         explicit_ids=tag_ids,
         clear_flag=clear_tags,
-        existing_items=getattr(master_event, "tags", None),
+        existing_ids=existing_tag_ids,
     )
     resolved_person_ids = _resolve_link_ids(
         explicit_ids=person_ids,
         clear_flag=clear_people,
-        existing_items=getattr(master_event, "people", None),
+        existing_ids=existing_person_ids,
     )
     next_recurrence_frequency = (
         None
@@ -992,9 +1030,9 @@ async def update_event(
     clear_recurrence: bool = False,
     scope: str = "all",
     instance_start: datetime | None = None,
-) -> Event:
+) -> EventView:
     """Update one event."""
-    event = await get_event(session, event_id=event_id, include_deleted=False)
+    event = await _get_event_model(session, event_id=event_id, include_deleted=False)
     if event is None:
         raise EventNotFoundError(f"Event {event_id} was not found")
 
@@ -1099,7 +1137,7 @@ async def delete_event(
     instance_start: datetime | None = None,
 ) -> None:
     """Soft-delete one event or one recurring slice."""
-    event = await get_event(session, event_id=event_id, include_deleted=False)
+    event = await _get_event_model(session, event_id=event_id, include_deleted=False)
     if event is None:
         raise EventNotFoundError(f"Event {event_id} was not found")
 

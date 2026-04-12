@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sqlalchemy import Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
-
-if TYPE_CHECKING:
-    from lifeos_cli.db.models.person import Person
 
 
 class Tag(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -34,9 +29,6 @@ class Tag(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     category: Mapped[str] = mapped_column(String(50), nullable=False, default="general")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
-
-    if TYPE_CHECKING:
-        people: list[Person]
 
     def __repr__(self) -> str:
         return (

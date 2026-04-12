@@ -11,7 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from lifeos_cli.db.models.person import Person
     from lifeos_cli.db.models.task import Task
 
 
@@ -35,9 +34,6 @@ class Vision(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     area = relationship("Area", back_populates="visions")
     tasks = relationship("Task", back_populates="vision", cascade="all, delete-orphan")
-
-    if TYPE_CHECKING:
-        people: list[Person]
 
     def calculate_task_experience(
         self,

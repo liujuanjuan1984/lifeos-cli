@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -20,10 +19,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
-
-if TYPE_CHECKING:
-    from lifeos_cli.db.models.person import Person
-    from lifeos_cli.db.models.tag import Tag
 
 
 class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -82,10 +77,6 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     area = relationship("Area", foreign_keys=[area_id])
     task = relationship("Task", foreign_keys=[task_id])
-
-    if TYPE_CHECKING:
-        tags: list[Tag]
-        people: list[Person]
 
     def __repr__(self) -> str:
         return (

@@ -30,6 +30,7 @@ from lifeos_cli.db.services.entity_associations import (
     set_association_links,
 )
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.read_models import NoteView, build_note_view
 
 
 class NoteNotFoundError(LookupError):
@@ -185,51 +186,20 @@ def _apply_content_batch_operation(
     return replacements
 
 
-async def _attach_note_links(session: AsyncSession, note: Note) -> Note:
-    tags_map = await load_tags_for_entities(session, entity_ids=[note.id], entity_type="note")
-    people_map = await load_people_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="is_about",
-    )
-    task_map = await load_task_lists_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="relates_to",
-    )
-    vision_map = await load_visions_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="relates_to",
-    )
-    event_map = await load_events_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="relates_to",
-    )
-    timelog_map = await load_timelogs_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="captured_from",
-    )
-    note.tags = tags_map.get(note.id, [])
-    note.people = people_map.get(note.id, [])
-    note.tasks = task_map.get(note.id, [])
-    note.visions = vision_map.get(note.id, [])
-    note.events = event_map.get(note.id, [])
-    note.timelogs = timelog_map.get(note.id, [])
-    return note
+async def _get_note_model(
+    session: AsyncSession,
+    *,
+    note_id: UUID,
+    include_deleted: bool,
+) -> Note | None:
+    stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
-async def _attach_note_links_for_many(
+async def _build_note_views(
     session: AsyncSession,
     note_records: list[Note],
-) -> list[Note]:
+) -> list[NoteView]:
     if not note_records:
         return []
     note_ids = [note.id for note in note_records]
@@ -264,14 +234,23 @@ async def _attach_note_links_for_many(
         source_ids=note_ids,
         link_type="captured_from",
     )
-    for note in note_records:
-        note.tags = tags_map.get(note.id, [])
-        note.people = people_map.get(note.id, [])
-        note.tasks = task_map.get(note.id, [])
-        note.visions = vision_map.get(note.id, [])
-        note.events = event_map.get(note.id, [])
-        note.timelogs = timelog_map.get(note.id, [])
-    return note_records
+    return [
+        build_note_view(
+            note,
+            tags=tags_map.get(note.id, ()),
+            people=people_map.get(note.id, ()),
+            tasks=task_map.get(note.id, ()),
+            visions=vision_map.get(note.id, ()),
+            events=event_map.get(note.id, ()),
+            timelogs=timelog_map.get(note.id, ()),
+        )
+        for note in note_records
+    ]
+
+
+async def _build_note_view(session: AsyncSession, note: Note) -> NoteView:
+    views = await _build_note_views(session, [note])
+    return views[0]
 
 
 async def create_note(
@@ -284,7 +263,7 @@ async def create_note(
     vision_ids: list[UUID] | None = None,
     event_ids: list[UUID] | None = None,
     timelog_ids: list[UUID] | None = None,
-) -> Note:
+) -> NoteView:
     """Create and persist a note."""
     note = Note(content=_normalize_note_content(content))
     session.add(note)
@@ -342,7 +321,7 @@ async def create_note(
             link_type="captured_from",
         )
     await session.refresh(note)
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def get_note(
@@ -350,13 +329,12 @@ async def get_note(
     *,
     note_id: UUID,
     include_deleted: bool = False,
-) -> Note | None:
+) -> NoteView | None:
     """Fetch a note by identifier."""
-    stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
-    note = (await session.execute(stmt)).scalar_one_or_none()
+    note = await _get_note_model(session, note_id=note_id, include_deleted=include_deleted)
     if note is None:
         return None
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def list_notes(
@@ -371,7 +349,7 @@ async def list_notes(
     vision_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
-) -> list[Note]:
+) -> list[NoteView]:
     """Return notes ordered from newest to oldest."""
     stmt = (
         _note_query(
@@ -387,7 +365,7 @@ async def list_notes(
         .offset(offset)
         .limit(limit)
     )
-    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
+    return await _build_note_views(session, list((await session.execute(stmt)).scalars()))
 
 
 async def search_notes(
@@ -403,7 +381,7 @@ async def search_notes(
     vision_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
-) -> list[Note]:
+) -> list[NoteView]:
     """Return notes whose content matches any token from the query."""
     tokens = _tokenize_search_query(query)
     stmt = _note_query(
@@ -418,7 +396,7 @@ async def search_notes(
     if tokens:
         stmt = stmt.where(or_(*[Note.content.ilike(f"%{token}%") for token in tokens]))
     stmt = stmt.order_by(Note.created_at.desc(), Note.id.desc()).offset(offset).limit(limit)
-    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
+    return await _build_note_views(session, list((await session.execute(stmt)).scalars()))
 
 
 async def update_note(
@@ -438,9 +416,9 @@ async def update_note(
     clear_events: bool = False,
     timelog_ids: list[UUID] | None = None,
     clear_timelogs: bool = False,
-) -> Note:
+) -> NoteView:
     """Update note content and weak associations."""
-    note = await get_note(session, note_id=note_id)
+    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     if (
@@ -563,7 +541,7 @@ async def update_note(
         )
     await session.flush()
     await session.refresh(note)
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def delete_note(
@@ -572,7 +550,7 @@ async def delete_note(
     note_id: UUID,
 ) -> None:
     """Soft-delete a note."""
-    note = await get_note(session, note_id=note_id, include_deleted=False)
+    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     note.soft_delete()
@@ -596,7 +574,7 @@ async def batch_update_note_content(
 
     for note_id in _deduplicate_note_ids(note_ids):
         try:
-            note = await get_note(session, note_id=note_id, include_deleted=False)
+            note = await _get_note_model(session, note_id=note_id, include_deleted=False)
             if note is None:
                 raise NoteNotFoundError(f"Note {note_id} was not found")
             replacements = _apply_content_batch_operation(

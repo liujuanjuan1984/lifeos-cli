@@ -8,21 +8,17 @@ import sys
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import visions as vision_services
+from lifeos_cli.db.services.read_models import VisionView
 
 
-def _format_vision_summary(vision: Vision) -> str:
+def _format_vision_summary(vision: VisionView) -> str:
     status = "deleted" if vision.deleted_at is not None else vision.status
     return f"{vision.id}\t{status}\t{vision.area_id or '-'}\t{vision.name}"
 
 
-def _format_vision_detail(vision: Vision) -> str:
-    people_names = (
-        ", ".join(person.name for person in vision.people)
-        if getattr(vision, "people", None)
-        else "-"
-    )
+def _format_vision_detail(vision: VisionView) -> str:
+    people_names = ", ".join(person.name for person in vision.people) if vision.people else "-"
     return "\n".join(
         (
             f"id: {vision.id}",
@@ -41,8 +37,8 @@ def _format_vision_detail(vision: Vision) -> str:
     )
 
 
-def _format_vision_with_tasks(vision: Vision) -> str:
-    tasks = getattr(vision, "tasks", []) or []
+def _format_vision_with_tasks(vision: VisionView) -> str:
+    tasks = vision.tasks
     task_lines = [
         f"  {task.id}\t{task.status}\t{task.parent_task_id or '-'}\t{task.content}"
         for task in tasks

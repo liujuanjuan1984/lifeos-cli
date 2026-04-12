@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
-from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.task import Task
 
 VALID_EVENT_STATUSES = {"planned", "cancelled", "completed"}
@@ -150,18 +149,27 @@ def validate_event_recurrence(
     return normalized_frequency, normalized_interval, recurrence_count, recurrence_until
 
 
-def event_is_recurring(event: Event | Any) -> bool:
+class RecurringEventLike(Protocol):
+    """Structural event shape required for recurrence calculations."""
+
+    start_time: datetime
+    end_time: datetime | None
+    recurrence_parent_event_id: UUID | None
+    recurrence_frequency: str | None
+    recurrence_interval: int | None
+    recurrence_count: int | None
+    recurrence_until: datetime | None
+
+
+def event_is_recurring(event: RecurringEventLike) -> bool:
     """Return whether the event is a recurring master event."""
-    return (
-        getattr(event, "recurrence_parent_event_id", None) is None
-        and getattr(event, "recurrence_frequency", None) is not None
-    )
+    return event.recurrence_parent_event_id is None and event.recurrence_frequency is not None
 
 
-def event_recurrence_step(event: Event | Any) -> timedelta:
+def event_recurrence_step(event: RecurringEventLike) -> timedelta:
     """Return the recurrence step for a recurring event."""
-    frequency = getattr(event, "recurrence_frequency", None)
-    interval = getattr(event, "recurrence_interval", None) or 1
+    frequency = event.recurrence_frequency
+    interval = event.recurrence_interval or 1
     if frequency == "daily":
         return timedelta(days=interval)
     if frequency == "weekly":
@@ -169,7 +177,7 @@ def event_recurrence_step(event: Event | Any) -> timedelta:
     raise EventValidationError("Recurring events require a supported recurrence frequency")
 
 
-def get_event_occurrence_index(event: Event | Any, *, instance_start: datetime) -> int:
+def get_event_occurrence_index(event: RecurringEventLike, *, instance_start: datetime) -> int:
     """Return the zero-based occurrence index for one recurring event instance."""
     start_time = event.start_time
     if instance_start < start_time:
@@ -182,13 +190,13 @@ def get_event_occurrence_index(event: Event | Any, *, instance_start: datetime) 
     return int(delta_seconds // step_seconds)
 
 
-def validate_event_instance_start(event: Event | Any, *, instance_start: datetime) -> None:
+def validate_event_instance_start(event: RecurringEventLike, *, instance_start: datetime) -> None:
     """Validate one recurring event instance start."""
     if not event_is_recurring(event):
         raise EventValidationError("Instance-level operations require a recurring master event")
     occurrence_index = get_event_occurrence_index(event, instance_start=instance_start)
-    recurrence_count = getattr(event, "recurrence_count", None)
-    recurrence_until = getattr(event, "recurrence_until", None)
+    recurrence_count = event.recurrence_count
+    recurrence_until = event.recurrence_until
     if recurrence_count is not None and occurrence_index >= recurrence_count:
         raise EventValidationError("Instance start falls outside the recurring series")
     if recurrence_until is not None and instance_start > recurrence_until:
@@ -196,7 +204,7 @@ def validate_event_instance_start(event: Event | Any, *, instance_start: datetim
 
 
 def get_previous_event_occurrence_start(
-    event: Event | Any, *, instance_start: datetime
+    event: RecurringEventLike, *, instance_start: datetime
 ) -> datetime | None:
     """Return the previous occurrence start for one recurring event instance."""
     validate_event_instance_start(event, instance_start=instance_start)
@@ -206,7 +214,7 @@ def get_previous_event_occurrence_start(
 
 
 def get_event_occurrence_starts_in_range(
-    event: Event | Any,
+    event: RecurringEventLike,
     *,
     window_start: datetime,
     window_end: datetime,
@@ -217,9 +225,9 @@ def get_event_occurrence_starts_in_range(
 
     starts: list[datetime] = []
     current_start = event.start_time
-    recurrence_count = getattr(event, "recurrence_count", None)
-    recurrence_until = getattr(event, "recurrence_until", None)
-    end_time = getattr(event, "end_time", None)
+    recurrence_count = event.recurrence_count
+    recurrence_until = event.recurrence_until
+    end_time = event.end_time
     duration = end_time - current_start if end_time is not None else None
     step = event_recurrence_step(event)
     occurrence_index = 0

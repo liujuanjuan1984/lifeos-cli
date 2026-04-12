@@ -12,9 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
-from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.entity_people import sync_entity_people
+from lifeos_cli.db.services.read_models import TaskView
 from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
-from lifeos_cli.db.services.task_queries import get_task
+from lifeos_cli.db.services.task_queries import _build_task_view, _get_task_model
 from lifeos_cli.db.services.task_support import (
     InvalidTaskOperationError,
     ParentTaskReferenceNotFoundError,
@@ -59,7 +60,7 @@ async def create_task(
     planning_cycle_days: int | None = None,
     planning_cycle_start_date: date | None = None,
     person_ids: list[UUID] | None = None,
-) -> Task:
+) -> TaskView:
     """Create a task."""
     await ensure_vision_exists(session, vision_id)
     await validate_parent_task(session, vision_id=vision_id, parent_task_id=parent_task_id)
@@ -88,9 +89,7 @@ async def create_task(
             session, entity_id=task.id, entity_type="task", desired_person_ids=person_ids
         )
     await session.refresh(task)
-    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
-    task.people = people_map.get(task.id, [])
-    return task
+    return await _build_task_view(session, task)
 
 
 async def reorder_tasks(
@@ -143,7 +142,7 @@ async def move_task(
     new_display_order: int | None = None,
 ) -> TaskMoveResult:
     """Move a task to a new parent and optionally a new vision."""
-    task = await get_task(session, task_id=task_id)
+    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
 
@@ -196,8 +195,6 @@ async def move_task(
         await recompute_totals_upwards(session, recompute_root_id)
     await session.flush()
     await session.refresh(task)
-    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
-    task.people = people_map.get(task.id, [])
     return TaskMoveResult(task=task, updated_descendants=updated_descendants)
 
 
@@ -221,9 +218,9 @@ async def update_task(
     clear_planning_cycle: bool = False,
     person_ids: list[UUID] | None = None,
     clear_people: bool = False,
-) -> Task:
+) -> TaskView:
     """Update a task."""
-    task = await get_task(session, task_id=task_id)
+    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     if parent_task_id == task_id:
@@ -310,14 +307,12 @@ async def update_task(
         await recompute_totals_upwards(session, task.id)
     await session.flush()
     await session.refresh(task)
-    people_map = await load_people_for_entities(session, entity_ids=[task.id], entity_type="task")
-    task.people = people_map.get(task.id, [])
-    return task
+    return await _build_task_view(session, task)
 
 
 async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     """Soft-delete a task."""
-    task = await get_task(session, task_id=task_id, include_deleted=False)
+    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     old_parent_task_id = task.parent_task_id

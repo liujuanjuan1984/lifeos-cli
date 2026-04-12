@@ -13,6 +13,14 @@ from lifeos_cli.db.services import events, task_effort, timelogs
 from tests.support import utc_datetime
 
 
+async def _identity_event_view(_: object, event: object) -> object:
+    return event
+
+
+async def _identity_timelog_view(_: object, timelog: object) -> object:
+    return timelog
+
+
 def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(
         add=None,
@@ -30,13 +38,10 @@ def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch
     async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
         return None
 
-    async def fake_attach_event_links(_: object, event: object) -> object:
-        return event
-
     session.add = fake_add
     monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
 
     event = asyncio.run(
         events.create_event(
@@ -70,13 +75,18 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
     async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
         return None
 
-    async def fake_attach_timelog_links(_: object, timelog: object) -> object:
-        return timelog
+    async def fake_flush_and_recompute(_: object, **__: object) -> None:
+        await session.flush()
 
     session.add = fake_add
     monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(timelogs, "_attach_timelog_links", fake_attach_timelog_links)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_timelog_dependents",
+        fake_flush_and_recompute,
+    )
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
 
     timelog = asyncio.run(
         timelogs.create_timelog(
@@ -106,13 +116,10 @@ def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.Mon
     async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
         return None
 
-    async def fake_attach_event_links(_: object, event: object) -> object:
-        return event
-
     session.add = fake_add
     monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
 
     created = asyncio.run(
         events.create_event(
@@ -139,13 +146,10 @@ def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch)
     async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
         return None
 
-    async def fake_attach_event_links(_: object, event: object) -> object:
-        return event
-
     session.add = fake_add
     monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
 
     created = asyncio.run(
         events.create_event(
@@ -175,13 +179,10 @@ def test_create_event_accepts_event_type(monkeypatch: pytest.MonkeyPatch) -> Non
     async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
         return None
 
-    async def fake_attach_event_links(_: object, event: object) -> object:
-        return event
-
     session.add = fake_add
     monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
 
     created = asyncio.run(
         events.create_event(
@@ -248,17 +249,14 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
         assert include_deleted is False
         return event
 
-    async def fake_attach_event_links(_: object, event_record: object) -> object:
-        return event_record
-
     async def fake_sync_tags(_: object, **__: object) -> None:
         return None
 
     async def fake_sync_people(_: object, **__: object) -> None:
         return None
 
-    monkeypatch.setattr(events, "get_event", fake_get_event)
-    monkeypatch.setattr(events, "_attach_event_links", fake_attach_event_links)
+    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
     monkeypatch.setattr(events, "sync_entity_tags", fake_sync_tags)
     monkeypatch.setattr(events, "sync_entity_people", fake_sync_people)
 
@@ -312,7 +310,7 @@ def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPa
         assert instance_start == utc_datetime(2026, 4, 11, 13, 0)
         return None
 
-    monkeypatch.setattr(events, "get_event", fake_get_event)
+    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
     monkeypatch.setattr(events, "_get_override_event_for_instance", fake_get_override_event)
     monkeypatch.setattr(events, "_record_skip_exception", record_skip)
 
@@ -346,6 +344,7 @@ def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() 
                             id=UUID("abababab-abab-abab-abab-abababababab"),
                             title="Daily review",
                             status="planned",
+                            event_type="appointment",
                             start_time=utc_datetime(2026, 4, 10, 13, 0),
                             end_time=utc_datetime(2026, 4, 10, 14, 0),
                             task_id=None,
@@ -456,13 +455,7 @@ def test_list_events_with_one_sided_window_uses_overlap_query(
 
     list_occurrences = AsyncMock(return_value=[])
 
-    async def fake_attach_event_links_for_many(
-        _: object, event_records: list[object]
-    ) -> list[object]:
-        return event_records
-
     monkeypatch.setattr(events, "list_event_occurrences", list_occurrences)
-    monkeypatch.setattr(events, "_attach_event_links_for_many", fake_attach_event_links_for_many)
 
     session = _Session()
     listed = asyncio.run(
@@ -505,17 +498,14 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         assert include_deleted is False
         return timelog
 
-    async def fake_attach_timelog_links(_: object, timelog_record: object) -> object:
-        return timelog_record
-
     async def fake_sync_tags(_: object, **__: object) -> None:
         return None
 
     async def fake_sync_people(_: object, **__: object) -> None:
         return None
 
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
-    monkeypatch.setattr(timelogs, "_attach_timelog_links", fake_attach_timelog_links)
+    monkeypatch.setattr(timelogs, "_get_timelog_model", fake_get_timelog)
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
     monkeypatch.setattr(timelogs, "sync_entity_tags", fake_sync_tags)
     monkeypatch.setattr(timelogs, "sync_entity_people", fake_sync_people)
     recompute_task_effort = AsyncMock()
@@ -681,13 +671,10 @@ def test_restore_timelog_clears_deleted_at_and_recomputes_effort(
     async def fake_ensure_task_exists(_: object, candidate_task_id: UUID | None) -> None:
         assert candidate_task_id == task_id
 
-    async def fake_attach_timelog_links(_: object, timelog_record: object) -> object:
-        return timelog_record
-
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
+    monkeypatch.setattr(timelogs, "_get_timelog_model", fake_get_timelog)
     monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
     monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
-    monkeypatch.setattr(timelogs, "_attach_timelog_links", fake_attach_timelog_links)
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
     recompute_task_effort = AsyncMock()
     monkeypatch.setattr(
         timelogs,

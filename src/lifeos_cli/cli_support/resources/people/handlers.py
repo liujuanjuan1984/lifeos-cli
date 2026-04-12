@@ -9,8 +9,8 @@ from datetime import date
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.services import people as people_services
+from lifeos_cli.db.services.read_models import PersonView
 
 
 def _parse_birth_date(value: str | None) -> date | None:
@@ -19,16 +19,15 @@ def _parse_birth_date(value: str | None) -> date | None:
     return date.fromisoformat(value)
 
 
-def _format_person_summary(person: Person) -> str:
+def _format_person_summary(person: PersonView) -> str:
     status = "deleted" if person.deleted_at is not None else "active"
     tag_names = ",".join(tag.name for tag in person.tags) or "-"
     return f"{person.id}\t{status}\t{person.name}\t{person.location or '-'}\t{tag_names}"
 
 
-def _format_person_detail(person: Person) -> str:
-    tags = person.tags
-    tag_names = ", ".join(tag.name for tag in tags) if tags else "-"
-    nicknames = person.nicknames or []
+def _format_person_detail(person: PersonView) -> str:
+    tag_names = ", ".join(tag.name for tag in person.tags) if person.tags else "-"
+    nicknames = person.nicknames
     return "\n".join(
         (
             f"id: {person.id}",

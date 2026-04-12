@@ -173,7 +173,7 @@ def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
         id=event.id,
         title=event.title,
         status=event.status,
-        event_type=getattr(event, "event_type", "appointment"),
+        event_type=event.event_type,
         start_time=event.start_time,
         end_time=event.end_time,
         task_id=event.task_id,

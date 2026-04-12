@@ -7,7 +7,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import set_committed_value
 
 from lifeos_cli.config import (
     MAX_VISION_EXPERIENCE_RATE_PER_HOUR,
@@ -21,6 +20,7 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.read_models import VisionView, build_vision_view
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
 VISION_EXPERIENCE_RATE_MAX = MAX_VISION_EXPERIENCE_RATE_PER_HOUR
@@ -120,6 +120,50 @@ async def _load_active_tasks_for_vision(session: AsyncSession, vision_id: UUID) 
     return list((await session.execute(stmt)).scalars())
 
 
+async def _get_vision_model(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+    include_deleted: bool,
+) -> Vision | None:
+    stmt = select(Vision).where(Vision.id == vision_id).limit(1)
+    if not include_deleted:
+        stmt = stmt.where(Vision.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _build_vision_view(
+    session: AsyncSession,
+    vision: Vision,
+    *,
+    tasks: list[Task] | None = None,
+) -> VisionView:
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[vision.id],
+        entity_type="vision",
+    )
+    return build_vision_view(
+        vision,
+        people=people_map.get(vision.id, ()),
+        tasks=tasks or (),
+    )
+
+
+async def _build_vision_views(
+    session: AsyncSession,
+    visions: list[Vision],
+) -> list[VisionView]:
+    if not visions:
+        return []
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[vision.id for vision in visions],
+        entity_type="vision",
+    )
+    return [build_vision_view(vision, people=people_map.get(vision.id, ())) for vision in visions]
+
+
 async def create_vision(
     session: AsyncSession,
     *,
@@ -129,7 +173,7 @@ async def create_vision(
     area_id: UUID | None = None,
     experience_rate_per_hour: int | None = None,
     person_ids: list[UUID] | None = None,
-) -> Vision:
+) -> VisionView:
     """Create a new vision."""
     normalized_name = name.strip()
     existing = await session.execute(
@@ -152,19 +196,7 @@ async def create_vision(
             session, entity_id=vision.id, entity_type="vision", desired_person_ids=person_ids
         )
     await session.refresh(vision)
-    people_map = await load_people_for_entities(
-        session, entity_ids=[vision.id], entity_type="vision"
-    )
-    vision.people = people_map.get(vision.id, [])
-    return vision
-
-
-async def _attach_people(session: AsyncSession, vision: Vision) -> Vision:
-    people_map = await load_people_for_entities(
-        session, entity_ids=[vision.id], entity_type="vision"
-    )
-    vision.people = people_map.get(vision.id, [])
-    return vision
+    return await _build_vision_view(session, vision)
 
 
 async def get_vision(
@@ -172,15 +204,16 @@ async def get_vision(
     *,
     vision_id: UUID,
     include_deleted: bool = False,
-) -> Vision | None:
+) -> VisionView | None:
     """Load a vision by identifier."""
-    stmt = select(Vision).where(Vision.id == vision_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Vision.deleted_at.is_(None))
-    vision = (await session.execute(stmt)).scalar_one_or_none()
+    vision = await _get_vision_model(
+        session,
+        vision_id=vision_id,
+        include_deleted=include_deleted,
+    )
     if vision is None:
         return None
-    return await _attach_people(session, vision)
+    return await _build_vision_view(session, vision)
 
 
 async def list_visions(
@@ -192,7 +225,7 @@ async def list_visions(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[Vision]:
+) -> list[VisionView]:
     """List visions."""
     stmt = select(Vision)
     if not include_deleted:
@@ -209,14 +242,7 @@ async def list_visions(
         ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Vision.created_at.desc(), Vision.id.desc()).offset(offset).limit(limit)
     visions = list((await session.execute(stmt)).scalars())
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[vision.id for vision in visions],
-        entity_type="vision",
-    )
-    for vision in visions:
-        vision.people = people_map.get(vision.id, [])
-    return visions
+    return await _build_vision_views(session, visions)
 
 
 async def update_vision(
@@ -233,9 +259,9 @@ async def update_vision(
     clear_experience_rate: bool = False,
     person_ids: list[UUID] | None = None,
     clear_people: bool = False,
-) -> Vision:
+) -> VisionView:
     """Update a vision."""
-    vision = await get_vision(session, vision_id=vision_id)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     if name is not None:
@@ -275,11 +301,7 @@ async def update_vision(
         )
     await session.flush()
     await session.refresh(vision)
-    people_map = await load_people_for_entities(
-        session, entity_ids=[vision.id], entity_type="vision"
-    )
-    vision.people = people_map.get(vision.id, [])
-    return vision
+    return await _build_vision_view(session, vision)
 
 
 async def delete_vision(
@@ -288,7 +310,7 @@ async def delete_vision(
     vision_id: UUID,
 ) -> None:
     """Soft-delete a vision."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     vision.soft_delete()
@@ -300,9 +322,9 @@ async def add_experience_to_vision(
     *,
     vision_id: UUID,
     experience_points: int,
-) -> Vision:
+) -> VisionView:
     """Add manual experience points to an active vision."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     if vision.status != "active":
@@ -312,16 +334,16 @@ async def add_experience_to_vision(
     vision.add_experience(validate_experience_points(experience_points))
     await session.flush()
     await session.refresh(vision)
-    return await _attach_people(session, vision)
+    return await _build_vision_view(session, vision)
 
 
 async def sync_vision_experience(
     session: AsyncSession,
     *,
     vision_id: UUID,
-) -> Vision:
+) -> VisionView:
     """Synchronize vision experience points from root task actual effort."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     effective_rate = resolve_experience_rate_for_vision(vision)
@@ -333,20 +355,20 @@ async def sync_vision_experience(
     )
     await session.flush()
     await session.refresh(vision)
-    return await _attach_people(session, vision)
+    return await _build_vision_view(session, vision)
 
 
 async def get_vision_with_tasks(
     session: AsyncSession,
     *,
     vision_id: UUID,
-) -> Vision:
-    """Load one vision with its active tasks attached."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+) -> VisionView:
+    """Load one vision with its active tasks included in the returned view."""
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
-    set_committed_value(vision, "tasks", await _load_active_tasks_for_vision(session, vision.id))
-    return vision
+    tasks = await _load_active_tasks_for_vision(session, vision.id)
+    return await _build_vision_view(session, vision, tasks=tasks)
 
 
 async def get_vision_stats(
@@ -355,7 +377,7 @@ async def get_vision_stats(
     vision_id: UUID,
 ) -> VisionStats:
     """Return task statistics for a vision."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
 
@@ -385,9 +407,9 @@ async def harvest_vision(
     session: AsyncSession,
     *,
     vision_id: UUID,
-) -> Vision:
+) -> VisionView:
     """Harvest a mature active vision into fruit status."""
-    vision = await get_vision(session, vision_id=vision_id, include_deleted=False)
+    vision = await _get_vision_model(session, vision_id=vision_id, include_deleted=False)
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     if not vision.can_harvest():
@@ -399,7 +421,7 @@ async def harvest_vision(
     vision.harvest()
     await session.flush()
     await session.refresh(vision)
-    return await _attach_people(session, vision)
+    return await _build_vision_view(session, vision)
 
 
 async def batch_delete_visions(

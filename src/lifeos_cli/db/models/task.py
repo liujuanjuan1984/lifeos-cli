@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
-
-if TYPE_CHECKING:
-    from lifeos_cli.db.models.person import Person
 
 
 class Task(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -50,9 +46,6 @@ class Task(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     vision = relationship("Vision", back_populates="tasks")
     parent_task = relationship("Task", remote_side="Task.id", back_populates="subtasks")
     subtasks = relationship("Task", back_populates="parent_task", cascade="all, delete-orphan")
-
-    if TYPE_CHECKING:
-        people: list[Person]
 
     def __repr__(self) -> str:
         return f"Task(id={self.id!s}, content={self.content!r}, status={self.status!r})"

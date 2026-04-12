@@ -9,9 +9,16 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
+from lifeos_cli.db.services.read_models import (
+    PersonSummaryView,
+    TaskView,
+    build_person_summary,
+    build_task_view,
+)
 from lifeos_cli.db.services.task_support import (
     VALID_PLANNING_CYCLE_TYPES,
     TaskNotFoundError,
@@ -54,7 +61,7 @@ class TaskWithSubtasks:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
-    people: tuple[object, ...]
+    people: tuple[PersonSummaryView, ...]
     subtasks: tuple[TaskWithSubtasks, ...]
     completion_percentage: float
     depth: int
@@ -68,18 +75,23 @@ class TaskHierarchy:
     root_tasks: tuple[TaskWithSubtasks, ...]
 
 
-async def _hydrate_people(session: AsyncSession, tasks: list[Task]) -> None:
-    """Attach people to tasks using the shared entity-person association helper."""
-    people_map = await load_people_for_entities(
+async def _load_people_map(
+    session: AsyncSession,
+    tasks: list[Task],
+) -> dict[UUID, list[Person]]:
+    """Load related people for task records without mutating ORM instances."""
+    return await load_people_for_entities(
         session,
         entity_ids=[task.id for task in tasks],
         entity_type="task",
     )
-    for task in tasks:
-        task.people = people_map.get(task.id, [])
 
 
-def _build_task_tree(tasks: list[Task]) -> tuple[TaskWithSubtasks, ...]:
+def _build_task_tree(
+    tasks: list[Task],
+    *,
+    people_map: dict[UUID, list[Person]],
+) -> tuple[TaskWithSubtasks, ...]:
     """Build a task tree from a flat task list."""
     task_ids = {task.id for task in tasks}
     children_by_parent: dict[UUID, list[Task]] = {task.id: [] for task in tasks}
@@ -119,7 +131,7 @@ def _build_task_tree(tasks: list[Task]) -> tuple[TaskWithSubtasks, ...]:
             created_at=task.created_at,
             updated_at=task.updated_at,
             deleted_at=task.deleted_at,
-            people=tuple(getattr(task, "people", []) or []),
+            people=tuple(build_person_summary(person) for person in people_map.get(task.id, [])),
             subtasks=subtasks,
             completion_percentage=completion_ratio(task, subtasks),
             depth=depth,
@@ -145,21 +157,41 @@ def _parse_status_csv(value: str | None) -> list[str]:
     return [validate_task_status(item) for item in _split_csv(value)]
 
 
+async def _get_task_model(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+    include_deleted: bool,
+) -> Task | None:
+    stmt = select(Task).where(Task.id == task_id).limit(1)
+    if not include_deleted:
+        stmt = stmt.where(Task.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _build_task_view(session: AsyncSession, task: Task) -> TaskView:
+    people_map = await _load_people_map(session, [task])
+    return build_task_view(task, people=people_map.get(task.id, ()))
+
+
+async def _build_task_views(session: AsyncSession, tasks: list[Task]) -> list[TaskView]:
+    if not tasks:
+        return []
+    people_map = await _load_people_map(session, tasks)
+    return [build_task_view(task, people=people_map.get(task.id, ())) for task in tasks]
+
+
 async def get_task(
     session: AsyncSession,
     *,
     task_id: UUID,
     include_deleted: bool = False,
-) -> Task | None:
+) -> TaskView | None:
     """Load a task by identifier."""
-    stmt = select(Task).where(Task.id == task_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Task.deleted_at.is_(None))
-    task = (await session.execute(stmt)).scalar_one_or_none()
+    task = await _get_task_model(session, task_id=task_id, include_deleted=include_deleted)
     if task is None:
         return None
-    await _hydrate_people(session, [task])
-    return task
+    return await _build_task_view(session, task)
 
 
 async def list_tasks(
@@ -178,7 +210,7 @@ async def list_tasks(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[Task]:
+) -> list[TaskView]:
     """List tasks with basic filters."""
     stmt = select(Task)
     if not include_deleted:
@@ -226,8 +258,7 @@ async def list_tasks(
         .limit(limit)
     )
     tasks = list((await session.execute(stmt)).scalars())
-    await _hydrate_people(session, tasks)
-    return tasks
+    return await _build_task_views(session, tasks)
 
 
 async def get_vision_task_hierarchy(
@@ -243,8 +274,10 @@ async def get_vision_task_hierarchy(
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )
     tasks = list((await session.execute(stmt)).scalars())
-    await _hydrate_people(session, tasks)
-    return TaskHierarchy(vision_id=vision_id, root_tasks=_build_task_tree(tasks))
+    people_map = await _load_people_map(session, tasks)
+    return TaskHierarchy(
+        vision_id=vision_id, root_tasks=_build_task_tree(tasks, people_map=people_map)
+    )
 
 
 async def get_task_with_subtasks(
@@ -256,8 +289,8 @@ async def get_task_with_subtasks(
     tasks = await load_task_subtree(session, root_task_id=task_id)
     if not tasks:
         return None
-    await _hydrate_people(session, tasks)
-    task_tree = _build_task_tree(tasks)
+    people_map = await _load_people_map(session, tasks)
+    task_tree = _build_task_tree(tasks, people_map=people_map)
     return task_tree[0] if task_tree else None
 
 

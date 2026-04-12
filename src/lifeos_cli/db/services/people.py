@@ -12,6 +12,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.read_models import PersonView, build_person_view
 
 
 class PersonNotFoundError(LookupError):
@@ -27,14 +28,39 @@ def _deduplicate_person_ids(person_ids: list[UUID]) -> list[UUID]:
     return list(dict.fromkeys(person_ids))
 
 
-async def _attach_tags(session: AsyncSession, person: Person) -> Person:
+async def _get_person_model(
+    session: AsyncSession,
+    *,
+    person_id: UUID,
+    include_deleted: bool,
+) -> Person | None:
+    stmt = select(Person).where(Person.id == person_id).limit(1)
+    if not include_deleted:
+        stmt = stmt.where(Person.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _build_person_view(session: AsyncSession, person: Person) -> PersonView:
     tags_map = await load_tags_for_entities(
         session,
         entity_ids=[person.id],
         entity_type="person",
     )
-    person.tags = tags_map.get(person.id, [])
-    return person
+    return build_person_view(person, tags=tags_map.get(person.id, ()))
+
+
+async def _build_people_views(
+    session: AsyncSession,
+    people: list[Person],
+) -> list[PersonView]:
+    if not people:
+        return []
+    tags_map = await load_tags_for_entities(
+        session,
+        entity_ids=[person.id for person in people],
+        entity_type="person",
+    )
+    return [build_person_view(person, tags=tags_map.get(person.id, ())) for person in people]
 
 
 async def create_person(
@@ -46,7 +72,7 @@ async def create_person(
     birth_date: date | None = None,
     location: str | None = None,
     tag_ids: list[UUID] | None = None,
-) -> Person:
+) -> PersonView:
     """Create a new person."""
     normalized_name = name.strip()
     existing = await session.execute(
@@ -71,7 +97,7 @@ async def create_person(
             desired_tag_ids=tag_ids,
         )
     await session.refresh(person)
-    return await _attach_tags(session, person)
+    return await _build_person_view(session, person)
 
 
 async def get_person(
@@ -79,15 +105,16 @@ async def get_person(
     *,
     person_id: UUID,
     include_deleted: bool = False,
-) -> Person | None:
+) -> PersonView | None:
     """Load a person by identifier."""
-    stmt = select(Person).where(Person.id == person_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Person.deleted_at.is_(None))
-    person = (await session.execute(stmt)).scalar_one_or_none()
+    person = await _get_person_model(
+        session,
+        person_id=person_id,
+        include_deleted=include_deleted,
+    )
     if person is None:
         return None
-    return await _attach_tags(session, person)
+    return await _build_person_view(session, person)
 
 
 async def list_people(
@@ -98,7 +125,7 @@ async def list_people(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[Person]:
+) -> list[PersonView]:
     """List people, optionally filtered by search or tag."""
     stmt = select(Person)
     if not include_deleted:
@@ -120,16 +147,7 @@ async def list_people(
         ).where(tag_associations.c.tag_id == tag_id)
     stmt = stmt.order_by(Person.created_at.desc(), Person.id.desc()).offset(offset).limit(limit)
     people = list((await session.execute(stmt)).scalars())
-    if not people:
-        return []
-    tags_map = await load_tags_for_entities(
-        session,
-        entity_ids=[person.id for person in people],
-        entity_type="person",
-    )
-    for person in people:
-        person.tags = tags_map.get(person.id, [])
-    return people
+    return await _build_people_views(session, people)
 
 
 async def update_person(
@@ -147,9 +165,9 @@ async def update_person(
     clear_location: bool = False,
     tag_ids: list[UUID] | None = None,
     clear_tags: bool = False,
-) -> Person:
+) -> PersonView:
     """Update a person."""
-    person = await get_person(session, person_id=person_id)
+    person = await _get_person_model(session, person_id=person_id, include_deleted=False)
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")
     if name is not None:
@@ -196,7 +214,7 @@ async def update_person(
         )
     await session.flush()
     await session.refresh(person)
-    return await _attach_tags(session, person)
+    return await _build_person_view(session, person)
 
 
 async def delete_person(
@@ -205,7 +223,7 @@ async def delete_person(
     person_id: UUID,
 ) -> None:
     """Soft-delete a person."""
-    person = await get_person(session, person_id=person_id, include_deleted=False)
+    person = await _get_person_model(session, person_id=person_id, include_deleted=False)
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")
     person.soft_delete()

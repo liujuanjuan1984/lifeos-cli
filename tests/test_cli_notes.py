@@ -142,6 +142,12 @@ def test_main_note_show_prints_multiline_content(
             created_at=utc_datetime(2026, 4, 9, 3, 24, 11),
             updated_at=utc_datetime(2026, 4, 9, 3, 30, 0),
             deleted_at=None,
+            tags=[],
+            people=[],
+            tasks=[],
+            visions=[],
+            events=[],
+            timelogs=[],
         )
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -254,7 +260,14 @@ def test_main_note_search_prints_matching_notes(
                 id=UUID("44444444-4444-4444-4444-444444444444"),
                 content="meeting notes for april planning",
                 created_at=utc_datetime(2026, 4, 9, 4, 5, 6),
+                updated_at=utc_datetime(2026, 4, 9, 4, 5, 6),
                 deleted_at=None,
+                tags=[],
+                people=[],
+                tasks=[],
+                visions=[],
+                events=[],
+                timelogs=[],
             )
         ]
 
@@ -382,7 +395,14 @@ def test_main_note_list_prints_formatted_notes(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
                 content="first note",
                 created_at=utc_datetime(2026, 4, 9, 1, 2, 3),
+                updated_at=utc_datetime(2026, 4, 9, 1, 2, 3),
                 deleted_at=None,
+                tags=[],
+                people=[],
+                tasks=[],
+                visions=[],
+                events=[],
+                timelogs=[],
             )
         ]
 

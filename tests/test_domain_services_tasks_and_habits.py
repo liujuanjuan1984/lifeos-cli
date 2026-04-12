@@ -20,6 +20,10 @@ from lifeos_cli.db.services import (
 )
 
 
+async def _identity_task_view(_: object, task: object) -> object:
+    return task
+
+
 def test_validate_planning_cycle_requires_complete_fields() -> None:
     with pytest.raises(tasks.InvalidPlanningCycleError):
         tasks.validate_planning_cycle(
@@ -52,15 +56,11 @@ def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
         assert child_task_id is None
 
     def fake_add(task: object) -> None:
-        session.added_task = task
-
-    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
-        task_id = cast(Any, session.added_task).id
-        return {task_id: []} if task_id is not None else {}
+        return None
 
     monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
-    monkeypatch.setattr(task_mutations, "load_people_for_entities", fake_load_people)
+    monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
     session.add = fake_add
 
     task = asyncio.run(
@@ -120,13 +120,9 @@ def test_update_task_can_clear_parent_without_committing(
         assert parent_task_id is None
         assert child_task_id == task.id
 
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
-    monkeypatch.setattr(
-        task_mutations,
-        "load_people_for_entities",
-        AsyncMock(return_value={task.id: []}),
-    )
+    monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
@@ -192,7 +188,7 @@ def test_move_task_updates_parent_vision_and_descendants(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(
@@ -202,11 +198,6 @@ def test_move_task_updates_parent_vision_and_descendants(
     )
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
-    monkeypatch.setattr(
-        task_mutations,
-        "load_people_for_entities",
-        AsyncMock(return_value={task.id: []}),
-    )
 
     result = asyncio.run(
         tasks.move_task(
@@ -267,15 +258,10 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
-    monkeypatch.setattr(
-        task_mutations,
-        "load_people_for_entities",
-        AsyncMock(return_value={task.id: []}),
-    )
 
     result = asyncio.run(
         tasks.move_task(
@@ -362,13 +348,9 @@ def test_update_task_can_clear_optional_fields_without_committing(
         assert parent_task_id is None
         assert child_task_id == task.id
 
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
-    monkeypatch.setattr(
-        task_mutations,
-        "load_people_for_entities",
-        AsyncMock(return_value={task.id: []}),
-    )
+    monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -438,13 +420,14 @@ def test_update_task_can_clear_people_without_committing(
         assert kwargs["entity_type"] == "task"
         assert kwargs["desired_person_ids"] == []
 
-    async def fake_load_people(_: object, **kwargs: object) -> dict[UUID, list[object]]:
-        return {task.id: []}
-
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "sync_entity_people", fake_sync_people)
-    monkeypatch.setattr(task_mutations, "load_people_for_entities", fake_load_people)
+    monkeypatch.setattr(
+        task_mutations,
+        "_build_task_view",
+        AsyncMock(return_value=SimpleNamespace(**task.__dict__, people=())),
+    )
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -454,7 +437,7 @@ def test_update_task_can_clear_people_without_committing(
         )
     )
 
-    assert updated_task.people == []
+    assert updated_task.people == ()
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
     session.commit.assert_not_called()
@@ -530,7 +513,7 @@ def test_delete_task_soft_deletes_subtree_without_committing(
         assert include_deleted is False
         return root_task
 
-    monkeypatch.setattr(task_mutations, "get_task", fake_get_task)
+    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
     monkeypatch.setattr(
         task_mutations,
         "load_task_subtree",

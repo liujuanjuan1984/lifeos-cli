@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any
 
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
@@ -12,39 +11,34 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import events as event_services
 
 
-def _format_event_summary(event: Any) -> str:
-    status = "deleted" if getattr(event, "deleted_at", None) is not None else event.status
-    event_type = getattr(event, "event_type", "appointment")
+def _format_event_summary(event: event_services.EventOccurrence | event_services.EventView) -> str:
+    status = "deleted" if event.deleted_at is not None else event.status
     return (
-        f"{event.id}\t{status}\t{event_type}\t{format_timestamp(event.start_time)}\t"
+        f"{event.id}\t{status}\t{event.event_type}\t{format_timestamp(event.start_time)}\t"
         f"{format_timestamp(event.end_time)}\t{event.task_id or '-'}\t{event.title}"
     )
 
 
-def _format_event_detail(event: Any) -> str:
-    tag_names = ", ".join(tag.name for tag in event.tags) if getattr(event, "tags", None) else "-"
-    people_names = (
-        ", ".join(person.name for person in event.people) if getattr(event, "people", None) else "-"
-    )
+def _format_event_detail(event: event_services.EventView) -> str:
+    tag_names = ", ".join(tag.name for tag in event.tags) if event.tags else "-"
+    people_names = ", ".join(person.name for person in event.people) if event.people else "-"
     return "\n".join(
         (
             f"id: {event.id}",
             f"title: {event.title}",
             f"description: {event.description or '-'}",
             f"status: {event.status}",
-            f"event_type: {getattr(event, 'event_type', 'appointment')}",
+            f"event_type: {event.event_type}",
             f"priority: {event.priority}",
             f"is_all_day: {event.is_all_day}",
             f"start_time: {format_timestamp(event.start_time)}",
             f"end_time: {format_timestamp(event.end_time)}",
-            f"recurrence_frequency: {getattr(event, 'recurrence_frequency', None) or '-'}",
-            f"recurrence_interval: {getattr(event, 'recurrence_interval', None) or '-'}",
-            f"recurrence_count: {getattr(event, 'recurrence_count', None) or '-'}",
-            f"recurrence_until: {format_timestamp(getattr(event, 'recurrence_until', None))}",
-            "recurrence_parent_event_id: "
-            f"{getattr(event, 'recurrence_parent_event_id', None) or '-'}",
-            "recurrence_instance_start: "
-            f"{format_timestamp(getattr(event, 'recurrence_instance_start', None))}",
+            f"recurrence_frequency: {event.recurrence_frequency or '-'}",
+            f"recurrence_interval: {event.recurrence_interval or '-'}",
+            f"recurrence_count: {event.recurrence_count or '-'}",
+            f"recurrence_until: {format_timestamp(event.recurrence_until)}",
+            f"recurrence_parent_event_id: {event.recurrence_parent_event_id or '-'}",
+            f"recurrence_instance_start: {format_timestamp(event.recurrence_instance_start)}",
             f"area_id: {event.area_id or '-'}",
             f"task_id: {event.task_id or '-'}",
             f"tags: {tag_names}",

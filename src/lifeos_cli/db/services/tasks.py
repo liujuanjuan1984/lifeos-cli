@@ -20,6 +20,7 @@ from lifeos_cli.db.services.task_mutations import (
 from lifeos_cli.db.services.task_queries import (
     TaskHierarchy,
     TaskStats,
+    TaskView,
     TaskWithSubtasks,
     get_task,
     get_task_stats,
@@ -67,6 +68,7 @@ __all__ = [
     "TaskHierarchy",
     "TaskNotFoundError",
     "TaskStats",
+    "TaskView",
     "TaskWithSubtasks",
     "TaskMoveResult",
     "VisionReferenceNotFoundError",
