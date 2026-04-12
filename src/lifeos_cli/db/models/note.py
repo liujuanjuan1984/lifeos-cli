@@ -32,7 +32,6 @@ class Note(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     if TYPE_CHECKING:
         tags: list[Tag]
         people: list[Person]
-        task: Task | None
         tasks: list[Task]
         visions: list[Vision]
         events: list[Event]

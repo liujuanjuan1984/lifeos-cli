@@ -220,7 +220,6 @@ async def _attach_note_links(session: AsyncSession, note: Note) -> Note:
     note.tags = tags_map.get(note.id, [])
     note.people = people_map.get(note.id, [])
     note.tasks = task_map.get(note.id, [])
-    note.task = note.tasks[0] if note.tasks else None
     note.visions = vision_map.get(note.id, [])
     note.events = event_map.get(note.id, [])
     note.timelogs = timelog_map.get(note.id, [])
@@ -269,7 +268,6 @@ async def _attach_note_links_for_many(
         note.tags = tags_map.get(note.id, [])
         note.people = people_map.get(note.id, [])
         note.tasks = task_map.get(note.id, [])
-        note.task = note.tasks[0] if note.tasks else None
         note.visions = vision_map.get(note.id, [])
         note.events = event_map.get(note.id, [])
         note.timelogs = timelog_map.get(note.id, [])
