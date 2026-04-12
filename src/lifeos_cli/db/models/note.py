@@ -10,9 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from lifeos_cli.db.models.event import Event
     from lifeos_cli.db.models.person import Person
+    from lifeos_cli.db.models.tag import Tag
     from lifeos_cli.db.models.task import Task
     from lifeos_cli.db.models.timelog import Timelog
+    from lifeos_cli.db.models.vision import Vision
 
 
 class Note(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -27,8 +30,12 @@ class Note(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     if TYPE_CHECKING:
+        tags: list[Tag]
         people: list[Person]
         task: Task | None
+        tasks: list[Task]
+        visions: list[Vision]
+        events: list[Event]
         timelogs: list[Timelog]
 
     def __repr__(self) -> str:

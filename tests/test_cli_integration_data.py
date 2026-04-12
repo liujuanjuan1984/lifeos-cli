@@ -264,7 +264,7 @@ def test_real_cli_data_round_trip_and_batch_workflow(
     assert_ok(restored_note_result)
     assert "Bundle restore checklist" in restored_note_result.stdout
     assert "people: Alice" in restored_note_result.stdout
-    assert f"task: {task_id} | Implement data operations" in restored_note_result.stdout
+    assert f"tasks: {task_id} | Implement data operations" in restored_note_result.stdout
     assert f"timelogs: {timelog_id} | Implementation session" in restored_note_result.stdout
 
     restored_task_result = run_lifeos(integration_context, "task", "show", task_id)

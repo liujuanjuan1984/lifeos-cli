@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from lifeos_cli.db.base import Base, TimestampedMixin, UUIDPrimaryKeyMixin
 
-VALID_ASSOCIATION_MODELS = ("note", "person", "task", "timelog")
+VALID_ASSOCIATION_MODELS = ("event", "note", "person", "task", "timelog", "vision")
 VALID_ASSOCIATION_LINK_TYPES = ("captured_from", "is_about", "relates_to")
 
 
@@ -19,11 +19,11 @@ class Association(UUIDPrimaryKeyMixin, TimestampedMixin, Base):
     __tablename__ = "associations"
     __table_args__ = (
         CheckConstraint(
-            "source_model IN ('note', 'person', 'task', 'timelog')",
+            "source_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
             name="ck_associations_source_model_valid",
         ),
         CheckConstraint(
-            "target_model IN ('note', 'person', 'task', 'timelog')",
+            "target_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
             name="ck_associations_target_model_valid",
         ),
         CheckConstraint(

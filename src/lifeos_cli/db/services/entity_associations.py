@@ -10,19 +10,23 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.association import Association
+from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.models.vision import Vision
 
-VALID_ASSOCIATION_MODELS = frozenset({"note", "person", "task", "timelog"})
+VALID_ASSOCIATION_MODELS = frozenset({"event", "note", "person", "task", "timelog", "vision"})
 VALID_ASSOCIATION_LINK_TYPES = frozenset({"is_about", "relates_to", "captured_from"})
 
 MODEL_MAP: dict[str, Any] = {
+    "event": Event,
     "note": Note,
     "person": Person,
     "task": Task,
     "timelog": Timelog,
+    "vision": Vision,
 }
 
 
@@ -286,6 +290,33 @@ async def load_tasks_for_sources(
     return loaded
 
 
+async def load_task_lists_for_sources(
+    session: AsyncSession,
+    *,
+    source_model: str,
+    source_ids: list[UUID],
+    link_type: str,
+) -> dict[UUID, list[Task]]:
+    """Load zero or more linked tasks per source identifier."""
+    mapping = await get_target_ids_for_sources(
+        session,
+        source_model=source_model,
+        source_ids=source_ids,
+        target_model="task",
+        link_type=link_type,
+    )
+    all_task_ids = {task_id for task_ids in mapping.values() for task_id in task_ids}
+    if not all_task_ids:
+        return {}
+    stmt = select(Task).where(Task.id.in_(all_task_ids), Task.deleted_at.is_(None))
+    rows = await session.execute(stmt)
+    tasks_by_id = {task.id: task for task in rows.scalars().all()}
+    return {
+        source_id: [tasks_by_id[task_id] for task_id in task_ids if task_id in tasks_by_id]
+        for source_id, task_ids in mapping.items()
+    }
+
+
 async def load_timelogs_for_sources(
     session: AsyncSession,
     *,
@@ -312,4 +343,60 @@ async def load_timelogs_for_sources(
             timelogs_by_id[timelog_id] for timelog_id in timelog_ids if timelog_id in timelogs_by_id
         ]
         for source_id, timelog_ids in mapping.items()
+    }
+
+
+async def load_events_for_sources(
+    session: AsyncSession,
+    *,
+    source_model: str,
+    source_ids: list[UUID],
+    link_type: str,
+) -> dict[UUID, list[Event]]:
+    """Load zero or more linked events per source identifier."""
+    mapping = await get_target_ids_for_sources(
+        session,
+        source_model=source_model,
+        source_ids=source_ids,
+        target_model="event",
+        link_type=link_type,
+    )
+    all_event_ids = {event_id for event_ids in mapping.values() for event_id in event_ids}
+    if not all_event_ids:
+        return {}
+    stmt = select(Event).where(Event.id.in_(all_event_ids), Event.deleted_at.is_(None))
+    rows = await session.execute(stmt)
+    events_by_id = {event.id: event for event in rows.scalars().all()}
+    return {
+        source_id: [events_by_id[event_id] for event_id in event_ids if event_id in events_by_id]
+        for source_id, event_ids in mapping.items()
+    }
+
+
+async def load_visions_for_sources(
+    session: AsyncSession,
+    *,
+    source_model: str,
+    source_ids: list[UUID],
+    link_type: str,
+) -> dict[UUID, list[Vision]]:
+    """Load zero or more linked visions per source identifier."""
+    mapping = await get_target_ids_for_sources(
+        session,
+        source_model=source_model,
+        source_ids=source_ids,
+        target_model="vision",
+        link_type=link_type,
+    )
+    all_vision_ids = {vision_id for vision_ids in mapping.values() for vision_id in vision_ids}
+    if not all_vision_ids:
+        return {}
+    stmt = select(Vision).where(Vision.id.in_(all_vision_ids), Vision.deleted_at.is_(None))
+    rows = await session.execute(stmt)
+    visions_by_id = {vision.id: vision for vision in rows.scalars().all()}
+    return {
+        source_id: [
+            visions_by_id[vision_id] for vision_id in vision_ids if vision_id in visions_by_id
+        ]
+        for source_id, vision_ids in mapping.items()
     }

@@ -161,13 +161,13 @@ def test_real_cli_note_associations_and_timelog_counts(
     note_show_result = run_lifeos(integration_context, "note", "show", note_id)
     assert_ok(note_show_result)
     assert "people: Alice" in note_show_result.stdout
-    assert f"task: {task_id} | Investigate note associations" in note_show_result.stdout
+    assert f"tasks: {task_id} | Investigate note associations" in note_show_result.stdout
     assert f"timelogs: {timelog_id} | Implementation session" in note_show_result.stdout
 
     note_list_result = run_lifeos(integration_context, "note", "list", "--person-id", person_id)
     assert_ok(note_list_result)
     assert note_id in note_list_result.stdout
-    assert f"\t{task_id}\t1\t1\tAssociation note" in note_list_result.stdout
+    assert "\t1\t0\t0\t1\t1\t0\tAssociation note" in note_list_result.stdout
 
     note_search_result = run_lifeos(
         integration_context,
