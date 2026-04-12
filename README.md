@@ -84,10 +84,15 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
    bash ./scripts/doctor.sh
    ```
 
+   This baseline includes linting, dead-code scanning, and the default unit test suite.
+
 4. Use the repository dependency workflows intentionally:
 
    - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
    - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dev vulnerability review.
+
+CI also runs the real CLI integration suite against an ephemeral PostgreSQL service instead of
+leaving those tests skipped by default.
 
 ## Project Policies
 

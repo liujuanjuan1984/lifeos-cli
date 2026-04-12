@@ -52,14 +52,24 @@ async def handle_note_add_async(args: argparse.Namespace) -> int:
     content = resolve_note_content(args)
     try:
         async with db_session.session_scope() as session:
-            if args.person_ids is None and args.task_id is None and args.timelog_ids is None:
+            if (
+                args.tag_ids is None
+                and args.person_ids is None
+                and args.task_ids is None
+                and args.vision_ids is None
+                and args.event_ids is None
+                and args.timelog_ids is None
+            ):
                 note = await note_services.create_note(session, content=content)
             else:
                 note = await note_services.create_note(
                     session,
                     content=content,
+                    tag_ids=args.tag_ids,
                     person_ids=args.person_ids,
-                    task_id=args.task_id,
+                    task_ids=args.task_ids,
+                    vision_ids=args.vision_ids,
+                    event_ids=args.event_ids,
                     timelog_ids=args.timelog_ids,
                 )
     except (LookupError, note_services.NoteValidationError) as exc:
@@ -77,7 +87,14 @@ def handle_note_add(args: argparse.Namespace) -> int:
 async def handle_note_list_async(args: argparse.Namespace) -> int:
     """List notes."""
     async with db_session.session_scope() as session:
-        if args.person_id is None and args.task_id is None and args.timelog_id is None:
+        if (
+            args.tag_id is None
+            and args.event_id is None
+            and args.person_id is None
+            and args.task_id is None
+            and args.timelog_id is None
+            and args.vision_id is None
+        ):
             notes = await note_services.list_notes(
                 session,
                 include_deleted=args.include_deleted,
@@ -88,9 +105,12 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
             notes = await note_services.list_notes(
                 session,
                 include_deleted=args.include_deleted,
+                tag_id=args.tag_id,
+                event_id=args.event_id,
                 person_id=args.person_id,
                 task_id=args.task_id,
                 timelog_id=args.timelog_id,
+                vision_id=args.vision_id,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -114,7 +134,14 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
         raise ConfigurationError("Search query must not be empty.")
 
     async with db_session.session_scope() as session:
-        if args.person_id is None and args.task_id is None and args.timelog_id is None:
+        if (
+            args.tag_id is None
+            and args.event_id is None
+            and args.person_id is None
+            and args.task_id is None
+            and args.timelog_id is None
+            and args.vision_id is None
+        ):
             notes = await note_services.search_notes(
                 session,
                 query=normalized_query,
@@ -127,9 +154,12 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
                 session,
                 query=normalized_query,
                 include_deleted=args.include_deleted,
+                tag_id=args.tag_id,
+                event_id=args.event_id,
                 person_id=args.person_id,
                 task_id=args.task_id,
                 timelog_id=args.timelog_id,
+                vision_id=args.vision_id,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -169,8 +199,11 @@ def handle_note_show(args: argparse.Namespace) -> int:
 async def handle_note_update_async(args: argparse.Namespace) -> int:
     """Update note content."""
     conflicts = (
+        (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
-        (args.clear_task and args.task_id is not None, "--task-id", "--clear-task"),
+        (args.clear_tasks and args.task_ids is not None, "--task-id", "--clear-tasks"),
+        (args.clear_visions and args.vision_ids is not None, "--vision-id", "--clear-visions"),
+        (args.clear_events and args.event_ids is not None, "--event-id", "--clear-events"),
         (args.clear_timelogs and args.timelog_ids is not None, "--timelog-id", "--clear-timelogs"),
     )
     for is_conflict, value_flag, clear_flag in conflicts:
@@ -181,10 +214,16 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
     try:
         async with db_session.session_scope() as session:
             if (
-                args.person_ids is None
+                args.tag_ids is None
+                and not args.clear_tags
+                and args.person_ids is None
                 and not args.clear_people
-                and args.task_id is None
-                and not args.clear_task
+                and args.task_ids is None
+                and not args.clear_tasks
+                and args.vision_ids is None
+                and not args.clear_visions
+                and args.event_ids is None
+                and not args.clear_events
                 and args.timelog_ids is None
                 and not args.clear_timelogs
             ):
@@ -198,10 +237,16 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
                     session,
                     note_id=args.note_id,
                     content=args.content,
+                    tag_ids=args.tag_ids,
+                    clear_tags=args.clear_tags,
                     person_ids=args.person_ids,
                     clear_people=args.clear_people,
-                    task_id=args.task_id,
-                    clear_task=args.clear_task,
+                    task_ids=args.task_ids,
+                    clear_tasks=args.clear_tasks,
+                    vision_ids=args.vision_ids,
+                    clear_visions=args.clear_visions,
+                    event_ids=args.event_ids,
+                    clear_events=args.clear_events,
                     timelog_ids=args.timelog_ids,
                     clear_timelogs=args.clear_timelogs,
                 )

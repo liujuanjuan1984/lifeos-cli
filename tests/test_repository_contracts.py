@@ -8,6 +8,10 @@ README_ZH_TEXT = Path("README.zh-Hans.md").read_text()
 CLI_GUIDE_TEXT = Path("docs/cli.md").read_text()
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
+PRE_COMMIT_TEXT = Path(".pre-commit-config.yaml").read_text()
+VALIDATE_WORKFLOW_TEXT = Path(".github/workflows/validate.yml").read_text()
+CONTRIBUTING_TEXT = Path("CONTRIBUTING.md").read_text()
+VULTURE_WHITELIST_TEXT = Path("scripts/vulture_whitelist.py").read_text()
 
 
 def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
@@ -33,6 +37,35 @@ def test_dependency_scripts_keep_separate_scopes() -> None:
     assert "uv pip list --outdated" in DEPENDENCY_HEALTH_TEXT
     assert "uv run pip-audit" in DEPENDENCY_HEALTH_TEXT
     assert "uv run pytest" not in DEPENDENCY_HEALTH_TEXT
+
+
+def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
+    assert "bash ./scripts/dead_code_check.sh" in PRE_COMMIT_TEXT
+    assert "uv run pre-commit run --all-files" in DOCTOR_TEXT
+
+
+def test_validate_workflow_runs_real_cli_integration_tests() -> None:
+    expected_database_url = (
+        "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/"  # pragma: allowlist secret
+        "lifeos_test"
+    )
+    assert "integration-postgres" in VALIDATE_WORKFLOW_TEXT
+    assert 'LIFEOS_RUN_INTEGRATION: "1"' in VALIDATE_WORKFLOW_TEXT
+    assert expected_database_url in VALIDATE_WORKFLOW_TEXT
+    assert "uv run pytest tests/test_cli_integration_*.py" in VALIDATE_WORKFLOW_TEXT
+
+
+def test_static_analysis_governance_is_documented_and_whitelisted() -> None:
+    assert "scripts/vulture_whitelist.py" in CONTRIBUTING_TEXT
+    assert "framework-driven symbols" in CONTRIBUTING_TEXT
+    for symbol in (
+        "type_annotation_map",
+        "ARGPARSE_MESSAGE_IDS",
+        "isolated_runtime_locale",
+        "_use_stable_note_timezone",
+        "configured_time_preferences",
+    ):
+        assert symbol in VULTURE_WHITELIST_TEXT
 
 
 def test_cli_guide_instructs_agents_to_check_language_preference_before_writing() -> None:

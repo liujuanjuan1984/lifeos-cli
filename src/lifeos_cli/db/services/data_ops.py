@@ -192,7 +192,7 @@ RESOURCE_SPECS: dict[str, DataResourceSpec] = {
         tag_entity_type="timelog",
         person_entity_type="timelog",
     ),
-    "note": DataResourceSpec(resource="note", model=Note),
+    "note": DataResourceSpec(resource="note", model=Note, tag_entity_type="note"),
 }
 
 DELETE_ARG_NAMES: dict[str, str] = {
@@ -332,8 +332,9 @@ class PreparedSnapshotRow:
     direct_values: dict[str, Any]
     tag_ids: list[UUID] | None = None
     person_ids: list[UUID] | None = None
-    note_task_supplied: bool = False
-    note_task_id: UUID | None = None
+    note_task_ids: list[UUID] | None = None
+    note_vision_ids: list[UUID] | None = None
+    note_event_ids: list[UUID] | None = None
     note_timelog_ids: list[UUID] | None = None
     occurrence_exceptions: list[dict[str, Any]] | None = None
 
@@ -365,10 +366,25 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         or (resource == "note" and "person_ids" in payload)
         else None
     )
-    note_task_id = (
-        None
-        if "task_id" not in payload
-        else (None if payload["task_id"] is None else UUID(str(payload["task_id"])))
+    legacy_note_task_ids = (
+        ([] if payload.get("task_id") is None else [UUID(str(payload["task_id"]))])
+        if resource == "note" and "task_id" in payload
+        else None
+    )
+    note_task_ids = (
+        _parse_person_ids(payload["task_ids"])
+        if resource == "note" and "task_ids" in payload
+        else legacy_note_task_ids
+    )
+    note_vision_ids = (
+        _parse_person_ids(payload["vision_ids"])
+        if resource == "note" and "vision_ids" in payload
+        else None
+    )
+    note_event_ids = (
+        _parse_person_ids(payload["event_ids"])
+        if resource == "note" and "event_ids" in payload
+        else None
     )
     note_timelog_ids = (
         _parse_person_ids(payload["timelog_ids"])
@@ -387,8 +403,9 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         direct_values=direct_values,
         tag_ids=tag_ids,
         person_ids=person_ids,
-        note_task_supplied=("task_id" in payload if resource == "note" else False),
-        note_task_id=note_task_id,
+        note_task_ids=note_task_ids,
+        note_vision_ids=note_vision_ids,
+        note_event_ids=note_event_ids,
         note_timelog_ids=note_timelog_ids,
         occurrence_exceptions=occurrence_exceptions,
     )
@@ -464,7 +481,7 @@ async def _load_note_task_ids(
     session: AsyncSession,
     *,
     note_ids: list[UUID],
-) -> dict[UUID, UUID | None]:
+) -> dict[UUID, list[UUID]]:
     mapping = await get_target_ids_for_sources(
         session,
         source_model="note",
@@ -472,10 +489,35 @@ async def _load_note_task_ids(
         target_model="task",
         link_type="relates_to",
     )
-    return {
-        note_id: (linked_task_ids[0] if linked_task_ids else None)
-        for note_id, linked_task_ids in mapping.items()
-    }
+    return {note_id: linked_task_ids for note_id, linked_task_ids in mapping.items()}
+
+
+async def _load_note_vision_ids(
+    session: AsyncSession,
+    *,
+    note_ids: list[UUID],
+) -> dict[UUID, list[UUID]]:
+    return await get_target_ids_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        target_model="vision",
+        link_type="relates_to",
+    )
+
+
+async def _load_note_event_ids(
+    session: AsyncSession,
+    *,
+    note_ids: list[UUID],
+) -> dict[UUID, list[UUID]]:
+    return await get_target_ids_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        target_model="event",
+        link_type="relates_to",
+    )
 
 
 async def _load_note_person_ids(
@@ -550,6 +592,12 @@ async def export_resource_snapshot(
     note_task_map = (
         await _load_note_task_ids(session, note_ids=entity_ids) if resource == "note" else {}
     )
+    note_vision_map = (
+        await _load_note_vision_ids(session, note_ids=entity_ids) if resource == "note" else {}
+    )
+    note_event_map = (
+        await _load_note_event_ids(session, note_ids=entity_ids) if resource == "note" else {}
+    )
     note_person_map = (
         await _load_note_person_ids(session, note_ids=entity_ids) if resource == "note" else {}
     )
@@ -566,12 +614,15 @@ async def export_resource_snapshot(
         if resource == "event":
             payload["occurrence_exceptions"] = occurrence_map.get(entity_id, [])
         if resource == "note":
+            payload["tag_ids"] = [str(tag_id) for tag_id in tag_map.get(entity_id, [])]
             payload["person_ids"] = [
                 str(person_id) for person_id in note_person_map.get(entity_id, [])
             ]
-            payload["task_id"] = (
-                None if note_task_map.get(entity_id) is None else str(note_task_map[entity_id])
-            )
+            payload["task_ids"] = [str(task_id) for task_id in note_task_map.get(entity_id, [])]
+            payload["vision_ids"] = [
+                str(vision_id) for vision_id in note_vision_map.get(entity_id, [])
+            ]
+            payload["event_ids"] = [str(event_id) for event_id in note_event_map.get(entity_id, [])]
             payload["timelog_ids"] = [
                 str(timelog_id) for timelog_id in note_timelog_map.get(entity_id, [])
             ]
@@ -618,6 +669,13 @@ async def _sync_snapshot_relations(
             desired_person_ids=prepared_row.person_ids,
         )
     if prepared_row.resource == "note":
+        if prepared_row.tag_ids is not None:
+            await sync_entity_tags(
+                session,
+                entity_id=prepared_row.row_id,
+                entity_type="note",
+                desired_tag_ids=prepared_row.tag_ids,
+            )
         if prepared_row.person_ids is not None:
             await set_association_links(
                 session,
@@ -627,13 +685,31 @@ async def _sync_snapshot_relations(
                 target_ids=prepared_row.person_ids,
                 link_type="is_about",
             )
-        if prepared_row.note_task_supplied:
+        if prepared_row.note_task_ids is not None:
             await set_association_links(
                 session,
                 source_model="note",
                 source_id=prepared_row.row_id,
                 target_model="task",
-                target_ids=[] if prepared_row.note_task_id is None else [prepared_row.note_task_id],
+                target_ids=prepared_row.note_task_ids,
+                link_type="relates_to",
+            )
+        if prepared_row.note_vision_ids is not None:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="vision",
+                target_ids=prepared_row.note_vision_ids,
+                link_type="relates_to",
+            )
+        if prepared_row.note_event_ids is not None:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="event",
+                target_ids=prepared_row.note_event_ids,
                 link_type="relates_to",
             )
         if prepared_row.note_timelog_ids is not None:
@@ -747,8 +823,11 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
         if field == "person_ids":
             normalized[field] = None if value is None else _parse_person_ids(value)
             continue
-        if field == "task_id" and resource == "note":
-            normalized[field] = None if value is None else UUID(str(value))
+        if field in {"task_id", "task_ids", "vision_ids", "event_ids"} and resource == "note":
+            if field == "task_id":
+                normalized[field] = None if value is None else UUID(str(value))
+            else:
+                normalized[field] = None if value is None else _parse_person_ids(value)
             continue
         if field == "timelog_ids" and resource == "note":
             normalized[field] = None if value is None else _parse_person_ids(value)
@@ -916,13 +995,30 @@ def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         if payload["content"] is None:
             raise DataOperationError("Note batch update does not allow null `content`.")
         kwargs["content"] = payload["content"]
+    kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
     kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
-    kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    if "task_id" in payload and "task_ids" in payload:
+        raise DataOperationError("Note batch update accepts `task_id` or `task_ids`, not both.")
+    if "task_ids" in payload:
+        kwargs.update(_null_means_clear(payload, field="task_ids", clear_flag="clear_tasks"))
+    else:
+        kwargs.update(
+            _null_means_clear(
+                payload,
+                field="task_id",
+                target_field="task_ids",
+                clear_flag="clear_tasks",
+            )
+        )
+        if "task_id" in payload and payload["task_id"] is not None:
+            kwargs["task_ids"] = [payload["task_id"]]
+    kwargs.update(_null_means_clear(payload, field="vision_ids", clear_flag="clear_visions"))
+    kwargs.update(_null_means_clear(payload, field="event_ids", clear_flag="clear_events"))
     kwargs.update(_null_means_clear(payload, field="timelog_ids", clear_flag="clear_timelogs"))
     if len(kwargs) == 1:
         raise DataOperationError(
-            "Note batch update requires at least one of `content`, `person_ids`, `task_id`, "
-            "or `timelog_ids`."
+            "Note batch update requires at least one of `content`, `tag_ids`, `person_ids`, "
+            "`task_id`, `task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
         )
     return kwargs
 

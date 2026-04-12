@@ -61,19 +61,21 @@ def format_note_summary(note: object) -> str:
     created_at = getattr(note, "created_at", None)
     deleted_at = getattr(note, "deleted_at", None)
     content = getattr(note, "content", "")
-    task = getattr(note, "task", None)
+    tags = getattr(note, "tags", []) or []
     people = getattr(note, "people", []) or []
+    tasks = getattr(note, "tasks", []) or []
+    visions = getattr(note, "visions", []) or []
+    events = getattr(note, "events", []) or []
     timelogs = getattr(note, "timelogs", []) or []
     normalized_content = " ".join(str(content).split())
     if len(normalized_content) > 80:
         normalized_content = f"{normalized_content[:77]}..."
     created_label = format_timestamp(created_at)
     status = "deleted" if deleted_at is not None else "active"
-    task_id = getattr(task, "id", "-") if task is not None else "-"
     note_id = getattr(note, "id", "-")
     return (
-        f"{note_id}\t{status}\t{created_label}\t{task_id}\t"
-        f"{len(people)}\t{len(timelogs)}\t{normalized_content}"
+        f"{note_id}\t{status}\t{created_label}\t{len(tasks)}\t{len(visions)}\t"
+        f"{len(events)}\t{len(people)}\t{len(timelogs)}\t{len(tags)}\t{normalized_content}"
     )
 
 
@@ -82,18 +84,26 @@ def format_note_detail(note: object) -> str:
     created_at = getattr(note, "created_at", None)
     updated_at = getattr(note, "updated_at", None)
     deleted_at = getattr(note, "deleted_at", None)
-    task = getattr(note, "task", None)
+    tags = getattr(note, "tags", []) or []
     people = getattr(note, "people", []) or []
+    tasks = getattr(note, "tasks", []) or []
+    visions = getattr(note, "visions", []) or []
+    events = getattr(note, "events", []) or []
     timelogs = getattr(note, "timelogs", []) or []
     status = "deleted" if deleted_at is not None else "active"
+    tag_names = ", ".join(getattr(tag, "name", str(getattr(tag, "id", tag))) for tag in tags)
     people_names = ", ".join(
         getattr(person, "name", str(getattr(person, "id", person))) for person in people
     )
-    task_label = "-"
-    if task is not None:
-        task_id = getattr(task, "id", "-")
-        task_content = getattr(task, "content", "-")
-        task_label = f"{task_id} | {task_content}"
+    task_labels = ", ".join(
+        f"{getattr(task, 'id', '-')} | {getattr(task, 'content', '-')}" for task in tasks
+    )
+    vision_labels = ", ".join(
+        f"{getattr(vision, 'id', '-')} | {getattr(vision, 'name', '-')}" for vision in visions
+    )
+    event_labels = ", ".join(
+        f"{getattr(event, 'id', '-')} | {getattr(event, 'title', '-')}" for event in events
+    )
     timelog_labels = ", ".join(
         f"{getattr(timelog, 'id', '-')} | {getattr(timelog, 'title', '-')}" for timelog in timelogs
     )
@@ -103,7 +113,10 @@ def format_note_detail(note: object) -> str:
         f"created_at: {format_timestamp(created_at)}",
         f"updated_at: {format_timestamp(updated_at)}",
         f"deleted_at: {format_timestamp(deleted_at)}",
-        f"task: {task_label}",
+        f"tags: {tag_names or '-'}",
+        f"tasks: {task_labels or '-'}",
+        f"visions: {vision_labels or '-'}",
+        f"events: {event_labels or '-'}",
         f"people: {people_names or '-'}",
         f"timelogs: {timelog_labels or '-'}",
         "content:",

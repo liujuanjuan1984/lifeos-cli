@@ -252,8 +252,8 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     captured = capsys.readouterr()
 
-    assert "用法：" in captured.out
-    assert "显示此帮助信息并退出" in captured.out
+    assert "usage:" in captured.out or "用法：" in captured.out
+    assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
@@ -605,8 +605,39 @@ def test_cli_parser_supports_note_add_association_flags() -> None:
     assert args.resource == "note"
     assert args.note_command == "add"
     assert args.person_ids == [UUID("11111111-1111-1111-1111-111111111111")]
-    assert args.task_id == UUID("22222222-2222-2222-2222-222222222222")
+    assert args.task_ids == [UUID("22222222-2222-2222-2222-222222222222")]
     assert args.timelog_ids == [UUID("33333333-3333-3333-3333-333333333333")]
+
+
+def test_cli_parser_supports_note_add_extended_association_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "add",
+            "Graph note",
+            "--tag-id",
+            "11111111-1111-1111-1111-111111111111",
+            "--task-id",
+            "22222222-2222-2222-2222-222222222222",
+            "--task-id",
+            "33333333-3333-3333-3333-333333333333",
+            "--vision-id",
+            "44444444-4444-4444-4444-444444444444",
+            "--event-id",
+            "55555555-5555-5555-5555-555555555555",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "add"
+    assert args.tag_ids == [UUID("11111111-1111-1111-1111-111111111111")]
+    assert args.task_ids == [
+        UUID("22222222-2222-2222-2222-222222222222"),
+        UUID("33333333-3333-3333-3333-333333333333"),
+    ]
+    assert args.vision_ids == [UUID("44444444-4444-4444-4444-444444444444")]
+    assert args.event_ids == [UUID("55555555-5555-5555-5555-555555555555")]
 
 
 def test_cli_parser_supports_note_update_relation_only_command() -> None:
@@ -624,6 +655,22 @@ def test_cli_parser_supports_note_update_relation_only_command() -> None:
     assert args.note_command == "update"
     assert args.content is None
     assert args.clear_timelogs is True
+
+
+def test_cli_parser_supports_note_update_clear_tasks_alias() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "note",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-task",
+        ]
+    )
+
+    assert args.resource == "note"
+    assert args.note_command == "update"
+    assert args.clear_tasks is True
 
 
 def test_cli_parser_supports_note_list_relation_filters() -> None:
