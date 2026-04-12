@@ -102,6 +102,12 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
 CI also runs the real CLI integration suite against an ephemeral PostgreSQL service through the
 same dedicated integration entrypoint.
 
+For one-time migration of legacy v1 data bundles after sparse habit-action materialization:
+
+```bash
+uv run python scripts/convert_bundle_v1_to_v2.py legacy-bundle.zip converted-bundle.zip
+```
+
 ## Project Policies
 
 - Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
