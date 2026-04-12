@@ -32,6 +32,8 @@ bash ./scripts/doctor.sh
 ```
 
 The default validation baseline includes dead-code scanning through `vulture`.
+It runs the default non-integration test suite directly and then calls
+`bash ./scripts/integration_tests.sh` as the explicit PostgreSQL-backed integration entrypoint.
 
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
@@ -40,6 +42,14 @@ rm -rf .venv && uv sync --all-extras --python 3.10 --frozen && .venv/bin/python 
 rm -rf .venv && uv sync --all-extras --python 3.11 --frozen && .venv/bin/python -m pytest
 rm -rf .venv && uv sync --all-extras --python 3.12 --frozen && .venv/bin/python -m pytest
 rm -rf .venv && uv sync --all-extras --python 3.13 --frozen && bash ./scripts/doctor.sh
+```
+
+To run the real CLI integration suite locally:
+
+```bash
+LIFEOS_RUN_INTEGRATION=1 \
+LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
+bash ./scripts/integration_tests.sh
 ```
 
 If you change dependency or release workflows, also run:

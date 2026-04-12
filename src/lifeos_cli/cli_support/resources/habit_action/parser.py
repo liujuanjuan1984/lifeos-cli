@@ -30,9 +30,14 @@ def build_habit_action_parser(
         help_content=HelpContent(
             summary=_("Manage dated habit actions"),
             description=(
-                _("Inspect and update dated habit-action rows generated from habits.")
+                _("Inspect and update dated habit-action occurrences materialized from habits.")
                 + "\n\n"
-                + _("Habit actions are generated automatically and are updated in place.")
+                + _("Habit actions are materialized on demand when queried or logged.")
+                + "\n\n"
+                + _(
+                    "Cadence-based habits still log dated rows, but progress and streaks are "
+                    "evaluated per configured cycle."
+                )
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
@@ -43,7 +48,8 @@ def build_habit_action_parser(
             ),
             notes=(
                 _("Use `list` for both per-habit and by-date views."),
-                _("Public CLI does not create or delete habit actions directly."),
+                _("Habit cadence decides how rows are grouped into completion cycles."),
+                _("Use `log` to materialize and update an occurrence by habit and date."),
             ),
         ),
     )
@@ -62,7 +68,7 @@ def build_habit_action_parser(
             description=(
                 _("List habit actions for one habit or by date/window filters.")
                 + "\n\n"
-                + _("Use this command to inspect daily execution records.")
+                + _("Use this command to inspect daily occurrence views and materialized records.")
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
@@ -117,7 +123,7 @@ def build_habit_action_parser(
         help_content=HelpContent(
             summary=_("Update a habit action"),
             description=(
-                _("Update a generated habit action.")
+                _("Update one materialized habit action.")
                 + "\n\n"
                 + _("This command only allows status and notes changes within the editable window.")
             ),
@@ -145,7 +151,7 @@ def build_habit_action_parser(
         help_content=HelpContent(
             summary=_("Update a habit action by date"),
             description=(
-                _("Update a generated habit action by habit identifier and action date.")
+                _("Materialize or update a habit action by habit identifier and action date.")
                 + "\n\n"
                 + _("Use this command when checking in without first looking up the action ID.")
             ),

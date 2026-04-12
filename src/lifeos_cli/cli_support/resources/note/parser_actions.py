@@ -285,7 +285,6 @@ def build_note_update_parser(
         help=_("Repeat to replace tasks with one or more identifiers"),
     )
     update_parser.add_argument(
-        "--clear-task",
         "--clear-tasks",
         dest="clear_tasks",
         action="store_true",

@@ -112,7 +112,7 @@ Current high-level domain roles:
 - `data`: canonical import/export, bundle backup, and batch operations
 - `schedule`: aggregated day and range read model
 - `timelog`: actual time records
-- `habit`: recurring intention that generates dated habit actions
+- `habit`: recurring intention with daily or weekly cadence semantics
 - `habit-action`: one dated habit execution row
 - `task`: execution unit with planning-cycle and hierarchy support
 - `vision`: longer-horizon outcome and experience container

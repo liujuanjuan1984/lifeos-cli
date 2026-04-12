@@ -33,13 +33,16 @@ def _resolve_test_database_url() -> str | None:
 RUN_INTEGRATION = os.environ.get("LIFEOS_RUN_INTEGRATION") == "1"
 TEST_DATABASE_URL = _resolve_test_database_url()
 
-INTEGRATION_PYTESTMARK = pytest.mark.skipif(
-    not RUN_INTEGRATION or TEST_DATABASE_URL is None,
-    reason=(
-        "set LIFEOS_RUN_INTEGRATION=1 and provide LIFEOS_TEST_DATABASE_URL "
-        "(or a configured lifeos database URL) to run real CLI integration tests"
+INTEGRATION_PYTESTMARK = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not RUN_INTEGRATION or TEST_DATABASE_URL is None,
+        reason=(
+            "set LIFEOS_RUN_INTEGRATION=1 and provide LIFEOS_TEST_DATABASE_URL "
+            "(or a configured lifeos database URL) to run real CLI integration tests"
+        ),
     ),
-)
+]
 
 
 @dataclass(frozen=True)

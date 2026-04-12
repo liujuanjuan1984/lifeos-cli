@@ -79,14 +79,22 @@ lifeos --help
    bash ./scripts/doctor.sh
    ```
 
-   该基线会覆盖 lint、死代码扫描以及默认单元测试套件。
+   该基线会覆盖 lint、死代码扫描以及默认的非 integration 测试套件。
 
-4. 有意识地使用仓库依赖管理工作流：
+4. 当你已经准备好 PostgreSQL 测试库时，显式运行真实 CLI integration tests：
+
+   ```bash
+   LIFEOS_RUN_INTEGRATION=1 \
+   LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
+   bash ./scripts/integration_tests.sh
+   ```
+
+5. 有意识地使用仓库依赖管理工作流：
 
    - `.github/dependabot.yml` 会为 `uv` 依赖更新创建单个、按周聚合的 PR。
    - `bash ./scripts/dependency_health.sh` 仍然是维护者显式执行的过期依赖与开发期漏洞审计流程。
 
-CI 还会基于临时 PostgreSQL 服务真实运行 CLI integration tests，而不是默认让这些测试保持 skip。
+CI 也会通过同一个独立入口，在临时 PostgreSQL 服务上真实运行 CLI integration tests。
 
 ## 项目策略
 

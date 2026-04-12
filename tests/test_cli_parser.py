@@ -223,6 +223,32 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     assert "Task rows come from planning-cycle overlap" in captured.out
 
 
+def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["event", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "monthly" in captured.out
+    assert "yearly" in captured.out
+    assert "shared cadence primitives" in captured.out
+
+
+def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "monthly" in captured.out
+    assert "yearly" in captured.out
+    assert "Read annual plan" in captured.out
+
+
 def test_cli_task_help_supports_zh_hans_locale(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -538,6 +564,25 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
     assert args.recurrence_count == 5
 
 
+def test_cli_parser_supports_event_monthly_recurrence_add_flags() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "event",
+            "add",
+            "Monthly review",
+            "--start-time",
+            "2026-04-30T16:00:00-04:00",
+            "--recurrence-frequency",
+            "monthly",
+        ]
+    )
+
+    assert args.resource == "event"
+    assert args.event_command == "add"
+    assert args.recurrence_frequency == "monthly"
+
+
 def test_cli_parser_supports_event_type_flags() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -657,14 +702,14 @@ def test_cli_parser_supports_note_update_relation_only_command() -> None:
     assert args.clear_timelogs is True
 
 
-def test_cli_parser_supports_note_update_clear_tasks_alias() -> None:
+def test_cli_parser_supports_note_update_clear_tasks_flag() -> None:
     parser = build_parser()
     args = parser.parse_args(
         [
             "note",
             "update",
             "11111111-1111-1111-1111-111111111111",
-            "--clear-task",
+            "--clear-tasks",
         ]
     )
 
@@ -1104,6 +1149,56 @@ def test_cli_parser_supports_habit_add_command() -> None:
     assert args.duration_days == 21
 
 
+def test_cli_parser_supports_habit_add_weekly_cadence_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Call Parents",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "100",
+            "--cadence-frequency",
+            "weekly",
+            "--weekends-only",
+            "--target-per-week",
+            "1",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.cadence_frequency == "weekly"
+    assert args.weekends_only is True
+    assert args.target_per_cycle == 1
+
+
+def test_cli_parser_supports_habit_add_monthly_cadence_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "add",
+            "Monthly cleanup",
+            "--start-date",
+            "2026-04-09",
+            "--duration-days",
+            "365",
+            "--cadence-frequency",
+            "monthly",
+            "--target-per-cycle",
+            "2",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "add"
+    assert args.cadence_frequency == "monthly"
+    assert args.target_per_cycle == 2
+
+
 def test_cli_parser_supports_habit_list_count_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["habit", "list", "--status", "active", "--count"])
@@ -1129,6 +1224,23 @@ def test_cli_parser_supports_habit_update_clear_task_command() -> None:
     assert args.habit_command == "update"
     assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
     assert args.clear_task is True
+
+
+def test_cli_parser_supports_habit_update_clear_weekdays_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-weekdays",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "update"
+    assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_weekdays is True
 
 
 def test_cli_parser_supports_habit_action_list_by_date_command() -> None:

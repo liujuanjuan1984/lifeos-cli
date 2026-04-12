@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 from uuid import UUID
@@ -10,6 +11,12 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.services import data_ops
+
+
+class FakeBatchSession:
+    @asynccontextmanager
+    async def begin_nested(self):
+        yield self
 
 
 def test_batch_update_resource_parses_typed_timelog_fields(
@@ -24,7 +31,7 @@ def test_batch_update_resource_parses_typed_timelog_fields(
 
     report = asyncio.run(
         data_ops.batch_update_resource(
-            cast(AsyncSession, object()),
+            cast(AsyncSession, FakeBatchSession()),
             resource="timelog",
             rows=[
                 {
@@ -62,7 +69,7 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
 
     report = asyncio.run(
         data_ops.batch_update_resource(
-            cast(AsyncSession, object()),
+            cast(AsyncSession, FakeBatchSession()),
             resource="note",
             rows=[
                 {
@@ -90,6 +97,60 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
     assert captured["vision_ids"] == [UUID("55555555-5555-5555-5555-555555555555")]
     assert captured["event_ids"] == [UUID("66666666-6666-6666-6666-666666666666")]
     assert captured["timelog_ids"] == [UUID("77777777-7777-7777-7777-777777777777")]
+
+
+def test_batch_update_note_rejects_legacy_single_task_field() -> None:
+    report = asyncio.run(
+        data_ops.batch_update_resource(
+            cast(AsyncSession, FakeBatchSession()),
+            resource="note",
+            rows=[
+                {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "task_id": "33333333-3333-3333-3333-333333333333",
+                }
+            ],
+        )
+    )
+
+    assert report.updated_count == 0
+    assert report.failed_count == 1
+    assert report.failures[0].message.endswith(
+        "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+    )
+
+
+def test_batch_update_resource_reports_attempted_rows_on_stopping_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    call_count = 0
+
+    async def fake_update(session: object, **kwargs: object) -> None:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:
+            raise ValueError("boom")
+
+    monkeypatch.setitem(data_ops.UPDATE_OPERATIONS, "tag", fake_update)
+
+    report = asyncio.run(
+        data_ops.batch_update_resource(
+            cast(AsyncSession, FakeBatchSession()),
+            resource="tag",
+            rows=[
+                {"id": "11111111-1111-1111-1111-111111111111", "name": "alpha"},
+                {"id": "22222222-2222-2222-2222-222222222222", "name": "beta"},
+                {"id": "33333333-3333-3333-3333-333333333333", "name": "gamma"},
+            ],
+            continue_on_error=False,
+        )
+    )
+
+    assert call_count == 2
+    assert report.processed_count == 2
+    assert report.updated_count == 1
+    assert report.failed_count == 1
+    assert report.failures[0].index == 2
 
 
 def test_import_bundle_applies_base_rows_before_relations(
@@ -151,4 +212,16 @@ def test_read_bundle_rejects_missing_manifest(tmp_path: Path) -> None:
         archive.writestr("note.jsonl", '{"id":"11111111-1111-1111-1111-111111111111"}\n')
 
     with pytest.raises(data_ops.DataOperationError, match="manifest.json"):
+        data_ops.read_bundle(bundle_path)
+
+
+def test_read_bundle_rejects_legacy_schema_version(tmp_path: Path) -> None:
+    bundle_path = tmp_path / "legacy-bundle.zip"
+    with ZipFile(bundle_path, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("manifest.json", '{"schema_version": 1}\n')
+
+    with pytest.raises(
+        data_ops.DataOperationError,
+        match="Older bundle schemas are not supported after sparse habit-action materialization",
+    ):
         data_ops.read_bundle(bundle_path)

@@ -2,19 +2,36 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.time_preferences import get_current_week_bounds, get_operational_date
+from lifeos_cli.application.time_preferences import (
+    get_current_week_bounds,
+    get_day_start_time,
+    get_operational_date,
+    get_preferred_timezone,
+)
+from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.base import utc_now
+from lifeos_cli.db.services.recurrence_core import (
+    VALID_WEEKDAY_NAMES,
+    RecurrenceValidationError,
+    SeriesDefinition,
+    build_series_definition,
+    get_cycle_date_bounds,
+    get_occurrence_starts_in_range,
+    normalize_recurrence_frequency,
+    normalize_weekday_names,
+)
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.habit import Habit
-    from lifeos_cli.db.models.habit_action import HabitAction
 
 VALID_HABIT_STATUSES = {"active", "completed", "paused", "expired"}
 HABIT_ACTION_STATUS_CONFIG = {
@@ -45,6 +62,7 @@ HABIT_ACTION_STATUS_CONFIG = {
 }
 VALID_HABIT_ACTION_STATUSES = set(HABIT_ACTION_STATUS_CONFIG)
 HABIT_DURATION_OPTIONS = {7, 14, 21, 100, 365, 1000}
+WEEKEND_HABIT_WEEKDAYS = ("saturday", "sunday")
 HABIT_EDITABLE_DAYS = 10000
 MAX_ACTIVE_HABITS = 99
 DEFAULT_HABIT_ACTION_WINDOW_DAYS = 5
@@ -69,6 +87,28 @@ class HabitValidationError(ValueError):
 
 class InvalidHabitOperationError(ValueError):
     """Raised when a habit operation is not allowed."""
+
+
+@dataclass(frozen=True)
+class HabitCycleSummary:
+    """Derived summary for one habit cadence cycle."""
+
+    start_date: date
+    end_date: date
+    completed_count: int
+    required_completion_count: int
+
+    @property
+    def is_complete(self) -> bool:
+        """Return whether the cycle reached its completion target."""
+        return self.completed_count >= self.required_completion_count
+
+
+class HabitActionLike(Protocol):
+    """Structural occurrence shape used by habit stats helpers."""
+
+    action_date: date
+    status: str
 
 
 def deduplicate_habit_ids(habit_ids: list[UUID]) -> list[UUID]:
@@ -123,6 +163,268 @@ def validate_habit_start_date(start_date: date) -> date:
             f"Start date cannot be more than {HABIT_EDITABLE_DAYS} days in the past"
         )
     return start_date
+
+
+def normalize_habit_weekdays(weekdays: Sequence[str] | None) -> tuple[str, ...] | None:
+    """Normalize an optional weekday selection."""
+    try:
+        return normalize_weekday_names(weekdays)
+    except RecurrenceValidationError as exc:
+        raise HabitValidationError(str(exc)) from exc
+
+
+def validate_habit_cadence(
+    *,
+    cadence_frequency: str | None,
+    cadence_weekdays: Sequence[str] | None,
+    target_per_cycle: int | None,
+) -> tuple[str, tuple[str, ...] | None, int]:
+    """Validate cadence fields and normalize defaults."""
+    try:
+        normalized_frequency = (
+            "daily"
+            if cadence_frequency is None
+            else normalize_recurrence_frequency(cadence_frequency)
+        )
+    except RecurrenceValidationError as exc:
+        raise HabitValidationError(str(exc)) from exc
+    normalized_weekdays = normalize_habit_weekdays(cadence_weekdays)
+    normalized_target = 1 if target_per_cycle is None else target_per_cycle
+    if normalized_target <= 0:
+        raise HabitValidationError("target_per_cycle must be greater than zero")
+
+    if normalized_frequency == "daily":
+        if normalized_target != 1:
+            raise HabitValidationError(
+                "Daily cadence only supports target_per_cycle 1. "
+                "Use weekly cadence for quota-based habits."
+            )
+    if normalized_frequency == "weekly":
+        max_cycle_capacity = len(normalized_weekdays) if normalized_weekdays else 7
+        if normalized_target > max_cycle_capacity:
+            raise HabitValidationError(
+                f"target_per_cycle {normalized_target!r} exceeds the cadence "
+                f"capacity {max_cycle_capacity}."
+            )
+    if normalized_frequency == "daily" and normalized_weekdays is not None:
+        raise HabitValidationError(
+            "Daily cadence does not accept weekday restrictions. "
+            "Use weekly or longer cycles instead."
+        )
+    return normalized_frequency, normalized_weekdays, normalized_target
+
+
+def _habit_anchor_datetime(reference_date: date) -> datetime:
+    preferred_timezone = get_preferred_timezone()
+    return datetime.combine(reference_date, get_day_start_time(), tzinfo=preferred_timezone)
+
+
+def _build_habit_series_definition(
+    *,
+    start_date: date,
+    cadence_frequency: str,
+    cadence_weekdays: Sequence[str] | None,
+    target_per_cycle: int,
+) -> SeriesDefinition:
+    return build_series_definition(
+        anchor_start=_habit_anchor_datetime(start_date),
+        anchor_end=None,
+        frequency="daily",
+        byweekday=cadence_weekdays,
+        week_starts_on=get_preferences_settings().week_starts_on,
+        evaluation_mode=(
+            "per_occurrence"
+            if cadence_frequency == "daily" and target_per_cycle == 1
+            else "quota_per_cycle"
+        ),
+        cycle_frequency=cadence_frequency,
+        target_per_cycle=target_per_cycle,
+    )
+
+
+def get_habit_cycle_bounds(
+    *,
+    action_date: date,
+    cadence_frequency: str,
+) -> tuple[date, date]:
+    """Return cadence cycle bounds for one scheduled action date."""
+    try:
+        return get_cycle_date_bounds(
+            reference_date=action_date,
+            cycle_frequency=cadence_frequency,
+            week_starts_on=get_preferences_settings().week_starts_on,
+        )
+    except RecurrenceValidationError as exc:
+        raise HabitValidationError(str(exc)) from exc
+
+
+def iter_habit_scheduled_dates(
+    *,
+    start_date: date,
+    end_date: date,
+    cadence_frequency: str,
+    cadence_weekdays: Sequence[str] | None,
+) -> list[date]:
+    """Return scheduled habit-action dates for the requested window."""
+    normalized_frequency, normalized_weekdays, normalized_target = validate_habit_cadence(
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        target_per_cycle=1,
+    )
+    series = _build_habit_series_definition(
+        start_date=start_date,
+        cadence_frequency=normalized_frequency,
+        cadence_weekdays=normalized_weekdays,
+        target_per_cycle=normalized_target,
+    )
+    window_start = _habit_anchor_datetime(start_date)
+    window_end = _habit_anchor_datetime(end_date + timedelta(days=1)) - timedelta(microseconds=1)
+    return [
+        occurrence_start.astimezone(get_preferred_timezone()).date()
+        for occurrence_start in get_occurrence_starts_in_range(
+            series,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    ]
+
+
+def habit_occurs_on_date(
+    *,
+    start_date: date,
+    end_date: date,
+    cadence_weekdays: Sequence[str] | None,
+    target_date: date,
+) -> bool:
+    """Return whether one habit schedules an occurrence on the requested date."""
+    if target_date < start_date or target_date > end_date:
+        return False
+    normalized_weekdays = normalize_habit_weekdays(cadence_weekdays)
+    if normalized_weekdays is None:
+        return True
+    weekday_name = VALID_WEEKDAY_NAMES[target_date.weekday()]
+    return weekday_name in normalized_weekdays
+
+
+def validate_habit_schedule_window(
+    *,
+    start_date: date,
+    end_date: date,
+    cadence_frequency: str,
+    cadence_weekdays: Sequence[str] | None,
+) -> None:
+    """Ensure one habit definition produces at least one scheduled date."""
+    desired_dates = iter_habit_scheduled_dates(
+        start_date=start_date,
+        end_date=end_date,
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+    )
+    if desired_dates:
+        return
+    raise InvalidHabitOperationError(
+        "Habit cadence does not produce any scheduled action dates inside the requested window."
+    )
+
+
+def build_habit_cycle_summaries(
+    habit: Habit,
+    actions: Sequence[HabitActionLike],
+) -> list[HabitCycleSummary]:
+    """Build cadence-cycle summaries for one habit."""
+    cadence_frequency, cadence_weekdays, target_per_cycle = validate_habit_cadence(
+        cadence_frequency=getattr(habit, "cadence_frequency", None),
+        cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+        target_per_cycle=getattr(habit, "target_per_cycle", None),
+    )
+    series = _build_habit_series_definition(
+        start_date=habit.start_date,
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        target_per_cycle=target_per_cycle,
+    )
+    actions_by_cycle: dict[date, list[HabitActionLike]] = {}
+    for action in sorted(actions, key=lambda row: row.action_date):
+        cycle_start, _ = get_habit_cycle_bounds(
+            action_date=action.action_date,
+            cadence_frequency=series.evaluation.cycle_frequency,
+        )
+        actions_by_cycle.setdefault(cycle_start, []).append(action)
+
+    summaries: list[HabitCycleSummary] = []
+    for cycle_start in sorted(actions_by_cycle):
+        cycle_actions = actions_by_cycle[cycle_start]
+        _, cycle_end = get_habit_cycle_bounds(
+            action_date=cycle_actions[0].action_date,
+            cadence_frequency=series.evaluation.cycle_frequency,
+        )
+        completed_count = len(
+            [
+                action
+                for action in cycle_actions
+                if HABIT_ACTION_STATUS_CONFIG.get(action.status, {}).get(
+                    "count_as_completed",
+                    False,
+                )
+            ]
+        )
+        required_completion_count = min(target_per_cycle, len(cycle_actions))
+        summaries.append(
+            HabitCycleSummary(
+                start_date=cycle_start,
+                end_date=cycle_end,
+                completed_count=completed_count,
+                required_completion_count=required_completion_count,
+            )
+        )
+    return summaries
+
+
+def _count_streak_cycles(cycles: Sequence[HabitCycleSummary], *, today: date) -> int:
+    streak = 0
+    for cycle in reversed(cycles):
+        if cycle.start_date > today:
+            continue
+        if cycle.end_date > today and not cycle.is_complete:
+            continue
+        if cycle.is_complete:
+            streak += 1
+            continue
+        break
+    return streak
+
+
+def calculate_current_streak(
+    actions: Sequence[HabitActionLike],
+    *,
+    habit: Habit,
+) -> int:
+    """Return the current streak of completed cadence cycles."""
+    cycles = build_habit_cycle_summaries(habit, actions)
+    return _count_streak_cycles(cycles, today=get_operational_date())
+
+
+def calculate_longest_streak(
+    actions: Sequence[HabitActionLike],
+    *,
+    habit: Habit,
+) -> int:
+    """Return the longest historical streak of completed cadence cycles."""
+    today = get_operational_date()
+    cycles = build_habit_cycle_summaries(habit, actions)
+    max_streak = 0
+    current_streak = 0
+    for cycle in cycles:
+        if cycle.start_date > today:
+            continue
+        if cycle.end_date > today and not cycle.is_complete:
+            continue
+        if cycle.is_complete:
+            current_streak += 1
+            max_streak = max(max_streak, current_streak)
+        else:
+            current_streak = 0
+    return max_streak
 
 
 async def ensure_task_exists(session: AsyncSession, task_id: UUID | None) -> None:
@@ -186,9 +488,34 @@ async def refresh_habit_expiration(
     return int(0 if rowcount is None else rowcount)
 
 
-def build_habit_stats_payload(habit: Habit, actions: list[HabitAction]) -> dict[str, object]:
+def build_habit_stats_payload(
+    habit: Habit,
+    actions: Sequence[HabitActionLike],
+) -> dict[str, object]:
     """Build stats shared by overview, show, and stats commands."""
     current_week_start, current_week_end = get_current_week_bounds()
+    cadence_frequency, cadence_weekdays, target_per_cycle = validate_habit_cadence(
+        cadence_frequency=getattr(habit, "cadence_frequency", None),
+        cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+        target_per_cycle=getattr(habit, "target_per_cycle", None),
+    )
+    series = _build_habit_series_definition(
+        start_date=habit.start_date,
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        target_per_cycle=target_per_cycle,
+    )
+    cycle_summaries = build_habit_cycle_summaries(habit, actions)
+    today = get_operational_date()
+    eligible_cycles = [cycle for cycle in cycle_summaries if cycle.start_date <= today]
+    completed_cycles = [cycle for cycle in eligible_cycles if cycle.is_complete]
+    progress_percentage = (
+        (len(completed_cycles) / len(eligible_cycles)) * 100 if eligible_cycles else 0.0
+    )
+    current_cycle_start, current_cycle_end = get_habit_cycle_bounds(
+        action_date=today,
+        cadence_frequency=series.evaluation.cycle_frequency,
+    )
     total_actions = len(actions)
     completed_actions = len(
         [
@@ -199,43 +526,23 @@ def build_habit_stats_payload(habit: Habit, actions: list[HabitAction]) -> dict[
     )
     missed_actions = len([action for action in actions if action.status == "miss"])
     skipped_actions = len([action for action in actions if action.status == "skip"])
-    progress_percentage = (completed_actions / total_actions) * 100 if total_actions else 0.0
     return {
         "habit_id": habit.id,
+        "cadence_frequency": cadence_frequency,
+        "cadence_weekdays": cadence_weekdays,
+        "target_per_cycle": target_per_cycle,
         "total_actions": total_actions,
         "completed_actions": completed_actions,
         "missed_actions": missed_actions,
         "skipped_actions": skipped_actions,
+        "total_cycles": len(cycle_summaries),
+        "eligible_cycles": len(eligible_cycles),
+        "completed_cycles": len(completed_cycles),
         "progress_percentage": progress_percentage,
-        "current_streak": calculate_current_streak(actions),
-        "longest_streak": calculate_longest_streak(actions),
+        "current_streak": calculate_current_streak(actions, habit=habit),
+        "longest_streak": calculate_longest_streak(actions, habit=habit),
+        "current_cycle_start": current_cycle_start,
+        "current_cycle_end": current_cycle_end,
         "current_week_start": current_week_start,
         "current_week_end": current_week_end,
     }
-
-
-def calculate_current_streak(actions: list[HabitAction]) -> int:
-    """Return the current streak of completed actions."""
-    streak = 0
-    today = get_operational_date()
-    for action in sorted(actions, key=lambda row: row.action_date, reverse=True):
-        if action.action_date > today:
-            continue
-        if action.status == "done":
-            streak += 1
-            continue
-        break
-    return streak
-
-
-def calculate_longest_streak(actions: list[HabitAction]) -> int:
-    """Return the longest historical streak of completed actions."""
-    max_streak = 0
-    current_streak = 0
-    for action in sorted(actions, key=lambda row: row.action_date):
-        if action.status == "done":
-            current_streak += 1
-            max_streak = max(max_streak, current_streak)
-        else:
-            current_streak = 0
-    return max_streak

@@ -71,7 +71,7 @@ jobs:
         run: uv sync --all-extras --frozen
 
       - name: Run runtime regression tests
-        run: uv run pytest
+        run: uv run pytest -m "not integration"
 
   integration-postgres:
     name: Validate CLI Integration (PostgreSQL)
@@ -113,4 +113,4 @@ jobs:
         env:
           LIFEOS_RUN_INTEGRATION: "1"
           LIFEOS_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/lifeos_test # pragma: allowlist secret
-        run: uv run pytest tests/test_cli_integration_*.py
+        run: bash ./scripts/integration_tests.sh

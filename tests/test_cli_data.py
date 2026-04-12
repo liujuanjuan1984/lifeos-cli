@@ -107,7 +107,7 @@ def test_main_data_import_bundle_uses_atomic_restore(
     def fake_read_bundle(path: Path) -> data_ops.BundlePayload:
         assert path == Path("backup.zip")
         return data_ops.BundlePayload(
-            manifest={"schema_version": 1},
+            manifest={"schema_version": 2},
             resources={"note": [{"id": "11111111-1111-1111-1111-111111111111"}]},
         )
 
@@ -290,8 +290,24 @@ def test_main_data_batch_update_records_lookup_failures_without_crashing(
         *,
         resource: str,
         rows: list[dict[str, object]],
+        continue_on_error: bool = False,
     ) -> data_ops.DataBatchUpdateReport:
-        raise LookupError("Unknown tag IDs for entity type person: missing-tag")
+        assert continue_on_error is False
+        return data_ops.DataBatchUpdateReport(
+            resource=resource,
+            processed_count=len(rows),
+            updated_count=0,
+            failed_count=1,
+            failures=(
+                data_ops.DataOperationFailure(
+                    index=1,
+                    resource=resource,
+                    message="Unknown tag IDs for entity type person: missing-tag",
+                    payload=rows[0],
+                    record_id=UUID("11111111-1111-1111-1111-111111111111"),
+                ),
+            ),
+        )
 
     monkeypatch.setattr(
         db_session,

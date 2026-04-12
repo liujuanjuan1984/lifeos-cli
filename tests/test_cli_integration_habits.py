@@ -58,6 +58,24 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
     assert_ok(second_habit_result)
     second_habit_id = extract_created_id(second_habit_result.stdout)
 
+    weekly_habit_result = run_lifeos(
+        integration_context,
+        "habit",
+        "add",
+        "Call Parents",
+        "--start-date",
+        "2026-04-09",
+        "--duration-days",
+        "100",
+        "--cadence-frequency",
+        "weekly",
+        "--weekends-only",
+        "--target-per-week",
+        "1",
+    )
+    assert_ok(weekly_habit_result)
+    weekly_habit_id = extract_created_id(weekly_habit_result.stdout)
+
     habit_list_result = run_lifeos(integration_context, "habit", "list", "--with-stats")
     assert_ok(habit_list_result)
     assert first_habit_id in habit_list_result.stdout
@@ -67,6 +85,13 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
     assert_ok(habit_show_result)
     assert f"id: {first_habit_id}" in habit_show_result.stdout
     assert "total_actions: 21" in habit_show_result.stdout
+
+    weekly_habit_show_result = run_lifeos(integration_context, "habit", "show", weekly_habit_id)
+    assert_ok(weekly_habit_show_result)
+    assert f"id: {weekly_habit_id}" in weekly_habit_show_result.stdout
+    assert "cadence_frequency: weekly" in weekly_habit_show_result.stdout
+    assert "cadence_weekdays: saturday,sunday" in weekly_habit_show_result.stdout
+    assert "target_per_cycle: 1" in weekly_habit_show_result.stdout
 
     task_association_result = run_lifeos(
         integration_context,
@@ -154,6 +179,18 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
     assert_ok(action_date_result)
     assert action_id in action_date_result.stdout
 
+    weekly_action_list_result = run_lifeos(
+        integration_context,
+        "habit-action",
+        "list",
+        "--habit-id",
+        weekly_habit_id,
+    )
+    assert_ok(weekly_action_list_result)
+    assert "2026-04-11" in weekly_action_list_result.stdout
+    assert "2026-04-12" in weekly_action_list_result.stdout
+    assert "2026-04-10" not in weekly_action_list_result.stdout
+
     habit_delete_result = run_lifeos(integration_context, "habit", "delete", first_habit_id)
     assert_ok(habit_delete_result)
     assert f"Soft-deleted habit {first_habit_id}" in habit_delete_result.stdout
@@ -165,12 +202,14 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
         "delete",
         "--ids",
         second_habit_id,
+        weekly_habit_id,
     )
     assert_ok(habit_batch_delete_result)
-    assert "Deleted habits: 1" in habit_batch_delete_result.stdout
+    assert "Deleted habits: 2" in habit_batch_delete_result.stdout
 
     deleted_habit_result = run_lifeos(integration_context, "habit", "list", "--include-deleted")
     assert_ok(deleted_habit_result)
     assert first_habit_id in deleted_habit_result.stdout
     assert second_habit_id in deleted_habit_result.stdout
+    assert weekly_habit_id in deleted_habit_result.stdout
     assert "deleted" in deleted_habit_result.stdout

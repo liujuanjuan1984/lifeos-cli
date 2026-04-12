@@ -10,12 +10,13 @@ from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
+from lifeos_cli.db.services.read_models import HabitActionView
 
 
-def _format_habit_action_summary(action: HabitAction) -> str:
+def _format_habit_action_summary(action: HabitActionView) -> str:
     status = "deleted" if action.deleted_at is not None else action.status
-    habit_title = action.habit.title if action.habit is not None else "-"
-    return f"{action.id}\t{status}\t{action.action_date}\t{action.habit_id}\t{habit_title}"
+    action_id = "-" if action.id is None else str(action.id)
+    return f"{action_id}\t{status}\t{action.action_date}\t{action.habit_id}\t{action.habit_title}"
 
 
 def _format_habit_action_detail(action: HabitAction) -> str:

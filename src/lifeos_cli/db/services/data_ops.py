@@ -65,6 +65,7 @@ SUPPORTED_DATA_RESOURCES = (
     "note",
 )
 BUNDLE_RESOURCE_ORDER = SUPPORTED_DATA_RESOURCES
+BUNDLE_SCHEMA_VERSION = 2
 
 
 class DataOperationError(RuntimeError):
@@ -366,15 +367,10 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         or (resource == "note" and "person_ids" in payload)
         else None
     )
-    legacy_note_task_ids = (
-        ([] if payload.get("task_id") is None else [UUID(str(payload["task_id"]))])
-        if resource == "note" and "task_id" in payload
-        else None
-    )
     note_task_ids = (
         _parse_person_ids(payload["task_ids"])
         if resource == "note" and "task_ids" in payload
-        else legacy_note_task_ids
+        else None
     )
     note_vision_ids = (
         _parse_person_ids(payload["vision_ids"])
@@ -823,11 +819,8 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
         if field == "person_ids":
             normalized[field] = None if value is None else _parse_person_ids(value)
             continue
-        if field in {"task_id", "task_ids", "vision_ids", "event_ids"} and resource == "note":
-            if field == "task_id":
-                normalized[field] = None if value is None else UUID(str(value))
-            else:
-                normalized[field] = None if value is None else _parse_person_ids(value)
+        if field in {"task_ids", "vision_ids", "event_ids"} and resource == "note":
+            normalized[field] = None if value is None else _parse_person_ids(value)
             continue
         if field == "timelog_ids" and resource == "note":
             normalized[field] = None if value is None else _parse_person_ids(value)
@@ -932,11 +925,21 @@ def _batch_update_task_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _batch_update_habit_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     kwargs: dict[str, Any] = {"habit_id": UUID(str(payload["id"]))}
-    for field in ("title", "start_date", "duration_days", "status"):
+    for field in (
+        "title",
+        "start_date",
+        "duration_days",
+        "cadence_frequency",
+        "cadence_weekdays",
+        "target_per_cycle",
+        "status",
+    ):
         if field in payload:
             kwargs[field] = payload[field]
     kwargs.update(_null_means_clear(payload, field="description", clear_flag="clear_description"))
     kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    if "cadence_weekdays" in payload and payload["cadence_weekdays"] is None:
+        kwargs["clear_weekdays"] = True
     return kwargs
 
 
@@ -997,28 +1000,15 @@ def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         kwargs["content"] = payload["content"]
     kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
     kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
-    if "task_id" in payload and "task_ids" in payload:
-        raise DataOperationError("Note batch update accepts `task_id` or `task_ids`, not both.")
     if "task_ids" in payload:
         kwargs.update(_null_means_clear(payload, field="task_ids", clear_flag="clear_tasks"))
-    else:
-        kwargs.update(
-            _null_means_clear(
-                payload,
-                field="task_id",
-                target_field="task_ids",
-                clear_flag="clear_tasks",
-            )
-        )
-        if "task_id" in payload and payload["task_id"] is not None:
-            kwargs["task_ids"] = [payload["task_id"]]
     kwargs.update(_null_means_clear(payload, field="vision_ids", clear_flag="clear_visions"))
     kwargs.update(_null_means_clear(payload, field="event_ids", clear_flag="clear_events"))
     kwargs.update(_null_means_clear(payload, field="timelog_ids", clear_flag="clear_timelogs"))
     if len(kwargs) == 1:
         raise DataOperationError(
             "Note batch update requires at least one of `content`, `tag_ids`, `person_ids`, "
-            "`task_id`, `task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+            "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
         )
     return kwargs
 
@@ -1067,21 +1057,25 @@ async def batch_update_resource(
     *,
     resource: str,
     rows: list[dict[str, Any]],
+    continue_on_error: bool = False,
 ) -> DataBatchUpdateReport:
     """Apply batch updates for one resource using domain services."""
     if resource not in UPDATE_OPERATIONS:
         raise DataOperationError(f"Resource {resource!r} does not support batch update.")
     failures: list[DataOperationFailure] = []
+    processed_count = 0
     updated_count = 0
     build_kwargs = UPDATE_KWARGS_BUILDERS[resource]
     operation = UPDATE_OPERATIONS[resource]
 
     for index, row in enumerate(rows, start=1):
+        processed_count = index
         try:
-            kwargs = build_kwargs(_normalize_patch_payload(resource, row))
-            await operation(session, **kwargs)
+            async with session.begin_nested():
+                kwargs = build_kwargs(_normalize_patch_payload(resource, row))
+                await operation(session, **kwargs)
             updated_count += 1
-        except Exception as exc:  # noqa: BLE001
+        except (DataOperationError, LookupError, ValueError) as exc:
             failures.append(
                 DataOperationFailure(
                     index=index,
@@ -1091,11 +1085,12 @@ async def batch_update_resource(
                     record_id=(UUID(str(row["id"])) if "id" in row else None),
                 )
             )
-            raise
+            if not continue_on_error:
+                break
 
     return DataBatchUpdateReport(
         resource=resource,
-        processed_count=len(rows),
+        processed_count=processed_count,
         updated_count=updated_count,
         failed_count=len(failures),
         failures=tuple(failures),
@@ -1206,7 +1201,7 @@ async def run_post_import_hooks(session: AsyncSession, *, resources: set[str]) -
 def _bundle_manifest(resource_counts: dict[str, int]) -> dict[str, Any]:
     preferences = get_preferences_settings()
     return {
-        "schema_version": 1,
+        "schema_version": BUNDLE_SCHEMA_VERSION,
         "exported_at": datetime.now().astimezone().isoformat(),
         "app_version": _get_app_version(),
         "database_schema": get_database_settings().database_schema,
@@ -1254,9 +1249,12 @@ def read_bundle(path: Path) -> BundlePayload:
             if not isinstance(manifest, dict):
                 raise DataOperationError("Bundle manifest must be a JSON object.")
             schema_version = manifest.get("schema_version")
-            if schema_version != 1:
+            if schema_version != BUNDLE_SCHEMA_VERSION:
                 raise DataOperationError(
-                    f"Unsupported bundle schema version {schema_version!r}. Expected 1."
+                    "Unsupported bundle schema version "
+                    f"{schema_version!r}. Expected {BUNDLE_SCHEMA_VERSION}. "
+                    "Older bundle schemas are not supported after sparse habit-action "
+                    "materialization."
                 )
             for resource in BUNDLE_RESOURCE_ORDER:
                 entry_name = f"{resource}.jsonl"

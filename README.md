@@ -84,15 +84,23 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
    bash ./scripts/doctor.sh
    ```
 
-   This baseline includes linting, dead-code scanning, and the default unit test suite.
+   This baseline includes linting, dead-code scanning, and the default non-integration test suite.
 
-4. Use the repository dependency workflows intentionally:
+4. Run the real CLI integration suite explicitly when you have a PostgreSQL test database:
+
+   ```bash
+   LIFEOS_RUN_INTEGRATION=1 \
+   LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
+   bash ./scripts/integration_tests.sh
+   ```
+
+5. Use the repository dependency workflows intentionally:
 
    - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
    - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dev vulnerability review.
 
-CI also runs the real CLI integration suite against an ephemeral PostgreSQL service instead of
-leaving those tests skipped by default.
+CI also runs the real CLI integration suite against an ephemeral PostgreSQL service through the
+same dedicated integration entrypoint.
 
 ## Project Policies
 

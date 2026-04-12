@@ -8,12 +8,12 @@ from uuid import UUID
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
-from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
+from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
+from lifeos_cli.db.services.read_models import HabitActionView
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class ScheduleTaskItem:
 class ScheduleHabitActionItem:
     """Habit-action item included in a schedule day."""
 
-    id: UUID
+    id: UUID | None
     habit_id: UUID
     habit_title: str
     action_date: date
@@ -111,18 +111,13 @@ async def _load_schedule_habit_actions(
     *,
     start_date: date,
     end_date: date,
-) -> list[HabitAction]:
-    stmt = (
-        select(HabitAction)
-        .options(selectinload(HabitAction.habit))
-        .where(
-            HabitAction.deleted_at.is_(None),
-            HabitAction.action_date >= start_date,
-            HabitAction.action_date <= end_date,
-        )
-        .order_by(HabitAction.action_date.asc(), HabitAction.id.asc())
+) -> list[HabitActionView]:
+    return await list_habit_actions_in_range(
+        session,
+        start_date=start_date,
+        end_date=end_date,
+        include_deleted=False,
     )
-    return list((await session.execute(stmt)).scalars())
 
 
 async def _load_schedule_events(
@@ -156,12 +151,11 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
     )
 
 
-def _map_habit_action_item(action: HabitAction) -> ScheduleHabitActionItem:
-    assert action.habit is not None
+def _map_habit_action_item(action: HabitActionView) -> ScheduleHabitActionItem:
     return ScheduleHabitActionItem(
         id=action.id,
         habit_id=action.habit_id,
-        habit_title=action.habit.title,
+        habit_title=action.habit_title,
         action_date=action.action_date,
         status=action.status,
         notes=action.notes,
