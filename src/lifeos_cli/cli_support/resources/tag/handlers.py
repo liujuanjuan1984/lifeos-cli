@@ -8,19 +8,17 @@ import sys
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services import tags as tag_services
+from lifeos_cli.db.services.read_models import TagView
 
 
-def _format_tag_summary(tag: Tag) -> str:
+def _format_tag_summary(tag: TagView) -> str:
     status = "deleted" if tag.deleted_at is not None else "active"
     return f"{tag.id}\t{status}\t{tag.entity_type}\t{tag.category}\t{tag.name}"
 
 
-def _format_tag_detail(tag: Tag) -> str:
-    people_names = (
-        ", ".join(person.name for person in tag.people) if getattr(tag, "people", None) else "-"
-    )
+def _format_tag_detail(tag: TagView) -> str:
+    people_names = ", ".join(person.name for person in tag.people) if tag.people else "-"
     return "\n".join(
         (
             f"id: {tag.id}",

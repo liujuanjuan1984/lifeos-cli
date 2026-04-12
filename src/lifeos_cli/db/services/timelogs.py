@@ -25,6 +25,7 @@ from lifeos_cli.db.services.batching import (
 from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.read_models import TimelogView, build_timelog_view
 from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
 from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby_area_after_change
 from lifeos_cli.db.services.timelog_support import (
@@ -53,28 +54,10 @@ class TimelogBatchUpdateResult:
     errors: tuple[str, ...]
 
 
-async def _attach_timelog_links(session: AsyncSession, timelog: Timelog) -> Timelog:
-    tags_map = await load_tags_for_entities(session, entity_ids=[timelog.id], entity_type="timelog")
-    people_map = await load_people_for_entities(
-        session, entity_ids=[timelog.id], entity_type="timelog"
-    )
-    note_count_map = await count_sources_for_targets(
-        session,
-        source_model="note",
-        target_model="timelog",
-        target_ids=[timelog.id],
-        link_type="captured_from",
-    )
-    timelog.tags = tags_map.get(timelog.id, [])
-    timelog.people = people_map.get(timelog.id, [])
-    timelog.linked_notes_count = note_count_map.get(timelog.id, 0)
-    return timelog
-
-
-async def _attach_timelog_links_for_many(
+async def _build_timelog_views(
     session: AsyncSession,
     timelogs: list[Timelog],
-) -> list[Timelog]:
+) -> list[TimelogView]:
     if not timelogs:
         return []
     timelog_ids = [timelog.id for timelog in timelogs]
@@ -89,11 +72,92 @@ async def _attach_timelog_links_for_many(
         target_ids=timelog_ids,
         link_type="captured_from",
     )
-    for timelog in timelogs:
-        timelog.tags = tags_map.get(timelog.id, [])
-        timelog.people = people_map.get(timelog.id, [])
-        timelog.linked_notes_count = note_count_map.get(timelog.id, 0)
-    return timelogs
+    return [
+        build_timelog_view(
+            timelog,
+            tags=tags_map.get(timelog.id, ()),
+            people=people_map.get(timelog.id, ()),
+            linked_notes_count=note_count_map.get(timelog.id, 0),
+        )
+        for timelog in timelogs
+    ]
+
+
+async def _build_timelog_view(session: AsyncSession, timelog: Timelog) -> TimelogView:
+    views = await _build_timelog_views(session, [timelog])
+    return views[0]
+
+
+async def _get_timelog_model(
+    session: AsyncSession,
+    *,
+    timelog_id: UUID,
+    include_deleted: bool,
+) -> Timelog | None:
+    stmt = (
+        select(Timelog)
+        .options(selectinload(Timelog.area), selectinload(Timelog.task))
+        .where(Timelog.id == timelog_id)
+        .limit(1)
+    )
+    if not include_deleted:
+        stmt = stmt.where(Timelog.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _recompute_timelog_dependents(
+    session: AsyncSession,
+    *,
+    old_task_id: UUID | None,
+    new_task_id: UUID | None,
+    old_start_time: datetime | None,
+    old_end_time: datetime | None,
+    old_area_id: UUID | None,
+    new_start_time: datetime | None,
+    new_end_time: datetime | None,
+    new_area_id: UUID | None,
+) -> None:
+    await recompute_task_effort_after_timelog_change(
+        session,
+        old_task_id=old_task_id,
+        new_task_id=new_task_id,
+    )
+    await recompute_timelog_stats_groupby_area_after_change(
+        session,
+        old_start_time=old_start_time,
+        old_end_time=old_end_time,
+        old_area_id=old_area_id,
+        new_start_time=new_start_time,
+        new_end_time=new_end_time,
+        new_area_id=new_area_id,
+    )
+
+
+async def _flush_and_recompute_timelog_dependents(
+    session: AsyncSession,
+    *,
+    old_task_id: UUID | None,
+    new_task_id: UUID | None,
+    old_start_time: datetime | None,
+    old_end_time: datetime | None,
+    old_area_id: UUID | None,
+    new_start_time: datetime | None,
+    new_end_time: datetime | None,
+    new_area_id: UUID | None,
+) -> None:
+    await session.flush()
+    await _recompute_timelog_dependents(
+        session,
+        old_task_id=old_task_id,
+        new_task_id=new_task_id,
+        old_start_time=old_start_time,
+        old_end_time=old_end_time,
+        old_area_id=old_area_id,
+        new_start_time=new_start_time,
+        new_end_time=new_end_time,
+        new_area_id=new_area_id,
+    )
+    await session.flush()
 
 
 def _apply_timelog_filters(
@@ -195,7 +259,7 @@ async def create_timelog(
     task_id: UUID | None = None,
     tag_ids: list[UUID] | None = None,
     person_ids: list[UUID] | None = None,
-) -> Timelog:
+) -> TimelogView:
     """Create a new timelog."""
     normalized_start_time = normalize_timelog_datetime(start_time, field_name="start_time")
     normalized_end_time = normalize_timelog_datetime(end_time, field_name="end_time")
@@ -232,23 +296,19 @@ async def create_timelog(
             entity_type="timelog",
             desired_person_ids=person_ids,
         )
-    if timelog.task_id is not None:
-        await recompute_task_effort_after_timelog_change(
-            session,
-            old_task_id=None,
-            new_task_id=timelog.task_id,
-        )
-    await recompute_timelog_stats_groupby_area_after_change(
+    await _flush_and_recompute_timelog_dependents(
         session,
+        old_task_id=None,
         old_start_time=None,
         old_end_time=None,
         old_area_id=None,
+        new_task_id=timelog.task_id,
         new_start_time=timelog.start_time,
         new_end_time=timelog.end_time,
         new_area_id=timelog.area_id,
     )
     await session.refresh(timelog)
-    return await _attach_timelog_links(session, timelog)
+    return await _build_timelog_view(session, timelog)
 
 
 async def get_timelog(
@@ -256,20 +316,16 @@ async def get_timelog(
     *,
     timelog_id: UUID,
     include_deleted: bool = False,
-) -> Timelog | None:
+) -> TimelogView | None:
     """Load a timelog by identifier."""
-    stmt = (
-        select(Timelog)
-        .options(selectinload(Timelog.area), selectinload(Timelog.task))
-        .where(Timelog.id == timelog_id)
-        .limit(1)
+    timelog = await _get_timelog_model(
+        session,
+        timelog_id=timelog_id,
+        include_deleted=include_deleted,
     )
-    if not include_deleted:
-        stmt = stmt.where(Timelog.deleted_at.is_(None))
-    timelog = (await session.execute(stmt)).scalar_one_or_none()
     if timelog is None:
         return None
-    return await _attach_timelog_links(session, timelog)
+    return await _build_timelog_view(session, timelog)
 
 
 async def list_timelogs(
@@ -292,7 +348,7 @@ async def list_timelogs(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[Timelog]:
+) -> list[TimelogView]:
     """List timelogs with optional filters."""
     window_start, window_end = _resolve_timelog_window(
         local_date=local_date,
@@ -319,7 +375,7 @@ async def list_timelogs(
     )
     stmt = stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc()).offset(offset).limit(limit)
     timelogs = list((await session.execute(stmt)).scalars())
-    return await _attach_timelog_links_for_many(session, timelogs)
+    return await _build_timelog_views(session, timelogs)
 
 
 async def count_timelogs(
@@ -390,9 +446,9 @@ async def update_timelog(
     clear_tags: bool = False,
     person_ids: list[UUID] | None = None,
     clear_people: bool = False,
-) -> Timelog:
+) -> TimelogView:
     """Update one timelog."""
-    timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=False)
+    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=False)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     old_task_id = timelog.task_id
@@ -461,23 +517,19 @@ async def update_timelog(
             entity_type="timelog",
             desired_person_ids=person_ids,
         )
-    await recompute_task_effort_after_timelog_change(
+    await _flush_and_recompute_timelog_dependents(
         session,
         old_task_id=old_task_id,
-        new_task_id=timelog.task_id,
-    )
-    await recompute_timelog_stats_groupby_area_after_change(
-        session,
         old_start_time=old_start_time,
         old_end_time=old_end_time,
         old_area_id=old_area_id,
+        new_task_id=timelog.task_id,
         new_start_time=timelog.start_time,
         new_end_time=timelog.end_time,
         new_area_id=timelog.area_id,
     )
-    await session.flush()
     await session.refresh(timelog)
-    return await _attach_timelog_links(session, timelog)
+    return await _build_timelog_view(session, timelog)
 
 
 def _has_timelog_batch_update(
@@ -613,7 +665,7 @@ async def batch_update_timelogs(
 
 async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     """Soft-delete one timelog."""
-    timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=False)
+    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=False)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     old_task_id = timelog.task_id
@@ -621,26 +673,22 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     old_start_time = timelog.start_time
     old_end_time = timelog.end_time
     timelog.soft_delete()
-    await recompute_task_effort_after_timelog_change(
+    await _flush_and_recompute_timelog_dependents(
         session,
         old_task_id=old_task_id,
-        new_task_id=None,
-    )
-    await recompute_timelog_stats_groupby_area_after_change(
-        session,
         old_start_time=old_start_time,
         old_end_time=old_end_time,
         old_area_id=old_area_id,
+        new_task_id=None,
         new_start_time=None,
         new_end_time=None,
         new_area_id=None,
     )
-    await session.flush()
 
 
-async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> Timelog:
+async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> TimelogView:
     """Restore one soft-deleted timelog."""
-    timelog = await get_timelog(session, timelog_id=timelog_id, include_deleted=True)
+    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=True)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     if timelog.deleted_at is None:
@@ -648,23 +696,19 @@ async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> Timelog
     await ensure_timelog_area_exists(session, timelog.area_id)
     await ensure_timelog_task_exists(session, timelog.task_id)
     timelog.deleted_at = None
-    await recompute_task_effort_after_timelog_change(
+    await _flush_and_recompute_timelog_dependents(
         session,
         old_task_id=None,
-        new_task_id=timelog.task_id,
-    )
-    await recompute_timelog_stats_groupby_area_after_change(
-        session,
         old_start_time=None,
         old_end_time=None,
         old_area_id=None,
+        new_task_id=timelog.task_id,
         new_start_time=timelog.start_time,
         new_end_time=timelog.end_time,
         new_area_id=timelog.area_id,
     )
-    await session.flush()
     await session.refresh(timelog)
-    return await _attach_timelog_links(session, timelog)
+    return await _build_timelog_view(session, timelog)
 
 
 async def batch_delete_timelogs(

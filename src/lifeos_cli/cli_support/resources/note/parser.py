@@ -53,9 +53,13 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _("Use the `batch` namespace when one command operates on multiple note records."),
                 _(
                     "The list command prints tab-separated columns: id, status, created_at, "
-                    "task_id, people_count, timelog_count, content."
+                    "task_count, vision_count, event_count, people_count, timelog_count, "
+                    "tag_count, content."
                 ),
-                _("Use `show` to inspect the full note body with preserved line breaks."),
+                _(
+                    "Use `show` to inspect the full note body together with linked tags, tasks, "
+                    "visions, events, people, and timelogs."
+                ),
                 _("Delete operations in the CLI always perform soft deletion."),
             ),
         ),

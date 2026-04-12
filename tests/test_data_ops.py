@@ -50,6 +50,48 @@ def test_batch_update_resource_parses_typed_timelog_fields(
     assert captured["person_ids"] == [UUID("55555555-5555-5555-5555-555555555555")]
 
 
+def test_batch_update_resource_parses_extended_note_relation_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_update(session: object, **kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setitem(data_ops.UPDATE_OPERATIONS, "note", fake_update)
+
+    report = asyncio.run(
+        data_ops.batch_update_resource(
+            cast(AsyncSession, object()),
+            resource="note",
+            rows=[
+                {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "tag_ids": ["22222222-2222-2222-2222-222222222222"],
+                    "task_ids": [
+                        "33333333-3333-3333-3333-333333333333",
+                        "44444444-4444-4444-4444-444444444444",
+                    ],
+                    "vision_ids": ["55555555-5555-5555-5555-555555555555"],
+                    "event_ids": ["66666666-6666-6666-6666-666666666666"],
+                    "timelog_ids": ["77777777-7777-7777-7777-777777777777"],
+                }
+            ],
+        )
+    )
+
+    assert report.updated_count == 1
+    assert captured["note_id"] == UUID("11111111-1111-1111-1111-111111111111")
+    assert captured["tag_ids"] == [UUID("22222222-2222-2222-2222-222222222222")]
+    assert captured["task_ids"] == [
+        UUID("33333333-3333-3333-3333-333333333333"),
+        UUID("44444444-4444-4444-4444-444444444444"),
+    ]
+    assert captured["vision_ids"] == [UUID("55555555-5555-5555-5555-555555555555")]
+    assert captured["event_ids"] == [UUID("66666666-6666-6666-6666-666666666666")]
+    assert captured["timelog_ids"] == [UUID("77777777-7777-7777-7777-777777777777")]
+
+
 def test_import_bundle_applies_base_rows_before_relations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

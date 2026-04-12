@@ -11,6 +11,7 @@ from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.read_models import TagView, build_tag_view
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
 
@@ -60,7 +61,7 @@ async def create_tag(
     description: str | None = None,
     color: str | None = None,
     person_ids: list[UUID] | None = None,
-) -> Tag:
+) -> TagView:
     """Create a new tag."""
     normalized_name = normalize_tag_name(name)
     normalized_entity_type = validate_tag_entity_type(entity_type)
@@ -91,9 +92,35 @@ async def create_tag(
             session, entity_id=tag.id, entity_type="tag", desired_person_ids=person_ids
         )
     await session.refresh(tag)
+    return await _build_tag_view(session, tag)
+
+
+async def _get_tag_model(
+    session: AsyncSession,
+    *,
+    tag_id: UUID,
+    include_deleted: bool,
+) -> Tag | None:
+    stmt = select(Tag).where(Tag.id == tag_id).limit(1)
+    if not include_deleted:
+        stmt = stmt.where(Tag.deleted_at.is_(None))
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _build_tag_view(session: AsyncSession, tag: Tag) -> TagView:
     people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
-    tag.people = people_map.get(tag.id, [])
-    return tag
+    return build_tag_view(tag, people=people_map.get(tag.id, ()))
+
+
+async def _build_tag_views(session: AsyncSession, tags: list[Tag]) -> list[TagView]:
+    if not tags:
+        return []
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[tag.id for tag in tags],
+        entity_type="tag",
+    )
+    return [build_tag_view(tag, people=people_map.get(tag.id, ())) for tag in tags]
 
 
 async def get_tag(
@@ -101,17 +128,12 @@ async def get_tag(
     *,
     tag_id: UUID,
     include_deleted: bool = False,
-) -> Tag | None:
+) -> TagView | None:
     """Load a tag by identifier."""
-    stmt = select(Tag).where(Tag.id == tag_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
-    tag = (await session.execute(stmt)).scalar_one_or_none()
+    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=include_deleted)
     if tag is None:
         return None
-    people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
-    tag.people = people_map.get(tag.id, [])
-    return tag
+    return await _build_tag_view(session, tag)
 
 
 async def list_tags(
@@ -123,7 +145,7 @@ async def list_tags(
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
-) -> list[Tag]:
+) -> list[TagView]:
     """List tags with optional filters."""
     stmt = select(Tag)
     if not include_deleted:
@@ -140,14 +162,7 @@ async def list_tags(
         ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Tag.name.asc(), Tag.id.asc()).offset(offset).limit(limit)
     tags = list((await session.execute(stmt)).scalars())
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[tag.id for tag in tags],
-        entity_type="tag",
-    )
-    for tag in tags:
-        tag.people = people_map.get(tag.id, [])
-    return tags
+    return await _build_tag_views(session, tags)
 
 
 async def update_tag(
@@ -163,9 +178,9 @@ async def update_tag(
     clear_color: bool = False,
     person_ids: list[UUID] | None = None,
     clear_people: bool = False,
-) -> Tag:
+) -> TagView:
     """Update a tag."""
-    tag = await get_tag(session, tag_id=tag_id)
+    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=False)
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
     next_name = normalize_tag_name(name) if name is not None else tag.name
@@ -205,14 +220,12 @@ async def update_tag(
         )
     await session.flush()
     await session.refresh(tag)
-    people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
-    tag.people = people_map.get(tag.id, [])
-    return tag
+    return await _build_tag_view(session, tag)
 
 
 async def delete_tag(session: AsyncSession, *, tag_id: UUID) -> None:
     """Soft-delete a tag."""
-    tag = await get_tag(session, tag_id=tag_id, include_deleted=False)
+    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=False)
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
     tag.soft_delete()

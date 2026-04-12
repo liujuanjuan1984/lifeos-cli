@@ -32,6 +32,9 @@ The following rules apply to coding agent collaboration in this repository. Thes
   ```bash
   bash ./scripts/doctor.sh
   ```
+- Treat the dead-code scan as part of the primary validation gate. Do not delete framework-driven
+  symbols only to satisfy generic static analysis; update `scripts/vulture_whitelist.py` when a
+  tool-required symbol must remain intentionally reachable.
 - If changes affect compatibility claims, packaging metadata, or CI, validate the impacted Python versions explicitly.
 - Keep release-related changes aligned with:
   - [pyproject.toml](pyproject.toml)

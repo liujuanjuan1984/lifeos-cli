@@ -13,29 +13,23 @@ from lifeos_cli.cli_support.output_utils import (
 )
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services import timelog_stats
 from lifeos_cli.db.services import timelogs as timelog_services
+from lifeos_cli.db.services.read_models import TimelogView
 
 
-def _format_timelog_summary(timelog: Timelog) -> str:
+def _format_timelog_summary(timelog: TimelogView) -> str:
     status = "deleted" if timelog.deleted_at is not None else timelog.tracking_method
     return (
         f"{timelog.id}\t{status}\t{format_timestamp(timelog.start_time)}\t"
         f"{format_timestamp(timelog.end_time)}\t{timelog.task_id or '-'}\t"
-        f"{getattr(timelog, 'linked_notes_count', 0)}\t{timelog.title}"
+        f"{timelog.linked_notes_count}\t{timelog.title}"
     )
 
 
-def _format_timelog_detail(timelog: Timelog) -> str:
-    tag_names = (
-        ", ".join(tag.name for tag in timelog.tags) if getattr(timelog, "tags", None) else "-"
-    )
-    people_names = (
-        ", ".join(person.name for person in timelog.people)
-        if getattr(timelog, "people", None)
-        else "-"
-    )
+def _format_timelog_detail(timelog: TimelogView) -> str:
+    tag_names = ", ".join(tag.name for tag in timelog.tags) if timelog.tags else "-"
+    people_names = ", ".join(person.name for person in timelog.people) if timelog.people else "-"
     return "\n".join(
         (
             f"id: {timelog.id}",
@@ -48,7 +42,7 @@ def _format_timelog_detail(timelog: Timelog) -> str:
             f"notes: {timelog.notes or '-'}",
             f"area_id: {timelog.area_id or '-'}",
             f"task_id: {timelog.task_id or '-'}",
-            f"linked_notes_count: {getattr(timelog, 'linked_notes_count', 0)}",
+            f"linked_notes_count: {timelog.linked_notes_count}",
             f"tags: {tag_names}",
             f"people: {people_names}",
             f"created_at: {format_timestamp(timelog.created_at)}",

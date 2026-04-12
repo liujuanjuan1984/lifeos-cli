@@ -12,17 +12,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from lifeos_cli.db.models.association import Association
+from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.person import Person
+from lifeos_cli.db.models.tag import Tag
+from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_associations import (
+    load_events_for_sources,
     load_people_for_sources,
-    load_tasks_for_sources,
+    load_task_lists_for_sources,
     load_timelogs_for_sources,
+    load_visions_for_sources,
     set_association_links,
 )
+from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.read_models import NoteView, build_note_view
 
 
 class NoteNotFoundError(LookupError):
@@ -58,9 +66,11 @@ def _association_exists_clause(
     link_type: str,
 ) -> ColumnElement[bool]:
     target_table_by_model: dict[str, Any] = {
+        "event": Event,
         "person": Person,
         "task": Task,
         "timelog": Timelog,
+        "vision": Vision,
     }
     target_table = target_table_by_model[target_model]
     return exists(
@@ -79,13 +89,28 @@ def _association_exists_clause(
 def _note_query(
     *,
     include_deleted: bool,
+    tag_id: UUID | None = None,
+    event_id: UUID | None = None,
     person_id: UUID | None = None,
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
+    vision_id: UUID | None = None,
 ) -> Select[tuple[Note]]:
     stmt = select(Note)
     if not include_deleted:
         stmt = stmt.where(Note.deleted_at.is_(None))
+    if tag_id is not None:
+        stmt = stmt.where(
+            exists(
+                select(1).where(
+                    tag_associations.c.entity_type == "note",
+                    tag_associations.c.entity_id == Note.id,
+                    tag_associations.c.tag_id == tag_id,
+                    Tag.id == tag_id,
+                    Tag.deleted_at.is_(None),
+                )
+            )
+        )
     if person_id is not None:
         stmt = stmt.where(
             _association_exists_clause(
@@ -99,6 +124,22 @@ def _note_query(
             _association_exists_clause(
                 target_model="task",
                 target_id=task_id,
+                link_type="relates_to",
+            )
+        )
+    if vision_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="vision",
+                target_id=vision_id,
+                link_type="relates_to",
+            )
+        )
+    if event_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="event",
+                target_id=event_id,
                 link_type="relates_to",
             )
         )
@@ -145,45 +186,43 @@ def _apply_content_batch_operation(
     return replacements
 
 
-async def _attach_note_links(session: AsyncSession, note: Note) -> Note:
-    people_map = await load_people_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="is_about",
-    )
-    task_map = await load_tasks_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="relates_to",
-    )
-    timelog_map = await load_timelogs_for_sources(
-        session,
-        source_model="note",
-        source_ids=[note.id],
-        link_type="captured_from",
-    )
-    note.people = people_map.get(note.id, [])
-    note.task = task_map.get(note.id)
-    note.timelogs = timelog_map.get(note.id, [])
-    return note
+async def _get_note_model(
+    session: AsyncSession,
+    *,
+    note_id: UUID,
+    include_deleted: bool,
+) -> Note | None:
+    stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
-async def _attach_note_links_for_many(
+async def _build_note_views(
     session: AsyncSession,
     note_records: list[Note],
-) -> list[Note]:
+) -> list[NoteView]:
     if not note_records:
         return []
     note_ids = [note.id for note in note_records]
+    tags_map = await load_tags_for_entities(session, entity_ids=note_ids, entity_type="note")
     people_map = await load_people_for_sources(
         session,
         source_model="note",
         source_ids=note_ids,
         link_type="is_about",
     )
-    task_map = await load_tasks_for_sources(
+    task_map = await load_task_lists_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="relates_to",
+    )
+    vision_map = await load_visions_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="relates_to",
+    )
+    event_map = await load_events_for_sources(
         session,
         source_model="note",
         source_ids=note_ids,
@@ -195,25 +234,47 @@ async def _attach_note_links_for_many(
         source_ids=note_ids,
         link_type="captured_from",
     )
-    for note in note_records:
-        note.people = people_map.get(note.id, [])
-        note.task = task_map.get(note.id)
-        note.timelogs = timelog_map.get(note.id, [])
-    return note_records
+    return [
+        build_note_view(
+            note,
+            tags=tags_map.get(note.id, ()),
+            people=people_map.get(note.id, ()),
+            tasks=task_map.get(note.id, ()),
+            visions=vision_map.get(note.id, ()),
+            events=event_map.get(note.id, ()),
+            timelogs=timelog_map.get(note.id, ()),
+        )
+        for note in note_records
+    ]
+
+
+async def _build_note_view(session: AsyncSession, note: Note) -> NoteView:
+    views = await _build_note_views(session, [note])
+    return views[0]
 
 
 async def create_note(
     session: AsyncSession,
     *,
     content: str,
+    tag_ids: list[UUID] | None = None,
     person_ids: list[UUID] | None = None,
-    task_id: UUID | None = None,
+    task_ids: list[UUID] | None = None,
+    vision_ids: list[UUID] | None = None,
+    event_ids: list[UUID] | None = None,
     timelog_ids: list[UUID] | None = None,
-) -> Note:
+) -> NoteView:
     """Create and persist a note."""
     note = Note(content=_normalize_note_content(content))
     session.add(note)
     await session.flush()
+    if tag_ids is not None:
+        await sync_entity_tags(
+            session,
+            entity_id=note.id,
+            entity_type="note",
+            desired_tag_ids=tag_ids,
+        )
     if person_ids is not None:
         await set_association_links(
             session,
@@ -223,13 +284,31 @@ async def create_note(
             target_ids=person_ids,
             link_type="is_about",
         )
-    if task_id is not None:
+    if task_ids is not None:
         await set_association_links(
             session,
             source_model="note",
             source_id=note.id,
             target_model="task",
-            target_ids=[task_id],
+            target_ids=task_ids,
+            link_type="relates_to",
+        )
+    if vision_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="vision",
+            target_ids=vision_ids,
+            link_type="relates_to",
+        )
+    if event_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="event",
+            target_ids=event_ids,
             link_type="relates_to",
         )
     if timelog_ids is not None:
@@ -242,7 +321,7 @@ async def create_note(
             link_type="captured_from",
         )
     await session.refresh(note)
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def get_note(
@@ -250,38 +329,43 @@ async def get_note(
     *,
     note_id: UUID,
     include_deleted: bool = False,
-) -> Note | None:
+) -> NoteView | None:
     """Fetch a note by identifier."""
-    stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
-    note = (await session.execute(stmt)).scalar_one_or_none()
+    note = await _get_note_model(session, note_id=note_id, include_deleted=include_deleted)
     if note is None:
         return None
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def list_notes(
     session: AsyncSession,
     *,
     include_deleted: bool = False,
+    tag_id: UUID | None = None,
+    event_id: UUID | None = None,
     person_id: UUID | None = None,
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
+    vision_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
-) -> list[Note]:
+) -> list[NoteView]:
     """Return notes ordered from newest to oldest."""
     stmt = (
         _note_query(
             include_deleted=include_deleted,
+            tag_id=tag_id,
+            event_id=event_id,
             person_id=person_id,
             task_id=task_id,
             timelog_id=timelog_id,
+            vision_id=vision_id,
         )
         .order_by(Note.created_at.desc(), Note.id.desc())
         .offset(offset)
         .limit(limit)
     )
-    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
+    return await _build_note_views(session, list((await session.execute(stmt)).scalars()))
 
 
 async def search_notes(
@@ -289,24 +373,30 @@ async def search_notes(
     *,
     query: str,
     include_deleted: bool = False,
+    tag_id: UUID | None = None,
+    event_id: UUID | None = None,
     person_id: UUID | None = None,
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
+    vision_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
-) -> list[Note]:
+) -> list[NoteView]:
     """Return notes whose content matches any token from the query."""
     tokens = _tokenize_search_query(query)
     stmt = _note_query(
         include_deleted=include_deleted,
+        tag_id=tag_id,
+        event_id=event_id,
         person_id=person_id,
         task_id=task_id,
         timelog_id=timelog_id,
+        vision_id=vision_id,
     )
     if tokens:
         stmt = stmt.where(or_(*[Note.content.ilike(f"%{token}%") for token in tokens]))
     stmt = stmt.order_by(Note.created_at.desc(), Note.id.desc()).offset(offset).limit(limit)
-    return await _attach_note_links_for_many(session, list((await session.execute(stmt)).scalars()))
+    return await _build_note_views(session, list((await session.execute(stmt)).scalars()))
 
 
 async def update_note(
@@ -314,23 +404,35 @@ async def update_note(
     *,
     note_id: UUID,
     content: str | None = None,
+    tag_ids: list[UUID] | None = None,
+    clear_tags: bool = False,
     person_ids: list[UUID] | None = None,
     clear_people: bool = False,
-    task_id: UUID | None = None,
-    clear_task: bool = False,
+    task_ids: list[UUID] | None = None,
+    clear_tasks: bool = False,
+    vision_ids: list[UUID] | None = None,
+    clear_visions: bool = False,
+    event_ids: list[UUID] | None = None,
+    clear_events: bool = False,
     timelog_ids: list[UUID] | None = None,
     clear_timelogs: bool = False,
-) -> Note:
+) -> NoteView:
     """Update note content and weak associations."""
-    note = await get_note(session, note_id=note_id)
+    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     if (
         content is None
+        and tag_ids is None
+        and not clear_tags
         and person_ids is None
         and not clear_people
-        and task_id is None
-        and not clear_task
+        and task_ids is None
+        and not clear_tasks
+        and vision_ids is None
+        and not clear_visions
+        and event_ids is None
+        and not clear_events
         and timelog_ids is None
         and not clear_timelogs
     ):
@@ -338,6 +440,15 @@ async def update_note(
 
     if content is not None:
         note.content = _normalize_note_content(content)
+    if clear_tags:
+        await sync_entity_tags(session, entity_id=note.id, entity_type="note", desired_tag_ids=[])
+    elif tag_ids is not None:
+        await sync_entity_tags(
+            session,
+            entity_id=note.id,
+            entity_type="note",
+            desired_tag_ids=tag_ids,
+        )
     if clear_people:
         await set_association_links(
             session,
@@ -356,7 +467,7 @@ async def update_note(
             target_ids=person_ids,
             link_type="is_about",
         )
-    if clear_task:
+    if clear_tasks:
         await set_association_links(
             session,
             source_model="note",
@@ -365,13 +476,49 @@ async def update_note(
             target_ids=[],
             link_type="relates_to",
         )
-    elif task_id is not None:
+    elif task_ids is not None:
         await set_association_links(
             session,
             source_model="note",
             source_id=note.id,
             target_model="task",
-            target_ids=[task_id],
+            target_ids=task_ids,
+            link_type="relates_to",
+        )
+    if clear_visions:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="vision",
+            target_ids=[],
+            link_type="relates_to",
+        )
+    elif vision_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="vision",
+            target_ids=vision_ids,
+            link_type="relates_to",
+        )
+    if clear_events:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="event",
+            target_ids=[],
+            link_type="relates_to",
+        )
+    elif event_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="event",
+            target_ids=event_ids,
             link_type="relates_to",
         )
     if clear_timelogs:
@@ -394,7 +541,7 @@ async def update_note(
         )
     await session.flush()
     await session.refresh(note)
-    return await _attach_note_links(session, note)
+    return await _build_note_view(session, note)
 
 
 async def delete_note(
@@ -403,7 +550,7 @@ async def delete_note(
     note_id: UUID,
 ) -> None:
     """Soft-delete a note."""
-    note = await get_note(session, note_id=note_id, include_deleted=False)
+    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     note.soft_delete()
@@ -427,7 +574,7 @@ async def batch_update_note_content(
 
     for note_id in _deduplicate_note_ids(note_ids):
         try:
-            note = await get_note(session, note_id=note_id, include_deleted=False)
+            note = await _get_note_model(session, note_id=note_id, include_deleted=False)
             if note is None:
                 raise NoteNotFoundError(f"Note {note_id} was not found")
             replacements = _apply_content_batch_operation(

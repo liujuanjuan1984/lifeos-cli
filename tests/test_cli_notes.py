@@ -142,6 +142,12 @@ def test_main_note_show_prints_multiline_content(
             created_at=utc_datetime(2026, 4, 9, 3, 24, 11),
             updated_at=utc_datetime(2026, 4, 9, 3, 30, 0),
             deleted_at=None,
+            tags=[],
+            people=[],
+            tasks=[],
+            visions=[],
+            events=[],
+            timelogs=[],
         )
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -153,6 +159,62 @@ def test_main_note_show_prints_multiline_content(
     assert exit_code == 0
     assert "content:\nfirst line\nsecond line" in captured.out
     assert "status: active" in captured.out
+
+
+def test_main_note_show_prints_extended_relations(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_get_note(
+        session: object,
+        *,
+        note_id: UUID,
+        include_deleted: bool,
+    ) -> object:
+        assert include_deleted is False
+        return make_record(
+            id=note_id,
+            content="linked note",
+            created_at=utc_datetime(2026, 4, 9, 3, 24, 11),
+            updated_at=utc_datetime(2026, 4, 9, 3, 30, 0),
+            deleted_at=None,
+            tags=[make_record(id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), name="research")],
+            tasks=[
+                make_record(
+                    id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    content="Investigate note relations",
+                )
+            ],
+            visions=[
+                make_record(id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"), name="Graph notes")
+            ],
+            events=[
+                make_record(id=UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"), title="Partner sync")
+            ],
+            people=[make_record(id=UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), name="Alice")],
+            timelogs=[
+                make_record(
+                    id=UUID("ffffffff-ffff-ffff-ffff-ffffffffffff"),
+                    title="Implementation session",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "get_note", fake_get_note)
+
+    exit_code = cli.main(["note", "show", "11111111-1111-1111-1111-111111111111"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "tags: research" in captured.out
+    assert (
+        "tasks: bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb | Investigate note relations" in captured.out
+    )
+    assert "visions: cccccccc-cccc-cccc-cccc-cccccccccccc | Graph notes" in captured.out
+    assert "events: dddddddd-dddd-dddd-dddd-dddddddddddd | Partner sync" in captured.out
+    assert "people: Alice" in captured.out
+    assert "timelogs: ffffffff-ffff-ffff-ffff-ffffffffffff | Implementation session" in captured.out
 
 
 def test_main_note_show_reports_missing_note(
@@ -198,7 +260,14 @@ def test_main_note_search_prints_matching_notes(
                 id=UUID("44444444-4444-4444-4444-444444444444"),
                 content="meeting notes for april planning",
                 created_at=utc_datetime(2026, 4, 9, 4, 5, 6),
+                updated_at=utc_datetime(2026, 4, 9, 4, 5, 6),
                 deleted_at=None,
+                tags=[],
+                people=[],
+                tasks=[],
+                visions=[],
+                events=[],
+                timelogs=[],
             )
         ]
 
@@ -210,7 +279,7 @@ def test_main_note_search_prints_matching_notes(
 
     assert exit_code == 0
     assert (
-        "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t-\t0\t0\t"
+        "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t0\t0\t0\t0\t0\t0\t"
         "meeting notes for april planning" in captured.out
     )
 
@@ -326,7 +395,14 @@ def test_main_note_list_prints_formatted_notes(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
                 content="first note",
                 created_at=utc_datetime(2026, 4, 9, 1, 2, 3),
+                updated_at=utc_datetime(2026, 4, 9, 1, 2, 3),
                 deleted_at=None,
+                tags=[],
+                people=[],
+                tasks=[],
+                visions=[],
+                events=[],
+                timelogs=[],
             )
         ]
 
@@ -338,7 +414,7 @@ def test_main_note_list_prints_formatted_notes(
 
     assert exit_code == 0
     assert (
-        "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t-\t0\t0\t"
+        "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t0\t0\t0\t0\t0\t0\t"
         "first note" in captured.out
     )
 

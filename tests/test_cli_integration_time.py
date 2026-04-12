@@ -310,7 +310,7 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
 def test_real_cli_timelog_stats_groupby_area_updates_after_writes(
     integration_context: IntegrationContext,
 ) -> None:
-    init_context(integration_context)
+    init_context(integration_context, "--timezone", "America/Toronto")
 
     area_result = run_lifeos(integration_context, "area", "add", "Health")
     assert_ok(area_result)

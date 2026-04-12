@@ -244,6 +244,7 @@ def test_main_timelog_list_passes_search_filters(
                 start_time=utc_datetime(2026, 4, 10, 13, 0),
                 end_time=utc_datetime(2026, 4, 10, 14, 0),
                 task_id=None,
+                linked_notes_count=0,
                 title="Deep work",
             )
         ]

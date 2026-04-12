@@ -79,10 +79,14 @@ lifeos --help
    bash ./scripts/doctor.sh
    ```
 
+   该基线会覆盖 lint、死代码扫描以及默认单元测试套件。
+
 4. 有意识地使用仓库依赖管理工作流：
 
    - `.github/dependabot.yml` 会为 `uv` 依赖更新创建单个、按周聚合的 PR。
    - `bash ./scripts/dependency_health.sh` 仍然是维护者显式执行的过期依赖与开发期漏洞审计流程。
+
+CI 还会基于临时 PostgreSQL 服务真实运行 CLI integration tests，而不是默认让这些测试保持 skip。
 
 ## 项目策略
 

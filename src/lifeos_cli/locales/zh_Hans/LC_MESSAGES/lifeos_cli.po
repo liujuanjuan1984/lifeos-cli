@@ -1,13 +1,13 @@
 # Chinese (Simplified) translations for lifeos-cli.
 # Copyright (C) 2026 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
+# This file is distributed under the same license as the lifeos-cli project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: lifeos-cli 0+unknown\n"
 "Report-Msgid-Bugs-To: noreply@example.com\n"
-"POT-Creation-Date: 2026-04-12 02:05-0400\n"
+"POT-Creation-Date: 2026-04-12 03:00-0400\n"
 "PO-Revision-Date: 2026-04-12 02:07-0400\n"
 "Last-Translator: Codex <noreply@example.com>\n"
 "Language: zh_Hans\n"
@@ -17,159 +17,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
-
-#: src/lifeos_cli/i18n.py:18
-#, python-format
-msgid " (default: %(default)s)"
-msgstr " （默认值：%(default)s）"
-
-#: src/lifeos_cli/i18n.py:19
-#, python-format
-msgid "%(heading)s:"
-msgstr "%(heading)s："
-
-#: src/lifeos_cli/i18n.py:20
-#, python-format
-msgid "%(prog)s: error: %(message)s\n"
-msgstr "%(prog)s：错误：%(message)s\n"
-
-#: src/lifeos_cli/i18n.py:21
-#, python-format
-msgid "%r is not callable"
-msgstr "%r 不可调用"
-
-#: src/lifeos_cli/i18n.py:22
-msgid ".__call__() not defined"
-msgstr "未定义 .__call__()"
-
-#: src/lifeos_cli/i18n.py:23
-#, python-format
-msgid "ambiguous option: %(option)s could match %(matches)s"
-msgstr "歧义参数：%(option)s 可能匹配 %(matches)s"
-
-#: src/lifeos_cli/i18n.py:24
-#, python-format
-msgid "argument \"-\" with mode %r"
-msgstr "参数 \"-\" 的模式为 %r"
-
-#: src/lifeos_cli/i18n.py:25
-#, python-format
-msgid "argument %(argument_name)s: %(message)s"
-msgstr "参数 %(argument_name)s：%(message)s"
-
-#: src/lifeos_cli/i18n.py:26
-msgid "cannot have multiple subparser arguments"
-msgstr "不能有多个 subparser 参数"
-
-#: src/lifeos_cli/i18n.py:27
-#, python-format
-msgid "cannot merge actions - two groups are named %r"
-msgstr "无法合并 actions：有两个分组同名为 %r"
-
-#: src/lifeos_cli/i18n.py:28
-#, python-format
-msgid "conflicting subparser alias: %s"
-msgstr "冲突的 subparser 别名：%s"
-
-#: src/lifeos_cli/i18n.py:29
-#, python-format
-msgid "conflicting subparser: %s"
-msgstr "冲突的 subparser：%s"
-
-#: src/lifeos_cli/i18n.py:30
-#, python-format
-msgid "dest= is required for options like %r"
-msgstr "类似 %r 的选项必须提供 dest="
-
-#: src/lifeos_cli/i18n.py:31
-msgid "expected at least one argument"
-msgstr "至少需要一个参数"
-
-#: src/lifeos_cli/i18n.py:32
-msgid "expected at most one argument"
-msgstr "至多允许一个参数"
-
-#: src/lifeos_cli/i18n.py:33
-msgid "expected one argument"
-msgstr "需要一个参数"
-
-#: src/lifeos_cli/i18n.py:34
-#, python-format
-msgid "ignored explicit argument %r"
-msgstr "显式参数 %r 已被忽略"
-
-#: src/lifeos_cli/i18n.py:35
-#, python-format
-msgid "invalid %(type)s value: %(value)r"
-msgstr "无效的 %(type)s 值：%(value)r"
-
-#: src/lifeos_cli/i18n.py:36
-#, python-format
-msgid "invalid choice: %(value)r (choose from %(choices)s)"
-msgstr "无效的选项：%(value)r（可选值：%(choices)s）"
-
-#: src/lifeos_cli/i18n.py:37
-#, python-format
-msgid "invalid conflict_resolution value: %r"
-msgstr "无效的 conflict_resolution 值：%r"
-
-#: src/lifeos_cli/i18n.py:38
-msgid "mutually exclusive arguments must be optional"
-msgstr "互斥参数必须是可选参数"
-
-#: src/lifeos_cli/i18n.py:39
-#, python-format
-msgid "not allowed with argument %s"
-msgstr "不能与参数 %s 同时使用"
-
-#: src/lifeos_cli/i18n.py:40
-#, python-format
-msgid "one of the arguments %s is required"
-msgstr "参数 %s 中至少需要提供一个"
-
-#: src/lifeos_cli/i18n.py:41
-msgid "options"
-msgstr "选项"
-
-#: src/lifeos_cli/i18n.py:42
-msgid "optional arguments"
-msgstr "可选参数"
-
-#: src/lifeos_cli/i18n.py:43
-msgid "positional arguments"
-msgstr "位置参数"
-
-#: src/lifeos_cli/i18n.py:44
-msgid "show this help message and exit"
-msgstr "显示此帮助信息并退出"
-
-#: src/lifeos_cli/i18n.py:45
-msgid "subcommands"
-msgstr "子命令"
-
-#: src/lifeos_cli/i18n.py:46
-#, python-format
-msgid "the following arguments are required: %s"
-msgstr "以下参数是必需的：%s"
-
-#: src/lifeos_cli/i18n.py:47
-#, python-format
-msgid "unexpected option string: %s"
-msgstr "意外的选项字符串：%s"
-
-#: src/lifeos_cli/i18n.py:48
-#, python-format
-msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
-msgstr "未知的 parser %(parser_name)r（可选值：%(choices)s）"
-
-#: src/lifeos_cli/i18n.py:49
-#, python-format
-msgid "unrecognized arguments: %s"
-msgstr "无法识别的参数：%s"
-
-#: src/lifeos_cli/i18n.py:50
-msgid "usage: "
-msgstr "用法："
 
 #: src/lifeos_cli/cli_support/help_utils.py:27
 msgid "Examples"
@@ -193,8 +40,8 @@ msgstr "`area`、`people`、`vision`、`task`、`note` 等资源模型域。"
 
 #: src/lifeos_cli/cli_support/parser.py:58
 msgid ""
-"Time-oriented domains use `event` for planned schedule blocks and `timelog` for actual time "
-"records."
+"Time-oriented domains use `event` for planned schedule blocks and "
+"`timelog` for actual time records."
 msgstr "时间相关资源中，`event` 用于计划中的时间块，`timelog` 用于记录实际发生的用时。"
 
 #: src/lifeos_cli/cli_support/parser.py:62
@@ -210,7 +57,9 @@ msgid "System commands such as init, config, and db manage runtime setup."
 msgstr "init、config 和 db 等系统命令管理运行时设置。"
 
 #: src/lifeos_cli/cli_support/parser.py:68
-msgid "Use `data` for canonical import/export, bundle backup, and batch operations."
+msgid ""
+"Use `data` for canonical import/export, bundle backup, and batch "
+"operations."
 msgstr "使用 `data` 执行规范的导入导出、bundle 备份和批量操作。"
 
 #: src/lifeos_cli/cli_support/parser.py:70
@@ -218,11 +67,15 @@ msgid "Actions are short verbs that operate on records or runtime state."
 msgstr "动作是对记录或运行时状态进行操作的简短动词。"
 
 #: src/lifeos_cli/cli_support/parser.py:95
-msgid "Prefer short, stable resource names so new command families stay consistent."
+msgid ""
+"Prefer short, stable resource names so new command families stay "
+"consistent."
 msgstr "优先使用简短且稳定的资源名称，保持新命令族的一致性。"
 
 #: src/lifeos_cli/cli_support/parser.py:97
-msgid "Use natural exceptions such as `people` when they are clearer than forced regular forms."
+msgid ""
+"Use natural exceptions such as `people` when they are clearer than forced"
+" regular forms."
 msgstr "当 `people` 这类自然例外形式比强制套用规则更清晰时，优先使用它们。"
 
 #: src/lifeos_cli/cli_support/parser.py:100
@@ -230,18 +83,24 @@ msgid "Prefer short action verbs such as add, list, update, and delete."
 msgstr "优先使用简短的动作动词，例如 `add`、`list`、`update` 和 `delete`。"
 
 #: src/lifeos_cli/cli_support/parser.py:102
-msgid "For structured resources, prefer `list` with filters and pagination over separate query verbs."
+msgid ""
+"For structured resources, prefer `list` with filters and pagination over "
+"separate query verbs."
 msgstr "对于结构化资源，优先使用带过滤与分页参数的 `list`，而不是另设查询动词。"
 
 #: src/lifeos_cli/cli_support/parser.py:106
-msgid "Use sub-namespaces such as `batch` when a resource needs grouped bulk operations."
+msgid ""
+"Use sub-namespaces such as `batch` when a resource needs grouped bulk "
+"operations."
 msgstr "当资源需要成组的批量操作时，使用 `batch` 等子命名空间。"
 
 #: src/lifeos_cli/cli_support/parser.py:110
 msgid ""
-"Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the primary command "
-"reference."
-msgstr "将 `lifeos <resource> --help` 和 `lifeos <resource> <action> --help` 作为主要命令参考。"
+"Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as"
+" the primary command reference."
+msgstr ""
+"将 `lifeos <resource> --help` 和 `lifeos <resource> <action> --help` "
+"作为主要命令参考。"
 
 #: src/lifeos_cli/cli_support/parser.py:113
 msgid "Each resource help page should explain scope, actions, and examples."
@@ -249,18 +108,18 @@ msgstr "每个资源帮助页面都应解释范围、操作和示例。"
 
 #: src/lifeos_cli/cli_support/parser.py:115
 msgid ""
-"When automation acts on behalf of a human, model the acting subject explicitly through `people` "
-"and repeated `--person-id` flags."
+"When automation acts on behalf of a human, model the acting subject "
+"explicitly through `people` and repeated `--person-id` flags."
 msgstr "当自动化代表人类执行操作时，应通过 `people` 和重复的 `--person-id` 参数显式建模执行主体。"
 
 #: src/lifeos_cli/cli_support/parser.py:119
 msgid ""
-"Agents that create records for a human should run `lifeos config show` and use the effective "
-"preference language for titles, descriptions, and note content unless the human explicitly asks "
-"for another language."
+"Agents that create records for a human should run `lifeos config show` "
+"and use the effective preference language for titles, descriptions, and "
+"note content unless the human explicitly asks for another language."
 msgstr ""
-"当代理为人类创建记录时，应先运行 `lifeos config show`，并使用当前生效的语言偏好来"
-"编写标题、描述和 `note` 内容，除非人类明确要求使用其他语言。"
+"当代理为人类创建记录时，应先运行 `lifeos config show`，并使用当前生效的语言偏好来编写标题、描述和 `note` "
+"内容，除非人类明确要求使用其他语言。"
 
 #: src/lifeos_cli/cli_support/parser.py:123
 msgid "Keep human-only work, agent-only work, and truly shared work distinct."
@@ -307,11 +166,15 @@ msgid "Manage life areas"
 msgstr "管理 `area`"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:34
-msgid "Create and maintain high-level life areas such as work, health, or relationships."
+msgid ""
+"Create and maintain high-level life areas such as work, health, or "
+"relationships."
 msgstr "创建并维护工作、健康、人际关系等高层 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:39
-msgid "Areas provide one of the top-level organizing layers for the rest of the system."
+msgid ""
+"Areas provide one of the top-level organizing layers for the rest of the "
+"system."
 msgstr "`area` 是系统其余部分的顶层组织层之一。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:50
@@ -335,7 +198,7 @@ msgid "Use the `batch` namespace for multi-record write operations."
 msgstr "使用 `batch` 命名空间进行多记录写操作。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:53
-#: src/lifeos_cli/cli_support/resources/note/parser.py:59
+#: src/lifeos_cli/cli_support/resources/note/parser.py:63
 #: src/lifeos_cli/cli_support/resources/people/parser.py:56
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:45
 #: src/lifeos_cli/cli_support/resources/task/parser.py:66
@@ -348,7 +211,7 @@ msgstr "CLI 中的删除操作始终执行软删除。"
 #: src/lifeos_cli/cli_support/resources/event/parser.py:61
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:61
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:53
-#: src/lifeos_cli/cli_support/resources/note/parser.py:66
+#: src/lifeos_cli/cli_support/resources/note/parser.py:70
 #: src/lifeos_cli/cli_support/resources/people/parser.py:66
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:48
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:51
@@ -365,7 +228,7 @@ msgstr "操作"
 #: src/lifeos_cli/cli_support/resources/event/parser.py:61
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:62
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:54
-#: src/lifeos_cli/cli_support/resources/note/parser.py:67
+#: src/lifeos_cli/cli_support/resources/note/parser.py:71
 #: src/lifeos_cli/cli_support/resources/people/parser.py:66
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:48
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:51
@@ -386,7 +249,9 @@ msgid "Create a new area."
 msgstr "创建一个新 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:71
-msgid "Areas usually represent stable parts of life such as health, work, family, or learning."
+msgid ""
+"Areas usually represent stable parts of life such as health, work, "
+"family, or learning."
 msgstr "`area` 通常代表生活中稳定的部分，例如健康、工作、家庭或学习。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:80
@@ -427,7 +292,9 @@ msgid "List areas in display order."
 msgstr "按显示顺序列出 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:102
-msgid "Use filters and pagination flags here instead of expecting a separate search command."
+msgid ""
+"Use filters and pagination flags here instead of expecting a separate "
+"search command."
 msgstr "此处使用过滤器和分页标志，而不是期望单独的搜索命令。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:112
@@ -451,7 +318,9 @@ msgid "Show one area with full metadata."
 msgstr "显示一个具有完整元数据的 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:133
-msgid "Use this action when you need exact field values instead of the compact list view."
+msgid ""
+"Use this action when you need exact field values instead of the compact "
+"list view."
 msgstr "当您需要精确的字段值而不是紧凑列表视图时，请使用此操作。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:141
@@ -473,7 +342,9 @@ msgid "Update mutable area fields."
 msgstr "更新可变 `area` 字段。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:156
-msgid "Only explicitly provided flags are changed; omitted fields stay as they are."
+msgid ""
+"Only explicitly provided flags are changed; omitted fields stay as they "
+"are."
 msgstr "仅更改显式提供的标志；省略的字段保持原样。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:164
@@ -527,9 +398,11 @@ msgstr "软删除一个 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:200
 msgid ""
-"The record remains in the database and can still be inspected through `list --include-deleted` or"
-" `show --include-deleted`."
-msgstr "该记录保留在数据库中，仍然可以通过 `list --include-deleted ` 或 `show --include-deleted ` 检查。"
+"The record remains in the database and can still be inspected through "
+"`list --include-deleted` or `show --include-deleted`."
+msgstr ""
+"该记录保留在数据库中，仍然可以通过 `list --include-deleted ` 或 `show --include-deleted ` "
+"检查。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:214
 msgid "Run batch area operations"
@@ -540,7 +413,9 @@ msgid "Run write operations that target multiple areas in one command."
 msgstr "在一个命令中运行针对多个 `area` 的写入操作。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:219
-msgid "Use this namespace for bulk maintenance so the resource keeps a stable CLI shape."
+msgid ""
+"Use this namespace for bulk maintenance so the resource keeps a stable "
+"CLI shape."
 msgstr "使用此命名空间进行批量维护，以便资源保持稳定的 CLI 形状。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:233
@@ -588,26 +463,32 @@ msgstr "跨 LifeOS 资源运行规范数据操作。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:33
 msgid ""
-"Use this namespace for machine-oriented bulk workflows such as export, import, batch update, "
-"batch delete, and full bundle backup or restore."
+"Use this namespace for machine-oriented bulk workflows such as export, "
+"import, batch update, batch delete, and full bundle backup or restore."
 msgstr "使用此命名空间进行面向机器的批量工作流程，例如导出、导入、批量更新、批量删除以及完整捆绑包备份或还原。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:48
-msgid "This namespace uses canonical JSON/JSONL snapshot rows instead of ad-hoc CLI flags."
+msgid ""
+"This namespace uses canonical JSON/JSONL snapshot rows instead of ad-hoc "
+"CLI flags."
 msgstr "此命名空间使用规范的 JSON/JSONL 快照行而不是临时 CLI 标志。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:52
-msgid "Use `export` output as the round-trip contract for later `import` or `batch-update`."
+msgid ""
+"Use `export` output as the round-trip contract for later `import` or "
+"`batch-update`."
 msgstr "使用 `export ` 输出作为后续 `import ` 或 `batch-update ` 的往返合约。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:56
-msgid "Bundle import/export preserves record identifiers and relationships across resources."
+msgid ""
+"Bundle import/export preserves record identifiers and relationships "
+"across resources."
 msgstr "捆绑导入/导出保留跨资源的记录标识符和关系。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:60
 msgid ""
-"Use resource-specific commands for higher-level behaviors such as recurring event occurrence "
-"scopes."
+"Use resource-specific commands for higher-level behaviors such as "
+"recurring event occurrence scopes."
 msgstr "将特定于资源的命令用于更高级别的行为，例如重复 `event` 发生范围。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:63
@@ -620,8 +501,8 @@ msgstr "导出一个资源或整个资源包"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:79
 msgid ""
-"Export canonical snapshot rows for one resource, or create a full bundle zip covering all "
-"supported resources."
+"Export canonical snapshot rows for one resource, or create a full bundle "
+"zip covering all supported resources."
 msgstr "导出一个资源的规范快照行，或创建涵盖所有支持资源的完整捆绑包 zip。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:83
@@ -646,8 +527,8 @@ msgstr "导入一个资源或整个资源包"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:116
 msgid ""
-"Import canonical snapshot rows for one resource, or restore a full bundle zip containing multiple"
-" resources."
+"Import canonical snapshot rows for one resource, or restore a full bundle"
+" zip containing multiple resources."
 msgstr "导入一个资源的规范快照行，或恢复包含多个资源的完整捆绑包 zip。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:120
@@ -656,8 +537,8 @@ msgstr "当目标是 `bundle ` 时，暗示捆绑导入。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:129
 msgid ""
-"Use `import bundle` for full backup restore. Bundle restore is atomic and restores base rows "
-"before relation links."
+"Use `import bundle` for full backup restore. Bundle restore is atomic and"
+" restores base rows before relation links."
 msgstr "使用 `import bundle ` 进行完整备份恢复。捆绑恢复是原子的，并且在关系链接之前恢复基行。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:132
@@ -700,7 +581,9 @@ msgid "Batch-update one resource from canonical patch rows"
 msgstr "从规范补丁行批量更新一个资源"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:170
-msgid "Apply patch rows to one resource using the same canonical record shape used by data export."
+msgid ""
+"Apply patch rows to one resource using the same canonical record shape "
+"used by data export."
 msgstr "使用数据导出所用的相同规范记录形状将补丁行应用于一个资源。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:174
@@ -709,8 +592,8 @@ msgstr "省略的字段保持不变；显式 null 清除可清除字段。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:182
 msgid ""
-"Batch-update operates on stored records. Use public resource commands when you need domain-"
-"specific verbs or scopes."
+"Batch-update operates on stored records. Use public resource commands "
+"when you need domain-specific verbs or scopes."
 msgstr "批量更新对存储的记录进行操作。当您需要特定于域的动词或范围时，请使用公共资源命令。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:189
@@ -732,8 +615,8 @@ msgstr "通过标识符批量删除一个资源"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:219
 msgid ""
-"Soft-delete multiple rows for one resource using repeated IDs, an IDs file, or JSON/JSONL input "
-"containing row IDs."
+"Soft-delete multiple rows for one resource using repeated IDs, an IDs "
+"file, or JSON/JSONL input containing row IDs."
 msgstr "使用重复 ID、ID 文件或包含行 ID 的 JSON/JSONL 输入来软删除一项资源的多行。"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:235
@@ -773,7 +656,9 @@ msgid "Events can optionally reference one area and one task."
 msgstr "`event` 可以选择关联一个 `area` 和一个 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:54
-msgid "Event types distinguish hard appointments, flexible timeblocks, and deadlines."
+msgid ""
+"Event types distinguish hard appointments, flexible timeblocks, and "
+"deadlines."
 msgstr "`event` 类型区分刚性约会、灵活时间块和截止日期。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:55
@@ -791,7 +676,9 @@ msgid "Create a planned schedule event."
 msgstr "创建一个有计划的浙江活动。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:78
-msgid "`appointment` is the default type. Use `--type` for timeblocks and deadlines."
+msgid ""
+"`appointment` is the default type. Use `--type` for timeblocks and "
+"deadlines."
 msgstr "`appointment` 是默认类型。使用 `--type` 来确定时间限制和截止日期。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:79
@@ -804,13 +691,15 @@ msgid "If `--end-time` is omitted, the event is treated as open-ended."
 msgstr "如果省略 `--end-time`，则 `event` 被视为开放式。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:82
-msgid "Use recurrence flags to create a recurring series without renaming the resource."
+msgid ""
+"Use recurrence flags to create a recurring series without renaming the "
+"resource."
 msgstr "使用重复标志创建重复系列而不重命名资源。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:86
 msgid ""
-"When an agent creates events for a human, use `--person-id` to distinguish human-only plans from "
-"agent-only or shared schedule blocks."
+"When an agent creates events for a human, use `--person-id` to "
+"distinguish human-only plans from agent-only or shared schedule blocks."
 msgstr "当代理为人类创建 `event` 时，使用 `--person-id ` 来区分仅限人类的计划与仅限代理或共享的路线块。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:92
@@ -900,11 +789,15 @@ msgstr "当给出两个窗口标志时，返回重叠 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:172
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:158
-msgid "Use `--date` to query one configured local day using your timezone and `day_starts_at` preference."
+msgid ""
+"Use `--date` to query one configured local day using your timezone and "
+"`day_starts_at` preference."
 msgstr "使用 `--date ` 使用您的时区和 `day_starts_at ` 首选项查询配置的本地日期。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:175
-msgid "Recurring series are expanded for bounded window queries and schedule views."
+msgid ""
+"Recurring series are expanded for bounded window queries and schedule "
+"views."
 msgstr "循环序列针对有界窗口查询和路线视图进行了扩展。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:176
@@ -912,7 +805,9 @@ msgid "Use `--type` to narrow results to one event topology."
 msgstr "使用 `--type ` 将结果缩小到一种 `event` 拓扑。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:178
-msgid "Use `--title-contains` for lightweight text filtering instead of a separate search command."
+msgid ""
+"Use `--title-contains` for lightweight text filtering instead of a "
+"separate search command."
 msgstr "使用 `--title-contains ` 进行轻量级文本过滤，而不是单独的搜索命令。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:184
@@ -934,20 +829,22 @@ msgid "Filter by linked area"
 msgstr "按链接 `area` 过滤"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:192
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:114
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:152
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:153
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:195
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:177
 msgid "Filter by linked task"
 msgstr "按链接 `task` 过滤"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:193
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:113
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:151
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:152
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:194
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:183
 msgid "Filter by linked person"
 msgstr "按相关 `people` 过滤"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:194
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:150
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:192
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:184
 msgid "Filter by linked tag"
 msgstr "按链接 `tag` 过滤"
@@ -1014,8 +911,8 @@ msgstr "`--scope single` 和 `--scope all_future` 需要 `--instance-start`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:244
 msgid ""
-"Use repeated `--person-id` to keep human-only, agent-only, and shared ownership explicit as plans"
-" change."
+"Use repeated `--person-id` to keep human-only, agent-only, and shared "
+"ownership explicit as plans change."
 msgstr "当计划发生变化时，使用重复的 `--person-id ` 来保持仅限人类、仅限代理和共享所有权的明确性。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:251
@@ -1108,19 +1005,21 @@ msgid "Instance start time for single or all_future recurring updates"
 msgstr "单次或 all_future 定期更新的实例启动时间"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:309
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:267
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:264
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:360
 msgid "Repeat to replace tags with one or more identifiers"
 msgstr "重复此操作以将 `tag` 替换为一个或多个标识符"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:311
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:269
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:266
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:362
 msgid "Remove all tags"
 msgstr "删除所有 `tag`"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:318
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:219
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:276
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:179
 #: src/lifeos_cli/cli_support/resources/task/parser.py:381
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:273
@@ -1130,7 +1029,7 @@ msgid "Repeat to replace people with one or more identifiers"
 msgstr "重复此操作，将 `people` 替换为一个或多个标识符"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:320
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:221
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:278
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:181
 #: src/lifeos_cli/cli_support/resources/task/parser.py:383
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:275
@@ -1186,11 +1085,15 @@ msgid "Manage recurring habits"
 msgstr "管理周期性的 `habit`"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:36
-msgid "Create and maintain recurring habits that generate dated habit-action rows."
+msgid ""
+"Create and maintain recurring habits that generate dated habit-action "
+"rows."
 msgstr "创建并维护会生成按日期展开的 `habit-action` 记录的周期性 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:39
-msgid "A habit acts as a template. Each day in its duration produces one habit-action record."
+msgid ""
+"A habit acts as a template. Each day in its duration produces one habit-"
+"action record."
 msgstr "`habit` 相当于模板；其持续期内的每一天都会生成一条 `habit-action` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:49
@@ -1198,7 +1101,9 @@ msgid "Use `list` as the primary query entrypoint for habits."
 msgstr "将 `list` 作为 `habit` 的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:51
-msgid "Habit creation and timing updates automatically generate or adjust habit-action rows."
+msgid ""
+"Habit creation and timing updates automatically generate or adjust habit-"
+"action rows."
 msgstr "创建 `habit` 或调整时间参数时，会自动生成或修正 `habit-action` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:69
@@ -1246,11 +1151,15 @@ msgid "Use this command as the main habit query entrypoint."
 msgstr "使用此命令作为主要的 `habit` 查询入口点。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:116
-msgid "Use `--with-stats` when the summary should include progress and streak fields."
+msgid ""
+"Use `--with-stats` when the summary should include progress and streak "
+"fields."
 msgstr "当摘要应包含进度和连续字段时，请使用 `--with-stats`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:117
-msgid "Use `--active-window-only` to show habits whose duration still covers today."
+msgid ""
+"Use `--active-window-only` to show habits whose duration still covers "
+"today."
 msgstr "使用 `--active-window-only` 来展示其持续至今的 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:121
@@ -1465,7 +1374,9 @@ msgid "Update a generated habit action."
 msgstr "更新生成的 `habit-action`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:122
-msgid "This command only allows status and notes changes within the editable window."
+msgid ""
+"This command only allows status and notes changes within the editable "
+"window."
 msgstr "该命令仅允许在可编辑窗口内更改状态和 `note`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:129
@@ -1537,18 +1448,25 @@ msgid "Action names stay short verbs, such as add, list, update, and delete."
 msgstr "操作名称保持为简短动词，例如 `add`、`list`、`update` 和 `delete`。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser.py:53
-msgid "Use the `batch` namespace when one command operates on multiple note records."
+msgid ""
+"Use the `batch` namespace when one command operates on multiple note "
+"records."
 msgstr "当一条命令需要操作多条 `note` 记录时，请使用 `batch` 命名空间。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser.py:55
 msgid ""
-"The list command prints tab-separated columns: id, status, created_at, task_id, people_count, "
-"timelog_count, content."
-msgstr "`list` 命令输出以制表符分隔的列：id、status、created_at、task_id、people_count、timelog_count、content。"
+"The list command prints tab-separated columns: id, status, created_at, "
+"task_count, vision_count, event_count, people_count, timelog_count, "
+"tag_count, content."
+msgstr ""
+"`list` 命令会输出以制表符分隔的列：id、status、created_at、task_count、"
+"vision_count、event_count、people_count、timelog_count、tag_count、content。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser.py:58
-msgid "Use `show` to inspect the full note body with preserved line breaks."
-msgstr "使用 `show` 查看保留原始换行的完整 `note` 正文。"
+#: src/lifeos_cli/cli_support/resources/note/parser.py:60
+msgid ""
+"Use `show` to inspect the full note body together with linked tags, "
+"tasks, visions, events, people, and timelogs."
+msgstr "使用 `show` 查看完整 `note` 正文，以及关联的 `tag`、`task`、`vision`、`event`、`people` 和 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:33
 msgid "Create a note"
@@ -1566,83 +1484,109 @@ msgstr ""
 "使用此操作可以捕捉简短的想法、提示或原始文本\n"
 "它们链接到其他域，例如 `task`、`people` 或 `timelog`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:50
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:51
 msgid "Wrap inline content in quotes when it contains spaces."
 msgstr "当内联内容包含空格时，将其括在引号中。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:51
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:52
 msgid "Use `--stdin` or `--file` for multi-line note content."
 msgstr "使用 `--stdin ` 或 `--file ` 进行多行 `note` 内容。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:52
-msgid "Repeat `--person-id` and `--timelog-id` to link multiple records."
-msgstr "重复 `--person-id ` 和 `--timelog-id ` 以链接多个记录。"
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:54
+msgid ""
+"Repeat `--tag-id`, `--person-id`, `--task-id`, `--vision-id`, `--event-"
+"id`, and `--timelog-id` to link multiple records."
+msgstr "重复使用 `--tag-id`、`--person-id`、`--task-id`、`--vision-id`、`--event-id` 和 `--timelog-id` 来关联多条记录。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:56
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:60
 msgid "Inline note content"
 msgstr "内联 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:60
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:64
 msgid "Read note content from standard input"
 msgstr "从标准输入读取 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:62
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:66
 msgid "Read note content from a UTF-8 text file"
 msgstr "从 UTF-8 文本文件中读取 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:69
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:73
+msgid "Repeat to associate one or more tags"
+msgstr "重复以关联一个或多个 `tag`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:81
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:84
 #: src/lifeos_cli/cli_support/resources/task/parser.py:139
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:94
 msgid "Repeat to associate one or more people"
 msgstr "重复以关联一个或多个 `people`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:71
-msgid "Associate one task"
-msgstr "关联一项 `task`"
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:89
+msgid "Repeat to associate one or more tasks"
+msgstr "重复以关联一个或多个 `task`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:78
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:97
+msgid "Repeat to associate one or more visions"
+msgstr "重复以关联一个或多个 `vision`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:105
+msgid "Repeat to associate one or more events"
+msgstr "重复以关联一个或多个 `event`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:113
 msgid "Repeat to associate one or more timelogs"
 msgstr "重复关联一个或多个 `timelog`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:90
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:125
 msgid "List notes"
 msgstr "列出 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:92
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:127
 msgid "List notes in reverse creation order."
 msgstr "按相反创建顺序列出 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:95
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:130
 msgid ""
 "The output is tab-separated and currently includes: id, status,\n"
-"created_at, task_id, people_count, timelog_count, and a normalized content preview."
+"created_at, task_count, vision_count, event_count, people_count,\n"
+"timelog_count, tag_count, and a normalized content preview."
 msgstr ""
-"输出以制表符分隔，当前包括：id、status、\n"
-"created_at、task_id、people_count、timelog_count 和标准化内容预览。"
+"输出当前为制表符分隔，包含：id、status、\n"
+"created_at、task_count、vision_count、event_count、people_count、\n"
+"timelog_count、tag_count，以及规范化后的内容预览。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:108
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:145
 msgid "Use --include-deleted when reviewing soft-deleted records."
 msgstr "查看软删除记录时使用 --include-deleted。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:109
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:146
 msgid "Use --limit and --offset together for pagination."
 msgstr "一起使用 --limit 和 --offset 进行分页。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:115
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:153
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:151
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:193
+msgid "Filter by linked event"
+msgstr "按关联的 `event` 过滤"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:154
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:196
 msgid "Filter by linked timelog"
 msgstr "按链接 `timelog` 过滤"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:128
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:155
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:197
+msgid "Filter by linked vision"
+msgstr "按关联的 `vision` 过滤"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:168
 msgid "Search notes"
 msgstr "搜索 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:130
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:170
 msgid "Search notes by keyword tokens."
 msgstr "通过关键字标记搜索 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:133
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:173
 msgid ""
 "The current implementation uses a PostgreSQL-backed ILIKE token search.\n"
 "Each token is matched against note content, and any matching token keeps\n"
@@ -1652,91 +1596,109 @@ msgstr ""
 "每个令牌都与 `note` 内容进行匹配，并且任何匹配的令牌都会保留\n"
 "结果集中的 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:145
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:186
 msgid "Results use the same summary format as `lifeos note list`."
 msgstr "结果使用与 `lifeos note list ` 相同的摘要格式。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:146
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:187
 msgid "Multi-word queries are split into tokens and matched with OR semantics."
 msgstr "多词查询被拆分为标记并使用 OR 语义进行匹配。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:150
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:191
 msgid "Search query string"
 msgstr "搜索查询字符串"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:166
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:210
 msgid "Show full note content"
 msgstr "显示完整 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:168
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:212
 msgid "Show a single note with full metadata and the original content body."
 msgstr "显示包含完整元数据和原始内容正文的单个 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:171
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:215
 msgid ""
-"Use this action when you need to inspect preserved line breaks instead of the single-line summary"
-" from `note list`."
+"Use this action when you need to inspect preserved line breaks instead of"
+" the single-line summary from `note list`."
 msgstr "当您需要检查保留的换行符而不是来自 `note list ` 的单行摘要时，请使用此操作。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:179
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:223
 msgid "Use `--include-deleted` to inspect a soft-deleted note."
 msgstr "使用 `--include-deleted ` 检查软删除的 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:182
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:211
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:261
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:226
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:259
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:355
 msgid "Note identifier"
 msgstr "`note` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:194
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:238
 msgid "Update a note"
 msgstr "更新 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:196
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:240
 msgid "Update note content and weak associations in place."
 msgstr "更新 `note` 内容和薄弱关联。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:198
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:242
 msgid "Omitted fields remain unchanged. Use `--clear-*` flags to remove links."
 msgstr "省略的字段保持不变。使用 `--clear-* ` 标志删除链接。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:206
-msgid "Repeat `--person-id` and `--timelog-id` to replace linked records."
-msgstr "重复 `--person-id ` 和 `--timelog-id ` 以替换链接记录。"
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:252
+msgid ""
+"Repeat relation flags to replace the linked tags, people, tasks, visions,"
+" events, or timelogs."
+msgstr "重复使用关系参数以替换关联的 `tag`、`people`、`task`、`vision`、`event` 或 `timelog`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:207
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:255
 msgid "Use relation flags without `content` when only links need to change."
 msgstr "当仅需要更改链接时，使用不带 `content ` 的关系标志。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:212
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:260
 msgid "Replacement note content"
 msgstr "替换 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:222
-msgid "Replace the linked task"
-msgstr "替换链接的 `task`"
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:285
+msgid "Repeat to replace tasks with one or more identifiers"
+msgstr "重复以使用一个或多个标识符替换 `task`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:224
-msgid "Remove the linked task"
-msgstr "删除链接的 `task`"
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:292
+msgid "Remove all linked tasks"
+msgstr "移除所有关联的 `task`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:232
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:300
+msgid "Repeat to replace visions with one or more identifiers"
+msgstr "重复以使用一个或多个标识符替换 `vision`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:305
+msgid "Remove all linked visions"
+msgstr "移除所有关联的 `vision`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:313
+msgid "Repeat to replace events with one or more identifiers"
+msgstr "重复以使用一个或多个标识符替换 `event`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:318
+msgid "Remove all linked events"
+msgstr "移除所有关联的 `event`"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:326
 msgid "Repeat to replace timelogs with one or more identifiers"
 msgstr "重复以将 `timelog` 替换为一个或多个标识符"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:237
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:331
 msgid "Remove all linked timelogs"
 msgstr "删除所有链接的 `timelog`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:249
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:343
 msgid "Delete a note"
 msgstr "删除 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:251
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:345
 msgid "Delete a note by identifier."
 msgstr "通过标识符删除 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:254
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:348
 msgid ""
 "By default the note is soft-deleted so it can remain visible in audit\n"
 "or recovery flows."
@@ -1744,15 +1706,15 @@ msgstr ""
 "默认情况下，`note` 是软删除的，因此它可以在审核中保持可见\n"
 "或恢复流量。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:272
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:366
 msgid "Run batch note operations"
 msgstr "执行批量 `note` 操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:274
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:368
 msgid "Run operations that target multiple notes in a single command."
 msgstr "在单条命令中执行针对多个 `note` 的操作。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:277
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:371
 msgid ""
 "Use this namespace for bulk workflows so the CLI keeps a stable shape as\n"
 "new note capabilities are introduced."
@@ -1760,31 +1722,31 @@ msgstr ""
 "使用此命名空间进行批量工作流程，以便 CLI 保持稳定的形状\n"
 "引入了新的 `note` 功能。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:291
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:385
 msgid "Batch commands currently accept note IDs directly."
 msgstr "批处理命令目前直接接受 `note` ID。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:292
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:386
 msgid "Future note batch operations should be added under this namespace."
 msgstr "以后的 `note` 批量操作应该添加到这个命名空间下。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:299
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:393
 msgid "operations"
 msgstr "操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:300
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:394
 msgid "operation"
 msgstr "操作"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:307
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:401
 msgid "Find and replace note content in bulk"
 msgstr "批量查找并替换 `note` 内容"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:309
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:403
 msgid "Apply a find/replace operation across multiple active notes."
 msgstr "在多个活动 `note` 中应用查找/替换操作。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:312
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:406
 msgid ""
 "This is the first batch-editing primitive for notes and provides a base\n"
 "shape for future bulk operations."
@@ -1792,51 +1754,55 @@ msgstr ""
 "这是 `note` 的第一个批量编辑原语，并提供了基础\n"
 "为未来的批量操作奠定基础。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:326
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:420
 msgid "Only active notes are updated by this command."
 msgstr "此命令仅更新活动 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:327
-msgid "Failed note IDs are printed to stderr while successful updates stay on stdout."
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:421
+msgid ""
+"Failed note IDs are printed to stderr while successful updates stay on "
+"stdout."
 msgstr "失败的 `note` ID 会打印到 stderr，而成功的更新则保留在 stdout 上。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:338
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:432
 msgid "One or more note identifiers to update"
 msgstr "要更新的一个或多个 `note` 标识符"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:341
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:435
 msgid "Text to find in each target note"
 msgstr "在每个目标 `note` 中查找的文本"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:344
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:438
 msgid "Replacement text for matched content"
 msgstr "匹配内容的替换文本"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:349
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:443
 msgid "Use a case-sensitive find/replace instead of case-insensitive matching"
 msgstr "使用区分大小写的查找/替换而不是不区分大小写的匹配"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:357
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:451
 msgid "Delete multiple notes"
 msgstr "删除多个 `note`"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:359
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:453
 msgid "Delete multiple notes in one command."
 msgstr "在一个命令中删除多个 `note`。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:361
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:455
 msgid "This command mirrors `lifeos note delete`, but works across many note IDs."
 msgstr "此命令镜像 `lifeos note delete`，但适用于许多 `note` ID。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:369
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:463
 msgid "CLI batch delete performs soft deletion only."
 msgstr "CLI 批量删除仅执行软删除。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:370
-msgid "Failed note IDs are printed to stderr while successful deletes stay on stdout."
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:464
+msgid ""
+"Failed note IDs are printed to stderr while successful deletes stay on "
+"stdout."
 msgstr "失败的 `note` ID 会打印到 stderr，而成功的删除则保留在 stdout 上。"
 
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:381
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:475
 msgid "One or more note identifiers to delete"
 msgstr "要删除的一个或多个 `note` 标识符"
 
@@ -1849,13 +1815,16 @@ msgid "Create and maintain people records for your social context."
 msgstr "创建并维护反映你社交上下文的 `people` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:36
-msgid "This resource is for named people, relationship context, and explicit execution subjects."
+msgid ""
+"This resource is for named people, relationship context, and explicit "
+"execution subjects."
 msgstr "该资源用于建模具名 `people`、关系上下文和明确的执行主体。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:41
 msgid ""
-"Use it for the human partner and, when useful, a named automation identity so tasks, events, and "
-"timelogs can distinguish who the work belongs to."
+"Use it for the human partner and, when useful, a named automation "
+"identity so tasks, events, and timelogs can distinguish who the work "
+"belongs to."
 msgstr "将其用于人类合作伙伴；必要时也可使用具名自动化身份，以便 `task`、`event` 和 `timelog` 能区分工作归属。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:53
@@ -1864,8 +1833,8 @@ msgstr "`people` 是这个 domain 刻意采用的 CLI 资源名。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:58
 msgid ""
-"Agent callers should keep the human partner and the automation identity as separate records when "
-"both can own work."
+"Agent callers should keep the human partner and the automation identity "
+"as separate records when both can own work."
 msgstr "当人类协作者和自动化身份都可能拥有工作项时，调用方应将二者保留为独立记录。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:73
@@ -1878,14 +1847,15 @@ msgstr "创建一个新的 `person` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:78
 msgid ""
-"Use tags, nicknames, and location to capture lightweight relationship context or an execution "
-"subject that should appear in task, event, or timelog ownership."
+"Use tags, nicknames, and location to capture lightweight relationship "
+"context or an execution subject that should appear in task, event, or "
+"timelog ownership."
 msgstr "使用 `tag`、昵称和位置记录轻量的关系上下文，或记录应体现在 `task`、`event`、`timelog` 归属中的执行主体。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:90
 msgid ""
-"Create separate records when the human and the agent should remain distinct subjects in later "
-"workflow data."
+"Create separate records when the human and the agent should remain "
+"distinct subjects in later workflow data."
 msgstr "当人类与代理在后续工作流数据中应保持为不同主体时，请创建独立记录。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:96
@@ -1922,8 +1892,8 @@ msgstr "使用可选的搜索或 `tag` 过滤器列出 `people`。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:115
 msgid ""
-"Use this as the primary query entrypoint for people rather than expecting a separate search "
-"command."
+"Use this as the primary query entrypoint for people rather than expecting"
+" a separate search command."
 msgstr "将此用作 `people` 的主要查询入口点，而不是期望单独的搜索命令。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:124
@@ -2051,9 +2021,11 @@ msgstr "按本地日期分组显示 `schedule` 视图。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:29
 msgid ""
-"Schedule is a CLI read model built from tasks, habit actions, and events, including expanded "
-"recurring event occurrences."
-msgstr "`schedule` 是基于 `task`、`habit-action` 和 `event` 构建的 CLI 读模型，其中包含已展开的重复 `event` 实例。"
+"Schedule is a CLI read model built from tasks, habit actions, and events,"
+" including expanded recurring event occurrences."
+msgstr ""
+"`schedule` 是基于 `task`、`habit-action` 和 `event` 构建的 CLI 读模型，其中包含已展开的重复 "
+"`event` 实例。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:38
 msgid "Use `show` for one exact local day."
@@ -2068,11 +2040,15 @@ msgid "Dates use the configured timezone and `day_starts_at` preference."
 msgstr "日期会使用当前配置中的时区和 `day_starts_at` 偏好。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:41
-msgid "Event output is segmented into appointment, timeblock, and deadline sections."
+msgid ""
+"Event output is segmented into appointment, timeblock, and deadline "
+"sections."
 msgstr "`event` 输出会分成 appointment、timeblock 和 deadline 三个分区。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:42
-msgid "Schedule reads from existing domains and does not create a new stored entity."
+msgid ""
+"Schedule reads from existing domains and does not create a new stored "
+"entity."
 msgstr "`schedule` 只读取现有 `area` 的数据，不会创建新的持久化实体。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:55
@@ -2085,9 +2061,12 @@ msgstr "显示某一个本地日期的聚合 `schedule`。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:60
 msgid ""
-"Tasks appear when the requested local date falls inside their planning-cycle window, while events"
-" appear when their scheduled time overlaps that day."
-msgstr "当请求的本地日期落在 `task` 的 planning-cycle 窗口内时，`task` 会出现；当 `event` 的计划时间与该日重叠时，`event` 会出现。"
+"Tasks appear when the requested local date falls inside their planning-"
+"cycle window, while events appear when their scheduled time overlaps that"
+" day."
+msgstr ""
+"当请求的本地日期落在 `task` 的 planning-cycle 窗口内时，`task` 会出现；当 `event` "
+"的计划时间与该日重叠时，`event` 会出现。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:66
 msgid "The output groups tasks, habit actions, and event occurrences for the day."
@@ -2098,7 +2077,9 @@ msgid "Task rows come from planning-cycle overlap, not from event timeblocks."
 msgstr "`task` 行来自 planning-cycle 的时间重叠，而不是来自 `event` 时间块。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:69
-msgid "Event occurrences are split into appointment, timeblock, and deadline sections."
+msgid ""
+"Event occurrences are split into appointment, timeblock, and deadline "
+"sections."
 msgstr "`event` 实例会拆分到 appointment、timeblock 和 deadline 三个分区中。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:80
@@ -2142,7 +2123,9 @@ msgid "Create and maintain tags for notes, people, visions, tasks, and areas."
 msgstr "创建并维护用于 `note`、`people`、`vision`、`task` 和 `area` 的 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:35
-msgid "Tags provide cross-cutting classification across otherwise separate domains."
+msgid ""
+"Tags provide cross-cutting classification across otherwise separate "
+"domains."
 msgstr "`tag` 提供跨不同资源域的横切分类。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:43
@@ -2190,7 +2173,9 @@ msgid "List tags with optional filters."
 msgstr "列出带有可选过滤器的 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:97
-msgid "Use entity type and category to narrow the result set before inspecting one tag in detail."
+msgid ""
+"Use entity type and category to narrow the result set before inspecting "
+"one tag in detail."
 msgstr "在详细检查一个 `tag` 之前，使用实体类型和类别来缩小结果集范围。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:107
@@ -2239,7 +2224,9 @@ msgid "Only explicitly provided flags are changed; omitted values are preserved.
 msgstr "仅更改显式提供的标志；省略的值被保留。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:151
-msgid "Use `--clear-description`, `--clear-color`, or `--clear-people` to remove optional values."
+msgid ""
+"Use `--clear-description`, `--clear-color`, or `--clear-people` to remove"
+" optional values."
 msgstr "使用 `--clear-description`、`--clear-color` 或 `--clear-people` 删除可选值。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:158
@@ -2275,7 +2262,9 @@ msgid "Soft-delete a tag."
 msgstr "软删除 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:193
-msgid "This keeps historical references recoverable while removing the tag from normal views."
+msgid ""
+"This keeps historical references recoverable while removing the tag from "
+"normal views."
 msgstr "这使得历史引用可以恢复，同时从普通视图中删除 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:207
@@ -2288,7 +2277,9 @@ msgstr "在一个命令中运行针对多个 `tag` 的写入操作。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:212
 #: src/lifeos_cli/cli_support/resources/task/parser.py:438
-msgid "Use this namespace for bulk maintenance rather than adding many top-level verbs."
+msgid ""
+"Use this namespace for bulk maintenance rather than adding many top-level"
+" verbs."
 msgstr "使用此命名空间进行批量维护，而不是添加许多顶级动词。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:234
@@ -2308,11 +2299,15 @@ msgid "Create and maintain task trees that belong to a vision."
 msgstr "创建并维护属于某个 `vision` 的 `task` 树。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:41
-msgid "Tasks are the main execution unit in LifeOS and can be nested under parent tasks."
+msgid ""
+"Tasks are the main execution unit in LifeOS and can be nested under "
+"parent tasks."
 msgstr "`task` 是 LifeOS 中的主要执行单元，可以嵌套在父 `task` 下。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:45
-msgid "Use planning-cycle fields to place a task inside a broader timebox, and use"
+msgid ""
+"Use planning-cycle fields to place a task inside a broader timebox, and "
+"use"
 msgstr "使用 planning-cycle 字段将 `task` 放入更大的时间范围内，并在需要时配合"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:47
@@ -2325,14 +2320,16 @@ msgstr "`task` 可以通过 `--parent-task-id` 形成树结构。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:58
 msgid ""
-"Use `lifeos event add --task-id <task-id>` when a task also needs a specific appointment, "
-"timeblock, or deadline in the daily schedule."
-msgstr "当 `task` 还需要每日 `schedule` 中的特定约会、时间块或截止日期时，请使用 `lifeos event add --task-id <task-id>`。"
+"Use `lifeos event add --task-id <task-id>` when a task also needs a "
+"specific appointment, timeblock, or deadline in the daily schedule."
+msgstr ""
+"当 `task` 还需要每日 `schedule` 中的特定约会、时间块或截止日期时，请使用 `lifeos event add --task-"
+"id <task-id>`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:62
 msgid ""
-"A task appears in `lifeos schedule show` when the requested local date falls inside its planning-"
-"cycle window."
+"A task appears in `lifeos schedule show` when the requested local date "
+"falls inside its planning-cycle window."
 msgstr "当请求的本地日期落在其 planning-cycle 窗口内时，`task` 会出现在 `lifeos schedule show` 中。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:79
@@ -2344,13 +2341,15 @@ msgid "Create a new task for a vision."
 msgstr "为 `vision` 创建新的 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:83
-msgid "Tasks can be root tasks or child tasks under another task in the same vision."
+msgid ""
+"Tasks can be root tasks or child tasks under another task in the same "
+"vision."
 msgstr "`task` 可以是同一 `vision` 中另一个 `task` 下的根 `task` 或子 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:86
 msgid ""
-"Planning-cycle fields describe the enclosing timebox for the task, not a clock-time execution "
-"slot."
+"Planning-cycle fields describe the enclosing timebox for the task, not a "
+"clock-time execution slot."
 msgstr "`planning-cycle` 字段描述的是 `task` 所属的时间窗口，而不是具体的时钟时间段。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:105
@@ -2359,14 +2358,14 @@ msgstr "使用时必须成组提供完整的 planning-cycle 参数。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:107
 msgid ""
-"Use planning-cycle fields for the broader year, month, week, or day window that the task belongs "
-"to."
+"Use planning-cycle fields for the broader year, month, week, or day "
+"window that the task belongs to."
 msgstr "使用 planning-cycle 字段描述 `task` 所属的 year、month、week 或 day 窗口。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:111
 msgid ""
-"Use `lifeos event add --task-id <task-id>` if the task also needs a specific scheduled time block"
-" on a calendar day."
+"Use `lifeos event add --task-id <task-id>` if the task also needs a "
+"specific scheduled time block on a calendar day."
 msgstr "如果 `task` 还需要日历日的特定计划时间段，请使用 `lifeos event add --task-id <task-id>`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:114
@@ -2375,8 +2374,8 @@ msgstr "重复 `--person-id` 以关联一个或多个 `people`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:116
 msgid ""
-"When an agent creates tasks on behalf of a human, use `--person-id` to mark whether the task "
-"belongs to the human, the agent, or both."
+"When an agent creates tasks on behalf of a human, use `--person-id` to "
+"mark whether the task belongs to the human, the agent, or both."
 msgstr "当代理代表人类创建 `task` 时，使用 `--person-id` 标记 `task` 属于人类、代理或两者。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:122
@@ -2428,11 +2427,15 @@ msgid "List tasks with optional vision, parent, or status filters."
 msgstr "列出 `task` 以及可选的 `vision`、父级或状态过滤器。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:165
-msgid "Use this command as the primary query entrypoint for structured task views."
+msgid ""
+"Use this command as the primary query entrypoint for structured task "
+"views."
 msgstr "使用此命令作为结构化 `task` 视图的主要查询入口点。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:176
-msgid "When `--vision-id` is provided without `--parent-task-id`, only root tasks are listed."
+msgid ""
+"When `--vision-id` is provided without `--parent-task-id`, only root "
+"tasks are listed."
 msgstr "当提供 `--vision-id ` 而不提供 `--parent-task-id ` 时，仅列出根 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:179
@@ -2590,16 +2593,20 @@ msgstr "使用 `--clear-parent ` 将子 `task` 移回根级别。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:342
 msgid ""
-"Updated planning-cycle fields still describe the enclosing timebox, not a specific scheduled "
-"timestamp."
+"Updated planning-cycle fields still describe the enclosing timebox, not a"
+" specific scheduled timestamp."
 msgstr "更新后的 planning-cycle 字段仍描述所属时间窗口，而不是具体的计划时间戳。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:346
-msgid "Use `--clear-*` flags to remove optional values such as descriptions or planning cycles."
+msgid ""
+"Use `--clear-*` flags to remove optional values such as descriptions or "
+"planning cycles."
 msgstr "使用 `--clear-*` 标志清除描述或 planning-cycle 等可选值。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:350
-msgid "Use repeated `--person-id` to keep human-only, agent-only, and shared task ownership explicit."
+msgid ""
+"Use repeated `--person-id` to keep human-only, agent-only, and shared "
+"task ownership explicit."
 msgstr "重复使用 `--person-id`，以明确区分仅人类、仅代理和共享的 `task` 归属。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:357
@@ -2643,7 +2650,9 @@ msgid "Updated planning cycle duration in days for the enclosing timebox"
 msgstr "更新所属时间窗口的 planning-cycle 时长（天）"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:401
-msgid "Updated start date of the enclosing planning cycle window in YYYY-MM-DD format"
+msgid ""
+"Updated start date of the enclosing planning cycle window in YYYY-MM-DD "
+"format"
 msgstr "更新所属 planning-cycle 窗口的开始日期（YYYY-MM-DD）"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:406
@@ -2659,7 +2668,9 @@ msgid "Soft-delete a task."
 msgstr "软删除 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:419
-msgid "The record remains recoverable and visible through deleted-aware inspection commands."
+msgid ""
+"The record remains recoverable and visible through deleted-aware "
+"inspection commands."
 msgstr "通过删除感知检查命令，记录仍然是可恢复和可见的。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:433
@@ -2699,7 +2710,9 @@ msgid "Timelogs can optionally reference one area and one task."
 msgstr "`timelog` 可以选择关联一个 `area` 和一个 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:72
-msgid "Timelog list and show include `linked_notes_count` derived from note associations."
+msgid ""
+"Timelog list and show include `linked_notes_count` derived from note "
+"associations."
 msgstr "`timelog` 的 `list` 和 `show` 输出都包含由 `note` 关联派生的 `linked_notes_count`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:75
@@ -2719,13 +2732,15 @@ msgid "Create one actual time record."
 msgstr "创建一条实际发生的 `timelog` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:100
-msgid "Timelog end time is required because the record models completed time spent."
+msgid ""
+"Timelog end time is required because the record models completed time "
+"spent."
 msgstr "`timelog` 必须提供结束时间，因为它表示已经完成的时间投入。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:102
 msgid ""
-"When an agent records actual work, use `--person-id` to state whether the effort belongs to the "
-"human, the agent, or both."
+"When an agent records actual work, use `--person-id` to state whether the"
+" effort belongs to the human, the agent, or both."
 msgstr "当代理记录实际工作时，使用 `--person-id ` 来说明该工作是否属于 `people`、代理或两者。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:108
@@ -2824,7 +2839,9 @@ msgid "Update mutable timelog fields."
 msgstr "更新可变的 `timelog` 字段。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:231
-msgid "Use repeated `--person-id` to keep actual human effort, agent effort, and shared effort distinct."
+msgid ""
+"Use repeated `--person-id` to keep actual human effort, agent effort, and"
+" shared effort distinct."
 msgstr "使用重复的 `--person-id ` 来区分实际的人类工作量、代理工作量和共享工作量。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:238
@@ -2941,22 +2958,26 @@ msgstr "查询按 `area` 分组的 `timelog` 统计。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:409
 msgid ""
-"Day, week, month, and year views use persisted stats when available and fall back to direct "
-"aggregation when the cache has not been rebuilt yet."
+"Day, week, month, and year views use persisted stats when available and "
+"fall back to direct aggregation when the cache has not been rebuilt yet."
 msgstr "日、周、月和年视图在可用时使用持久统计数据，并在缓存尚未重建时回退到直接聚合。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:421
-msgid "Stats are grouped only by area; task effort remains a separate task feature."
+msgid ""
+"Stats are grouped only by area; task effort remains a separate task "
+"feature."
 msgstr "统计数据仅按 `area` 分组；`task` 工作量仍然是一个单独的 `task` 功能。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:423
 msgid ""
-"Run `timelog stats rebuild` after upgrading older datasets or importing historical timelogs so "
-"persisted stats match historical records."
+"Run `timelog stats rebuild` after upgrading older datasets or importing "
+"historical timelogs so persisted stats match historical records."
 msgstr "升级旧数据集或导入历史 `timelog` 后运行 `timelog stats rebuild`，以便持久统计数据与历史记录匹配。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:426
-msgid "Range stats aggregate directly from source timelogs for the requested window."
+msgid ""
+"Range stats aggregate directly from source timelogs for the requested "
+"window."
 msgstr "范围统计数据直接从请求窗口的源 `timelog` 聚合。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:432
@@ -3041,12 +3062,14 @@ msgstr "重建持续 `timelog` 统计 按 `area` 分组"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:536
 msgid ""
-"Rebuild persisted day, week, month, and year timelog stats grouped by area for one selected local"
-" scope."
+"Rebuild persisted day, week, month, and year timelog stats grouped by "
+"area for one selected local scope."
 msgstr "重建持续的天、周、月和年 `timelog` 统计，按 `area` 分组为一个选定的本地范围。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:546
-msgid "Use rebuild after upgrading older datasets or importing historical timelogs."
+msgid ""
+"Use rebuild after upgrading older datasets or importing historical "
+"timelogs."
 msgstr "升级旧数据集或导入历史 `timelog` 后使用重建。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:547
@@ -3074,7 +3097,9 @@ msgid "Manage visions"
 msgstr "管理 `vision`"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:38
-msgid "Create and maintain high-level containers composed of one or more task trees."
+msgid ""
+"Create and maintain high-level containers composed of one or more task "
+"trees."
 msgstr "创建并维护由一棵或多棵 `task` 树组成的高层规划容器。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:40
@@ -3094,7 +3119,9 @@ msgid "Create a new vision."
 msgstr "创建新的 `vision`。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:71
-msgid "Visions usually represent medium- or long-running themes that will own multiple tasks."
+msgid ""
+"Visions usually represent medium- or long-running themes that will own "
+"multiple tasks."
 msgstr "`vision` 通常代表具有多重 `task` 的中长期主题。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:84
@@ -3246,7 +3273,9 @@ msgid "Soft-delete a vision."
 msgstr "软删除 `vision`。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:280
-msgid "The record remains in the database and can still be inspected with deleted-aware commands."
+msgid ""
+"The record remains in the database and can still be inspected with "
+"deleted-aware commands."
 msgstr "该记录保留在数据库中，并且仍然可以使用删除感知命令进行检查。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:294
@@ -3258,7 +3287,9 @@ msgid "Run write operations that target multiple visions in one command."
 msgstr "在一个命令中运行针对多个 `vision` 的写入操作。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:299
-msgid "Use this namespace for bulk maintenance instead of adding many top-level verbs."
+msgid ""
+"Use this namespace for bulk maintenance instead of adding many top-level "
+"verbs."
 msgstr "使用此命名空间进行批量维护，而不是添加许多顶级动词。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:321
@@ -3307,8 +3338,8 @@ msgstr "首选项值也存储在配置文件中的 [preferences] 下。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:154
 msgid ""
-"Interactive init explicitly confirms the language preference because agents should use it for "
-"human-authored payload data."
+"Interactive init explicitly confirms the language preference because "
+"agents should use it for human-authored payload data."
 msgstr "交互式 `init` 会显式确认语言偏好，因为代理应使用它来生成面向人类的 payload 数据。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:157
@@ -3381,8 +3412,8 @@ msgstr "环境变量仍然会在运行时覆盖配置文件值。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:241
 msgid ""
-"Agents should inspect `Preference language` before writing human-authored titles, descriptions, "
-"or note content."
+"Agents should inspect `Preference language` before writing human-authored"
+" titles, descriptions, or note content."
 msgstr "代理在写入面向人类的标题、描述或 `note` 内容前，应先检查 `Preference language`。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:258
@@ -3398,13 +3429,15 @@ msgid "Database URLs hide passwords by default. Use --show-secrets when needed."
 msgstr "数据库 URL 默认隐藏密码。需要时使用 --show-secrets。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:264
-msgid "Preferences are resolved from the [preferences] TOML table and optional LIFEOS_* overrides."
+msgid ""
+"Preferences are resolved from the [preferences] TOML table and optional "
+"LIFEOS_* overrides."
 msgstr "首选项是从 [首选项] TOML 表和可选的 LIFEOS_* 覆盖中解析的。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:268
 msgid ""
-"Agents should read the effective language and use it for human-authored payload data unless the "
-"human explicitly overrides it."
+"Agents should read the effective language and use it for human-authored "
+"payload data unless the human explicitly overrides it."
 msgstr "代理应读取当前生效的语言，并将其用于面向人类的 payload 数据，除非人类明确覆盖该设置。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:277
@@ -3429,7 +3462,9 @@ msgid "Supported keys: {keys}"
 msgstr "支持的密钥：{keys}"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:295
-msgid "Use `config show` to inspect the effective values after environment overrides."
+msgid ""
+"Use `config show` to inspect the effective values after environment "
+"overrides."
 msgstr "使用 `config show ` 检查环境覆盖后的有效值。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:299
@@ -3475,3 +3510,136 @@ msgstr "应用迁移"
 #: src/lifeos_cli/cli_support/system/db_commands.py:82
 msgid "Apply Alembic migrations to the configured PostgreSQL database."
 msgstr "将 Alembic 迁移应用到配置的 PostgreSQL 数据库。"
+
+#~ msgid " (default: %(default)s)"
+#~ msgstr " （默认值：%(default)s）"
+
+#~ msgid "%(heading)s:"
+#~ msgstr "%(heading)s："
+
+#~ msgid "%(prog)s: error: %(message)s\n"
+#~ msgstr "%(prog)s：错误：%(message)s\n"
+
+#~ msgid "%r is not callable"
+#~ msgstr "%r 不可调用"
+
+#~ msgid ".__call__() not defined"
+#~ msgstr "未定义 .__call__()"
+
+#~ msgid "ambiguous option: %(option)s could match %(matches)s"
+#~ msgstr "歧义参数：%(option)s 可能匹配 %(matches)s"
+
+#~ msgid "argument \"-\" with mode %r"
+#~ msgstr "参数 \"-\" 的模式为 %r"
+
+#~ msgid "argument %(argument_name)s: %(message)s"
+#~ msgstr "参数 %(argument_name)s：%(message)s"
+
+#~ msgid "cannot have multiple subparser arguments"
+#~ msgstr "不能有多个 subparser 参数"
+
+#~ msgid "cannot merge actions - two groups are named %r"
+#~ msgstr "无法合并 actions：有两个分组同名为 %r"
+
+#~ msgid "conflicting subparser alias: %s"
+#~ msgstr "冲突的 subparser 别名：%s"
+
+#~ msgid "conflicting subparser: %s"
+#~ msgstr "冲突的 subparser：%s"
+
+#~ msgid "dest= is required for options like %r"
+#~ msgstr "类似 %r 的选项必须提供 dest="
+
+#~ msgid "expected at least one argument"
+#~ msgstr "至少需要一个参数"
+
+#~ msgid "expected at most one argument"
+#~ msgstr "至多允许一个参数"
+
+#~ msgid "expected one argument"
+#~ msgstr "需要一个参数"
+
+#~ msgid "ignored explicit argument %r"
+#~ msgstr "显式参数 %r 已被忽略"
+
+#~ msgid "invalid %(type)s value: %(value)r"
+#~ msgstr "无效的 %(type)s 值：%(value)r"
+
+#~ msgid "invalid choice: %(value)r (choose from %(choices)s)"
+#~ msgstr "无效的选项：%(value)r（可选值：%(choices)s）"
+
+#~ msgid "invalid conflict_resolution value: %r"
+#~ msgstr "无效的 conflict_resolution 值：%r"
+
+#~ msgid "mutually exclusive arguments must be optional"
+#~ msgstr "互斥参数必须是可选参数"
+
+#~ msgid "not allowed with argument %s"
+#~ msgstr "不能与参数 %s 同时使用"
+
+#~ msgid "one of the arguments %s is required"
+#~ msgstr "参数 %s 中至少需要提供一个"
+
+#~ msgid "options"
+#~ msgstr "选项"
+
+#~ msgid "optional arguments"
+#~ msgstr "可选参数"
+
+#~ msgid "positional arguments"
+#~ msgstr "位置参数"
+
+#~ msgid "show this help message and exit"
+#~ msgstr "显示此帮助信息并退出"
+
+#~ msgid "subcommands"
+#~ msgstr "子命令"
+
+#~ msgid "the following arguments are required: %s"
+#~ msgstr "以下参数是必需的：%s"
+
+#~ msgid "unexpected option string: %s"
+#~ msgstr "意外的选项字符串：%s"
+
+#~ msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
+#~ msgstr "未知的 parser %(parser_name)r（可选值：%(choices)s）"
+
+#~ msgid "unrecognized arguments: %s"
+#~ msgstr "无法识别的参数：%s"
+
+#~ msgid "usage: "
+#~ msgstr "用法："
+
+#~ msgid ""
+#~ "The list command prints tab-separated"
+#~ " columns: id, status, created_at, task_id,"
+#~ " people_count, timelog_count, content."
+#~ msgstr ""
+#~ "`list` "
+#~ "命令输出以制表符分隔的列：id、status、created_at、task_id、people_count、timelog_count、content。"
+
+#~ msgid "Use `show` to inspect the full note body with preserved line breaks."
+#~ msgstr "使用 `show` 查看保留原始换行的完整 `note` 正文。"
+
+#~ msgid "Repeat `--person-id` and `--timelog-id` to link multiple records."
+#~ msgstr "重复 `--person-id ` 和 `--timelog-id ` 以链接多个记录。"
+
+#~ msgid "Associate one task"
+#~ msgstr "关联一项 `task`"
+
+#~ msgid ""
+#~ "The output is tab-separated and currently includes: id, status,\n"
+#~ "created_at, task_id, people_count, timelog_count,"
+#~ " and a normalized content preview."
+#~ msgstr ""
+#~ "输出以制表符分隔，当前包括：id、status、\n"
+#~ "created_at、task_id、people_count、timelog_count 和标准化内容预览。"
+
+#~ msgid "Repeat `--person-id` and `--timelog-id` to replace linked records."
+#~ msgstr "重复 `--person-id ` 和 `--timelog-id ` 以替换链接记录。"
+
+#~ msgid "Replace the linked task"
+#~ msgstr "替换链接的 `task`"
+
+#~ msgid "Remove the linked task"
+#~ msgstr "删除链接的 `task`"

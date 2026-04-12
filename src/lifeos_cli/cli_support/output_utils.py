@@ -9,6 +9,7 @@ from typing import Protocol
 from uuid import UUID
 
 from lifeos_cli.application.time_preferences import to_preferred_timezone
+from lifeos_cli.db.services.read_models import NoteView
 
 
 class BatchResult(Protocol):
@@ -56,57 +57,42 @@ def print_batch_result(
     return 1 if result.failed_ids else 0
 
 
-def format_note_summary(note: object) -> str:
+def format_note_summary(note: NoteView) -> str:
     """Render a note as a single-line summary for CLI output."""
-    created_at = getattr(note, "created_at", None)
-    deleted_at = getattr(note, "deleted_at", None)
-    content = getattr(note, "content", "")
-    task = getattr(note, "task", None)
-    people = getattr(note, "people", []) or []
-    timelogs = getattr(note, "timelogs", []) or []
-    normalized_content = " ".join(str(content).split())
+    normalized_content = " ".join(note.content.split())
     if len(normalized_content) > 80:
         normalized_content = f"{normalized_content[:77]}..."
-    created_label = format_timestamp(created_at)
-    status = "deleted" if deleted_at is not None else "active"
-    task_id = getattr(task, "id", "-") if task is not None else "-"
-    note_id = getattr(note, "id", "-")
+    created_label = format_timestamp(note.created_at)
+    status = "deleted" if note.deleted_at is not None else "active"
     return (
-        f"{note_id}\t{status}\t{created_label}\t{task_id}\t"
-        f"{len(people)}\t{len(timelogs)}\t{normalized_content}"
+        f"{note.id}\t{status}\t{created_label}\t{len(note.tasks)}\t{len(note.visions)}\t"
+        f"{len(note.events)}\t{len(note.people)}\t{len(note.timelogs)}\t"
+        f"{len(note.tags)}\t{normalized_content}"
     )
 
 
-def format_note_detail(note: object) -> str:
+def format_note_detail(note: NoteView) -> str:
     """Render a note with full metadata and multi-line content."""
-    created_at = getattr(note, "created_at", None)
-    updated_at = getattr(note, "updated_at", None)
-    deleted_at = getattr(note, "deleted_at", None)
-    task = getattr(note, "task", None)
-    people = getattr(note, "people", []) or []
-    timelogs = getattr(note, "timelogs", []) or []
-    status = "deleted" if deleted_at is not None else "active"
-    people_names = ", ".join(
-        getattr(person, "name", str(getattr(person, "id", person))) for person in people
-    )
-    task_label = "-"
-    if task is not None:
-        task_id = getattr(task, "id", "-")
-        task_content = getattr(task, "content", "-")
-        task_label = f"{task_id} | {task_content}"
-    timelog_labels = ", ".join(
-        f"{getattr(timelog, 'id', '-')} | {getattr(timelog, 'title', '-')}" for timelog in timelogs
-    )
+    status = "deleted" if note.deleted_at is not None else "active"
+    tag_names = ", ".join(tag.name for tag in note.tags)
+    people_names = ", ".join(person.name for person in note.people)
+    task_labels = ", ".join(f"{task.id} | {task.content}" for task in note.tasks)
+    vision_labels = ", ".join(f"{vision.id} | {vision.name}" for vision in note.visions)
+    event_labels = ", ".join(f"{event.id} | {event.title}" for event in note.events)
+    timelog_labels = ", ".join(f"{timelog.id} | {timelog.title}" for timelog in note.timelogs)
     lines = [
-        f"id: {getattr(note, 'id', '-')}",
+        f"id: {note.id}",
         f"status: {status}",
-        f"created_at: {format_timestamp(created_at)}",
-        f"updated_at: {format_timestamp(updated_at)}",
-        f"deleted_at: {format_timestamp(deleted_at)}",
-        f"task: {task_label}",
+        f"created_at: {format_timestamp(note.created_at)}",
+        f"updated_at: {format_timestamp(note.updated_at)}",
+        f"deleted_at: {format_timestamp(note.deleted_at)}",
+        f"tags: {tag_names or '-'}",
+        f"tasks: {task_labels or '-'}",
+        f"visions: {vision_labels or '-'}",
+        f"events: {event_labels or '-'}",
         f"people: {people_names or '-'}",
         f"timelogs: {timelog_labels or '-'}",
         "content:",
-        str(getattr(note, "content", "")),
+        note.content,
     ]
     return "\n".join(lines)

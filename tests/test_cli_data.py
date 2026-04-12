@@ -16,7 +16,6 @@ class FakeAsyncSession:
     def __init__(self) -> None:
         self.committed = False
         self.rolled_back = False
-        self.closed = False
 
     async def commit(self) -> None:
         self.committed = True
@@ -25,7 +24,7 @@ class FakeAsyncSession:
         self.rolled_back = True
 
     async def close(self) -> None:
-        self.closed = True
+        return None
 
     @asynccontextmanager
     async def begin_nested(self):

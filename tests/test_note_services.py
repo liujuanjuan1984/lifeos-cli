@@ -22,11 +22,11 @@ def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     def fake_add(_: object) -> None:
         pass
 
-    async def fake_attach_note_links(_: object, note: object) -> object:
+    async def fake_build_note_view(_: object, note: object) -> object:
         return note
 
     session.add = fake_add
-    monkeypatch.setattr(notes, "_attach_note_links", fake_attach_note_links)
+    monkeypatch.setattr(notes, "_build_note_view", fake_build_note_view)
 
     note = asyncio.run(notes.create_note(cast(Any, session), content="hello"))
 
@@ -48,12 +48,12 @@ def test_batch_update_note_content_does_not_rollback_missing_note(
     )
     existing_note = SimpleNamespace(id=target_id, content="draft value")
 
-    async def fake_get_note(*_: object, note_id: UUID, **__: object) -> object | None:
+    async def fake_get_note_model(*_: object, note_id: UUID, **__: object) -> object | None:
         if note_id == target_id:
             return existing_note
         return None
 
-    monkeypatch.setattr(notes, "get_note", fake_get_note)
+    monkeypatch.setattr(notes, "_get_note_model", fake_get_note_model)
 
     result = asyncio.run(
         notes.batch_update_note_content(

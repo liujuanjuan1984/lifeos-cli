@@ -10,7 +10,6 @@ from uuid import UUID
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services import tasks as task_services
 
 
@@ -30,15 +29,13 @@ def _parse_task_order(value: str) -> tuple[UUID, int]:
         raise ValueError("Task order must use <task-id>:<display-order>") from exc
 
 
-def _format_task_summary(task: Task) -> str:
+def _format_task_summary(task: task_services.TaskView) -> str:
     status = "deleted" if task.deleted_at is not None else task.status
     return f"{task.id}\t{status}\t{task.vision_id}\t{task.parent_task_id or '-'}\t{task.content}"
 
 
-def _format_task_detail(task: Task) -> str:
-    people_names = (
-        ", ".join(person.name for person in task.people) if getattr(task, "people", None) else "-"
-    )
+def _format_task_detail(task: task_services.TaskView) -> str:
+    people_names = ", ".join(person.name for person in task.people) if task.people else "-"
     return "\n".join(
         (
             f"id: {task.id}",
