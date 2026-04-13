@@ -2,37 +2,79 @@
 
 Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)
 
-`lifeos-cli` is a CLI-first LifeOS for self-managing super individuals: human-friendly in direct
-use, agent-friendly in automation, and built to hold the structured digital life data that connects
-intention with reality.
+`lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
+plans, execution, reflection, and reality.
 
-## Value Proposition
+You can use it directly as a human-friendly CLI, or let any capable agent operate it through the
+same command surface.
 
-Most personal systems fragment life into disconnected tools. That makes it unnecessarily hard to
-understand:
+That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or your own
+custom agent runtime, as long as it can read help text and execute terminal commands.
+
+## Why It Exists
+
+Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in
+another, notes somewhere else, and actual time spent disappears into scattered logs.
+
+That makes it unnecessarily hard to answer practical questions such as:
 
 - What did I intend to do?
 - What actually happened?
-- Where did my time and energy really go?
-- Which relationships, routines, and priorities am I actually living out?
+- What did I spend time on?
+- Which routines are real versus aspirational?
+- Which people, projects, and priorities am I actually serving?
 
-`lifeos-cli` treats those questions as one system problem. It gives structure to both sides of
-life:
+`lifeos-cli` treats those as one system problem.
+
+It gives structure to both sides of life:
 
 - intention: visions, tasks, habits, and planned events
 - reality: notes, timelogs, completed habit actions, and relationship records
 
-The goal is not just to store personal data, but to make self-management, reflection, and
-automation operate on the same durable source of truth.
+The goal is not just storage. The goal is a shared operational interface for self-management,
+reflection, and automation.
 
-## Why CLI
+## Use It Yourself Or Through Any Agent
 
-The CLI is the shared interface. People can use it directly, and existing agents can call the same
-commands without needing a separate embedded agent layer.
+`lifeos-cli` is designed for two equally valid workflows:
+
+- direct human use in the terminal
+- agent-mediated operation through stable CLI commands
+
+A human can use it to inspect plans, log reality, and maintain personal context:
+
+```bash
+lifeos schedule show --date 2026-04-13
+lifeos task list
+lifeos note add "Capture today's key decisions"
+lifeos timelog list --date 2026-04-13
+```
+
+An agent can use the same interface to discover identifiers, inspect state, and execute updates
+without a separate embedded agent API.
+
+This makes the project useful for:
+
+- personal terminal-first self-management
+- AI-assisted daily planning and reflection
+- coding-agent workflows that need structured personal context
+- automation pipelines that operate on durable personal data rather than ad hoc text files
+
+## Why Agents Work Well With This CLI
+
+The command surface is intentionally shaped to be easy for both humans and agents to consume:
+
+- stable grammar: `lifeos <resource> <action> [arguments] [options]`
+- help-first command model, with `--help` as the primary command reference
+- identifier-driven discovery flows built around `list` and `show`
+- compact summary output for lists and labeled output for record detail views
+- entity-specific primary-key headers such as `task_id`, `vision_id`, and `event_id`
+- localized help plus explicit language and time preferences
+- one shared interface instead of separate human UI and agent API layers
 
 ## Current Scope
 
-The current system already covers the core building blocks of a LifeOS:
+The current system already covers the core building blocks of a practical LifeOS:
 
 - notes
 - areas
@@ -44,9 +86,6 @@ The current system already covers the core building blocks of a LifeOS:
 - events
 - timelogs
 
-These modules already cover what matters, what is planned, what is being executed, and what
-actually happened.
-
 Cross-cutting capabilities already in place:
 
 - a `schedule` read model that aggregates tasks, habit actions, and planned events into day and
@@ -56,8 +95,7 @@ Cross-cutting capabilities already in place:
 - generic note associations across tasks, visions, events, people, timelogs, and tags
 - persisted runtime configuration for database access plus preferences such as timezone, language,
   day boundary, week boundary, and vision experience defaults
-- localized CLI help plus stable summary-table output with entity-specific primary-key headers for
-  direct human use and agent consumption
+- localized CLI help and stable summary-table output for direct human use and agent consumption
 
 ## Getting Started
 
