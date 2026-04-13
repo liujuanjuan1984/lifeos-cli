@@ -64,13 +64,7 @@ lifeos config set preferences.timezone America/Toronto
 lifeos config set preferences.language zh-Hans
 ```
 
-完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
-
-## 人类与 Agent 工作流
-
-### 人类直接使用
-
-人类可以直接用 `lifeos-cli` 查看计划、记录现实、维护个人上下文：
+常用命令：
 
 ```bash
 lifeos schedule show --date 2026-04-13
@@ -79,13 +73,13 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-### Agent 使用（推荐）
+完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
+
+## Agent 使用（推荐）
 
 任意能够执行终端命令并读取命令输出的 agent runtime 都可以操作同一套 CLI。
 这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
 以及你自己的自定义 agent runtime。
-
-### 为什么这套 CLI 适合 Agent
 
 - 稳定的命令语法：`lifeos <resource> <action> [arguments] [options]`
 - 以 `--help` 作为主命令参考的 help-first 模型

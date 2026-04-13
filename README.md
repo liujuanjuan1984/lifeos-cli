@@ -66,13 +66,7 @@ lifeos config set preferences.timezone America/Toronto
 lifeos config set preferences.language zh-Hans
 ```
 
-For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
-
-## Human And Agent Workflows
-
-### Direct CLI Use
-
-Humans can use `lifeos-cli` directly to inspect plans, log reality, and maintain personal context:
+Common commands:
 
 ```bash
 lifeos schedule show --date 2026-04-13
@@ -81,13 +75,13 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-### Agent Use (Recommended)
+For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
+
+## Agent Use (Recommended)
 
 Any agent runtime that can execute terminal commands and inspect command output can operate the
 same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
 your own setup.
-
-### Why It Works Well For Agents
 
 - stable grammar: `lifeos <resource> <action> [arguments] [options]`
 - help-first command model, with `--help` as the primary command reference
