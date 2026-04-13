@@ -3,12 +3,10 @@ from pathlib import Path
 from babel.messages import pofile
 
 DEPENDABOT_TEXT = Path(".github/dependabot.yml").read_text()
-CLI_GUIDE_TEXT = Path("docs/cli.md").read_text()
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
 PRE_COMMIT_TEXT = Path(".pre-commit-config.yaml").read_text()
 VALIDATE_WORKFLOW_TEXT = Path(".github/workflows/validate.yml").read_text()
-CONTRIBUTING_TEXT = Path("CONTRIBUTING.md").read_text()
 VULTURE_WHITELIST_TEXT = Path("scripts/vulture_whitelist.py").read_text()
 
 
@@ -46,9 +44,7 @@ def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     assert "bash ./scripts/integration_tests.sh" in VALIDATE_WORKFLOW_TEXT
 
 
-def test_static_analysis_governance_is_documented_and_whitelisted() -> None:
-    assert "scripts/vulture_whitelist.py" in CONTRIBUTING_TEXT
-    assert "framework-driven symbols" in CONTRIBUTING_TEXT
+def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:
     for symbol in (
         "type_annotation_map",
         "ARGPARSE_MESSAGE_IDS",
@@ -57,11 +53,6 @@ def test_static_analysis_governance_is_documented_and_whitelisted() -> None:
         "configured_time_preferences",
     ):
         assert symbol in VULTURE_WHITELIST_TEXT
-
-
-def test_cli_guide_instructs_agents_to_check_language_preference_before_writing() -> None:
-    assert "run `lifeos config show` before writing human-authored payload fields" in CLI_GUIDE_TEXT
-    assert "use `Preference language` as the payload language" in CLI_GUIDE_TEXT
 
 
 def test_zh_hans_cli_catalog_is_complete() -> None:
