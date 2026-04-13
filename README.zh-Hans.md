@@ -80,45 +80,14 @@ lifeos config set preferences.language zh-Hans
 
 完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
 
-## 开发
-
-1. 安装 `uv`。
-2. 同步开发环境：
-
-   ```bash
-   uv sync --all-extras
-   ```
-
-3. 运行默认校验入口：
-
-   ```bash
-   bash ./scripts/doctor.sh
-   ```
-
-   该基线会覆盖 lint、死代码扫描以及默认的非 integration 测试套件。
-
-4. 当你已经准备好 PostgreSQL 测试库时，使用完整回归入口并显式打开真实 CLI integration tests：
-
-   ```bash
-   LIFEOS_RUN_INTEGRATION=1 \
-   LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
-   bash ./scripts/doctor.sh
-   ```
-
-   这样会在默认校验基线之上，一并运行数据库驱动的 integration 测试套件。
-
-5. 有意识地使用仓库依赖管理工作流：
-
-   - `.github/dependabot.yml` 会为 `uv` 依赖更新创建单个、按周聚合的 PR。
-   - `bash ./scripts/dependency_health.sh` 仍然是维护者显式执行的过期依赖与开发期漏洞审计流程。
-
-CI 也会通过同一个独立入口，在临时 PostgreSQL 服务上真实运行 CLI integration tests。
-
 ## 项目策略
 
 - 贡献流程：[CONTRIBUTING.md](CONTRIBUTING.md)
 - 安全披露：[SECURITY.md](SECURITY.md)
 - 社区行为规范：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+贡献者环境搭建、校验入口、integration tests 以及依赖维护流程，以
+[CONTRIBUTING.md](CONTRIBUTING.md) 作为唯一开发指南。
 
 ## 许可证
 

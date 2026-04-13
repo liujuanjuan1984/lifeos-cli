@@ -89,47 +89,14 @@ lifeos config set preferences.language zh-Hans
 
 For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
 
-## Development
-
-1. Install `uv`.
-2. Sync the development environment:
-
-   ```bash
-   uv sync --all-extras
-   ```
-
-3. Run the default validation entrypoint:
-
-   ```bash
-   bash ./scripts/doctor.sh
-   ```
-
-   This baseline includes linting, dead-code scanning, and the default non-integration test suite.
-
-4. Run the full regression entrypoint with real CLI integration tests when you have a PostgreSQL
-   test database:
-
-   ```bash
-   LIFEOS_RUN_INTEGRATION=1 \
-   LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
-   bash ./scripts/doctor.sh
-   ```
-
-   This runs the same baseline validation plus the database-backed integration suite.
-
-5. Use the repository dependency workflows intentionally:
-
-   - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
-   - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dev vulnerability review.
-
-CI also runs the real CLI integration suite against an ephemeral PostgreSQL service through the
-same dedicated integration entrypoint.
-
 ## Project Policies
 
 - Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security disclosure: [SECURITY.md](SECURITY.md)
 - Community expectations: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+For contributor setup, validation, integration tests, and dependency maintenance workflows, use
+[CONTRIBUTING.md](CONTRIBUTING.md) as the canonical development guide.
 
 ## License
 
