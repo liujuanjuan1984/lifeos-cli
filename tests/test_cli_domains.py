@@ -819,6 +819,7 @@ def test_main_vision_read_model_commands_print_results(
     assert with_tasks_exit_code == 0
     assert stats_exit_code == 0
     assert "tasks:" in captured.out
+    assert "  id\tstatus\tparent_task_id\tcontent" in captured.out
     assert "Draft release checklist" in captured.out
     assert "total_tasks: 1" in captured.out
     assert "completion_percentage: 1.00" in captured.out
@@ -1459,6 +1460,41 @@ def test_main_habit_list_with_stats_prints_header(
             "weekly:3:monday,wednesday,friday\t66.7\t4\t6\tStrength training"
         ),
         "Total habits: 1",
+    ]
+
+
+def test_main_habit_task_associations_prints_header(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    habit = Habit(
+        title="Daily Exercise",
+        start_date=date(2026, 4, 9),
+        duration_days=21,
+        cadence_frequency="daily",
+        target_per_cycle=1,
+        status="active",
+        task_id=UUID("66666666-6666-6666-6666-666666666666"),
+    )
+    habit.id = UUID("77777777-7777-7777-7777-777777777777")
+
+    async def fake_get_habit_task_associations(session: object) -> dict[UUID, list[Habit]]:
+        return {UUID("66666666-6666-6666-6666-666666666666"): [habit]}
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habits, "get_habit_task_associations", fake_get_habit_task_associations)
+
+    exit_code = cli.main(["habit", "task-associations"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
+        "task_id\thabit_id\thabit_status\thabit_start_date\thabit_title",
+        (
+            "66666666-6666-6666-6666-666666666666\t"
+            "77777777-7777-7777-7777-777777777777\tactive\t2026-04-09\t"
+            "Daily Exercise"
+        ),
     ]
 
 

@@ -223,6 +223,31 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     assert "Task rows come from planning-cycle overlap" in captured.out
 
 
+def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit", "task-associations", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "tab-separated columns: task_id, habit_id, habit_status, habit_start_date, habit_title."
+        in captured.out
+    )
+
+
+def test_cli_vision_with_tasks_help_documents_task_header(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "with-tasks", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "tab-separated columns: id, status, parent_task_id, content." in captured.out
+
+
 def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
     parser = build_parser()
 

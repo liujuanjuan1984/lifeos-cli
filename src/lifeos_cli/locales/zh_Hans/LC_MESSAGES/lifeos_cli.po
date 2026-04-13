@@ -3280,6 +3280,14 @@ msgstr "显示 `vision` 的 `task` 树"
 msgid "Show one vision with its active tasks."
 msgstr "以其积极的 `task` 展现一个 `vision`。"
 
+#: src/lifeos_cli/cli_support/resources/vision/parser.py:151
+msgid ""
+"When the vision has tasks, the `tasks` section prints a header row "
+"followed by tab-separated columns: {columns}."
+msgstr ""
+"当该 `vision` 存在 task 时，`tasks` 分段会先输出一行表头，随后按制表符分隔输出列："
+"{columns}。"
+
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:160
 msgid "Show vision stats"
 msgstr "显示 `vision` 统计数据"

@@ -14,6 +14,7 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.vision.handlers import (
     VISION_SUMMARY_COLUMNS,
+    VISION_WITH_TASKS_COLUMNS,
     handle_vision_add,
     handle_vision_add_experience,
     handle_vision_batch_delete,
@@ -156,6 +157,12 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary=_("Show a vision task tree"),
             description=_("Show one vision with its active tasks."),
             examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "When the vision has tasks, the `tasks` section prints a header row "
+                    "followed by tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(VISION_WITH_TASKS_COLUMNS)),
+            ),
         ),
     )
     with_tasks_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
