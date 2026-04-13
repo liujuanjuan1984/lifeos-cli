@@ -15,7 +15,7 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.read_models import TagView
 
-TAG_SUMMARY_COLUMNS = ("id", "status", "entity_type", "category", "name")
+TAG_SUMMARY_COLUMNS = ("tag_id", "status", "entity_type", "category", "name")
 
 
 def _format_tag_summary(tag: TagView) -> str:

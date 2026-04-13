@@ -23,7 +23,7 @@ def _parse_birth_date(value: str | None) -> date | None:
     return date.fromisoformat(value)
 
 
-PERSON_SUMMARY_COLUMNS = ("id", "status", "name", "location", "tags")
+PERSON_SUMMARY_COLUMNS = ("person_id", "status", "name", "location", "tags")
 
 
 def _format_person_summary(person: PersonView) -> str:

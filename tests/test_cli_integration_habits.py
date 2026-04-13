@@ -99,6 +99,10 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
         "task-associations",
     )
     assert_ok(task_association_result)
+    assert (
+        "task_id\thabit_id\thabit_status\thabit_start_date\thabit_title"
+        in task_association_result.stdout
+    )
     assert first_habit_id in task_association_result.stdout
     assert task_id in task_association_result.stdout
 

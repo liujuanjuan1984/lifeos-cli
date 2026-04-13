@@ -17,6 +17,7 @@ from lifeos_cli.cli_support.parser_common import (
 from lifeos_cli.cli_support.resources.habit.handlers import (
     HABIT_SUMMARY_COLUMNS,
     HABIT_SUMMARY_WITH_STATS_COLUMNS,
+    HABIT_TASK_ASSOCIATION_COLUMNS,
     handle_habit_add,
     handle_habit_batch_delete,
     handle_habit_delete,
@@ -344,6 +345,12 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             summary=_("List task-to-habit associations"),
             description=_("Show active habits currently linked to tasks."),
             examples=("lifeos habit task-associations",),
+            notes=(
+                _(
+                    "When results exist, the command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(HABIT_TASK_ASSOCIATION_COLUMNS)),
+            ),
         ),
     )
     associations_parser.set_defaults(handler=handle_habit_task_associations)

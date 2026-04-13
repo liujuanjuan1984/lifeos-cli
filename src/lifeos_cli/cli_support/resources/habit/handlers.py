@@ -7,6 +7,7 @@ import sys
 from typing import cast
 
 from lifeos_cli.cli_support.output_utils import (
+    format_summary_header,
     format_timestamp,
     print_batch_result,
     print_summary_rows,
@@ -18,7 +19,7 @@ from lifeos_cli.db.services import habits as habit_services
 from lifeos_cli.db.services.habit_support import WEEKEND_HABIT_WEEKDAYS
 
 HABIT_SUMMARY_COLUMNS = (
-    "id",
+    "habit_id",
     "status",
     "start_date",
     "duration_days",
@@ -27,7 +28,7 @@ HABIT_SUMMARY_COLUMNS = (
     "title",
 )
 HABIT_SUMMARY_WITH_STATS_COLUMNS = (
-    "id",
+    "habit_id",
     "status",
     "start_date",
     "duration_days",
@@ -36,6 +37,13 @@ HABIT_SUMMARY_WITH_STATS_COLUMNS = (
     "current_streak",
     "longest_streak",
     "title",
+)
+HABIT_TASK_ASSOCIATION_COLUMNS = (
+    "task_id",
+    "habit_id",
+    "habit_status",
+    "habit_start_date",
+    "habit_title",
 )
 
 
@@ -358,6 +366,7 @@ async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
     if not associations:
         print("No task associations found.")
         return 0
+    print(format_summary_header(HABIT_TASK_ASSOCIATION_COLUMNS))
     for task_id, habits in associations.items():
         for habit in habits:
             print(f"{task_id}\t{habit.id}\t{habit.status}\t{habit.start_date}\t{habit.title}")

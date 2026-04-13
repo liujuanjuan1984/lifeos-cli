@@ -15,7 +15,7 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services import areas as area_services
 
-AREA_SUMMARY_COLUMNS = ("id", "status", "display_order", "name")
+AREA_SUMMARY_COLUMNS = ("area_id", "status", "display_order", "name")
 
 
 def _format_area_summary(area: Area) -> str:

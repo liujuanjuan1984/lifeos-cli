@@ -6,11 +6,31 @@ import argparse
 from datetime import date
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.resources.schedule.handlers import (
+    SCHEDULE_EVENT_COLUMNS,
+    SCHEDULE_HABIT_ACTION_COLUMNS,
+    SCHEDULE_TASK_COLUMNS,
     handle_schedule_list,
     handle_schedule_show,
 )
 from lifeos_cli.i18n import gettext_message as _
+
+
+def _build_schedule_section_header_notes() -> tuple[str, ...]:
+    """Describe the section header schema used by aggregated schedule output."""
+    return (
+        _("Non-empty schedule sections print a tab-separated header row before their entries."),
+        _("Task section columns: {columns}.").format(
+            columns=format_summary_column_list(SCHEDULE_TASK_COLUMNS)
+        ),
+        _("Habit action section columns: {columns}.").format(
+            columns=format_summary_column_list(SCHEDULE_HABIT_ACTION_COLUMNS)
+        ),
+        _("Event section columns for appointments, timeblocks, and deadlines: {columns}.").format(
+            columns=format_summary_column_list(SCHEDULE_EVENT_COLUMNS)
+        ),
+    )
 
 
 def build_schedule_parser(
@@ -69,6 +89,7 @@ def build_schedule_parser(
                     "Event occurrences are split into appointment, timeblock, and deadline "
                     "sections."
                 ),
+                *_build_schedule_section_header_notes(),
             ),
         ),
     )
@@ -92,6 +113,7 @@ def build_schedule_parser(
                 _("The range is inclusive on both start and end dates."),
                 _("Recurring event occurrences are expanded inside the requested range."),
                 _("Event occurrences remain segmented by type inside each day block."),
+                *_build_schedule_section_header_notes(),
             ),
         ),
     )

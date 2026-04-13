@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from lifeos_cli.cli_support.output_utils import (
+    format_summary_header,
     format_timestamp,
     print_batch_result,
     print_summary_rows,
@@ -15,7 +16,8 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_cli.db.services.read_models import VisionView
 
-VISION_SUMMARY_COLUMNS = ("id", "status", "area_id", "name")
+VISION_SUMMARY_COLUMNS = ("vision_id", "status", "area_id", "name")
+VISION_WITH_TASKS_COLUMNS = ("task_id", "status", "parent_task_id", "content")
 
 
 def _format_vision_summary(vision: VisionView) -> str:
@@ -49,11 +51,16 @@ def _format_vision_with_tasks(vision: VisionView) -> str:
         f"  {task.id}\t{task.status}\t{task.parent_task_id or '-'}\t{task.content}"
         for task in tasks
     ]
+    task_section_lines = (
+        [f"  {format_summary_header(VISION_WITH_TASKS_COLUMNS)}", *task_lines]
+        if task_lines
+        else ["  -"]
+    )
     return "\n".join(
         (
             _format_vision_detail(vision),
             "tasks:",
-            *(task_lines or ["  -"]),
+            *task_section_lines,
         )
     )
 

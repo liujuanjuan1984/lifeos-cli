@@ -33,7 +33,7 @@ def _parse_task_order(value: str) -> tuple[UUID, int]:
         raise ValueError("Task order must use <task-id>:<display-order>") from exc
 
 
-TASK_SUMMARY_COLUMNS = ("id", "status", "vision_id", "parent_task_id", "content")
+TASK_SUMMARY_COLUMNS = ("task_id", "status", "vision_id", "parent_task_id", "content")
 
 
 def _format_task_summary(task: task_services.TaskView) -> str:

@@ -12,7 +12,13 @@ from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
 from lifeos_cli.db.services.read_models import HabitActionView
 
-HABIT_ACTION_SUMMARY_COLUMNS = ("id", "status", "action_date", "habit_id", "habit_title")
+HABIT_ACTION_SUMMARY_COLUMNS = (
+    "habit_action_id",
+    "status",
+    "action_date",
+    "habit_id",
+    "habit_title",
+)
 
 
 def _format_habit_action_summary(action: HabitActionView) -> str:

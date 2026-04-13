@@ -90,7 +90,7 @@ def print_summary_rows(
 
 
 NOTE_SUMMARY_COLUMNS = (
-    "id",
+    "note_id",
     "status",
     "created_at",
     "task_count",
