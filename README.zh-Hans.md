@@ -7,7 +7,7 @@ English: [README.md](README.md)
 你既可以把它当作适合人类直接使用的 CLI，也可以让任意足够能力的 agent 通过同一套命令面来操作它。
 
 这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
-以及你自己的自定义 agent runtime。只要它能读取 help 并执行终端命令，就能消费这套接口。
+以及你自己的自定义 agent runtime。只要它能够执行终端命令并读取命令输出，就能消费这套接口。
 
 ## 为什么做它
 

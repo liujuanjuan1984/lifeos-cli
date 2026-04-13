@@ -9,7 +9,7 @@ You can use it directly as a human-friendly CLI, or let any capable agent operat
 same command surface.
 
 That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or your own
-custom agent runtime, as long as it can read help text and execute terminal commands.
+custom agent runtime, as long as it can execute terminal commands and inspect command output.
 
 ## Why It Exists
 
