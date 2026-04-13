@@ -137,9 +137,6 @@ lifeos config set preferences.language zh-Hans
 - 依赖更新策略：针对 `uv` 保持单个每周分组 version-update PR
 - 依赖健康基线：`bash ./scripts/dependency_health.sh`
 
-贡献者环境搭建、校验入口、integration tests 以及依赖维护流程，以
-[CONTRIBUTING.md](CONTRIBUTING.md) 作为唯一开发指南。
-
 ## 许可证
 
 本项目使用 Apache License 2.0。详见 [LICENSE](LICENSE)。
