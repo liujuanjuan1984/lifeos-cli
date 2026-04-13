@@ -24,15 +24,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "note",
         help_content=HelpContent(
             summary=_("Capture and manage notes"),
-            description=(
-                _("Create, inspect, update, and delete note records.")
-                + "\n\n"
-                + _("The note resource is the reference command family for LifeOS.")
-                + "\n"
-                + _("Future resources should follow the same command grammar:")
-                + "\n"
-                + "  lifeos <resource> <action> [arguments] [options]"
-            ),
+            description=_("Create, inspect, update, and delete note records."),
             examples=(
                 "lifeos init",
                 'lifeos note add "Capture an idea"',
@@ -48,8 +40,6 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _("Run `lifeos init` before using note commands for the first time."),
-                _("Prefer short, stable resource names, such as note, task, or people."),
-                _("Action names stay short verbs, such as add, list, update, and delete."),
                 _("Use the `batch` namespace when one command operates on multiple note records."),
                 _(
                     "The list command prints tab-separated columns: id, status, created_at, "

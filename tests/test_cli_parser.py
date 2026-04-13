@@ -126,6 +126,9 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     assert " _      ___   _____  _____   ___    ____  " in captured.out
     assert "| |___  | |  |  _|  | |___ | |_| |  ___) |" in captured.out
+    assert "usage:" not in captured.out
+    assert "Run LifeOS resource commands from the terminal." not in captured.out
+    assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert (
         "Resources model domains such as areas, people, visions, tasks, and notes."
@@ -150,9 +153,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
     assert "Run `lifeos init` before using database-backed resource commands." in captured.out
-    assert "Repository: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
-    assert "Issues: https://github.com/liujuanjuan1984/lifeos-cli/issues" in captured.out
-    assert "Report bugs and request features through the issue tracker." in captured.out
+    assert "Welcome bug reports and feature requests through the issue tracker." in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -401,15 +402,29 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     assert " _      ___   _____  _____   ___    ____  " in captured.out
     assert "|_____||___| |_|    |_____| \\___/  |____/ " in captured.out
-    assert "usage:" in captured.out or "用法：" in captured.out
+    assert "usage:" not in captured.out and "用法：" not in captured.out
     assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
     assert "资源:\n  资源" not in captured.out
+    assert "在终端中运行 LifeOS 资源命令。" not in captured.out
+    assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
-    assert "仓库：https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
-    assert "问题反馈：https://github.com/liujuanjuan1984/lifeos-cli/issues" in captured.out
-    assert "通过 issue tracker 报告 bug 或提出功能需求。" in captured.out
+    assert "欢迎通过 issue tracker 报告 bug 或提出功能需求。" in captured.out
+
+
+def test_cli_note_help_avoids_duplicated_action_heading_and_reference_boilerplate(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "usage: lifeos note [-h] action ..." in captured.out
+    assert "操作:\n  操作" not in captured.out
+    assert "The note resource is the reference command family for LifeOS." not in captured.out
+    assert "Future resources should follow the same command grammar:" not in captured.out
 
 
 def test_cli_schedule_show_help_supports_zh_hans_locale(

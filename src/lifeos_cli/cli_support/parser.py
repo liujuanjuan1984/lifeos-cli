@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, metadata, version
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from lifeos_cli.cli_support.help_utils import build_epilog
+from lifeos_cli.cli_support.help_utils import CompactSubcommandHelpFormatter, build_epilog
 from lifeos_cli.cli_support.resources.area.parser import build_area_parser
 from lifeos_cli.cli_support.resources.data.parser import build_data_parser
 from lifeos_cli.cli_support.resources.event.parser import build_event_parser
@@ -43,18 +43,19 @@ PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli
 PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
 
 
-class TopLevelHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    """Render top-level subcommands without a duplicated metavar heading."""
+class TopLevelArgumentParser(argparse.ArgumentParser):
+    """Strip the generated usage line from the top-level help output only."""
 
-    def _format_action(self, action: argparse.Action) -> str:
-        if isinstance(action, argparse._SubParsersAction):
-            return self._join_parts(
-                [
-                    self._format_action(subaction)
-                    for subaction in self._iter_indented_subactions(action)
-                ]
-            )
-        return super()._format_action(action)
+    def format_help(self) -> str:
+        help_text = super().format_help()
+        lines = help_text.splitlines(keepends=True)
+        if lines and (
+            lines[0].startswith("usage:")
+            or lines[0].startswith("用法：")
+            or lines[0].startswith("usage：")
+        ):
+            return "".join(lines[1:]).lstrip("\n")
+        return help_text
 
 
 def get_version() -> str:
@@ -89,13 +90,13 @@ def get_project_urls() -> tuple[str, str]:
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
     configure_argparse_translations()
-    repository_url, issues_url = get_project_urls()
-    parser = argparse.ArgumentParser(
+    repository_url, _issues_url = get_project_urls()
+    parser = TopLevelArgumentParser(
         prog="lifeos",
         description=(
             CLI_BRAND_BANNER
             + "\n\n"
-            + _("Run LifeOS resource commands from the terminal.")
+            + f"repo: {repository_url}"
             + "\n\n"
             + _("Command grammar:")
             + "\n"
@@ -115,12 +116,10 @@ def build_parser() -> argparse.ArgumentParser:
                     "primary command reference."
                 ),
                 _("Run `lifeos init` before using database-backed resource commands."),
-                _("Repository: {url}").format(url=repository_url),
-                _("Issues: {url}").format(url=issues_url),
-                _("Report bugs and request features through the issue tracker."),
+                _("Welcome bug reports and feature requests through the issue tracker."),
             ),
         ),
-        formatter_class=TopLevelHelpFormatter,
+        formatter_class=CompactSubcommandHelpFormatter,
     )
     parser.add_argument(
         "--version",
@@ -132,6 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="resource",
         title=_("resources"),
         metavar=_("resource"),
+        parser_class=argparse.ArgumentParser,
     )
     build_init_parser(subparsers)
     build_config_parser(subparsers)
