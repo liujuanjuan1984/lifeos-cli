@@ -105,11 +105,16 @@ Install from PyPI:
 uv tool install lifeos-cli
 ```
 
+`lifeos-cli` currently assumes PostgreSQL as its default database backend.
+
 Initialize your local setup:
 
 ```bash
 lifeos init
 ```
+
+You can run that step yourself, or ask an agent that can execute terminal commands and inspect
+command output to initialize the local setup for you.
 
 See the available command surface:
 
