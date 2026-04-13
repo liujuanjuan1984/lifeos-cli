@@ -221,6 +221,15 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
         in captured.out
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
+    assert (
+        "Task section columns: id, status, planning_cycle_type, planning_cycle_start_date, "
+        "planning_cycle_end_date, content."
+    ) in captured.out
+    assert "Habit action section columns: id, status, habit_id, habit_title." in captured.out
+    assert (
+        "Event section columns for appointments, timeblocks, and deadlines: "
+        "id, status, start_time, end_time, task_id, title."
+    ) in captured.out
 
 
 def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
@@ -417,6 +426,15 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         "Non-empty schedule sections print a tab-separated header row before their entries."
         in captured.out
     )
+    assert (
+        "Task section columns: id, status, planning_cycle_type, planning_cycle_start_date, "
+        "planning_cycle_end_date, content."
+    ) in captured.out
+    assert "Habit action section columns: id, status, habit_id, habit_title." in captured.out
+    assert (
+        "Event section columns for appointments, timeblocks, and deadlines: "
+        "id, status, start_time, end_time, task_id, title."
+    ) in captured.out
 
 
 def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(

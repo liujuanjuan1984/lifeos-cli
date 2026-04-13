@@ -171,6 +171,7 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "experience_rate_per_hour: 60" in synced_vision_result.stdout
     vision_with_tasks_result = run_lifeos(integration_context, "vision", "with-tasks", vision_id)
     assert_ok(vision_with_tasks_result)
+    assert "  id\tstatus\tparent_task_id\tcontent" in vision_with_tasks_result.stdout
     assert task_id in vision_with_tasks_result.stdout
     vision_stats_result = run_lifeos(integration_context, "vision", "stats", vision_id)
     assert_ok(vision_stats_result)
