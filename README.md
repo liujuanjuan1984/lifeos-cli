@@ -47,6 +47,18 @@ The current system already covers the core building blocks of a LifeOS:
 These modules already cover what matters, what is planned, what is being executed, and what
 actually happened.
 
+Cross-cutting capabilities already in place:
+
+- a `schedule` read model that aggregates tasks, habit actions, and planned events into day and
+  range views
+- recurring event expansion and recurring habit cadence support, including on-demand habit-action
+  materialization
+- generic note associations across tasks, visions, events, people, timelogs, and tags
+- persisted runtime configuration for database access plus preferences such as timezone, language,
+  day boundary, week boundary, and vision experience defaults
+- localized CLI help plus stable summary-table output with entity-specific primary-key headers for
+  direct human use and agent consumption
+
 ## Getting Started
 
 Install from PyPI:
@@ -65,6 +77,14 @@ See the available command surface:
 
 ```bash
 lifeos --help
+```
+
+Inspect and adjust runtime preferences:
+
+```bash
+lifeos config show
+lifeos config set preferences.timezone America/Toronto
+lifeos config set preferences.language zh-Hans
 ```
 
 For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
@@ -86,13 +106,16 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
 
    This baseline includes linting, dead-code scanning, and the default non-integration test suite.
 
-4. Run the real CLI integration suite explicitly when you have a PostgreSQL test database:
+4. Run the full regression entrypoint with real CLI integration tests when you have a PostgreSQL
+   test database:
 
    ```bash
    LIFEOS_RUN_INTEGRATION=1 \
    LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
-   bash ./scripts/integration_tests.sh
+   bash ./scripts/doctor.sh
    ```
+
+   This runs the same baseline validation plus the database-backed integration suite.
 
 5. Use the repository dependency workflows intentionally:
 

@@ -42,6 +42,14 @@ agent 专用接口。
 
 这些模块已经覆盖了“什么重要、计划了什么、正在执行什么、实际发生了什么”这条主链路。
 
+当前还具备这些跨模块能力：
+
+- 一个 `schedule` 读模型，可把 tasks、habit actions 和 planned events 聚合成按天或按区间查看的视图
+- recurring events 的展开能力，以及 recurring habits 的 cadence 支持，包括按需生成的 habit-action
+- 跨 tasks、visions、events、people、timelogs、tags 的通用 note associations
+- 持久化的运行时配置，既覆盖 database 连接，也覆盖 timezone、language、day boundary、week boundary 和 vision experience defaults 等偏好
+- 本地化的 CLI help，以及带有实体化主键列表头的稳定摘要表输出，既适合人类直接使用，也适合 agent 消费
+
 ## 快速开始
 
 从 PyPI 安装：
@@ -60,6 +68,14 @@ lifeos init
 
 ```bash
 lifeos --help
+```
+
+查看并调整运行时偏好：
+
+```bash
+lifeos config show
+lifeos config set preferences.timezone America/Toronto
+lifeos config set preferences.language zh-Hans
 ```
 
 完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
@@ -81,13 +97,15 @@ lifeos --help
 
    该基线会覆盖 lint、死代码扫描以及默认的非 integration 测试套件。
 
-4. 当你已经准备好 PostgreSQL 测试库时，显式运行真实 CLI integration tests：
+4. 当你已经准备好 PostgreSQL 测试库时，使用完整回归入口并显式打开真实 CLI integration tests：
 
    ```bash
    LIFEOS_RUN_INTEGRATION=1 \
    LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
-   bash ./scripts/integration_tests.sh
+   bash ./scripts/doctor.sh
    ```
+
+   这样会在默认校验基线之上，一并运行数据库驱动的 integration 测试套件。
 
 5. 有意识地使用仓库依赖管理工作流：
 
