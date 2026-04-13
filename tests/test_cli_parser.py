@@ -418,6 +418,84 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
     assert "示例:" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["area", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "area_id、status、display_order、name。",
+        ),
+        (
+            ["people", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "person_id、status、name、location、tags。",
+        ),
+        (
+            ["vision", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "vision_id、status、area_id、name。",
+        ),
+        (
+            ["tag", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "tag_id、status、entity_type、category、name。",
+        ),
+        (
+            ["event", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "event_id、status、event_type、start_time、end_time、task_id、title。",
+        ),
+        (
+            ["timelog", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "timelog_id、status、start_time、end_time、task_id、linked_notes_count、title。",
+        ),
+        (
+            ["habit-action", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "habit_action_id、status、action_date、habit_id、habit_title。",
+        ),
+        (
+            ["habit", "list", "--help"],
+            "默认 `list` 输出会先输出一行表头，随后按制表符分隔输出列："
+            "habit_id、status、start_date、duration_days、cadence、task_id、title。",
+        ),
+        (
+            ["note", "list", "--help"],
+            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+            "note_id、status、created_at、task_count、vision_count、event_count、people_count、"
+            "timelog_count、tag_count、content。",
+        ),
+        (
+            ["vision", "with-tasks", "--help"],
+            "当该 `vision` 存在 task 时，`tasks` 分段会先输出一行表头，随后按制表符分隔输出列："
+            "task_id、status、parent_task_id、content。",
+        ),
+        (
+            ["schedule", "show", "--help"],
+            "`task` 分段的列为：task_id、status、planning_cycle_type、planning_cycle_start_date、"
+            "planning_cycle_end_date、content。",
+        ),
+    ],
+)
+def test_cli_zh_hans_help_documents_entity_specific_header_names(
+    monkeypatch: pytest.MonkeyPatch,
+    argv: list[str],
+    expected: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
     parser = build_parser()
 
