@@ -14,7 +14,15 @@ from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import events as event_services
 
-EVENT_SUMMARY_COLUMNS = ("id", "status", "event_type", "start_time", "end_time", "task_id", "title")
+EVENT_SUMMARY_COLUMNS = (
+    "event_id",
+    "status",
+    "event_type",
+    "start_time",
+    "end_time",
+    "task_id",
+    "title",
+)
 
 
 def _format_event_summary(event: event_services.EventOccurrence | event_services.EventView) -> str:

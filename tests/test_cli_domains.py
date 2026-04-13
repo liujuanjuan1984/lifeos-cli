@@ -132,19 +132,19 @@ def test_main_summary_list_commands_print_headers(
 
     assert cli.main(["area", "list"]) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "id\tstatus\tdisplay_order\tname",
+        "area_id\tstatus\tdisplay_order\tname",
         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\tactive\t10\tHealth",
     ]
 
     assert cli.main(["people", "list"]) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "id\tstatus\tname\tlocation\ttags",
+        "person_id\tstatus\tname\tlocation\ttags",
         "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\tactive\tAlice\tToronto\tfamily,friend",
     ]
 
     assert cli.main(["vision", "list"]) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "id\tstatus\tarea_id\tname",
+        "vision_id\tstatus\tarea_id\tname",
         (
             "cccccccc-cccc-cccc-cccc-cccccccccccc\tactive\t"
             "dddddddd-dddd-dddd-dddd-dddddddddddd\tLaunch lifeos-cli"
@@ -153,13 +153,13 @@ def test_main_summary_list_commands_print_headers(
 
     assert cli.main(["tag", "list"]) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "id\tstatus\tentity_type\tcategory\tname",
+        "tag_id\tstatus\tentity_type\tcategory\tname",
         "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee\tactive\ttask\tpriority\turgent",
     ]
 
     assert cli.main(["event", "list"]) == 0
     assert capsys.readouterr().out.splitlines() == [
-        "id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle",
+        "event_id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle",
         (
             "ffffffff-ffff-ffff-ffff-ffffffffffff\tplanned\tdeadline\t"
             "2026-04-10T13:00:00+00:00\t2026-04-10T14:00:00+00:00\t-\tShip release"
@@ -414,7 +414,7 @@ def test_main_timelog_list_passes_search_filters(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "id\tstatus\tstart_time\tend_time\ttask_id\tlinked_notes_count\ttitle",
+        "timelog_id\tstatus\tstart_time\tend_time\ttask_id\tlinked_notes_count\ttitle",
         (
             "13131313-1313-1313-1313-131313131313\tmanual\t2026-04-10T13:00:00+00:00\t"
             "2026-04-10T14:00:00+00:00\t-\t0\tDeep work"
@@ -819,7 +819,7 @@ def test_main_vision_read_model_commands_print_results(
     assert with_tasks_exit_code == 0
     assert stats_exit_code == 0
     assert "tasks:" in captured.out
-    assert "  id\tstatus\tparent_task_id\tcontent" in captured.out
+    assert "  task_id\tstatus\tparent_task_id\tcontent" in captured.out
     assert "Draft release checklist" in captured.out
     assert "total_tasks: 1" in captured.out
     assert "completion_percentage: 1.00" in captured.out
@@ -947,7 +947,7 @@ def test_main_task_list_prints_header_and_rows(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "id\tstatus\tvision_id\tparent_task_id\tcontent",
+        "task_id\tstatus\tvision_id\tparent_task_id\tcontent",
         (
             "55555555-5555-5555-5555-555555555555\t"
             "todo\t"
@@ -1405,7 +1405,7 @@ def test_main_habit_list_prints_count(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "id\tstatus\tstart_date\tduration_days\tcadence\ttask_id\ttitle",
+        "habit_id\tstatus\tstart_date\tduration_days\tcadence\ttask_id\ttitle",
         (
             "77777777-7777-7777-7777-777777777777\tactive\t2026-04-09\t21\t"
             "daily:1:-\t-\tDaily Exercise"
@@ -1454,7 +1454,7 @@ def test_main_habit_list_with_stats_prints_header(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "id\tstatus\tstart_date\tduration_days\tcadence\tprogress_percentage\tcurrent_streak\tlongest_streak\ttitle",
+        "habit_id\tstatus\tstart_date\tduration_days\tcadence\tprogress_percentage\tcurrent_streak\tlongest_streak\ttitle",
         (
             "78787878-7878-7878-7878-787878787878\tactive\t2026-04-09\t30\t"
             "weekly:3:monday,wednesday,friday\t66.7\t4\t6\tStrength training"
@@ -1566,7 +1566,7 @@ def test_main_habit_action_list_prints_count(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "id\tstatus\taction_date\thabit_id\thabit_title",
+        "habit_action_id\tstatus\taction_date\thabit_id\thabit_title",
         (
             "88888888-8888-8888-8888-888888888888\tpending\t2026-04-09\t"
             "77777777-7777-7777-7777-777777777777\tDaily Exercise"

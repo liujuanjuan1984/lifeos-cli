@@ -222,13 +222,16 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
     assert (
-        "Task section columns: id, status, planning_cycle_type, planning_cycle_start_date, "
+        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
         "planning_cycle_end_date, content."
     ) in captured.out
-    assert "Habit action section columns: id, status, habit_id, habit_title." in captured.out
+    assert (
+        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
+        in captured.out
+    )
     assert (
         "Event section columns for appointments, timeblocks, and deadlines: "
-        "id, status, start_time, end_time, task_id, title."
+        "event_id, status, start_time, end_time, task_id, title."
     ) in captured.out
 
 
@@ -254,7 +257,7 @@ def test_cli_vision_with_tasks_help_documents_task_header(capsys) -> None:
 
     captured = capsys.readouterr()
 
-    assert "tab-separated columns: id, status, parent_task_id, content." in captured.out
+    assert "tab-separated columns: task_id, status, parent_task_id, content." in captured.out
 
 
 def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
@@ -288,41 +291,42 @@ def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
     [
         (
             ["area", "list", "--help"],
-            "tab-separated columns: id, status, display_order, name.",
+            "tab-separated columns: area_id, status, display_order, name.",
         ),
         (
             ["people", "list", "--help"],
-            "tab-separated columns: id, status, name, location, tags.",
+            "tab-separated columns: person_id, status, name, location, tags.",
         ),
         (
             ["vision", "list", "--help"],
-            "tab-separated columns: id, status, area_id, name.",
+            "tab-separated columns: vision_id, status, area_id, name.",
         ),
         (
             ["tag", "list", "--help"],
-            "tab-separated columns: id, status, entity_type, category, name.",
+            "tab-separated columns: tag_id, status, entity_type, category, name.",
         ),
         (
             ["event", "list", "--help"],
-            "tab-separated columns: id, status, event_type, start_time, end_time, task_id, title.",
+            "tab-separated columns: event_id, status, event_type, start_time, end_time, "
+            "task_id, title.",
         ),
         (
             ["timelog", "list", "--help"],
-            "tab-separated columns: id, status, start_time, end_time, task_id, "
+            "tab-separated columns: timelog_id, status, start_time, end_time, task_id, "
             "linked_notes_count, title.",
         ),
         (
             ["habit-action", "list", "--help"],
-            "tab-separated columns: id, status, action_date, habit_id, habit_title.",
+            "tab-separated columns: habit_action_id, status, action_date, habit_id, habit_title.",
         ),
         (
             ["habit", "list", "--help"],
             "Default list output prints a header row followed by tab-separated columns: "
-            "id, status, start_date, duration_days, cadence, task_id, title.",
+            "habit_id, status, start_date, duration_days, cadence, task_id, title.",
         ),
         (
             ["note", "list", "--help"],
-            "prints a header row followed by tab-separated columns: id, status, created_at, "
+            "prints a header row followed by tab-separated columns: note_id, status, created_at, "
             "task_count, vision_count, event_count, people_count, timelog_count, tag_count",
         ),
     ],
@@ -374,7 +378,7 @@ def test_cli_task_list_help_supports_zh_hans_locale_and_documents_header_row(
     assert "列出 `task` 以及可选的 `vision`、父级或状态过滤器。" in captured.out
     assert (
         "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-        "id、status、vision_id、parent_task_id、content。"
+        "task_id、status、vision_id、parent_task_id、content。"
     ) in captured.out
 
 
@@ -427,13 +431,16 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         in captured.out
     )
     assert (
-        "Task section columns: id, status, planning_cycle_type, planning_cycle_start_date, "
+        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
         "planning_cycle_end_date, content."
     ) in captured.out
-    assert "Habit action section columns: id, status, habit_id, habit_title." in captured.out
+    assert (
+        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
+        in captured.out
+    )
     assert (
         "Event section columns for appointments, timeblocks, and deadlines: "
-        "id, status, start_time, end_time, task_id, title."
+        "event_id, status, start_time, end_time, task_id, title."
     ) in captured.out
 
 

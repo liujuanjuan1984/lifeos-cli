@@ -19,7 +19,7 @@ from lifeos_cli.db.services import habits as habit_services
 from lifeos_cli.db.services.habit_support import WEEKEND_HABIT_WEEKDAYS
 
 HABIT_SUMMARY_COLUMNS = (
-    "id",
+    "habit_id",
     "status",
     "start_date",
     "duration_days",
@@ -28,7 +28,7 @@ HABIT_SUMMARY_COLUMNS = (
     "title",
 )
 HABIT_SUMMARY_WITH_STATS_COLUMNS = (
-    "id",
+    "habit_id",
     "status",
     "start_date",
     "duration_days",

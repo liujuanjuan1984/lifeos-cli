@@ -65,13 +65,13 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "date: 2026-04-10" in captured.out
     assert "tasks:" in captured.out
     assert (
-        "  id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
+        "  task_id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
         "planning_cycle_end_date\tcontent" in captured.out
     )
     assert "habit_actions:" in captured.out
-    assert "  id\tstatus\thabit_id\thabit_title" in captured.out
+    assert "  habit_action_id\tstatus\thabit_id\thabit_title" in captured.out
     assert "appointments:" in captured.out
-    assert "  id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in captured.out
+    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in captured.out
     assert "timeblocks:" in captured.out
     assert "deadlines:" in captured.out
     assert "Draft release checklist" in captured.out

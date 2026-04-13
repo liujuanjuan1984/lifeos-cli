@@ -16,8 +16,8 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_cli.db.services.read_models import VisionView
 
-VISION_SUMMARY_COLUMNS = ("id", "status", "area_id", "name")
-VISION_WITH_TASKS_COLUMNS = ("id", "status", "parent_task_id", "content")
+VISION_SUMMARY_COLUMNS = ("vision_id", "status", "area_id", "name")
+VISION_WITH_TASKS_COLUMNS = ("task_id", "status", "parent_task_id", "content")
 
 
 def _format_vision_summary(vision: VisionView) -> str:

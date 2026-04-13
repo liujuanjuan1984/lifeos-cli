@@ -19,7 +19,7 @@ from lifeos_cli.db.services import timelogs as timelog_services
 from lifeos_cli.db.services.read_models import TimelogView
 
 TIMELOG_SUMMARY_COLUMNS = (
-    "id",
+    "timelog_id",
     "status",
     "start_time",
     "end_time",

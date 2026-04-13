@@ -11,15 +11,15 @@ from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import schedules as schedule_services
 
 SCHEDULE_TASK_COLUMNS = (
-    "id",
+    "task_id",
     "status",
     "planning_cycle_type",
     "planning_cycle_start_date",
     "planning_cycle_end_date",
     "content",
 )
-SCHEDULE_HABIT_ACTION_COLUMNS = ("id", "status", "habit_id", "habit_title")
-SCHEDULE_EVENT_COLUMNS = ("id", "status", "start_time", "end_time", "task_id", "title")
+SCHEDULE_HABIT_ACTION_COLUMNS = ("habit_action_id", "status", "habit_id", "habit_title")
+SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "title")
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
