@@ -7,10 +7,12 @@ import sys
 from pathlib import Path
 
 from lifeos_cli.cli_support.output_utils import (
+    NOTE_SUMMARY_COLUMNS,
     format_id_lines,
     format_note_detail,
     format_note_summary,
     print_batch_result,
+    print_summary_rows,
 )
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.config import ConfigurationError
@@ -114,11 +116,12 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
-    if not notes:
-        print("No notes found.")
-        return 0
-    for note in notes:
-        print(format_note_summary(note))
+    print_summary_rows(
+        items=notes,
+        columns=NOTE_SUMMARY_COLUMNS,
+        row_formatter=format_note_summary,
+        empty_message="No notes found.",
+    )
     return 0
 
 
@@ -163,11 +166,12 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
-    if not notes:
-        print("No matching notes found.")
-        return 0
-    for note in notes:
-        print(format_note_summary(note))
+    print_summary_rows(
+        items=notes,
+        columns=NOTE_SUMMARY_COLUMNS,
+        row_formatter=format_note_summary,
+        empty_message="No matching notes found.",
+    )
     return 0
 
 

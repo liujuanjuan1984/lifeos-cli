@@ -6,12 +6,14 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.people.handlers import (
+    PERSON_SUMMARY_COLUMNS,
     handle_people_add,
     handle_people_batch_delete,
     handle_people_delete,
@@ -121,7 +123,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people list --search ali",
                 "lifeos people list --tag-id 11111111-1111-1111-1111-111111111111 --limit 20",
             ),
-            notes=(_("Search currently matches name, nicknames, and location."),),
+            notes=(
+                _("Search currently matches name, nicknames, and location."),
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(PERSON_SUMMARY_COLUMNS)),
+            ),
         ),
     )
     list_parser.add_argument("--search", help=_("Search by name, nickname, or location"))

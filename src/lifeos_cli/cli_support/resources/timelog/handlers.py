@@ -10,12 +10,23 @@ from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
     format_timestamp,
     print_batch_result,
+    print_summary_rows,
 )
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import timelog_stats
 from lifeos_cli.db.services import timelogs as timelog_services
 from lifeos_cli.db.services.read_models import TimelogView
+
+TIMELOG_SUMMARY_COLUMNS = (
+    "id",
+    "status",
+    "start_time",
+    "end_time",
+    "task_id",
+    "linked_notes_count",
+    "title",
+)
 
 
 def _format_timelog_summary(timelog: TimelogView) -> str:
@@ -173,15 +184,14 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
             )
         except timelog_services.TimelogValidationError as exc:
             return _print_timelog_error(exc)
-    if not timelogs:
-        print("No timelogs found.")
-        if total_count is not None:
-            print(f"Total timelogs: {total_count}")
-        return 0
-    for timelog in timelogs:
-        print(_format_timelog_summary(timelog))
-    if total_count is not None:
-        print(f"Total timelogs: {total_count}")
+    trailer_lines = () if total_count is None else (f"Total timelogs: {total_count}",)
+    print_summary_rows(
+        items=timelogs,
+        columns=TIMELOG_SUMMARY_COLUMNS,
+        row_formatter=_format_timelog_summary,
+        empty_message="No timelogs found.",
+        trailer_lines=trailer_lines,
+    )
     return 0
 
 

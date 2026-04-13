@@ -7,7 +7,11 @@ import sys
 from datetime import date
 from uuid import UUID
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tasks as task_services
@@ -27,6 +31,9 @@ def _parse_task_order(value: str) -> tuple[UUID, int]:
         return UUID(task_id_value), int(display_order_value)
     except ValueError as exc:
         raise ValueError("Task order must use <task-id>:<display-order>") from exc
+
+
+TASK_SUMMARY_COLUMNS = ("id", "status", "vision_id", "parent_task_id", "content")
 
 
 def _format_task_summary(task: task_services.TaskView) -> str:
@@ -158,11 +165,12 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    if not tasks:
-        print("No tasks found.")
-        return 0
-    for task in tasks:
-        print(_format_task_summary(task))
+    print_summary_rows(
+        items=tasks,
+        columns=TASK_SUMMARY_COLUMNS,
+        row_formatter=_format_task_summary,
+        empty_message="No tasks found.",
+    )
     return 0
 
 

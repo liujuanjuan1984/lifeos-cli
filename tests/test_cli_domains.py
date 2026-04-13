@@ -8,6 +8,7 @@ import pytest
 
 from lifeos_cli import cli
 from lifeos_cli.db import session as db_session
+from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import (
     areas,
     events,
@@ -58,6 +59,112 @@ def test_main_area_update_rejects_conflicting_clear_icon_flags(
 
     assert exit_code == 1
     assert "Use either --icon or --clear-icon, not both." in captured.err
+
+
+def test_main_summary_list_commands_print_headers(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_areas(session: object, **kwargs: object) -> list[object]:
+        return [
+            make_record(
+                id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                deleted_at=None,
+                is_active=True,
+                display_order=10,
+                name="Health",
+            )
+        ]
+
+    async def fake_list_people(session: object, **kwargs: object) -> list[object]:
+        return [
+            make_record(
+                id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                deleted_at=None,
+                name="Alice",
+                location="Toronto",
+                tags=[make_record(name="family"), make_record(name="friend")],
+            )
+        ]
+
+    async def fake_list_visions(session: object, **kwargs: object) -> list[object]:
+        return [
+            make_record(
+                id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+                deleted_at=None,
+                status="active",
+                area_id=UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                name="Launch lifeos-cli",
+            )
+        ]
+
+    async def fake_list_tags(session: object, **kwargs: object) -> list[object]:
+        return [
+            make_record(
+                id=UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+                deleted_at=None,
+                entity_type="task",
+                category="priority",
+                name="urgent",
+            )
+        ]
+
+    async def fake_list_events(session: object, **kwargs: object) -> list[object]:
+        return [
+            make_record(
+                id=UUID("ffffffff-ffff-ffff-ffff-ffffffffffff"),
+                deleted_at=None,
+                status="planned",
+                event_type="deadline",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                end_time=utc_datetime(2026, 4, 10, 14, 0),
+                task_id=None,
+                title="Ship release",
+            )
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(areas, "list_areas", fake_list_areas)
+    monkeypatch.setattr(people, "list_people", fake_list_people)
+    monkeypatch.setattr(visions, "list_visions", fake_list_visions)
+    monkeypatch.setattr(tags, "list_tags", fake_list_tags)
+    monkeypatch.setattr(events, "list_events", fake_list_events)
+
+    assert cli.main(["area", "list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "id\tstatus\tdisplay_order\tname",
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\tactive\t10\tHealth",
+    ]
+
+    assert cli.main(["people", "list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "id\tstatus\tname\tlocation\ttags",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\tactive\tAlice\tToronto\tfamily,friend",
+    ]
+
+    assert cli.main(["vision", "list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "id\tstatus\tarea_id\tname",
+        (
+            "cccccccc-cccc-cccc-cccc-cccccccccccc\tactive\t"
+            "dddddddd-dddd-dddd-dddd-dddddddddddd\tLaunch lifeos-cli"
+        ),
+    ]
+
+    assert cli.main(["tag", "list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "id\tstatus\tentity_type\tcategory\tname",
+        "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee\tactive\ttask\tpriority\turgent",
+    ]
+
+    assert cli.main(["event", "list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle",
+        (
+            "ffffffff-ffff-ffff-ffff-ffffffffffff\tplanned\tdeadline\t"
+            "2026-04-10T13:00:00+00:00\t2026-04-10T14:00:00+00:00\t-\tShip release"
+        ),
+    ]
 
 
 def test_main_event_add_creates_event(
@@ -306,8 +413,14 @@ def test_main_timelog_list_passes_search_filters(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Deep work" in captured.out
-    assert "Total timelogs: 1" in captured.out
+    assert captured.out.splitlines() == [
+        "id\tstatus\tstart_time\tend_time\ttask_id\tlinked_notes_count\ttitle",
+        (
+            "13131313-1313-1313-1313-131313131313\tmanual\t2026-04-10T13:00:00+00:00\t"
+            "2026-04-10T14:00:00+00:00\t-\t0\tDeep work"
+        ),
+        "Total timelogs: 1",
+    ]
 
 
 def test_main_timelog_batch_update_passes_relation_and_title_updates(
@@ -808,6 +921,42 @@ def test_main_task_read_model_commands_print_results(
     assert "completion_percentage: 0.50" in captured.out
 
 
+def test_main_task_list_prints_header_and_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_tasks(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["vision_id"] is None
+        return [
+            make_record(
+                id=UUID("55555555-5555-5555-5555-555555555555"),
+                status="todo",
+                vision_id=UUID("66666666-6666-6666-6666-666666666666"),
+                parent_task_id=None,
+                content="Draft release checklist",
+                deleted_at=None,
+            )
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(tasks, "list_tasks", fake_list_tasks)
+
+    exit_code = cli.main(["task", "list"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
+        "id\tstatus\tvision_id\tparent_task_id\tcontent",
+        (
+            "55555555-5555-5555-5555-555555555555\t"
+            "todo\t"
+            "66666666-6666-6666-6666-666666666666\t"
+            "-\t"
+            "Draft release checklist"
+        ),
+    ]
+
+
 def test_main_task_list_passes_extended_filters(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -1234,6 +1383,9 @@ def test_main_habit_list_prints_count(
                 status="active",
                 start_date=date(2026, 4, 9),
                 duration_days=21,
+                cadence_frequency="daily",
+                target_per_cycle=1,
+                cadence_weekdays=None,
                 task_id=None,
                 title="Daily Exercise",
             )
@@ -1251,8 +1403,63 @@ def test_main_habit_list_prints_count(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Daily Exercise" in captured.out
-    assert "Total habits: 1" in captured.out
+    assert captured.out.splitlines() == [
+        "id\tstatus\tstart_date\tduration_days\tcadence\ttask_id\ttitle",
+        (
+            "77777777-7777-7777-7777-777777777777\tactive\t2026-04-09\t21\t"
+            "daily:1:-\t-\tDaily Exercise"
+        ),
+        "Total habits: 1",
+    ]
+
+
+def test_main_habit_list_with_stats_prints_header(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_habit_overviews(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["status"] == "active"
+        habit = Habit(
+            title="Strength training",
+            start_date=date(2026, 4, 9),
+            duration_days=30,
+            cadence_frequency="weekly",
+            cadence_weekdays=["monday", "wednesday", "friday"],
+            target_per_cycle=3,
+            status="active",
+        )
+        habit.id = UUID("78787878-7878-7878-7878-787878787878")
+        return [
+            {
+                "habit": habit,
+                "stats": {
+                    "progress_percentage": 66.7,
+                    "current_streak": 4,
+                    "longest_streak": 6,
+                },
+            }
+        ]
+
+    async def fake_count_habits(session: object, **kwargs: object) -> int:
+        assert kwargs["status"] == "active"
+        return 1
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habits, "list_habit_overviews", fake_list_habit_overviews)
+    monkeypatch.setattr(habits, "count_habits", fake_count_habits)
+
+    exit_code = cli.main(["habit", "list", "--status", "active", "--with-stats", "--count"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
+        "id\tstatus\tstart_date\tduration_days\tcadence\tprogress_percentage\tcurrent_streak\tlongest_streak\ttitle",
+        (
+            "78787878-7878-7878-7878-787878787878\tactive\t2026-04-09\t30\t"
+            "weekly:3:monday,wednesday,friday\t66.7\t4\t6\tStrength training"
+        ),
+        "Total habits: 1",
+    ]
 
 
 def test_main_habit_update_rejects_conflicting_clear_task_flags(
@@ -1322,8 +1529,14 @@ def test_main_habit_action_list_prints_count(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Daily Exercise" in captured.out
-    assert "Total habit actions: 1" in captured.out
+    assert captured.out.splitlines() == [
+        "id\tstatus\taction_date\thabit_id\thabit_title",
+        (
+            "88888888-8888-8888-8888-888888888888\tpending\t2026-04-09\t"
+            "77777777-7777-7777-7777-777777777777\tDaily Exercise"
+        ),
+        "Total habit actions: 1",
+    ]
 
 
 def test_main_habit_action_log_updates_by_habit_and_date(

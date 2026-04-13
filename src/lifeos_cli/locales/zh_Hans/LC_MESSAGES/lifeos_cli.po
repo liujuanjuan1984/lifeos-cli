@@ -2525,7 +2525,15 @@ msgid ""
 "tasks are listed."
 msgstr "当提供 `--vision-id ` 而不提供 `--parent-task-id ` 时，仅列出根 `task`。"
 
-#: src/lifeos_cli/cli_support/resources/task/parser.py:179
+#: src/lifeos_cli/cli_support/resources/task/parser.py:180
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, vision_id, parent_task_id, content."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、vision_id、parent_task_id、content。"
+
+#: src/lifeos_cli/cli_support/resources/task/parser.py:184
 msgid "Use `--limit` and `--offset` for pagination."
 msgstr "使用 `--limit` 和 `--offset` 进行分页。"
 
@@ -3597,6 +3605,116 @@ msgstr "应用迁移"
 #: src/lifeos_cli/cli_support/system/db_commands.py:82
 msgid "Apply Alembic migrations to the configured PostgreSQL database."
 msgstr "将 Alembic 迁移应用到配置的 PostgreSQL 数据库。"
+
+#: src/lifeos_cli/cli_support/resources/area/parser.py:115
+#: src/lifeos_cli/cli_support/resources/event/parser.py:184
+#: src/lifeos_cli/cli_support/resources/habit_action/parser.py:86
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:133
+#: src/lifeos_cli/cli_support/resources/people/parser.py:118
+#: src/lifeos_cli/cli_support/resources/tag/parser.py:105
+#: src/lifeos_cli/cli_support/resources/task/parser.py:180
+#: src/lifeos_cli/cli_support/resources/timelog/parser.py:161
+#: src/lifeos_cli/cli_support/resources/vision/parser.py:119
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: {columns}."
+msgstr "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列：{columns}。"
+
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:184
+msgid ""
+"Default list output prints a header row followed by tab-separated columns: "
+"{columns}."
+msgstr "默认 `list` 输出会先输出一行表头，随后按制表符分隔输出列：{columns}。"
+
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:189
+msgid "With `--with-stats`, the header changes to: {columns}."
+msgstr "使用 `--with-stats` 时，表头会变为：{columns}。"
+
+#: src/lifeos_cli/cli_support/resources/area/parser.py:104
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, display_order, name."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、display_order、name。"
+
+#: src/lifeos_cli/cli_support/resources/people/parser.py:117
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, name, location, tags."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、name、location、tags。"
+
+#: src/lifeos_cli/cli_support/resources/vision/parser.py:120
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, area_id, name."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、area_id、name。"
+
+#: src/lifeos_cli/cli_support/resources/tag/parser.py:104
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, entity_type, category, name."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、entity_type、category、name。"
+
+#: src/lifeos_cli/cli_support/resources/event/parser.py:186
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, event_type, start_time, end_time, "
+"task_id, title."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、event_type、start_time、end_time、task_id、title。"
+
+#: src/lifeos_cli/cli_support/resources/timelog/parser.py:162
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, start_time, end_time, task_id, "
+"linked_notes_count, title."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、start_time、end_time、task_id、linked_notes_count、title。"
+
+#: src/lifeos_cli/cli_support/resources/habit_action/parser.py:85
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, action_date, habit_id, habit_title."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、action_date、habit_id、habit_title。"
+
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:181
+msgid ""
+"Default list output prints a header row followed by tab-separated columns: "
+"id, status, start_date, duration_days, cadence, task_id, title."
+msgstr ""
+"默认 `list` 输出会先输出一行表头，随后按制表符分隔输出列："
+"id、status、start_date、duration_days、cadence、task_id、title。"
+
+#: src/lifeos_cli/cli_support/resources/habit/parser.py:185
+msgid ""
+"With `--with-stats`, the header changes to: id, status, start_date, "
+"duration_days, cadence, progress_percentage, current_streak, "
+"longest_streak, title."
+msgstr ""
+"使用 `--with-stats` 时，表头会变为：id、status、start_date、duration_days、"
+"cadence、progress_percentage、current_streak、longest_streak、title。"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:130
+msgid ""
+"When results exist, the list command prints a header row followed by "
+"tab-separated columns: id, status, created_at, task_count, vision_count, "
+"event_count, people_count, timelog_count, tag_count, and a normalized "
+"content preview."
+msgstr ""
+"当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+"id、status、created_at、task_count、vision_count、event_count、people_count、"
+"timelog_count、tag_count，以及标准化后的内容预览。"
 
 #~ msgid " (default: %(default)s)"
 #~ msgstr " （默认值：%(default)s）"

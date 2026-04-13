@@ -5,11 +5,17 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.read_models import TagView
+
+TAG_SUMMARY_COLUMNS = ("id", "status", "entity_type", "category", "name")
 
 
 def _format_tag_summary(tag: TagView) -> str:
@@ -77,11 +83,12 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
         except tag_services.InvalidTagEntityTypeError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    if not tags:
-        print("No tags found.")
-        return 0
-    for tag in tags:
-        print(_format_tag_summary(tag))
+    print_summary_rows(
+        items=tags,
+        columns=TAG_SUMMARY_COLUMNS,
+        row_formatter=_format_tag_summary,
+        empty_message="No tags found.",
+    )
     return 0
 
 

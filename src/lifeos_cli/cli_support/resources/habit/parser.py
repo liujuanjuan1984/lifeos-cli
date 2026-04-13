@@ -8,12 +8,15 @@ from datetime import date
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.habit.handlers import (
+    HABIT_SUMMARY_COLUMNS,
+    HABIT_SUMMARY_WITH_STATS_COLUMNS,
     handle_habit_add,
     handle_habit_batch_delete,
     handle_habit_delete,
@@ -180,6 +183,13 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                     "and streak fields."
                 ),
                 _("Use `--active-window-only` to show habits whose duration still covers today."),
+                _(
+                    "Default list output prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(HABIT_SUMMARY_COLUMNS)),
+                _("With `--with-stats`, the header changes to: {columns}.").format(
+                    columns=format_summary_column_list(HABIT_SUMMARY_WITH_STATS_COLUMNS)
+                ),
             ),
         ),
     )

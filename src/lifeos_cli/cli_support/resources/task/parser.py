@@ -6,12 +6,14 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.task.handlers import (
+    TASK_SUMMARY_COLUMNS,
     handle_task_add,
     handle_task_batch_delete,
     handle_task_delete,
@@ -176,6 +178,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "When `--vision-id` is provided without `--parent-task-id`, only root "
                     "tasks are listed."
                 ),
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(TASK_SUMMARY_COLUMNS)),
                 _("Use `--limit` and `--offset` for pagination."),
             ),
         ),
