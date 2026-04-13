@@ -5,10 +5,16 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import events as event_services
+
+EVENT_SUMMARY_COLUMNS = ("id", "status", "event_type", "start_time", "end_time", "task_id", "title")
 
 
 def _format_event_summary(event: event_services.EventOccurrence | event_services.EventView) -> str:
@@ -121,11 +127,12 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
             )
         except event_services.EventValidationError as exc:
             return _print_event_error(exc)
-    if not events:
-        print("No events found.")
-        return 0
-    for event in events:
-        print(_format_event_summary(event))
+    print_summary_rows(
+        items=events,
+        columns=EVENT_SUMMARY_COLUMNS,
+        row_formatter=_format_event_summary,
+        empty_message="No events found.",
+    )
     return 0
 
 

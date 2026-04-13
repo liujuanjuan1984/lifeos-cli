@@ -6,6 +6,7 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import NOTE_SUMMARY_COLUMNS, format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
@@ -127,10 +128,9 @@ def build_note_list_parser(
                 _("List notes in reverse creation order.")
                 + "\n\n"
                 + _(
-                    "The output is tab-separated and currently includes: id, status,\n"
-                    "created_at, task_count, vision_count, event_count, people_count,\n"
-                    "timelog_count, tag_count, and a normalized content preview."
-                )
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS))
             ),
             examples=(
                 "lifeos note list",

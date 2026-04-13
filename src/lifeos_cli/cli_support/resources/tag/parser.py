@@ -6,12 +6,14 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.tag.handlers import (
+    TAG_SUMMARY_COLUMNS,
     handle_tag_add,
     handle_tag_batch_delete,
     handle_tag_delete,
@@ -104,7 +106,13 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos tag list --entity-type task --category priority --limit 20",
             ),
-            notes=(_("Use `--include-deleted` to review previously deleted tags."),),
+            notes=(
+                _("Use `--include-deleted` to review previously deleted tags."),
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(TAG_SUMMARY_COLUMNS)),
+            ),
         ),
     )
     list_parser.add_argument("--entity-type", help=_("Filter by entity type"))

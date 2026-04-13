@@ -7,11 +7,13 @@ from datetime import date
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.habit_action.handlers import (
+    HABIT_ACTION_SUMMARY_COLUMNS,
     handle_habit_action_list,
     handle_habit_action_log,
     handle_habit_action_show,
@@ -79,6 +81,10 @@ def build_habit_action_parser(
             notes=(
                 _("Use `--action-date` for one exact day."),
                 _("Use `--center-date` with a window when browsing nearby days."),
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(HABIT_ACTION_SUMMARY_COLUMNS)),
             ),
         ),
     )

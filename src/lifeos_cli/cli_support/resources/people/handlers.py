@@ -6,7 +6,11 @@ import argparse
 import sys
 from datetime import date
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import people as people_services
@@ -17,6 +21,9 @@ def _parse_birth_date(value: str | None) -> date | None:
     if value is None:
         return None
     return date.fromisoformat(value)
+
+
+PERSON_SUMMARY_COLUMNS = ("id", "status", "name", "location", "tags")
 
 
 def _format_person_summary(person: PersonView) -> str:
@@ -77,11 +84,12 @@ async def handle_people_list_async(args: argparse.Namespace) -> int:
             limit=args.limit,
             offset=args.offset,
         )
-    if not people:
-        print("No people found.")
-        return 0
-    for person in people:
-        print(_format_person_summary(person))
+    print_summary_rows(
+        items=people,
+        columns=PERSON_SUMMARY_COLUMNS,
+        row_formatter=_format_person_summary,
+        empty_message="No people found.",
+    )
     return 0
 
 

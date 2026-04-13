@@ -6,12 +6,37 @@ import argparse
 import sys
 from typing import cast
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import habits as habit_services
 from lifeos_cli.db.services.habit_support import WEEKEND_HABIT_WEEKDAYS
+
+HABIT_SUMMARY_COLUMNS = (
+    "id",
+    "status",
+    "start_date",
+    "duration_days",
+    "cadence",
+    "task_id",
+    "title",
+)
+HABIT_SUMMARY_WITH_STATS_COLUMNS = (
+    "id",
+    "status",
+    "start_date",
+    "duration_days",
+    "cadence",
+    "progress_percentage",
+    "current_streak",
+    "longest_streak",
+    "title",
+)
 
 
 def _resolve_weekday_selection(args: argparse.Namespace) -> list[str] | None:
@@ -171,15 +196,14 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                     if args.count
                     else None
                 )
-                if not overviews:
-                    print("No habits found.")
-                    if total_count is not None:
-                        print(f"Total habits: {total_count}")
-                    return 0
-                for overview in overviews:
-                    print(_format_habit_summary_with_stats(overview))
-                if total_count is not None:
-                    print(f"Total habits: {total_count}")
+                trailer_lines = () if total_count is None else (f"Total habits: {total_count}",)
+                print_summary_rows(
+                    items=overviews,
+                    columns=HABIT_SUMMARY_WITH_STATS_COLUMNS,
+                    row_formatter=_format_habit_summary_with_stats,
+                    empty_message="No habits found.",
+                    trailer_lines=trailer_lines,
+                )
                 return 0
             habits = await habit_services.list_habits(
                 session,
@@ -204,15 +228,14 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
         except habit_services.HabitValidationError as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    if not habits:
-        print("No habits found.")
-        if total_count is not None:
-            print(f"Total habits: {total_count}")
-        return 0
-    for habit in habits:
-        print(_format_habit_summary(habit))
-    if total_count is not None:
-        print(f"Total habits: {total_count}")
+    trailer_lines = () if total_count is None else (f"Total habits: {total_count}",)
+    print_summary_rows(
+        items=habits,
+        columns=HABIT_SUMMARY_COLUMNS,
+        row_formatter=_format_habit_summary,
+        empty_message="No habits found.",
+        trailer_lines=trailer_lines,
+    )
     return 0
 
 

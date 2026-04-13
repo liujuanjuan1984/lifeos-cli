@@ -6,12 +6,14 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.vision.handlers import (
+    VISION_SUMMARY_COLUMNS,
     handle_vision_add,
     handle_vision_add_experience,
     handle_vision_batch_delete,
@@ -115,6 +117,12 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision list --status active",
                 "lifeos vision list --person-id 11111111-1111-1111-1111-111111111111",
                 "lifeos vision list --area-id 11111111-1111-1111-1111-111111111111 --limit 20",
+            ),
+            notes=(
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(VISION_SUMMARY_COLUMNS)),
             ),
         ),
     )

@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_timestamp
+from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
 from lifeos_cli.db.services.read_models import HabitActionView
+
+HABIT_ACTION_SUMMARY_COLUMNS = ("id", "status", "action_date", "habit_id", "habit_title")
 
 
 def _format_habit_action_summary(action: HabitActionView) -> str:
@@ -71,15 +73,14 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
         ) as exc:
             print(str(exc), file=sys.stderr)
             return 1
-    if not actions:
-        print("No habit actions found.")
-        if total_count is not None:
-            print(f"Total habit actions: {total_count}")
-        return 0
-    for action in actions:
-        print(_format_habit_action_summary(action))
-    if total_count is not None:
-        print(f"Total habit actions: {total_count}")
+    trailer_lines = () if total_count is None else (f"Total habit actions: {total_count}",)
+    print_summary_rows(
+        items=actions,
+        columns=HABIT_ACTION_SUMMARY_COLUMNS,
+        row_formatter=_format_habit_action_summary,
+        empty_message="No habit actions found.",
+        trailer_lines=trailer_lines,
+    )
     return 0
 
 

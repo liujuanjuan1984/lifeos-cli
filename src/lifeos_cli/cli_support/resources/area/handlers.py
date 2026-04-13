@@ -5,11 +5,17 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_timestamp, print_batch_result
+from lifeos_cli.cli_support.output_utils import (
+    format_timestamp,
+    print_batch_result,
+    print_summary_rows,
+)
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services import areas as area_services
+
+AREA_SUMMARY_COLUMNS = ("id", "status", "display_order", "name")
 
 
 def _format_area_summary(area: Area) -> str:
@@ -69,11 +75,12 @@ async def handle_area_list_async(args: argparse.Namespace) -> int:
             limit=args.limit,
             offset=args.offset,
         )
-    if not areas:
-        print("No areas found.")
-        return 0
-    for area in areas:
-        print(_format_area_summary(area))
+    print_summary_rows(
+        items=areas,
+        columns=AREA_SUMMARY_COLUMNS,
+        row_formatter=_format_area_summary,
+        empty_message="No areas found.",
+    )
     return 0
 
 

@@ -249,6 +249,65 @@ def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
     assert "Read annual plan" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["area", "list", "--help"],
+            "tab-separated columns: id, status, display_order, name.",
+        ),
+        (
+            ["people", "list", "--help"],
+            "tab-separated columns: id, status, name, location, tags.",
+        ),
+        (
+            ["vision", "list", "--help"],
+            "tab-separated columns: id, status, area_id, name.",
+        ),
+        (
+            ["tag", "list", "--help"],
+            "tab-separated columns: id, status, entity_type, category, name.",
+        ),
+        (
+            ["event", "list", "--help"],
+            "tab-separated columns: id, status, event_type, start_time, end_time, task_id, title.",
+        ),
+        (
+            ["timelog", "list", "--help"],
+            "tab-separated columns: id, status, start_time, end_time, task_id, "
+            "linked_notes_count, title.",
+        ),
+        (
+            ["habit-action", "list", "--help"],
+            "tab-separated columns: id, status, action_date, habit_id, habit_title.",
+        ),
+        (
+            ["habit", "list", "--help"],
+            "Default list output prints a header row followed by tab-separated columns: "
+            "id, status, start_date, duration_days, cadence, task_id, title.",
+        ),
+        (
+            ["note", "list", "--help"],
+            "prints a header row followed by tab-separated columns: id, status, created_at, "
+            "task_count, vision_count, event_count, people_count, timelog_count, tag_count",
+        ),
+    ],
+)
+def test_cli_summary_list_help_documents_output_columns(
+    argv: list[str],
+    expected: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_task_help_supports_zh_hans_locale(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -264,6 +323,25 @@ def test_cli_task_help_supports_zh_hans_locale(
     assert "创建并维护属于某个 `vision` 的 `task` 树。" in captured.out
     assert "创建 `task`" in captured.out
     assert "说明:" in captured.out
+
+
+def test_cli_task_list_help_supports_zh_hans_locale_and_documents_header_row(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "list", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "列出 `task` 以及可选的 `vision`、父级或状态过滤器。" in captured.out
+    assert (
+        "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
+        "id、status、vision_id、parent_task_id、content。"
+    ) in captured.out
 
 
 def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
@@ -1508,7 +1586,7 @@ def test_cli_note_list_help_explains_output_shape(capsys) -> None:
 
     captured = capsys.readouterr()
 
-    assert "The output is tab-separated" in captured.out
+    assert "prints a header row followed by tab-separated columns" in captured.out
     assert "Use --limit and --offset together for pagination." in captured.out
 
 

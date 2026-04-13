@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Protocol
+from typing import Protocol, TypeVar
 from uuid import UUID
 
 from lifeos_cli.application.time_preferences import to_preferred_timezone
 from lifeos_cli.db.services.read_models import NoteView
+from lifeos_cli.i18n import resolve_locale
 
 
 class BatchResult(Protocol):
@@ -20,6 +21,9 @@ class BatchResult(Protocol):
 
     @property
     def errors(self) -> Sequence[str]: ...
+
+
+T = TypeVar("T")
 
 
 def format_timestamp(value: datetime | None) -> str:
@@ -50,6 +54,53 @@ def print_batch_result(
     for error in result.errors:
         print(f"Error: {error}", file=sys.stderr)
     return 1 if result.failed_ids else 0
+
+
+def format_summary_header(columns: Sequence[str]) -> str:
+    """Render a tab-separated header row for summary output."""
+    return "\t".join(columns)
+
+
+def format_summary_column_list(columns: Sequence[str]) -> str:
+    """Render one comma-separated column list for help text."""
+    locale_tag = resolve_locale().lower().replace("_", "-")
+    separator = "、" if locale_tag.startswith("zh") else ", "
+    return separator.join(columns)
+
+
+def print_summary_rows(
+    *,
+    items: Sequence[T],
+    columns: Sequence[str],
+    row_formatter: Callable[[T], str],
+    empty_message: str,
+    trailer_lines: Sequence[str] = (),
+) -> None:
+    """Print a summary table with an optional trailer section."""
+    if not items:
+        print(empty_message)
+        for line in trailer_lines:
+            print(line)
+        return
+    print(format_summary_header(columns))
+    for item in items:
+        print(row_formatter(item))
+    for line in trailer_lines:
+        print(line)
+
+
+NOTE_SUMMARY_COLUMNS = (
+    "id",
+    "status",
+    "created_at",
+    "task_count",
+    "vision_count",
+    "event_count",
+    "people_count",
+    "timelog_count",
+    "tag_count",
+    "content",
+)
 
 
 def format_note_summary(note: NoteView) -> str:

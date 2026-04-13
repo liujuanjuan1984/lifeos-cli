@@ -7,12 +7,14 @@ from datetime import date, datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
+    TIMELOG_SUMMARY_COLUMNS,
     handle_timelog_add,
     handle_timelog_batch_delete,
     handle_timelog_batch_restore,
@@ -159,7 +161,10 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                     "`day_starts_at` preference."
                 ),
                 _("Use `--query` for lightweight text filtering across titles and notes."),
-                _("List output includes one `linked_notes_count` column after `task_id`."),
+                _(
+                    "When results exist, the list command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS)),
             ),
         ),
     )
