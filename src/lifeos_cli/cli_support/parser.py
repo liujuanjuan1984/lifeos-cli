@@ -32,7 +32,13 @@ from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import configure_argparse_translations
 from lifeos_cli.i18n import gettext_message as _
 
-CLI_BRAND_BANNER = "+-------------------+\n|    lifeos-cli     |\n+-------------------+"
+CLI_BRAND_BANNER = (
+    " _      ___   _____  _____   ___    ____  \n"
+    "| |    |_ _| |  ___|| ____| / _ \\  / ___| \n"
+    "| |     | |  | |_   |  _|  | | | | \\___ \\ \n"
+    "| |___  | |  |  _|  | |___ | |_| |  ___) |\n"
+    "|_____||___| |_|    |_____| \\___/  |____/ "
+)
 PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli"
 PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
 
