@@ -95,66 +95,21 @@ def build_parser() -> argparse.ArgumentParser:
             + "\n"
             + _("Use `schedule` for aggregated day and range views across planned work.")
             + "\n"
-            + _("Habits and habit actions are exposed as separate top-level resources.")
-            + "\n"
             + _("System commands such as init, config, and db manage runtime setup.")
-            + "\n"
-            + _("Use `data` for canonical import/export, bundle backup, and batch operations.")
-            + "\n"
-            + _("Actions are short verbs that operate on records or runtime state.")
         ),
         epilog=build_epilog(
             examples=(
                 "lifeos init",
                 "lifeos config show",
-                "lifeos config set preferences.timezone America/Toronto",
-                "lifeos db ping",
-                "lifeos data export all --output lifeos-bundle.zip",
-                'lifeos area add "Health"',
-                'lifeos people add "Alice"',
-                'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
-                'lifeos task add "Draft release plan" --vision-id <vision-id>',
-                'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
-                'lifeos event add "Focus Work" --type timeblock '
-                "--start-time 2026-04-10T13:00:00-04:00",
                 "lifeos schedule show --date 2026-04-10",
-                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
-                "--end-time 2026-04-10T14:30:00-04:00",
-                'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
-                "lifeos habit-action list --action-date 2026-04-09",
+                "lifeos task list",
                 'lifeos note add "Capture an idea"',
-                'lifeos note search "meeting notes"',
             ),
             notes=(
-                _("Prefer short, stable resource names so new command families stay consistent."),
-                _(
-                    "Use natural exceptions such as `people` when they are clearer than "
-                    "forced regular forms."
-                ),
-                _("Prefer short action verbs such as add, list, update, and delete."),
-                _(
-                    "For structured resources, prefer `list` with filters and pagination over "
-                    "separate query verbs."
-                ),
-                _(
-                    "Use sub-namespaces such as `batch` when a resource needs grouped bulk "
-                    "operations."
-                ),
                 _(
                     "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
                     "primary command reference."
                 ),
-                _("Each resource help page should explain scope, actions, and examples."),
-                _(
-                    "When automation acts on behalf of a human, model the acting subject "
-                    "explicitly through `people` and repeated `--person-id` flags."
-                ),
-                _(
-                    "Agents that create records for a human should run `lifeos config show` and "
-                    "use the effective preference language for titles, descriptions, and note "
-                    "content unless the human explicitly asks for another language."
-                ),
-                _("Keep human-only work, agent-only work, and truly shared work distinct."),
                 _("Run `lifeos init` before using database-backed resource commands."),
                 _("Repository: {url}").format(url=repository_url),
                 _("Issues: {url}").format(url=issues_url),

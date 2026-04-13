@@ -130,9 +130,9 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "resources:" in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
-    assert "lifeos config set preferences.timezone America/Toronto" in captured.out
-    assert "data" in captured.out
-    assert "Run unified data import/export and batch commands" in captured.out
+    assert "lifeos config show" in captured.out
+    assert "lifeos schedule show --date 2026-04-10" in captured.out
+    assert "lifeos task list" in captured.out
     assert "event" in captured.out
     assert "Manage planned schedule events" in captured.out
     assert "schedule" in captured.out
@@ -144,12 +144,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "timelog" in captured.out
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
-    assert "When automation acts on behalf of a human" in captured.out
-    assert (
-        "use the effective preference language for titles, descriptions, and note content"
-        in captured.out
-    )
-    assert "human-only work, agent-only work, and truly shared work" in captured.out
+    assert "Run `lifeos init` before using database-backed resource commands." in captured.out
     assert "Repository: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
     assert "Issues: https://github.com/liujuanjuan1984/lifeos-cli/issues" in captured.out
     assert "Report bugs and request features through the issue tracker." in captured.out
