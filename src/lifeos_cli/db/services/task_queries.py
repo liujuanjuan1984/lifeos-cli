@@ -7,6 +7,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.person import Person
@@ -163,7 +164,7 @@ async def _get_task_model(
     task_id: UUID,
     include_deleted: bool,
 ) -> Task | None:
-    stmt = select(Task).where(Task.id == task_id).limit(1)
+    stmt = select(Task).options(selectinload(Task.vision)).where(Task.id == task_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(Task.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
@@ -212,7 +213,7 @@ async def list_tasks(
     offset: int = 0,
 ) -> list[TaskView]:
     """List tasks with basic filters."""
-    stmt = select(Task)
+    stmt = select(Task).options(selectinload(Task.vision))
     if not include_deleted:
         stmt = stmt.where(Task.deleted_at.is_(None))
     if vision_id is not None:
@@ -269,7 +270,7 @@ async def get_vision_task_hierarchy(
     """Load active tasks for a vision as a hierarchy."""
     await ensure_vision_exists(session, vision_id)
     stmt = (
-        select(Task)
+        select(Task).options(selectinload(Task.vision))
         .where(Task.vision_id == vision_id, Task.deleted_at.is_(None))
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )

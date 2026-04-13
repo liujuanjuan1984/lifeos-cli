@@ -13,18 +13,19 @@ from lifeos_cli.db.services import schedules as schedule_services
 SCHEDULE_TASK_COLUMNS = (
     "task_id",
     "status",
+    "vision",
     "planning_cycle_type",
     "planning_cycle_start_date",
     "planning_cycle_end_date",
     "content",
 )
 SCHEDULE_HABIT_ACTION_COLUMNS = ("habit_action_id", "status", "habit_id", "habit_title")
-SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "title")
+SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "vision", "title")
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
     return (
-        f"  {item.id}\t{item.status}\t{item.planning_cycle_type}\t"
+        f"  {item.id}\t{item.status}\t{item.vision_name}\t{item.planning_cycle_type}\t"
         f"{item.planning_cycle_start_date}\t{item.planning_cycle_end_date}\t{item.content}"
     )
 
@@ -36,7 +37,7 @@ def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionIte
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     return (
         f"  {item.id}\t{item.status}\t{format_timestamp(item.start_time)}\t"
-        f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t{item.title}"
+        f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t{item.task_vision_name or '-'}\t{item.title}"
     )
 
 

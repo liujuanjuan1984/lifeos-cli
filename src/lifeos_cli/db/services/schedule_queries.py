@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select, text
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
@@ -23,6 +24,7 @@ class ScheduleTaskItem:
     id: UUID
     content: str
     status: str
+    vision_name: str
     planning_cycle_type: str
     planning_cycle_days: int
     planning_cycle_start_date: date
@@ -52,6 +54,7 @@ class ScheduleEventItem:
     start_time: datetime
     end_time: datetime | None
     task_id: UUID | None
+    task_vision_name: str | None
 
 
 @dataclass(frozen=True)
@@ -101,6 +104,7 @@ async def _load_schedule_tasks(
             + (Task.planning_cycle_days - 1) * text("INTERVAL '1 day'")
             >= start_date,
         )
+        .options(selectinload(Task.vision))
         .order_by(Task.planning_cycle_start_date.asc(), Task.display_order.asc(), Task.id.asc())
     )
     return list((await session.execute(stmt)).scalars())
@@ -148,6 +152,7 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
         planning_cycle_days=task.planning_cycle_days,
         planning_cycle_start_date=task.planning_cycle_start_date,
         planning_cycle_end_date=_task_cycle_end_date(task),
+        vision_name=task.vision.name if task.vision else "-",
     )
 
 
@@ -171,6 +176,7 @@ def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
         start_time=event.start_time,
         end_time=event.end_time,
         task_id=event.task_id,
+        task_vision_name=event.task_vision_name,
     )
 
 

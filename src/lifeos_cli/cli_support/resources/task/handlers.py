@@ -33,12 +33,12 @@ def _parse_task_order(value: str) -> tuple[UUID, int]:
         raise ValueError("Task order must use <task-id>:<display-order>") from exc
 
 
-TASK_SUMMARY_COLUMNS = ("task_id", "status", "vision_id", "parent_task_id", "content")
+TASK_SUMMARY_COLUMNS = ("task_id", "status", "vision", "parent_task_id", "content")
 
 
 def _format_task_summary(task: task_services.TaskView) -> str:
     status = "deleted" if task.deleted_at is not None else task.status
-    return f"{task.id}\t{status}\t{task.vision_id}\t{task.parent_task_id or '-'}\t{task.content}"
+    return f"{task.id}\t{status}\t{task.vision_name}\t{task.parent_task_id or '-'}\t{task.content}"
 
 
 def _format_task_detail(task: task_services.TaskView) -> str:
@@ -47,6 +47,7 @@ def _format_task_detail(task: task_services.TaskView) -> str:
         (
             f"id: {task.id}",
             f"vision_id: {task.vision_id}",
+            f"vision_name: {task.vision_name}",
             f"parent_task_id: {task.parent_task_id or '-'}",
             f"content: {task.content}",
             f"description: {task.description or '-'}",

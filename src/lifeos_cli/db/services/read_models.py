@@ -40,6 +40,7 @@ class TaskSummaryView:
 
     id: UUID
     vision_id: UUID
+    vision_name: str
     parent_task_id: UUID | None
     content: str
     status: str
@@ -108,6 +109,7 @@ class TaskView:
 
     id: UUID
     vision_id: UUID
+    vision_name: str
     parent_task_id: UUID | None
     content: str
     description: str | None
@@ -242,6 +244,7 @@ def build_task_summary(task: Task) -> TaskSummaryView:
     return TaskSummaryView(
         id=task.id,
         vision_id=task.vision_id,
+        vision_name=task.vision.name if getattr(task, "vision", None) else "-",
         parent_task_id=task.parent_task_id,
         content=task.content,
         status=task.status,
@@ -300,6 +303,7 @@ def build_task_view(task: Task, *, people: Sequence[Person] = ()) -> TaskView:
     return TaskView(
         id=task.id,
         vision_id=task.vision_id,
+        vision_name=task.vision.name if getattr(task, "vision", None) else "-",
         parent_task_id=task.parent_task_id,
         content=task.content,
         description=task.description,
