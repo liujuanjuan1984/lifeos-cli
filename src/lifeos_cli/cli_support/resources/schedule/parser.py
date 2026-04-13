@@ -69,6 +69,10 @@ def build_schedule_parser(
                     "Event occurrences are split into appointment, timeblock, and deadline "
                     "sections."
                 ),
+                _(
+                    "Non-empty schedule sections print a tab-separated header row before their "
+                    "entries."
+                ),
             ),
         ),
     )
@@ -92,6 +96,10 @@ def build_schedule_parser(
                 _("The range is inclusive on both start and end dates."),
                 _("Recurring event occurrences are expanded inside the requested range."),
                 _("Event occurrences remain segmented by type inside each day block."),
+                _(
+                    "Non-empty schedule sections print a tab-separated header row before their "
+                    "entries."
+                ),
             ),
         ),
     )

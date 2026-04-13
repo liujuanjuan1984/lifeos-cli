@@ -380,6 +380,20 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
     assert "示例:" in captured.out
 
 
+def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "list", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Non-empty schedule sections print a tab-separated header row before their entries."
+        in captured.out
+    )
+
+
 def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

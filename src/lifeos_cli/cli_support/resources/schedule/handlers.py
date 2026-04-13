@@ -5,10 +5,21 @@ from __future__ import annotations
 import argparse
 import sys
 
-from lifeos_cli.cli_support.output_utils import format_timestamp
+from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import schedules as schedule_services
+
+SCHEDULE_TASK_COLUMNS = (
+    "id",
+    "status",
+    "planning_cycle_type",
+    "planning_cycle_start_date",
+    "planning_cycle_end_date",
+    "content",
+)
+SCHEDULE_HABIT_ACTION_COLUMNS = ("id", "status", "habit_id", "habit_title")
+SCHEDULE_EVENT_COLUMNS = ("id", "status", "start_time", "end_time", "task_id", "title")
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
@@ -37,6 +48,7 @@ def _append_schedule_event_section(
 ) -> None:
     lines.append(heading)
     if events:
+        lines.append(f"  {format_summary_header(SCHEDULE_EVENT_COLUMNS)}")
         lines.extend(_format_schedule_event(item) for item in events)
     else:
         lines.append("  -")
@@ -45,12 +57,14 @@ def _append_schedule_event_section(
 def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
     lines = [f"date: {day.local_date}", "tasks:"]
     if day.tasks:
+        lines.append(f"  {format_summary_header(SCHEDULE_TASK_COLUMNS)}")
         lines.extend(_format_schedule_task(item) for item in day.tasks)
     else:
         lines.append("  -")
 
     lines.append("habit_actions:")
     if day.habit_actions:
+        lines.append(f"  {format_summary_header(SCHEDULE_HABIT_ACTION_COLUMNS)}")
         lines.extend(_format_schedule_habit_action(item) for item in day.habit_actions)
     else:
         lines.append("  -")

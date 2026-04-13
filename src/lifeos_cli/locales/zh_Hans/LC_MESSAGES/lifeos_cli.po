@@ -2169,6 +2169,11 @@ msgid ""
 "sections."
 msgstr "`event` 实例会拆分到 appointment、timeblock 和 deadline 三个分区中。"
 
+#: src/lifeos_cli/cli_support/resources/schedule/parser.py:73
+#: src/lifeos_cli/cli_support/resources/schedule/parser.py:97
+msgid "Non-empty schedule sections print a tab-separated header row before their entries."
+msgstr "非空的 `schedule` 分区会在条目前先输出一行以制表符分隔的列表头。"
+
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:80
 msgid "Target local date in YYYY-MM-DD format"
 msgstr "YYYY-MM-DD 格式的目标本地日期"
