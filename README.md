@@ -2,6 +2,14 @@
 
 Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)
 
+```text
+ _      ___   _____  _____   ___    ____  
+| |    |_ _| |  ___|| ____| / _ \  / ___| 
+| |     | |  | |_   |  _|  | | | | \___ \ 
+| |___  | |  |  _|  | |___ | |_| |  ___) |
+|_____||___| |_|    |_____| \___/  |____/ 
+```
+
 `lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
 plans, execution, reflection, and reality.
 
