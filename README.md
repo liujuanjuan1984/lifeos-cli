@@ -1,38 +1,97 @@
 # lifeos-cli
 
-Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)
+[简体中文版](README.zh-Hans.md)
 
-`lifeos-cli` is a CLI-first LifeOS for self-managing super individuals: human-friendly in direct
-use, agent-friendly in automation, and built to hold the structured digital life data that connects
-intention with reality.
+```text
+ _      ___   _____  _____   ___    ____
+| |    |_ _| |  ___|| ____| / _ \  / ___|
+| |     | |  | |_   |  _|  | | | | \___ \
+| |___  | |  |  _|  | |___ | |_| |  ___) |
+|_____||___| |_|    |_____| \___/  |____/
+```
 
-## Value Proposition
+`lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
+plans, execution, reflection, and reality.
 
-Most personal systems fragment life into disconnected tools. That makes it unnecessarily hard to
-understand:
+## Why It Exists
+
+Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in
+another, notes somewhere else, and actual time spent disappears into scattered logs.
+
+That makes it unnecessarily hard to answer practical questions such as:
 
 - What did I intend to do?
 - What actually happened?
-- Where did my time and energy really go?
-- Which relationships, routines, and priorities am I actually living out?
+- What did I spend time on?
+- Which routines are real versus aspirational?
+- Which people, projects, and priorities am I actually serving?
 
-`lifeos-cli` treats those questions as one system problem. It gives structure to both sides of
-life:
+It gives structure to both sides of life:
 
 - intention: visions, tasks, habits, and planned events
 - reality: notes, timelogs, completed habit actions, and relationship records
 
-The goal is not just to store personal data, but to make self-management, reflection, and
-automation operate on the same durable source of truth.
+The goal is not just storage, but one CLI interface for self-management, reflection, and
+automation.
 
-## Why CLI
+## Getting Started
 
-The CLI is the shared interface. People can use it directly, and existing agents can call the same
-commands without needing a separate embedded agent layer.
+Install or upgrade from PyPI:
+
+```bash
+uv tool install --upgrade lifeos-cli
+```
+
+`lifeos-cli` uses PostgreSQL by default.
+
+Initialize your local setup:
+
+```bash
+lifeos init
+```
+
+You can run that step yourself, or ask an agent that can run terminal commands to do it for you.
+
+See the available command surface:
+
+```bash
+lifeos --help
+```
+
+Inspect and adjust runtime preferences:
+
+```bash
+lifeos config show
+lifeos config set preferences.timezone America/Toronto
+lifeos config set preferences.language zh-Hans
+```
+
+Common commands:
+
+```bash
+lifeos schedule show --date 2026-04-13
+lifeos task list
+lifeos note add "Capture today's key decisions"
+lifeos timelog list --date 2026-04-13
+```
+
+For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
+
+## Agent Use (Recommended)
+
+Any agent runtime that can execute terminal commands and inspect command output can operate the
+same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
+your own setup.
+
+- stable grammar: `lifeos <resource> <action> [arguments] [options]`
+- help-first command model, with `--help` as the primary command reference
+- identifier-driven discovery flows built around `list` and `show`
+- compact summary output for lists and labeled output for record detail views
+- entity-specific primary-key headers such as `task_id`, `vision_id`, and `event_id`
 
 ## Current Scope
 
-The current system already covers the core building blocks of a LifeOS:
+The current system already covers the core building blocks of a practical LifeOS:
 
 - notes
 - areas
@@ -44,63 +103,16 @@ The current system already covers the core building blocks of a LifeOS:
 - events
 - timelogs
 
-These modules already cover what matters, what is planned, what is being executed, and what
-actually happened.
+Cross-cutting capabilities:
 
-## Getting Started
-
-Install from PyPI:
-
-```bash
-uv tool install lifeos-cli
-```
-
-Initialize your local setup:
-
-```bash
-lifeos init
-```
-
-See the available command surface:
-
-```bash
-lifeos --help
-```
-
-For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
-
-## Development
-
-1. Install `uv`.
-2. Sync the development environment:
-
-   ```bash
-   uv sync --all-extras
-   ```
-
-3. Run the default validation entrypoint:
-
-   ```bash
-   bash ./scripts/doctor.sh
-   ```
-
-   This baseline includes linting, dead-code scanning, and the default non-integration test suite.
-
-4. Run the real CLI integration suite explicitly when you have a PostgreSQL test database:
-
-   ```bash
-   LIFEOS_RUN_INTEGRATION=1 \
-   LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
-   bash ./scripts/integration_tests.sh
-   ```
-
-5. Use the repository dependency workflows intentionally:
-
-   - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
-   - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dev vulnerability review.
-
-CI also runs the real CLI integration suite against an ephemeral PostgreSQL service through the
-same dedicated integration entrypoint.
+- a `schedule` read model that aggregates tasks, habit actions, and planned events into day and
+  range views
+- recurring event expansion and recurring habit cadence support, including on-demand habit-action
+  materialization
+- generic note associations across tasks, visions, events, people, timelogs, and tags
+- persisted runtime configuration for database access plus preferences such as timezone, language,
+  day boundary, week boundary, and vision experience defaults
+- localized CLI help and stable summary-table output for direct human use and agent consumption
 
 ## Project Policies
 

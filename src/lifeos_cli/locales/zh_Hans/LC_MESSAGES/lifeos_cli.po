@@ -129,15 +129,33 @@ msgstr "区分仅由人类参与的工作、仅由代理参与的工作和真正
 msgid "Run `lifeos init` before using database-backed resource commands."
 msgstr "在使用依赖数据库的资源命令前，请先运行 `lifeos init`。"
 
-#: src/lifeos_cli/cli_support/parser.py:133
+#: src/lifeos_cli/cli_support/parser.py:125
+#, python-brace-format
+msgid "Repository: {url}"
+msgstr "仓库：{url}"
+
+#: src/lifeos_cli/cli_support/parser.py:126
+#, python-brace-format
+msgid "Issues: {url}"
+msgstr "问题反馈：{url}"
+
+#: src/lifeos_cli/cli_support/parser.py:127
+msgid "Report bugs and request features through the issue tracker."
+msgstr "通过 issue tracker 报告 bug 或提出功能需求。"
+
+#: src/lifeos_cli/cli_support/parser.py:105
+msgid "Welcome bug reports and suggestions through the repo issue tracker."
+msgstr "欢迎通过 repo issue 报告 bug 或提出意见建议。"
+
+#: src/lifeos_cli/cli_support/parser.py:136
 msgid "Show the program version and exit"
 msgstr "显示程序版本并退出"
 
-#: src/lifeos_cli/cli_support/parser.py:137
+#: src/lifeos_cli/cli_support/parser.py:140
 msgid "resources"
 msgstr "资源"
 
-#: src/lifeos_cli/cli_support/parser.py:138
+#: src/lifeos_cli/cli_support/parser.py:141
 msgid "resource"
 msgstr "资源"
 

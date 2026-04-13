@@ -61,6 +61,12 @@ uv run pip-audit --requirement /tmp/runtime-requirements.txt
 rm -rf build dist && uv build --no-sources
 ```
 
+Dependency maintenance policy:
+
+- `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
+- `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated
+  packages and dependency-related health checks.
+
 Static-analysis governance:
 
 - Treat framework-driven symbols as intentional API surface when they are required by the toolchain.

@@ -19,6 +19,20 @@ class HelpContent:
     notes: tuple[str, ...] = ()
 
 
+class CompactSubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Render subcommand groups without a duplicated metavar heading."""
+
+    def _format_action(self, action: argparse.Action) -> str:
+        if isinstance(action, argparse._SubParsersAction):
+            return self._join_parts(
+                [
+                    self._format_action(subaction)
+                    for subaction in self._iter_indented_subactions(action)
+                ]
+            )
+        return super()._format_action(action)
+
+
 def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ()) -> str | None:
     """Build an argparse epilog from examples and notes."""
     sections: list[str] = []
@@ -55,5 +69,5 @@ def add_documented_parser(
         help=help_content.summary,
         description=help_content.description,
         epilog=build_epilog(examples=help_content.examples, notes=help_content.notes),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=CompactSubcommandHelpFormatter,
     )

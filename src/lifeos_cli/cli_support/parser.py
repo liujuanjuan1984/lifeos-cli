@@ -5,11 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, metadata, version
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from lifeos_cli.cli_support.help_utils import build_epilog
+from lifeos_cli.cli_support.help_utils import CompactSubcommandHelpFormatter, build_epilog
 from lifeos_cli.cli_support.resources.area.parser import build_area_parser
 from lifeos_cli.cli_support.resources.data.parser import build_data_parser
 from lifeos_cli.cli_support.resources.event.parser import build_event_parser
@@ -32,6 +32,31 @@ from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import configure_argparse_translations
 from lifeos_cli.i18n import gettext_message as _
 
+CLI_BRAND_BANNER = (
+    " _      ___   _____  _____   ___    ____  \n"
+    "| |    |_ _| |  ___|| ____| / _ \\  / ___| \n"
+    "| |     | |  | |_   |  _|  | | | | \\___ \\ \n"
+    "| |___  | |  |  _|  | |___ | |_| |  ___) |\n"
+    "|_____||___| |_|    |_____| \\___/  |____/ "
+)
+PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli"
+PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
+
+
+class TopLevelArgumentParser(argparse.ArgumentParser):
+    """Strip the generated usage line from the top-level help output only."""
+
+    def format_help(self) -> str:
+        help_text = super().format_help()
+        lines = help_text.splitlines(keepends=True)
+        if lines and (
+            lines[0].startswith("usage:")
+            or lines[0].startswith("用法：")
+            or lines[0].startswith("usage：")
+        ):
+            return "".join(lines[1:]).lstrip("\n")
+        return help_text
+
 
 def get_version() -> str:
     """Return the installed distribution version when available."""
@@ -41,90 +66,62 @@ def get_version() -> str:
         return "0+unknown"
 
 
+def get_project_urls() -> tuple[str, str]:
+    """Return repository and issue tracker URLs from package metadata when available."""
+    repository_url = PROJECT_REPOSITORY_URL_FALLBACK
+    issues_url = PROJECT_ISSUES_URL_FALLBACK
+    try:
+        distribution_metadata = metadata("lifeos-cli")
+    except PackageNotFoundError:
+        return repository_url, issues_url
+    for project_url in distribution_metadata.get_all("Project-URL", []):
+        label, separator, url = project_url.partition(",")
+        if not separator:
+            continue
+        normalized_label = label.strip().lower()
+        normalized_url = url.strip()
+        if normalized_label == "repository":
+            repository_url = normalized_url
+        elif normalized_label == "issues":
+            issues_url = normalized_url
+    return repository_url, issues_url
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
     configure_argparse_translations()
-    parser = argparse.ArgumentParser(
+    repository_url, _issues_url = get_project_urls()
+    parser = TopLevelArgumentParser(
         prog="lifeos",
         description=(
-            _("Run LifeOS resource commands from the terminal.")
+            CLI_BRAND_BANNER
+            + "\n\n"
+            + f"repo: {repository_url}"
+            + "\n"
+            + "uv tool install --upgrade lifeos-cli"
             + "\n\n"
             + _("Command grammar:")
             + "\n"
-            "  lifeos <resource> <action> [arguments] [options]\n\n"
-            + _("Resources model domains such as areas, people, visions, tasks, and notes.")
-            + "\n"
-            + _(
-                "Time-oriented domains use `event` for planned schedule blocks and `timelog` "
-                "for actual time records."
-            )
-            + "\n"
-            + _("Use `schedule` for aggregated day and range views across planned work.")
-            + "\n"
-            + _("Habits and habit actions are exposed as separate top-level resources.")
-            + "\n"
-            + _("System commands such as init, config, and db manage runtime setup.")
-            + "\n"
-            + _("Use `data` for canonical import/export, bundle backup, and batch operations.")
-            + "\n"
-            + _("Actions are short verbs that operate on records or runtime state.")
+            "  lifeos <resource> <action> [arguments] [options]"
         ),
         epilog=build_epilog(
             examples=(
                 "lifeos init",
                 "lifeos config show",
-                "lifeos config set preferences.timezone America/Toronto",
-                "lifeos db ping",
-                "lifeos data export all --output lifeos-bundle.zip",
-                'lifeos area add "Health"',
-                'lifeos people add "Alice"',
-                'lifeos vision add "Launch lifeos-cli" --area-id <area-id>',
-                'lifeos task add "Draft release plan" --vision-id <vision-id>',
-                'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
-                'lifeos event add "Focus Work" --type timeblock '
-                "--start-time 2026-04-10T13:00:00-04:00",
                 "lifeos schedule show --date 2026-04-10",
-                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
-                "--end-time 2026-04-10T14:30:00-04:00",
-                'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
-                "lifeos habit-action list --action-date 2026-04-09",
+                "lifeos task list",
                 'lifeos note add "Capture an idea"',
-                'lifeos note search "meeting notes"',
             ),
             notes=(
-                _("Prefer short, stable resource names so new command families stay consistent."),
-                _(
-                    "Use natural exceptions such as `people` when they are clearer than "
-                    "forced regular forms."
-                ),
-                _("Prefer short action verbs such as add, list, update, and delete."),
-                _(
-                    "For structured resources, prefer `list` with filters and pagination over "
-                    "separate query verbs."
-                ),
-                _(
-                    "Use sub-namespaces such as `batch` when a resource needs grouped bulk "
-                    "operations."
-                ),
                 _(
                     "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
                     "primary command reference."
                 ),
-                _("Each resource help page should explain scope, actions, and examples."),
-                _(
-                    "When automation acts on behalf of a human, model the acting subject "
-                    "explicitly through `people` and repeated `--person-id` flags."
-                ),
-                _(
-                    "Agents that create records for a human should run `lifeos config show` and "
-                    "use the effective preference language for titles, descriptions, and note "
-                    "content unless the human explicitly asks for another language."
-                ),
-                _("Keep human-only work, agent-only work, and truly shared work distinct."),
                 _("Run `lifeos init` before using database-backed resource commands."),
+                _("Welcome bug reports and suggestions through the repo issue tracker."),
             ),
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=CompactSubcommandHelpFormatter,
     )
     parser.add_argument(
         "--version",
@@ -136,6 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="resource",
         title=_("resources"),
         metavar=_("resource"),
+        parser_class=argparse.ArgumentParser,
     )
     build_init_parser(subparsers)
     build_config_parser(subparsers)
