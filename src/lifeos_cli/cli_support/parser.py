@@ -97,6 +97,8 @@ def build_parser() -> argparse.ArgumentParser:
             CLI_BRAND_BANNER
             + "\n\n"
             + f"repo: {repository_url}"
+            + "\n"
+            + "uv tool install --upgrade lifeos-cli"
             + "\n\n"
             + _("Command grammar:")
             + "\n"

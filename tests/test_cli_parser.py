@@ -129,6 +129,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "usage:" not in captured.out
     assert "Run LifeOS resource commands from the terminal." not in captured.out
     assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
+    assert "uv tool install --upgrade lifeos-cli" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert (
         "Resources model domains such as areas, people, visions, tasks, and notes."
@@ -407,6 +408,7 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     assert "资源:\n  资源" not in captured.out
     assert "在终端中运行 LifeOS 资源命令。" not in captured.out
     assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
+    assert "uv tool install --upgrade lifeos-cli" in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out

@@ -107,10 +107,10 @@ Cross-cutting capabilities already in place:
 
 ## Getting Started
 
-Install from PyPI:
+Install or upgrade from PyPI:
 
 ```bash
-uv tool install lifeos-cli
+uv tool install --upgrade lifeos-cli
 ```
 
 `lifeos-cli` currently assumes PostgreSQL as its default database backend.
