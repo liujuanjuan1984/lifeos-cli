@@ -118,7 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
                     "primary command reference."
                 ),
                 _("Run `lifeos init` before using database-backed resource commands."),
-                _("Welcome bug reports and feature requests through the issue tracker."),
+                _("Welcome bug reports and suggestions through the repo issue tracker."),
             ),
         ),
         formatter_class=CompactSubcommandHelpFormatter,

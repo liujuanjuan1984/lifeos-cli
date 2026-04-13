@@ -154,7 +154,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "Manage actual time records" in captured.out
     assert "primary command reference" in captured.out
     assert "Run `lifeos init` before using database-backed resource commands." in captured.out
-    assert "Welcome bug reports and feature requests through the issue tracker." in captured.out
+    assert "Welcome bug reports and suggestions through the repo issue tracker." in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -412,7 +412,7 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
-    assert "欢迎通过 issue tracker 报告 bug 或提出功能需求。" in captured.out
+    assert "欢迎通过 repo issue 报告 bug 或提出意见建议。" in captured.out
 
 
 def test_cli_note_help_avoids_duplicated_action_heading_and_reference_boilerplate(capsys) -> None:

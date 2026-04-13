@@ -144,8 +144,8 @@ msgid "Report bugs and request features through the issue tracker."
 msgstr "通过 issue tracker 报告 bug 或提出功能需求。"
 
 #: src/lifeos_cli/cli_support/parser.py:105
-msgid "Welcome bug reports and feature requests through the issue tracker."
-msgstr "欢迎通过 issue tracker 报告 bug 或提出功能需求。"
+msgid "Welcome bug reports and suggestions through the repo issue tracker."
+msgstr "欢迎通过 repo issue 报告 bug 或提出意见建议。"
 
 #: src/lifeos_cli/cli_support/parser.py:136
 msgid "Show the program version and exit"
