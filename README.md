@@ -13,10 +13,6 @@
 `lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
 plans, execution, reflection, and reality.
 
-Humans can use it directly in the terminal, and any capable agent runtime can operate it through
-the same CLI, including Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
-your own setup, as long as it can execute terminal commands and inspect command output.
-
 ## Why It Exists
 
 Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in
@@ -74,14 +70,9 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
 
 ## Human And Agent Workflows
 
-### Use It Yourself Or Through Any Agent
+### Direct CLI Use
 
-`lifeos-cli` supports two equally valid workflows:
-
-- direct human use in the terminal
-- agent-mediated operation through stable CLI commands
-
-A human can use it to inspect plans, log reality, and maintain personal context:
+Humans can use `lifeos-cli` directly to inspect plans, log reality, and maintain personal context:
 
 ```bash
 lifeos schedule show --date 2026-04-13
@@ -90,27 +81,19 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-An agent can use the same CLI to discover identifiers, inspect state, and execute updates without a
-separate embedded API.
+### Agent Use
 
-This makes the project useful for:
+Any agent runtime that can execute terminal commands and inspect command output can operate the
+same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
+your own setup.
 
-- personal terminal-first self-management
-- AI-assisted daily planning and reflection
-- coding-agent workflows that need structured personal context
-- automation pipelines that operate on durable personal data rather than ad hoc text files
-
-### Why Agents Work Well With This CLI
-
-The CLI is intentionally shaped to work well for both humans and agents:
+### Why It Works Well For Agents
 
 - stable grammar: `lifeos <resource> <action> [arguments] [options]`
 - help-first command model, with `--help` as the primary command reference
 - identifier-driven discovery flows built around `list` and `show`
 - compact summary output for lists and labeled output for record detail views
 - entity-specific primary-key headers such as `task_id`, `vision_id`, and `event_id`
-- localized help plus explicit language and time preferences
-- one interface instead of separate human UI and agent API layers
 
 ## Current Scope
 

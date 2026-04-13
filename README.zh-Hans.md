@@ -12,10 +12,6 @@ English: [README.md](README.md)
 
 `lifeos-cli` 是一个终端原生的 LifeOS，面向希望用同一个结构化系统管理意图、计划、执行、复盘与现实的人。
 
-人类既可以直接在终端中使用它，任意足够能力的 agent runtime 也可以通过同一套 CLI 来操作它。
-这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
-以及你自己的自定义 agent runtime。只要它能够执行终端命令并读取命令输出，就能消费这套接口。
-
 ## 为什么做它
 
 大多数个人系统会把生活拆散到多个互不相通的工具里。任务在一个地方，日程在另一个地方，笔记在别处，
@@ -72,14 +68,9 @@ lifeos config set preferences.language zh-Hans
 
 ## 人类与 Agent 工作流
 
-### 你可以自己用，也可以让任意 Agent 来用
+### 人类直接使用
 
-`lifeos-cli` 支持两种同等重要的工作方式：
-
-- 人类直接在终端中使用
-- 由 agent 通过稳定 CLI 命令面来调用
-
-人类可以直接用它查看计划、记录现实、维护个人上下文：
+人类可以直接用 `lifeos-cli` 查看计划、记录现实、维护个人上下文：
 
 ```bash
 lifeos schedule show --date 2026-04-13
@@ -88,26 +79,19 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-agent 也可以通过同一套 CLI 来发现标识符、检查当前状态并执行更新，而不需要额外的内嵌 agent API。
+### Agent 使用
 
-这使它适合：
+任意能够执行终端命令并读取命令输出的 agent runtime 都可以操作同一套 CLI。
+这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
+以及你自己的自定义 agent runtime。
 
-- 终端优先的个人自我管理
-- AI 辅助的每日计划与复盘
-- 需要结构化个人上下文的 coding-agent 工作流
-- 基于持久化个人数据而不是零散文本文件的自动化流程
-
-### 为什么 Agent 适合消费这套 CLI
-
-这套 CLI 是刻意为“人类可读、agent 可用”设计的：
+### 为什么这套 CLI 适合 Agent
 
 - 稳定的命令语法：`lifeos <resource> <action> [arguments] [options]`
 - 以 `--help` 作为主命令参考的 help-first 模型
 - 围绕 `list` 和 `show` 构建的 identifier-driven 发现流程
 - 面向列表的紧凑摘要输出，以及面向详情的标注字段输出
 - 使用 `task_id`、`vision_id`、`event_id` 等实体化主键列表头
-- 支持本地化 help，并显式建模 language 与时间偏好
-- 不区分“人类界面”和“agent API”，而是统一到同一个 CLI 接口
 
 ## 当前范围
 
