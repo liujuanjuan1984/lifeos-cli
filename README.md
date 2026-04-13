@@ -137,6 +137,8 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
 - Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security disclosure: [SECURITY.md](SECURITY.md)
 - Community expectations: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Dependency update policy: a single weekly grouped version-update PR for `uv`
+- Dependency health baseline: `bash ./scripts/dependency_health.sh`
 
 For contributor setup, validation, integration tests, and dependency maintenance workflows, use
 [CONTRIBUTING.md](CONTRIBUTING.md) as the canonical development guide.

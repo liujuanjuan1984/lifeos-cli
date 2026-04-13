@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, metadata, version
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,6 +32,16 @@ from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import configure_argparse_translations
 from lifeos_cli.i18n import gettext_message as _
 
+CLI_BRAND_BANNER = (
+    " _ _  __\n"
+    "| (_)/ _| ___  ___\n"
+    "| | | |_ / _ \\/ __|\n"
+    "| | |  _|  __/\\__ \\\n"
+    "|_|_|_|  \\___||___/"
+)
+PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli"
+PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
+
 
 def get_version() -> str:
     """Return the installed distribution version when available."""
@@ -41,13 +51,37 @@ def get_version() -> str:
         return "0+unknown"
 
 
+def get_project_urls() -> tuple[str, str]:
+    """Return repository and issue tracker URLs from package metadata when available."""
+    repository_url = PROJECT_REPOSITORY_URL_FALLBACK
+    issues_url = PROJECT_ISSUES_URL_FALLBACK
+    try:
+        distribution_metadata = metadata("lifeos-cli")
+    except PackageNotFoundError:
+        return repository_url, issues_url
+    for project_url in distribution_metadata.get_all("Project-URL", []):
+        label, separator, url = project_url.partition(",")
+        if not separator:
+            continue
+        normalized_label = label.strip().lower()
+        normalized_url = url.strip()
+        if normalized_label == "repository":
+            repository_url = normalized_url
+        elif normalized_label == "issues":
+            issues_url = normalized_url
+    return repository_url, issues_url
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
     configure_argparse_translations()
+    repository_url, issues_url = get_project_urls()
     parser = argparse.ArgumentParser(
         prog="lifeos",
         description=(
-            _("Run LifeOS resource commands from the terminal.")
+            CLI_BRAND_BANNER
+            + "\n\n"
+            + _("Run LifeOS resource commands from the terminal.")
             + "\n\n"
             + _("Command grammar:")
             + "\n"
@@ -122,6 +156,9 @@ def build_parser() -> argparse.ArgumentParser:
                 ),
                 _("Keep human-only work, agent-only work, and truly shared work distinct."),
                 _("Run `lifeos init` before using database-backed resource commands."),
+                _("Repository: {url}").format(url=repository_url),
+                _("Issues: {url}").format(url=issues_url),
+                _("Report bugs and request features through the issue tracker."),
             ),
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,

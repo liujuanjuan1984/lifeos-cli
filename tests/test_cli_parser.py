@@ -124,6 +124,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     captured = capsys.readouterr()
 
+    assert " _ _  __" in captured.out
+    assert "| (_)/ _| ___  ___" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
     assert "init" in captured.out
@@ -148,6 +150,9 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
         in captured.out
     )
     assert "human-only work, agent-only work, and truly shared work" in captured.out
+    assert "Repository: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
+    assert "Issues: https://github.com/liujuanjuan1984/lifeos-cli/issues" in captured.out
+    assert "Report bugs and request features through the issue tracker." in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
@@ -394,11 +399,15 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     captured = capsys.readouterr()
 
+    assert " _ _  __" in captured.out
     assert "usage:" in captured.out or "用法：" in captured.out
     assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
+    assert "仓库：https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
+    assert "问题反馈：https://github.com/liujuanjuan1984/lifeos-cli/issues" in captured.out
+    assert "通过 issue tracker 报告 bug 或提出功能需求。" in captured.out
 
 
 def test_cli_schedule_show_help_supports_zh_hans_locale(
