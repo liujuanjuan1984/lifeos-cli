@@ -134,8 +134,6 @@ lifeos config set preferences.language zh-Hans
 - 贡献流程：[CONTRIBUTING.md](CONTRIBUTING.md)
 - 安全披露：[SECURITY.md](SECURITY.md)
 - 社区行为规范：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- 依赖更新策略：针对 `uv` 保持单个每周分组 version-update PR
-- 依赖健康基线：`bash ./scripts/dependency_health.sh`
 
 ## 许可证
 

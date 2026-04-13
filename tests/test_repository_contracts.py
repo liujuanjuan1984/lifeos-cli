@@ -21,9 +21,9 @@ def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
     assert "uv-all-updates" in DEPENDABOT_TEXT
 
 
-def test_readme_documents_dependabot_and_dependency_audit_split() -> None:
-    assert "single weekly grouped version-update PR for `uv`" in README_TEXT
-    assert "bash ./scripts/dependency_health.sh" in README_TEXT
+def test_contributing_documents_dependabot_and_dependency_audit_split() -> None:
+    assert "single weekly grouped version-update PR for `uv`" in CONTRIBUTING_TEXT
+    assert "bash ./scripts/dependency_health.sh" in CONTRIBUTING_TEXT
 
 
 def test_readme_localization_entrypoints_are_cross_linked() -> None:
