@@ -81,7 +81,7 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-### Agent Use
+### Agent Use (Recommended)
 
 Any agent runtime that can execute terminal commands and inspect command output can operate the
 same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or

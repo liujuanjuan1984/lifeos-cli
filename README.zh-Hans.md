@@ -79,7 +79,7 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-### Agent 使用
+### Agent 使用（推荐）
 
 任意能够执行终端命令并读取命令输出的 agent runtime 都可以操作同一套 CLI。
 这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
