@@ -38,7 +38,43 @@ It gives structure to both sides of life:
 The goal is not just storage, but one operational interface for self-management, reflection, and
 automation.
 
-## Use It Yourself Or Through Any Agent
+## Getting Started
+
+Install or upgrade from PyPI:
+
+```bash
+uv tool install --upgrade lifeos-cli
+```
+
+`lifeos-cli` currently assumes PostgreSQL as its default database backend.
+
+Initialize your local setup:
+
+```bash
+lifeos init
+```
+
+You can run that step yourself, or ask a capable agent to initialize the local setup for you.
+
+See the available command surface:
+
+```bash
+lifeos --help
+```
+
+Inspect and adjust runtime preferences:
+
+```bash
+lifeos config show
+lifeos config set preferences.timezone America/Toronto
+lifeos config set preferences.language zh-Hans
+```
+
+For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
+
+## Human And Agent Workflows
+
+### Use It Yourself Or Through Any Agent
 
 `lifeos-cli` supports two equally valid workflows:
 
@@ -64,7 +100,7 @@ This makes the project useful for:
 - coding-agent workflows that need structured personal context
 - automation pipelines that operate on durable personal data rather than ad hoc text files
 
-## Why Agents Work Well With This CLI
+### Why Agents Work Well With This CLI
 
 The CLI is intentionally shaped to work well for both humans and agents:
 
@@ -100,40 +136,6 @@ Cross-cutting capabilities:
 - persisted runtime configuration for database access plus preferences such as timezone, language,
   day boundary, week boundary, and vision experience defaults
 - localized CLI help and stable summary-table output for direct human use and agent consumption
-
-## Getting Started
-
-Install or upgrade from PyPI:
-
-```bash
-uv tool install --upgrade lifeos-cli
-```
-
-`lifeos-cli` currently assumes PostgreSQL as its default database backend.
-
-Initialize your local setup:
-
-```bash
-lifeos init
-```
-
-You can run that step yourself, or ask a capable agent to initialize the local setup for you.
-
-See the available command surface:
-
-```bash
-lifeos --help
-```
-
-Inspect and adjust runtime preferences:
-
-```bash
-lifeos config show
-lifeos config set preferences.timezone America/Toronto
-lifeos config set preferences.language zh-Hans
-```
-
-For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
 
 ## Project Policies
 

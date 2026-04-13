@@ -36,65 +36,6 @@ English: [README.md](README.md)
 
 目标不只是存储数据，而是为自我管理、复盘反思和自动化提供同一个操作接口。
 
-## 你可以自己用，也可以让任意 Agent 来用
-
-`lifeos-cli` 支持两种同等重要的工作方式：
-
-- 人类直接在终端中使用
-- 由 agent 通过稳定 CLI 命令面来调用
-
-人类可以直接用它查看计划、记录现实、维护个人上下文：
-
-```bash
-lifeos schedule show --date 2026-04-13
-lifeos task list
-lifeos note add "Capture today's key decisions"
-lifeos timelog list --date 2026-04-13
-```
-
-agent 也可以通过同一套 CLI 来发现标识符、检查当前状态并执行更新，而不需要额外的内嵌 agent API。
-
-这使它适合：
-
-- 终端优先的个人自我管理
-- AI 辅助的每日计划与复盘
-- 需要结构化个人上下文的 coding-agent 工作流
-- 基于持久化个人数据而不是零散文本文件的自动化流程
-
-## 为什么 Agent 适合消费这套 CLI
-
-这套 CLI 是刻意为“人类可读、agent 可用”设计的：
-
-- 稳定的命令语法：`lifeos <resource> <action> [arguments] [options]`
-- 以 `--help` 作为主命令参考的 help-first 模型
-- 围绕 `list` 和 `show` 构建的 identifier-driven 发现流程
-- 面向列表的紧凑摘要输出，以及面向详情的标注字段输出
-- 使用 `task_id`、`vision_id`、`event_id` 等实体化主键列表头
-- 支持本地化 help，并显式建模 language 与时间偏好
-- 不区分“人类界面”和“agent API”，而是统一到同一个 CLI 接口
-
-## 当前范围
-
-当前系统已经覆盖一个实用 LifeOS 的核心积木：
-
-- notes
-- areas
-- tags
-- people
-- visions
-- tasks
-- habits and habit actions
-- events
-- timelogs
-
-当前还具备这些跨模块能力：
-
-- 一个 `schedule` 读模型，可把 tasks、habit actions 和 planned events 聚合成按天或按区间查看的视图
-- recurring events 的展开能力，以及 recurring habits 的 cadence 支持，包括按需生成的 habit-action
-- 跨 tasks、visions、events、people、timelogs、tags 的通用 note associations
-- 持久化的运行时配置，既覆盖 database 连接，也覆盖 timezone、language、day boundary、week boundary 和 vision experience defaults 等偏好
-- 本地化的 CLI help，以及适合人类直用和 agent 消费的稳定摘要表输出
-
 ## 快速开始
 
 从 PyPI 安装或升级：
@@ -128,6 +69,67 @@ lifeos config set preferences.language zh-Hans
 ```
 
 完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
+
+## 人类与 Agent 工作流
+
+### 你可以自己用，也可以让任意 Agent 来用
+
+`lifeos-cli` 支持两种同等重要的工作方式：
+
+- 人类直接在终端中使用
+- 由 agent 通过稳定 CLI 命令面来调用
+
+人类可以直接用它查看计划、记录现实、维护个人上下文：
+
+```bash
+lifeos schedule show --date 2026-04-13
+lifeos task list
+lifeos note add "Capture today's key decisions"
+lifeos timelog list --date 2026-04-13
+```
+
+agent 也可以通过同一套 CLI 来发现标识符、检查当前状态并执行更新，而不需要额外的内嵌 agent API。
+
+这使它适合：
+
+- 终端优先的个人自我管理
+- AI 辅助的每日计划与复盘
+- 需要结构化个人上下文的 coding-agent 工作流
+- 基于持久化个人数据而不是零散文本文件的自动化流程
+
+### 为什么 Agent 适合消费这套 CLI
+
+这套 CLI 是刻意为“人类可读、agent 可用”设计的：
+
+- 稳定的命令语法：`lifeos <resource> <action> [arguments] [options]`
+- 以 `--help` 作为主命令参考的 help-first 模型
+- 围绕 `list` 和 `show` 构建的 identifier-driven 发现流程
+- 面向列表的紧凑摘要输出，以及面向详情的标注字段输出
+- 使用 `task_id`、`vision_id`、`event_id` 等实体化主键列表头
+- 支持本地化 help，并显式建模 language 与时间偏好
+- 不区分“人类界面”和“agent API”，而是统一到同一个 CLI 接口
+
+## 当前范围
+
+当前系统已经覆盖一个实用 LifeOS 的核心积木：
+
+- notes
+- areas
+- tags
+- people
+- visions
+- tasks
+- habits and habit actions
+- events
+- timelogs
+
+当前还具备这些跨模块能力：
+
+- 一个 `schedule` 读模型，可把 tasks、habit actions 和 planned events 聚合成按天或按区间查看的视图
+- recurring events 的展开能力，以及 recurring habits 的 cadence 支持，包括按需生成的 habit-action
+- 跨 tasks、visions、events、people、timelogs、tags 的通用 note associations
+- 持久化的运行时配置，既覆盖 database 连接，也覆盖 timezone、language、day boundary、week boundary 和 vision experience defaults 等偏好
+- 本地化的 CLI help，以及适合人类直用和 agent 消费的稳定摘要表输出
 
 ## 项目策略
 

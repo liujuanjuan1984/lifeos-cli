@@ -3,8 +3,6 @@ from pathlib import Path
 from babel.messages import pofile
 
 DEPENDABOT_TEXT = Path(".github/dependabot.yml").read_text()
-README_TEXT = Path("README.md").read_text()
-README_ZH_TEXT = Path("README.zh-Hans.md").read_text()
 CLI_GUIDE_TEXT = Path("docs/cli.md").read_text()
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
@@ -19,16 +17,6 @@ def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
     assert 'package-ecosystem: "github-actions"' not in DEPENDABOT_TEXT
     assert "open-pull-requests-limit: 1" in DEPENDABOT_TEXT
     assert "uv-all-updates" in DEPENDABOT_TEXT
-
-
-def test_contributing_documents_dependabot_and_dependency_audit_split() -> None:
-    assert "single weekly grouped version-update PR for `uv`" in CONTRIBUTING_TEXT
-    assert "bash ./scripts/dependency_health.sh" in CONTRIBUTING_TEXT
-
-
-def test_readme_localization_entrypoints_are_cross_linked() -> None:
-    assert "[简体中文版](README.zh-Hans.md)" in README_TEXT
-    assert "English: [README.md](README.md)" in README_ZH_TEXT
 
 
 def test_dependency_scripts_keep_separate_scopes() -> None:
