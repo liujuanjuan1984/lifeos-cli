@@ -124,8 +124,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     captured = capsys.readouterr()
 
-    assert " _ _  __" in captured.out
-    assert "| (_)/ _| ___  ___" in captured.out
+    assert "+-------------------+" in captured.out
+    assert "|    lifeos-cli     |" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
     assert "resources:" in captured.out
     assert "init" in captured.out
@@ -399,7 +399,8 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     captured = capsys.readouterr()
 
-    assert " _ _  __" in captured.out
+    assert "+-------------------+" in captured.out
+    assert "|    lifeos-cli     |" in captured.out
     assert "usage:" in captured.out or "用法：" in captured.out
     assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
