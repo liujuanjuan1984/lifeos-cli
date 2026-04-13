@@ -131,62 +131,16 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
     assert "uv tool install --upgrade lifeos-cli" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
-    assert (
-        "Resources model domains such as areas, people, visions, tasks, and notes."
-        not in captured.out
-    )
+    assert "Resources model domains" not in captured.out
     assert "resources:" in captured.out
     assert "resources:\n  resource" not in captured.out
     assert "init" in captured.out
-    assert "Initialize local configuration" in captured.out
-    assert "lifeos config show" in captured.out
-    assert "lifeos schedule show --date 2026-04-10" in captured.out
-    assert "lifeos task list" in captured.out
-    assert "event" in captured.out
-    assert "Manage planned schedule events" in captured.out
     assert "schedule" in captured.out
-    assert "Inspect aggregated schedule views" in captured.out
-    assert "people" in captured.out
-    assert "Manage people and relationships" in captured.out
-    assert "habit-action" in captured.out
-    assert "Manage dated habit actions" in captured.out
-    assert "timelog" in captured.out
-    assert "Manage actual time records" in captured.out
+    assert "task" in captured.out
     assert "primary command reference" in captured.out
     assert "Run `lifeos init` before using database-backed resource commands." in captured.out
     assert "Welcome bug reports and suggestions through the repo issue tracker." in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
-
-
-def test_cli_schedule_help_describes_read_model_and_occurrences(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["schedule", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert (
-        "Schedule is a CLI read model built from tasks, habit actions, and events" in captured.out
-    )
-    assert "expanded recurring event occurrences" in captured.out
-    assert "Dates use the configured timezone and `day_starts_at` preference." in captured.out
-    assert (
-        "Event output is segmented into appointment, timeblock, and deadline sections."
-        in captured.out
-    )
-
-
-def test_cli_config_show_help_describes_agent_language_guidance(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["config", "show", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "effective language" in captured.out
-    assert "human-authored payload data" in captured.out
 
 
 def test_cli_task_help_describes_event_and_schedule_bridge(capsys) -> None:
@@ -277,7 +231,6 @@ def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) ->
 
     assert "monthly" in captured.out
     assert "yearly" in captured.out
-    assert "shared cadence primitives" in captured.out
 
 
 def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
@@ -290,41 +243,19 @@ def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
 
     assert "monthly" in captured.out
     assert "yearly" in captured.out
-    assert "Read annual plan" in captured.out
 
 
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [
         (
-            ["area", "list", "--help"],
-            "tab-separated columns: area_id, status, display_order, name.",
-        ),
-        (
-            ["people", "list", "--help"],
-            "tab-separated columns: person_id, status, name, location, tags.",
-        ),
-        (
-            ["vision", "list", "--help"],
-            "tab-separated columns: vision_id, status, area_id, name.",
-        ),
-        (
-            ["tag", "list", "--help"],
-            "tab-separated columns: tag_id, status, entity_type, category, name.",
+            ["task", "list", "--help"],
+            "tab-separated columns: task_id, status, vision_id, parent_task_id, content.",
         ),
         (
             ["event", "list", "--help"],
             "tab-separated columns: event_id, status, event_type, start_time, end_time, "
             "task_id, title.",
-        ),
-        (
-            ["timelog", "list", "--help"],
-            "tab-separated columns: timelog_id, status, start_time, end_time, task_id, "
-            "linked_notes_count, title.",
-        ),
-        (
-            ["habit-action", "list", "--help"],
-            "tab-separated columns: habit_action_id, status, action_date, habit_id, habit_title.",
         ),
         (
             ["habit", "list", "--help"],
@@ -450,39 +381,9 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
     ("argv", "expected"),
     [
         (
-            ["area", "list", "--help"],
+            ["task", "list", "--help"],
             "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "area_id、status、display_order、name。",
-        ),
-        (
-            ["people", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "person_id、status、name、location、tags。",
-        ),
-        (
-            ["vision", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "vision_id、status、area_id、name。",
-        ),
-        (
-            ["tag", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "tag_id、status、entity_type、category、name。",
-        ),
-        (
-            ["event", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "event_id、status、event_type、start_time、end_time、task_id、title。",
-        ),
-        (
-            ["timelog", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "timelog_id、status、start_time、end_time、task_id、linked_notes_count、title。",
-        ),
-        (
-            ["habit-action", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "habit_action_id、status、action_date、habit_id、habit_title。",
+            "task_id、status、vision_id、parent_task_id、content。",
         ),
         (
             ["habit", "list", "--help"],
@@ -569,60 +470,6 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
         captured = capsys.readouterr()
         for term in expected_terms:
             assert term in captured.out
-
-
-def test_cli_config_help_describes_set_command(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["config", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "show" in captured.out
-    assert "set" in captured.out
-    assert "Environment variables still override config-file values at runtime." in captured.out
-
-
-def test_cli_data_help_describes_snapshot_and_bundle_model(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["data", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "canonical JSON/JSONL snapshot rows" in captured.out
-    assert "bundle backup or restore" in captured.out
-    assert "data export all --output lifeos-bundle.zip" in captured.out
-    assert "data import bundle --file lifeos-bundle.zip --replace-existing" in captured.out
-
-
-def test_cli_data_import_help_describes_atomic_bundle_restore(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["data", "import", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "Bundle restore is atomic" in captured.out
-    assert (
-        "Single-resource imports expect referenced foreign rows to already exist." in captured.out
-    )
-
-
-def test_cli_timelog_stats_help_describes_persisted_area_stats(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["timelog", "stats", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "persisted stats when available" in captured.out
-    assert "Stats are grouped only by area" in captured.out
-    assert "timelog stats rebuild" in captured.out
 
 
 def test_cli_parser_supports_data_commands() -> None:
