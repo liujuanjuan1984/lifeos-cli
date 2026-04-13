@@ -30,7 +30,7 @@ English: [README.md](README.md)
 - intention：visions、tasks、habits、planned events
 - reality：notes、timelogs、completed habit actions、relationship records
 
-目标不只是存储数据，而是为自我管理、复盘反思和自动化提供同一个操作接口。
+目标不只是存储数据，而是为自我管理、复盘反思和自动化提供同一套 CLI 接口。
 
 ## 快速开始
 
@@ -40,7 +40,7 @@ English: [README.md](README.md)
 uv tool install --upgrade lifeos-cli
 ```
 
-`lifeos-cli` 当前默认采用 PostgreSQL 作为数据库后端。
+`lifeos-cli` 默认使用 PostgreSQL。
 
 初始化本地环境：
 
@@ -48,7 +48,7 @@ uv tool install --upgrade lifeos-cli
 lifeos init
 ```
 
-这一步既可以由人类自己执行，也可以交给足够能力的 agent 来代为完成本地初始化。
+这一步既可以由人类自己执行，也可以交给能执行终端命令的 agent 来代为完成。
 
 查看 CLI 命令面：
 

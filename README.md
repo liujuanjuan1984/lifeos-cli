@@ -31,7 +31,7 @@ It gives structure to both sides of life:
 - intention: visions, tasks, habits, and planned events
 - reality: notes, timelogs, completed habit actions, and relationship records
 
-The goal is not just storage, but one operational interface for self-management, reflection, and
+The goal is not just storage, but one CLI interface for self-management, reflection, and
 automation.
 
 ## Getting Started
@@ -42,7 +42,7 @@ Install or upgrade from PyPI:
 uv tool install --upgrade lifeos-cli
 ```
 
-`lifeos-cli` currently assumes PostgreSQL as its default database backend.
+`lifeos-cli` uses PostgreSQL by default.
 
 Initialize your local setup:
 
@@ -50,7 +50,7 @@ Initialize your local setup:
 lifeos init
 ```
 
-You can run that step yourself, or ask a capable agent to initialize the local setup for you.
+You can run that step yourself, or ask an agent that can run terminal commands to do it for you.
 
 See the available command surface:
 
