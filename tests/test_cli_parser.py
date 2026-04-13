@@ -127,7 +127,12 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert " _      ___   _____  _____   ___    ____  " in captured.out
     assert "| |___  | |  |  _|  | |___ | |_| |  ___) |" in captured.out
     assert "lifeos <resource> <action> [arguments] [options]" in captured.out
+    assert (
+        "Resources model domains such as areas, people, visions, tasks, and notes."
+        not in captured.out
+    )
     assert "resources:" in captured.out
+    assert "resources:\n  resource" not in captured.out
     assert "init" in captured.out
     assert "Initialize local configuration" in captured.out
     assert "lifeos config show" in captured.out
@@ -398,6 +403,7 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     assert "|_____||___| |_|    |_____| \\___/  |____/ " in captured.out
     assert "usage:" in captured.out or "用法：" in captured.out
     assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
+    assert "资源:\n  资源" not in captured.out
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out

@@ -43,6 +43,20 @@ PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli
 PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
 
 
+class TopLevelHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Render top-level subcommands without a duplicated metavar heading."""
+
+    def _format_action(self, action: argparse.Action) -> str:
+        if isinstance(action, argparse._SubParsersAction):
+            return self._join_parts(
+                [
+                    self._format_action(subaction)
+                    for subaction in self._iter_indented_subactions(action)
+                ]
+            )
+        return super()._format_action(action)
+
+
 def get_version() -> str:
     """Return the installed distribution version when available."""
     try:
@@ -85,17 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
             + "\n\n"
             + _("Command grammar:")
             + "\n"
-            "  lifeos <resource> <action> [arguments] [options]\n\n"
-            + _("Resources model domains such as areas, people, visions, tasks, and notes.")
-            + "\n"
-            + _(
-                "Time-oriented domains use `event` for planned schedule blocks and `timelog` "
-                "for actual time records."
-            )
-            + "\n"
-            + _("Use `schedule` for aggregated day and range views across planned work.")
-            + "\n"
-            + _("System commands such as init, config, and db manage runtime setup.")
+            "  lifeos <resource> <action> [arguments] [options]"
         ),
         epilog=build_epilog(
             examples=(
@@ -116,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
                 _("Report bugs and request features through the issue tracker."),
             ),
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=TopLevelHelpFormatter,
     )
     parser.add_argument(
         "--version",
