@@ -1,6 +1,6 @@
 # lifeos-cli
 
-Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)
+[简体中文版](README.zh-Hans.md)
 
 ```text
  _      ___   _____  _____   ___    ____

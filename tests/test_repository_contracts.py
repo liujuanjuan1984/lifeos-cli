@@ -27,7 +27,7 @@ def test_readme_documents_dependabot_and_dependency_audit_split() -> None:
 
 
 def test_readme_localization_entrypoints_are_cross_linked() -> None:
-    assert "Simplified Chinese: [README.zh-Hans.md](README.zh-Hans.md)" in README_TEXT
+    assert "[简体中文版](README.zh-Hans.md)" in README_TEXT
     assert "English: [README.md](README.md)" in README_ZH_TEXT
 
 
