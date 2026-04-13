@@ -13,11 +13,9 @@
 `lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
 plans, execution, reflection, and reality.
 
-You can use it directly as a human-friendly CLI, or let any capable agent operate it through the
-same command surface.
-
-That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or your own
-custom agent runtime, as long as it can execute terminal commands and inspect command output.
+Humans can use it directly in the terminal, and any capable agent runtime can operate it through
+the same CLI, including Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
+your own setup, as long as it can execute terminal commands and inspect command output.
 
 ## Why It Exists
 
@@ -32,19 +30,17 @@ That makes it unnecessarily hard to answer practical questions such as:
 - Which routines are real versus aspirational?
 - Which people, projects, and priorities am I actually serving?
 
-`lifeos-cli` treats those as one system problem.
-
 It gives structure to both sides of life:
 
 - intention: visions, tasks, habits, and planned events
 - reality: notes, timelogs, completed habit actions, and relationship records
 
-The goal is not just storage. The goal is a shared operational interface for self-management,
-reflection, and automation.
+The goal is not just storage, but one operational interface for self-management, reflection, and
+automation.
 
 ## Use It Yourself Or Through Any Agent
 
-`lifeos-cli` is designed for two equally valid workflows:
+`lifeos-cli` supports two equally valid workflows:
 
 - direct human use in the terminal
 - agent-mediated operation through stable CLI commands
@@ -58,8 +54,8 @@ lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
 ```
 
-An agent can use the same interface to discover identifiers, inspect state, and execute updates
-without a separate embedded agent API.
+An agent can use the same CLI to discover identifiers, inspect state, and execute updates without a
+separate embedded API.
 
 This makes the project useful for:
 
@@ -70,7 +66,7 @@ This makes the project useful for:
 
 ## Why Agents Work Well With This CLI
 
-The command surface is intentionally shaped to be easy for both humans and agents to consume:
+The CLI is intentionally shaped to work well for both humans and agents:
 
 - stable grammar: `lifeos <resource> <action> [arguments] [options]`
 - help-first command model, with `--help` as the primary command reference
@@ -78,7 +74,7 @@ The command surface is intentionally shaped to be easy for both humans and agent
 - compact summary output for lists and labeled output for record detail views
 - entity-specific primary-key headers such as `task_id`, `vision_id`, and `event_id`
 - localized help plus explicit language and time preferences
-- one shared interface instead of separate human UI and agent API layers
+- one interface instead of separate human UI and agent API layers
 
 ## Current Scope
 
@@ -94,7 +90,7 @@ The current system already covers the core building blocks of a practical LifeOS
 - events
 - timelogs
 
-Cross-cutting capabilities already in place:
+Cross-cutting capabilities:
 
 - a `schedule` read model that aggregates tasks, habit actions, and planned events into day and
   range views
@@ -121,8 +117,7 @@ Initialize your local setup:
 lifeos init
 ```
 
-You can run that step yourself, or ask an agent that can execute terminal commands and inspect
-command output to initialize the local setup for you.
+You can run that step yourself, or ask a capable agent to initialize the local setup for you.
 
 See the available command surface:
 
