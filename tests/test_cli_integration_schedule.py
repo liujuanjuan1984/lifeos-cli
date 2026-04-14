@@ -94,16 +94,20 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "date: 2026-04-10" in schedule_show_result.stdout
     assert "tasks:" in schedule_show_result.stdout
     assert (
-        "  task_id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
+        "  task_id\tstatus\tvision\tplanning_cycle_type\tplanning_cycle_start_date\t"
         "planning_cycle_end_date\tcontent" in schedule_show_result.stdout
     )
     assert "habit_actions:" in schedule_show_result.stdout
     assert "  habit_action_id\tstatus\thabit_id\thabit_title" in schedule_show_result.stdout
     assert "appointments:" in schedule_show_result.stdout
     assert "timeblocks:" in schedule_show_result.stdout
-    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in schedule_show_result.stdout
+    assert (
+        "  event_id\tstatus\tstart_time\tend_time\ttask_id\tvision\ttitle"
+        in schedule_show_result.stdout
+    )
     assert "deadlines:" in schedule_show_result.stdout
     assert task_id in schedule_show_result.stdout
+    assert "Launch lifeos-cli" in schedule_show_result.stdout
     assert "Daily Review" in schedule_show_result.stdout
     assert event_id in schedule_show_result.stdout
     assert "Release planning block" in schedule_show_result.stdout
@@ -122,10 +126,14 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
     assert "date: 2026-04-10" in schedule_list_result.stdout
     assert "date: 2026-04-11" in schedule_list_result.stdout
     assert (
-        "  task_id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
+        "  task_id\tstatus\tvision\tplanning_cycle_type\tplanning_cycle_start_date\t"
         "planning_cycle_end_date\tcontent" in schedule_list_result.stdout
     )
     assert "  habit_action_id\tstatus\thabit_id\thabit_title" in schedule_list_result.stdout
-    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in schedule_list_result.stdout
+    assert (
+        "  event_id\tstatus\tstart_time\tend_time\ttask_id\tvision\ttitle"
+        in schedule_list_result.stdout
+    )
     assert task_id in schedule_list_result.stdout
+    assert "Launch lifeos-cli" in schedule_list_result.stdout
     assert schedule_list_result.stdout.count("Daily review") == 2

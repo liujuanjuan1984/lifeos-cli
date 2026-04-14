@@ -933,6 +933,7 @@ def test_main_task_list_prints_header_and_rows(
                 id=UUID("55555555-5555-5555-5555-555555555555"),
                 status="todo",
                 vision_id=UUID("66666666-6666-6666-6666-666666666666"),
+                vision_name="Launch lifeos-cli",
                 parent_task_id=None,
                 content="Draft release checklist",
                 deleted_at=None,
@@ -947,11 +948,11 @@ def test_main_task_list_prints_header_and_rows(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "task_id\tstatus\tvision_id\tparent_task_id\tcontent",
+        "task_id\tstatus\tvision\tparent_task_id\tcontent",
         (
             "55555555-5555-5555-5555-555555555555\t"
             "todo\t"
-            "66666666-6666-6666-6666-666666666666\t"
+            "Launch lifeos-cli\t"
             "-\t"
             "Draft release checklist"
         ),

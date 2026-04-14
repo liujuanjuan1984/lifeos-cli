@@ -7,8 +7,8 @@ from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
@@ -270,7 +270,8 @@ async def get_vision_task_hierarchy(
     """Load active tasks for a vision as a hierarchy."""
     await ensure_vision_exists(session, vision_id)
     stmt = (
-        select(Task).options(selectinload(Task.vision))
+        select(Task)
+        .options(selectinload(Task.vision))
         .where(Task.vision_id == vision_id, Task.deleted_at.is_(None))
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )

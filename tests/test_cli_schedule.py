@@ -24,6 +24,7 @@ def test_main_schedule_show_prints_grouped_sections(
                     id=UUID("11111111-1111-1111-1111-111111111111"),
                     content="Draft release checklist",
                     status="todo",
+                    vision_name="Launch lifeos-cli",
                     planning_cycle_type="week",
                     planning_cycle_days=7,
                     planning_cycle_start_date=target_date,
@@ -49,6 +50,7 @@ def test_main_schedule_show_prints_grouped_sections(
                     start_time=utc_datetime(2026, 4, 10, 13, 0),
                     end_time=utc_datetime(2026, 4, 10, 14, 0),
                     task_id=None,
+                    task_vision_name=None,
                 ),
             ),
             timeblocks=(),
@@ -65,13 +67,13 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "date: 2026-04-10" in captured.out
     assert "tasks:" in captured.out
     assert (
-        "  task_id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
+        "  task_id\tstatus\tvision\tplanning_cycle_type\tplanning_cycle_start_date\t"
         "planning_cycle_end_date\tcontent" in captured.out
     )
     assert "habit_actions:" in captured.out
     assert "  habit_action_id\tstatus\thabit_id\thabit_title" in captured.out
     assert "appointments:" in captured.out
-    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in captured.out
+    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\tvision\ttitle" in captured.out
     assert "timeblocks:" in captured.out
     assert "deadlines:" in captured.out
     assert "Draft release checklist" in captured.out

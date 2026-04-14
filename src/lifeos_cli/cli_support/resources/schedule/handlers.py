@@ -20,7 +20,15 @@ SCHEDULE_TASK_COLUMNS = (
     "content",
 )
 SCHEDULE_HABIT_ACTION_COLUMNS = ("habit_action_id", "status", "habit_id", "habit_title")
-SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "vision", "title")
+SCHEDULE_EVENT_COLUMNS = (
+    "event_id",
+    "status",
+    "start_time",
+    "end_time",
+    "task_id",
+    "vision",
+    "title",
+)
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
@@ -35,9 +43,11 @@ def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionIte
 
 
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
+    task_vision_name = item.task_vision_name or "-"
     return (
         f"  {item.id}\t{item.status}\t{format_timestamp(item.start_time)}\t"
-        f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t{item.task_vision_name or '-'}\t{item.title}"
+        f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t"
+        f"{task_vision_name}\t{item.title}"
     )
 
 

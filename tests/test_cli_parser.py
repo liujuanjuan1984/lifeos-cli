@@ -183,8 +183,8 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
     assert (
-        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
-        "planning_cycle_end_date, content."
+        "Task section columns: task_id, status, vision, planning_cycle_type, "
+        "planning_cycle_start_date, planning_cycle_end_date, content."
     ) in captured.out
     assert (
         "Habit action section columns: habit_action_id, status, habit_id, habit_title."
@@ -192,7 +192,7 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     )
     assert (
         "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "event_id, status, start_time, end_time, task_id, vision, title."
     ) in captured.out
 
 
@@ -250,7 +250,7 @@ def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
     [
         (
             ["task", "list", "--help"],
-            "tab-separated columns: task_id, status, vision_id, parent_task_id, content.",
+            "tab-separated columns: task_id, status, vision, parent_task_id, content.",
         ),
         (
             ["event", "list", "--help"],
@@ -316,7 +316,7 @@ def test_cli_task_list_help_supports_zh_hans_locale_and_documents_header_row(
     assert "列出 `task` 以及可选的 `vision`、父级或状态过滤器。" in captured.out
     assert (
         "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-        "task_id、status、vision_id、parent_task_id、content。"
+        "task_id、status、vision、parent_task_id、content。"
     ) in captured.out
 
 
@@ -383,7 +383,7 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
         (
             ["task", "list", "--help"],
             "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "task_id、status、vision_id、parent_task_id、content。",
+            "task_id、status、vision、parent_task_id、content。",
         ),
         (
             ["habit", "list", "--help"],
@@ -403,8 +403,8 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
         ),
         (
             ["schedule", "show", "--help"],
-            "`task` 分段的列为：task_id、status、planning_cycle_type、planning_cycle_start_date、"
-            "planning_cycle_end_date、content。",
+            "`task` 分段的列为：task_id、status、vision、planning_cycle_type、"
+            "planning_cycle_start_date、planning_cycle_end_date、content。",
         ),
     ],
 )
@@ -438,8 +438,8 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         in captured.out
     )
     assert (
-        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
-        "planning_cycle_end_date, content."
+        "Task section columns: task_id, status, vision, planning_cycle_type, "
+        "planning_cycle_start_date, planning_cycle_end_date, content."
     ) in captured.out
     assert (
         "Habit action section columns: habit_action_id, status, habit_id, habit_title."
@@ -447,7 +447,7 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
     )
     assert (
         "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "event_id, status, start_time, end_time, task_id, vision, title."
     ) in captured.out
 
 

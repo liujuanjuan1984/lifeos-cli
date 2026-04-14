@@ -7,8 +7,8 @@ from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select, text
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
 from lifeos_cli.db.models.task import Task
@@ -144,6 +144,7 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
     assert task.planning_cycle_type is not None
     assert task.planning_cycle_days is not None
     assert task.planning_cycle_start_date is not None
+    vision = getattr(task, "vision", None)
     return ScheduleTaskItem(
         id=task.id,
         content=task.content,
@@ -152,7 +153,7 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
         planning_cycle_days=task.planning_cycle_days,
         planning_cycle_start_date=task.planning_cycle_start_date,
         planning_cycle_end_date=_task_cycle_end_date(task),
-        vision_name=task.vision.name if task.vision else "-",
+        vision_name=vision.name if vision else "-",
     )
 
 
@@ -176,7 +177,7 @@ def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
         start_time=event.start_time,
         end_time=event.end_time,
         task_id=event.task_id,
-        task_vision_name=event.task_vision_name,
+        task_vision_name=getattr(event, "task_vision_name", None),
     )
 
 

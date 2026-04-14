@@ -13,10 +13,10 @@ from sqlalchemy.orm import selectinload
 
 from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
 from lifeos_cli.db.models.event import Event
-from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
@@ -140,6 +140,12 @@ def _event_occurrence_end(
 ) -> datetime | None:
     duration = _event_duration(event)
     return occurrence_start + duration if duration is not None else None
+
+
+def _event_task_vision_name(event: Event) -> str | None:
+    task = getattr(event, "task", None)
+    vision = getattr(task, "vision", None)
+    return vision.name if vision else None
 
 
 async def _record_skip_exception(
@@ -492,7 +498,7 @@ async def list_event_occurrences(
                         start_time=master.start_time,
                         end_time=master.end_time,
                         task_id=master.task_id,
-                        task_vision_name=master.task.vision.name if master.task and master.task.vision else None,
+                        task_vision_name=_event_task_vision_name(master),
                         deleted_at=master.deleted_at,
                         instance_start=master.start_time,
                     )
@@ -517,7 +523,7 @@ async def list_event_occurrences(
                     start_time=occurrence_start,
                     end_time=_event_occurrence_end(master, occurrence_start=occurrence_start),
                     task_id=master.task_id,
-                    task_vision_name=master.task.vision.name if master.task and master.task.vision else None,
+                    task_vision_name=_event_task_vision_name(master),
                     deleted_at=master.deleted_at,
                     instance_start=occurrence_start,
                 )
@@ -533,7 +539,7 @@ async def list_event_occurrences(
                 start_time=override.start_time,
                 end_time=override.end_time,
                 task_id=override.task_id,
-                task_vision_name=override.task.vision.name if override.task and override.task.vision else None,
+                task_vision_name=_event_task_vision_name(override),
                 deleted_at=override.deleted_at,
                 instance_start=override.recurrence_instance_start or override.start_time,
             )

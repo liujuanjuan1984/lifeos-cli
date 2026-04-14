@@ -43,6 +43,7 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
                 id=UUID("11111111-1111-1111-1111-111111111111"),
                 content="Draft release checklist",
                 status="todo",
+                vision=make_record(name="Launch lifeos-cli"),
                 planning_cycle_type="week",
                 planning_cycle_days=2,
                 planning_cycle_start_date=date(2026, 4, 10),
@@ -82,6 +83,7 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
                 start_time=utc_datetime(2026, 4, 10, 23, 30),
                 end_time=utc_datetime(2026, 4, 11, 1, 0),
                 task_id=None,
+                task_vision_name=None,
             )
         ]
 
@@ -110,6 +112,7 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
     assert len(days) == 2
     assert days[0].local_date == date(2026, 4, 10)
     assert [item.content for item in days[0].tasks] == ["Draft release checklist"]
+    assert [item.vision_name for item in days[0].tasks] == ["Launch lifeos-cli"]
     assert [item.habit_title for item in days[0].habit_actions] == ["Daily Review"]
     assert [item.title for item in days[0].appointments] == ["Late call"]
     assert days[0].timeblocks == ()
@@ -152,6 +155,7 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
                 start_time=utc_datetime(2026, 4, 10, 13, 0),
                 end_time=utc_datetime(2026, 4, 10, 13, 30),
                 task_id=None,
+                task_vision_name=None,
             ),
             make_record(
                 id=UUID("33333333-3333-3333-3333-333333333333"),
@@ -161,6 +165,7 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
                 start_time=utc_datetime(2026, 4, 11, 13, 0),
                 end_time=utc_datetime(2026, 4, 11, 13, 30),
                 task_id=None,
+                task_vision_name=None,
             ),
         ]
 
@@ -220,6 +225,7 @@ def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
                 start_time=utc_datetime(2026, 4, 10, 13, 0),
                 end_time=utc_datetime(2026, 4, 10, 14, 0),
                 task_id=None,
+                task_vision_name=None,
             ),
             make_record(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
@@ -229,6 +235,7 @@ def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
                 start_time=utc_datetime(2026, 4, 10, 15, 0),
                 end_time=utc_datetime(2026, 4, 10, 16, 0),
                 task_id=None,
+                task_vision_name="Launch lifeos-cli",
             ),
             make_record(
                 id=UUID("33333333-3333-3333-3333-333333333333"),
@@ -238,6 +245,7 @@ def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
                 start_time=utc_datetime(2026, 4, 10, 17, 0),
                 end_time=None,
                 task_id=None,
+                task_vision_name=None,
             ),
         ]
 
@@ -263,6 +271,7 @@ def test_list_schedule_in_range_groups_events_by_type(monkeypatch) -> None:
 
     assert [item.title for item in days[0].appointments] == ["Doctor appointment"]
     assert [item.title for item in days[0].timeblocks] == ["Focus block"]
+    assert [item.task_vision_name for item in days[0].timeblocks] == ["Launch lifeos-cli"]
     assert [item.title for item in days[0].deadlines] == ["Tax deadline"]
 
 
