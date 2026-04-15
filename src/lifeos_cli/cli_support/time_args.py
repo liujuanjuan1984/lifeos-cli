@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import re
+from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 
 from lifeos_cli.application.time_preferences import get_preferred_timezone
@@ -13,6 +14,16 @@ _DATE_ONLY_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 class DateArgumentError(ValueError):
     """Raised when CLI date arguments do not form a valid interval."""
+
+
+@dataclass(frozen=True)
+class ResolvedDateTimeQuery:
+    """Normalized date-or-time query filters for list commands."""
+
+    start_date: date | None
+    end_date: date | None
+    window_start: datetime | None
+    window_end: datetime | None
 
 
 def parse_date_value(value: str) -> date:
@@ -55,6 +66,18 @@ def resolve_date_interval_arguments(
     return None, None
 
 
+def resolve_required_date_interval_arguments(
+    *,
+    date_values: list[date] | None,
+    empty_message: str = "Provide --date once or twice.",
+) -> tuple[date, date]:
+    """Resolve one required inclusive date interval from CLI flags."""
+    start_date, end_date = resolve_date_interval_arguments(date_values=date_values)
+    if start_date is None or end_date is None:
+        raise DateArgumentError(empty_message)
+    return start_date, end_date
+
+
 def normalize_query_datetime_bound(
     value: datetime | date | None,
     *,
@@ -70,3 +93,26 @@ def normalize_query_datetime_bound(
     elif value.tzinfo is None or value.utcoffset() is None:
         value = value.replace(tzinfo=preferred_timezone)
     return value.astimezone(timezone.utc)
+
+
+def resolve_exclusive_date_or_datetime_query(
+    *,
+    date_values: list[date] | None,
+    window_start: datetime | date | None,
+    window_end: datetime | date | None,
+    conflict_message: str = "Use either --date or --start-time/--end-time, not both.",
+) -> ResolvedDateTimeQuery:
+    """Resolve one query scope that may be either a date interval or a datetime window."""
+    start_date, end_date = resolve_date_interval_arguments(date_values=date_values)
+    normalized_window_start = normalize_query_datetime_bound(window_start, is_end=False)
+    normalized_window_end = normalize_query_datetime_bound(window_end, is_end=True)
+    if (start_date is not None or end_date is not None) and (
+        normalized_window_start is not None or normalized_window_end is not None
+    ):
+        raise DateArgumentError(conflict_message)
+    return ResolvedDateTimeQuery(
+        start_date=start_date,
+        end_date=end_date,
+        window_start=normalized_window_start,
+        window_end=normalized_window_end,
+    )

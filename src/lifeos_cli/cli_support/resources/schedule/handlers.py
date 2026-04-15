@@ -7,7 +7,10 @@ import sys
 
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
 from lifeos_cli.cli_support.runtime_utils import run_async
-from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
+from lifeos_cli.cli_support.time_args import (
+    DateArgumentError,
+    resolve_required_date_interval_arguments,
+)
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import schedules as schedule_services
 
@@ -101,14 +104,11 @@ def handle_schedule_show(args: argparse.Namespace) -> int:
 
 async def handle_schedule_list_async(args: argparse.Namespace) -> int:
     try:
-        start_date, end_date = resolve_date_interval_arguments(
+        start_date, end_date = resolve_required_date_interval_arguments(
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
         print(str(exc), file=sys.stderr)
-        return 1
-    if start_date is None or end_date is None:
-        print("Provide --date once or twice.", file=sys.stderr)
         return 1
     async with db_session.session_scope() as session:
         days = await schedule_services.list_schedule_in_range(

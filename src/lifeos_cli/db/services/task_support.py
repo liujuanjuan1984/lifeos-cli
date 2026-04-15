@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from datetime import date
 from uuid import UUID
 
@@ -179,9 +180,9 @@ async def load_task_subtree(session: AsyncSession, *, root_task_id: UUID) -> lis
         return []
 
     subtree: list[Task] = []
-    queue = [root_task]
+    queue = deque([root_task])
     while queue:
-        task = queue.pop(0)
+        task = queue.popleft()
         subtree.append(task)
         children = (
             await session.execute(

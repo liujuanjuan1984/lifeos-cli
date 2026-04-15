@@ -26,6 +26,11 @@ repos:
         args: ["--baseline", ".secrets.baseline"]
   - repo: local
     hooks:
+      - id: locale-catalog-sync
+        name: locale-catalog-sync
+        entry: uv run python scripts/check_locale_catalog.py
+        language: system
+        pass_filenames: false
       - id: dead-code
         name: dead-code
         entry: bash ./scripts/dead_code_check.sh

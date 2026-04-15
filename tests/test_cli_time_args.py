@@ -5,6 +5,8 @@ from datetime import date, datetime
 from lifeos_cli.cli_support.time_args import (
     normalize_query_datetime_bound,
     resolve_date_interval_arguments,
+    resolve_exclusive_date_or_datetime_query,
+    resolve_required_date_interval_arguments,
 )
 from lifeos_cli.config import clear_config_cache
 
@@ -65,3 +67,33 @@ def test_normalize_query_datetime_bound_uses_preferred_timezone_for_naive_dateti
     assert bound is not None
     assert bound.isoformat() == "2026-04-10T22:00:00+00:00"
     clear_config_cache()
+
+
+def test_resolve_required_date_interval_arguments_rejects_empty_input() -> None:
+    try:
+        resolve_required_date_interval_arguments(date_values=None)
+    except ValueError as exc:
+        assert str(exc) == "Provide --date once or twice."
+    else:
+        raise AssertionError("expected DateArgumentError")
+
+
+def test_resolve_exclusive_date_or_datetime_query_rejects_mixed_filters(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", _write_preferences_config(tmp_path))
+
+    try:
+        resolve_exclusive_date_or_datetime_query(
+            date_values=[date(2026, 4, 10)],
+            window_start=datetime(2026, 4, 10, 9, 0),
+            window_end=None,
+        )
+    except ValueError as exc:
+        assert str(exc) == "Use either --date or --start-time/--end-time, not both."
+    else:
+        raise AssertionError("expected DateArgumentError")
+    finally:
+        clear_config_cache()

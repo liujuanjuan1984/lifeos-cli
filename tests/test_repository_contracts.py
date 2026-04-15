@@ -32,6 +32,10 @@ def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert "bash ./scripts/integration_tests.sh" in DOCTOR_TEXT
 
 
+def test_locale_catalog_sync_is_part_of_the_default_validation_gate() -> None:
+    assert "uv run python scripts/check_locale_catalog.py" in PRE_COMMIT_TEXT
+
+
 def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     expected_database_url = (
         "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/"  # pragma: allowlist secret

@@ -15,8 +15,9 @@ from lifeos_cli.cli_support.output_utils import (
 from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
-    normalize_query_datetime_bound,
     resolve_date_interval_arguments,
+    resolve_exclusive_date_or_datetime_query,
+    resolve_required_date_interval_arguments,
 )
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import timelog_stats
@@ -130,21 +131,13 @@ def handle_timelog_add(args: argparse.Namespace) -> int:
 
 async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     try:
-        start_date, end_date = resolve_date_interval_arguments(
+        query = resolve_exclusive_date_or_datetime_query(
             date_values=args.date_values,
+            window_start=args.window_start,
+            window_end=args.window_end,
         )
     except DateArgumentError as exc:
         print(str(exc), file=sys.stderr)
-        return 1
-    window_start = normalize_query_datetime_bound(args.window_start, is_end=False)
-    window_end = normalize_query_datetime_bound(args.window_end, is_end=True)
-    if (start_date is not None or end_date is not None) and (
-        window_start is not None or window_end is not None
-    ):
-        print(
-            "Use either --date or --start-time/--end-time, not both.",
-            file=sys.stderr,
-        )
         return 1
     if args.without_area and (args.area_id is not None or args.area_name is not None):
         print("Use either an area filter or --without-area, not both.", file=sys.stderr)
@@ -167,10 +160,10 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 without_task=args.without_task,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
-                start_date=start_date,
-                end_date=end_date,
-                window_start=window_start,
-                window_end=window_end,
+                start_date=query.start_date,
+                end_date=query.end_date,
+                window_start=query.window_start,
+                window_end=query.window_end,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -189,10 +182,10 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                     without_task=args.without_task,
                     person_id=args.person_id,
                     tag_id=args.tag_id,
-                    start_date=start_date,
-                    end_date=end_date,
-                    window_start=window_start,
-                    window_end=window_end,
+                    start_date=query.start_date,
+                    end_date=query.end_date,
+                    window_start=query.window_start,
+                    window_end=query.window_end,
                     include_deleted=args.include_deleted,
                 )
                 if args.count
@@ -453,14 +446,11 @@ def handle_timelog_stats_day(args: argparse.Namespace) -> int:
 
 async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
     try:
-        start_date, end_date = resolve_date_interval_arguments(
+        start_date, end_date = resolve_required_date_interval_arguments(
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
         print(str(exc), file=sys.stderr)
-        return 1
-    if start_date is None or end_date is None:
-        print("Provide --date once or twice.", file=sys.stderr)
         return 1
     async with db_session.session_scope() as session:
         report = await timelog_stats.get_timelog_stats_groupby_area_for_range(
