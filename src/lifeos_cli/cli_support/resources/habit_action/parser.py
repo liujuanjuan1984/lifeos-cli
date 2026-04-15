@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_date_range_arguments,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
@@ -19,6 +19,7 @@ from lifeos_cli.cli_support.resources.habit_action.handlers import (
     handle_habit_action_show,
     handle_habit_action_update,
 )
+from lifeos_cli.cli_support.time_args import parse_date_value
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -43,10 +44,10 @@ def build_habit_action_parser(
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
-                "lifeos habit-action list --action-date 2026-04-09",
+                "lifeos habit-action list --date 2026-04-09",
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
-                "--action-date 2026-04-09 --status done",
+                "--date 2026-04-09 --status done",
             ),
             notes=(
                 _("Use `list` for both per-habit and by-date views."),
@@ -68,19 +69,21 @@ def build_habit_action_parser(
         help_content=HelpContent(
             summary=_("List habit actions"),
             description=(
-                _("List habit actions for one habit or by date/window filters.")
+                _("List habit actions for one habit or by date filters.")
                 + "\n\n"
                 + _("Use this command to inspect daily occurrence views and materialized records.")
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
-                "lifeos habit-action list --action-date 2026-04-09",
-                "lifeos habit-action list --center-date 2026-04-09 --days-before 3 --days-after 3",
-                "lifeos habit-action list --action-date 2026-04-09 --count",
+                "lifeos habit-action list --date 2026-04-09",
+                "lifeos habit-action list --date 2026-04-09 --date 2026-04-15",
+                "lifeos habit-action list --date 2026-04-09 --count",
             ),
             notes=(
-                _("Use `--action-date` for one exact day."),
-                _("Use `--center-date` with a window when browsing nearby days."),
+                _(
+                    "Repeat `--date` once for one action date or twice for one inclusive date "
+                    "range."
+                ),
                 _(
                     "When results exist, the list command prints a header row followed by "
                     "tab-separated columns: {columns}."
@@ -90,18 +93,13 @@ def build_habit_action_parser(
     )
     list_parser.add_argument("--habit-id", type=UUID, help=_("Filter by habit identifier"))
     list_parser.add_argument("--status", help=_("Filter by habit-action status"))
-    list_parser.add_argument(
-        "--action-date",
-        type=date.fromisoformat,
-        help=_("Filter by one exact action date in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "Repeat once for one action date or twice for one inclusive date range in "
+            "YYYY-MM-DD format"
+        ),
     )
-    list_parser.add_argument(
-        "--center-date",
-        type=date.fromisoformat,
-        help=_("Reference date for a windowed action query in YYYY-MM-DD format"),
-    )
-    list_parser.add_argument("--days-before", type=int, help=_("Days before the center date"))
-    list_parser.add_argument("--days-after", type=int, help=_("Days after the center date"))
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
@@ -163,18 +161,19 @@ def build_habit_action_parser(
             ),
             examples=(
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
-                "--action-date 2026-04-09 --status done",
+                "--date 2026-04-09 --status done",
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
-                '--action-date 2026-04-09 --status skip --notes "Travel day"',
+                '--date 2026-04-09 --status skip --notes "Travel day"',
             ),
             notes=(_("This command follows the same editable-window rules as `update`."),),
         ),
     )
     log_parser.add_argument("--habit-id", required=True, type=UUID, help=_("Habit identifier"))
     log_parser.add_argument(
-        "--action-date",
+        "--date",
+        dest="action_date",
         required=True,
-        type=date.fromisoformat,
+        type=parse_date_value,
         help=_("Action date in YYYY-MM-DD format"),
     )
     log_parser.add_argument("--status", help=_("Updated habit-action status"))

@@ -1412,8 +1412,8 @@ msgid "List habit actions"
 msgstr "列出 `habit-action`"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:69
-msgid "List habit actions for one habit or by date/window filters."
-msgstr "按单个 `habit` 或按日期/窗口过滤条件列出 `habit-action`。"
+msgid "List habit actions for one habit or by date filters."
+msgstr "按单个 `habit` 或按日期过滤条件列出 `habit-action`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:71
 msgid ""
@@ -1422,12 +1422,10 @@ msgid ""
 msgstr "使用此命令查看每日 occurrence 视图和已物化记录。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:80
-msgid "Use `--action-date` for one exact day."
-msgstr "用 `--action-date` 指定某个确切日期。"
-
-#: src/lifeos_cli/cli_support/resources/habit_action/parser.py:81
-msgid "Use `--center-date` with a window when browsing nearby days."
-msgstr "浏览附近日期时，结合窗口参数使用 `--center-date`。"
+msgid ""
+"Repeat `--date` once for one action date or twice for one inclusive date "
+"range."
+msgstr "将 `--date` 传一次表示单个 action 日期，传两次表示一个全包含日期区间。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:85
 msgid "Filter by habit identifier"
@@ -1438,16 +1436,10 @@ msgid "Filter by habit-action status"
 msgstr "按 `habit-action` 状态过滤"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:90
-msgid "Filter by one exact action date in YYYY-MM-DD format"
-msgstr "按 YYYY-MM-DD 格式的一个确切操作日期进行过滤"
-
-#: src/lifeos_cli/cli_support/resources/habit_action/parser.py:95
-msgid "Reference date for a windowed action query in YYYY-MM-DD format"
-msgstr "YYYY-MM-DD 格式的窗口操作查询的参考日期"
-
-#: src/lifeos_cli/cli_support/resources/habit_action/parser.py:97
-msgid "Days before the center date"
-msgstr "中心日期前几天"
+msgid ""
+"Repeat once for one action date or twice for one inclusive date range in "
+"YYYY-MM-DD format"
+msgstr "传一次表示单个 action 日期，传两次表示一个全包含日期区间，格式为 YYYY-MM-DD"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:98
 msgid "Days after the center date"

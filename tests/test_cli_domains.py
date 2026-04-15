@@ -7,6 +7,7 @@ from uuid import UUID
 import pytest
 
 from lifeos_cli import cli
+from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import (
@@ -65,6 +66,9 @@ def test_main_summary_list_commands_print_headers(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+
     async def fake_list_areas(session: object, **kwargs: object) -> list[object]:
         return [
             make_record(
@@ -165,6 +169,7 @@ def test_main_summary_list_commands_print_headers(
             "2026-04-10T13:00:00+00:00\t2026-04-10T14:00:00+00:00\t-\tShip release"
         ),
     ]
+    clear_config_cache()
 
 
 def test_main_event_add_creates_event(
@@ -365,6 +370,9 @@ def test_main_timelog_list_passes_search_filters(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+
     async def fake_list_timelogs(session: object, **kwargs: object) -> list[object]:
         assert kwargs["query"] == "deep work"
         assert kwargs["notes_contains"] == "focused"
@@ -421,6 +429,26 @@ def test_main_timelog_list_passes_search_filters(
         ),
         "Total timelogs: 1",
     ]
+    clear_config_cache()
+
+
+def test_main_timelog_list_passes_inclusive_date_range(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_timelogs(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["start_date"] == date(2026, 4, 10)
+        assert kwargs["end_date"] == date(2026, 4, 11)
+        return []
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "list_timelogs", fake_list_timelogs)
+
+    exit_code = cli.main(["timelog", "list", "--date", "2026-04-10", "--date", "2026-04-11"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.strip() == "No timelogs found."
 
 
 def test_main_timelog_batch_update_passes_relation_and_title_updates(
@@ -1541,7 +1569,8 @@ def test_main_habit_action_list_prints_count(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_list_habit_actions(session: object, **kwargs: object) -> list[object]:
-        assert kwargs["action_date"] == date(2026, 4, 9)
+        assert kwargs["start_date"] == date(2026, 4, 9)
+        assert kwargs["end_date"] == date(2026, 4, 9)
         return [
             make_record(
                 id=UUID("88888888-8888-8888-8888-888888888888"),
@@ -1554,14 +1583,15 @@ def test_main_habit_action_list_prints_count(
         ]
 
     async def fake_count_habit_actions(session: object, **kwargs: object) -> int:
-        assert kwargs["action_date"] == date(2026, 4, 9)
+        assert kwargs["start_date"] == date(2026, 4, 9)
+        assert kwargs["end_date"] == date(2026, 4, 9)
         return 1
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(habit_actions, "list_habit_actions", fake_list_habit_actions)
     monkeypatch.setattr(habit_actions, "count_habit_actions", fake_count_habit_actions)
 
-    exit_code = cli.main(["habit-action", "list", "--action-date", "2026-04-09", "--count"])
+    exit_code = cli.main(["habit-action", "list", "--date", "2026-04-09", "--count"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1600,7 +1630,7 @@ def test_main_habit_action_log_updates_by_habit_and_date(
             "log",
             "--habit-id",
             "77777777-7777-7777-7777-777777777777",
-            "--action-date",
+            "--date",
             "2026-04-09",
             "--status",
             "done",
@@ -1612,6 +1642,25 @@ def test_main_habit_action_log_updates_by_habit_and_date(
 
     assert exit_code == 0
     assert "Updated habit action 88888888-8888-8888-8888-888888888888" in captured.out
+
+
+def test_main_habit_action_list_passes_inclusive_date_range(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_habit_actions(session: object, **kwargs: object) -> list[object]:
+        assert kwargs["start_date"] == date(2026, 4, 9)
+        assert kwargs["end_date"] == date(2026, 4, 11)
+        return []
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(habit_actions, "list_habit_actions", fake_list_habit_actions)
+
+    exit_code = cli.main(["habit-action", "list", "--date", "2026-04-09", "--date", "2026-04-11"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.strip() == "No habit actions found."
 
 
 def test_main_habit_action_update_can_clear_notes(

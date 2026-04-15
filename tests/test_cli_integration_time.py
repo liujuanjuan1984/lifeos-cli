@@ -195,9 +195,9 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
         integration_context,
         "timelog",
         "list",
-        "--window-start",
+        "--start-time",
         "2026-04-10T00:00:00-04:00",
-        "--window-end",
+        "--end-time",
         "2026-04-10T23:59:59-04:00",
     )
     assert_ok(timelog_list_result)
@@ -297,9 +297,9 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
         "timelog",
         "list",
         "--include-deleted",
-        "--window-start",
+        "--start-time",
         "2026-04-10T00:00:00-04:00",
-        "--window-end",
+        "--end-time",
         "2026-04-10T23:59:59-04:00",
     )
     assert_ok(deleted_timelog_result)

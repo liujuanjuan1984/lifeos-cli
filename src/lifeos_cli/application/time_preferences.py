@@ -58,6 +58,16 @@ def get_utc_window_for_local_date(target_date: date) -> tuple[datetime, datetime
     )
 
 
+def get_utc_window_for_local_date_range(
+    start_date: date,
+    end_date: date,
+) -> tuple[datetime, datetime]:
+    """Return the inclusive UTC datetime window for a local-date range."""
+    range_start, _ = get_utc_window_for_local_date(start_date)
+    _, range_end_exclusive = get_utc_window_for_local_date(end_date)
+    return range_start, range_end_exclusive - timedelta(microseconds=1)
+
+
 def get_week_bounds(reference_date: date) -> tuple[date, date]:
     """Return the configured week start and end dates for one local date."""
     week_starts_on = get_preferences_settings().week_starts_on

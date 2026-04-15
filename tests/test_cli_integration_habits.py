@@ -177,7 +177,7 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
         integration_context,
         "habit-action",
         "list",
-        "--action-date",
+        "--date",
         "2026-04-09",
     )
     assert_ok(action_date_result)

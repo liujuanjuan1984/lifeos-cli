@@ -113,9 +113,9 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
         integration_context,
         "schedule",
         "list",
-        "--start-date",
+        "--date",
         "2026-04-10",
-        "--end-date",
+        "--date",
         "2026-04-11",
     )
     assert_ok(schedule_list_result)

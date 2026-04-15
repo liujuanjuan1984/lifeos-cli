@@ -90,6 +90,17 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
             return utc_datetime(2026, 4, 10, 0, 0), utc_datetime(2026, 4, 11, 0, 0)
         return utc_datetime(2026, 4, 11, 0, 0), utc_datetime(2026, 4, 12, 0, 0)
 
+    def fake_get_utc_window_for_local_date_range(
+        start_date: date,
+        end_date: date,
+    ) -> tuple[object, object]:
+        assert start_date == date(2026, 4, 10)
+        assert end_date == date(2026, 4, 11)
+        return (
+            utc_datetime(2026, 4, 10, 0, 0),
+            utc_datetime(2026, 4, 11, 23, 59, 59).replace(microsecond=999999),
+        )
+
     monkeypatch.setattr(schedule_queries, "_load_schedule_tasks", fake_load_tasks)
     monkeypatch.setattr(schedule_queries, "_load_schedule_habit_actions", fake_load_habit_actions)
     monkeypatch.setattr(schedule_queries, "_load_schedule_events", fake_load_events)
@@ -97,6 +108,16 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
         schedule_queries,
         "get_utc_window_for_local_date",
         fake_get_utc_window_for_local_date,
+    )
+    monkeypatch.setattr(
+        schedule_queries,
+        "get_utc_window_for_local_date_range",
+        fake_get_utc_window_for_local_date_range,
+    )
+    monkeypatch.setattr(
+        schedule_queries,
+        "get_utc_window_for_local_date_range",
+        fake_get_utc_window_for_local_date_range,
     )
 
     days = asyncio.run(
@@ -169,6 +190,17 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
             return utc_datetime(2026, 4, 10, 0, 0), utc_datetime(2026, 4, 11, 0, 0)
         return utc_datetime(2026, 4, 11, 0, 0), utc_datetime(2026, 4, 12, 0, 0)
 
+    def fake_get_utc_window_for_local_date_range(
+        start_date: date,
+        end_date: date,
+    ) -> tuple[object, object]:
+        assert start_date == date(2026, 4, 10)
+        assert end_date == date(2026, 4, 11)
+        return (
+            utc_datetime(2026, 4, 10, 0, 0),
+            utc_datetime(2026, 4, 11, 23, 59, 59).replace(microsecond=999999),
+        )
+
     monkeypatch.setattr(schedule_queries, "_load_schedule_tasks", fake_load_tasks)
     monkeypatch.setattr(schedule_queries, "_load_schedule_habit_actions", fake_load_habit_actions)
     monkeypatch.setattr(schedule_queries, "list_event_occurrences", fake_list_event_occurrences)
@@ -176,6 +208,11 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
         schedule_queries,
         "get_utc_window_for_local_date",
         fake_get_utc_window_for_local_date,
+    )
+    monkeypatch.setattr(
+        schedule_queries,
+        "get_utc_window_for_local_date_range",
+        fake_get_utc_window_for_local_date_range,
     )
 
     days = asyncio.run(

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
+from lifeos_cli.cli_support.time_args import parse_date_value
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -57,4 +58,20 @@ def add_identifier_list_argument(
         nargs="+",
         required=True,
         help=_("{noun} identifiers to delete").format(noun=noun.capitalize()),
+    )
+
+
+def add_date_range_arguments(
+    parser: argparse.ArgumentParser,
+    *,
+    date_help: str,
+) -> None:
+    """Add a shared repeated-date argument for inclusive local-date intervals."""
+    parser.add_argument(
+        "--date",
+        dest="date_values",
+        action="append",
+        default=None,
+        type=parse_date_value,
+        help=date_help,
     )

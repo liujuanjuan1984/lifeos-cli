@@ -9,7 +9,10 @@ from uuid import UUID
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.application.time_preferences import (
+    get_utc_window_for_local_date,
+    get_utc_window_for_local_date_range,
+)
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
 from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
@@ -126,9 +129,10 @@ async def _load_schedule_events(
     start_date: date,
     end_date: date,
 ) -> list[EventOccurrence]:
-    range_window_start, _ = get_utc_window_for_local_date(start_date)
-    _, range_window_end_exclusive = get_utc_window_for_local_date(end_date)
-    range_window_end = range_window_end_exclusive - timedelta(microseconds=1)
+    range_window_start, range_window_end = get_utc_window_for_local_date_range(
+        start_date,
+        end_date,
+    )
     return await list_event_occurrences(
         session,
         window_start=range_window_start,

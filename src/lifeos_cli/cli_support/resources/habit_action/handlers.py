@@ -7,6 +7,7 @@ import sys
 
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
 from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
@@ -45,16 +46,21 @@ def _format_habit_action_detail(action: HabitAction) -> str:
 
 
 async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
+    try:
+        start_date, end_date = resolve_date_interval_arguments(
+            date_values=args.date_values,
+        )
+    except DateArgumentError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     async with db_session.session_scope() as session:
         try:
             actions = await habit_action_services.list_habit_actions(
                 session,
                 habit_id=args.habit_id,
                 status=args.status,
-                action_date=args.action_date,
-                center_date=args.center_date,
-                days_before=args.days_before,
-                days_after=args.days_after,
+                start_date=start_date,
+                end_date=end_date,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -64,10 +70,8 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                     session,
                     habit_id=args.habit_id,
                     status=args.status,
-                    action_date=args.action_date,
-                    center_date=args.center_date,
-                    days_before=args.days_before,
-                    days_after=args.days_after,
+                    start_date=start_date,
+                    end_date=end_date,
                     include_deleted=args.include_deleted,
                 )
                 if args.count

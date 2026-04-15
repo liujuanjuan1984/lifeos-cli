@@ -55,16 +55,19 @@ def test_main_timelog_stats_range_rejects_inverted_dates(
             "timelog",
             "stats",
             "range",
-            "--start-date",
+            "--date",
             "2026-04-11",
-            "--end-date",
+            "--date",
             "2026-04-10",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert "--end-date must be on or after --start-date." in captured.err
+    assert (
+        "When --date is repeated, the second date must be on or after the first date."
+        in captured.err
+    )
 
 
 def test_main_timelog_stats_rebuild_reports_selected_scope(
@@ -84,9 +87,9 @@ def test_main_timelog_stats_rebuild_reports_selected_scope(
             "timelog",
             "stats",
             "rebuild",
-            "--start-date",
+            "--date",
             "2026-04-01",
-            "--end-date",
+            "--date",
             "2026-04-03",
         ]
     )

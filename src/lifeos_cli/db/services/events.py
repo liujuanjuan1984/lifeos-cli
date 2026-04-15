@@ -11,7 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.application.time_preferences import get_utc_window_for_local_date_range
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
@@ -545,7 +545,8 @@ async def list_events(
     task_id: UUID | None = None,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
-    local_date: date | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
@@ -556,10 +557,8 @@ async def list_events(
     normalized_status = validate_event_status(status) if status is not None else None
     normalized_event_type = validate_event_type(event_type) if event_type is not None else None
 
-    if local_date is not None:
-        local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
-        window_start = local_window_start
-        window_end = local_window_end_exclusive - timedelta(microseconds=1)
+    if start_date is not None and end_date is not None:
+        window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
 
     if window_start is not None and window_end is not None:
         occurrences = await list_event_occurrences(

@@ -9,6 +9,7 @@ from uuid import UUID
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_date_range_arguments,
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
@@ -22,12 +23,18 @@ from lifeos_cli.cli_support.resources.event.handlers import (
     handle_event_show,
     handle_event_update,
 )
+from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
 
 
 def _datetime_value(value: str) -> datetime:
     """Parse an ISO-8601 datetime value."""
     return datetime.fromisoformat(value)
+
+
+def _query_datetime_value(value: str) -> datetime | date:
+    """Parse an ISO datetime or date value for query filters."""
+    return parse_datetime_or_date_value(value)
 
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -48,8 +55,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--start-time 2026-04-10T13:00:00-04:00",
                 'lifeos event add "Monthly review" --start-time 2026-04-30T16:00:00-04:00 '
                 "--recurrence-frequency monthly",
-                "lifeos event list --window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
+                "lifeos event list --start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
             ),
             notes=(
@@ -164,17 +171,21 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             examples=(
                 "lifeos event list",
-                "lifeos event list --status planned --window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos event list --date 2026-04-10",
+                "lifeos event list --date 2026-04-10 --date 2026-04-16",
+                "lifeos event list --status planned --start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos event list --type deadline --date 2026-04-10",
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                _("When both window flags are given, overlapping events are returned."),
                 _(
-                    "Use `--date` to query one configured local day using your timezone and "
-                    "`day_starts_at` preference."
+                    "Repeat `--date` once for one configured local day or twice for one "
+                    "inclusive local-date range."
+                ),
+                _(
+                    "When both `--start-time` and `--end-time` are given, overlapping "
+                    "events are returned."
                 ),
                 _("Recurring series are expanded for bounded window queries and schedule views."),
                 _("Use `--type` to narrow results to one event topology."),
@@ -200,14 +211,25 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
-    list_parser.add_argument(
-        "--date",
-        dest="local_date",
-        type=date.fromisoformat,
-        help=_("Filter one configured local day in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "Repeat once for one configured local day or twice for one inclusive "
+            "local-date range in YYYY-MM-DD format"
+        ),
     )
-    list_parser.add_argument("--window-start", type=_datetime_value, help=_("Window start time"))
-    list_parser.add_argument("--window-end", type=_datetime_value, help=_("Window end time"))
+    list_parser.add_argument(
+        "--start-time",
+        dest="window_start",
+        type=_query_datetime_value,
+        help=_("Inclusive time filter start; date-only values use the configured timezone"),
+    )
+    list_parser.add_argument(
+        "--end-time",
+        dest="window_end",
+        type=_query_datetime_value,
+        help=_("Inclusive time filter end; date-only values use the configured timezone"),
+    )
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=handle_event_list)

@@ -7,6 +7,7 @@ from datetime import date
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
+from lifeos_cli.cli_support.parser_common import add_date_range_arguments
 from lifeos_cli.cli_support.resources.schedule.handlers import (
     SCHEDULE_EVENT_COLUMNS,
     SCHEDULE_HABIT_ACTION_COLUMNS,
@@ -52,11 +53,11 @@ def build_schedule_parser(
             ),
             examples=(
                 "lifeos schedule show --date 2026-04-10",
-                "lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16",
+                "lifeos schedule list --date 2026-04-10 --date 2026-04-16",
             ),
             notes=(
                 _("Use `show` for one exact local day."),
-                _("Use `list` for multi-day ranges."),
+                _("Use `list` for inclusive multi-day ranges."),
                 _("Dates use the configured timezone and `day_starts_at` preference."),
                 _("Event output is segmented into appointment, timeblock, and deadline sections."),
                 _("Schedule reads from existing domains and does not create a new stored entity."),
@@ -108,25 +109,23 @@ def build_schedule_parser(
         help_content=HelpContent(
             summary=_("List a schedule range"),
             description=_("Show the aggregated schedule for a local-date range."),
-            examples=("lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16",),
+            examples=("lifeos schedule list --date 2026-04-10 --date 2026-04-16",),
             notes=(
-                _("The range is inclusive on both start and end dates."),
+                _(
+                    "Repeat `--date` once for one local date or twice for one inclusive "
+                    "local-date range."
+                ),
                 _("Recurring event occurrences are expanded inside the requested range."),
                 _("Event occurrences remain segmented by type inside each day block."),
                 *_build_schedule_section_header_notes(),
             ),
         ),
     )
-    list_parser.add_argument(
-        "--start-date",
-        required=True,
-        type=date.fromisoformat,
-        help=_("Range start date in YYYY-MM-DD format"),
-    )
-    list_parser.add_argument(
-        "--end-date",
-        required=True,
-        type=date.fromisoformat,
-        help=_("Range end date in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "Repeat once for one local date or twice for one inclusive local-date range "
+            "in YYYY-MM-DD format"
+        ),
     )
     list_parser.set_defaults(handler=handle_schedule_list)

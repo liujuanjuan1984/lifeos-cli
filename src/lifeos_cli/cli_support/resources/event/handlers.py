@@ -11,6 +11,11 @@ from lifeos_cli.cli_support.output_utils import (
     print_summary_rows,
 )
 from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import (
+    DateArgumentError,
+    normalize_query_datetime_bound,
+    resolve_date_interval_arguments,
+)
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import events as event_services
 
@@ -107,11 +112,20 @@ def handle_event_add(args: argparse.Namespace) -> int:
 
 
 async def handle_event_list_async(args: argparse.Namespace) -> int:
-    if args.local_date is not None and (
-        args.window_start is not None or args.window_end is not None
+    try:
+        start_date, end_date = resolve_date_interval_arguments(
+            date_values=args.date_values,
+        )
+    except DateArgumentError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    window_start = normalize_query_datetime_bound(args.window_start, is_end=False)
+    window_end = normalize_query_datetime_bound(args.window_end, is_end=True)
+    if (start_date is not None or end_date is not None) and (
+        window_start is not None or window_end is not None
     ):
         print(
-            "Use either --date or --window-start/--window-end, not both.",
+            "Use either --date or --start-time/--end-time, not both.",
             file=sys.stderr,
         )
         return 1
@@ -126,9 +140,10 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
-                local_date=args.local_date,
-                window_start=args.window_start,
-                window_end=args.window_end,
+                start_date=start_date,
+                end_date=end_date,
+                window_start=window_start,
+                window_end=window_end,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
