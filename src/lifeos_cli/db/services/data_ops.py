@@ -1142,10 +1142,10 @@ async def _recompute_task_effort_and_timelog_stats(session: AsyncSession) -> Non
     for task_id in reversed(task_ids):
         await task_effort.recompute_totals_upwards(session, task_id)
 
-    timelog_range = await timelog_stats._load_rebuildable_date_range(session)
+    timelog_range = await timelog_stats.load_rebuildable_timelog_date_range(session)
     if timelog_range is None:
         return
-    local_dates = timelog_stats._iter_dates(*timelog_range)
+    local_dates = timelog_stats.iter_date_range(*timelog_range)
     await timelog_stats.recompute_daily_timelog_stats_groupby_area_for_dates(
         session,
         local_dates=local_dates,

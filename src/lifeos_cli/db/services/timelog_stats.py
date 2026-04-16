@@ -54,7 +54,8 @@ class TimelogStatsReport:
     rows: tuple[TimelogAreaStatsRow, ...]
 
 
-def _iter_dates(start_date: date, end_date: date) -> tuple[date, ...]:
+def iter_date_range(start_date: date, end_date: date) -> tuple[date, ...]:
+    """Return the inclusive local date range between two dates."""
     if end_date < start_date:
         raise TimelogStatsValidationError("end_date must be on or after start_date.")
     cursor = start_date
@@ -85,7 +86,7 @@ def iter_local_dates_for_timelog_window(
     if end_time <= start_time:
         return ()
     final_moment = end_time - timedelta(microseconds=1)
-    return _iter_dates(get_operational_date(start_time), get_operational_date(final_moment))
+    return iter_date_range(get_operational_date(start_time), get_operational_date(final_moment))
 
 
 def overlap_minutes_for_window(
@@ -120,7 +121,7 @@ def resolve_stats_period(
     if granularity == "range":
         if start_date is None or end_date is None:
             raise TimelogStatsValidationError("`range` stats require `start_date` and `end_date`.")
-        return _iter_dates(start_date, end_date)[0], end_date
+        return iter_date_range(start_date, end_date)[0], end_date
     if granularity == "week":
         if target_date is None:
             raise TimelogStatsValidationError("`week` stats require `target_date`.")
@@ -523,7 +524,10 @@ async def get_timelog_stats_groupby_area_for_period(
     )
 
 
-async def _load_rebuildable_date_range(session: AsyncSession) -> tuple[date, date] | None:
+async def load_rebuildable_timelog_date_range(
+    session: AsyncSession,
+) -> tuple[date, date] | None:
+    """Return the local date range that covers persisted area-based timelogs."""
     stmt = select(func.min(Timelog.start_time), func.max(Timelog.end_time)).where(
         Timelog.deleted_at.is_(None),
         Timelog.area_id.is_not(None),
@@ -547,14 +551,14 @@ async def rebuild_timelog_stats_groupby_area(
     if rebuild_all:
         if start_date is not None or end_date is not None:
             raise TimelogStatsValidationError("Use `--all` by itself, without `--date`.")
-        date_range = await _load_rebuildable_date_range(session)
+        date_range = await load_rebuildable_timelog_date_range(session)
         if date_range is None:
             return ()
-        local_dates = _iter_dates(*date_range)
+        local_dates = iter_date_range(*date_range)
     elif start_date is not None or end_date is not None:
         if start_date is None or end_date is None:
             raise TimelogStatsValidationError("Provide `--date` once or twice, or use `--all`.")
-        local_dates = _iter_dates(start_date, end_date)
+        local_dates = iter_date_range(start_date, end_date)
     else:
         raise TimelogStatsValidationError("Select one rebuild scope with `--date` or `--all`.")
 

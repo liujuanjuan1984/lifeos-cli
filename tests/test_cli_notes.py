@@ -472,8 +472,8 @@ def test_main_note_add_prints_actionable_authentication_guidance(
         "\n".join(
             (
                 "[database]",
-                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"',
-                'schema = "lifeos"',
+                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos_test"',
+                'schema = "lifeos_test"',
                 "echo = false",
                 "",
             )

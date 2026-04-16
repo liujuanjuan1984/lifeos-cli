@@ -23,7 +23,7 @@ def test_refresh_runtime_configuration_updates_note_model_schema(
         "\n".join(
             (
                 "[database]",
-                'url = "postgresql+psycopg://localhost:5432/lifeos"',
+                'url = "postgresql+psycopg://localhost:5432/lifeos_test"',
                 'schema = "lifeos_test_runtime"',
                 "echo = false",
                 "",
