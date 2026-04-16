@@ -12,7 +12,11 @@ from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
-from lifeos_cli.db.services.model_utils import load_model_by_id
+from lifeos_cli.db.services.model_utils import (
+    load_model_by_id,
+    load_view_by_id,
+    soft_delete_model_by_id,
+)
 from lifeos_cli.db.services.read_models import TagView, build_tag_view
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
@@ -115,15 +119,13 @@ async def get_tag(
     include_deleted: bool = False,
 ) -> TagView | None:
     """Load a tag by identifier."""
-    tag = await load_model_by_id(
+    return await load_view_by_id(
         session,
         model_cls=Tag,
         model_id=tag_id,
         include_deleted=include_deleted,
+        view_builder=_build_tag_view,
     )
-    if tag is None:
-        return None
-    return await _build_tag_view(session, tag)
 
 
 async def list_tags(
@@ -220,16 +222,14 @@ async def update_tag(
 
 async def delete_tag(session: AsyncSession, *, tag_id: UUID) -> None:
     """Soft-delete a tag."""
-    tag = await load_model_by_id(
+    await soft_delete_model_by_id(
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=False,
+        not_found_error_factory=lambda missing_id: TagNotFoundError(
+            f"Tag {missing_id} was not found"
+        ),
     )
-    if tag is None:
-        raise TagNotFoundError(f"Tag {tag_id} was not found")
-    tag.soft_delete()
-    await session.flush()
 
 
 async def batch_delete_tags(

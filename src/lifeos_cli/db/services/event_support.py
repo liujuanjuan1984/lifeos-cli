@@ -6,12 +6,12 @@ from datetime import datetime, timezone
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.services.model_utils import ensure_optional_reference_exists
 from lifeos_cli.db.services.recurrence_core import (
     RecurrenceValidationError,
     SeriesDefinition,
@@ -239,17 +239,23 @@ def get_event_occurrence_starts_in_range(
 
 async def ensure_event_area_exists(session: AsyncSession, area_id: UUID | None) -> None:
     """Ensure an optional event area reference exists."""
-    if area_id is None:
-        return
-    stmt = select(Area.id).where(Area.id == area_id, Area.deleted_at.is_(None)).limit(1)
-    if (await session.scalar(stmt)) is None:
-        raise EventAreaReferenceNotFoundError(f"Area {area_id} was not found")
+    await ensure_optional_reference_exists(
+        session,
+        model_cls=Area,
+        model_id=area_id,
+        not_found_error_factory=lambda missing_id: EventAreaReferenceNotFoundError(
+            f"Area {missing_id} was not found"
+        ),
+    )
 
 
 async def ensure_event_task_exists(session: AsyncSession, task_id: UUID | None) -> None:
     """Ensure an optional event task reference exists."""
-    if task_id is None:
-        return
-    stmt = select(Task.id).where(Task.id == task_id, Task.deleted_at.is_(None)).limit(1)
-    if (await session.scalar(stmt)) is None:
-        raise EventTaskReferenceNotFoundError(f"Task {task_id} was not found")
+    await ensure_optional_reference_exists(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        not_found_error_factory=lambda missing_id: EventTaskReferenceNotFoundError(
+            f"Task {missing_id} was not found"
+        ),
+    )

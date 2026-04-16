@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.services.model_utils import ensure_optional_reference_exists
 
 VALID_TIMELOG_TRACKING_METHODS = {"manual", "automatic", "imported"}
 
@@ -77,17 +77,23 @@ def validate_energy_level(energy_level: int | None) -> int | None:
 
 async def ensure_timelog_area_exists(session: AsyncSession, area_id: UUID | None) -> None:
     """Ensure an optional timelog area reference exists."""
-    if area_id is None:
-        return
-    stmt = select(Area.id).where(Area.id == area_id, Area.deleted_at.is_(None)).limit(1)
-    if (await session.scalar(stmt)) is None:
-        raise TimelogAreaReferenceNotFoundError(f"Area {area_id} was not found")
+    await ensure_optional_reference_exists(
+        session,
+        model_cls=Area,
+        model_id=area_id,
+        not_found_error_factory=lambda missing_id: TimelogAreaReferenceNotFoundError(
+            f"Area {missing_id} was not found"
+        ),
+    )
 
 
 async def ensure_timelog_task_exists(session: AsyncSession, task_id: UUID | None) -> None:
     """Ensure an optional timelog task reference exists."""
-    if task_id is None:
-        return
-    stmt = select(Task.id).where(Task.id == task_id, Task.deleted_at.is_(None)).limit(1)
-    if (await session.scalar(stmt)) is None:
-        raise TimelogTaskReferenceNotFoundError(f"Task {task_id} was not found")
+    await ensure_optional_reference_exists(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        not_found_error_factory=lambda missing_id: TimelogTaskReferenceNotFoundError(
+            f"Task {missing_id} was not found"
+        ),
+    )

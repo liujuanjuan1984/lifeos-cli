@@ -21,7 +21,11 @@ from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
-from lifeos_cli.db.services.model_utils import load_model_by_id
+from lifeos_cli.db.services.model_utils import (
+    load_model_by_id,
+    load_view_by_id,
+    soft_delete_model_by_id,
+)
 from lifeos_cli.db.services.read_models import VisionView, build_vision_view
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
@@ -191,15 +195,13 @@ async def get_vision(
     include_deleted: bool = False,
 ) -> VisionView | None:
     """Load a vision by identifier."""
-    vision = await load_model_by_id(
+    return await load_view_by_id(
         session,
         model_cls=Vision,
         model_id=vision_id,
         include_deleted=include_deleted,
+        view_builder=_build_vision_view,
     )
-    if vision is None:
-        return None
-    return await _build_vision_view(session, vision)
 
 
 async def list_visions(
@@ -301,16 +303,14 @@ async def delete_vision(
     vision_id: UUID,
 ) -> None:
     """Soft-delete a vision."""
-    vision = await load_model_by_id(
+    await soft_delete_model_by_id(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
+        not_found_error_factory=lambda missing_id: VisionNotFoundError(
+            f"Vision {missing_id} was not found"
+        ),
     )
-    if vision is None:
-        raise VisionNotFoundError(f"Vision {vision_id} was not found")
-    vision.soft_delete()
-    await session.flush()
 
 
 async def add_experience_to_vision(

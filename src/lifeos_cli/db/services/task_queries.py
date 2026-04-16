@@ -13,7 +13,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
-from lifeos_cli.db.services.model_utils import load_model_by_id
+from lifeos_cli.db.services.model_utils import load_view_by_id
 from lifeos_cli.db.services.read_models import (
     PersonSummaryView,
     TaskView,
@@ -177,15 +177,13 @@ async def get_task(
     include_deleted: bool = False,
 ) -> TaskView | None:
     """Load a task by identifier."""
-    task = await load_model_by_id(
+    return await load_view_by_id(
         session,
         model_cls=Task,
         model_id=task_id,
         include_deleted=include_deleted,
+        view_builder=_build_task_view,
     )
-    if task is None:
-        return None
-    return await _build_task_view(session, task)
 
 
 async def list_tasks(

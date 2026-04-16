@@ -13,7 +13,11 @@ from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
-from lifeos_cli.db.services.model_utils import load_model_by_id
+from lifeos_cli.db.services.model_utils import (
+    load_model_by_id,
+    load_view_by_id,
+    soft_delete_model_by_id,
+)
 from lifeos_cli.db.services.read_models import PersonView, build_person_view
 
 
@@ -92,15 +96,13 @@ async def get_person(
     include_deleted: bool = False,
 ) -> PersonView | None:
     """Load a person by identifier."""
-    person = await load_model_by_id(
+    return await load_view_by_id(
         session,
         model_cls=Person,
         model_id=person_id,
         include_deleted=include_deleted,
+        view_builder=_build_person_view,
     )
-    if person is None:
-        return None
-    return await _build_person_view(session, person)
 
 
 async def list_people(
@@ -214,16 +216,14 @@ async def delete_person(
     person_id: UUID,
 ) -> None:
     """Soft-delete a person."""
-    person = await load_model_by_id(
+    await soft_delete_model_by_id(
         session,
         model_cls=Person,
         model_id=person_id,
-        include_deleted=False,
+        not_found_error_factory=lambda missing_id: PersonNotFoundError(
+            f"Person {missing_id} was not found"
+        ),
     )
-    if person is None:
-        raise PersonNotFoundError(f"Person {person_id} was not found")
-    person.soft_delete()
-    await session.flush()
 
 
 async def batch_delete_people(
