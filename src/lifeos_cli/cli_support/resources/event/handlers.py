@@ -10,7 +10,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
     resolve_exclusive_date_or_datetime_query,
@@ -106,8 +106,7 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_event_add(args: argparse.Namespace) -> int:
-    return run_async(handle_event_add_async(args))
+handle_event_add = make_sync_handler(handle_event_add_async)
 
 
 async def handle_event_list_async(args: argparse.Namespace) -> int:
@@ -150,8 +149,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_event_list(args: argparse.Namespace) -> int:
-    return run_async(handle_event_list_async(args))
+handle_event_list = make_sync_handler(handle_event_list_async)
 
 
 async def handle_event_show_async(args: argparse.Namespace) -> int:
@@ -168,8 +166,7 @@ async def handle_event_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_event_show(args: argparse.Namespace) -> int:
-    return run_async(handle_event_show_async(args))
+handle_event_show = make_sync_handler(handle_event_show_async)
 
 
 async def handle_event_update_async(args: argparse.Namespace) -> int:
@@ -246,8 +243,7 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_event_update(args: argparse.Namespace) -> int:
-    return run_async(handle_event_update_async(args))
+handle_event_update = make_sync_handler(handle_event_update_async)
 
 
 async def handle_event_delete_async(args: argparse.Namespace) -> int:
@@ -267,8 +263,7 @@ async def handle_event_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_event_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_event_delete_async(args))
+handle_event_delete = make_sync_handler(handle_event_delete_async)
 
 
 async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
@@ -285,5 +280,4 @@ async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_event_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_event_batch_delete_async(args))
+handle_event_batch_delete = make_sync_handler(handle_event_batch_delete_async)

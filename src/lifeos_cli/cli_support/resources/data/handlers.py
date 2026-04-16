@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import data_ops
 
@@ -196,8 +196,7 @@ async def handle_data_export_async(args: argparse.Namespace) -> int:
         return 1
 
 
-def handle_data_export(args: argparse.Namespace) -> int:
-    return run_async(handle_data_export_async(args))
+handle_data_export = make_sync_handler(handle_data_export_async)
 
 
 async def _import_rows(
@@ -307,8 +306,7 @@ async def handle_data_import_async(args: argparse.Namespace) -> int:
         return 1
 
 
-def handle_data_import(args: argparse.Namespace) -> int:
-    return run_async(handle_data_import_async(args))
+handle_data_import = make_sync_handler(handle_data_import_async)
 
 
 async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
@@ -339,8 +337,7 @@ async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
         return 1
 
 
-def handle_data_batch_update(args: argparse.Namespace) -> int:
-    return run_async(handle_data_batch_update_async(args))
+handle_data_batch_update = make_sync_handler(handle_data_batch_update_async)
 
 
 async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
@@ -381,5 +378,4 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
     return 0 if report.failed_count == 0 else 1
 
 
-def handle_data_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_data_batch_delete_async(args))
+handle_data_batch_delete = make_sync_handler(handle_data_batch_delete_async)

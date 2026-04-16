@@ -473,74 +473,19 @@ async def _load_event_occurrence_exceptions(
     return mapping
 
 
-async def _load_note_task_ids(
+async def _load_note_related_ids(
     session: AsyncSession,
     *,
     note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    mapping = await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="task",
-        link_type="relates_to",
-    )
-    return {note_id: linked_task_ids for note_id, linked_task_ids in mapping.items()}
-
-
-async def _load_note_vision_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
+    target_model: str,
+    link_type: str,
 ) -> dict[UUID, list[UUID]]:
     return await get_target_ids_for_sources(
         session,
         source_model="note",
         source_ids=note_ids,
-        target_model="vision",
-        link_type="relates_to",
-    )
-
-
-async def _load_note_event_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="event",
-        link_type="relates_to",
-    )
-
-
-async def _load_note_person_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="person",
-        link_type="is_about",
-    )
-
-
-async def _load_note_timelog_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="timelog",
-        link_type="captured_from",
+        target_model=target_model,
+        link_type=link_type,
     )
 
 
@@ -586,19 +531,54 @@ async def export_resource_snapshot(
         else {}
     )
     note_task_map = (
-        await _load_note_task_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await _load_note_related_ids(
+            session,
+            note_ids=entity_ids,
+            target_model="task",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_vision_map = (
-        await _load_note_vision_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await _load_note_related_ids(
+            session,
+            note_ids=entity_ids,
+            target_model="vision",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_event_map = (
-        await _load_note_event_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await _load_note_related_ids(
+            session,
+            note_ids=entity_ids,
+            target_model="event",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_person_map = (
-        await _load_note_person_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await _load_note_related_ids(
+            session,
+            note_ids=entity_ids,
+            target_model="person",
+            link_type="is_about",
+        )
+        if resource == "note"
+        else {}
     )
     note_timelog_map = (
-        await _load_note_timelog_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await _load_note_related_ids(
+            session,
+            note_ids=entity_ids,
+            target_model="timelog",
+            link_type="captured_from",
+        )
+        if resource == "note"
+        else {}
     )
 
     for payload in payloads:
@@ -736,24 +716,6 @@ async def _sync_snapshot_relations(
             )
 
 
-def _make_import_report(
-    *,
-    resource: str,
-    processed_count: int,
-    created_count: int,
-    updated_count: int,
-    failures: list[DataOperationFailure],
-) -> DataImportReport:
-    return DataImportReport(
-        resource=resource,
-        processed_count=processed_count,
-        created_count=created_count,
-        updated_count=updated_count,
-        failed_count=len(failures),
-        failures=tuple(failures),
-    )
-
-
 async def _import_prepared_base_rows(
     session: AsyncSession,
     *,
@@ -794,12 +756,13 @@ async def import_resource_snapshot(
         prepared_rows=prepared_rows,
     )
     await _sync_prepared_rows_relations(session, prepared_rows=prepared_rows)
-    return _make_import_report(
+    return DataImportReport(
         resource=resource,
         processed_count=len(rows),
         created_count=created_count,
         updated_count=updated_count,
-        failures=[],
+        failed_count=0,
+        failures=(),
     )
 
 

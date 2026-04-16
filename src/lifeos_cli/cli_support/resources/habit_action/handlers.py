@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
@@ -94,8 +94,7 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_action_list(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_action_list_async(args))
+handle_habit_action_list = make_sync_handler(handle_habit_action_list_async)
 
 
 async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
@@ -112,8 +111,7 @@ async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_action_show(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_action_show_async(args))
+handle_habit_action_show = make_sync_handler(handle_habit_action_show_async)
 
 
 async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
@@ -140,8 +138,7 @@ async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_action_update(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_action_update_async(args))
+handle_habit_action_update = make_sync_handler(handle_habit_action_update_async)
 
 
 async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
@@ -173,5 +170,4 @@ async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_action_log(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_action_log_async(args))
+handle_habit_action_log = make_sync_handler(handle_habit_action_log_async)

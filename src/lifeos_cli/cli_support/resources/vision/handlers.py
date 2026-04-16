@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_cli.db.services.read_models import VisionView
@@ -102,8 +102,7 @@ async def handle_vision_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_add(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_add_async(args))
+handle_vision_add = make_sync_handler(handle_vision_add_async)
 
 
 async def handle_vision_list_async(args: argparse.Namespace) -> int:
@@ -130,8 +129,7 @@ async def handle_vision_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_list(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_list_async(args))
+handle_vision_list = make_sync_handler(handle_vision_list_async)
 
 
 async def handle_vision_show_async(args: argparse.Namespace) -> int:
@@ -148,8 +146,7 @@ async def handle_vision_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_show(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_show_async(args))
+handle_vision_show = make_sync_handler(handle_vision_show_async)
 
 
 async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
@@ -166,8 +163,7 @@ async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_with_tasks(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_with_tasks_async(args))
+handle_vision_with_tasks = make_sync_handler(handle_vision_with_tasks_async)
 
 
 async def handle_vision_stats_async(args: argparse.Namespace) -> int:
@@ -184,8 +180,7 @@ async def handle_vision_stats_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_stats(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_stats_async(args))
+handle_vision_stats = make_sync_handler(handle_vision_stats_async)
 
 
 async def handle_vision_update_async(args: argparse.Namespace) -> int:
@@ -235,8 +230,7 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_update(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_update_async(args))
+handle_vision_update = make_sync_handler(handle_vision_update_async)
 
 
 async def handle_vision_delete_async(args: argparse.Namespace) -> int:
@@ -250,8 +244,7 @@ async def handle_vision_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_delete_async(args))
+handle_vision_delete = make_sync_handler(handle_vision_delete_async)
 
 
 async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
@@ -269,8 +262,7 @@ async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_add_experience(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_add_experience_async(args))
+handle_vision_add_experience = make_sync_handler(handle_vision_add_experience_async)
 
 
 async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
@@ -287,8 +279,7 @@ async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_sync_experience(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_sync_experience_async(args))
+handle_vision_sync_experience = make_sync_handler(handle_vision_sync_experience_async)
 
 
 async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
@@ -308,8 +299,7 @@ async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_vision_harvest(args: argparse.Namespace) -> int:
-    return run_async(handle_vision_harvest_async(args))
+handle_vision_harvest = make_sync_handler(handle_vision_harvest_async)
 
 
 async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
@@ -327,6 +317,4 @@ async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_vision_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple visions in one command."""
-    return run_async(handle_vision_batch_delete_async(args))
+handle_vision_batch_delete = make_sync_handler(handle_vision_batch_delete_async)

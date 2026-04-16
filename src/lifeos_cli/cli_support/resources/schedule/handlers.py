@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
     resolve_required_date_interval_arguments,
@@ -98,8 +98,7 @@ async def handle_schedule_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_schedule_show(args: argparse.Namespace) -> int:
-    return run_async(handle_schedule_show_async(args))
+handle_schedule_show = make_sync_handler(handle_schedule_show_async)
 
 
 async def handle_schedule_list_async(args: argparse.Namespace) -> int:
@@ -120,5 +119,4 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_schedule_list(args: argparse.Namespace) -> int:
-    return run_async(handle_schedule_list_async(args))
+handle_schedule_list = make_sync_handler(handle_schedule_list_async)

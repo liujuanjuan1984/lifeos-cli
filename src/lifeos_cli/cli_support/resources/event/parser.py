@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime
+from datetime import datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
@@ -25,16 +25,6 @@ from lifeos_cli.cli_support.resources.event.handlers import (
 )
 from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
-
-
-def _datetime_value(value: str) -> datetime:
-    """Parse an ISO-8601 datetime value."""
-    return datetime.fromisoformat(value)
-
-
-def _query_datetime_value(value: str) -> datetime | date:
-    """Parse an ISO datetime or date value for query filters."""
-    return parse_datetime_or_date_value(value)
 
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -103,9 +93,9 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     add_parser.add_argument("title", help=_("Event title"))
     add_parser.add_argument("--description", help=_("Optional event description"))
     add_parser.add_argument(
-        "--start-time", required=True, type=_datetime_value, help=_("Start time")
+        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
     )
-    add_parser.add_argument("--end-time", type=_datetime_value, help=_("Optional end time"))
+    add_parser.add_argument("--end-time", type=datetime.fromisoformat, help=_("Optional end time"))
     add_parser.add_argument("--priority", type=int, default=0, help=_("Priority from 0 to 5"))
     add_parser.add_argument("--status", default="planned", help=_("Event status"))
     add_parser.add_argument(
@@ -138,7 +128,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     add_parser.add_argument(
         "--recurrence-until",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Optional final allowed occurrence start time"),
     )
     add_parser.add_argument(
@@ -221,13 +211,13 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     list_parser.add_argument(
         "--start-time",
         dest="window_start",
-        type=_query_datetime_value,
+        type=parse_datetime_or_date_value,
         help=_("Inclusive time filter start; date-only values use the configured timezone"),
     )
     list_parser.add_argument(
         "--end-time",
         dest="window_end",
-        type=_query_datetime_value,
+        type=parse_datetime_or_date_value,
         help=_("Inclusive time filter end; date-only values use the configured timezone"),
     )
     add_include_deleted_argument(list_parser, noun="events")
@@ -283,8 +273,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument(
         "--clear-description", action="store_true", help=_("Clear description")
     )
-    update_parser.add_argument("--start-time", type=_datetime_value, help=_("Updated start time"))
-    update_parser.add_argument("--end-time", type=_datetime_value, help=_("Updated end time"))
+    update_parser.add_argument(
+        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+    )
+    update_parser.add_argument(
+        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+    )
     update_parser.add_argument("--clear-end-time", action="store_true", help=_("Clear end time"))
     update_parser.add_argument("--priority", type=int, help=_("Updated priority from 0 to 5"))
     update_parser.add_argument("--status", help=_("Updated event status"))
@@ -315,7 +309,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--recurrence-count", type=int, help=_("Updated recurrence count"))
     update_parser.add_argument(
         "--recurrence-until",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Updated recurrence until datetime"),
     )
     update_parser.add_argument(
@@ -330,7 +324,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     update_parser.add_argument(
         "--instance-start",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Instance start time for single or all_future recurring updates"),
     )
     update_parser.add_argument(
@@ -380,7 +374,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     delete_parser.add_argument(
         "--instance-start",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Instance start time for single or all_future recurring deletes"),
     )
     delete_parser.set_defaults(handler=handle_event_delete)

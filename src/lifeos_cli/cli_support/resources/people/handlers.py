@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import people as people_services
 from lifeos_cli.db.services.read_models import PersonView
@@ -70,8 +70,7 @@ async def handle_people_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_people_add(args: argparse.Namespace) -> int:
-    return run_async(handle_people_add_async(args))
+handle_people_add = make_sync_handler(handle_people_add_async)
 
 
 async def handle_people_list_async(args: argparse.Namespace) -> int:
@@ -93,8 +92,7 @@ async def handle_people_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_people_list(args: argparse.Namespace) -> int:
-    return run_async(handle_people_list_async(args))
+handle_people_list = make_sync_handler(handle_people_list_async)
 
 
 async def handle_people_show_async(args: argparse.Namespace) -> int:
@@ -111,8 +109,7 @@ async def handle_people_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_people_show(args: argparse.Namespace) -> int:
-    return run_async(handle_people_show_async(args))
+handle_people_show = make_sync_handler(handle_people_show_async)
 
 
 async def handle_people_update_async(args: argparse.Namespace) -> int:
@@ -164,8 +161,7 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_people_update(args: argparse.Namespace) -> int:
-    return run_async(handle_people_update_async(args))
+handle_people_update = make_sync_handler(handle_people_update_async)
 
 
 async def handle_people_delete_async(args: argparse.Namespace) -> int:
@@ -179,8 +175,7 @@ async def handle_people_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_people_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_people_delete_async(args))
+handle_people_delete = make_sync_handler(handle_people_delete_async)
 
 
 async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
@@ -198,6 +193,4 @@ async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_people_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple people in one command."""
-    return run_async(handle_people_batch_delete_async(args))
+handle_people_batch_delete = make_sync_handler(handle_people_batch_delete_async)

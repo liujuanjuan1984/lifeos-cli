@@ -10,7 +10,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.read_models import TagView
@@ -64,8 +64,7 @@ async def handle_tag_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_tag_add(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_add_async(args))
+handle_tag_add = make_sync_handler(handle_tag_add_async)
 
 
 async def handle_tag_list_async(args: argparse.Namespace) -> int:
@@ -92,8 +91,7 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_tag_list(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_list_async(args))
+handle_tag_list = make_sync_handler(handle_tag_list_async)
 
 
 async def handle_tag_show_async(args: argparse.Namespace) -> int:
@@ -110,8 +108,7 @@ async def handle_tag_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_tag_show(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_show_async(args))
+handle_tag_show = make_sync_handler(handle_tag_show_async)
 
 
 async def handle_tag_update_async(args: argparse.Namespace) -> int:
@@ -151,8 +148,7 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_tag_update(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_update_async(args))
+handle_tag_update = make_sync_handler(handle_tag_update_async)
 
 
 async def handle_tag_delete_async(args: argparse.Namespace) -> int:
@@ -166,8 +162,7 @@ async def handle_tag_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_tag_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_delete_async(args))
+handle_tag_delete = make_sync_handler(handle_tag_delete_async)
 
 
 async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
@@ -185,6 +180,4 @@ async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_tag_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple tags in one command."""
-    return run_async(handle_tag_batch_delete_async(args))
+handle_tag_batch_delete = make_sync_handler(handle_tag_batch_delete_async)

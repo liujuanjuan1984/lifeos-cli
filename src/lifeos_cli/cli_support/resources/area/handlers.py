@@ -10,7 +10,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services import areas as area_services
@@ -62,8 +62,7 @@ async def handle_area_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_area_add(args: argparse.Namespace) -> int:
-    return run_async(handle_area_add_async(args))
+handle_area_add = make_sync_handler(handle_area_add_async)
 
 
 async def handle_area_list_async(args: argparse.Namespace) -> int:
@@ -84,8 +83,7 @@ async def handle_area_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_area_list(args: argparse.Namespace) -> int:
-    return run_async(handle_area_list_async(args))
+handle_area_list = make_sync_handler(handle_area_list_async)
 
 
 async def handle_area_show_async(args: argparse.Namespace) -> int:
@@ -102,8 +100,7 @@ async def handle_area_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_area_show(args: argparse.Namespace) -> int:
-    return run_async(handle_area_show_async(args))
+handle_area_show = make_sync_handler(handle_area_show_async)
 
 
 async def handle_area_update_async(args: argparse.Namespace) -> int:
@@ -134,8 +131,7 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_area_update(args: argparse.Namespace) -> int:
-    return run_async(handle_area_update_async(args))
+handle_area_update = make_sync_handler(handle_area_update_async)
 
 
 async def handle_area_delete_async(args: argparse.Namespace) -> int:
@@ -149,8 +145,7 @@ async def handle_area_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_area_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_area_delete_async(args))
+handle_area_delete = make_sync_handler(handle_area_delete_async)
 
 
 async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
@@ -168,6 +163,4 @@ async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_area_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple areas in one command."""
-    return run_async(handle_area_batch_delete_async(args))
+handle_area_batch_delete = make_sync_handler(handle_area_batch_delete_async)

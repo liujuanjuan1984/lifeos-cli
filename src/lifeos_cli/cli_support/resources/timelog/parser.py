@@ -36,16 +36,6 @@ from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
 
 
-def _datetime_value(value: str) -> datetime:
-    """Parse an ISO-8601 datetime value."""
-    return datetime.fromisoformat(value)
-
-
-def _query_datetime_value(value: str) -> datetime | date:
-    """Parse an ISO datetime or date value for query filters."""
-    return parse_datetime_or_date_value(value)
-
-
 def _month_value(value: str) -> date:
     """Parse a YYYY-MM month value."""
     return date.fromisoformat(f"{value}-01")
@@ -116,9 +106,11 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     add_parser.add_argument("title", help=_("Timelog title"))
     add_parser.add_argument(
-        "--start-time", required=True, type=_datetime_value, help=_("Start time")
+        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
     )
-    add_parser.add_argument("--end-time", required=True, type=_datetime_value, help=_("End time"))
+    add_parser.add_argument(
+        "--end-time", required=True, type=datetime.fromisoformat, help=_("End time")
+    )
     add_parser.add_argument("--tracking-method", default="manual", help=_("Tracking method"))
     add_parser.add_argument("--location", help=_("Optional location"))
     add_parser.add_argument("--energy-level", type=int, help=_("Optional energy level from 1 to 5"))
@@ -205,13 +197,13 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     list_parser.add_argument(
         "--start-time",
         dest="window_start",
-        type=_query_datetime_value,
+        type=parse_datetime_or_date_value,
         help=_("Inclusive time filter start; date-only values use the configured timezone"),
     )
     list_parser.add_argument(
         "--end-time",
         dest="window_end",
-        type=_query_datetime_value,
+        type=parse_datetime_or_date_value,
         help=_("Inclusive time filter end; date-only values use the configured timezone"),
     )
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
@@ -260,8 +252,12 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     update_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     update_parser.add_argument("--title", help=_("Updated timelog title"))
-    update_parser.add_argument("--start-time", type=_datetime_value, help=_("Updated start time"))
-    update_parser.add_argument("--end-time", type=_datetime_value, help=_("Updated end time"))
+    update_parser.add_argument(
+        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+    )
+    update_parser.add_argument(
+        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+    )
     update_parser.add_argument("--tracking-method", help=_("Updated tracking method"))
     update_parser.add_argument("--location", help=_("Updated location"))
     update_parser.add_argument("--clear-location", action="store_true", help=_("Clear location"))

@@ -12,7 +12,7 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import habits as habit_services
@@ -176,8 +176,7 @@ async def handle_habit_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_add(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_add_async(args))
+handle_habit_add = make_sync_handler(handle_habit_add_async)
 
 
 async def handle_habit_list_async(args: argparse.Namespace) -> int:
@@ -247,8 +246,7 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_list(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_list_async(args))
+handle_habit_list = make_sync_handler(handle_habit_list_async)
 
 
 async def handle_habit_show_async(args: argparse.Namespace) -> int:
@@ -270,8 +268,7 @@ async def handle_habit_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_show(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_show_async(args))
+handle_habit_show = make_sync_handler(handle_habit_show_async)
 
 
 async def handle_habit_update_async(args: argparse.Namespace) -> int:
@@ -326,8 +323,7 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_update(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_update_async(args))
+handle_habit_update = make_sync_handler(handle_habit_update_async)
 
 
 async def handle_habit_delete_async(args: argparse.Namespace) -> int:
@@ -341,8 +337,7 @@ async def handle_habit_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_delete_async(args))
+handle_habit_delete = make_sync_handler(handle_habit_delete_async)
 
 
 async def handle_habit_stats_async(args: argparse.Namespace) -> int:
@@ -356,8 +351,7 @@ async def handle_habit_stats_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_stats(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_stats_async(args))
+handle_habit_stats = make_sync_handler(handle_habit_stats_async)
 
 
 async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
@@ -373,8 +367,7 @@ async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_task_associations(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_task_associations_async(args))
+handle_habit_task_associations = make_sync_handler(handle_habit_task_associations_async)
 
 
 async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
@@ -391,5 +384,4 @@ async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_habit_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_batch_delete_async(args))
+handle_habit_batch_delete = make_sync_handler(handle_habit_batch_delete_async)
