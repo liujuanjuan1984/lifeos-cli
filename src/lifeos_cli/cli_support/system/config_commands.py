@@ -15,10 +15,7 @@ from lifeos_cli.application.configuration import (
     set_runtime_config_value,
 )
 from lifeos_cli.application.database import (
-    ping_configured_database_in_subprocess as ping_configured_database,
-)
-from lifeos_cli.application.database import (
-    upgrade_configured_database_in_subprocess as upgrade_configured_database,
+    run_configured_database_subcommand_in_subprocess,
 )
 from lifeos_cli.cli_support import init_prompts
 from lifeos_cli.cli_support.help_utils import (
@@ -77,13 +74,13 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        ping_configured_database()
+        run_configured_database_subcommand_in_subprocess(subcommand="ping")
         print("Database connection succeeded.")
 
     if args.skip_migrate:
         print("Skipped database migrations. Run `lifeos db upgrade` when ready.")
     else:
-        upgrade_configured_database()
+        run_configured_database_subcommand_in_subprocess(subcommand="upgrade")
         print("Database migrations are up to date.")
 
     return 0

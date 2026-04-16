@@ -10,6 +10,10 @@ from lifeos_cli.cli_support.system import config_commands
 from lifeos_cli.config import clear_config_cache
 
 
+def _noop_database_subcommand(*, subcommand: str) -> None:
+    del subcommand
+
+
 def test_main_init_non_interactive_writes_config(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -18,8 +22,11 @@ def test_main_init_non_interactive_writes_config(
     config_path = tmp_path / "config.toml"
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", lambda: None)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
 
     exit_code = cli.main(
         [
@@ -68,8 +75,11 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     prompts: list[str] = []
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", lambda: None)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -114,8 +124,11 @@ def test_main_init_reprompts_invalid_schema_in_interactive_mode(
     responses = iter(["lifeos-dev", "lifeos_dev", "", "", ""])
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", lambda: None)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -401,8 +414,11 @@ def test_main_init_can_repair_invalid_existing_config(
     )
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", lambda: None)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
 
     exit_code = cli.main(
         [
