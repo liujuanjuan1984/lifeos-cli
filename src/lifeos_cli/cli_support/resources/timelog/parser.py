@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, datetime
+from functools import partial
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
@@ -25,11 +26,9 @@ from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_restore_async,
     handle_timelog_show_async,
     handle_timelog_stats_day_async,
-    handle_timelog_stats_month_async,
+    handle_timelog_stats_period_async,
     handle_timelog_stats_range_async,
     handle_timelog_stats_rebuild_async,
-    handle_timelog_stats_week_async,
-    handle_timelog_stats_year_async,
     handle_timelog_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
@@ -512,7 +511,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=date.fromisoformat,
         help=_("Reference local date in YYYY-MM-DD format"),
     )
-    stats_week_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_week_async))
+    stats_week_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="week"))
+    )
 
     stats_month_parser = add_documented_parser(
         stats_subparsers,
@@ -529,7 +530,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=_month_value,
         help=_("Calendar month in YYYY-MM format"),
     )
-    stats_month_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_month_async))
+    stats_month_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="month"))
+    )
 
     stats_year_parser = add_documented_parser(
         stats_subparsers,
@@ -546,7 +549,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=int,
         help=_("Calendar year, for example 2026"),
     )
-    stats_year_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_year_async))
+    stats_year_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="year"))
+    )
 
     stats_rebuild_parser = add_documented_parser(
         stats_subparsers,

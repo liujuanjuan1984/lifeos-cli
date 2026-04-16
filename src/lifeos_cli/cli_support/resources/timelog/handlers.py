@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
@@ -418,13 +417,14 @@ async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
     return 0
 
 
-async def _handle_timelog_stats_period_async(
+async def handle_timelog_stats_period_async(
+    args: argparse.Namespace,
     *,
     granularity: str,
-    target_date: date | None = None,
-    month: date | None = None,
-    year: int | None = None,
 ) -> int:
+    target_date = args.target_date if granularity == "week" else None
+    month = args.month if granularity == "month" else None
+    year = args.year if granularity == "year" else None
     async with db_session.session_scope() as session:
         try:
             report = await timelog_stats.get_timelog_stats_groupby_area_for_period(
@@ -438,27 +438,6 @@ async def _handle_timelog_stats_period_async(
             return cli_handler_utils.print_cli_error(exc)
     print(_format_timelog_stats_report(report))
     return 0
-
-
-async def handle_timelog_stats_week_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="week",
-        target_date=args.target_date,
-    )
-
-
-async def handle_timelog_stats_month_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="month",
-        month=args.month,
-    )
-
-
-async def handle_timelog_stats_year_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="year",
-        year=args.year,
-    )
 
 
 async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:

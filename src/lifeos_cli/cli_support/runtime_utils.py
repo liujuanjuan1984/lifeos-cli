@@ -6,7 +6,7 @@ import argparse
 import asyncio
 import sys
 from collections.abc import Callable, Coroutine
-from functools import wraps
+from functools import partial
 
 from sqlalchemy.exc import OperationalError
 
@@ -24,12 +24,21 @@ def make_sync_handler(
 ) -> Callable[[argparse.Namespace], int]:
     """Adapt one async CLI handler to the synchronous argparse entrypoint."""
 
-    @wraps(async_handler)
+    metadata_target = async_handler
+    while isinstance(metadata_target, partial):
+        metadata_target = metadata_target.func
+
     def handler(args: argparse.Namespace) -> int:
         return int(asyncio.run(async_handler(args)))
 
-    handler.__name__ = async_handler.__name__.removesuffix("_async")
-    handler.__qualname__ = async_handler.__qualname__.removesuffix("_async")
+    handler.__doc__ = getattr(metadata_target, "__doc__", None)
+    handler.__module__ = getattr(metadata_target, "__module__", __name__)
+    handler.__name__ = getattr(metadata_target, "__name__", "handler").removesuffix("_async")
+    handler.__qualname__ = getattr(
+        metadata_target,
+        "__qualname__",
+        handler.__name__,
+    ).removesuffix("_async")
     return handler
 
 
