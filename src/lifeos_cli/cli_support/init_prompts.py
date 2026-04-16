@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import sys
-
+from lifeos_cli.cli_support.handler_utils import write_cli_error
 from lifeos_cli.config import (
     ConfigurationError,
     validate_database_schema_name,
@@ -30,7 +29,7 @@ def prompt_database_url(*, default: str | None = None) -> str:
         try:
             return validate_database_url(candidate)
         except ConfigurationError as exc:
-            print(str(exc), file=sys.stderr)
+            write_cli_error(exc)
             default = None
 
 
@@ -41,7 +40,7 @@ def prompt_database_schema(*, default: str | None = None) -> str:
         try:
             return validate_database_schema_name(candidate)
         except ConfigurationError as exc:
-            print(str(exc), file=sys.stderr)
+            write_cli_error(exc)
             default = None
 
 
@@ -55,7 +54,7 @@ def prompt_language(*, default: str | None = None) -> str:
         try:
             return validate_language(candidate)
         except ConfigurationError as exc:
-            print(str(exc), file=sys.stderr)
+            write_cli_error(exc)
             default = None
 
 

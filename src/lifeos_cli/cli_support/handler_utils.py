@@ -6,9 +6,14 @@ import sys
 from collections.abc import Iterable
 
 
+def write_cli_error(exc: BaseException) -> None:
+    """Write one user-facing CLI error message to stderr."""
+    print(str(exc), file=sys.stderr)
+
+
 def print_cli_error(exc: BaseException) -> int:
     """Print one user-facing CLI error message to stderr."""
-    print(str(exc), file=sys.stderr)
+    write_cli_error(exc)
     return 1
 
 
