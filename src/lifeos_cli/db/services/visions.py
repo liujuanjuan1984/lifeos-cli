@@ -8,10 +8,10 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.preferences import get_preferred_vision_experience_rate_per_hour
 from lifeos_cli.config import (
     MAX_VISION_EXPERIENCE_RATE_PER_HOUR,
     ConfigurationError,
+    get_preferences_settings,
     validate_vision_experience_rate_per_hour,
 )
 from lifeos_cli.db.models.area import Area
@@ -88,7 +88,7 @@ def resolve_experience_rate_for_vision(vision: Vision) -> int:
     """Return the effective experience rate for a vision."""
     return (
         validate_vision_experience_rate(vision.experience_rate_per_hour)
-        or get_preferred_vision_experience_rate_per_hour()
+        or get_preferences_settings().vision_experience_rate_per_hour
     )
 
 

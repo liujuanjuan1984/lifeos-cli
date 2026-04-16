@@ -5,21 +5,17 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from lifeos_cli.application.preferences import (
-    get_preferred_day_starts_at,
-    get_preferred_timezone_name,
-    get_preferred_week_starts_on,
-)
+from lifeos_cli.config import get_preferences_settings
 
 
 def get_preferred_timezone() -> ZoneInfo:
     """Return the configured IANA timezone."""
-    return ZoneInfo(get_preferred_timezone_name())
+    return ZoneInfo(get_preferences_settings().timezone)
 
 
 def get_day_start_time() -> time:
     """Return the configured local day boundary."""
-    hour, minute = (int(part) for part in get_preferred_day_starts_at().split(":"))
+    hour, minute = (int(part) for part in get_preferences_settings().day_starts_at.split(":"))
     return time(hour=hour, minute=minute)
 
 
@@ -74,7 +70,7 @@ def get_utc_window_for_local_date_range(
 
 def get_week_bounds(reference_date: date) -> tuple[date, date]:
     """Return the configured week start and end dates for one local date."""
-    week_starts_on = get_preferred_week_starts_on()
+    week_starts_on = get_preferences_settings().week_starts_on
     weekday = reference_date.weekday()
     if week_starts_on == "sunday":
         days_since_week_start = (weekday + 1) % 7

@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.preferences import get_preferred_week_starts_on
+from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.recurrence_core import (
@@ -147,7 +147,7 @@ def validate_event_recurrence(
             interval=recurrence_interval,
             count=recurrence_count,
             until=recurrence_until,
-            week_starts_on=get_preferred_week_starts_on(),
+            week_starts_on=get_preferences_settings().week_starts_on,
         ).rule
     except RecurrenceValidationError as exc:
         raise EventValidationError(str(exc)) from exc
@@ -181,7 +181,7 @@ def _build_event_series(event: RecurringEventLike) -> SeriesDefinition:
         interval=event.recurrence_interval,
         count=event.recurrence_count,
         until=event.recurrence_until,
-        week_starts_on=get_preferred_week_starts_on(),
+        week_starts_on=get_preferences_settings().week_starts_on,
     )
 
 
