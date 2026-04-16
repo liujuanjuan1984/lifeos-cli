@@ -9,24 +9,7 @@ from lifeos_cli.cli_support.time_args import (
     resolve_required_date_interval_arguments,
 )
 from lifeos_cli.config import clear_config_cache
-
-
-def _write_preferences_config(tmp_path) -> str:
-    config_path = tmp_path / "config.toml"
-    config_path.write_text(
-        "\n".join(
-            (
-                "[preferences]",
-                'timezone = "America/Toronto"',
-                'language = "en"',
-                'day_starts_at = "04:00"',
-                'week_starts_on = "monday"',
-                "",
-            )
-        ),
-        encoding="utf-8",
-    )
-    return str(config_path)
+from tests.config_support import install_test_config
 
 
 def test_resolve_date_interval_arguments_treats_repeated_date_as_inclusive_range() -> None:
@@ -43,7 +26,7 @@ def test_normalize_query_datetime_bound_uses_preferred_timezone_for_date_only(
     tmp_path,
 ) -> None:
     clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", _write_preferences_config(tmp_path))
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
 
     start_bound = normalize_query_datetime_bound(date(2026, 4, 10), is_end=False)
     end_bound = normalize_query_datetime_bound(date(2026, 4, 10), is_end=True)
@@ -60,7 +43,7 @@ def test_normalize_query_datetime_bound_uses_preferred_timezone_for_naive_dateti
     tmp_path,
 ) -> None:
     clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", _write_preferences_config(tmp_path))
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
 
     bound = normalize_query_datetime_bound(datetime(2026, 4, 10, 18, 0), is_end=False)
 
@@ -83,7 +66,7 @@ def test_resolve_exclusive_date_or_datetime_query_rejects_mixed_filters(
     tmp_path,
 ) -> None:
     clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", _write_preferences_config(tmp_path))
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
 
     try:
         resolve_exclusive_date_or_datetime_query(

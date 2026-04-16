@@ -2,6 +2,7 @@ from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.base import DATABASE_SCHEMA, apply_database_schema
 from lifeos_cli.db.models import Note
+from tests.config_support import install_test_config
 
 
 def test_note_model_uses_configured_schema() -> None:
@@ -18,29 +19,15 @@ def test_refresh_runtime_configuration_updates_note_model_schema(
     monkeypatch,
     tmp_path,
 ) -> None:
-    config_path = tmp_path / "config.toml"
-    config_path.write_text(
-        "\n".join(
-            (
-                "[database]",
-                'url = "postgresql+psycopg://localhost:5432/lifeos_test"',
-                'schema = "lifeos_test_runtime"',
-                "echo = false",
-                "",
-                "[preferences]",
-                'timezone = "America/Toronto"',
-                'language = "en"',
-                'day_starts_at = "04:00"',
-                'week_starts_on = "monday"',
-                "vision_experience_rate_per_hour = 60",
-                "",
-            )
-        ),
-        encoding="utf-8",
-    )
     original_schema = Note.__table__.schema
-    clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_database=True,
+        database_schema="lifeos_test_runtime",
+        include_preferences=True,
+        vision_experience_rate_per_hour=60,
+    )
 
     try:
         refresh_runtime_configuration()

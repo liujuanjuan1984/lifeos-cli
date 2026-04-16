@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from lifeos_cli.config import clear_config_cache
+
+
+def write_test_config(
+    config_path: Path,
+    *,
+    include_database: bool = False,
+    database_url: str = "postgresql+psycopg://localhost:5432/lifeos_test",
+    database_schema: str = "lifeos_test",
+    database_echo: bool = False,
+    include_preferences: bool = False,
+    timezone: str = "America/Toronto",
+    language: str = "en",
+    day_starts_at: str = "04:00",
+    week_starts_on: str = "monday",
+    vision_experience_rate_per_hour: int | None = None,
+) -> Path:
+    lines: list[str] = []
+    if include_database:
+        lines.extend(
+            (
+                "[database]",
+                f'url = "{database_url}"',
+                f'schema = "{database_schema}"',
+                f"echo = {'true' if database_echo else 'false'}",
+                "",
+            )
+        )
+    if include_preferences:
+        lines.extend(
+            (
+                "[preferences]",
+                f'timezone = "{timezone}"',
+                f'language = "{language}"',
+                f'day_starts_at = "{day_starts_at}"',
+                f'week_starts_on = "{week_starts_on}"',
+            )
+        )
+        if vision_experience_rate_per_hour is not None:
+            lines.append(f"vision_experience_rate_per_hour = {vision_experience_rate_per_hour}")
+        lines.append("")
+    config_path.write_text("\n".join(lines), encoding="utf-8")
+    return config_path
+
+
+def install_test_config(
+    *,
+    monkeypatch,
+    tmp_path: Path,
+    include_database: bool = False,
+    database_url: str = "postgresql+psycopg://localhost:5432/lifeos_test",
+    database_schema: str = "lifeos_test",
+    database_echo: bool = False,
+    include_preferences: bool = False,
+    timezone: str = "America/Toronto",
+    language: str = "en",
+    day_starts_at: str = "04:00",
+    week_starts_on: str = "monday",
+    vision_experience_rate_per_hour: int | None = None,
+) -> Path:
+    config_path = write_test_config(
+        tmp_path / "config.toml",
+        include_database=include_database,
+        database_url=database_url,
+        database_schema=database_schema,
+        database_echo=database_echo,
+        include_preferences=include_preferences,
+        timezone=timezone,
+        language=language,
+        day_starts_at=day_starts_at,
+        week_starts_on=week_starts_on,
+        vision_experience_rate_per_hour=vision_experience_rate_per_hour,
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    return config_path
