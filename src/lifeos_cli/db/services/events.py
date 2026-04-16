@@ -98,22 +98,6 @@ async def _get_event_model(
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
-async def _load_event_link_ids(
-    session: AsyncSession,
-    *,
-    event_id: UUID,
-) -> tuple[list[UUID], list[UUID]]:
-    tags_map = await load_tags_for_entities(session, entity_ids=[event_id], entity_type="event")
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[event_id],
-        entity_type="event",
-    )
-    tag_ids = [tag.id for tag in tags_map.get(event_id, ())]
-    person_ids = [person.id for person in people_map.get(event_id, ())]
-    return tag_ids, person_ids
-
-
 def _event_duration(event: Event | EventOccurrence) -> timedelta | None:
     end_time = event.end_time
     if end_time is None:
@@ -776,10 +760,18 @@ async def _update_single_occurrence(
         master_event_id=master_event.id,
         instance_start=instance_start,
     )
-    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+    existing_tag_map = await load_tags_for_entities(
         session,
-        event_id=master_event.id,
+        entity_ids=[master_event.id],
+        entity_type="event",
     )
+    existing_people_map = await load_people_for_entities(
+        session,
+        entity_ids=[master_event.id],
+        entity_type="event",
+    )
+    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
+    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
     if override_event_model is None:
         override_start_time = start_time if start_time is not None else instance_start
         override_end_time = (
@@ -924,10 +916,18 @@ async def _update_future_series(
 
     master_event.recurrence_until = previous_start
     await session.flush()
-    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+    existing_tag_map = await load_tags_for_entities(
         session,
-        event_id=master_event.id,
+        entity_ids=[master_event.id],
+        entity_type="event",
     )
+    existing_people_map = await load_people_for_entities(
+        session,
+        entity_ids=[master_event.id],
+        entity_type="event",
+    )
+    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
+    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
 
     resolved_tag_ids = _resolve_link_ids(
         explicit_ids=tag_ids,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
@@ -70,39 +70,28 @@ def _habit_end_expr() -> Any:
     return Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
 
 
-def _build_materialized_action_view(
-    action: HabitAction,
+def _build_habit_action_view(
     *,
+    action_id: UUID | None,
+    habit_id: UUID,
     habit_title: str,
-) -> HabitActionView:
-    return HabitActionView(
-        id=action.id,
-        habit_id=action.habit_id,
-        habit_title=habit_title,
-        action_date=action.action_date,
-        status=action.status,
-        notes=action.notes,
-        created_at=action.created_at,
-        updated_at=action.updated_at,
-        deleted_at=action.deleted_at,
-    )
-
-
-def _build_synthetic_action_view(
-    *,
-    habit: Habit,
     action_date: date,
+    status: str,
+    notes: str | None,
+    created_at: datetime | None,
+    updated_at: datetime | None,
+    deleted_at: datetime | None,
 ) -> HabitActionView:
     return HabitActionView(
-        id=None,
-        habit_id=habit.id,
-        habit_title=habit.title,
+        id=action_id,
+        habit_id=habit_id,
+        habit_title=habit_title,
         action_date=action_date,
-        status="pending",
-        notes=None,
-        created_at=None,
-        updated_at=None,
-        deleted_at=None,
+        status=status,
+        notes=notes,
+        created_at=created_at,
+        updated_at=updated_at,
+        deleted_at=deleted_at,
     )
 
 
@@ -226,13 +215,47 @@ def _build_habit_occurrence_views(
     ):
         materialized = active_actions_by_date.get(action_date)
         if materialized is None:
-            views.append(_build_synthetic_action_view(habit=habit, action_date=action_date))
+            views.append(
+                _build_habit_action_view(
+                    action_id=None,
+                    habit_id=habit.id,
+                    habit_title=habit.title,
+                    action_date=action_date,
+                    status="pending",
+                    notes=None,
+                    created_at=None,
+                    updated_at=None,
+                    deleted_at=None,
+                )
+            )
             continue
-        views.append(_build_materialized_action_view(materialized, habit_title=habit.title))
+        views.append(
+            _build_habit_action_view(
+                action_id=materialized.id,
+                habit_id=materialized.habit_id,
+                habit_title=habit.title,
+                action_date=materialized.action_date,
+                status=materialized.status,
+                notes=materialized.notes,
+                created_at=materialized.created_at,
+                updated_at=materialized.updated_at,
+                deleted_at=materialized.deleted_at,
+            )
+        )
 
     if include_deleted:
         views.extend(
-            _build_materialized_action_view(action, habit_title=habit.title)
+            _build_habit_action_view(
+                action_id=action.id,
+                habit_id=action.habit_id,
+                habit_title=habit.title,
+                action_date=action.action_date,
+                status=action.status,
+                notes=action.notes,
+                created_at=action.created_at,
+                updated_at=action.updated_at,
+                deleted_at=action.deleted_at,
+            )
             for action in deleted_actions
             if start_date <= action.action_date <= end_date
         )
@@ -517,9 +540,16 @@ async def list_habit_actions(
             habit=habit,
             action_date=view.action_date,
         )
-        materialized_by_key[(view.habit_id, view.action_date)] = _build_materialized_action_view(
-            action,
+        materialized_by_key[(view.habit_id, view.action_date)] = _build_habit_action_view(
+            action_id=action.id,
+            habit_id=action.habit_id,
             habit_title=habit.title,
+            action_date=action.action_date,
+            status=action.status,
+            notes=action.notes,
+            created_at=action.created_at,
+            updated_at=action.updated_at,
+            deleted_at=action.deleted_at,
         )
 
     return [
