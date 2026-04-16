@@ -51,13 +51,6 @@ LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432
 bash ./scripts/integration_tests.sh
 ```
 
-If you already ran `lifeos init`, the integration suite also falls back to the configured
-runtime `database.url` and creates a random `lifeos_test_<random>` schema for each run:
-
-```bash
-bash ./scripts/integration_tests.sh
-```
-
 If you change dependency or release workflows, also run:
 
 ```bash

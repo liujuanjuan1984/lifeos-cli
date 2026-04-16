@@ -47,13 +47,14 @@ def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     assert "bash ./scripts/integration_tests.sh" in VALIDATE_WORKFLOW_TEXT
 
 
-def test_integration_tests_use_explicit_or_configured_database_url() -> None:
+def test_integration_tests_require_an_explicit_test_database_url() -> None:
     script_text = Path("scripts/integration_tests.sh").read_text()
     assert "LIFEOS_RUN_INTEGRATION" not in script_text
+    assert "LIFEOS_TEST_DATABASE_URL:-" in script_text
     assert "uv run pytest -m integration tests/test_cli_integration_*.py" in script_text
     support_text = Path("tests/cli_integration_support.py").read_text()
-    assert 'env_map.get("LIFEOS_TEST_DATABASE_URL")' in support_text
-    assert "DatabaseSettings.from_env" in support_text
+    assert 'INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
+    assert "DatabaseSettings.from_env" not in support_text
     assert 'schema = f"lifeos_test_{uuid4().hex[:12]}"' in Path("tests/conftest.py").read_text()
 
 
