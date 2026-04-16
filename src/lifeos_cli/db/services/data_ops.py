@@ -393,41 +393,24 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     )
 
 
-async def _load_tag_ids_for_entities(
+async def _load_related_ids_for_entities(
     session: AsyncSession,
     *,
+    association_table: Any,
+    related_id_column: Any,
     entity_type: str,
     entity_ids: list[UUID],
 ) -> dict[UUID, list[UUID]]:
     if not entity_ids:
         return {}
-    stmt = select(tag_associations.c.entity_id, tag_associations.c.tag_id).where(
-        tag_associations.c.entity_type == entity_type,
-        tag_associations.c.entity_id.in_(entity_ids),
+    stmt = select(association_table.c.entity_id, related_id_column).where(
+        association_table.c.entity_type == entity_type,
+        association_table.c.entity_id.in_(entity_ids),
     )
     rows = (await session.execute(stmt)).all()
     mapping: dict[UUID, list[UUID]] = {entity_id: [] for entity_id in entity_ids}
-    for entity_id, tag_id in rows:
-        mapping[entity_id].append(tag_id)
-    return mapping
-
-
-async def _load_person_ids_for_entities(
-    session: AsyncSession,
-    *,
-    entity_type: str,
-    entity_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    if not entity_ids:
-        return {}
-    stmt = select(person_associations.c.entity_id, person_associations.c.person_id).where(
-        person_associations.c.entity_type == entity_type,
-        person_associations.c.entity_id.in_(entity_ids),
-    )
-    rows = (await session.execute(stmt)).all()
-    mapping: dict[UUID, list[UUID]] = {entity_id: [] for entity_id in entity_ids}
-    for entity_id, person_id in rows:
-        mapping[entity_id].append(person_id)
+    for entity_id, related_id in rows:
+        mapping[entity_id].append(related_id)
     return mapping
 
 
@@ -459,22 +442,6 @@ async def _load_event_occurrence_exceptions(
     return mapping
 
 
-async def _load_note_related_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-    target_model: str,
-    link_type: str,
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model=target_model,
-        link_type=link_type,
-    )
-
-
 async def export_resource_snapshot(
     session: AsyncSession,
     *,
@@ -494,8 +461,10 @@ async def export_resource_snapshot(
 
     entity_ids = [UUID(payload["id"]) for payload in payloads]
     tag_map = (
-        await _load_tag_ids_for_entities(
+        await _load_related_ids_for_entities(
             session,
+            association_table=tag_associations,
+            related_id_column=tag_associations.c.tag_id,
             entity_type=spec.tag_entity_type,
             entity_ids=entity_ids,
         )
@@ -503,8 +472,10 @@ async def export_resource_snapshot(
         else {}
     )
     person_map = (
-        await _load_person_ids_for_entities(
+        await _load_related_ids_for_entities(
             session,
+            association_table=person_associations,
+            related_id_column=person_associations.c.person_id,
             entity_type=spec.person_entity_type,
             entity_ids=entity_ids,
         )
@@ -517,9 +488,10 @@ async def export_resource_snapshot(
         else {}
     )
     note_task_map = (
-        await _load_note_related_ids(
+        await get_target_ids_for_sources(
             session,
-            note_ids=entity_ids,
+            source_model="note",
+            source_ids=entity_ids,
             target_model="task",
             link_type="relates_to",
         )
@@ -527,9 +499,10 @@ async def export_resource_snapshot(
         else {}
     )
     note_vision_map = (
-        await _load_note_related_ids(
+        await get_target_ids_for_sources(
             session,
-            note_ids=entity_ids,
+            source_model="note",
+            source_ids=entity_ids,
             target_model="vision",
             link_type="relates_to",
         )
@@ -537,9 +510,10 @@ async def export_resource_snapshot(
         else {}
     )
     note_event_map = (
-        await _load_note_related_ids(
+        await get_target_ids_for_sources(
             session,
-            note_ids=entity_ids,
+            source_model="note",
+            source_ids=entity_ids,
             target_model="event",
             link_type="relates_to",
         )
@@ -547,9 +521,10 @@ async def export_resource_snapshot(
         else {}
     )
     note_person_map = (
-        await _load_note_related_ids(
+        await get_target_ids_for_sources(
             session,
-            note_ids=entity_ids,
+            source_model="note",
+            source_ids=entity_ids,
             target_model="person",
             link_type="is_about",
         )
@@ -557,9 +532,10 @@ async def export_resource_snapshot(
         else {}
     )
     note_timelog_map = (
-        await _load_note_related_ids(
+        await get_target_ids_for_sources(
             session,
-            note_ids=entity_ids,
+            source_model="note",
+            source_ids=entity_ids,
             target_model="timelog",
             link_type="captured_from",
         )

@@ -111,20 +111,6 @@ async def _load_schedule_tasks(
     return list((await session.execute(stmt)).scalars())
 
 
-async def _load_schedule_habit_actions(
-    session: AsyncSession,
-    *,
-    start_date: date,
-    end_date: date,
-) -> list[HabitActionView]:
-    return await list_habit_actions_in_range(
-        session,
-        start_date=start_date,
-        end_date=end_date,
-        include_deleted=False,
-    )
-
-
 async def _load_schedule_events(
     session: AsyncSession,
     *,
@@ -196,10 +182,11 @@ async def list_schedule_in_range(
     start_date, end_date = _normalize_schedule_range(start_date=start_date, end_date=end_date)
     dates = _iter_date_range(start_date, end_date)
     tasks = await _load_schedule_tasks(session, start_date=start_date, end_date=end_date)
-    habit_actions = await _load_schedule_habit_actions(
+    habit_actions = await list_habit_actions_in_range(
         session,
         start_date=start_date,
         end_date=end_date,
+        include_deleted=False,
     )
     events = await _load_schedule_events(session, start_date=start_date, end_date=end_date)
 

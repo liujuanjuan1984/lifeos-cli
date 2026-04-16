@@ -76,18 +76,6 @@ class TaskHierarchy:
     root_tasks: tuple[TaskWithSubtasks, ...]
 
 
-async def _load_people_map(
-    session: AsyncSession,
-    tasks: list[Task],
-) -> dict[UUID, list[Person]]:
-    """Load related people for task records without mutating ORM instances."""
-    return await load_people_for_entities(
-        session,
-        entity_ids=[task.id for task in tasks],
-        entity_type="task",
-    )
-
-
 def _build_task_tree(
     tasks: list[Task],
     *,
@@ -159,14 +147,22 @@ def _parse_status_csv(value: str | None) -> list[str]:
 
 
 async def _build_task_view(session: AsyncSession, task: Task) -> TaskView:
-    people_map = await _load_people_map(session, [task])
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id],
+        entity_type="task",
+    )
     return build_task_view(task, people=people_map.get(task.id, ()))
 
 
 async def _build_task_views(session: AsyncSession, tasks: list[Task]) -> list[TaskView]:
     if not tasks:
         return []
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     return [build_task_view(task, people=people_map.get(task.id, ())) for task in tasks]
 
 
@@ -266,7 +262,11 @@ async def get_vision_task_hierarchy(
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )
     tasks = list((await session.execute(stmt)).scalars())
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     return TaskHierarchy(
         vision_id=vision_id, root_tasks=_build_task_tree(tasks, people_map=people_map)
     )
@@ -281,7 +281,11 @@ async def get_task_with_subtasks(
     tasks = await load_task_subtree(session, root_task_id=task_id)
     if not tasks:
         return None
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     task_tree = _build_task_tree(tasks, people_map=people_map)
     return task_tree[0] if task_tree else None
 
