@@ -77,10 +77,7 @@ def _format_habit_summary(habit: Habit) -> str:
 
 
 def _format_habit_summary_with_stats(overview: dict[str, object]) -> str:
-    habit = overview["habit"]
-    stats = overview["stats"]
-    assert isinstance(habit, Habit)
-    assert isinstance(stats, dict)
+    habit, stats = _extract_habit_overview(overview)
     status = "deleted" if habit.deleted_at is not None else habit.status
     return (
         f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t{_format_habit_cadence(habit)}\t"
@@ -122,6 +119,14 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
             f"deleted_at: {format_timestamp(habit.deleted_at)}",
         )
     )
+
+
+def _extract_habit_overview(overview: dict[str, object]) -> tuple[Habit, dict[str, object]]:
+    habit = overview.get("habit")
+    stats = overview.get("stats")
+    if not isinstance(habit, Habit) or not isinstance(stats, dict):
+        raise RuntimeError("Habit overview payload is invalid.")
+    return habit, stats
 
 
 def _format_habit_stats(stats: dict[str, object]) -> str:
@@ -257,10 +262,7 @@ async def handle_habit_show_async(args: argparse.Namespace) -> int:
             )
         except habit_services.HabitNotFoundError as exc:
             return cli_handler_utils.print_cli_error(exc)
-    habit = overview["habit"]
-    stats = overview["stats"]
-    assert isinstance(habit, Habit)
-    assert isinstance(stats, dict)
+    habit, stats = _extract_habit_overview(overview)
     print(_format_habit_detail(habit, stats))
     return 0
 

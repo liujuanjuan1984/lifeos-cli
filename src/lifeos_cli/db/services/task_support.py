@@ -68,21 +68,25 @@ def validate_planning_cycle(
     values = (planning_cycle_type, planning_cycle_days, planning_cycle_start_date)
     if all(value is None for value in values):
         return values
-    if any(value is None for value in values):
+    if (
+        planning_cycle_type is None
+        or planning_cycle_days is None
+        or planning_cycle_start_date is None
+    ):
         raise InvalidPlanningCycleError(
             "Planning cycle type, days, and start date must be provided together"
         )
-    assert planning_cycle_type is not None
-    assert planning_cycle_days is not None
     normalized_type = planning_cycle_type.strip().lower()
+    normalized_days = planning_cycle_days
+    normalized_start_date = planning_cycle_start_date
     if normalized_type not in VALID_PLANNING_CYCLE_TYPES:
         allowed = ", ".join(sorted(VALID_PLANNING_CYCLE_TYPES))
         raise InvalidPlanningCycleError(
             f"Invalid planning cycle type {normalized_type!r}. Expected one of: {allowed}"
         )
-    if planning_cycle_days <= 0:
+    if normalized_days <= 0:
         raise InvalidPlanningCycleError("Planning cycle days must be greater than zero")
-    return normalized_type, planning_cycle_days, planning_cycle_start_date
+    return normalized_type, normalized_days, normalized_start_date
 
 
 async def ensure_vision_exists(session: AsyncSession, vision_id: UUID) -> None:

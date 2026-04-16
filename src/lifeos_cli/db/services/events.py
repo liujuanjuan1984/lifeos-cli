@@ -1045,7 +1045,8 @@ async def update_event(
             raise EventValidationError("Instance-level recurring updates require --instance-start.")
         validate_event_instance_start(event, instance_start=normalized_instance_start)
     if normalized_scope == "single":
-        assert normalized_instance_start is not None
+        if normalized_instance_start is None:
+            raise EventValidationError("Single-occurrence updates require --instance-start.")
         return await _update_single_occurrence(
             session,
             master_event=event,
@@ -1070,7 +1071,8 @@ async def update_event(
             clear_people=clear_people,
         )
     if normalized_scope == "all_future":
-        assert normalized_instance_start is not None
+        if normalized_instance_start is None:
+            raise EventValidationError("Future-series updates require --instance-start.")
         return await _update_future_series(
             session,
             master_event=event,

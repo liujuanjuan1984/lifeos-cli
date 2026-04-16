@@ -172,7 +172,8 @@ class RecurringEventLike(Protocol):
 
 
 def _build_event_series(event: RecurringEventLike) -> SeriesDefinition:
-    assert event.recurrence_frequency is not None
+    if event.recurrence_frequency is None:
+        raise EventValidationError("Recurring event operations require recurrence_frequency.")
     return build_series_definition(
         anchor_start=event.start_time,
         anchor_end=event.end_time,

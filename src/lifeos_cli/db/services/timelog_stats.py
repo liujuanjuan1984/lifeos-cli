@@ -180,7 +180,8 @@ async def _collect_area_stats_for_window(
         window_end=window_end,
     )
     for timelog in timelogs:
-        assert timelog.area_id is not None
+        if timelog.area_id is None:
+            raise RuntimeError("Area-based timelog stats encountered a timelog without area_id.")
         minutes = overlap_minutes_for_window(
             start_time=timelog.start_time,
             end_time=timelog.end_time,
@@ -303,7 +304,10 @@ async def recompute_daily_timelog_stats_groupby_area_for_dates(
             window_end=window_end,
         )
         for timelog in timelogs:
-            assert timelog.area_id is not None
+            if timelog.area_id is None:
+                raise RuntimeError(
+                    "Area-based timelog stats encountered a timelog without area_id."
+                )
             minutes = overlap_minutes_for_window(
                 start_time=timelog.start_time,
                 end_time=timelog.end_time,

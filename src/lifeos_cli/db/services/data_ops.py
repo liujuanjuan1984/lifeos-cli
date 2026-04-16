@@ -356,7 +356,8 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     if "id" not in direct_values:
         raise DataOperationError("Each imported row must include `id`.")
     row_id = direct_values["id"]
-    assert isinstance(row_id, UUID)
+    if not isinstance(row_id, UUID):
+        raise DataOperationError("Each imported row `id` must be a UUID.")
     tag_ids = (
         _parse_tag_ids(payload["tag_ids"])
         if spec.tag_entity_type and "tag_ids" in payload
