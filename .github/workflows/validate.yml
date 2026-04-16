@@ -111,6 +111,5 @@ jobs:
 
       - name: Run CLI integration tests
         env:
-          LIFEOS_RUN_INTEGRATION: "1"
           LIFEOS_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/lifeos_test # pragma: allowlist secret
         run: bash ./scripts/integration_tests.sh
