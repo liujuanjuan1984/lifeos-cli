@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -14,6 +13,7 @@ from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.package_metadata import get_installed_package_version
 from lifeos_cli.config import get_database_settings, get_preferences_settings
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models import (
@@ -209,13 +209,6 @@ DELETE_ARG_NAMES: dict[str, str] = {
 }
 
 
-def _get_app_version() -> str:
-    try:
-        return version("lifeos-cli")
-    except PackageNotFoundError:
-        return "0+unknown"
-
-
 def _normalize_json_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -276,19 +269,11 @@ def _build_order_by_columns(spec: DataResourceSpec) -> tuple[Any, ...]:
     return tuple(columns)
 
 
-def _parse_person_ids(value: Any) -> list[UUID]:
+def _parse_uuid_array(value: Any, *, field_name: str) -> list[UUID]:
     if value is None:
         return []
     if not isinstance(value, list):
-        raise DataOperationError("Expected `person_ids` to be a JSON array.")
-    return [item if isinstance(item, UUID) else UUID(str(item)) for item in value]
-
-
-def _parse_tag_ids(value: Any) -> list[UUID]:
-    if value is None:
-        return []
-    if not isinstance(value, list):
-        raise DataOperationError("Expected `tag_ids` to be a JSON array.")
+        raise DataOperationError(f"Expected `{field_name}` to be a JSON array.")
     return [item if isinstance(item, UUID) else UUID(str(item)) for item in value]
 
 
@@ -358,33 +343,33 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     if not isinstance(row_id, UUID):
         raise DataOperationError("Each imported row `id` must be a UUID.")
     tag_ids = (
-        _parse_tag_ids(payload["tag_ids"])
+        _parse_uuid_array(payload["tag_ids"], field_name="tag_ids")
         if spec.tag_entity_type and "tag_ids" in payload
         else None
     )
     person_ids = (
-        _parse_person_ids(payload["person_ids"])
+        _parse_uuid_array(payload["person_ids"], field_name="person_ids")
         if (spec.person_entity_type and "person_ids" in payload)
         or (resource == "note" and "person_ids" in payload)
         else None
     )
     note_task_ids = (
-        _parse_person_ids(payload["task_ids"])
+        _parse_uuid_array(payload["task_ids"], field_name="task_ids")
         if resource == "note" and "task_ids" in payload
         else None
     )
     note_vision_ids = (
-        _parse_person_ids(payload["vision_ids"])
+        _parse_uuid_array(payload["vision_ids"], field_name="vision_ids")
         if resource == "note" and "vision_ids" in payload
         else None
     )
     note_event_ids = (
-        _parse_person_ids(payload["event_ids"])
+        _parse_uuid_array(payload["event_ids"], field_name="event_ids")
         if resource == "note" and "event_ids" in payload
         else None
     )
     note_timelog_ids = (
-        _parse_person_ids(payload["timelog_ids"])
+        _parse_uuid_array(payload["timelog_ids"], field_name="timelog_ids")
         if resource == "note" and "timelog_ids" in payload
         else None
     )
@@ -778,16 +763,24 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
             normalized[field] = _parse_column_value(table.c[field], value)
             continue
         if field == "tag_ids":
-            normalized[field] = None if value is None else _parse_tag_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field == "person_ids":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field in {"task_ids", "vision_ids", "event_ids"} and resource == "note":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field == "timelog_ids" and resource == "note":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         normalized[field] = value
     return normalized
@@ -1166,7 +1159,7 @@ def _bundle_manifest(resource_counts: dict[str, int]) -> dict[str, Any]:
     return {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "exported_at": datetime.now().astimezone().isoformat(),
-        "app_version": _get_app_version(),
+        "app_version": get_installed_package_version(),
         "database_schema": get_database_settings().database_schema,
         "timezone": get_preferences_settings().timezone,
         "included_resources": list(resource_counts.keys()),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from functools import partial
 
 from lifeos_cli.application.configuration import (
     SUPPORTED_CONFIG_KEYS,
@@ -29,6 +30,9 @@ from lifeos_cli.cli_support.runtime_utils import (
 from lifeos_cli.config import (
     get_database_settings,
     get_preferences_settings,
+    validate_database_schema_name,
+    validate_database_url,
+    validate_language,
 )
 from lifeos_cli.i18n import gettext_message as _
 
@@ -47,14 +51,24 @@ def _handle_init(args: argparse.Namespace) -> int:
         non_interactive=args.non_interactive,
         is_interactive=sys.stdin.isatty(),
         prompts=InitializationPrompts(
-            prompt_database_url=lambda default: init_prompts.prompt_database_url(default=default),
-            prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
-                default=default
+            prompt_database_url=partial(
+                init_prompts.prompt_validated_text,
+                "Database URL",
+                validator=validate_database_url,
             ),
-            prompt_language=lambda default: init_prompts.prompt_language(default=default),
-            prompt_database_echo=lambda default: init_prompts.prompt_bool(
+            prompt_database_schema=partial(
+                init_prompts.prompt_validated_text,
+                "Database schema",
+                validator=validate_database_schema_name,
+            ),
+            prompt_language=partial(
+                init_prompts.prompt_validated_text,
+                "Preferred language tag for human-authored payloads",
+                validator=validate_language,
+            ),
+            prompt_database_echo=partial(
+                init_prompts.prompt_bool,
                 _("Enable SQL echo logging"),
-                default=default,
             ),
         ),
     )

@@ -100,13 +100,15 @@ def test_update_task_can_clear_parent_without_committing(
         commit=AsyncMock(),
     )
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == UUID("77777777-7777-7777-7777-777777777777")
+        assert model_cls is task_mutations.Task
+        assert model_id == UUID("77777777-7777-7777-7777-777777777777")
         assert include_deleted is False
         return task
 
@@ -121,7 +123,7 @@ def test_update_task_can_clear_parent_without_committing(
         assert parent_task_id is None
         assert child_task_id == task.id
 
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
     recompute_subtree = AsyncMock()
@@ -164,13 +166,15 @@ def test_move_task_updates_parent_vision_and_descendants(
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == task.id
+        assert model_cls is task_mutations.Task
+        assert model_id == task.id
         assert include_deleted is False
         return task
 
@@ -189,7 +193,7 @@ def test_move_task_updates_parent_vision_and_descendants(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(
@@ -242,13 +246,15 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == task.id
+        assert model_cls is task_mutations.Task
+        assert model_id == task.id
         assert include_deleted is False
         return task
 
@@ -259,7 +265,7 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
@@ -328,13 +334,15 @@ def test_update_task_can_clear_optional_fields_without_committing(
         commit=AsyncMock(),
     )
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == UUID("88888888-8888-8888-8888-888888888888")
+        assert model_cls is task_mutations.Task
+        assert model_id == UUID("88888888-8888-8888-8888-888888888888")
         assert include_deleted is False
         return task
 
@@ -349,7 +357,7 @@ def test_update_task_can_clear_optional_fields_without_committing(
         assert parent_task_id is None
         assert child_task_id == task.id
 
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
 
@@ -396,13 +404,15 @@ def test_update_task_can_clear_people_without_committing(
         commit=AsyncMock(),
     )
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == UUID("99999999-9999-9999-9999-999999999999")
+        assert model_cls is task_mutations.Task
+        assert model_id == UUID("99999999-9999-9999-9999-999999999999")
         assert include_deleted is False
         return task
 
@@ -421,7 +431,7 @@ def test_update_task_can_clear_people_without_committing(
         assert kwargs["entity_type"] == "task"
         assert kwargs["desired_person_ids"] == []
 
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "sync_entity_people", fake_sync_people)
     monkeypatch.setattr(
@@ -504,17 +514,19 @@ def test_delete_task_soft_deletes_subtree_without_committing(
     )
     session = SimpleNamespace(flush=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_task(
+    async def fake_load_task(
         _: object,
         *,
-        task_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert task_id == root_task.id
+        assert model_cls is task_mutations.Task
+        assert model_id == root_task.id
         assert include_deleted is False
         return root_task
 
-    monkeypatch.setattr(task_mutations, "_get_task_model", fake_get_task)
+    monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(
         task_mutations,
         "load_task_subtree",

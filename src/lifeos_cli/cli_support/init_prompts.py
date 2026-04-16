@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from lifeos_cli.cli_support.handler_utils import write_cli_error
 from lifeos_cli.config import (
     ConfigurationError,
-    validate_database_schema_name,
-    validate_database_url,
-    validate_language,
 )
 
 
@@ -22,43 +21,23 @@ def prompt_text(label: str, *, default: str | None = None) -> str:
     raise ConfigurationError(f"{label} is required")
 
 
-def prompt_database_url(*, default: str | None = None) -> str:
-    """Prompt until a valid SQLAlchemy PostgreSQL URL is provided."""
+def prompt_validated_text(
+    label: str,
+    default: str | None = None,
+    *,
+    validator: Callable[[str], str],
+) -> str:
+    """Prompt until one validator accepts the entered text."""
     while True:
-        candidate = prompt_text("Database URL", default=default)
+        candidate = prompt_text(label, default=default)
         try:
-            return validate_database_url(candidate)
+            return validator(candidate)
         except ConfigurationError as exc:
             write_cli_error(exc)
             default = None
 
 
-def prompt_database_schema(*, default: str | None = None) -> str:
-    """Prompt until a valid PostgreSQL schema identifier is provided."""
-    while True:
-        candidate = prompt_text("Database schema", default=default)
-        try:
-            return validate_database_schema_name(candidate)
-        except ConfigurationError as exc:
-            write_cli_error(exc)
-            default = None
-
-
-def prompt_language(*, default: str | None = None) -> str:
-    """Prompt until a valid language tag is provided."""
-    while True:
-        candidate = prompt_text(
-            "Preferred language tag for human-authored payloads",
-            default=default,
-        )
-        try:
-            return validate_language(candidate)
-        except ConfigurationError as exc:
-            write_cli_error(exc)
-            default = None
-
-
-def prompt_bool(label: str, *, default: bool) -> bool:
+def prompt_bool(label: str, default: bool) -> bool:
     """Prompt for a yes/no value."""
     suffix = "Y/n" if default else "y/N"
     value = input(f"{label} [{suffix}]: ").strip().lower()

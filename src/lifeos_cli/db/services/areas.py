@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
+from lifeos_cli.db.services.model_utils import load_model_by_id
 
 
 class AreaNotFoundError(LookupError):
@@ -58,10 +59,12 @@ async def get_area(
     include_deleted: bool = False,
 ) -> Area | None:
     """Load an area by identifier."""
-    stmt = select(Area).where(Area.id == area_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Area.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
+    return await load_model_by_id(
+        session,
+        model_cls=Area,
+        model_id=area_id,
+        include_deleted=include_deleted,
+    )
 
 
 async def list_areas(

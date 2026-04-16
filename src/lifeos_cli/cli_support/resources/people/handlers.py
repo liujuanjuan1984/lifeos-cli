@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
@@ -12,16 +11,10 @@ from lifeos_cli.cli_support.output_utils import (
     print_summary_rows,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
+from lifeos_cli.cli_support.time_args import parse_optional_date_value
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import people as people_services
 from lifeos_cli.db.services.read_models import PersonView
-
-
-def _parse_birth_date(value: str | None) -> date | None:
-    if value is None:
-        return None
-    return date.fromisoformat(value)
-
 
 PERSON_SUMMARY_COLUMNS = ("person_id", "status", "name", "location", "tags")
 
@@ -59,7 +52,7 @@ async def handle_people_add_async(args: argparse.Namespace) -> int:
                 name=args.name,
                 description=args.description,
                 nicknames=args.nickname,
-                birth_date=_parse_birth_date(args.birth_date),
+                birth_date=parse_optional_date_value(args.birth_date),
                 location=args.location,
                 tag_ids=args.tag_id,
             )
@@ -139,7 +132,7 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
                 clear_description=args.clear_description,
                 nicknames=args.nickname,
                 clear_nicknames=args.clear_nicknames,
-                birth_date=_parse_birth_date(args.birth_date) if args.birth_date else None,
+                birth_date=parse_optional_date_value(args.birth_date),
                 clear_birth_date=args.clear_birth_date,
                 location=args.location,
                 clear_location=args.clear_location,

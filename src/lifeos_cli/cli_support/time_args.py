@@ -35,6 +35,13 @@ def parse_date_value(value: str) -> date:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
+def parse_optional_date_value(value: str | None) -> date | None:
+    """Parse one optional ISO local date value."""
+    if value is None:
+        return None
+    return date.fromisoformat(value)
+
+
 def parse_datetime_or_date_value(value: str) -> datetime | date:
     """Parse one ISO datetime or date value for query filters."""
     if _DATE_ONLY_PATTERN.fullmatch(value):

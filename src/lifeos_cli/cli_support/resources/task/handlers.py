@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 from uuid import UUID
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
@@ -14,14 +13,9 @@ from lifeos_cli.cli_support.output_utils import (
     print_summary_rows,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
+from lifeos_cli.cli_support.time_args import parse_optional_date_value
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tasks as task_services
-
-
-def _parse_cycle_date(value: str | None) -> date | None:
-    if value is None:
-        return None
-    return date.fromisoformat(value)
 
 
 def _parse_task_order(value: str) -> tuple[UUID, int]:
@@ -125,7 +119,7 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
                 estimated_effort=args.estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
             )
         except (
             task_services.VisionReferenceNotFoundError,
@@ -155,7 +149,7 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
                 status_in=args.status_in,
                 exclude_status=args.exclude_status,
                 planning_cycle_type=args.planning_cycle_type,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
                 content=args.content,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
@@ -362,9 +356,7 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 clear_estimated_effort=args.clear_estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date)
-                if args.planning_cycle_start_date
-                else None,
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
                 clear_planning_cycle=args.clear_planning_cycle,
             )
         except (

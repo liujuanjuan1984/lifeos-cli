@@ -13,6 +13,7 @@ from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.model_utils import load_model_by_id
 from lifeos_cli.db.services.read_models import PersonView, build_person_view
 
 
@@ -22,18 +23,6 @@ class PersonNotFoundError(LookupError):
 
 class PersonAlreadyExistsError(ValueError):
     """Raised when a person with the same name already exists."""
-
-
-async def _get_person_model(
-    session: AsyncSession,
-    *,
-    person_id: UUID,
-    include_deleted: bool,
-) -> Person | None:
-    stmt = select(Person).where(Person.id == person_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Person.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def _build_person_view(session: AsyncSession, person: Person) -> PersonView:
@@ -103,9 +92,10 @@ async def get_person(
     include_deleted: bool = False,
 ) -> PersonView | None:
     """Load a person by identifier."""
-    person = await _get_person_model(
+    person = await load_model_by_id(
         session,
-        person_id=person_id,
+        model_cls=Person,
+        model_id=person_id,
         include_deleted=include_deleted,
     )
     if person is None:
@@ -163,7 +153,12 @@ async def update_person(
     clear_tags: bool = False,
 ) -> PersonView:
     """Update a person."""
-    person = await _get_person_model(session, person_id=person_id, include_deleted=False)
+    person = await load_model_by_id(
+        session,
+        model_cls=Person,
+        model_id=person_id,
+        include_deleted=False,
+    )
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")
     if name is not None:
@@ -219,7 +214,12 @@ async def delete_person(
     person_id: UUID,
 ) -> None:
     """Soft-delete a person."""
-    person = await _get_person_model(session, person_id=person_id, include_deleted=False)
+    person = await load_model_by_id(
+        session,
+        model_cls=Person,
+        model_id=person_id,
+        include_deleted=False,
+    )
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")
     person.soft_delete()

@@ -13,6 +13,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
+from lifeos_cli.db.services.model_utils import load_model_by_id
 from lifeos_cli.db.services.read_models import (
     PersonSummaryView,
     TaskView,
@@ -157,18 +158,6 @@ def _parse_status_csv(value: str | None) -> list[str]:
     return [validate_task_status(item) for item in _split_csv(value)]
 
 
-async def _get_task_model(
-    session: AsyncSession,
-    *,
-    task_id: UUID,
-    include_deleted: bool,
-) -> Task | None:
-    stmt = select(Task).where(Task.id == task_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Task.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
-
-
 async def _build_task_view(session: AsyncSession, task: Task) -> TaskView:
     people_map = await _load_people_map(session, [task])
     return build_task_view(task, people=people_map.get(task.id, ()))
@@ -188,7 +177,12 @@ async def get_task(
     include_deleted: bool = False,
 ) -> TaskView | None:
     """Load a task by identifier."""
-    task = await _get_task_model(session, task_id=task_id, include_deleted=include_deleted)
+    task = await load_model_by_id(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        include_deleted=include_deleted,
+    )
     if task is None:
         return None
     return await _build_task_view(session, task)

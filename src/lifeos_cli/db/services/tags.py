@@ -12,6 +12,7 @@ from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
+from lifeos_cli.db.services.model_utils import load_model_by_id
 from lifeos_cli.db.services.read_models import TagView, build_tag_view
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
@@ -91,18 +92,6 @@ async def create_tag(
     return await _build_tag_view(session, tag)
 
 
-async def _get_tag_model(
-    session: AsyncSession,
-    *,
-    tag_id: UUID,
-    include_deleted: bool,
-) -> Tag | None:
-    stmt = select(Tag).where(Tag.id == tag_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
-
-
 async def _build_tag_view(session: AsyncSession, tag: Tag) -> TagView:
     people_map = await load_people_for_entities(session, entity_ids=[tag.id], entity_type="tag")
     return build_tag_view(tag, people=people_map.get(tag.id, ()))
@@ -126,7 +115,12 @@ async def get_tag(
     include_deleted: bool = False,
 ) -> TagView | None:
     """Load a tag by identifier."""
-    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=include_deleted)
+    tag = await load_model_by_id(
+        session,
+        model_cls=Tag,
+        model_id=tag_id,
+        include_deleted=include_deleted,
+    )
     if tag is None:
         return None
     return await _build_tag_view(session, tag)
@@ -176,7 +170,12 @@ async def update_tag(
     clear_people: bool = False,
 ) -> TagView:
     """Update a tag."""
-    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=False)
+    tag = await load_model_by_id(
+        session,
+        model_cls=Tag,
+        model_id=tag_id,
+        include_deleted=False,
+    )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
     next_name = normalize_tag_name(name) if name is not None else tag.name
@@ -221,7 +220,12 @@ async def update_tag(
 
 async def delete_tag(session: AsyncSession, *, tag_id: UUID) -> None:
     """Soft-delete a tag."""
-    tag = await _get_tag_model(session, tag_id=tag_id, include_deleted=False)
+    tag = await load_model_by_id(
+        session,
+        model_cls=Tag,
+        model_id=tag_id,
+        include_deleted=False,
+    )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
     tag.soft_delete()
