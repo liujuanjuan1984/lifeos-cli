@@ -6,8 +6,8 @@ if [ "${LIFEOS_RUN_INTEGRATION:-}" != "1" ]; then
   exit 0
 fi
 
-if [ -z "${LIFEOS_TEST_DATABASE_URL:-}" ] && [ -z "${LIFEOS_DATABASE_URL:-}" ]; then
-  echo "[integration] LIFEOS_RUN_INTEGRATION=1 requires LIFEOS_TEST_DATABASE_URL or LIFEOS_DATABASE_URL" >&2
+if [ -z "${LIFEOS_TEST_DATABASE_URL:-}" ]; then
+  echo "[integration] LIFEOS_RUN_INTEGRATION=1 requires LIFEOS_TEST_DATABASE_URL" >&2
   exit 1
 fi
 

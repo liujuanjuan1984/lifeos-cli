@@ -11,8 +11,6 @@ import pytest
 from psycopg import sql
 from sqlalchemy.engine import make_url
 
-from lifeos_cli.config import ConfigurationError, DatabaseSettings
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _ID_PATTERN = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
@@ -20,18 +18,8 @@ _ID_PATTERN = re.compile(
 )
 
 
-def _resolve_test_database_url() -> str | None:
-    explicit = os.environ.get("LIFEOS_TEST_DATABASE_URL")
-    if explicit:
-        return explicit
-    try:
-        return DatabaseSettings.from_env().require_database_url()
-    except ConfigurationError:
-        return None
-
-
 RUN_INTEGRATION = os.environ.get("LIFEOS_RUN_INTEGRATION") == "1"
-TEST_DATABASE_URL = _resolve_test_database_url()
+TEST_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
 
 INTEGRATION_PYTESTMARK = [
     pytest.mark.integration,
@@ -39,7 +27,7 @@ INTEGRATION_PYTESTMARK = [
         not RUN_INTEGRATION or TEST_DATABASE_URL is None,
         reason=(
             "set LIFEOS_RUN_INTEGRATION=1 and provide LIFEOS_TEST_DATABASE_URL "
-            "(or a configured lifeos database URL) to run real CLI integration tests"
+            "to run real CLI integration tests"
         ),
     ),
 ]

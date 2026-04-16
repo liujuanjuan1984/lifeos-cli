@@ -48,6 +48,14 @@ def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     assert "bash ./scripts/integration_tests.sh" in VALIDATE_WORKFLOW_TEXT
 
 
+def test_integration_tests_require_an_explicit_test_database_url() -> None:
+    assert "LIFEOS_TEST_DATABASE_URL:-" in Path("scripts/integration_tests.sh").read_text()
+    assert "LIFEOS_DATABASE_URL:-" not in Path("scripts/integration_tests.sh").read_text()
+    support_text = Path("tests/cli_integration_support.py").read_text()
+    assert 'TEST_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
+    assert "DatabaseSettings.from_env" not in support_text
+
+
 def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:
     for symbol in (
         "type_annotation_map",
