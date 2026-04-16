@@ -15,7 +15,7 @@ from lifeos_cli.application.configuration import (
     set_runtime_config_value,
 )
 from lifeos_cli.application.database import (
-    ping_configured_database,
+    ping_configured_database_in_subprocess as ping_configured_database,
 )
 from lifeos_cli.application.database import (
     upgrade_configured_database_in_subprocess as upgrade_configured_database,
@@ -28,19 +28,12 @@ from lifeos_cli.cli_support.help_utils import (
 )
 from lifeos_cli.cli_support.runtime_utils import (
     format_config_summary,
-    run_async,
 )
 from lifeos_cli.config import (
     get_database_settings,
     get_preferences_settings,
 )
 from lifeos_cli.i18n import gettext_message as _
-
-
-async def _run_init_ping() -> int:
-    """Ping the configured database during init."""
-    await ping_configured_database()
-    return 0
 
 
 def _handle_init(args: argparse.Namespace) -> int:
@@ -84,7 +77,7 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        run_async(_run_init_ping())
+        ping_configured_database()
         print("Database connection succeeded.")
 
     if args.skip_migrate:
@@ -292,6 +285,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(
                 _("This command writes the config file, not environment variables."),
                 _("Supported keys: {keys}").format(keys=", ".join(SUPPORTED_CONFIG_KEYS)),
+                _("Use `lifeos init --schema <name>` to change the database schema binding."),
                 _("Use `config show` to inspect the effective values after environment overrides."),
             ),
         ),

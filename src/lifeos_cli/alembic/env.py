@@ -9,26 +9,20 @@ from sqlalchemy import engine_from_config, pool, text
 
 import lifeos_cli.db.models  # noqa: F401, E402
 from lifeos_cli.config import get_database_settings  # noqa: E402
-from lifeos_cli.db.base import Base, apply_database_schema  # noqa: E402
+from lifeos_cli.db.base import DATABASE_SCHEMA, Base  # noqa: E402
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+settings = get_database_settings()
+config.set_main_option("sqlalchemy.url", settings.require_database_url())
 target_metadata = Base.metadata
-
-
-def _load_database_settings():
-    settings = get_database_settings()
-    apply_database_schema(settings.database_schema)
-    config.set_main_option("sqlalchemy.url", settings.require_database_url())
-    return settings
 
 
 def run_migrations_offline() -> None:
     """Run migrations in offline mode."""
-    settings = _load_database_settings()
     context.configure(
         url=settings.require_database_url(),
         target_metadata=target_metadata,
@@ -37,7 +31,7 @@ def run_migrations_offline() -> None:
         compare_type=True,
         compare_server_default=True,
         include_schemas=True,
-        version_table_schema=settings.database_schema,
+        version_table_schema=DATABASE_SCHEMA,
     )
 
     with context.begin_transaction():
@@ -46,7 +40,6 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in online mode."""
-    settings = _load_database_settings()
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -54,7 +47,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.database_schema}"'))
+        connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{DATABASE_SCHEMA}"'))
         connection.commit()
         context.configure(
             connection=connection,
@@ -62,7 +55,7 @@ def run_migrations_online() -> None:
             compare_type=True,
             compare_server_default=True,
             include_schemas=True,
-            version_table_schema=settings.database_schema,
+            version_table_schema=DATABASE_SCHEMA,
         )
 
         with context.begin_transaction():

@@ -9,9 +9,9 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, MetaData, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from lifeos_cli.config import DEFAULT_DATABASE_SCHEMA
+from lifeos_cli.config import get_database_settings
 
-DATABASE_SCHEMA = DEFAULT_DATABASE_SCHEMA
+DATABASE_SCHEMA = get_database_settings().database_schema
 
 NAMING_CONVENTION: dict[str, str] = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",
@@ -34,13 +34,6 @@ class Base(DeclarativeBase):
     type_annotation_map: dict[Any, Any] = {
         UUID: Uuid,
     }
-
-
-def apply_database_schema(schema_name: str) -> None:
-    """Update ORM metadata and mapped tables to the active database schema."""
-    Base.metadata.schema = schema_name
-    for table in Base.metadata.tables.values():
-        table.schema = schema_name
 
 
 class UUIDPrimaryKeyMixin:

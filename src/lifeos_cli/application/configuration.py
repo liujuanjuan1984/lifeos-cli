@@ -59,7 +59,6 @@ class InitializationRequest:
 
 SUPPORTED_CONFIG_KEYS = (
     "database.url",
-    "database.schema",
     "database.echo",
     "preferences.timezone",
     "preferences.language",
@@ -180,6 +179,11 @@ def persist_runtime_settings(
 def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
     """Persist one supported runtime config key and refresh caches."""
     normalized_key = key.strip()
+    if normalized_key == "database.schema":
+        raise ConfigurationError(
+            "Config key `database.schema` is deployment-scoped. "
+            "Re-run `lifeos init --schema <name>` to change it."
+        )
     if normalized_key not in SUPPORTED_CONFIG_KEYS:
         supported_keys = ", ".join(SUPPORTED_CONFIG_KEYS)
         raise ConfigurationError(
@@ -193,11 +197,6 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
         database_settings = replace(
             database_settings,
             database_url=validate_database_url(value),
-        )
-    elif normalized_key == "database.schema":
-        database_settings = replace(
-            database_settings,
-            database_schema=validate_database_schema_name(value),
         )
     elif normalized_key == "database.echo":
         database_settings = replace(

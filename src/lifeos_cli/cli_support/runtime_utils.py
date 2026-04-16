@@ -41,11 +41,9 @@ def make_sync_handler(
 def refresh_runtime_configuration() -> None:
     """Clear cached configuration and session state in the current process."""
     clear_config_cache()
-    from lifeos_cli.db.base import apply_database_schema
     from lifeos_cli.db.session import clear_session_cache
 
     clear_session_cache()
-    apply_database_schema(get_database_settings().database_schema)
 
 
 def format_config_summary(

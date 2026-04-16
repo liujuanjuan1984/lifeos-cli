@@ -3544,6 +3544,10 @@ msgid "Environment variables still override config-file values at runtime."
 msgstr "环境变量仍然会在运行时覆盖配置文件值。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:241
+msgid "Use `lifeos init --schema <name>` to change the database schema binding."
+msgstr "如需修改数据库 schema 绑定，请重新运行 `lifeos init --schema <name>`。"
+
+#: src/lifeos_cli/cli_support/system/config_commands.py:242
 msgid ""
 "Agents should inspect `Preference language` before writing human-authored"
 " titles, descriptions, or note content."
