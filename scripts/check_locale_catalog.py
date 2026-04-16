@@ -14,10 +14,7 @@ LOCALES_DIR = REPO_ROOT / "src" / "lifeos_cli" / "locales"
 
 
 def _iter_catalog_pairs() -> list[tuple[Path, Path]]:
-    return sorted(
-        (po_path, po_path.with_suffix(".mo"))
-        for po_path in LOCALES_DIR.rglob("*.po")
-    )
+    return sorted((po_path, po_path.with_suffix(".mo")) for po_path in LOCALES_DIR.rglob("*.po"))
 
 
 def _build_mo_bytes(po_path: Path) -> bytes:
@@ -64,7 +61,9 @@ def main() -> int:
     args = _parse_args()
     catalog_pairs = _iter_catalog_pairs()
     if args.write:
-        updated_count = sum(1 for po_path, mo_path in catalog_pairs if _write_catalog(po_path, mo_path))
+        updated_count = sum(
+            1 for po_path, mo_path in catalog_pairs if _write_catalog(po_path, mo_path)
+        )
         print(f"Updated {updated_count} compiled locale catalogs.")
         return 0
 
@@ -77,7 +76,8 @@ def main() -> int:
         return 0
     print("\n".join(failures), file=sys.stderr)
     print(
-        "Run `uv run python scripts/check_locale_catalog.py --write` and commit the updated .mo files.",
+        "Run `uv run python scripts/check_locale_catalog.py --write` "
+        "and commit the updated .mo files.",
         file=sys.stderr,
     )
     return 1
