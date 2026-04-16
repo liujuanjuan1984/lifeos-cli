@@ -11,13 +11,13 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.preferences import get_preferred_timezone_name
 from lifeos_cli.application.time_preferences import (
     get_current_week_bounds,
     get_operational_date,
     get_utc_window_for_local_date,
     get_utc_window_for_local_date_range,
 )
-from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.aggregated_timelog_stats_groupby_area import (
     AggregatedTimelogStatsGroupByArea,
 )
@@ -171,7 +171,7 @@ async def _collect_area_stats_for_window(
     start_date: date,
     end_date: date,
 ) -> TimelogStatsReport:
-    timezone_name = get_preferences_settings().timezone
+    timezone_name = get_preferred_timezone_name()
     metrics: dict[UUID, dict[str, int]] = defaultdict(lambda: {"minutes": 0, "timelog_count": 0})
     timelogs = await _load_overlapping_area_timelogs(
         session,
@@ -227,7 +227,7 @@ async def _build_report_from_daily_rows(
         granularity="day",
         start_date=target_date,
         end_date=target_date,
-        timezone=get_preferences_settings().timezone,
+        timezone=get_preferred_timezone_name(),
         rows=tuple(
             TimelogAreaStatsRow(
                 area_id=row.area_id,
@@ -260,7 +260,7 @@ async def _build_report_from_aggregated_rows(
         granularity=granularity,
         start_date=start_date,
         end_date=end_date,
-        timezone=get_preferences_settings().timezone,
+        timezone=get_preferred_timezone_name(),
         rows=tuple(
             TimelogAreaStatsRow(
                 area_id=row.area_id,
@@ -286,7 +286,7 @@ async def recompute_daily_timelog_stats_groupby_area_for_dates(
     local_dates: tuple[date, ...],
 ) -> None:
     """Recompute persisted daily timelog stats grouped by area for local dates."""
-    timezone_name = get_preferences_settings().timezone
+    timezone_name = get_preferred_timezone_name()
     unique_dates = tuple(sorted(set(local_dates)))
     if not unique_dates:
         return
@@ -342,7 +342,7 @@ async def _recompute_aggregated_period(
     start_date: date,
     end_date: date,
 ) -> None:
-    timezone_name = get_preferences_settings().timezone
+    timezone_name = get_preferred_timezone_name()
     window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
     report = await _collect_area_stats_for_window(
         session,
@@ -436,7 +436,7 @@ async def get_timelog_stats_groupby_area_for_day(
     target_date: date,
 ) -> TimelogStatsReport:
     """Return day timelog stats grouped by area."""
-    timezone_name = get_preferences_settings().timezone
+    timezone_name = get_preferred_timezone_name()
     stmt = select(DailyTimelogStatsGroupByArea).where(
         DailyTimelogStatsGroupByArea.stat_date == target_date,
         DailyTimelogStatsGroupByArea.timezone == timezone_name,
@@ -496,7 +496,7 @@ async def get_timelog_stats_groupby_area_for_period(
         month=month,
         year=year,
     )
-    timezone_name = get_preferences_settings().timezone
+    timezone_name = get_preferred_timezone_name()
     stmt = select(AggregatedTimelogStatsGroupByArea).where(
         AggregatedTimelogStatsGroupByArea.granularity == granularity,
         AggregatedTimelogStatsGroupByArea.period_start == start_date,

@@ -412,8 +412,8 @@ def test_sync_vision_experience_uses_root_task_effort(
     monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
     monkeypatch.setattr(
         visions,
-        "get_preferences_settings",
-        lambda: SimpleNamespace(vision_experience_rate_per_hour=120),
+        "get_preferred_vision_experience_rate_per_hour",
+        lambda: 120,
     )
     monkeypatch.setattr(visions, "_build_vision_view", _build_fake_vision_view)
 

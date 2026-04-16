@@ -9,7 +9,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
-from lifeos_cli.config import ConfigurationError, detect_default_language, get_preferences_settings
+from lifeos_cli.application.preferences import get_preferred_language
+from lifeos_cli.config import ConfigurationError, detect_default_language
 
 DOMAIN = "lifeos_cli"
 LOCALES_DIR = Path(__file__).with_name("locales")
@@ -82,7 +83,7 @@ def resolve_locale() -> str:
     if env_locale:
         return env_locale
     try:
-        return get_preferences_settings().language
+        return get_preferred_language()
     except ConfigurationError:
         return detect_default_language()
 

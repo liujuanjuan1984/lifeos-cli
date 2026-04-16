@@ -11,13 +11,13 @@ from uuid import UUID
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.preferences import get_preferred_week_starts_on
 from lifeos_cli.application.time_preferences import (
     get_current_week_bounds,
     get_day_start_time,
     get_operational_date,
     get_preferred_timezone,
 )
-from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.services.recurrence_core import (
     VALID_WEEKDAY_NAMES,
@@ -226,7 +226,7 @@ def _build_habit_series_definition(
         anchor_end=None,
         frequency="daily",
         byweekday=cadence_weekdays,
-        week_starts_on=get_preferences_settings().week_starts_on,
+        week_starts_on=get_preferred_week_starts_on(),
         evaluation_mode=(
             "per_occurrence"
             if cadence_frequency == "daily" and target_per_cycle == 1
@@ -247,7 +247,7 @@ def get_habit_cycle_bounds(
         return get_cycle_date_bounds(
             reference_date=action_date,
             cycle_frequency=cadence_frequency,
-            week_starts_on=get_preferences_settings().week_starts_on,
+            week_starts_on=get_preferred_week_starts_on(),
         )
     except RecurrenceValidationError as exc:
         raise HabitValidationError(str(exc)) from exc

@@ -14,7 +14,8 @@ from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.config import get_database_settings, get_preferences_settings
+from lifeos_cli.application.preferences import get_preferred_timezone_name
+from lifeos_cli.config import get_database_settings
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models import (
     Area,
@@ -1162,13 +1163,12 @@ async def run_post_import_hooks(session: AsyncSession, *, resources: set[str]) -
 
 
 def _bundle_manifest(resource_counts: dict[str, int]) -> dict[str, Any]:
-    preferences = get_preferences_settings()
     return {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "exported_at": datetime.now().astimezone().isoformat(),
         "app_version": _get_app_version(),
         "database_schema": get_database_settings().database_schema,
-        "timezone": preferences.timezone,
+        "timezone": get_preferred_timezone_name(),
         "included_resources": list(resource_counts.keys()),
         "resource_counts": resource_counts,
     }
