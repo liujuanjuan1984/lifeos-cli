@@ -7,6 +7,7 @@ import sys
 from collections.abc import Callable
 from datetime import date
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
     format_timestamp,
@@ -70,11 +71,6 @@ def _format_timelog_detail(timelog: TimelogView) -> str:
     )
 
 
-def _print_timelog_error(exc: Exception) -> int:
-    print(str(exc), file=sys.stderr)
-    return 1
-
-
 def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> str:
     lines = [
         f"granularity: {report.granularity}",
@@ -121,7 +117,7 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogValidationError,
             LookupError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created timelog {timelog.id}")
     return 0
 
@@ -137,14 +133,19 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
             window_end=args.window_end,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-    if args.without_area and (args.area_id is not None or args.area_name is not None):
-        print("Use either an area filter or --without-area, not both.", file=sys.stderr)
-        return 1
-    if args.without_task and args.task_id is not None:
-        print("Use either --task-id or --without-task, not both.", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(
+        (
+            (
+                args.without_area and (args.area_id is not None or args.area_name is not None),
+                "an area filter",
+                "--without-area",
+            ),
+            (args.without_task and args.task_id is not None, "--task-id", "--without-task"),
+        )
+    )
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             timelogs = await timelog_services.list_timelogs(
@@ -192,7 +193,7 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 else None
             )
         except timelog_services.TimelogValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     trailer_lines = () if total_count is None else (f"Total timelogs: {total_count}",)
     print_summary_rows(
         items=timelogs,
@@ -215,8 +216,7 @@ async def handle_timelog_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if timelog is None:
-        print(f"Timelog {args.timelog_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Timelog", args.timelog_id)
     print(_format_timelog_detail(timelog))
     return 0
 
@@ -238,10 +238,9 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
         (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             timelog = await timelog_services.update_timelog(
@@ -273,7 +272,7 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogValidationError,
             LookupError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated timelog {timelog.id}")
     return 0
 
@@ -286,7 +285,7 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
         try:
             await timelog_services.delete_timelog(session, timelog_id=args.timelog_id)
         except timelog_services.TimelogNotFoundError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted timelog {args.timelog_id}")
     return 0
 
@@ -307,7 +306,7 @@ async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogTaskReferenceNotFoundError,
             timelog_services.TimelogValidationError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Restored timelog {timelog.id}")
     return 0
 
@@ -345,10 +344,9 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
         (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     if args.replace_title_text is not None and args.find_title_text is None:
         print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
         return 1
@@ -374,7 +372,7 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
                 clear_people=args.clear_people,
             )
         except timelog_services.TimelogValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated timelogs: {result.updated_count}")
     if result.unchanged_ids:
         print(format_id_lines("Unchanged timelog IDs", result.unchanged_ids))
@@ -441,8 +439,7 @@ async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         report = await timelog_stats.get_timelog_stats_groupby_area_for_range(
             session,
@@ -473,7 +470,7 @@ async def _handle_timelog_stats_period_async(
                 year=year,
             )
         except timelog_stats.TimelogStatsValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_timelog_stats_report(report))
     return 0
 
@@ -516,8 +513,7 @@ async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     if args.rebuild_all and any(value is not None for value in (start_date, end_date)):
         print("Use --all by itself, without --date.", file=sys.stderr)
         return 1
@@ -530,7 +526,7 @@ async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
                 rebuild_all=args.rebuild_all,
             )
         except timelog_stats.TimelogStatsValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     if not rebuilt_dates:
         print("No linked-area timelogs found for the selected rebuild scope.")
         return 0

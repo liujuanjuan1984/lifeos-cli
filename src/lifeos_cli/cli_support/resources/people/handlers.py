@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from datetime import date
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
@@ -64,8 +64,7 @@ async def handle_people_add_async(args: argparse.Namespace) -> int:
                 tag_ids=args.tag_id,
             )
         except (people_services.PersonAlreadyExistsError, LookupError, ValueError) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created person {person.id}")
     return 0
 
@@ -103,8 +102,7 @@ async def handle_people_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if person is None:
-        print(f"Person {args.person_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Person", args.person_id)
     print(_format_person_detail(person))
     return 0
 
@@ -128,10 +126,9 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
         (args.clear_location and args.location is not None, "--location", "--clear-location"),
         (args.clear_tags and args.tag_id is not None, "--tag-id", "--clear-tags"),
     )
-    for is_conflict, value_flag, clear_flag in conflicting_flags:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicting_flags)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             person = await people_services.update_person(
@@ -155,8 +152,7 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
             LookupError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated person {person.id}")
     return 0
 
@@ -169,8 +165,7 @@ async def handle_people_delete_async(args: argparse.Namespace) -> int:
         try:
             await people_services.delete_person(session, person_id=args.person_id)
         except people_services.PersonNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted person {args.person_id}")
     return 0
 

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_summary_header,
     format_timestamp,
@@ -96,8 +96,7 @@ async def handle_vision_add_async(args: argparse.Namespace) -> int:
             vision_services.AreaReferenceNotFoundError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created vision {vision.id}")
     return 0
 
@@ -118,8 +117,7 @@ async def handle_vision_list_async(args: argparse.Namespace) -> int:
                 offset=args.offset,
             )
         except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print_summary_rows(
         items=visions,
         columns=VISION_SUMMARY_COLUMNS,
@@ -140,8 +138,7 @@ async def handle_vision_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if vision is None:
-        print(f"Vision {args.vision_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Vision", args.vision_id)
     print(_format_vision_detail(vision))
     return 0
 
@@ -157,8 +154,7 @@ async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
                 vision_id=args.vision_id,
             )
         except vision_services.VisionNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_vision_with_tasks(vision))
     return 0
 
@@ -174,8 +170,7 @@ async def handle_vision_stats_async(args: argparse.Namespace) -> int:
                 vision_id=args.vision_id,
             )
         except vision_services.VisionNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_vision_stats(stats))
     return 0
 
@@ -198,10 +193,9 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
         ),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
-    for is_conflict, value_flag, clear_flag in conflicting_flags:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicting_flags)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             vision = await vision_services.update_vision(
@@ -224,8 +218,7 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
             vision_services.AreaReferenceNotFoundError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated vision {vision.id}")
     return 0
 
@@ -238,8 +231,7 @@ async def handle_vision_delete_async(args: argparse.Namespace) -> int:
         try:
             await vision_services.delete_vision(session, vision_id=args.vision_id)
         except vision_services.VisionNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted vision {args.vision_id}")
     return 0
 
@@ -256,8 +248,7 @@ async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
                 experience_points=args.experience_points,
             )
         except (vision_services.VisionNotFoundError, ValueError) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated vision {vision.id}")
     return 0
 
@@ -273,8 +264,7 @@ async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
                 vision_id=args.vision_id,
             )
         except vision_services.VisionNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Synced vision {vision.id}")
     return 0
 
@@ -293,8 +283,7 @@ async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
             vision_services.VisionNotFoundError,
             vision_services.VisionNotReadyForHarvestError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Harvested vision {vision.id}")
     return 0
 

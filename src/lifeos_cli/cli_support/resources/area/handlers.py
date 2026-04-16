@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
@@ -56,8 +56,7 @@ async def handle_area_add_async(args: argparse.Namespace) -> int:
                 display_order=args.display_order,
             )
         except area_services.AreaAlreadyExistsError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created area {area.id}")
     return 0
 
@@ -94,8 +93,7 @@ async def handle_area_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if area is None:
-        print(f"Area {args.area_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Area", args.area_id)
     print(_format_area_detail(area))
     return 0
 
@@ -104,12 +102,18 @@ handle_area_show = make_sync_handler(handle_area_show_async)
 
 
 async def handle_area_update_async(args: argparse.Namespace) -> int:
-    if args.clear_description and args.description is not None:
-        print("Use either --description or --clear-description, not both.", file=sys.stderr)
-        return 1
-    if args.clear_icon and args.icon is not None:
-        print("Use either --icon or --clear-icon, not both.", file=sys.stderr)
-        return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(
+        (
+            (
+                args.clear_description and args.description is not None,
+                "--description",
+                "--clear-description",
+            ),
+            (args.clear_icon and args.icon is not None, "--icon", "--clear-icon"),
+        )
+    )
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             area = await area_services.update_area(
@@ -125,8 +129,7 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
                 display_order=args.display_order,
             )
         except (area_services.AreaNotFoundError, area_services.AreaAlreadyExistsError) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated area {area.id}")
     return 0
 
@@ -139,8 +142,7 @@ async def handle_area_delete_async(args: argparse.Namespace) -> int:
         try:
             await area_services.delete_area(session, area_id=args.area_id)
         except area_services.AreaNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted area {args.area_id}")
     return 0
 

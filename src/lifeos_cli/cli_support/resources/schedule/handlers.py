@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
@@ -107,8 +107,7 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         days = await schedule_services.list_schedule_in_range(
             session,

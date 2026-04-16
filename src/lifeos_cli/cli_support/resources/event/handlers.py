@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
@@ -68,11 +68,6 @@ def _format_event_detail(event: event_services.EventView) -> str:
     )
 
 
-def _print_event_error(exc: Exception) -> int:
-    print(str(exc), file=sys.stderr)
-    return 1
-
-
 async def handle_event_add_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -101,7 +96,7 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
             event_services.EventValidationError,
             LookupError,
         ) as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created event {event.id}")
     return 0
 
@@ -117,8 +112,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
             window_end=args.window_end,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
             events = await event_services.list_events(
@@ -139,7 +133,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                 offset=args.offset,
             )
         except event_services.EventValidationError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print_summary_rows(
         items=events,
         columns=EVENT_SUMMARY_COLUMNS,
@@ -160,8 +154,7 @@ async def handle_event_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if event is None:
-        print(f"Event {args.event_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Event", args.event_id)
     print(_format_event_detail(event))
     return 0
 
@@ -196,10 +189,9 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
             "--clear-recurrence",
         ),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             event = await event_services.update_event(
@@ -238,7 +230,7 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
             event_services.EventValidationError,
             LookupError,
         ) as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated event {event.id}")
     return 0
 
@@ -256,9 +248,9 @@ async def handle_event_delete_async(args: argparse.Namespace) -> int:
                 instance_start=args.instance_start,
             )
         except event_services.EventNotFoundError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
         except event_services.EventValidationError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted event {args.event_id}")
     return 0
 

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import cast
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_summary_header,
     format_timestamp,
@@ -170,8 +170,7 @@ async def handle_habit_add_async(args: argparse.Namespace) -> int:
             habit_services.HabitTaskReferenceNotFoundError,
             habit_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created habit {habit.id}")
     return 0
 
@@ -233,8 +232,7 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                 else None
             )
         except habit_services.HabitValidationError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     trailer_lines = () if total_count is None else (f"Total habits: {total_count}",)
     print_summary_rows(
         items=habits,
@@ -258,8 +256,7 @@ async def handle_habit_show_async(args: argparse.Namespace) -> int:
                 include_deleted=args.include_deleted,
             )
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     habit = overview["habit"]
     stats = overview["stats"]
     assert isinstance(habit, Habit)
@@ -289,10 +286,9 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             "--clear-weekdays",
         ),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             habit = await habit_services.update_habit(
@@ -317,8 +313,7 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             habit_services.HabitTaskReferenceNotFoundError,
             habit_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit {habit.id}")
     return 0
 
@@ -331,8 +326,7 @@ async def handle_habit_delete_async(args: argparse.Namespace) -> int:
         try:
             await habit_services.delete_habit(session, habit_id=args.habit_id)
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted habit {args.habit_id}")
     return 0
 
@@ -345,8 +339,7 @@ async def handle_habit_stats_async(args: argparse.Namespace) -> int:
         try:
             stats = await habit_services.get_habit_stats(session, habit_id=args.habit_id)
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_habit_stats(stats))
     return 0
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
@@ -51,8 +52,7 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
             date_values=args.date_values,
         )
     except DateArgumentError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
             actions = await habit_action_services.list_habit_actions(
@@ -81,8 +81,7 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
             habit_action_services.HabitNotFoundError,
             habit_action_services.HabitValidationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     trailer_lines = () if total_count is None else (f"Total habit actions: {total_count}",)
     print_summary_rows(
         items=actions,
@@ -105,8 +104,7 @@ async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if action is None:
-        print(f"Habit action {args.action_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Habit action", args.action_id)
     print(_format_habit_action_detail(action))
     return 0
 
@@ -116,8 +114,7 @@ handle_habit_action_show = make_sync_handler(handle_habit_action_show_async)
 
 async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
     if args.clear_notes and args.notes is not None:
-        print("Use either --notes or --clear-notes, not both.", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_mutually_exclusive_options("--notes", "--clear-notes")
     async with db_session.session_scope() as session:
         try:
             action = await habit_action_services.update_habit_action(
@@ -132,8 +129,7 @@ async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
             habit_action_services.HabitValidationError,
             habit_action_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit action {action.id}")
     return 0
 
@@ -143,8 +139,7 @@ handle_habit_action_update = make_sync_handler(handle_habit_action_update_async)
 
 async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
     if args.clear_notes and args.notes is not None:
-        print("Use either --notes or --clear-notes, not both.", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_mutually_exclusive_options("--notes", "--clear-notes")
     if args.status is None and args.notes is None and not args.clear_notes:
         print("At least one of --status, --notes, or --clear-notes is required.", file=sys.stderr)
         return 1
@@ -164,8 +159,7 @@ async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
             habit_action_services.HabitValidationError,
             habit_action_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit action {action.id}")
     return 0
 
