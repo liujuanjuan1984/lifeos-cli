@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     NOTE_SUMMARY_COLUMNS,
     format_id_lines,
@@ -14,7 +15,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import notes as note_services
@@ -75,15 +75,9 @@ async def handle_note_add_async(args: argparse.Namespace) -> int:
                     timelog_ids=args.timelog_ids,
                 )
     except (LookupError, note_services.NoteValidationError) as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     print(f"Created note {note.id}")
     return 0
-
-
-def handle_note_add(args: argparse.Namespace) -> int:
-    """Create a new note."""
-    return run_async(handle_note_add_async(args))
 
 
 async def handle_note_list_async(args: argparse.Namespace) -> int:
@@ -123,11 +117,6 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
         empty_message="No notes found.",
     )
     return 0
-
-
-def handle_note_list(args: argparse.Namespace) -> int:
-    """List notes."""
-    return run_async(handle_note_list_async(args))
 
 
 async def handle_note_search_async(args: argparse.Namespace) -> int:
@@ -175,11 +164,6 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_note_search(args: argparse.Namespace) -> int:
-    """Search notes by keyword tokens."""
-    return run_async(handle_note_search_async(args))
-
-
 async def handle_note_show_async(args: argparse.Namespace) -> int:
     """Show a note with full content."""
     async with db_session.session_scope() as session:
@@ -189,15 +173,9 @@ async def handle_note_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if note is None:
-        print(f"Note {args.note_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Note", args.note_id)
     print(format_note_detail(note))
     return 0
-
-
-def handle_note_show(args: argparse.Namespace) -> int:
-    """Show a note with full content."""
-    return run_async(handle_note_show_async(args))
 
 
 async def handle_note_update_async(args: argparse.Namespace) -> int:
@@ -210,10 +188,9 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
         (args.clear_events and args.event_ids is not None, "--event-id", "--clear-events"),
         (args.clear_timelogs and args.timelog_ids is not None, "--timelog-id", "--clear-timelogs"),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
 
     try:
         async with db_session.session_scope() as session:
@@ -255,15 +232,9 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
                     clear_timelogs=args.clear_timelogs,
                 )
     except (note_services.NoteNotFoundError, note_services.NoteValidationError, LookupError) as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     print(f"Updated note {note.id}")
     return 0
-
-
-def handle_note_update(args: argparse.Namespace) -> int:
-    """Update note content."""
-    return run_async(handle_note_update_async(args))
 
 
 async def handle_note_delete_async(args: argparse.Namespace) -> int:
@@ -272,15 +243,9 @@ async def handle_note_delete_async(args: argparse.Namespace) -> int:
         async with db_session.session_scope() as session:
             await note_services.delete_note(session, note_id=args.note_id)
     except note_services.NoteNotFoundError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted note {args.note_id}")
     return 0
-
-
-def handle_note_delete(args: argparse.Namespace) -> int:
-    """Delete a note."""
-    return run_async(handle_note_delete_async(args))
 
 
 async def handle_note_batch_update_content_async(args: argparse.Namespace) -> int:
@@ -308,11 +273,6 @@ async def handle_note_batch_update_content_async(args: argparse.Namespace) -> in
     return 1 if result.failed_ids else 0
 
 
-def handle_note_batch_update_content(args: argparse.Namespace) -> int:
-    """Apply a batch content replacement across notes."""
-    return run_async(handle_note_batch_update_content_async(args))
-
-
 async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple notes in one command."""
     async with db_session.session_scope() as session:
@@ -327,8 +287,3 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed note IDs",
         result=result,
     )
-
-
-def handle_note_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple notes in one command."""
-    return run_async(handle_note_batch_delete_async(args))

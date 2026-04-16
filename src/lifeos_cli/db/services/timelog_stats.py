@@ -12,9 +12,10 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
-    get_current_week_bounds,
     get_operational_date,
     get_utc_window_for_local_date,
+    get_utc_window_for_local_date_range,
+    get_week_bounds,
 )
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.aggregated_timelog_stats_groupby_area import (
@@ -53,9 +54,10 @@ class TimelogStatsReport:
     rows: tuple[TimelogAreaStatsRow, ...]
 
 
-def _iter_dates(start_date: date, end_date: date) -> tuple[date, ...]:
+def iter_date_range(start_date: date, end_date: date) -> tuple[date, ...]:
+    """Return the inclusive local date range between two dates."""
     if end_date < start_date:
-        raise TimelogStatsValidationError("--end-date must be on or after --start-date.")
+        raise TimelogStatsValidationError("end_date must be on or after start_date.")
     cursor = start_date
     dates: list[date] = []
     while cursor <= end_date:
@@ -84,7 +86,7 @@ def iter_local_dates_for_timelog_window(
     if end_time <= start_time:
         return ()
     final_moment = end_time - timedelta(microseconds=1)
-    return _iter_dates(get_operational_date(start_time), get_operational_date(final_moment))
+    return iter_date_range(get_operational_date(start_time), get_operational_date(final_moment))
 
 
 def overlap_minutes_for_window(
@@ -119,11 +121,11 @@ def resolve_stats_period(
     if granularity == "range":
         if start_date is None or end_date is None:
             raise TimelogStatsValidationError("`range` stats require `start_date` and `end_date`.")
-        return _iter_dates(start_date, end_date)[0], end_date
+        return iter_date_range(start_date, end_date)[0], end_date
     if granularity == "week":
         if target_date is None:
             raise TimelogStatsValidationError("`week` stats require `target_date`.")
-        return get_current_week_bounds(target_date)
+        return get_week_bounds(target_date)
     if granularity == "month":
         if month is None:
             raise TimelogStatsValidationError("`month` stats require `month`.")
@@ -178,7 +180,8 @@ async def _collect_area_stats_for_window(
         window_end=window_end,
     )
     for timelog in timelogs:
-        assert timelog.area_id is not None
+        if timelog.area_id is None:
+            raise RuntimeError("Area-based timelog stats encountered a timelog without area_id.")
         minutes = overlap_minutes_for_window(
             start_time=timelog.start_time,
             end_time=timelog.end_time,
@@ -301,7 +304,10 @@ async def recompute_daily_timelog_stats_groupby_area_for_dates(
             window_end=window_end,
         )
         for timelog in timelogs:
-            assert timelog.area_id is not None
+            if timelog.area_id is None:
+                raise RuntimeError(
+                    "Area-based timelog stats encountered a timelog without area_id."
+                )
             minutes = overlap_minutes_for_window(
                 start_time=timelog.start_time,
                 end_time=timelog.end_time,
@@ -342,8 +348,7 @@ async def _recompute_aggregated_period(
     end_date: date,
 ) -> None:
     timezone_name = get_preferences_settings().timezone
-    window_start, _ = get_utc_window_for_local_date(start_date)
-    _, window_end = get_utc_window_for_local_date(end_date)
+    window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
     report = await _collect_area_stats_for_window(
         session,
         window_start=window_start,
@@ -387,7 +392,7 @@ async def recompute_aggregated_timelog_stats_groupby_area_for_dates(
         return
     periods: set[tuple[str, date, date]] = set()
     for target_date in unique_dates:
-        periods.add(("week", *get_current_week_bounds(target_date)))
+        periods.add(("week", *get_week_bounds(target_date)))
         periods.add(("month", *get_month_bounds(target_date)))
         periods.add(("year", *get_year_bounds(target_date.year)))
     for granularity, start_date, end_date in sorted(periods):
@@ -467,8 +472,10 @@ async def get_timelog_stats_groupby_area_for_range(
         start_date=start_date,
         end_date=end_date,
     )
-    window_start, _ = get_utc_window_for_local_date(normalized_start_date)
-    _, window_end = get_utc_window_for_local_date(normalized_end_date)
+    window_start, window_end = get_utc_window_for_local_date_range(
+        normalized_start_date,
+        normalized_end_date,
+    )
     return await _collect_area_stats_for_window(
         session,
         window_start=window_start,
@@ -510,8 +517,7 @@ async def get_timelog_stats_groupby_area_for_period(
             end_date=end_date,
             rows=rows,
         )
-    window_start, _ = get_utc_window_for_local_date(start_date)
-    _, window_end = get_utc_window_for_local_date(end_date)
+    window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
     return await _collect_area_stats_for_window(
         session,
         window_start=window_start,
@@ -522,7 +528,10 @@ async def get_timelog_stats_groupby_area_for_period(
     )
 
 
-async def _load_rebuildable_date_range(session: AsyncSession) -> tuple[date, date] | None:
+async def load_rebuildable_timelog_date_range(
+    session: AsyncSession,
+) -> tuple[date, date] | None:
+    """Return the local date range that covers persisted area-based timelogs."""
     stmt = select(func.min(Timelog.start_time), func.max(Timelog.end_time)).where(
         Timelog.deleted_at.is_(None),
         Timelog.area_id.is_not(None),
@@ -538,37 +547,24 @@ async def _load_rebuildable_date_range(session: AsyncSession) -> tuple[date, dat
 async def rebuild_timelog_stats_groupby_area(
     session: AsyncSession,
     *,
-    target_date: date | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     rebuild_all: bool = False,
 ) -> tuple[date, ...]:
     """Rebuild persisted timelog stats grouped by area for a selected local scope."""
     if rebuild_all:
-        if any(value is not None for value in (target_date, start_date, end_date)):
-            raise TimelogStatsValidationError(
-                "Use `--all` by itself, without `--date` or `--start-date/--end-date`."
-            )
-        date_range = await _load_rebuildable_date_range(session)
+        if start_date is not None or end_date is not None:
+            raise TimelogStatsValidationError("Use `--all` by itself, without `--date`.")
+        date_range = await load_rebuildable_timelog_date_range(session)
         if date_range is None:
             return ()
-        local_dates = _iter_dates(*date_range)
-    elif target_date is not None:
-        if start_date is not None or end_date is not None:
-            raise TimelogStatsValidationError(
-                "Use either `--date` or `--start-date/--end-date`, not both."
-            )
-        local_dates = (target_date,)
+        local_dates = iter_date_range(*date_range)
     elif start_date is not None or end_date is not None:
         if start_date is None or end_date is None:
-            raise TimelogStatsValidationError(
-                "`--start-date` and `--end-date` must be provided together."
-            )
-        local_dates = _iter_dates(start_date, end_date)
+            raise TimelogStatsValidationError("Provide `--date` once or twice, or use `--all`.")
+        local_dates = iter_date_range(start_date, end_date)
     else:
-        raise TimelogStatsValidationError(
-            "Select one rebuild scope with `--date`, `--start-date/--end-date`, or `--all`."
-        )
+        raise TimelogStatsValidationError("Select one rebuild scope with `--date` or `--all`.")
 
     await recompute_daily_timelog_stats_groupby_area_for_dates(session, local_dates=local_dates)
     await recompute_aggregated_timelog_stats_groupby_area_for_dates(

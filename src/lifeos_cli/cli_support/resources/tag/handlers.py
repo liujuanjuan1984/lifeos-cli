@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.read_models import TagView
@@ -58,14 +57,9 @@ async def handle_tag_add_async(args: argparse.Namespace) -> int:
             tag_services.InvalidTagEntityTypeError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created tag {tag.id}")
     return 0
-
-
-def handle_tag_add(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_add_async(args))
 
 
 async def handle_tag_list_async(args: argparse.Namespace) -> int:
@@ -81,8 +75,7 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
                 offset=args.offset,
             )
         except tag_services.InvalidTagEntityTypeError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print_summary_rows(
         items=tags,
         columns=TAG_SUMMARY_COLUMNS,
@@ -90,10 +83,6 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
         empty_message="No tags found.",
     )
     return 0
-
-
-def handle_tag_list(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_list_async(args))
 
 
 async def handle_tag_show_async(args: argparse.Namespace) -> int:
@@ -104,26 +93,25 @@ async def handle_tag_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if tag is None:
-        print(f"Tag {args.tag_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Tag", args.tag_id)
     print(_format_tag_detail(tag))
     return 0
 
 
-def handle_tag_show(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_show_async(args))
-
-
 async def handle_tag_update_async(args: argparse.Namespace) -> int:
-    if args.clear_description and args.description is not None:
-        print("Use either --description or --clear-description, not both.", file=sys.stderr)
-        return 1
-    if args.clear_color and args.color is not None:
-        print("Use either --color or --clear-color, not both.", file=sys.stderr)
-        return 1
-    if args.clear_people and args.person_ids is not None:
-        print("Use either --person-id or --clear-people, not both.", file=sys.stderr)
-        return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(
+        (
+            (
+                args.clear_description and args.description is not None,
+                "--description",
+                "--clear-description",
+            ),
+            (args.clear_color and args.color is not None, "--color", "--clear-color"),
+            (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
+        )
+    )
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             tag = await tag_services.update_tag(
@@ -145,14 +133,9 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
             tag_services.InvalidTagEntityTypeError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated tag {tag.id}")
     return 0
-
-
-def handle_tag_update(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_update_async(args))
 
 
 async def handle_tag_delete_async(args: argparse.Namespace) -> int:
@@ -160,14 +143,9 @@ async def handle_tag_delete_async(args: argparse.Namespace) -> int:
         try:
             await tag_services.delete_tag(session, tag_id=args.tag_id)
         except tag_services.TagNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted tag {args.tag_id}")
     return 0
-
-
-def handle_tag_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_tag_delete_async(args))
 
 
 async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
@@ -183,8 +161,3 @@ async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed tag IDs",
         result=result,
     )
-
-
-def handle_tag_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple tags in one command."""
-    return run_async(handle_tag_batch_delete_async(args))

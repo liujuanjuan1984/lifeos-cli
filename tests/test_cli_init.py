@@ -10,6 +10,10 @@ from lifeos_cli.cli_support.system import config_commands
 from lifeos_cli.config import clear_config_cache
 
 
+def _noop_database_subcommand(*, subcommand: str) -> None:
+    del subcommand
+
+
 def test_main_init_non_interactive_writes_config(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -18,8 +22,11 @@ def test_main_init_non_interactive_writes_config(
     config_path = tmp_path / "config.toml"
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", _async_none)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
 
     exit_code = cli.main(
         [
@@ -68,8 +75,11 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     prompts: list[str] = []
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", _async_none)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -114,8 +124,11 @@ def test_main_init_reprompts_invalid_schema_in_interactive_mode(
     responses = iter(["lifeos-dev", "lifeos_dev", "", "", ""])
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", _async_none)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
     monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
@@ -256,6 +269,36 @@ def test_main_config_set_updates_preference_value(
     clear_config_cache()
 
 
+def test_main_config_set_rejects_deployment_scoped_database_schema(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "set", "database.schema", "lifeos_dev"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "deployment-scoped" in captured.err
+    assert "lifeos init --schema <name>" in captured.err
+    assert 'schema = "lifeos"' in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
 def test_main_config_set_updates_database_echo_strictly(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -371,8 +414,11 @@ def test_main_init_can_repair_invalid_existing_config(
     )
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
-    monkeypatch.setattr(config_commands, "upgrade_configured_database", lambda: None)
-    monkeypatch.setattr(config_commands, "ping_configured_database", _async_none)
+    monkeypatch.setattr(
+        config_commands,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
 
     exit_code = cli.main(
         [
@@ -390,7 +436,3 @@ def test_main_init_can_repair_invalid_existing_config(
     assert 'schema = "lifeos"' in rewritten
     assert "[preferences]" in rewritten
     clear_config_cache()
-
-
-async def _async_none() -> None:
-    return None

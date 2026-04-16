@@ -135,12 +135,19 @@ def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    async def fake_get_tag(_: object, *, tag_id: UUID, include_deleted: bool = False) -> object:
-        assert tag_id == UUID("22222222-2222-2222-2222-222222222222")
+    async def fake_load_tag(
+        _: object,
+        *,
+        model_cls: object,
+        model_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert model_cls is tags.Tag
+        assert model_id == UUID("22222222-2222-2222-2222-222222222222")
         assert include_deleted is False
         return tag
 
-    monkeypatch.setattr(tags, "_get_tag_model", fake_get_tag)
+    monkeypatch.setattr(tags, "load_model_by_id", fake_load_tag)
     monkeypatch.setattr(tags, "_build_tag_view", _identity_view)
 
     updated_tag = asyncio.run(
@@ -174,8 +181,15 @@ def test_update_tag_can_clear_people(monkeypatch: pytest.MonkeyPatch) -> None:
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
     )
 
-    async def fake_get_tag(_: object, *, tag_id: UUID, include_deleted: bool = False) -> object:
-        assert tag_id == UUID("22222222-2222-2222-2222-222222222222")
+    async def fake_load_tag(
+        _: object,
+        *,
+        model_cls: object,
+        model_id: UUID,
+        include_deleted: bool = False,
+    ) -> object:
+        assert model_cls is tags.Tag
+        assert model_id == UUID("22222222-2222-2222-2222-222222222222")
         assert include_deleted is False
         return tag
 
@@ -183,7 +197,7 @@ def test_update_tag_can_clear_people(monkeypatch: pytest.MonkeyPatch) -> None:
         assert kwargs["entity_type"] == "tag"
         assert kwargs["desired_person_ids"] == []
 
-    monkeypatch.setattr(tags, "_get_tag_model", fake_get_tag)
+    monkeypatch.setattr(tags, "load_model_by_id", fake_load_tag)
     monkeypatch.setattr(tags, "sync_entity_people", fake_sync_people)
     monkeypatch.setattr(
         tags,
@@ -220,13 +234,15 @@ def test_update_person_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
         commit=AsyncMock(),
     )
 
-    async def fake_get_person(
+    async def fake_load_person(
         _: object,
         *,
-        person_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert person_id == UUID("33333333-3333-3333-3333-333333333333")
+        assert model_cls is people.Person
+        assert model_id == UUID("33333333-3333-3333-3333-333333333333")
         assert include_deleted is False
         return person
 
@@ -241,7 +257,7 @@ def test_update_person_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
         assert entity_type == "person"
         assert desired_tag_ids == []
 
-    monkeypatch.setattr(people, "_get_person_model", fake_get_person)
+    monkeypatch.setattr(people, "load_model_by_id", fake_load_person)
     monkeypatch.setattr(people, "_build_person_view", _identity_view)
     monkeypatch.setattr(people, "sync_entity_tags", fake_sync_entity_tags)
 
@@ -276,17 +292,19 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_vision(
+    async def fake_load_vision(
         _: object,
         *,
-        vision_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert model_cls is visions.Vision
+        assert model_id == UUID("44444444-4444-4444-4444-444444444444")
         assert include_deleted is False
         return vision
 
-    monkeypatch.setattr(visions, "_get_vision_model", fake_get_vision)
+    monkeypatch.setattr(visions, "load_model_by_id", fake_load_vision)
     monkeypatch.setattr(visions, "_build_vision_view", _build_fake_vision_view)
 
     updated_vision = asyncio.run(
@@ -332,17 +350,19 @@ def test_update_vision_rejects_invalid_experience_rate(
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_vision(
+    async def fake_load_vision(
         _: object,
         *,
-        vision_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> object:
-        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert model_cls is visions.Vision
+        assert model_id == UUID("44444444-4444-4444-4444-444444444444")
         assert include_deleted is False
         return vision
 
-    monkeypatch.setattr(visions, "_get_vision_model", fake_get_vision)
+    monkeypatch.setattr(visions, "load_model_by_id", fake_load_vision)
 
     with pytest.raises(ValueError, match="between 1 and 3600"):
         asyncio.run(
@@ -394,13 +414,15 @@ def test_sync_vision_experience_uses_root_task_effort(
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
     root_task = SimpleNamespace(parent_task_id=None, actual_effort_total=240)
 
-    async def fake_get_vision(
+    async def fake_load_vision(
         _: object,
         *,
-        vision_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> Vision:
-        assert vision_id == UUID("44444444-4444-4444-4444-444444444444")
+        assert model_cls is visions.Vision
+        assert model_id == UUID("44444444-4444-4444-4444-444444444444")
         assert include_deleted is False
         return vision
 
@@ -408,7 +430,7 @@ def test_sync_vision_experience_uses_root_task_effort(
         assert vision_id == vision.id
         return [root_task]
 
-    monkeypatch.setattr(visions, "_get_vision_model", fake_get_vision)
+    monkeypatch.setattr(visions, "load_model_by_id", fake_load_vision)
     monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
     monkeypatch.setattr(
         visions,
@@ -455,13 +477,15 @@ def test_get_vision_stats_summarizes_tasks(monkeypatch: pytest.MonkeyPatch) -> N
         ),
     ]
 
-    async def fake_get_vision(
+    async def fake_load_vision(
         _: object,
         *,
-        vision_id: UUID,
+        model_cls: object,
+        model_id: UUID,
         include_deleted: bool = False,
     ) -> Vision:
-        assert vision_id == vision.id
+        assert model_cls is visions.Vision
+        assert model_id == vision.id
         assert include_deleted is False
         return vision
 
@@ -469,7 +493,7 @@ def test_get_vision_stats_summarizes_tasks(monkeypatch: pytest.MonkeyPatch) -> N
         assert vision_id == vision.id
         return tasks
 
-    monkeypatch.setattr(visions, "_get_vision_model", fake_get_vision)
+    monkeypatch.setattr(visions, "load_model_by_id", fake_load_vision)
     monkeypatch.setattr(visions, "_load_active_tasks_for_vision", fake_load_tasks)
 
     stats = asyncio.run(

@@ -21,6 +21,7 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import (
     load_events_for_sources,
     load_people_for_sources,
@@ -152,11 +153,6 @@ def _note_query(
             )
         )
     return stmt
-
-
-def _deduplicate_note_ids(note_ids: list[UUID]) -> list[UUID]:
-    """Return note identifiers in their original order without duplicates."""
-    return list(dict.fromkeys(note_ids))
 
 
 def _tokenize_search_query(query: str) -> list[str]:
@@ -572,7 +568,7 @@ async def batch_update_note_content(
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
-    for note_id in _deduplicate_note_ids(note_ids):
+    for note_id in deduplicate_preserving_order(note_ids):
         try:
             note = await _get_note_model(session, note_id=note_id, include_deleted=False)
             if note is None:
@@ -610,7 +606,7 @@ async def batch_delete_notes(
 ) -> BatchDeleteResult:
     """Soft-delete multiple notes while preserving per-note error reporting."""
     return await batch_delete_records(
-        identifiers=_deduplicate_note_ids(note_ids),
+        identifiers=deduplicate_preserving_order(note_ids),
         delete_record=lambda note_id: delete_note(session, note_id=note_id),
         handled_exceptions=(NoteNotFoundError,),
     )

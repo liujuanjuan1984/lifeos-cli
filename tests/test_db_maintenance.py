@@ -12,7 +12,7 @@ from lifeos_cli.db import maintenance
 def test_build_alembic_config_uses_packaged_migration_resources() -> None:
     with ExitStack() as stack:
         config = maintenance.build_alembic_config(
-            sqlalchemy_url="postgresql+psycopg://localhost/lifeos",
+            sqlalchemy_url="postgresql+psycopg://localhost/lifeos_test",
             stack=stack,
         )
         script_location_text = config.get_main_option("script_location")
@@ -20,7 +20,9 @@ def test_build_alembic_config_uses_packaged_migration_resources() -> None:
         assert script_location_text is not None
         script_location = Path(script_location_text)
 
-        assert config.get_main_option("sqlalchemy.url") == "postgresql+psycopg://localhost/lifeos"
+        assert (
+            config.get_main_option("sqlalchemy.url") == "postgresql+psycopg://localhost/lifeos_test"
+        )
         assert script_location.name == "alembic"
         assert script_location.joinpath("env.py").is_file()
         assert script_location.joinpath("script.py.mako").is_file()

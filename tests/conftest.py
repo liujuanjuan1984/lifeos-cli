@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 
 from tests.cli_integration_support import (
-    TEST_DATABASE_URL,
+    INTEGRATION_DATABASE_URL,
     IntegrationContext,
     _drop_schema,
 )
@@ -24,7 +24,7 @@ def isolated_runtime_locale(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 
 @pytest.fixture
 def integration_context(tmp_path: Path) -> Iterator[IntegrationContext]:
-    assert TEST_DATABASE_URL is not None
+    assert INTEGRATION_DATABASE_URL is not None
     schema = f"lifeos_test_{uuid4().hex[:12]}"
     config_path = tmp_path / "lifeos-config.toml"
     env = os.environ.copy()
@@ -32,8 +32,13 @@ def integration_context(tmp_path: Path) -> Iterator[IntegrationContext]:
     env.pop("LIFEOS_DATABASE_URL", None)
     env.pop("LIFEOS_DATABASE_SCHEMA", None)
     env.pop("LIFEOS_DATABASE_ECHO", None)
+    env.pop("LIFEOS_TIMEZONE", None)
+    env.pop("LIFEOS_LANGUAGE", None)
+    env.pop("LIFEOS_DAY_STARTS_AT", None)
+    env.pop("LIFEOS_WEEK_STARTS_ON", None)
+    env.pop("LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR", None)
     context = IntegrationContext(
-        database_url=TEST_DATABASE_URL,
+        database_url=INTEGRATION_DATABASE_URL,
         schema=schema,
         config_path=config_path,
         env=env,
@@ -41,4 +46,4 @@ def integration_context(tmp_path: Path) -> Iterator[IntegrationContext]:
     try:
         yield context
     finally:
-        _drop_schema(TEST_DATABASE_URL, schema)
+        _drop_schema(INTEGRATION_DATABASE_URL, schema)

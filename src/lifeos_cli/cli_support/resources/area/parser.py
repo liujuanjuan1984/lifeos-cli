@@ -14,13 +14,14 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.area.handlers import (
     AREA_SUMMARY_COLUMNS,
-    handle_area_add,
-    handle_area_batch_delete,
-    handle_area_delete,
-    handle_area_list,
-    handle_area_show,
-    handle_area_update,
+    handle_area_add_async,
+    handle_area_batch_delete_async,
+    handle_area_delete_async,
+    handle_area_list_async,
+    handle_area_show_async,
+    handle_area_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -90,7 +91,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--inactive", action="store_true", help=_("Create the area as inactive")
     )
     add_parser.add_argument("--display-order", type=int, default=0, help=_("Display order"))
-    add_parser.set_defaults(handler=handle_area_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_area_add_async))
 
     list_parser = add_documented_parser(
         area_subparsers,
@@ -125,7 +126,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--include-inactive", action="store_true", help=_("Include inactive areas")
     )
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_area_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_area_list_async))
 
     show_parser = add_documented_parser(
         area_subparsers,
@@ -149,7 +150,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     )
     show_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
     add_include_deleted_argument(show_parser, noun="areas", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_area_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_area_show_async))
 
     update_parser = add_documented_parser(
         area_subparsers,
@@ -192,7 +193,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help=_("Toggle whether the area is active"),
     )
     update_parser.add_argument("--display-order", type=int, help=_("Updated display order"))
-    update_parser.set_defaults(handler=handle_area_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_area_update_async))
 
     delete_parser = add_documented_parser(
         area_subparsers,
@@ -211,7 +212,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     delete_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
-    delete_parser.set_defaults(handler=handle_area_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_area_delete_async))
 
     batch_parser = add_documented_parser(
         area_subparsers,
@@ -250,4 +251,4 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="area_ids", noun="area")
-    batch_delete_parser.set_defaults(handler=handle_area_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_area_batch_delete_async))

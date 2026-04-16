@@ -47,7 +47,6 @@ rm -rf .venv && uv sync --all-extras --python 3.13 --frozen && bash ./scripts/do
 To run the real CLI integration suite locally:
 
 ```bash
-LIFEOS_RUN_INTEGRATION=1 \
 LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432/lifeos_test \
 bash ./scripts/integration_tests.sh
 ```

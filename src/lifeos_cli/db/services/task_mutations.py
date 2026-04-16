@@ -12,15 +12,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import sync_entity_people
+from lifeos_cli.db.services.model_utils import load_model_by_id
 from lifeos_cli.db.services.read_models import TaskView
 from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
-from lifeos_cli.db.services.task_queries import _build_task_view, _get_task_model
+from lifeos_cli.db.services.task_queries import _build_task_view
 from lifeos_cli.db.services.task_support import (
     InvalidTaskOperationError,
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
-    deduplicate_task_ids,
     ensure_vision_exists,
     load_task_subtree,
     validate_parent_task,
@@ -142,7 +143,12 @@ async def move_task(
     new_display_order: int | None = None,
 ) -> TaskMoveResult:
     """Move a task to a new parent and optionally a new vision."""
-    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
+    task = await load_model_by_id(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        include_deleted=False,
+    )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
 
@@ -191,7 +197,7 @@ async def move_task(
         )
         if task_id is not None
     ]
-    for recompute_root_id in deduplicate_task_ids(recompute_roots):
+    for recompute_root_id in deduplicate_preserving_order(recompute_roots):
         await recompute_totals_upwards(session, recompute_root_id)
     await session.flush()
     await session.refresh(task)
@@ -220,7 +226,12 @@ async def update_task(
     clear_people: bool = False,
 ) -> TaskView:
     """Update a task."""
-    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
+    task = await load_model_by_id(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        include_deleted=False,
+    )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     if parent_task_id == task_id:
@@ -312,7 +323,12 @@ async def update_task(
 
 async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     """Soft-delete a task."""
-    task = await _get_task_model(session, task_id=task_id, include_deleted=False)
+    task = await load_model_by_id(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        include_deleted=False,
+    )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     old_parent_task_id = task.parent_task_id
@@ -331,7 +347,7 @@ async def batch_delete_tasks(
 ) -> BatchDeleteResult:
     """Soft-delete multiple tasks while preserving per-task error reporting."""
     return await batch_delete_records(
-        identifiers=deduplicate_task_ids(task_ids),
+        identifiers=deduplicate_preserving_order(task_ids),
         delete_record=lambda task_id: delete_task(session, task_id=task_id),
         handled_exceptions=(TaskNotFoundError,),
     )

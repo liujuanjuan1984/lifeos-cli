@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import data_ops
 
@@ -192,12 +192,7 @@ async def handle_data_export_async(args: argparse.Namespace) -> int:
             print(f"Exported {len(rows)} {args.target} rows to {args.output}")
         return 0
     except data_ops.DataOperationError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-
-
-def handle_data_export(args: argparse.Namespace) -> int:
-    return run_async(handle_data_export_async(args))
+        return cli_handler_utils.print_cli_error(exc)
 
 
 async def _import_rows(
@@ -303,12 +298,7 @@ async def handle_data_import_async(args: argparse.Namespace) -> int:
         print(f"Failed rows: {import_report.failed_count}")
         return 0 if import_report.failed_count == 0 else 1
     except (data_ops.DataOperationError, LookupError, ValueError) as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-
-
-def handle_data_import(args: argparse.Namespace) -> int:
-    return run_async(handle_data_import_async(args))
+        return cli_handler_utils.print_cli_error(exc)
 
 
 async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
@@ -335,12 +325,7 @@ async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
         print(f"Failed rows: {report.failed_count}")
         return 0 if report.failed_count == 0 else 1
     except data_ops.DataOperationError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-
-
-def handle_data_batch_update(args: argparse.Namespace) -> int:
-    return run_async(handle_data_batch_update_async(args))
+        return cli_handler_utils.print_cli_error(exc)
 
 
 async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
@@ -353,8 +338,7 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
             input_format=args.format,
         )
     except data_ops.DataOperationError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
 
     session = db_session.get_async_session_factory()()
     try:
@@ -370,8 +354,7 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
     except (data_ops.DataOperationError, LookupError, ValueError) as exc:
         await session.rollback()
         await session.close()
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     await session.close()
     _write_failures(failure_path=args.error_file, failures=report.failures)
     print(f"Resource: {report.resource}")
@@ -379,7 +362,3 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
     print(f"Deleted rows: {report.deleted_count}")
     print(f"Failed rows: {report.failed_count}")
     return 0 if report.failed_count == 0 else 1
-
-
-def handle_data_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_data_batch_delete_async(args))

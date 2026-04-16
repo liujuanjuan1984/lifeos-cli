@@ -512,6 +512,9 @@ def test_cli_parser_supports_timelog_stats_commands() -> None:
     parser = build_parser()
 
     day_args = parser.parse_args(["timelog", "stats", "day", "--date", "2026-04-10"])
+    range_args = parser.parse_args(
+        ["timelog", "stats", "range", "--date", "2026-04-01", "--date", "2026-04-30"]
+    )
     month_args = parser.parse_args(["timelog", "stats", "month", "--month", "2026-04"])
     rebuild_args = parser.parse_args(["timelog", "stats", "rebuild", "--all"])
 
@@ -519,6 +522,8 @@ def test_cli_parser_supports_timelog_stats_commands() -> None:
     assert day_args.timelog_command == "stats"
     assert day_args.timelog_stats_command == "day"
     assert day_args.target_date == date(2026, 4, 10)
+    assert range_args.timelog_stats_command == "range"
+    assert range_args.date_values == [date(2026, 4, 1), date(2026, 4, 30)]
     assert month_args.timelog_stats_command == "month"
     assert month_args.month == date(2026, 4, 1)
     assert rebuild_args.timelog_stats_command == "rebuild"
@@ -631,7 +636,7 @@ def test_cli_parser_supports_event_list_by_local_date() -> None:
 
     assert args.resource == "event"
     assert args.event_command == "list"
-    assert str(args.local_date) == "2026-04-10"
+    assert args.date_values == [date(2026, 4, 10)]
 
 
 def test_cli_parser_supports_event_recurrence_add_flags() -> None:
@@ -843,14 +848,11 @@ def test_cli_parser_supports_schedule_show_command() -> None:
 
 def test_cli_parser_supports_schedule_list_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(
-        ["schedule", "list", "--start-date", "2026-04-10", "--end-date", "2026-04-16"]
-    )
+    args = parser.parse_args(["schedule", "list", "--date", "2026-04-10", "--date", "2026-04-16"])
 
     assert args.resource == "schedule"
     assert args.schedule_command == "list"
-    assert str(args.start_date) == "2026-04-10"
-    assert str(args.end_date) == "2026-04-16"
+    assert args.date_values == [date(2026, 4, 10), date(2026, 4, 16)]
 
 
 def test_cli_parser_supports_people_update_clear_location_command() -> None:
@@ -896,7 +898,7 @@ def test_cli_parser_supports_timelog_list_by_local_date() -> None:
 
     assert args.resource == "timelog"
     assert args.timelog_command == "list"
-    assert str(args.local_date) == "2026-04-10"
+    assert args.date_values == [date(2026, 4, 10)]
 
 
 def test_cli_parser_supports_timelog_list_search_filters() -> None:
@@ -1344,19 +1346,19 @@ def test_cli_parser_supports_habit_action_list_by_date_command() -> None:
         [
             "habit-action",
             "list",
-            "--action-date",
+            "--date",
             "2026-04-09",
         ]
     )
 
     assert args.resource == "habit-action"
     assert args.habit_action_command == "list"
-    assert str(args.action_date) == "2026-04-09"
+    assert args.date_values == [date(2026, 4, 9)]
 
 
 def test_cli_parser_supports_habit_action_list_count_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(["habit-action", "list", "--action-date", "2026-04-09", "--count"])
+    args = parser.parse_args(["habit-action", "list", "--date", "2026-04-09", "--count"])
 
     assert args.resource == "habit-action"
     assert args.habit_action_command == "list"
@@ -1371,7 +1373,7 @@ def test_cli_parser_supports_habit_action_log_command() -> None:
             "log",
             "--habit-id",
             "77777777-7777-7777-7777-777777777777",
-            "--action-date",
+            "--date",
             "2026-04-09",
             "--status",
             "done",

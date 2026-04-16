@@ -4,23 +4,17 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 from uuid import UUID
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import parse_optional_date_value
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tasks as task_services
-
-
-def _parse_cycle_date(value: str | None) -> date | None:
-    if value is None:
-        return None
-    return date.fromisoformat(value)
 
 
 def _parse_task_order(value: str) -> tuple[UUID, int]:
@@ -124,7 +118,7 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
                 estimated_effort=args.estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
             )
         except (
             task_services.VisionReferenceNotFoundError,
@@ -133,14 +127,9 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
             task_services.InvalidPlanningCycleError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created task {task.id}")
     return 0
-
-
-def handle_task_add(args: argparse.Namespace) -> int:
-    return run_async(handle_task_add_async(args))
 
 
 async def handle_task_list_async(args: argparse.Namespace) -> int:
@@ -156,15 +145,14 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
                 status_in=args.status_in,
                 exclude_status=args.exclude_status,
                 planning_cycle_type=args.planning_cycle_type,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date),
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
                 content=args.content,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
         except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print_summary_rows(
         items=tasks,
         columns=TASK_SUMMARY_COLUMNS,
@@ -172,10 +160,6 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
         empty_message="No tasks found.",
     )
     return 0
-
-
-def handle_task_list(args: argparse.Namespace) -> int:
-    return run_async(handle_task_list_async(args))
 
 
 async def handle_task_show_async(args: argparse.Namespace) -> int:
@@ -186,14 +170,9 @@ async def handle_task_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if task is None:
-        print(f"Task {args.task_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Task", args.task_id)
     print(_format_task_detail(task))
     return 0
-
-
-def handle_task_show(args: argparse.Namespace) -> int:
-    return run_async(handle_task_show_async(args))
 
 
 async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
@@ -203,14 +182,9 @@ async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
             task_id=args.task_id,
         )
     if task is None:
-        print(f"Task {args.task_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Task", args.task_id)
     print(_format_task_tree(task))
     return 0
-
-
-def handle_task_with_subtasks(args: argparse.Namespace) -> int:
-    return run_async(handle_task_with_subtasks_async(args))
 
 
 async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
@@ -221,14 +195,9 @@ async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
                 vision_id=args.vision_id,
             )
         except task_services.VisionReferenceNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_task_hierarchy(hierarchy))
     return 0
-
-
-def handle_task_hierarchy(args: argparse.Namespace) -> int:
-    return run_async(handle_task_hierarchy_async(args))
 
 
 async def handle_task_stats_async(args: argparse.Namespace) -> int:
@@ -239,20 +208,16 @@ async def handle_task_stats_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
             )
         except task_services.TaskNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_task_stats(stats))
     return 0
 
 
-def handle_task_stats(args: argparse.Namespace) -> int:
-    return run_async(handle_task_stats_async(args))
-
-
 async def handle_task_move_async(args: argparse.Namespace) -> int:
     if args.clear_parent and args.new_parent_task_id is not None:
-        print("Use either --new-parent-task-id or --clear-parent, not both.", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_mutually_exclusive_options(
+            "--new-parent-task-id", "--clear-parent"
+        )
     if (
         not args.clear_parent
         and args.new_parent_task_id is None
@@ -288,24 +253,18 @@ async def handle_task_move_async(args: argparse.Namespace) -> int:
             task_services.InvalidTaskOperationError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Moved task {result.task.id}")
     if result.updated_descendants:
         print(f"Updated descendants: {len(result.updated_descendants)}")
     return 0
 
 
-def handle_task_move(args: argparse.Namespace) -> int:
-    return run_async(handle_task_move_async(args))
-
-
 async def handle_task_reorder_async(args: argparse.Namespace) -> int:
     try:
         task_orders = [_parse_task_order(value) for value in args.order]
     except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
             await task_services.reorder_tasks(
@@ -313,14 +272,9 @@ async def handle_task_reorder_async(args: argparse.Namespace) -> int:
                 task_orders=task_orders,
             )
         except task_services.TaskNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Reordered tasks: {len(task_orders)}")
     return 0
-
-
-def handle_task_reorder(args: argparse.Namespace) -> int:
-    return run_async(handle_task_reorder_async(args))
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
@@ -355,10 +309,9 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
             "--clear-planning-cycle",
         ),
     )
-    for is_conflict, value_flag, clear_flag in conflicting_flags:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicting_flags)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             task = await task_services.update_task(
@@ -378,9 +331,7 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
                 clear_estimated_effort=args.clear_estimated_effort,
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_days=args.planning_cycle_days,
-                planning_cycle_start_date=_parse_cycle_date(args.planning_cycle_start_date)
-                if args.planning_cycle_start_date
-                else None,
+                planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
                 clear_planning_cycle=args.clear_planning_cycle,
             )
         except (
@@ -390,14 +341,9 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
             task_services.InvalidPlanningCycleError,
             ValueError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated task {task.id}")
     return 0
-
-
-def handle_task_update(args: argparse.Namespace) -> int:
-    return run_async(handle_task_update_async(args))
 
 
 async def handle_task_delete_async(args: argparse.Namespace) -> int:
@@ -405,14 +351,9 @@ async def handle_task_delete_async(args: argparse.Namespace) -> int:
         try:
             await task_services.delete_task(session, task_id=args.task_id)
         except task_services.TaskNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted task {args.task_id}")
     return 0
-
-
-def handle_task_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_task_delete_async(args))
 
 
 async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
@@ -428,8 +369,3 @@ async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed task IDs",
         result=result,
     )
-
-
-def handle_task_batch_delete(args: argparse.Namespace) -> int:
-    """Delete multiple tasks in one command."""
-    return run_async(handle_task_batch_delete_async(args))

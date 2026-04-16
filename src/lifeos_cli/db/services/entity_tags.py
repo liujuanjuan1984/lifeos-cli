@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 
 
 async def sync_entity_tags(
@@ -20,7 +21,7 @@ async def sync_entity_tags(
     desired_tag_ids: list[UUID],
 ) -> None:
     """Replace an entity's tags with the provided identifiers."""
-    unique_tag_ids = list(dict.fromkeys(desired_tag_ids))
+    unique_tag_ids = deduplicate_preserving_order(desired_tag_ids)
     existing_stmt = select(Tag.id).where(
         Tag.id.in_(unique_tag_ids),
         Tag.entity_type == entity_type,

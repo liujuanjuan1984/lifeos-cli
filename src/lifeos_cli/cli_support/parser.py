@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from importlib.metadata import PackageNotFoundError, metadata, version
+from importlib.metadata import PackageNotFoundError, metadata
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from lifeos_cli.application.package_metadata import get_installed_package_version
 from lifeos_cli.cli_support.help_utils import CompactSubcommandHelpFormatter, build_epilog
 from lifeos_cli.cli_support.resources.area.parser import build_area_parser
 from lifeos_cli.cli_support.resources.data.parser import build_data_parser
@@ -56,14 +57,6 @@ class TopLevelArgumentParser(argparse.ArgumentParser):
         ):
             return "".join(lines[1:]).lstrip("\n")
         return help_text
-
-
-def get_version() -> str:
-    """Return the installed distribution version when available."""
-    try:
-        return version("lifeos-cli")
-    except PackageNotFoundError:
-        return "0+unknown"
 
 
 def get_project_urls() -> tuple[str, str]:
@@ -126,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {get_version()}",
+        version=f"%(prog)s {get_installed_package_version()}",
         help=_("Show the program version and exit"),
     )
     subparsers = parser.add_subparsers(

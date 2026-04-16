@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import (
+    DateArgumentError,
+    resolve_required_date_interval_arguments,
+)
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import schedules as schedule_services
 
@@ -94,23 +97,18 @@ async def handle_schedule_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_schedule_show(args: argparse.Namespace) -> int:
-    return run_async(handle_schedule_show_async(args))
-
-
 async def handle_schedule_list_async(args: argparse.Namespace) -> int:
-    if args.end_date < args.start_date:
-        print("--end-date must be on or after --start-date.", file=sys.stderr)
-        return 1
+    try:
+        start_date, end_date = resolve_required_date_interval_arguments(
+            date_values=args.date_values,
+        )
+    except DateArgumentError as exc:
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         days = await schedule_services.list_schedule_in_range(
             session,
-            start_date=args.start_date,
-            end_date=args.end_date,
+            start_date=start_date,
+            end_date=end_date,
         )
     print("\n\n".join(_format_schedule_day(day) for day in days))
     return 0
-
-
-def handle_schedule_list(args: argparse.Namespace) -> int:
-    return run_async(handle_schedule_list_async(args))

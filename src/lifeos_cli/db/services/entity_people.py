@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 
 
 async def sync_entity_people(
@@ -20,7 +21,7 @@ async def sync_entity_people(
     desired_person_ids: list[UUID],
 ) -> None:
     """Replace an entity's linked people with the provided identifiers."""
-    unique_person_ids = list(dict.fromkeys(desired_person_ids))
+    unique_person_ids = deduplicate_preserving_order(desired_person_ids)
     existing_stmt = select(Person.id).where(
         Person.id.in_(unique_person_ids),
         Person.deleted_at.is_(None),

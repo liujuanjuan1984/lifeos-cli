@@ -46,9 +46,6 @@ from lifeos_cli.db.services.task_support import (
     validate_task_status_change,
 )
 from lifeos_cli.db.services.task_support import (
-    deduplicate_task_ids as _deduplicate_task_ids,
-)
-from lifeos_cli.db.services.task_support import (
     ensure_vision_exists as _ensure_vision_exists,
 )
 from lifeos_cli.db.services.task_support import (
@@ -72,7 +69,6 @@ __all__ = [
     "TaskWithSubtasks",
     "TaskMoveResult",
     "VisionReferenceNotFoundError",
-    "_deduplicate_task_ids",
     "_ensure_vision_exists",
     "_validate_parent_task",
     "batch_delete_tasks",

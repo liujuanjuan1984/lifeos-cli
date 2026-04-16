@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
-import sys
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_timestamp,
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import (
+    DateArgumentError,
+    resolve_exclusive_date_or_datetime_query,
+)
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import events as event_services
 
@@ -64,11 +67,6 @@ def _format_event_detail(event: event_services.EventView) -> str:
     )
 
 
-def _print_event_error(exc: Exception) -> int:
-    print(str(exc), file=sys.stderr)
-    return 1
-
-
 async def handle_event_add_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -97,24 +95,20 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
             event_services.EventValidationError,
             LookupError,
         ) as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created event {event.id}")
     return 0
 
 
-def handle_event_add(args: argparse.Namespace) -> int:
-    return run_async(handle_event_add_async(args))
-
-
 async def handle_event_list_async(args: argparse.Namespace) -> int:
-    if args.local_date is not None and (
-        args.window_start is not None or args.window_end is not None
-    ):
-        print(
-            "Use either --date or --window-start/--window-end, not both.",
-            file=sys.stderr,
+    try:
+        query = resolve_exclusive_date_or_datetime_query(
+            date_values=args.date_values,
+            window_start=args.window_start,
+            window_end=args.window_end,
         )
-        return 1
+    except DateArgumentError as exc:
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
             events = await event_services.list_events(
@@ -126,15 +120,16 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
-                local_date=args.local_date,
-                window_start=args.window_start,
-                window_end=args.window_end,
+                start_date=query.start_date,
+                end_date=query.end_date,
+                window_start=query.window_start,
+                window_end=query.window_end,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
         except event_services.EventValidationError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print_summary_rows(
         items=events,
         columns=EVENT_SUMMARY_COLUMNS,
@@ -142,10 +137,6 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
         empty_message="No events found.",
     )
     return 0
-
-
-def handle_event_list(args: argparse.Namespace) -> int:
-    return run_async(handle_event_list_async(args))
 
 
 async def handle_event_show_async(args: argparse.Namespace) -> int:
@@ -156,14 +147,9 @@ async def handle_event_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if event is None:
-        print(f"Event {args.event_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Event", args.event_id)
     print(_format_event_detail(event))
     return 0
-
-
-def handle_event_show(args: argparse.Namespace) -> int:
-    return run_async(handle_event_show_async(args))
 
 
 async def handle_event_update_async(args: argparse.Namespace) -> int:
@@ -193,10 +179,9 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
             "--clear-recurrence",
         ),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             event = await event_services.update_event(
@@ -235,13 +220,9 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
             event_services.EventValidationError,
             LookupError,
         ) as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated event {event.id}")
     return 0
-
-
-def handle_event_update(args: argparse.Namespace) -> int:
-    return run_async(handle_event_update_async(args))
 
 
 async def handle_event_delete_async(args: argparse.Namespace) -> int:
@@ -254,15 +235,11 @@ async def handle_event_delete_async(args: argparse.Namespace) -> int:
                 instance_start=args.instance_start,
             )
         except event_services.EventNotFoundError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
         except event_services.EventValidationError as exc:
-            return _print_event_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted event {args.event_id}")
     return 0
-
-
-def handle_event_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_event_delete_async(args))
 
 
 async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
@@ -277,7 +254,3 @@ async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed event IDs",
         result=result,
     )
-
-
-def handle_event_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_event_batch_delete_async(args))

@@ -18,6 +18,7 @@ from lifeos_cli.db.services.notes import (
     NoteBatchUpdateResult,
     NoteNotFoundError,
 )
+from tests.config_support import install_test_config
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
@@ -467,21 +468,7 @@ def test_main_note_add_prints_actionable_authentication_guidance(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    config_path = tmp_path / "config.toml"
-    config_path.write_text(
-        "\n".join(
-            (
-                "[database]",
-                'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"',
-                'schema = "lifeos"',
-                "echo = false",
-                "",
-            )
-        ),
-        encoding="utf-8",
-    )
-    clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_database=True)
 
     async def fake_create_note(session: object, *, content: str) -> object:
         raise OperationalError(

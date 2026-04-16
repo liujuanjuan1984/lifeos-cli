@@ -7,26 +7,17 @@ import pytest
 
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services import timelog_stats
+from tests.config_support import install_test_config
 
 
 @pytest.fixture
 def configured_time_preferences(monkeypatch: pytest.MonkeyPatch, tmp_path) -> Iterator[None]:
-    config_path = tmp_path / "config.toml"
-    config_path.write_text(
-        "\n".join(
-            (
-                "[preferences]",
-                'timezone = "America/Toronto"',
-                'language = "en"',
-                'day_starts_at = "04:00"',
-                'week_starts_on = "sunday"',
-                "",
-            )
-        ),
-        encoding="utf-8",
+    install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        week_starts_on="sunday",
     )
-    clear_config_cache()
-    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     yield
     clear_config_cache()
 

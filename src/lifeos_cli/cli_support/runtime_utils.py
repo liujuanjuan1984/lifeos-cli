@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import sys
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
+from functools import partial
 
 from sqlalchemy.exc import OperationalError
 
@@ -17,9 +19,27 @@ from lifeos_cli.config import (
 )
 
 
-def run_async(operation: Coroutine[object, object, int]) -> int:
-    """Run an async CLI operation from the synchronous CLI entrypoint."""
-    return int(asyncio.run(operation))
+def make_sync_handler(
+    async_handler: Callable[[argparse.Namespace], Coroutine[object, object, int]],
+) -> Callable[[argparse.Namespace], int]:
+    """Adapt one async CLI handler to the synchronous argparse entrypoint."""
+
+    metadata_target = async_handler
+    while isinstance(metadata_target, partial):
+        metadata_target = metadata_target.func
+
+    def handler(args: argparse.Namespace) -> int:
+        return int(asyncio.run(async_handler(args)))
+
+    handler.__doc__ = getattr(metadata_target, "__doc__", None)
+    handler.__module__ = getattr(metadata_target, "__module__", __name__)
+    handler.__name__ = getattr(metadata_target, "__name__", "handler").removesuffix("_async")
+    handler.__qualname__ = getattr(
+        metadata_target,
+        "__qualname__",
+        handler.__name__,
+    ).removesuffix("_async")
+    return handler
 
 
 def refresh_runtime_configuration() -> None:

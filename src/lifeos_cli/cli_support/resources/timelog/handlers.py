@@ -4,15 +4,20 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
     format_timestamp,
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
+from lifeos_cli.cli_support.time_args import (
+    DateArgumentError,
+    resolve_date_interval_arguments,
+    resolve_exclusive_date_or_datetime_query,
+    resolve_required_date_interval_arguments,
+)
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import timelog_stats
 from lifeos_cli.db.services import timelogs as timelog_services
@@ -63,11 +68,6 @@ def _format_timelog_detail(timelog: TimelogView) -> str:
     )
 
 
-def _print_timelog_error(exc: Exception) -> int:
-    print(str(exc), file=sys.stderr)
-    return 1
-
-
 def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> str:
     lines = [
         f"granularity: {report.granularity}",
@@ -114,30 +114,32 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogValidationError,
             LookupError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created timelog {timelog.id}")
     return 0
 
 
-def handle_timelog_add(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_add_async(args))
-
-
 async def handle_timelog_list_async(args: argparse.Namespace) -> int:
-    if args.local_date is not None and (
-        args.window_start is not None or args.window_end is not None
-    ):
-        print(
-            "Use either --date or --window-start/--window-end, not both.",
-            file=sys.stderr,
+    try:
+        query = resolve_exclusive_date_or_datetime_query(
+            date_values=args.date_values,
+            window_start=args.window_start,
+            window_end=args.window_end,
         )
-        return 1
-    if args.without_area and (args.area_id is not None or args.area_name is not None):
-        print("Use either an area filter or --without-area, not both.", file=sys.stderr)
-        return 1
-    if args.without_task and args.task_id is not None:
-        print("Use either --task-id or --without-task, not both.", file=sys.stderr)
-        return 1
+    except DateArgumentError as exc:
+        return cli_handler_utils.print_cli_error(exc)
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(
+        (
+            (
+                args.without_area and (args.area_id is not None or args.area_name is not None),
+                "an area filter",
+                "--without-area",
+            ),
+            (args.without_task and args.task_id is not None, "--task-id", "--without-task"),
+        )
+    )
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             timelogs = await timelog_services.list_timelogs(
@@ -153,9 +155,10 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 without_task=args.without_task,
                 person_id=args.person_id,
                 tag_id=args.tag_id,
-                local_date=args.local_date,
-                window_start=args.window_start,
-                window_end=args.window_end,
+                start_date=query.start_date,
+                end_date=query.end_date,
+                window_start=query.window_start,
+                window_end=query.window_end,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -174,16 +177,17 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                     without_task=args.without_task,
                     person_id=args.person_id,
                     tag_id=args.tag_id,
-                    local_date=args.local_date,
-                    window_start=args.window_start,
-                    window_end=args.window_end,
+                    start_date=query.start_date,
+                    end_date=query.end_date,
+                    window_start=query.window_start,
+                    window_end=query.window_end,
                     include_deleted=args.include_deleted,
                 )
                 if args.count
                 else None
             )
         except timelog_services.TimelogValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     trailer_lines = () if total_count is None else (f"Total timelogs: {total_count}",)
     print_summary_rows(
         items=timelogs,
@@ -195,10 +199,6 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_timelog_list(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_list_async(args))
-
-
 async def handle_timelog_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         timelog = await timelog_services.get_timelog(
@@ -207,14 +207,9 @@ async def handle_timelog_show_async(args: argparse.Namespace) -> int:
             include_deleted=args.include_deleted,
         )
     if timelog is None:
-        print(f"Timelog {args.timelog_id} was not found", file=sys.stderr)
-        return 1
+        return cli_handler_utils.print_missing_record_error("Timelog", args.timelog_id)
     print(_format_timelog_detail(timelog))
     return 0
-
-
-def handle_timelog_show(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_show_async(args))
 
 
 async def handle_timelog_update_async(args: argparse.Namespace) -> int:
@@ -231,10 +226,9 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
         (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             timelog = await timelog_services.update_timelog(
@@ -266,13 +260,9 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogValidationError,
             LookupError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated timelog {timelog.id}")
     return 0
-
-
-def handle_timelog_update(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_update_async(args))
 
 
 async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
@@ -280,13 +270,9 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
         try:
             await timelog_services.delete_timelog(session, timelog_id=args.timelog_id)
         except timelog_services.TimelogNotFoundError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted timelog {args.timelog_id}")
     return 0
-
-
-def handle_timelog_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_delete_async(args))
 
 
 async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
@@ -302,13 +288,9 @@ async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
             timelog_services.TimelogTaskReferenceNotFoundError,
             timelog_services.TimelogValidationError,
         ) as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Restored timelog {timelog.id}")
     return 0
-
-
-def handle_timelog_restore(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_restore_async(args))
 
 
 def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
@@ -341,10 +323,9 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
         (args.clear_tags and args.tag_ids is not None, "--tag-id", "--clear-tags"),
         (args.clear_people and args.person_ids is not None, "--person-id", "--clear-people"),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     if args.replace_title_text is not None and args.find_title_text is None:
         print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
         return 1
@@ -370,7 +351,7 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
                 clear_people=args.clear_people,
             )
         except timelog_services.TimelogValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated timelogs: {result.updated_count}")
     if result.unchanged_ids:
         print(format_id_lines("Unchanged timelog IDs", result.unchanged_ids))
@@ -379,10 +360,6 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     for error in result.errors:
         print(f"Error: {error}", file=sys.stderr)
     return 1 if result.failed_ids else 0
-
-
-def handle_timelog_batch_update(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_batch_update_async(args))
 
 
 async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
@@ -399,10 +376,6 @@ async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_timelog_batch_restore(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_batch_restore_async(args))
-
-
 async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await timelog_services.batch_delete_timelogs(
@@ -417,10 +390,6 @@ async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-def handle_timelog_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_batch_delete_async(args))
-
-
 async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         report = await timelog_stats.get_timelog_stats_groupby_area_for_day(
@@ -431,35 +400,31 @@ async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_timelog_stats_day(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_day_async(args))
-
-
 async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
-    if args.end_date < args.start_date:
-        print("--end-date must be on or after --start-date.", file=sys.stderr)
-        return 1
+    try:
+        start_date, end_date = resolve_required_date_interval_arguments(
+            date_values=args.date_values,
+        )
+    except DateArgumentError as exc:
+        return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         report = await timelog_stats.get_timelog_stats_groupby_area_for_range(
             session,
-            start_date=args.start_date,
-            end_date=args.end_date,
+            start_date=start_date,
+            end_date=end_date,
         )
     print(_format_timelog_stats_report(report))
     return 0
 
 
-def handle_timelog_stats_range(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_range_async(args))
-
-
-async def _handle_timelog_stats_period_async(
+async def handle_timelog_stats_period_async(
+    args: argparse.Namespace,
     *,
     granularity: str,
-    target_date: date | None = None,
-    month: date | None = None,
-    year: int | None = None,
 ) -> int:
+    target_date = args.target_date if granularity == "week" else None
+    month = args.month if granularity == "month" else None
+    year = args.year if granularity == "year" else None
     async with db_session.session_scope() as session:
         try:
             report = await timelog_stats.get_timelog_stats_groupby_area_for_period(
@@ -470,73 +435,31 @@ async def _handle_timelog_stats_period_async(
                 year=year,
             )
         except timelog_stats.TimelogStatsValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_timelog_stats_report(report))
     return 0
 
 
-async def handle_timelog_stats_week_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="week",
-        target_date=args.target_date,
-    )
-
-
-def handle_timelog_stats_week(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_week_async(args))
-
-
-async def handle_timelog_stats_month_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="month",
-        month=args.month,
-    )
-
-
-def handle_timelog_stats_month(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_month_async(args))
-
-
-async def handle_timelog_stats_year_async(args: argparse.Namespace) -> int:
-    return await _handle_timelog_stats_period_async(
-        granularity="year",
-        year=args.year,
-    )
-
-
-def handle_timelog_stats_year(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_year_async(args))
-
-
 async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
-    if args.target_date is not None and (args.start_date is not None or args.end_date is not None):
-        print("Use either --date or --start-date/--end-date, not both.", file=sys.stderr)
-        return 1
-    if args.start_date is None and args.end_date is not None:
-        print("`--start-date` and `--end-date` must be provided together.", file=sys.stderr)
-        return 1
-    if args.start_date is not None and args.end_date is None:
-        print("`--start-date` and `--end-date` must be provided together.", file=sys.stderr)
-        return 1
-    if args.start_date is not None and args.end_date < args.start_date:
-        print("--end-date must be on or after --start-date.", file=sys.stderr)
-        return 1
-    if args.rebuild_all and any(
-        value is not None for value in (args.target_date, args.start_date, args.end_date)
-    ):
-        print("Use --all by itself, without --date or --start-date/--end-date.", file=sys.stderr)
+    try:
+        start_date, end_date = resolve_date_interval_arguments(
+            date_values=args.date_values,
+        )
+    except DateArgumentError as exc:
+        return cli_handler_utils.print_cli_error(exc)
+    if args.rebuild_all and any(value is not None for value in (start_date, end_date)):
+        print("Use --all by itself, without --date.", file=sys.stderr)
         return 1
     async with db_session.session_scope() as session:
         try:
             rebuilt_dates = await timelog_stats.rebuild_timelog_stats_groupby_area(
                 session,
-                target_date=args.target_date,
-                start_date=args.start_date,
-                end_date=args.end_date,
+                start_date=start_date,
+                end_date=end_date,
                 rebuild_all=args.rebuild_all,
             )
         except timelog_stats.TimelogStatsValidationError as exc:
-            return _print_timelog_error(exc)
+            return cli_handler_utils.print_cli_error(exc)
     if not rebuilt_dates:
         print("No linked-area timelogs found for the selected rebuild scope.")
         return 0
@@ -544,7 +467,3 @@ async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
     print(f"start_date: {rebuilt_dates[0].isoformat()}")
     print(f"end_date: {rebuilt_dates[-1].isoformat()}")
     return 0
-
-
-def handle_timelog_stats_rebuild(args: argparse.Namespace) -> int:
-    return run_async(handle_timelog_stats_rebuild_async(args))

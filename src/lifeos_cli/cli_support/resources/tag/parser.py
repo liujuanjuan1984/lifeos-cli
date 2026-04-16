@@ -14,13 +14,14 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.tag.handlers import (
     TAG_SUMMARY_COLUMNS,
-    handle_tag_add,
-    handle_tag_batch_delete,
-    handle_tag_delete,
-    handle_tag_list,
-    handle_tag_show,
-    handle_tag_update,
+    handle_tag_add_async,
+    handle_tag_batch_delete_async,
+    handle_tag_delete_async,
+    handle_tag_list_async,
+    handle_tag_show_async,
+    handle_tag_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -85,7 +86,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         default=None,
         help=_("Repeat to associate one or more people"),
     )
-    add_parser.set_defaults(handler=handle_tag_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_tag_add_async))
 
     list_parser = add_documented_parser(
         tag_subparsers,
@@ -120,7 +121,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person identifier"))
     add_include_deleted_argument(list_parser, noun="tags")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_tag_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_tag_list_async))
 
     show_parser = add_documented_parser(
         tag_subparsers,
@@ -136,7 +137,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     )
     show_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
     add_include_deleted_argument(show_parser, noun="tags", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_tag_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_tag_show_async))
 
     update_parser = add_documented_parser(
         tag_subparsers,
@@ -187,7 +188,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         help=_("Repeat to replace people with one or more identifiers"),
     )
     update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
-    update_parser.set_defaults(handler=handle_tag_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_tag_update_async))
 
     delete_parser = add_documented_parser(
         tag_subparsers,
@@ -206,7 +207,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         ),
     )
     delete_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
-    delete_parser.set_defaults(handler=handle_tag_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_tag_delete_async))
 
     batch_parser = add_documented_parser(
         tag_subparsers,
@@ -245,4 +246,4 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="tag_ids", noun="tag")
-    batch_delete_parser.set_defaults(handler=handle_tag_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_tag_batch_delete_async))

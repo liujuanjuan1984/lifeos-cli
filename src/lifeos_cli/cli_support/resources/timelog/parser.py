@@ -4,39 +4,36 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, datetime
+from functools import partial
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_date_range_arguments,
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     TIMELOG_SUMMARY_COLUMNS,
-    handle_timelog_add,
-    handle_timelog_batch_delete,
-    handle_timelog_batch_restore,
-    handle_timelog_batch_update,
-    handle_timelog_delete,
-    handle_timelog_list,
-    handle_timelog_restore,
-    handle_timelog_show,
-    handle_timelog_stats_day,
-    handle_timelog_stats_month,
-    handle_timelog_stats_range,
-    handle_timelog_stats_rebuild,
-    handle_timelog_stats_week,
-    handle_timelog_stats_year,
-    handle_timelog_update,
+    handle_timelog_add_async,
+    handle_timelog_batch_delete_async,
+    handle_timelog_batch_restore_async,
+    handle_timelog_batch_update_async,
+    handle_timelog_delete_async,
+    handle_timelog_list_async,
+    handle_timelog_restore_async,
+    handle_timelog_show_async,
+    handle_timelog_stats_day_async,
+    handle_timelog_stats_period_async,
+    handle_timelog_stats_range_async,
+    handle_timelog_stats_rebuild_async,
+    handle_timelog_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
+from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
-
-
-def _datetime_value(value: str) -> datetime:
-    """Parse an ISO-8601 datetime value."""
-    return datetime.fromisoformat(value)
 
 
 def _month_value(value: str) -> date:
@@ -60,8 +57,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",
                 "lifeos timelog stats day --date 2026-04-10",
-                "lifeos timelog list --window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
+                "lifeos timelog list --start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
                 'lifeos timelog batch update --ids <timelog-id-1> --find-title-text "old" '
                 '--replace-title-text "new"',
@@ -109,9 +106,11 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     add_parser.add_argument("title", help=_("Timelog title"))
     add_parser.add_argument(
-        "--start-time", required=True, type=_datetime_value, help=_("Start time")
+        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
     )
-    add_parser.add_argument("--end-time", required=True, type=_datetime_value, help=_("End time"))
+    add_parser.add_argument(
+        "--end-time", required=True, type=datetime.fromisoformat, help=_("End time")
+    )
     add_parser.add_argument("--tracking-method", default="manual", help=_("Tracking method"))
     add_parser.add_argument("--location", help=_("Optional location"))
     add_parser.add_argument("--energy-level", type=int, help=_("Optional energy level from 1 to 5"))
@@ -134,7 +133,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         default=None,
         help=_("Repeat to attach one or more people"),
     )
-    add_parser.set_defaults(handler=handle_timelog_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_timelog_add_async))
 
     list_parser = add_documented_parser(
         timelog_subparsers,
@@ -148,17 +147,18 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
             examples=(
                 "lifeos timelog list",
-                "lifeos timelog list --tracking-method manual "
-                "--window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos timelog list --date 2026-04-10",
+                "lifeos timelog list --date 2026-04-10 --date 2026-04-16",
+                "lifeos timelog list --tracking-method manual "
+                "--start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
                 'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
                 _(
-                    "Use `--date` to query one configured local day using your timezone and "
-                    "`day_starts_at` preference."
+                    "Repeat `--date` once for one configured local day or twice for one "
+                    "inclusive local-date range."
                 ),
                 _("Use `--query` for lightweight text filtering across titles and notes."),
                 _(
@@ -187,18 +187,29 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
-    list_parser.add_argument(
-        "--date",
-        dest="local_date",
-        type=date.fromisoformat,
-        help=_("Filter one configured local day in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "Repeat once for one configured local day or twice for one inclusive "
+            "local-date range in YYYY-MM-DD format"
+        ),
     )
-    list_parser.add_argument("--window-start", type=_datetime_value, help=_("Window start time"))
-    list_parser.add_argument("--window-end", type=_datetime_value, help=_("Window end time"))
+    list_parser.add_argument(
+        "--start-time",
+        dest="window_start",
+        type=parse_datetime_or_date_value,
+        help=_("Inclusive time filter start; date-only values use the configured timezone"),
+    )
+    list_parser.add_argument(
+        "--end-time",
+        dest="window_end",
+        type=parse_datetime_or_date_value,
+        help=_("Inclusive time filter end; date-only values use the configured timezone"),
+    )
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
     add_include_deleted_argument(list_parser, noun="timelogs")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_timelog_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_timelog_list_async))
 
     show_parser = add_documented_parser(
         timelog_subparsers,
@@ -214,7 +225,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     show_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     add_include_deleted_argument(show_parser, noun="timelogs", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_timelog_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_timelog_show_async))
 
     update_parser = add_documented_parser(
         timelog_subparsers,
@@ -241,8 +252,12 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     update_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     update_parser.add_argument("--title", help=_("Updated timelog title"))
-    update_parser.add_argument("--start-time", type=_datetime_value, help=_("Updated start time"))
-    update_parser.add_argument("--end-time", type=_datetime_value, help=_("Updated end time"))
+    update_parser.add_argument(
+        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+    )
+    update_parser.add_argument(
+        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+    )
     update_parser.add_argument("--tracking-method", help=_("Updated tracking method"))
     update_parser.add_argument("--location", help=_("Updated location"))
     update_parser.add_argument("--clear-location", action="store_true", help=_("Clear location"))
@@ -278,7 +293,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help=_("Repeat to replace people with one or more identifiers"),
     )
     update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
-    update_parser.set_defaults(handler=handle_timelog_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_timelog_update_async))
 
     delete_parser = add_documented_parser(
         timelog_subparsers,
@@ -290,7 +305,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     delete_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
-    delete_parser.set_defaults(handler=handle_timelog_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_delete_async))
 
     restore_parser = add_documented_parser(
         timelog_subparsers,
@@ -303,7 +318,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     restore_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
-    restore_parser.set_defaults(handler=handle_timelog_restore)
+    restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_restore_async))
 
     batch_parser = add_documented_parser(
         timelog_subparsers,
@@ -378,7 +393,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         action="store_true",
         help=_("Remove all people"),
     )
-    batch_update_parser.set_defaults(handler=handle_timelog_batch_update)
+    batch_update_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_update_async))
 
     batch_restore_parser = add_documented_parser(
         batch_subparsers,
@@ -389,7 +404,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     add_identifier_list_argument(batch_restore_parser, dest="timelog_ids", noun="timelog")
-    batch_restore_parser.set_defaults(handler=handle_timelog_batch_restore)
+    batch_restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_restore_async))
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
@@ -400,7 +415,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="timelog_ids", noun="timelog")
-    batch_delete_parser.set_defaults(handler=handle_timelog_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_delete_async))
 
     stats_parser = add_documented_parser(
         timelog_subparsers,
@@ -417,7 +432,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
             examples=(
                 "lifeos timelog stats day --date 2026-04-10",
-                "lifeos timelog stats range --start-date 2026-04-01 --end-date 2026-04-30",
+                "lifeos timelog stats range --date 2026-04-01 --date 2026-04-30",
                 "lifeos timelog stats week --date 2026-04-10",
                 "lifeos timelog stats month --month 2026-04",
                 "lifeos timelog stats rebuild --all",
@@ -453,7 +468,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=date.fromisoformat,
         help=_("Local operational date in YYYY-MM-DD format"),
     )
-    stats_day_parser.set_defaults(handler=handle_timelog_stats_day)
+    stats_day_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_day_async))
 
     stats_range_parser = add_documented_parser(
         stats_subparsers,
@@ -461,22 +476,23 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary=_("Show a date range of timelog stats grouped by area"),
             description=_("Show one local date range of timelog stats grouped by area."),
-            examples=("lifeos timelog stats range --start-date 2026-04-01 --end-date 2026-04-30",),
+            examples=("lifeos timelog stats range --date 2026-04-01 --date 2026-04-30",),
+            notes=(
+                _(
+                    "Repeat `--date` once for one local date or twice for one inclusive "
+                    "local-date range."
+                ),
+            ),
         ),
     )
-    stats_range_parser.add_argument(
-        "--start-date",
-        required=True,
-        type=date.fromisoformat,
-        help=_("Local range start date in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        stats_range_parser,
+        date_help=_(
+            "Repeat once for one local date or twice for one inclusive local-date range "
+            "in YYYY-MM-DD format"
+        ),
     )
-    stats_range_parser.add_argument(
-        "--end-date",
-        required=True,
-        type=date.fromisoformat,
-        help=_("Local range end date in YYYY-MM-DD format"),
-    )
-    stats_range_parser.set_defaults(handler=handle_timelog_stats_range)
+    stats_range_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_range_async))
 
     stats_week_parser = add_documented_parser(
         stats_subparsers,
@@ -495,7 +511,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=date.fromisoformat,
         help=_("Reference local date in YYYY-MM-DD format"),
     )
-    stats_week_parser.set_defaults(handler=handle_timelog_stats_week)
+    stats_week_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="week"))
+    )
 
     stats_month_parser = add_documented_parser(
         stats_subparsers,
@@ -512,7 +530,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=_month_value,
         help=_("Calendar month in YYYY-MM format"),
     )
-    stats_month_parser.set_defaults(handler=handle_timelog_stats_month)
+    stats_month_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="month"))
+    )
 
     stats_year_parser = add_documented_parser(
         stats_subparsers,
@@ -529,7 +549,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=int,
         help=_("Calendar year, for example 2026"),
     )
-    stats_year_parser.set_defaults(handler=handle_timelog_stats_year)
+    stats_year_parser.set_defaults(
+        handler=make_sync_handler(partial(handle_timelog_stats_period_async, granularity="year"))
+    )
 
     stats_rebuild_parser = add_documented_parser(
         stats_subparsers,
@@ -544,30 +566,22 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
             examples=(
                 "lifeos timelog stats rebuild --date 2026-04-10",
-                "lifeos timelog stats rebuild --start-date 2026-01-01 --end-date 2026-03-31",
+                "lifeos timelog stats rebuild --date 2026-01-01 --date 2026-03-31",
                 "lifeos timelog stats rebuild --all",
             ),
             notes=(
                 _("Use rebuild after upgrading older datasets or importing historical timelogs."),
                 _("Rebuild uses the configured timezone and `day_starts_at` preference."),
+                _("Repeat `--date` twice for one inclusive local-date rebuild range."),
             ),
         ),
     )
-    stats_rebuild_parser.add_argument(
-        "--date",
-        dest="target_date",
-        type=date.fromisoformat,
-        help=_("Rebuild one local operational date in YYYY-MM-DD format"),
-    )
-    stats_rebuild_parser.add_argument(
-        "--start-date",
-        type=date.fromisoformat,
-        help=_("Rebuild range start date in YYYY-MM-DD format"),
-    )
-    stats_rebuild_parser.add_argument(
-        "--end-date",
-        type=date.fromisoformat,
-        help=_("Rebuild range end date in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        stats_rebuild_parser,
+        date_help=_(
+            "Repeat once for one local operational date or twice for one inclusive "
+            "local-date rebuild range in YYYY-MM-DD format"
+        ),
     )
     stats_rebuild_parser.add_argument(
         "--all",
@@ -575,4 +589,4 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         action="store_true",
         help=_("Rebuild every local date touched by active timelogs with linked areas"),
     )
-    stats_rebuild_parser.set_defaults(handler=handle_timelog_stats_rebuild)
+    stats_rebuild_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_rebuild_async))

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -11,7 +11,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.application.time_preferences import get_utc_window_for_local_date_range
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
@@ -22,6 +22,7 @@ from lifeos_cli.db.services.batching import (
     batch_delete_records,
     batch_restore_records,
 )
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
@@ -33,7 +34,6 @@ from lifeos_cli.db.services.timelog_support import (
     TimelogNotFoundError,
     TimelogTaskReferenceNotFoundError,
     TimelogValidationError,
-    deduplicate_timelog_ids,
     ensure_timelog_area_exists,
     ensure_timelog_task_exists,
     normalize_timelog_datetime,
@@ -235,14 +235,14 @@ def _apply_timelog_filters(
 
 def _resolve_timelog_window(
     *,
-    local_date: date | None,
+    start_date: date | None,
+    end_date: date | None,
     window_start: datetime | None,
     window_end: datetime | None,
 ) -> tuple[datetime | None, datetime | None]:
-    if local_date is None:
-        return window_start, window_end
-    local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
-    return local_window_start, local_window_end_exclusive - timedelta(microseconds=1)
+    if start_date is not None and end_date is not None:
+        return get_utc_window_for_local_date_range(start_date, end_date)
+    return window_start, window_end
 
 
 async def create_timelog(
@@ -342,7 +342,8 @@ async def list_timelogs(
     without_task: bool = False,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
-    local_date: date | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
@@ -351,7 +352,8 @@ async def list_timelogs(
 ) -> list[TimelogView]:
     """List timelogs with optional filters."""
     window_start, window_end = _resolve_timelog_window(
-        local_date=local_date,
+        start_date=start_date,
+        end_date=end_date,
         window_start=window_start,
         window_end=window_end,
     )
@@ -392,14 +394,16 @@ async def count_timelogs(
     without_task: bool = False,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
-    local_date: date | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count timelogs with the same filters used by list_timelogs."""
     window_start, window_end = _resolve_timelog_window(
-        local_date=local_date,
+        start_date=start_date,
+        end_date=end_date,
         window_start=window_start,
         window_end=window_end,
     )
@@ -613,7 +617,7 @@ async def batch_update_timelogs(
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
-    for timelog_id in deduplicate_timelog_ids(timelog_ids):
+    for timelog_id in deduplicate_preserving_order(timelog_ids):
         try:
             next_title = title
             if find_title_text is not None:
@@ -718,7 +722,7 @@ async def batch_delete_timelogs(
 ) -> BatchDeleteResult:
     """Soft-delete multiple timelogs."""
     return await batch_delete_records(
-        identifiers=deduplicate_timelog_ids(timelog_ids),
+        identifiers=deduplicate_preserving_order(timelog_ids),
         delete_record=lambda timelog_id: delete_timelog(session, timelog_id=timelog_id),
         handled_exceptions=(TimelogNotFoundError,),
     )
@@ -731,7 +735,7 @@ async def batch_restore_timelogs(
 ) -> BatchRestoreResult:
     """Restore multiple soft-deleted timelogs."""
     return await batch_restore_records(
-        identifiers=deduplicate_timelog_ids(timelog_ids),
+        identifiers=deduplicate_preserving_order(timelog_ids),
         restore_record=lambda timelog_id: restore_timelog(session, timelog_id=timelog_id),
         handled_exceptions=(
             TimelogAreaReferenceNotFoundError,

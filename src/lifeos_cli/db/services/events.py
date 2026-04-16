@@ -11,12 +11,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.application.time_preferences import get_utc_window_for_local_date_range
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.event_support import (
@@ -24,7 +25,6 @@ from lifeos_cli.db.services.event_support import (
     EventNotFoundError,
     EventTaskReferenceNotFoundError,
     EventValidationError,
-    deduplicate_event_ids,
     ensure_event_area_exists,
     ensure_event_task_exists,
     event_is_recurring,
@@ -96,22 +96,6 @@ async def _get_event_model(
     if not include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
-
-
-async def _load_event_link_ids(
-    session: AsyncSession,
-    *,
-    event_id: UUID,
-) -> tuple[list[UUID], list[UUID]]:
-    tags_map = await load_tags_for_entities(session, entity_ids=[event_id], entity_type="event")
-    people_map = await load_people_for_entities(
-        session,
-        entity_ids=[event_id],
-        entity_type="event",
-    )
-    tag_ids = [tag.id for tag in tags_map.get(event_id, ())]
-    person_ids = [person.id for person in people_map.get(event_id, ())]
-    return tag_ids, person_ids
 
 
 def _event_duration(event: Event | EventOccurrence) -> timedelta | None:
@@ -545,7 +529,8 @@ async def list_events(
     task_id: UUID | None = None,
     person_id: UUID | None = None,
     tag_id: UUID | None = None,
-    local_date: date | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
     include_deleted: bool = False,
@@ -556,10 +541,8 @@ async def list_events(
     normalized_status = validate_event_status(status) if status is not None else None
     normalized_event_type = validate_event_type(event_type) if event_type is not None else None
 
-    if local_date is not None:
-        local_window_start, local_window_end_exclusive = get_utc_window_for_local_date(local_date)
-        window_start = local_window_start
-        window_end = local_window_end_exclusive - timedelta(microseconds=1)
+    if start_date is not None and end_date is not None:
+        window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
 
     if window_start is not None and window_end is not None:
         occurrences = await list_event_occurrences(
@@ -777,10 +760,18 @@ async def _update_single_occurrence(
         master_event_id=master_event.id,
         instance_start=instance_start,
     )
-    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+    existing_tag_map = await load_tags_for_entities(
         session,
-        event_id=master_event.id,
+        entity_ids=[master_event.id],
+        entity_type="event",
     )
+    existing_people_map = await load_people_for_entities(
+        session,
+        entity_ids=[master_event.id],
+        entity_type="event",
+    )
+    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
+    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
     if override_event_model is None:
         override_start_time = start_time if start_time is not None else instance_start
         override_end_time = (
@@ -925,10 +916,18 @@ async def _update_future_series(
 
     master_event.recurrence_until = previous_start
     await session.flush()
-    existing_tag_ids, existing_person_ids = await _load_event_link_ids(
+    existing_tag_map = await load_tags_for_entities(
         session,
-        event_id=master_event.id,
+        entity_ids=[master_event.id],
+        entity_type="event",
     )
+    existing_people_map = await load_people_for_entities(
+        session,
+        entity_ids=[master_event.id],
+        entity_type="event",
+    )
+    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
+    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
 
     resolved_tag_ids = _resolve_link_ids(
         explicit_ids=tag_ids,
@@ -1046,7 +1045,8 @@ async def update_event(
             raise EventValidationError("Instance-level recurring updates require --instance-start.")
         validate_event_instance_start(event, instance_start=normalized_instance_start)
     if normalized_scope == "single":
-        assert normalized_instance_start is not None
+        if normalized_instance_start is None:
+            raise EventValidationError("Single-occurrence updates require --instance-start.")
         return await _update_single_occurrence(
             session,
             master_event=event,
@@ -1071,7 +1071,8 @@ async def update_event(
             clear_people=clear_people,
         )
     if normalized_scope == "all_future":
-        assert normalized_instance_start is not None
+        if normalized_instance_start is None:
+            raise EventValidationError("Future-series updates require --instance-start.")
         return await _update_future_series(
             session,
             master_event=event,
@@ -1189,7 +1190,7 @@ async def batch_delete_events(
 ) -> BatchDeleteResult:
     """Soft-delete multiple events."""
     return await batch_delete_records(
-        identifiers=deduplicate_event_ids(event_ids),
+        identifiers=deduplicate_preserving_order(event_ids),
         delete_record=lambda event_id: delete_event(session, event_id=event_id),
         handled_exceptions=(EventNotFoundError,),
     )

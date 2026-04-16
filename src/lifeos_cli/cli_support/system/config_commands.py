@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from functools import partial
 
 from lifeos_cli.application.configuration import (
     SUPPORTED_CONFIG_KEYS,
@@ -15,10 +16,7 @@ from lifeos_cli.application.configuration import (
     set_runtime_config_value,
 )
 from lifeos_cli.application.database import (
-    ping_configured_database,
-)
-from lifeos_cli.application.database import (
-    upgrade_configured_database_in_subprocess as upgrade_configured_database,
+    run_configured_database_subcommand_in_subprocess,
 )
 from lifeos_cli.cli_support import init_prompts
 from lifeos_cli.cli_support.help_utils import (
@@ -28,19 +26,15 @@ from lifeos_cli.cli_support.help_utils import (
 )
 from lifeos_cli.cli_support.runtime_utils import (
     format_config_summary,
-    run_async,
 )
 from lifeos_cli.config import (
     get_database_settings,
     get_preferences_settings,
+    validate_database_schema_name,
+    validate_database_url,
+    validate_language,
 )
 from lifeos_cli.i18n import gettext_message as _
-
-
-async def _run_init_ping() -> int:
-    """Ping the configured database during init."""
-    await ping_configured_database()
-    return 0
 
 
 def _handle_init(args: argparse.Namespace) -> int:
@@ -57,14 +51,24 @@ def _handle_init(args: argparse.Namespace) -> int:
         non_interactive=args.non_interactive,
         is_interactive=sys.stdin.isatty(),
         prompts=InitializationPrompts(
-            prompt_database_url=lambda default: init_prompts.prompt_database_url(default=default),
-            prompt_database_schema=lambda default: init_prompts.prompt_database_schema(
-                default=default
+            prompt_database_url=partial(
+                init_prompts.prompt_validated_text,
+                "Database URL",
+                validator=validate_database_url,
             ),
-            prompt_language=lambda default: init_prompts.prompt_language(default=default),
-            prompt_database_echo=lambda default: init_prompts.prompt_bool(
+            prompt_database_schema=partial(
+                init_prompts.prompt_validated_text,
+                "Database schema",
+                validator=validate_database_schema_name,
+            ),
+            prompt_language=partial(
+                init_prompts.prompt_validated_text,
+                "Preferred language tag for human-authored payloads",
+                validator=validate_language,
+            ),
+            prompt_database_echo=partial(
+                init_prompts.prompt_bool,
                 _("Enable SQL echo logging"),
-                default=default,
             ),
         ),
     )
@@ -84,13 +88,13 @@ def _handle_init(args: argparse.Namespace) -> int:
     if args.skip_ping:
         print("Skipped database connectivity check.")
     else:
-        run_async(_run_init_ping())
+        run_configured_database_subcommand_in_subprocess(subcommand="ping")
         print("Database connection succeeded.")
 
     if args.skip_migrate:
         print("Skipped database migrations. Run `lifeos db upgrade` when ready.")
     else:
-        upgrade_configured_database()
+        run_configured_database_subcommand_in_subprocess(subcommand="upgrade")
         print("Database migrations are up to date.")
 
     return 0
@@ -292,6 +296,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(
                 _("This command writes the config file, not environment variables."),
                 _("Supported keys: {keys}").format(keys=", ".join(SUPPORTED_CONFIG_KEYS)),
+                _("Use `lifeos init --schema <name>` to change the database schema binding."),
                 _("Use `config show` to inspect the effective values after environment overrides."),
             ),
         ),

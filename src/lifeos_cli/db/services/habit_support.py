@@ -4,18 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
-    get_current_week_bounds,
-    get_day_start_time,
     get_operational_date,
-    get_preferred_timezone,
+    get_week_bounds,
 )
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.base import utc_now
@@ -109,11 +108,6 @@ class HabitActionLike(Protocol):
 
     action_date: date
     status: str
-
-
-def deduplicate_habit_ids(habit_ids: list[UUID]) -> list[UUID]:
-    """Return habit identifiers without duplicates while keeping input order."""
-    return list(dict.fromkeys(habit_ids))
 
 
 def get_default_habit_action_status() -> str:
@@ -215,8 +209,13 @@ def validate_habit_cadence(
 
 
 def _habit_anchor_datetime(reference_date: date) -> datetime:
-    preferred_timezone = get_preferred_timezone()
-    return datetime.combine(reference_date, get_day_start_time(), tzinfo=preferred_timezone)
+    preferences = get_preferences_settings()
+    hour, minute = (int(part) for part in preferences.day_starts_at.split(":"))
+    return datetime.combine(
+        reference_date,
+        time(hour=hour, minute=minute),
+        tzinfo=ZoneInfo(preferences.timezone),
+    )
 
 
 def _build_habit_series_definition(
@@ -279,8 +278,9 @@ def iter_habit_scheduled_dates(
     )
     window_start = _habit_anchor_datetime(start_date)
     window_end = _habit_anchor_datetime(end_date + timedelta(days=1)) - timedelta(microseconds=1)
+    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
     return [
-        occurrence_start.astimezone(get_preferred_timezone()).date()
+        occurrence_start.astimezone(preferred_timezone).date()
         for occurrence_start in get_occurrence_starts_in_range(
             series,
             window_start=window_start,
@@ -493,7 +493,7 @@ def build_habit_stats_payload(
     actions: Sequence[HabitActionLike],
 ) -> dict[str, object]:
     """Build stats shared by overview, show, and stats commands."""
-    current_week_start, current_week_end = get_current_week_bounds()
+    current_week_start, current_week_end = get_week_bounds(get_operational_date())
     cadence_frequency, cadence_weekdays, target_per_cycle = validate_habit_cadence(
         cadence_frequency=getattr(habit, "cadence_frequency", None),
         cadence_weekdays=getattr(habit, "cadence_weekdays", None),

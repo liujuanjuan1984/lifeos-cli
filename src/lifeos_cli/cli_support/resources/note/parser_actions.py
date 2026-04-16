@@ -12,15 +12,16 @@ from lifeos_cli.cli_support.parser_common import (
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.note.handlers import (
-    handle_note_add,
-    handle_note_batch_delete,
-    handle_note_batch_update_content,
-    handle_note_delete,
-    handle_note_list,
-    handle_note_search,
-    handle_note_show,
-    handle_note_update,
+    handle_note_add_async,
+    handle_note_batch_delete_async,
+    handle_note_batch_update_content_async,
+    handle_note_delete_async,
+    handle_note_list_async,
+    handle_note_search_async,
+    handle_note_show_async,
+    handle_note_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -113,7 +114,7 @@ def build_note_add_parser(
         default=None,
         help=_("Repeat to associate one or more timelogs"),
     )
-    add_parser.set_defaults(handler=handle_note_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_note_add_async))
 
 
 def build_note_list_parser(
@@ -155,7 +156,7 @@ def build_note_list_parser(
     list_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
     add_include_deleted_argument(list_parser, noun="notes")
     add_limit_offset_arguments(list_parser, row_noun="notes")
-    list_parser.set_defaults(handler=handle_note_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_note_list_async))
 
 
 def build_note_search_parser(
@@ -197,7 +198,7 @@ def build_note_search_parser(
     search_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
     add_include_deleted_argument(search_parser, noun="notes in the search scope")
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
-    search_parser.set_defaults(handler=handle_note_search)
+    search_parser.set_defaults(handler=make_sync_handler(handle_note_search_async))
 
 
 def build_note_show_parser(
@@ -225,7 +226,7 @@ def build_note_show_parser(
     )
     show_parser.add_argument("note_id", type=UUID, help=_("Note identifier"))
     add_include_deleted_argument(show_parser, noun="notes", help_prefix="Allow loading")
-    show_parser.set_defaults(handler=handle_note_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_note_show_async))
 
 
 def build_note_update_parser(
@@ -329,7 +330,7 @@ def build_note_update_parser(
         action="store_true",
         help=_("Remove all linked timelogs"),
     )
-    update_parser.set_defaults(handler=handle_note_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_note_update_async))
 
 
 def build_note_delete_parser(
@@ -352,7 +353,7 @@ def build_note_delete_parser(
         ),
     )
     delete_parser.add_argument("note_id", type=UUID, help=_("Note identifier"))
-    delete_parser.set_defaults(handler=handle_note_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_note_delete_async))
 
 
 def build_note_batch_parser(
@@ -441,7 +442,9 @@ def build_note_batch_parser(
         action="store_true",
         help=_("Use a case-sensitive find/replace instead of case-insensitive matching"),
     )
-    batch_update_parser.set_defaults(handler=handle_note_batch_update_content)
+    batch_update_parser.set_defaults(
+        handler=make_sync_handler(handle_note_batch_update_content_async)
+    )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
@@ -473,4 +476,4 @@ def build_note_batch_parser(
         type=UUID,
         help=_("One or more note identifiers to delete"),
     )
-    batch_delete_parser.set_defaults(handler=handle_note_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_note_batch_delete_async))

@@ -6,11 +6,12 @@ import argparse
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.resources.data.handlers import (
-    handle_data_batch_delete,
-    handle_data_batch_update,
-    handle_data_export,
-    handle_data_import,
+    handle_data_batch_delete_async,
+    handle_data_batch_update_async,
+    handle_data_export_async,
+    handle_data_import_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db.services.data_ops import SUPPORTED_DATA_RESOURCES
 from lifeos_cli.i18n import gettext_message as _
 
@@ -104,7 +105,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help=_("Exclude soft-deleted rows from exported snapshots"),
     )
-    export_parser.set_defaults(handler=handle_data_export)
+    export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
     import_parser = add_documented_parser(
         data_subparsers,
@@ -158,7 +159,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help=_("For bundle imports, truncate supported data before restoring the bundle"),
     )
     import_parser.add_argument("--error-file", help=_("Write row-level failures to a JSONL file"))
-    import_parser.set_defaults(handler=handle_data_import)
+    import_parser.set_defaults(handler=make_sync_handler(handle_data_import_async))
 
     batch_update_parser = add_documented_parser(
         data_subparsers,
@@ -207,7 +208,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--error-file",
         help=_("Write row-level failures to a JSONL file"),
     )
-    batch_update_parser.set_defaults(handler=handle_data_batch_update)
+    batch_update_parser.set_defaults(handler=make_sync_handler(handle_data_batch_update_async))
 
     batch_delete_parser = add_documented_parser(
         data_subparsers,
@@ -257,4 +258,4 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--error-file",
         help=_("Write row-level failures to a JSONL file"),
     )
-    batch_delete_parser.set_defaults(handler=handle_data_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_data_batch_delete_async))

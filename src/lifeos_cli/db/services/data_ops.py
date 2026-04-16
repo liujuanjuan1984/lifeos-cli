@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -14,6 +13,7 @@ from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.package_metadata import get_installed_package_version
 from lifeos_cli.config import get_database_settings, get_preferences_settings
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models import (
@@ -209,13 +209,6 @@ DELETE_ARG_NAMES: dict[str, str] = {
 }
 
 
-def _get_app_version() -> str:
-    try:
-        return version("lifeos-cli")
-    except PackageNotFoundError:
-        return "0+unknown"
-
-
 def _normalize_json_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -276,19 +269,11 @@ def _build_order_by_columns(spec: DataResourceSpec) -> tuple[Any, ...]:
     return tuple(columns)
 
 
-def _parse_person_ids(value: Any) -> list[UUID]:
+def _parse_uuid_array(value: Any, *, field_name: str) -> list[UUID]:
     if value is None:
         return []
     if not isinstance(value, list):
-        raise DataOperationError("Expected `person_ids` to be a JSON array.")
-    return [item if isinstance(item, UUID) else UUID(str(item)) for item in value]
-
-
-def _parse_tag_ids(value: Any) -> list[UUID]:
-    if value is None:
-        return []
-    if not isinstance(value, list):
-        raise DataOperationError("Expected `tag_ids` to be a JSON array.")
+        raise DataOperationError(f"Expected `{field_name}` to be a JSON array.")
     return [item if isinstance(item, UUID) else UUID(str(item)) for item in value]
 
 
@@ -355,35 +340,36 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     if "id" not in direct_values:
         raise DataOperationError("Each imported row must include `id`.")
     row_id = direct_values["id"]
-    assert isinstance(row_id, UUID)
+    if not isinstance(row_id, UUID):
+        raise DataOperationError("Each imported row `id` must be a UUID.")
     tag_ids = (
-        _parse_tag_ids(payload["tag_ids"])
+        _parse_uuid_array(payload["tag_ids"], field_name="tag_ids")
         if spec.tag_entity_type and "tag_ids" in payload
         else None
     )
     person_ids = (
-        _parse_person_ids(payload["person_ids"])
+        _parse_uuid_array(payload["person_ids"], field_name="person_ids")
         if (spec.person_entity_type and "person_ids" in payload)
         or (resource == "note" and "person_ids" in payload)
         else None
     )
     note_task_ids = (
-        _parse_person_ids(payload["task_ids"])
+        _parse_uuid_array(payload["task_ids"], field_name="task_ids")
         if resource == "note" and "task_ids" in payload
         else None
     )
     note_vision_ids = (
-        _parse_person_ids(payload["vision_ids"])
+        _parse_uuid_array(payload["vision_ids"], field_name="vision_ids")
         if resource == "note" and "vision_ids" in payload
         else None
     )
     note_event_ids = (
-        _parse_person_ids(payload["event_ids"])
+        _parse_uuid_array(payload["event_ids"], field_name="event_ids")
         if resource == "note" and "event_ids" in payload
         else None
     )
     note_timelog_ids = (
-        _parse_person_ids(payload["timelog_ids"])
+        _parse_uuid_array(payload["timelog_ids"], field_name="timelog_ids")
         if resource == "note" and "timelog_ids" in payload
         else None
     )
@@ -407,41 +393,24 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
     )
 
 
-async def _load_tag_ids_for_entities(
+async def _load_related_ids_for_entities(
     session: AsyncSession,
     *,
+    association_table: Any,
+    related_id_column: Any,
     entity_type: str,
     entity_ids: list[UUID],
 ) -> dict[UUID, list[UUID]]:
     if not entity_ids:
         return {}
-    stmt = select(tag_associations.c.entity_id, tag_associations.c.tag_id).where(
-        tag_associations.c.entity_type == entity_type,
-        tag_associations.c.entity_id.in_(entity_ids),
+    stmt = select(association_table.c.entity_id, related_id_column).where(
+        association_table.c.entity_type == entity_type,
+        association_table.c.entity_id.in_(entity_ids),
     )
     rows = (await session.execute(stmt)).all()
     mapping: dict[UUID, list[UUID]] = {entity_id: [] for entity_id in entity_ids}
-    for entity_id, tag_id in rows:
-        mapping[entity_id].append(tag_id)
-    return mapping
-
-
-async def _load_person_ids_for_entities(
-    session: AsyncSession,
-    *,
-    entity_type: str,
-    entity_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    if not entity_ids:
-        return {}
-    stmt = select(person_associations.c.entity_id, person_associations.c.person_id).where(
-        person_associations.c.entity_type == entity_type,
-        person_associations.c.entity_id.in_(entity_ids),
-    )
-    rows = (await session.execute(stmt)).all()
-    mapping: dict[UUID, list[UUID]] = {entity_id: [] for entity_id in entity_ids}
-    for entity_id, person_id in rows:
-        mapping[entity_id].append(person_id)
+    for entity_id, related_id in rows:
+        mapping[entity_id].append(related_id)
     return mapping
 
 
@@ -473,77 +442,6 @@ async def _load_event_occurrence_exceptions(
     return mapping
 
 
-async def _load_note_task_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    mapping = await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="task",
-        link_type="relates_to",
-    )
-    return {note_id: linked_task_ids for note_id, linked_task_ids in mapping.items()}
-
-
-async def _load_note_vision_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="vision",
-        link_type="relates_to",
-    )
-
-
-async def _load_note_event_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="event",
-        link_type="relates_to",
-    )
-
-
-async def _load_note_person_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="person",
-        link_type="is_about",
-    )
-
-
-async def _load_note_timelog_ids(
-    session: AsyncSession,
-    *,
-    note_ids: list[UUID],
-) -> dict[UUID, list[UUID]]:
-    return await get_target_ids_for_sources(
-        session,
-        source_model="note",
-        source_ids=note_ids,
-        target_model="timelog",
-        link_type="captured_from",
-    )
-
-
 async def export_resource_snapshot(
     session: AsyncSession,
     *,
@@ -563,8 +461,10 @@ async def export_resource_snapshot(
 
     entity_ids = [UUID(payload["id"]) for payload in payloads]
     tag_map = (
-        await _load_tag_ids_for_entities(
+        await _load_related_ids_for_entities(
             session,
+            association_table=tag_associations,
+            related_id_column=tag_associations.c.tag_id,
             entity_type=spec.tag_entity_type,
             entity_ids=entity_ids,
         )
@@ -572,8 +472,10 @@ async def export_resource_snapshot(
         else {}
     )
     person_map = (
-        await _load_person_ids_for_entities(
+        await _load_related_ids_for_entities(
             session,
+            association_table=person_associations,
+            related_id_column=person_associations.c.person_id,
             entity_type=spec.person_entity_type,
             entity_ids=entity_ids,
         )
@@ -586,19 +488,59 @@ async def export_resource_snapshot(
         else {}
     )
     note_task_map = (
-        await _load_note_task_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="task",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_vision_map = (
-        await _load_note_vision_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="vision",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_event_map = (
-        await _load_note_event_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="event",
+            link_type="relates_to",
+        )
+        if resource == "note"
+        else {}
     )
     note_person_map = (
-        await _load_note_person_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="person",
+            link_type="is_about",
+        )
+        if resource == "note"
+        else {}
     )
     note_timelog_map = (
-        await _load_note_timelog_ids(session, note_ids=entity_ids) if resource == "note" else {}
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="timelog",
+            link_type="captured_from",
+        )
+        if resource == "note"
+        else {}
     )
 
     for payload in payloads:
@@ -736,24 +678,6 @@ async def _sync_snapshot_relations(
             )
 
 
-def _make_import_report(
-    *,
-    resource: str,
-    processed_count: int,
-    created_count: int,
-    updated_count: int,
-    failures: list[DataOperationFailure],
-) -> DataImportReport:
-    return DataImportReport(
-        resource=resource,
-        processed_count=processed_count,
-        created_count=created_count,
-        updated_count=updated_count,
-        failed_count=len(failures),
-        failures=tuple(failures),
-    )
-
-
 async def _import_prepared_base_rows(
     session: AsyncSession,
     *,
@@ -794,12 +718,13 @@ async def import_resource_snapshot(
         prepared_rows=prepared_rows,
     )
     await _sync_prepared_rows_relations(session, prepared_rows=prepared_rows)
-    return _make_import_report(
+    return DataImportReport(
         resource=resource,
         processed_count=len(rows),
         created_count=created_count,
         updated_count=updated_count,
-        failures=[],
+        failed_count=0,
+        failures=(),
     )
 
 
@@ -814,16 +739,24 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
             normalized[field] = _parse_column_value(table.c[field], value)
             continue
         if field == "tag_ids":
-            normalized[field] = None if value is None else _parse_tag_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field == "person_ids":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field in {"task_ids", "vision_ids", "event_ids"} and resource == "note":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         if field == "timelog_ids" and resource == "note":
-            normalized[field] = None if value is None else _parse_person_ids(value)
+            normalized[field] = (
+                None if value is None else _parse_uuid_array(value, field_name=field)
+            )
             continue
         normalized[field] = value
     return normalized
@@ -1178,10 +1111,10 @@ async def _recompute_task_effort_and_timelog_stats(session: AsyncSession) -> Non
     for task_id in reversed(task_ids):
         await task_effort.recompute_totals_upwards(session, task_id)
 
-    timelog_range = await timelog_stats._load_rebuildable_date_range(session)
+    timelog_range = await timelog_stats.load_rebuildable_timelog_date_range(session)
     if timelog_range is None:
         return
-    local_dates = timelog_stats._iter_dates(*timelog_range)
+    local_dates = timelog_stats.iter_date_range(*timelog_range)
     await timelog_stats.recompute_daily_timelog_stats_groupby_area_for_dates(
         session,
         local_dates=local_dates,
@@ -1199,13 +1132,12 @@ async def run_post_import_hooks(session: AsyncSession, *, resources: set[str]) -
 
 
 def _bundle_manifest(resource_counts: dict[str, int]) -> dict[str, Any]:
-    preferences = get_preferences_settings()
     return {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "exported_at": datetime.now().astimezone().isoformat(),
-        "app_version": _get_app_version(),
+        "app_version": get_installed_package_version(),
         "database_schema": get_database_settings().database_schema,
-        "timezone": preferences.timezone,
+        "timezone": get_preferences_settings().timezone,
         "included_resources": list(resource_counts.keys()),
         "resource_counts": resource_counts,
     }

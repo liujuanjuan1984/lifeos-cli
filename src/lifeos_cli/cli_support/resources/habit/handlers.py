@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import cast
 
+from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_summary_header,
     format_timestamp,
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import run_async
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.services import habits as habit_services
@@ -77,10 +76,7 @@ def _format_habit_summary(habit: Habit) -> str:
 
 
 def _format_habit_summary_with_stats(overview: dict[str, object]) -> str:
-    habit = overview["habit"]
-    stats = overview["stats"]
-    assert isinstance(habit, Habit)
-    assert isinstance(stats, dict)
+    habit, stats = _extract_habit_overview(overview)
     status = "deleted" if habit.deleted_at is not None else habit.status
     return (
         f"{habit.id}\t{status}\t{habit.start_date}\t{habit.duration_days}\t{_format_habit_cadence(habit)}\t"
@@ -122,6 +118,14 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
             f"deleted_at: {format_timestamp(habit.deleted_at)}",
         )
     )
+
+
+def _extract_habit_overview(overview: dict[str, object]) -> tuple[Habit, dict[str, object]]:
+    habit = overview.get("habit")
+    stats = overview.get("stats")
+    if not isinstance(habit, Habit) or not isinstance(stats, dict):
+        raise RuntimeError("Habit overview payload is invalid.")
+    return habit, stats
 
 
 def _format_habit_stats(stats: dict[str, object]) -> str:
@@ -170,14 +174,9 @@ async def handle_habit_add_async(args: argparse.Namespace) -> int:
             habit_services.HabitTaskReferenceNotFoundError,
             habit_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Created habit {habit.id}")
     return 0
-
-
-def handle_habit_add(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_add_async(args))
 
 
 async def handle_habit_list_async(args: argparse.Namespace) -> int:
@@ -234,8 +233,7 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                 else None
             )
         except habit_services.HabitValidationError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     trailer_lines = () if total_count is None else (f"Total habits: {total_count}",)
     print_summary_rows(
         items=habits,
@@ -247,10 +245,6 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_list(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_list_async(args))
-
-
 async def handle_habit_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -260,18 +254,10 @@ async def handle_habit_show_async(args: argparse.Namespace) -> int:
                 include_deleted=args.include_deleted,
             )
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-    habit = overview["habit"]
-    stats = overview["stats"]
-    assert isinstance(habit, Habit)
-    assert isinstance(stats, dict)
+            return cli_handler_utils.print_cli_error(exc)
+    habit, stats = _extract_habit_overview(overview)
     print(_format_habit_detail(habit, stats))
     return 0
-
-
-def handle_habit_show(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_show_async(args))
 
 
 async def handle_habit_update_async(args: argparse.Namespace) -> int:
@@ -292,10 +278,9 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             "--clear-weekdays",
         ),
     )
-    for is_conflict, value_flag, clear_flag in conflicts:
-        if is_conflict:
-            print(f"Use either {value_flag} or {clear_flag}, not both.", file=sys.stderr)
-            return 1
+    conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
+    if conflict_error is not None:
+        return conflict_error
     async with db_session.session_scope() as session:
         try:
             habit = await habit_services.update_habit(
@@ -320,14 +305,9 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             habit_services.HabitTaskReferenceNotFoundError,
             habit_services.InvalidHabitOperationError,
         ) as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit {habit.id}")
     return 0
-
-
-def handle_habit_update(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_update_async(args))
 
 
 async def handle_habit_delete_async(args: argparse.Namespace) -> int:
@@ -335,14 +315,9 @@ async def handle_habit_delete_async(args: argparse.Namespace) -> int:
         try:
             await habit_services.delete_habit(session, habit_id=args.habit_id)
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted habit {args.habit_id}")
     return 0
-
-
-def handle_habit_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_delete_async(args))
 
 
 async def handle_habit_stats_async(args: argparse.Namespace) -> int:
@@ -350,14 +325,9 @@ async def handle_habit_stats_async(args: argparse.Namespace) -> int:
         try:
             stats = await habit_services.get_habit_stats(session, habit_id=args.habit_id)
         except habit_services.HabitNotFoundError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
+            return cli_handler_utils.print_cli_error(exc)
     print(_format_habit_stats(stats))
     return 0
-
-
-def handle_habit_stats(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_stats_async(args))
 
 
 async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
@@ -373,10 +343,6 @@ async def handle_habit_task_associations_async(_: argparse.Namespace) -> int:
     return 0
 
 
-def handle_habit_task_associations(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_task_associations_async(args))
-
-
 async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await habit_services.batch_delete_habits(
@@ -389,7 +355,3 @@ async def handle_habit_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed habit IDs",
         result=result,
     )
-
-
-def handle_habit_batch_delete(args: argparse.Namespace) -> int:
-    return run_async(handle_habit_batch_delete_async(args))

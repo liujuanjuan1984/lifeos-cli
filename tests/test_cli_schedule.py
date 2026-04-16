@@ -86,13 +86,16 @@ def test_main_schedule_list_rejects_inverted_date_range(
         [
             "schedule",
             "list",
-            "--start-date",
+            "--date",
             "2026-04-11",
-            "--end-date",
+            "--date",
             "2026-04-10",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert "--end-date must be on or after --start-date." in captured.err
+    assert (
+        "When --date is repeated, the second date must be on or after the first date."
+        in captured.err
+    )

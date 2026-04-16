@@ -9,7 +9,10 @@ from uuid import UUID
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date
+from lifeos_cli.application.time_preferences import (
+    get_utc_window_for_local_date,
+    get_utc_window_for_local_date_range,
+)
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
 from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
@@ -78,9 +81,11 @@ def _normalize_schedule_range(*, start_date: date, end_date: date) -> tuple[date
 
 
 def _task_cycle_end_date(task: Task) -> date:
-    assert task.planning_cycle_start_date is not None
-    assert task.planning_cycle_days is not None
-    return task.planning_cycle_start_date + timedelta(days=task.planning_cycle_days - 1)
+    planning_cycle_start_date = task.planning_cycle_start_date
+    planning_cycle_days = task.planning_cycle_days
+    if planning_cycle_start_date is None or planning_cycle_days is None:
+        raise ValueError("Scheduled tasks must include planning cycle start date and days.")
+    return planning_cycle_start_date + timedelta(days=planning_cycle_days - 1)
 
 
 async def _load_schedule_tasks(
@@ -106,29 +111,16 @@ async def _load_schedule_tasks(
     return list((await session.execute(stmt)).scalars())
 
 
-async def _load_schedule_habit_actions(
-    session: AsyncSession,
-    *,
-    start_date: date,
-    end_date: date,
-) -> list[HabitActionView]:
-    return await list_habit_actions_in_range(
-        session,
-        start_date=start_date,
-        end_date=end_date,
-        include_deleted=False,
-    )
-
-
 async def _load_schedule_events(
     session: AsyncSession,
     *,
     start_date: date,
     end_date: date,
 ) -> list[EventOccurrence]:
-    range_window_start, _ = get_utc_window_for_local_date(start_date)
-    _, range_window_end_exclusive = get_utc_window_for_local_date(end_date)
-    range_window_end = range_window_end_exclusive - timedelta(microseconds=1)
+    range_window_start, range_window_end = get_utc_window_for_local_date_range(
+        start_date,
+        end_date,
+    )
     return await list_event_occurrences(
         session,
         window_start=range_window_start,
@@ -137,16 +129,22 @@ async def _load_schedule_events(
 
 
 def _map_task_item(task: Task) -> ScheduleTaskItem:
-    assert task.planning_cycle_type is not None
-    assert task.planning_cycle_days is not None
-    assert task.planning_cycle_start_date is not None
+    planning_cycle_type = task.planning_cycle_type
+    planning_cycle_days = task.planning_cycle_days
+    planning_cycle_start_date = task.planning_cycle_start_date
+    if (
+        planning_cycle_type is None
+        or planning_cycle_days is None
+        or planning_cycle_start_date is None
+    ):
+        raise ValueError("Scheduled tasks must include complete planning cycle fields.")
     return ScheduleTaskItem(
         id=task.id,
         content=task.content,
         status=task.status,
-        planning_cycle_type=task.planning_cycle_type,
-        planning_cycle_days=task.planning_cycle_days,
-        planning_cycle_start_date=task.planning_cycle_start_date,
+        planning_cycle_type=planning_cycle_type,
+        planning_cycle_days=planning_cycle_days,
+        planning_cycle_start_date=planning_cycle_start_date,
         planning_cycle_end_date=_task_cycle_end_date(task),
     )
 
@@ -184,10 +182,11 @@ async def list_schedule_in_range(
     start_date, end_date = _normalize_schedule_range(start_date=start_date, end_date=end_date)
     dates = _iter_date_range(start_date, end_date)
     tasks = await _load_schedule_tasks(session, start_date=start_date, end_date=end_date)
-    habit_actions = await _load_schedule_habit_actions(
+    habit_actions = await list_habit_actions_in_range(
         session,
         start_date=start_date,
         end_date=end_date,
+        include_deleted=False,
     )
     events = await _load_schedule_events(session, start_date=start_date, end_date=end_date)
 

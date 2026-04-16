@@ -3,31 +3,29 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime
+from datetime import datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_date_range_arguments,
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.event.handlers import (
     EVENT_SUMMARY_COLUMNS,
-    handle_event_add,
-    handle_event_batch_delete,
-    handle_event_delete,
-    handle_event_list,
-    handle_event_show,
-    handle_event_update,
+    handle_event_add_async,
+    handle_event_batch_delete_async,
+    handle_event_delete_async,
+    handle_event_list_async,
+    handle_event_show_async,
+    handle_event_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
+from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
-
-
-def _datetime_value(value: str) -> datetime:
-    """Parse an ISO-8601 datetime value."""
-    return datetime.fromisoformat(value)
 
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -48,8 +46,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--start-time 2026-04-10T13:00:00-04:00",
                 'lifeos event add "Monthly review" --start-time 2026-04-30T16:00:00-04:00 '
                 "--recurrence-frequency monthly",
-                "lifeos event list --window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
+                "lifeos event list --start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
             ),
             notes=(
@@ -96,9 +94,9 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     add_parser.add_argument("title", help=_("Event title"))
     add_parser.add_argument("--description", help=_("Optional event description"))
     add_parser.add_argument(
-        "--start-time", required=True, type=_datetime_value, help=_("Start time")
+        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
     )
-    add_parser.add_argument("--end-time", type=_datetime_value, help=_("Optional end time"))
+    add_parser.add_argument("--end-time", type=datetime.fromisoformat, help=_("Optional end time"))
     add_parser.add_argument("--priority", type=int, default=0, help=_("Priority from 0 to 5"))
     add_parser.add_argument("--status", default="planned", help=_("Event status"))
     add_parser.add_argument(
@@ -131,7 +129,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     add_parser.add_argument(
         "--recurrence-until",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Optional final allowed occurrence start time"),
     )
     add_parser.add_argument(
@@ -150,7 +148,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         default=None,
         help=_("Repeat to attach one or more people"),
     )
-    add_parser.set_defaults(handler=handle_event_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_event_add_async))
 
     list_parser = add_documented_parser(
         event_subparsers,
@@ -164,17 +162,21 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             examples=(
                 "lifeos event list",
-                "lifeos event list --status planned --window-start 2026-04-10T00:00:00-04:00 "
-                "--window-end 2026-04-10T23:59:59-04:00",
                 "lifeos event list --date 2026-04-10",
+                "lifeos event list --date 2026-04-10 --date 2026-04-16",
+                "lifeos event list --status planned --start-time 2026-04-10T00:00:00-04:00 "
+                "--end-time 2026-04-10T23:59:59-04:00",
                 "lifeos event list --type deadline --date 2026-04-10",
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                _("When both window flags are given, overlapping events are returned."),
                 _(
-                    "Use `--date` to query one configured local day using your timezone and "
-                    "`day_starts_at` preference."
+                    "Repeat `--date` once for one configured local day or twice for one "
+                    "inclusive local-date range."
+                ),
+                _(
+                    "When both `--start-time` and `--end-time` are given, overlapping "
+                    "events are returned."
                 ),
                 _("Recurring series are expanded for bounded window queries and schedule views."),
                 _("Use `--type` to narrow results to one event topology."),
@@ -200,17 +202,28 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
-    list_parser.add_argument(
-        "--date",
-        dest="local_date",
-        type=date.fromisoformat,
-        help=_("Filter one configured local day in YYYY-MM-DD format"),
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "Repeat once for one configured local day or twice for one inclusive "
+            "local-date range in YYYY-MM-DD format"
+        ),
     )
-    list_parser.add_argument("--window-start", type=_datetime_value, help=_("Window start time"))
-    list_parser.add_argument("--window-end", type=_datetime_value, help=_("Window end time"))
+    list_parser.add_argument(
+        "--start-time",
+        dest="window_start",
+        type=parse_datetime_or_date_value,
+        help=_("Inclusive time filter start; date-only values use the configured timezone"),
+    )
+    list_parser.add_argument(
+        "--end-time",
+        dest="window_end",
+        type=parse_datetime_or_date_value,
+        help=_("Inclusive time filter end; date-only values use the configured timezone"),
+    )
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_event_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_event_list_async))
 
     show_parser = add_documented_parser(
         event_subparsers,
@@ -226,7 +239,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     show_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
     add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_event_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
     update_parser = add_documented_parser(
         event_subparsers,
@@ -261,8 +274,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument(
         "--clear-description", action="store_true", help=_("Clear description")
     )
-    update_parser.add_argument("--start-time", type=_datetime_value, help=_("Updated start time"))
-    update_parser.add_argument("--end-time", type=_datetime_value, help=_("Updated end time"))
+    update_parser.add_argument(
+        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+    )
+    update_parser.add_argument(
+        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+    )
     update_parser.add_argument("--clear-end-time", action="store_true", help=_("Clear end time"))
     update_parser.add_argument("--priority", type=int, help=_("Updated priority from 0 to 5"))
     update_parser.add_argument("--status", help=_("Updated event status"))
@@ -293,7 +310,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     update_parser.add_argument("--recurrence-count", type=int, help=_("Updated recurrence count"))
     update_parser.add_argument(
         "--recurrence-until",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Updated recurrence until datetime"),
     )
     update_parser.add_argument(
@@ -308,7 +325,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     update_parser.add_argument(
         "--instance-start",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Instance start time for single or all_future recurring updates"),
     )
     update_parser.add_argument(
@@ -329,7 +346,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help=_("Repeat to replace people with one or more identifiers"),
     )
     update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
-    update_parser.set_defaults(handler=handle_event_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_event_update_async))
 
     delete_parser = add_documented_parser(
         event_subparsers,
@@ -358,10 +375,10 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     delete_parser.add_argument(
         "--instance-start",
-        type=_datetime_value,
+        type=datetime.fromisoformat,
         help=_("Instance start time for single or all_future recurring deletes"),
     )
-    delete_parser.set_defaults(handler=handle_event_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))
 
     batch_parser = add_documented_parser(
         event_subparsers,
@@ -385,4 +402,4 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="event_ids", noun="event")
-    batch_delete_parser.set_defaults(handler=handle_event_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_event_batch_delete_async))

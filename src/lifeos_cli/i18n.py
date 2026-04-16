@@ -9,7 +9,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
-from lifeos_cli.config import ConfigurationError, detect_default_language, get_preferences_settings
+from lifeos_cli.config import (
+    ConfigurationError,
+    detect_default_language,
+    get_preferences_settings,
+)
 
 DOMAIN = "lifeos_cli"
 LOCALES_DIR = Path(__file__).with_name("locales")

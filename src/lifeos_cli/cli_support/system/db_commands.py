@@ -14,7 +14,7 @@ from lifeos_cli.cli_support.help_utils import (
     make_help_handler,
 )
 from lifeos_cli.cli_support.runtime_utils import (
-    run_async,
+    make_sync_handler,
 )
 from lifeos_cli.i18n import gettext_message as _
 
@@ -24,11 +24,6 @@ async def run_db_ping(_: argparse.Namespace) -> int:
     await ping_configured_database()
     print("Database connection succeeded.")
     return 0
-
-
-def _handle_db_ping(args: argparse.Namespace) -> int:
-    """Ping the configured database."""
-    return run_async(run_db_ping(args))
 
 
 def run_db_upgrade(_: argparse.Namespace) -> int:
@@ -72,7 +67,7 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             examples=("lifeos db ping",),
         ),
     )
-    ping_parser.set_defaults(handler=_handle_db_ping)
+    ping_parser.set_defaults(handler=make_sync_handler(run_db_ping))
 
     upgrade_parser = add_documented_parser(
         db_subparsers,

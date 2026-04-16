@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
@@ -15,8 +15,6 @@ from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.habit_support import (
-    DEFAULT_HABIT_ACTION_WINDOW_DAYS,
-    MAX_HABIT_ACTION_WINDOW_DAYS,
     HabitActionLike,
     HabitActionNotFoundError,
     HabitNotFoundError,
@@ -54,67 +52,46 @@ def _apply_habit_filters(
     return stmt
 
 
-def _resolve_habit_action_window(
+def _normalize_action_window(
     *,
-    action_date: date | None,
-    center_date: date | None,
-    days_before: int | None,
-    days_after: int | None,
+    start_date: date | None,
+    end_date: date | None,
 ) -> tuple[date, date] | None:
-    if action_date is not None:
-        return action_date, action_date
-    if not any(value is not None for value in (center_date, days_before, days_after)):
+    if start_date is None and end_date is None:
         return None
-
-    reference_date = center_date or get_operational_date()
-    window_before = days_before if days_before is not None else DEFAULT_HABIT_ACTION_WINDOW_DAYS
-    window_after = days_after if days_after is not None else window_before
-    if window_before < 0 or window_after < 0:
-        raise HabitValidationError("days_before and days_after must be non-negative")
-    if window_before + window_after + 1 > MAX_HABIT_ACTION_WINDOW_DAYS:
-        raise HabitValidationError("The requested action window is larger than the allowed maximum")
-    return reference_date - timedelta(days=window_before), reference_date + timedelta(
-        days=window_after
-    )
+    if start_date is None or end_date is None:
+        raise HabitValidationError("start_date and end_date must be provided together")
+    if end_date < start_date:
+        raise HabitValidationError("end_date must be on or after start_date")
+    return start_date, end_date
 
 
 def _habit_end_expr() -> Any:
     return Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
 
 
-def _build_materialized_action_view(
-    action: HabitAction,
+def _build_habit_action_view(
     *,
+    action_id: UUID | None,
+    habit_id: UUID,
     habit_title: str,
-) -> HabitActionView:
-    return HabitActionView(
-        id=action.id,
-        habit_id=action.habit_id,
-        habit_title=habit_title,
-        action_date=action.action_date,
-        status=action.status,
-        notes=action.notes,
-        created_at=action.created_at,
-        updated_at=action.updated_at,
-        deleted_at=action.deleted_at,
-    )
-
-
-def _build_synthetic_action_view(
-    *,
-    habit: Habit,
     action_date: date,
+    status: str,
+    notes: str | None,
+    created_at: datetime | None,
+    updated_at: datetime | None,
+    deleted_at: datetime | None,
 ) -> HabitActionView:
     return HabitActionView(
-        id=None,
-        habit_id=habit.id,
-        habit_title=habit.title,
+        id=action_id,
+        habit_id=habit_id,
+        habit_title=habit_title,
         action_date=action_date,
-        status="pending",
-        notes=None,
-        created_at=None,
-        updated_at=None,
-        deleted_at=None,
+        status=status,
+        notes=notes,
+        created_at=created_at,
+        updated_at=updated_at,
+        deleted_at=deleted_at,
     )
 
 
@@ -238,13 +215,47 @@ def _build_habit_occurrence_views(
     ):
         materialized = active_actions_by_date.get(action_date)
         if materialized is None:
-            views.append(_build_synthetic_action_view(habit=habit, action_date=action_date))
+            views.append(
+                _build_habit_action_view(
+                    action_id=None,
+                    habit_id=habit.id,
+                    habit_title=habit.title,
+                    action_date=action_date,
+                    status="pending",
+                    notes=None,
+                    created_at=None,
+                    updated_at=None,
+                    deleted_at=None,
+                )
+            )
             continue
-        views.append(_build_materialized_action_view(materialized, habit_title=habit.title))
+        views.append(
+            _build_habit_action_view(
+                action_id=materialized.id,
+                habit_id=materialized.habit_id,
+                habit_title=habit.title,
+                action_date=materialized.action_date,
+                status=materialized.status,
+                notes=materialized.notes,
+                created_at=materialized.created_at,
+                updated_at=materialized.updated_at,
+                deleted_at=materialized.deleted_at,
+            )
+        )
 
     if include_deleted:
         views.extend(
-            _build_materialized_action_view(action, habit_title=habit.title)
+            _build_habit_action_view(
+                action_id=action.id,
+                habit_id=action.habit_id,
+                habit_title=habit.title,
+                action_date=action.action_date,
+                status=action.status,
+                notes=action.notes,
+                created_at=action.created_at,
+                updated_at=action.updated_at,
+                deleted_at=action.deleted_at,
+            )
             for action in deleted_actions
             if start_date <= action.action_date <= end_date
         )
@@ -280,19 +291,9 @@ async def _build_habit_action_views(
     *,
     habit_id: UUID | None,
     status: str | None,
-    action_date: date | None,
-    center_date: date | None,
-    days_before: int | None,
-    days_after: int | None,
-    explicit_action_window: tuple[date, date] | None,
+    action_window: tuple[date, date] | None,
     include_deleted: bool,
 ) -> list[HabitActionView]:
-    action_window = explicit_action_window or _resolve_habit_action_window(
-        action_date=action_date,
-        center_date=center_date,
-        days_before=days_before,
-        days_after=days_after,
-    )
     habits = await _load_candidate_habits(
         session,
         habit_id=habit_id,
@@ -404,11 +405,7 @@ async def get_habit_stats(session: AsyncSession, *, habit_id: UUID) -> dict[str,
         session,
         habit_id=habit.id,
         status=None,
-        action_date=None,
-        center_date=None,
-        days_before=None,
-        days_after=None,
-        explicit_action_window=None,
+        action_window=None,
         include_deleted=False,
     )
     return build_habit_stats_payload(habit, cast(list[HabitActionLike], actions))
@@ -428,11 +425,7 @@ async def get_habit_overview(
         session,
         habit_id=habit.id,
         status=None,
-        action_date=None,
-        center_date=None,
-        days_before=None,
-        days_after=None,
-        explicit_action_window=None,
+        action_window=None,
         include_deleted=False,
     )
     return {
@@ -469,11 +462,7 @@ async def list_habit_overviews(
             session,
             habit_id=habit.id,
             status=None,
-            action_date=None,
-            center_date=None,
-            days_before=None,
-            days_after=None,
-            explicit_action_window=None,
+            action_window=None,
             include_deleted=False,
         )
         overviews.append(
@@ -513,10 +502,8 @@ async def list_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
-    action_date: date | None = None,
-    center_date: date | None = None,
-    days_before: int | None = None,
-    days_after: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -526,11 +513,7 @@ async def list_habit_actions(
         session,
         habit_id=habit_id,
         status=status,
-        action_date=action_date,
-        center_date=center_date,
-        days_before=days_before,
-        days_after=days_after,
-        explicit_action_window=None,
+        action_window=_normalize_action_window(start_date=start_date, end_date=end_date),
         include_deleted=include_deleted,
     )
     paged_views = views[offset : offset + limit]
@@ -557,9 +540,16 @@ async def list_habit_actions(
             habit=habit,
             action_date=view.action_date,
         )
-        materialized_by_key[(view.habit_id, view.action_date)] = _build_materialized_action_view(
-            action,
+        materialized_by_key[(view.habit_id, view.action_date)] = _build_habit_action_view(
+            action_id=action.id,
+            habit_id=action.habit_id,
             habit_title=habit.title,
+            action_date=action.action_date,
+            status=action.status,
+            notes=action.notes,
+            created_at=action.created_at,
+            updated_at=action.updated_at,
+            deleted_at=action.deleted_at,
         )
 
     return [
@@ -581,11 +571,7 @@ async def list_habit_actions_in_range(
         session,
         habit_id=None,
         status=None,
-        action_date=None,
-        center_date=None,
-        days_before=None,
-        days_after=None,
-        explicit_action_window=(start_date, end_date),
+        action_window=(start_date, end_date),
         include_deleted=include_deleted,
     )
     return [view for view in views if start_date <= view.action_date <= end_date]
@@ -596,10 +582,8 @@ async def count_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
-    action_date: date | None = None,
-    center_date: date | None = None,
-    days_before: int | None = None,
-    days_after: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
@@ -607,11 +591,7 @@ async def count_habit_actions(
         session,
         habit_id=habit_id,
         status=status,
-        action_date=action_date,
-        center_date=center_date,
-        days_before=days_before,
-        days_after=days_after,
-        explicit_action_window=None,
+        action_window=_normalize_action_window(start_date=start_date, end_date=end_date),
         include_deleted=include_deleted,
     )
     return len(views)

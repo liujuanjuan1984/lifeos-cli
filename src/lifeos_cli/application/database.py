@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+from typing import Literal
 
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db.maintenance import ping_database, upgrade_database
@@ -21,17 +22,24 @@ def upgrade_configured_database() -> None:
     upgrade_database()
 
 
-def upgrade_configured_database_in_subprocess() -> None:
-    """Apply database migrations in a fresh process after config changes.
+def run_configured_database_subcommand_in_subprocess(
+    *,
+    subcommand: Literal["ping", "upgrade"],
+) -> None:
+    """Run one database CLI command in a fresh process after config changes.
 
-    This avoids using already-imported modules that may still carry a stale
-    schema value from before `lifeos init` rewrote the local config.
+    This keeps post-init database actions aligned with the newly written
+    schema binding without mutating already-imported ORM metadata in-process.
     """
+    failure_messages = {
+        "ping": "Database connectivity check failed.",
+        "upgrade": "Database migrations failed.",
+    }
     executable = shutil.which("lifeos")
     command = (
-        [executable, "db", "upgrade"]
+        [executable, "db", subcommand]
         if executable is not None
-        else [sys.executable, "-m", "lifeos_cli.cli", "db", "upgrade"]
+        else [sys.executable, "-m", "lifeos_cli.cli", "db", subcommand]
     )
     result = subprocess.run(
         command,
@@ -41,5 +49,5 @@ def upgrade_configured_database_in_subprocess() -> None:
         check=False,
     )
     if result.returncode != 0:
-        message = result.stderr.strip() or result.stdout.strip() or "Database migrations failed."
+        message = result.stderr.strip() or result.stdout.strip() or failure_messages[subcommand]
         raise ConfigurationError(message)

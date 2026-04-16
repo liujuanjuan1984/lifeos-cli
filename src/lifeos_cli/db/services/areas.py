@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
+from lifeos_cli.db.services.model_utils import load_model_by_id
 
 
 class AreaNotFoundError(LookupError):
@@ -17,11 +19,6 @@ class AreaNotFoundError(LookupError):
 
 class AreaAlreadyExistsError(ValueError):
     """Raised when an area with the same name already exists."""
-
-
-def _deduplicate_area_ids(area_ids: list[UUID]) -> list[UUID]:
-    """Return area identifiers in their original order without duplicates."""
-    return list(dict.fromkeys(area_ids))
 
 
 async def create_area(
@@ -62,10 +59,12 @@ async def get_area(
     include_deleted: bool = False,
 ) -> Area | None:
     """Load an area by identifier."""
-    stmt = select(Area).where(Area.id == area_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Area.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
+    return await load_model_by_id(
+        session,
+        model_cls=Area,
+        model_id=area_id,
+        include_deleted=include_deleted,
+    )
 
 
 async def list_areas(
@@ -151,7 +150,7 @@ async def batch_delete_areas(
 ) -> BatchDeleteResult:
     """Soft-delete multiple areas while preserving per-area error reporting."""
     return await batch_delete_records(
-        identifiers=_deduplicate_area_ids(area_ids),
+        identifiers=deduplicate_preserving_order(area_ids),
         delete_record=lambda area_id: delete_area(session, area_id=area_id),
         handled_exceptions=(AreaNotFoundError,),
     )

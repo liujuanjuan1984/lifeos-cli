@@ -11,8 +11,6 @@ import pytest
 from psycopg import sql
 from sqlalchemy.engine import make_url
 
-from lifeos_cli.config import ConfigurationError, DatabaseSettings
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _ID_PATTERN = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
@@ -20,29 +18,28 @@ _ID_PATTERN = re.compile(
 )
 
 
-def _resolve_test_database_url() -> str | None:
-    explicit = os.environ.get("LIFEOS_TEST_DATABASE_URL")
-    if explicit:
-        return explicit
-    try:
-        return DatabaseSettings.from_env().require_database_url()
-    except ConfigurationError:
-        return None
-
-
-RUN_INTEGRATION = os.environ.get("LIFEOS_RUN_INTEGRATION") == "1"
-TEST_DATABASE_URL = _resolve_test_database_url()
+INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
 
 INTEGRATION_PYTESTMARK = [
     pytest.mark.integration,
     pytest.mark.skipif(
-        not RUN_INTEGRATION or TEST_DATABASE_URL is None,
-        reason=(
-            "set LIFEOS_RUN_INTEGRATION=1 and provide LIFEOS_TEST_DATABASE_URL "
-            "(or a configured lifeos database URL) to run real CLI integration tests"
-        ),
+        INTEGRATION_DATABASE_URL is None,
+        reason="provide LIFEOS_TEST_DATABASE_URL to run real CLI integration tests",
     ),
 ]
+
+_DEFAULT_INIT_PREFERENCES: tuple[str, ...] = (
+    "--timezone",
+    "America/Toronto",
+    "--language",
+    "en",
+    "--day-starts-at",
+    "00:00",
+    "--week-starts-on",
+    "monday",
+    "--vision-experience-rate-per-hour",
+    "60",
+)
 
 
 @dataclass(frozen=True)
@@ -101,7 +98,21 @@ def _drop_schema(database_url: str, schema_name: str) -> None:
             )
 
 
+def _merge_default_init_preferences(extra_args: tuple[str, ...]) -> tuple[str, ...]:
+    """Append stable init preference defaults unless the caller overrides them."""
+    merged_args = list(extra_args)
+    for option_name, option_value in zip(
+        _DEFAULT_INIT_PREFERENCES[::2],
+        _DEFAULT_INIT_PREFERENCES[1::2],
+        strict=True,
+    ):
+        if option_name not in merged_args:
+            merged_args.extend((option_name, option_value))
+    return tuple(merged_args)
+
+
 def init_context(context: IntegrationContext, *extra_args: str) -> None:
+    init_args = _merge_default_init_preferences(extra_args)
     init_result = run_lifeos(
         context,
         "init",
@@ -110,7 +121,7 @@ def init_context(context: IntegrationContext, *extra_args: str) -> None:
         context.database_url,
         "--schema",
         context.schema,
-        *extra_args,
+        *init_args,
     )
     assert_ok(init_result)
     assert "Database connection succeeded." in init_result.stdout

@@ -13,6 +13,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
+from lifeos_cli.db.services.model_utils import load_view_by_id
 from lifeos_cli.db.services.read_models import (
     PersonSummaryView,
     TaskView,
@@ -73,18 +74,6 @@ class TaskHierarchy:
 
     vision_id: UUID
     root_tasks: tuple[TaskWithSubtasks, ...]
-
-
-async def _load_people_map(
-    session: AsyncSession,
-    tasks: list[Task],
-) -> dict[UUID, list[Person]]:
-    """Load related people for task records without mutating ORM instances."""
-    return await load_people_for_entities(
-        session,
-        entity_ids=[task.id for task in tasks],
-        entity_type="task",
-    )
 
 
 def _build_task_tree(
@@ -157,27 +146,23 @@ def _parse_status_csv(value: str | None) -> list[str]:
     return [validate_task_status(item) for item in _split_csv(value)]
 
 
-async def _get_task_model(
-    session: AsyncSession,
-    *,
-    task_id: UUID,
-    include_deleted: bool,
-) -> Task | None:
-    stmt = select(Task).where(Task.id == task_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Task.deleted_at.is_(None))
-    return (await session.execute(stmt)).scalar_one_or_none()
-
-
 async def _build_task_view(session: AsyncSession, task: Task) -> TaskView:
-    people_map = await _load_people_map(session, [task])
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id],
+        entity_type="task",
+    )
     return build_task_view(task, people=people_map.get(task.id, ()))
 
 
 async def _build_task_views(session: AsyncSession, tasks: list[Task]) -> list[TaskView]:
     if not tasks:
         return []
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     return [build_task_view(task, people=people_map.get(task.id, ())) for task in tasks]
 
 
@@ -188,10 +173,13 @@ async def get_task(
     include_deleted: bool = False,
 ) -> TaskView | None:
     """Load a task by identifier."""
-    task = await _get_task_model(session, task_id=task_id, include_deleted=include_deleted)
-    if task is None:
-        return None
-    return await _build_task_view(session, task)
+    return await load_view_by_id(
+        session,
+        model_cls=Task,
+        model_id=task_id,
+        include_deleted=include_deleted,
+        view_builder=_build_task_view,
+    )
 
 
 async def list_tasks(
@@ -274,7 +262,11 @@ async def get_vision_task_hierarchy(
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )
     tasks = list((await session.execute(stmt)).scalars())
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     return TaskHierarchy(
         vision_id=vision_id, root_tasks=_build_task_tree(tasks, people_map=people_map)
     )
@@ -289,7 +281,11 @@ async def get_task_with_subtasks(
     tasks = await load_task_subtree(session, root_task_id=task_id)
     if not tasks:
         return None
-    people_map = await _load_people_map(session, tasks)
+    people_map = await load_people_for_entities(
+        session,
+        entity_ids=[task.id for task in tasks],
+        entity_type="task",
+    )
     task_tree = _build_task_tree(tasks, people_map=people_map)
     return task_tree[0] if task_tree else None
 
