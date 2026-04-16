@@ -19,6 +19,7 @@ from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.read_models import VisionView, build_vision_view
 
@@ -53,11 +54,6 @@ class AreaReferenceNotFoundError(LookupError):
 
 class VisionNotReadyForHarvestError(ValueError):
     """Raised when a vision cannot be harvested yet."""
-
-
-def _deduplicate_vision_ids(vision_ids: list[UUID]) -> list[UUID]:
-    """Return vision identifiers in their original order without duplicates."""
-    return list(dict.fromkeys(vision_ids))
 
 
 def validate_vision_status(status: str) -> str:
@@ -431,7 +427,7 @@ async def batch_delete_visions(
 ) -> BatchDeleteResult:
     """Soft-delete multiple visions while preserving per-vision error reporting."""
     return await batch_delete_records(
-        identifiers=_deduplicate_vision_ids(vision_ids),
+        identifiers=deduplicate_preserving_order(vision_ids),
         delete_record=lambda vision_id: delete_vision(session, vision_id=vision_id),
         handled_exceptions=(VisionNotFoundError,),
     )

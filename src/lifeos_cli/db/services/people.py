@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.read_models import PersonView, build_person_view
 
@@ -21,11 +22,6 @@ class PersonNotFoundError(LookupError):
 
 class PersonAlreadyExistsError(ValueError):
     """Raised when a person with the same name already exists."""
-
-
-def _deduplicate_person_ids(person_ids: list[UUID]) -> list[UUID]:
-    """Return person identifiers in their original order without duplicates."""
-    return list(dict.fromkeys(person_ids))
 
 
 async def _get_person_model(
@@ -237,7 +233,7 @@ async def batch_delete_people(
 ) -> BatchDeleteResult:
     """Soft-delete multiple people while preserving per-person error reporting."""
     return await batch_delete_records(
-        identifiers=_deduplicate_person_ids(person_ids),
+        identifiers=deduplicate_preserving_order(person_ids),
         delete_record=lambda person_id: delete_person(session, person_id=person_id),
         handled_exceptions=(PersonNotFoundError,),
     )

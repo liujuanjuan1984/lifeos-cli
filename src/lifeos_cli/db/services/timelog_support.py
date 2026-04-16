@@ -91,8 +91,3 @@ async def ensure_timelog_task_exists(session: AsyncSession, task_id: UUID | None
     stmt = select(Task.id).where(Task.id == task_id, Task.deleted_at.is_(None)).limit(1)
     if (await session.scalar(stmt)) is None:
         raise TimelogTaskReferenceNotFoundError(f"Task {task_id} was not found")
-
-
-def deduplicate_timelog_ids(timelog_ids: list[UUID]) -> list[UUID]:
-    """Return timelog identifiers in original order without duplicates."""
-    return list(dict.fromkeys(timelog_ids))

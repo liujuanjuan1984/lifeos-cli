@@ -22,6 +22,7 @@ from lifeos_cli.db.services.batching import (
     batch_delete_records,
     batch_restore_records,
 )
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
@@ -33,7 +34,6 @@ from lifeos_cli.db.services.timelog_support import (
     TimelogNotFoundError,
     TimelogTaskReferenceNotFoundError,
     TimelogValidationError,
-    deduplicate_timelog_ids,
     ensure_timelog_area_exists,
     ensure_timelog_task_exists,
     normalize_timelog_datetime,
@@ -617,7 +617,7 @@ async def batch_update_timelogs(
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
-    for timelog_id in deduplicate_timelog_ids(timelog_ids):
+    for timelog_id in deduplicate_preserving_order(timelog_ids):
         try:
             next_title = title
             if find_title_text is not None:
@@ -722,7 +722,7 @@ async def batch_delete_timelogs(
 ) -> BatchDeleteResult:
     """Soft-delete multiple timelogs."""
     return await batch_delete_records(
-        identifiers=deduplicate_timelog_ids(timelog_ids),
+        identifiers=deduplicate_preserving_order(timelog_ids),
         delete_record=lambda timelog_id: delete_timelog(session, timelog_id=timelog_id),
         handled_exceptions=(TimelogNotFoundError,),
     )
@@ -735,7 +735,7 @@ async def batch_restore_timelogs(
 ) -> BatchRestoreResult:
     """Restore multiple soft-deleted timelogs."""
     return await batch_restore_records(
-        identifiers=deduplicate_timelog_ids(timelog_ids),
+        identifiers=deduplicate_preserving_order(timelog_ids),
         restore_record=lambda timelog_id: restore_timelog(session, timelog_id=timelog_id),
         handled_exceptions=(
             TimelogAreaReferenceNotFoundError,

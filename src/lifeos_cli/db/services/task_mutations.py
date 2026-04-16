@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import sync_entity_people
 from lifeos_cli.db.services.read_models import TaskView
 from lifeos_cli.db.services.task_effort import recompute_subtree_totals, recompute_totals_upwards
@@ -20,7 +21,6 @@ from lifeos_cli.db.services.task_support import (
     InvalidTaskOperationError,
     ParentTaskReferenceNotFoundError,
     TaskNotFoundError,
-    deduplicate_task_ids,
     ensure_vision_exists,
     load_task_subtree,
     validate_parent_task,
@@ -191,7 +191,7 @@ async def move_task(
         )
         if task_id is not None
     ]
-    for recompute_root_id in deduplicate_task_ids(recompute_roots):
+    for recompute_root_id in deduplicate_preserving_order(recompute_roots):
         await recompute_totals_upwards(session, recompute_root_id)
     await session.flush()
     await session.refresh(task)
@@ -331,7 +331,7 @@ async def batch_delete_tasks(
 ) -> BatchDeleteResult:
     """Soft-delete multiple tasks while preserving per-task error reporting."""
     return await batch_delete_records(
-        identifiers=deduplicate_task_ids(task_ids),
+        identifiers=deduplicate_preserving_order(task_ids),
         delete_record=lambda task_id: delete_task(session, task_id=task_id),
         handled_exceptions=(TaskNotFoundError,),
     )

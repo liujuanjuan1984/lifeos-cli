@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.read_models import TagView, build_tag_view
 
@@ -26,11 +27,6 @@ class TagAlreadyExistsError(ValueError):
 
 class InvalidTagEntityTypeError(ValueError):
     """Raised when an unsupported tag entity type is requested."""
-
-
-def _deduplicate_tag_ids(tag_ids: list[UUID]) -> list[UUID]:
-    """Return tag identifiers in their original order without duplicates."""
-    return list(dict.fromkeys(tag_ids))
 
 
 def normalize_tag_name(name: str) -> str:
@@ -239,7 +235,7 @@ async def batch_delete_tags(
 ) -> BatchDeleteResult:
     """Soft-delete multiple tags while preserving per-tag error reporting."""
     return await batch_delete_records(
-        identifiers=_deduplicate_tag_ids(tag_ids),
+        identifiers=deduplicate_preserving_order(tag_ids),
         delete_record=lambda tag_id: delete_tag(session, tag_id=tag_id),
         handled_exceptions=(TagNotFoundError,),
     )

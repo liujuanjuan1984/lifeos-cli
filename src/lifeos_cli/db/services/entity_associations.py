@@ -16,6 +16,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 
 VALID_ASSOCIATION_MODELS = frozenset({"event", "note", "person", "task", "timelog", "vision"})
 VALID_ASSOCIATION_LINK_TYPES = frozenset({"is_about", "relates_to", "captured_from"})
@@ -52,10 +53,6 @@ def validate_association_link_type(link_type: str) -> str:
     return normalized
 
 
-def _deduplicate_ids(identifiers: list[UUID]) -> list[UUID]:
-    return list(dict.fromkeys(identifiers))
-
-
 async def _load_existing_ids(
     session: AsyncSession,
     *,
@@ -84,7 +81,7 @@ async def set_association_links(
     normalized_source_model = validate_association_model(source_model)
     normalized_target_model = validate_association_model(target_model)
     normalized_link_type = validate_association_link_type(link_type)
-    unique_target_ids = _deduplicate_ids(target_ids)
+    unique_target_ids = deduplicate_preserving_order(target_ids)
 
     if source_id not in await _load_existing_ids(
         session,

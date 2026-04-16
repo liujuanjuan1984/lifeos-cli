@@ -14,6 +14,7 @@ from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.habit_queries import (
     _materialize_habit_action_for_date,
     get_habit,
@@ -24,7 +25,6 @@ from lifeos_cli.db.services.habit_support import (
     HabitActionNotFoundError,
     HabitNotFoundError,
     InvalidHabitOperationError,
-    deduplicate_habit_ids,
     ensure_active_capacity,
     ensure_task_exists,
     habit_occurs_on_date,
@@ -197,7 +197,7 @@ async def batch_delete_habits(
 ) -> BatchDeleteResult:
     """Soft-delete multiple habits."""
     return await batch_delete_records(
-        identifiers=deduplicate_habit_ids(habit_ids),
+        identifiers=deduplicate_preserving_order(habit_ids),
         delete_record=lambda habit_id: delete_habit(session, habit_id=habit_id),
         handled_exceptions=(HabitNotFoundError,),
     )

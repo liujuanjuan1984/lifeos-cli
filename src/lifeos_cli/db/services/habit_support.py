@@ -111,11 +111,6 @@ class HabitActionLike(Protocol):
     status: str
 
 
-def deduplicate_habit_ids(habit_ids: list[UUID]) -> list[UUID]:
-    """Return habit identifiers without duplicates while keeping input order."""
-    return list(dict.fromkeys(habit_ids))
-
-
 def get_default_habit_action_status() -> str:
     """Return the configured default status for newly generated actions."""
     for status, config in HABIT_ACTION_STATUS_CONFIG.items():
