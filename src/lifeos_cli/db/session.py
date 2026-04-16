@@ -14,12 +14,14 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from lifeos_cli.config import get_database_settings
+from lifeos_cli.db.base import apply_database_schema
 
 
 @lru_cache(maxsize=1)
 def get_async_engine() -> AsyncEngine:
     """Return the process-wide SQLAlchemy async engine."""
     settings = get_database_settings()
+    apply_database_schema(settings.database_schema)
     return create_async_engine(
         settings.require_database_url(),
         echo=settings.database_echo,
