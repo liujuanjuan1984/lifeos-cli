@@ -6,8 +6,9 @@ import argparse
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
+from zoneinfo import ZoneInfo
 
-from lifeos_cli.application.time_preferences import get_preferred_timezone
+from lifeos_cli.config import get_preferences_settings
 
 _DATE_ONLY_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -86,7 +87,7 @@ def normalize_query_datetime_bound(
     """Normalize one CLI query datetime bound into UTC."""
     if value is None:
         return None
-    preferred_timezone = get_preferred_timezone()
+    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
     if isinstance(value, date) and not isinstance(value, datetime):
         local_time = time.max if is_end else time.min
         value = datetime.combine(value, local_time, tzinfo=preferred_timezone)

@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 
 from lifeos_cli.application.time_preferences import (
-    get_current_week_bounds,
     get_operational_date,
     get_utc_window_for_local_date,
+    get_week_bounds,
     to_preferred_timezone,
 )
 from lifeos_cli.config import clear_config_cache
@@ -42,7 +42,7 @@ def test_get_utc_window_for_local_date_respects_day_start_boundary(monkeypatch, 
     clear_config_cache()
 
 
-def test_get_current_week_bounds_respects_configured_week_start(monkeypatch, tmp_path) -> None:
+def test_get_week_bounds_respects_configured_week_start(monkeypatch, tmp_path) -> None:
     install_test_config(
         monkeypatch=monkeypatch,
         tmp_path=tmp_path,
@@ -50,7 +50,7 @@ def test_get_current_week_bounds_respects_configured_week_start(monkeypatch, tmp
         week_starts_on="sunday",
     )
 
-    week_start, week_end = get_current_week_bounds(date(2026, 4, 9))
+    week_start, week_end = get_week_bounds(date(2026, 4, 9))
 
     assert week_start == date(2026, 4, 5)
     assert week_end == date(2026, 4, 11)

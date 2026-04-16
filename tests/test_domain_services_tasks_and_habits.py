@@ -860,8 +860,8 @@ def test_build_habit_stats_payload_uses_weekly_cycle_targets(
     monkeypatch.setattr(habit_support, "get_operational_date", lambda value=None: date(2026, 4, 13))
     monkeypatch.setattr(
         habit_support,
-        "get_current_week_bounds",
-        lambda reference_date=None: (date(2026, 4, 13), date(2026, 4, 19)),
+        "get_week_bounds",
+        lambda reference_date: (date(2026, 4, 13), date(2026, 4, 19)),
     )
 
     habit = SimpleNamespace(
@@ -891,8 +891,8 @@ def test_build_habit_stats_payload_uses_monthly_cycle_targets(
     monkeypatch.setattr(habit_support, "get_operational_date", lambda value=None: date(2026, 4, 20))
     monkeypatch.setattr(
         habit_support,
-        "get_current_week_bounds",
-        lambda reference_date=None: (date(2026, 4, 20), date(2026, 4, 26)),
+        "get_week_bounds",
+        lambda reference_date: (date(2026, 4, 20), date(2026, 4, 26)),
     )
 
     habit = SimpleNamespace(

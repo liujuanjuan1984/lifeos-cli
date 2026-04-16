@@ -12,10 +12,10 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
-    get_current_week_bounds,
     get_operational_date,
     get_utc_window_for_local_date,
     get_utc_window_for_local_date_range,
+    get_week_bounds,
 )
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.aggregated_timelog_stats_groupby_area import (
@@ -125,7 +125,7 @@ def resolve_stats_period(
     if granularity == "week":
         if target_date is None:
             raise TimelogStatsValidationError("`week` stats require `target_date`.")
-        return get_current_week_bounds(target_date)
+        return get_week_bounds(target_date)
     if granularity == "month":
         if month is None:
             raise TimelogStatsValidationError("`month` stats require `month`.")
@@ -392,7 +392,7 @@ async def recompute_aggregated_timelog_stats_groupby_area_for_dates(
         return
     periods: set[tuple[str, date, date]] = set()
     for target_date in unique_dates:
-        periods.add(("week", *get_current_week_bounds(target_date)))
+        periods.add(("week", *get_week_bounds(target_date)))
         periods.add(("month", *get_month_bounds(target_date)))
         periods.add(("year", *get_year_bounds(target_date.year)))
     for granularity, start_date, end_date in sorted(periods):

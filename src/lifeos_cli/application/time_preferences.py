@@ -8,34 +8,21 @@ from zoneinfo import ZoneInfo
 from lifeos_cli.config import get_preferences_settings
 
 
-def get_preferred_timezone() -> ZoneInfo:
-    """Return the configured IANA timezone."""
-    return ZoneInfo(get_preferences_settings().timezone)
-
-
-def get_day_start_time() -> time:
-    """Return the configured local day boundary."""
-    hour, minute = (int(part) for part in get_preferences_settings().day_starts_at.split(":"))
-    return time(hour=hour, minute=minute)
-
-
 def to_preferred_timezone(value: datetime) -> datetime:
     """Convert a stored timestamp to the preferred display timezone."""
-    preferred_timezone = get_preferred_timezone()
+    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
     if value.tzinfo is None or value.utcoffset() is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(preferred_timezone)
 
 
-def get_local_now() -> datetime:
-    """Return the current local datetime using the preferred timezone."""
-    return datetime.now(timezone.utc).astimezone(get_preferred_timezone())
-
-
 def get_operational_date(value: datetime | None = None) -> date:
     """Return the configured local date after applying the day-start boundary."""
-    local_value = to_preferred_timezone(value or get_local_now())
-    day_start = get_day_start_time()
+    if value is None:
+        value = datetime.now(timezone.utc)
+    local_value = to_preferred_timezone(value)
+    hour, minute = (int(part) for part in get_preferences_settings().day_starts_at.split(":"))
+    day_start = time(hour=hour, minute=minute)
     local_clock = time(
         hour=local_value.hour,
         minute=local_value.minute,
@@ -49,8 +36,13 @@ def get_operational_date(value: datetime | None = None) -> date:
 
 def get_utc_window_for_local_date(target_date: date) -> tuple[datetime, datetime]:
     """Return the UTC datetime window for one configured local operational day."""
-    preferred_timezone = get_preferred_timezone()
-    local_start = datetime.combine(target_date, get_day_start_time(), tzinfo=preferred_timezone)
+    preferences = get_preferences_settings()
+    hour, minute = (int(part) for part in preferences.day_starts_at.split(":"))
+    local_start = datetime.combine(
+        target_date,
+        time(hour=hour, minute=minute),
+        tzinfo=ZoneInfo(preferences.timezone),
+    )
     local_end = local_start + timedelta(days=1)
     return (
         local_start.astimezone(timezone.utc),
@@ -79,9 +71,3 @@ def get_week_bounds(reference_date: date) -> tuple[date, date]:
     week_start = reference_date - timedelta(days=days_since_week_start)
     week_end = week_start + timedelta(days=6)
     return week_start, week_end
-
-
-def get_current_week_bounds(reference_date: date | None = None) -> tuple[date, date]:
-    """Return the configured current week start and end dates."""
-    active_date = reference_date or get_operational_date()
-    return get_week_bounds(active_date)
