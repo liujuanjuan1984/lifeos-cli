@@ -6,7 +6,6 @@ import argparse
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
     resolve_required_date_interval_arguments,
@@ -98,9 +97,6 @@ async def handle_schedule_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_schedule_show = make_sync_handler(handle_schedule_show_async)
-
-
 async def handle_schedule_list_async(args: argparse.Namespace) -> int:
     try:
         start_date, end_date = resolve_required_date_interval_arguments(
@@ -116,6 +112,3 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
         )
     print("\n\n".join(_format_schedule_day(day) for day in days))
     return 0
-
-
-handle_schedule_list = make_sync_handler(handle_schedule_list_async)

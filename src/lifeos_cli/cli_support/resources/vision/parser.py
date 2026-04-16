@@ -15,18 +15,19 @@ from lifeos_cli.cli_support.parser_common import (
 from lifeos_cli.cli_support.resources.vision.handlers import (
     VISION_SUMMARY_COLUMNS,
     VISION_WITH_TASKS_COLUMNS,
-    handle_vision_add,
-    handle_vision_add_experience,
-    handle_vision_batch_delete,
-    handle_vision_delete,
-    handle_vision_harvest,
-    handle_vision_list,
-    handle_vision_show,
-    handle_vision_stats,
-    handle_vision_sync_experience,
-    handle_vision_update,
-    handle_vision_with_tasks,
+    handle_vision_add_async,
+    handle_vision_add_experience_async,
+    handle_vision_batch_delete_async,
+    handle_vision_delete_async,
+    handle_vision_harvest_async,
+    handle_vision_list_async,
+    handle_vision_show_async,
+    handle_vision_stats_async,
+    handle_vision_sync_experience_async,
+    handle_vision_update_async,
+    handle_vision_with_tasks_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -101,7 +102,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         type=int,
         help=_("Optional experience rate"),
     )
-    add_parser.set_defaults(handler=handle_vision_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_vision_add_async))
 
     list_parser = add_documented_parser(
         vision_subparsers,
@@ -132,7 +133,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person identifier"))
     add_include_deleted_argument(list_parser, noun="visions")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_vision_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_vision_list_async))
 
     show_parser = add_documented_parser(
         vision_subparsers,
@@ -148,7 +149,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     )
     show_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_vision_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_vision_show_async))
 
     with_tasks_parser = add_documented_parser(
         vision_subparsers,
@@ -166,7 +167,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     with_tasks_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    with_tasks_parser.set_defaults(handler=handle_vision_with_tasks)
+    with_tasks_parser.set_defaults(handler=make_sync_handler(handle_vision_with_tasks_async))
 
     stats_parser = add_documented_parser(
         vision_subparsers,
@@ -178,7 +179,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     stats_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    stats_parser.set_defaults(handler=handle_vision_stats)
+    stats_parser.set_defaults(handler=make_sync_handler(handle_vision_stats_async))
 
     update_parser = add_documented_parser(
         vision_subparsers,
@@ -236,7 +237,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         action="store_true",
         help=_("Clear the optional experience rate"),
     )
-    update_parser.set_defaults(handler=handle_vision_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_vision_update_async))
 
     add_experience_parser = add_documented_parser(
         vision_subparsers,
@@ -257,7 +258,9 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         required=True,
         help=_("Experience points to add"),
     )
-    add_experience_parser.set_defaults(handler=handle_vision_add_experience)
+    add_experience_parser.set_defaults(
+        handler=make_sync_handler(handle_vision_add_experience_async)
+    )
 
     sync_experience_parser = add_documented_parser(
         vision_subparsers,
@@ -269,7 +272,9 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     sync_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    sync_experience_parser.set_defaults(handler=handle_vision_sync_experience)
+    sync_experience_parser.set_defaults(
+        handler=make_sync_handler(handle_vision_sync_experience_async)
+    )
 
     harvest_parser = add_documented_parser(
         vision_subparsers,
@@ -281,7 +286,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     harvest_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    harvest_parser.set_defaults(handler=handle_vision_harvest)
+    harvest_parser.set_defaults(handler=make_sync_handler(handle_vision_harvest_async))
 
     delete_parser = add_documented_parser(
         vision_subparsers,
@@ -300,7 +305,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     delete_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    delete_parser.set_defaults(handler=handle_vision_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_vision_delete_async))
 
     batch_parser = add_documented_parser(
         vision_subparsers,
@@ -339,4 +344,4 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")
-    batch_delete_parser.set_defaults(handler=handle_vision_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_vision_batch_delete_async))

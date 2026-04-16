@@ -16,22 +16,23 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     TIMELOG_SUMMARY_COLUMNS,
-    handle_timelog_add,
-    handle_timelog_batch_delete,
-    handle_timelog_batch_restore,
-    handle_timelog_batch_update,
-    handle_timelog_delete,
-    handle_timelog_list,
-    handle_timelog_restore,
-    handle_timelog_show,
-    handle_timelog_stats_day,
-    handle_timelog_stats_month,
-    handle_timelog_stats_range,
-    handle_timelog_stats_rebuild,
-    handle_timelog_stats_week,
-    handle_timelog_stats_year,
-    handle_timelog_update,
+    handle_timelog_add_async,
+    handle_timelog_batch_delete_async,
+    handle_timelog_batch_restore_async,
+    handle_timelog_batch_update_async,
+    handle_timelog_delete_async,
+    handle_timelog_list_async,
+    handle_timelog_restore_async,
+    handle_timelog_show_async,
+    handle_timelog_stats_day_async,
+    handle_timelog_stats_month_async,
+    handle_timelog_stats_range_async,
+    handle_timelog_stats_rebuild_async,
+    handle_timelog_stats_week_async,
+    handle_timelog_stats_year_async,
+    handle_timelog_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
 
@@ -133,7 +134,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         default=None,
         help=_("Repeat to attach one or more people"),
     )
-    add_parser.set_defaults(handler=handle_timelog_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_timelog_add_async))
 
     list_parser = add_documented_parser(
         timelog_subparsers,
@@ -209,7 +210,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
     add_include_deleted_argument(list_parser, noun="timelogs")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_timelog_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_timelog_list_async))
 
     show_parser = add_documented_parser(
         timelog_subparsers,
@@ -225,7 +226,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     show_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     add_include_deleted_argument(show_parser, noun="timelogs", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_timelog_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_timelog_show_async))
 
     update_parser = add_documented_parser(
         timelog_subparsers,
@@ -293,7 +294,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help=_("Repeat to replace people with one or more identifiers"),
     )
     update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
-    update_parser.set_defaults(handler=handle_timelog_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_timelog_update_async))
 
     delete_parser = add_documented_parser(
         timelog_subparsers,
@@ -305,7 +306,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     delete_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
-    delete_parser.set_defaults(handler=handle_timelog_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_delete_async))
 
     restore_parser = add_documented_parser(
         timelog_subparsers,
@@ -318,7 +319,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     restore_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
-    restore_parser.set_defaults(handler=handle_timelog_restore)
+    restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_restore_async))
 
     batch_parser = add_documented_parser(
         timelog_subparsers,
@@ -393,7 +394,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         action="store_true",
         help=_("Remove all people"),
     )
-    batch_update_parser.set_defaults(handler=handle_timelog_batch_update)
+    batch_update_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_update_async))
 
     batch_restore_parser = add_documented_parser(
         batch_subparsers,
@@ -404,7 +405,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     add_identifier_list_argument(batch_restore_parser, dest="timelog_ids", noun="timelog")
-    batch_restore_parser.set_defaults(handler=handle_timelog_batch_restore)
+    batch_restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_restore_async))
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
@@ -415,7 +416,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="timelog_ids", noun="timelog")
-    batch_delete_parser.set_defaults(handler=handle_timelog_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_delete_async))
 
     stats_parser = add_documented_parser(
         timelog_subparsers,
@@ -468,7 +469,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=date.fromisoformat,
         help=_("Local operational date in YYYY-MM-DD format"),
     )
-    stats_day_parser.set_defaults(handler=handle_timelog_stats_day)
+    stats_day_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_day_async))
 
     stats_range_parser = add_documented_parser(
         stats_subparsers,
@@ -492,7 +493,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             "in YYYY-MM-DD format"
         ),
     )
-    stats_range_parser.set_defaults(handler=handle_timelog_stats_range)
+    stats_range_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_range_async))
 
     stats_week_parser = add_documented_parser(
         stats_subparsers,
@@ -511,7 +512,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=date.fromisoformat,
         help=_("Reference local date in YYYY-MM-DD format"),
     )
-    stats_week_parser.set_defaults(handler=handle_timelog_stats_week)
+    stats_week_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_week_async))
 
     stats_month_parser = add_documented_parser(
         stats_subparsers,
@@ -528,7 +529,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=_month_value,
         help=_("Calendar month in YYYY-MM format"),
     )
-    stats_month_parser.set_defaults(handler=handle_timelog_stats_month)
+    stats_month_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_month_async))
 
     stats_year_parser = add_documented_parser(
         stats_subparsers,
@@ -545,7 +546,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         type=int,
         help=_("Calendar year, for example 2026"),
     )
-    stats_year_parser.set_defaults(handler=handle_timelog_stats_year)
+    stats_year_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_year_async))
 
     stats_rebuild_parser = add_documented_parser(
         stats_subparsers,
@@ -583,4 +584,4 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         action="store_true",
         help=_("Rebuild every local date touched by active timelogs with linked areas"),
     )
-    stats_rebuild_parser.set_defaults(handler=handle_timelog_stats_rebuild)
+    stats_rebuild_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_rebuild_async))

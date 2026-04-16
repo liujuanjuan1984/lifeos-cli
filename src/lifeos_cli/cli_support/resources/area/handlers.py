@@ -10,7 +10,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services import areas as area_services
@@ -61,9 +60,6 @@ async def handle_area_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_area_add = make_sync_handler(handle_area_add_async)
-
-
 async def handle_area_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         areas = await area_services.list_areas(
@@ -82,9 +78,6 @@ async def handle_area_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_area_list = make_sync_handler(handle_area_list_async)
-
-
 async def handle_area_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         area = await area_services.get_area(
@@ -96,9 +89,6 @@ async def handle_area_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Area", args.area_id)
     print(_format_area_detail(area))
     return 0
-
-
-handle_area_show = make_sync_handler(handle_area_show_async)
 
 
 async def handle_area_update_async(args: argparse.Namespace) -> int:
@@ -134,9 +124,6 @@ async def handle_area_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_area_update = make_sync_handler(handle_area_update_async)
-
-
 async def handle_area_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -145,9 +132,6 @@ async def handle_area_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted area {args.area_id}")
     return 0
-
-
-handle_area_delete = make_sync_handler(handle_area_delete_async)
 
 
 async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
@@ -163,6 +147,3 @@ async def handle_area_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed area IDs",
         result=result,
     )
-
-
-handle_area_batch_delete = make_sync_handler(handle_area_batch_delete_async)

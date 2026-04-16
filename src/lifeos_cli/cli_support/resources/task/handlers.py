@@ -12,7 +12,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_optional_date_value
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tasks as task_services
@@ -133,9 +132,6 @@ async def handle_task_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_add = make_sync_handler(handle_task_add_async)
-
-
 async def handle_task_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -166,9 +162,6 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_list = make_sync_handler(handle_task_list_async)
-
-
 async def handle_task_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         task = await task_services.get_task(
@@ -182,9 +175,6 @@ async def handle_task_show_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_show = make_sync_handler(handle_task_show_async)
-
-
 async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         task = await task_services.get_task_with_subtasks(
@@ -195,9 +185,6 @@ async def handle_task_with_subtasks_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Task", args.task_id)
     print(_format_task_tree(task))
     return 0
-
-
-handle_task_with_subtasks = make_sync_handler(handle_task_with_subtasks_async)
 
 
 async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
@@ -213,9 +200,6 @@ async def handle_task_hierarchy_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_hierarchy = make_sync_handler(handle_task_hierarchy_async)
-
-
 async def handle_task_stats_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -227,9 +211,6 @@ async def handle_task_stats_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(_format_task_stats(stats))
     return 0
-
-
-handle_task_stats = make_sync_handler(handle_task_stats_async)
 
 
 async def handle_task_move_async(args: argparse.Namespace) -> int:
@@ -279,9 +260,6 @@ async def handle_task_move_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_move = make_sync_handler(handle_task_move_async)
-
-
 async def handle_task_reorder_async(args: argparse.Namespace) -> int:
     try:
         task_orders = [_parse_task_order(value) for value in args.order]
@@ -297,9 +275,6 @@ async def handle_task_reorder_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Reordered tasks: {len(task_orders)}")
     return 0
-
-
-handle_task_reorder = make_sync_handler(handle_task_reorder_async)
 
 
 async def handle_task_update_async(args: argparse.Namespace) -> int:
@@ -371,9 +346,6 @@ async def handle_task_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_task_update = make_sync_handler(handle_task_update_async)
-
-
 async def handle_task_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -382,9 +354,6 @@ async def handle_task_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted task {args.task_id}")
     return 0
-
-
-handle_task_delete = make_sync_handler(handle_task_delete_async)
 
 
 async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
@@ -400,6 +369,3 @@ async def handle_task_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed task IDs",
         result=result,
     )
-
-
-handle_task_batch_delete = make_sync_handler(handle_task_batch_delete_async)

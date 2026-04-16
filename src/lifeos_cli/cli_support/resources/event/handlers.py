@@ -10,7 +10,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
     resolve_exclusive_date_or_datetime_query,
@@ -101,9 +100,6 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_event_add = make_sync_handler(handle_event_add_async)
-
-
 async def handle_event_list_async(args: argparse.Namespace) -> int:
     try:
         query = resolve_exclusive_date_or_datetime_query(
@@ -143,9 +139,6 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_event_list = make_sync_handler(handle_event_list_async)
-
-
 async def handle_event_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         event = await event_services.get_event(
@@ -157,9 +150,6 @@ async def handle_event_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Event", args.event_id)
     print(_format_event_detail(event))
     return 0
-
-
-handle_event_show = make_sync_handler(handle_event_show_async)
 
 
 async def handle_event_update_async(args: argparse.Namespace) -> int:
@@ -235,9 +225,6 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_event_update = make_sync_handler(handle_event_update_async)
-
-
 async def handle_event_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -255,9 +242,6 @@ async def handle_event_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_event_delete = make_sync_handler(handle_event_delete_async)
-
-
 async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await event_services.batch_delete_events(
@@ -270,6 +254,3 @@ async def handle_event_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed event IDs",
         result=result,
     )
-
-
-handle_event_batch_delete = make_sync_handler(handle_event_batch_delete_async)

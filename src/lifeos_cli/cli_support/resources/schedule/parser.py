@@ -12,9 +12,10 @@ from lifeos_cli.cli_support.resources.schedule.handlers import (
     SCHEDULE_EVENT_COLUMNS,
     SCHEDULE_HABIT_ACTION_COLUMNS,
     SCHEDULE_TASK_COLUMNS,
-    handle_schedule_list,
-    handle_schedule_show,
+    handle_schedule_list_async,
+    handle_schedule_show_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -101,7 +102,7 @@ def build_schedule_parser(
         type=date.fromisoformat,
         help=_("Target local date in YYYY-MM-DD format"),
     )
-    show_parser.set_defaults(handler=handle_schedule_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_schedule_show_async))
 
     list_parser = add_documented_parser(
         schedule_subparsers,
@@ -128,4 +129,4 @@ def build_schedule_parser(
             "in YYYY-MM-DD format"
         ),
     )
-    list_parser.set_defaults(handler=handle_schedule_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_schedule_list_async))

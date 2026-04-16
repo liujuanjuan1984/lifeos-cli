@@ -10,7 +10,6 @@ from typing import Any
 from uuid import UUID
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import data_ops
 
@@ -196,9 +195,6 @@ async def handle_data_export_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_cli_error(exc)
 
 
-handle_data_export = make_sync_handler(handle_data_export_async)
-
-
 async def _import_rows(
     *,
     resource: str,
@@ -305,9 +301,6 @@ async def handle_data_import_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_cli_error(exc)
 
 
-handle_data_import = make_sync_handler(handle_data_import_async)
-
-
 async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
     try:
         rows = _read_rows(args.file, stdin=args.stdin, input_format=args.format)
@@ -333,9 +326,6 @@ async def handle_data_batch_update_async(args: argparse.Namespace) -> int:
         return 0 if report.failed_count == 0 else 1
     except data_ops.DataOperationError as exc:
         return cli_handler_utils.print_cli_error(exc)
-
-
-handle_data_batch_update = make_sync_handler(handle_data_batch_update_async)
 
 
 async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
@@ -372,6 +362,3 @@ async def handle_data_batch_delete_async(args: argparse.Namespace) -> int:
     print(f"Deleted rows: {report.deleted_count}")
     print(f"Failed rows: {report.failed_count}")
     return 0 if report.failed_count == 0 else 1
-
-
-handle_data_batch_delete = make_sync_handler(handle_data_batch_delete_async)

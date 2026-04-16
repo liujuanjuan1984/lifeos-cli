@@ -10,7 +10,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.read_models import TagView
@@ -63,9 +62,6 @@ async def handle_tag_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_tag_add = make_sync_handler(handle_tag_add_async)
-
-
 async def handle_tag_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -89,9 +85,6 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_tag_list = make_sync_handler(handle_tag_list_async)
-
-
 async def handle_tag_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         tag = await tag_services.get_tag(
@@ -103,9 +96,6 @@ async def handle_tag_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Tag", args.tag_id)
     print(_format_tag_detail(tag))
     return 0
-
-
-handle_tag_show = make_sync_handler(handle_tag_show_async)
 
 
 async def handle_tag_update_async(args: argparse.Namespace) -> int:
@@ -148,9 +138,6 @@ async def handle_tag_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_tag_update = make_sync_handler(handle_tag_update_async)
-
-
 async def handle_tag_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -159,9 +146,6 @@ async def handle_tag_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted tag {args.tag_id}")
     return 0
-
-
-handle_tag_delete = make_sync_handler(handle_tag_delete_async)
 
 
 async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
@@ -177,6 +161,3 @@ async def handle_tag_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed tag IDs",
         result=result,
     )
-
-
-handle_tag_batch_delete = make_sync_handler(handle_tag_batch_delete_async)

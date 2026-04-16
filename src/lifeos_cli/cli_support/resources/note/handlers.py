@@ -15,7 +15,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import notes as note_services
@@ -81,9 +80,6 @@ async def handle_note_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_note_add = make_sync_handler(handle_note_add_async)
-
-
 async def handle_note_list_async(args: argparse.Namespace) -> int:
     """List notes."""
     async with db_session.session_scope() as session:
@@ -121,9 +117,6 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
         empty_message="No notes found.",
     )
     return 0
-
-
-handle_note_list = make_sync_handler(handle_note_list_async)
 
 
 async def handle_note_search_async(args: argparse.Namespace) -> int:
@@ -171,9 +164,6 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_note_search = make_sync_handler(handle_note_search_async)
-
-
 async def handle_note_show_async(args: argparse.Namespace) -> int:
     """Show a note with full content."""
     async with db_session.session_scope() as session:
@@ -186,9 +176,6 @@ async def handle_note_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Note", args.note_id)
     print(format_note_detail(note))
     return 0
-
-
-handle_note_show = make_sync_handler(handle_note_show_async)
 
 
 async def handle_note_update_async(args: argparse.Namespace) -> int:
@@ -250,9 +237,6 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_note_update = make_sync_handler(handle_note_update_async)
-
-
 async def handle_note_delete_async(args: argparse.Namespace) -> int:
     """Delete a note."""
     try:
@@ -262,9 +246,6 @@ async def handle_note_delete_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted note {args.note_id}")
     return 0
-
-
-handle_note_delete = make_sync_handler(handle_note_delete_async)
 
 
 async def handle_note_batch_update_content_async(args: argparse.Namespace) -> int:
@@ -292,9 +273,6 @@ async def handle_note_batch_update_content_async(args: argparse.Namespace) -> in
     return 1 if result.failed_ids else 0
 
 
-handle_note_batch_update_content = make_sync_handler(handle_note_batch_update_content_async)
-
-
 async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple notes in one command."""
     async with db_session.session_scope() as session:
@@ -309,6 +287,3 @@ async def handle_note_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed note IDs",
         result=result,
     )
-
-
-handle_note_batch_delete = make_sync_handler(handle_note_batch_delete_async)

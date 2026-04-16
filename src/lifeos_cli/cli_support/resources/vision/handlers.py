@@ -11,7 +11,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_cli.db.services.read_models import VisionView
@@ -101,9 +100,6 @@ async def handle_vision_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_add = make_sync_handler(handle_vision_add_async)
-
-
 async def handle_vision_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -127,9 +123,6 @@ async def handle_vision_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_list = make_sync_handler(handle_vision_list_async)
-
-
 async def handle_vision_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         vision = await vision_services.get_vision(
@@ -141,9 +134,6 @@ async def handle_vision_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Vision", args.vision_id)
     print(_format_vision_detail(vision))
     return 0
-
-
-handle_vision_show = make_sync_handler(handle_vision_show_async)
 
 
 async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
@@ -159,9 +149,6 @@ async def handle_vision_with_tasks_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_with_tasks = make_sync_handler(handle_vision_with_tasks_async)
-
-
 async def handle_vision_stats_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -173,9 +160,6 @@ async def handle_vision_stats_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(_format_vision_stats(stats))
     return 0
-
-
-handle_vision_stats = make_sync_handler(handle_vision_stats_async)
 
 
 async def handle_vision_update_async(args: argparse.Namespace) -> int:
@@ -223,9 +207,6 @@ async def handle_vision_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_update = make_sync_handler(handle_vision_update_async)
-
-
 async def handle_vision_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -234,9 +215,6 @@ async def handle_vision_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted vision {args.vision_id}")
     return 0
-
-
-handle_vision_delete = make_sync_handler(handle_vision_delete_async)
 
 
 async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
@@ -253,9 +231,6 @@ async def handle_vision_add_experience_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_add_experience = make_sync_handler(handle_vision_add_experience_async)
-
-
 async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -267,9 +242,6 @@ async def handle_vision_sync_experience_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Synced vision {vision.id}")
     return 0
-
-
-handle_vision_sync_experience = make_sync_handler(handle_vision_sync_experience_async)
 
 
 async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
@@ -288,9 +260,6 @@ async def handle_vision_harvest_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_vision_harvest = make_sync_handler(handle_vision_harvest_async)
-
-
 async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
     """Delete multiple visions in one command."""
     async with db_session.session_scope() as session:
@@ -304,6 +273,3 @@ async def handle_vision_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed vision IDs",
         result=result,
     )
-
-
-handle_vision_batch_delete = make_sync_handler(handle_vision_batch_delete_async)

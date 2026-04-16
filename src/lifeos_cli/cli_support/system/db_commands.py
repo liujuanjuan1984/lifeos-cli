@@ -26,9 +26,6 @@ async def run_db_ping(_: argparse.Namespace) -> int:
     return 0
 
 
-_handle_db_ping = make_sync_handler(run_db_ping)
-
-
 def run_db_upgrade(_: argparse.Namespace) -> int:
     """Apply database migrations and print a success message."""
     upgrade_configured_database()
@@ -70,7 +67,7 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             examples=("lifeos db ping",),
         ),
     )
-    ping_parser.set_defaults(handler=_handle_db_ping)
+    ping_parser.set_defaults(handler=make_sync_handler(run_db_ping))
 
     upgrade_parser = add_documented_parser(
         db_subparsers,

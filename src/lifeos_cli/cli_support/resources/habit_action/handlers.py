@@ -7,7 +7,6 @@ import sys
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
@@ -93,9 +92,6 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_habit_action_list = make_sync_handler(handle_habit_action_list_async)
-
-
 async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         action = await habit_action_services.get_habit_action(
@@ -107,9 +103,6 @@ async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Habit action", args.action_id)
     print(_format_habit_action_detail(action))
     return 0
-
-
-handle_habit_action_show = make_sync_handler(handle_habit_action_show_async)
 
 
 async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
@@ -132,9 +125,6 @@ async def handle_habit_action_update_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit action {action.id}")
     return 0
-
-
-handle_habit_action_update = make_sync_handler(handle_habit_action_update_async)
 
 
 async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
@@ -162,6 +152,3 @@ async def handle_habit_action_log_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Updated habit action {action.id}")
     return 0
-
-
-handle_habit_action_log = make_sync_handler(handle_habit_action_log_async)

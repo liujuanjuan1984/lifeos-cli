@@ -14,11 +14,12 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.habit_action.handlers import (
     HABIT_ACTION_SUMMARY_COLUMNS,
-    handle_habit_action_list,
-    handle_habit_action_log,
-    handle_habit_action_show,
-    handle_habit_action_update,
+    handle_habit_action_list_async,
+    handle_habit_action_log_async,
+    handle_habit_action_show_async,
+    handle_habit_action_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_date_value
 from lifeos_cli.i18n import gettext_message as _
 
@@ -103,7 +104,7 @@ def build_habit_action_parser(
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
-    list_parser.set_defaults(handler=handle_habit_action_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_habit_action_list_async))
 
     show_parser = add_documented_parser(
         action_subparsers,
@@ -119,7 +120,7 @@ def build_habit_action_parser(
     )
     show_parser.add_argument("action_id", type=UUID, help=_("Habit-action identifier"))
     add_include_deleted_argument(show_parser, noun="habit actions", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_habit_action_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_habit_action_show_async))
 
     update_parser = add_documented_parser(
         action_subparsers,
@@ -147,7 +148,7 @@ def build_habit_action_parser(
         action="store_true",
         help=_("Clear the optional notes field"),
     )
-    update_parser.set_defaults(handler=handle_habit_action_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_habit_action_update_async))
 
     log_parser = add_documented_parser(
         action_subparsers,
@@ -183,4 +184,4 @@ def build_habit_action_parser(
         action="store_true",
         help=_("Clear the optional notes field"),
     )
-    log_parser.set_defaults(handler=handle_habit_action_log)
+    log_parser.set_defaults(handler=make_sync_handler(handle_habit_action_log_async))

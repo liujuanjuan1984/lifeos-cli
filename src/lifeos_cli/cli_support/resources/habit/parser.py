@@ -18,15 +18,16 @@ from lifeos_cli.cli_support.resources.habit.handlers import (
     HABIT_SUMMARY_COLUMNS,
     HABIT_SUMMARY_WITH_STATS_COLUMNS,
     HABIT_TASK_ASSOCIATION_COLUMNS,
-    handle_habit_add,
-    handle_habit_batch_delete,
-    handle_habit_delete,
-    handle_habit_list,
-    handle_habit_show,
-    handle_habit_stats,
-    handle_habit_task_associations,
-    handle_habit_update,
+    handle_habit_add_async,
+    handle_habit_batch_delete_async,
+    handle_habit_delete_async,
+    handle_habit_list_async,
+    handle_habit_show_async,
+    handle_habit_stats_async,
+    handle_habit_task_associations_async,
+    handle_habit_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 _WEEKDAY_SPLIT_PATTERN = re.compile(r"[\s,]+")
@@ -160,7 +161,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help=_("Weekly alias for `--target-per-cycle`"),
     )
     add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
-    add_parser.set_defaults(handler=handle_habit_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_habit_add_async))
 
     list_parser = add_documented_parser(
         habit_subparsers,
@@ -209,7 +210,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
     add_include_deleted_argument(list_parser, noun="habits")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_habit_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_habit_list_async))
 
     show_parser = add_documented_parser(
         habit_subparsers,
@@ -225,7 +226,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     show_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
     add_include_deleted_argument(show_parser, noun="habits", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_habit_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_habit_show_async))
 
     update_parser = add_documented_parser(
         habit_subparsers,
@@ -312,7 +313,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         action="store_true",
         help=_("Remove the linked task reference"),
     )
-    update_parser.set_defaults(handler=handle_habit_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_habit_update_async))
 
     delete_parser = add_documented_parser(
         habit_subparsers,
@@ -324,7 +325,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         ),
     )
     delete_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
-    delete_parser.set_defaults(handler=handle_habit_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_habit_delete_async))
 
     stats_parser = add_documented_parser(
         habit_subparsers,
@@ -336,7 +337,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         ),
     )
     stats_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
-    stats_parser.set_defaults(handler=handle_habit_stats)
+    stats_parser.set_defaults(handler=make_sync_handler(handle_habit_stats_async))
 
     associations_parser = add_documented_parser(
         habit_subparsers,
@@ -353,7 +354,9 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
         ),
     )
-    associations_parser.set_defaults(handler=handle_habit_task_associations)
+    associations_parser.set_defaults(
+        handler=make_sync_handler(handle_habit_task_associations_async)
+    )
 
     batch_parser = add_documented_parser(
         habit_subparsers,
@@ -380,4 +383,4 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="habit_ids", noun="habit")
-    batch_delete_parser.set_defaults(handler=handle_habit_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_habit_batch_delete_async))

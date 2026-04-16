@@ -10,7 +10,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_optional_date_value
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import people as people_services
@@ -62,9 +61,6 @@ async def handle_people_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_people_add = make_sync_handler(handle_people_add_async)
-
-
 async def handle_people_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         people = await people_services.list_people(
@@ -84,9 +80,6 @@ async def handle_people_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_people_list = make_sync_handler(handle_people_list_async)
-
-
 async def handle_people_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         person = await people_services.get_person(
@@ -98,9 +91,6 @@ async def handle_people_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Person", args.person_id)
     print(_format_person_detail(person))
     return 0
-
-
-handle_people_show = make_sync_handler(handle_people_show_async)
 
 
 async def handle_people_update_async(args: argparse.Namespace) -> int:
@@ -150,9 +140,6 @@ async def handle_people_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_people_update = make_sync_handler(handle_people_update_async)
-
-
 async def handle_people_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -161,9 +148,6 @@ async def handle_people_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted person {args.person_id}")
     return 0
-
-
-handle_people_delete = make_sync_handler(handle_people_delete_async)
 
 
 async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
@@ -179,6 +163,3 @@ async def handle_people_batch_delete_async(args: argparse.Namespace) -> int:
         failed_label="Failed person IDs",
         result=result,
     )
-
-
-handle_people_batch_delete = make_sync_handler(handle_people_batch_delete_async)

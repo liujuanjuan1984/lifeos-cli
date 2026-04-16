@@ -14,13 +14,14 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.people.handlers import (
     PERSON_SUMMARY_COLUMNS,
-    handle_people_add,
-    handle_people_batch_delete,
-    handle_people_delete,
-    handle_people_list,
-    handle_people_show,
-    handle_people_update,
+    handle_people_add_async,
+    handle_people_batch_delete_async,
+    handle_people_delete_async,
+    handle_people_list_async,
+    handle_people_show_async,
+    handle_people_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -103,7 +104,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     add_parser.add_argument(
         "--tag-id", action="append", type=UUID, help=_("Tag identifier, repeatable")
     )
-    add_parser.set_defaults(handler=handle_people_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_people_add_async))
 
     list_parser = add_documented_parser(
         people_subparsers,
@@ -136,7 +137,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by tag identifier"))
     add_include_deleted_argument(list_parser, noun="people")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_people_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_people_list_async))
 
     show_parser = add_documented_parser(
         people_subparsers,
@@ -152,7 +153,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     )
     show_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
     add_include_deleted_argument(show_parser, noun="people", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_people_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_people_show_async))
 
     update_parser = add_documented_parser(
         people_subparsers,
@@ -213,7 +214,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         action="store_true",
         help=_("Remove all tag associations from the person"),
     )
-    update_parser.set_defaults(handler=handle_people_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_people_update_async))
 
     delete_parser = add_documented_parser(
         people_subparsers,
@@ -229,7 +230,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     delete_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
-    delete_parser.set_defaults(handler=handle_people_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_people_delete_async))
 
     batch_parser = add_documented_parser(
         people_subparsers,
@@ -265,4 +266,4 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="person_ids", noun="person")
-    batch_delete_parser.set_defaults(handler=handle_people_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_people_batch_delete_async))

@@ -14,18 +14,19 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.task.handlers import (
     TASK_SUMMARY_COLUMNS,
-    handle_task_add,
-    handle_task_batch_delete,
-    handle_task_delete,
-    handle_task_hierarchy,
-    handle_task_list,
-    handle_task_move,
-    handle_task_reorder,
-    handle_task_show,
-    handle_task_stats,
-    handle_task_update,
-    handle_task_with_subtasks,
+    handle_task_add_async,
+    handle_task_batch_delete_async,
+    handle_task_delete_async,
+    handle_task_hierarchy_async,
+    handle_task_list_async,
+    handle_task_move_async,
+    handle_task_reorder_async,
+    handle_task_show_async,
+    handle_task_stats_async,
+    handle_task_update_async,
+    handle_task_with_subtasks_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -154,7 +155,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--planning-cycle-start-date",
         help=_("Start date of the enclosing planning cycle window in YYYY-MM-DD format"),
     )
-    add_parser.set_defaults(handler=handle_task_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_task_add_async))
 
     list_parser = add_documented_parser(
         task_subparsers,
@@ -207,7 +208,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     list_parser.add_argument("--content", help=_("Filter by exact task content"))
     add_include_deleted_argument(list_parser, noun="tasks")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_task_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_task_list_async))
 
     show_parser = add_documented_parser(
         task_subparsers,
@@ -223,7 +224,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     )
     show_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
     add_include_deleted_argument(show_parser, noun="tasks", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_task_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_task_show_async))
 
     with_subtasks_parser = add_documented_parser(
         task_subparsers,
@@ -235,7 +236,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     with_subtasks_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
-    with_subtasks_parser.set_defaults(handler=handle_task_with_subtasks)
+    with_subtasks_parser.set_defaults(handler=make_sync_handler(handle_task_with_subtasks_async))
 
     hierarchy_parser = add_documented_parser(
         task_subparsers,
@@ -247,7 +248,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     hierarchy_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    hierarchy_parser.set_defaults(handler=handle_task_hierarchy)
+    hierarchy_parser.set_defaults(handler=make_sync_handler(handle_task_hierarchy_async))
 
     stats_parser = add_documented_parser(
         task_subparsers,
@@ -259,7 +260,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     stats_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
-    stats_parser.set_defaults(handler=handle_task_stats)
+    stats_parser.set_defaults(handler=make_sync_handler(handle_task_stats_async))
 
     move_parser = add_documented_parser(
         task_subparsers,
@@ -297,7 +298,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         type=int,
         help=_("Target display order"),
     )
-    move_parser.set_defaults(handler=handle_task_move)
+    move_parser.set_defaults(handler=make_sync_handler(handle_task_move_async))
 
     reorder_parser = add_documented_parser(
         task_subparsers,
@@ -317,7 +318,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         required=True,
         help=_("Task order in <task-id>:<display-order> format; repeat for multiple tasks"),
     )
-    reorder_parser.set_defaults(handler=handle_task_reorder)
+    reorder_parser.set_defaults(handler=make_sync_handler(handle_task_reorder_async))
 
     update_parser = add_documented_parser(
         task_subparsers,
@@ -411,7 +412,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         action="store_true",
         help=_("Clear all planning cycle fields"),
     )
-    update_parser.set_defaults(handler=handle_task_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_task_update_async))
 
     delete_parser = add_documented_parser(
         task_subparsers,
@@ -430,7 +431,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     delete_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
-    delete_parser.set_defaults(handler=handle_task_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_task_delete_async))
 
     batch_parser = add_documented_parser(
         task_subparsers,
@@ -469,4 +470,4 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="task_ids", noun="task")
-    batch_delete_parser.set_defaults(handler=handle_task_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_task_batch_delete_async))

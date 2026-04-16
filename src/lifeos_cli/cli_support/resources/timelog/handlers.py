@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Callable
 from datetime import date
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
@@ -14,7 +13,6 @@ from lifeos_cli.cli_support.output_utils import (
     print_batch_result,
     print_summary_rows,
 )
-from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
     resolve_date_interval_arguments,
@@ -122,9 +120,6 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_timelog_add = make_sync_handler(handle_timelog_add_async)
-
-
 async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     try:
         query = resolve_exclusive_date_or_datetime_query(
@@ -205,9 +200,6 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_timelog_list = make_sync_handler(handle_timelog_list_async)
-
-
 async def handle_timelog_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         timelog = await timelog_services.get_timelog(
@@ -219,9 +211,6 @@ async def handle_timelog_show_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_missing_record_error("Timelog", args.timelog_id)
     print(_format_timelog_detail(timelog))
     return 0
-
-
-handle_timelog_show = make_sync_handler(handle_timelog_show_async)
 
 
 async def handle_timelog_update_async(args: argparse.Namespace) -> int:
@@ -277,9 +266,6 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
     return 0
 
 
-handle_timelog_update = make_sync_handler(handle_timelog_update_async)
-
-
 async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
@@ -288,9 +274,6 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Soft-deleted timelog {args.timelog_id}")
     return 0
-
-
-handle_timelog_delete = make_sync_handler(handle_timelog_delete_async)
 
 
 async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
@@ -309,9 +292,6 @@ async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Restored timelog {timelog.id}")
     return 0
-
-
-handle_timelog_restore = make_sync_handler(handle_timelog_restore_async)
 
 
 def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
@@ -383,9 +363,6 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     return 1 if result.failed_ids else 0
 
 
-handle_timelog_batch_update = make_sync_handler(handle_timelog_batch_update_async)
-
-
 async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         result = await timelog_services.batch_restore_timelogs(
@@ -398,9 +375,6 @@ async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
         failed_label="Failed timelog IDs",
         result=result,
     )
-
-
-handle_timelog_batch_restore = make_sync_handler(handle_timelog_batch_restore_async)
 
 
 async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
@@ -417,9 +391,6 @@ async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:
     )
 
 
-handle_timelog_batch_delete = make_sync_handler(handle_timelog_batch_delete_async)
-
-
 async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         report = await timelog_stats.get_timelog_stats_groupby_area_for_day(
@@ -428,9 +399,6 @@ async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
         )
     print(_format_timelog_stats_report(report))
     return 0
-
-
-handle_timelog_stats_day = make_sync_handler(handle_timelog_stats_day_async)
 
 
 async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
@@ -448,9 +416,6 @@ async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
         )
     print(_format_timelog_stats_report(report))
     return 0
-
-
-handle_timelog_stats_range = make_sync_handler(handle_timelog_stats_range_async)
 
 
 async def _handle_timelog_stats_period_async(
@@ -475,36 +440,25 @@ async def _handle_timelog_stats_period_async(
     return 0
 
 
-def _make_timelog_stats_period_handler(
-    *,
-    granularity: str,
-    argument_name: str,
-) -> Callable[[argparse.Namespace], int]:
-    async def async_handler(args: argparse.Namespace) -> int:
-        return await _handle_timelog_stats_period_async(
-            granularity=granularity,
-            **{argument_name: getattr(args, argument_name)},
-        )
-
-    async_handler.__name__ = f"handle_timelog_stats_{granularity}_async"
-    async_handler.__qualname__ = async_handler.__name__
-    return make_sync_handler(async_handler)
+async def handle_timelog_stats_week_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="week",
+        target_date=args.target_date,
+    )
 
 
-handle_timelog_stats_week = _make_timelog_stats_period_handler(
-    granularity="week",
-    argument_name="target_date",
-)
+async def handle_timelog_stats_month_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="month",
+        month=args.month,
+    )
 
-handle_timelog_stats_month = _make_timelog_stats_period_handler(
-    granularity="month",
-    argument_name="month",
-)
 
-handle_timelog_stats_year = _make_timelog_stats_period_handler(
-    granularity="year",
-    argument_name="year",
-)
+async def handle_timelog_stats_year_async(args: argparse.Namespace) -> int:
+    return await _handle_timelog_stats_period_async(
+        granularity="year",
+        year=args.year,
+    )
 
 
 async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
@@ -534,6 +488,3 @@ async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
     print(f"start_date: {rebuilt_dates[0].isoformat()}")
     print(f"end_date: {rebuilt_dates[-1].isoformat()}")
     return 0
-
-
-handle_timelog_stats_rebuild = make_sync_handler(handle_timelog_stats_rebuild_async)

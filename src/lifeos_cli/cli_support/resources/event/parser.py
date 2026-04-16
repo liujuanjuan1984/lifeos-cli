@@ -16,13 +16,14 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.event.handlers import (
     EVENT_SUMMARY_COLUMNS,
-    handle_event_add,
-    handle_event_batch_delete,
-    handle_event_delete,
-    handle_event_list,
-    handle_event_show,
-    handle_event_update,
+    handle_event_add_async,
+    handle_event_batch_delete_async,
+    handle_event_delete_async,
+    handle_event_list_async,
+    handle_event_show_async,
+    handle_event_update_async,
 )
+from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
 from lifeos_cli.i18n import gettext_message as _
 
@@ -147,7 +148,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         default=None,
         help=_("Repeat to attach one or more people"),
     )
-    add_parser.set_defaults(handler=handle_event_add)
+    add_parser.set_defaults(handler=make_sync_handler(handle_event_add_async))
 
     list_parser = add_documented_parser(
         event_subparsers,
@@ -222,7 +223,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=handle_event_list)
+    list_parser.set_defaults(handler=make_sync_handler(handle_event_list_async))
 
     show_parser = add_documented_parser(
         event_subparsers,
@@ -238,7 +239,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     show_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
     add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
-    show_parser.set_defaults(handler=handle_event_show)
+    show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
     update_parser = add_documented_parser(
         event_subparsers,
@@ -345,7 +346,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help=_("Repeat to replace people with one or more identifiers"),
     )
     update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
-    update_parser.set_defaults(handler=handle_event_update)
+    update_parser.set_defaults(handler=make_sync_handler(handle_event_update_async))
 
     delete_parser = add_documented_parser(
         event_subparsers,
@@ -377,7 +378,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         type=datetime.fromisoformat,
         help=_("Instance start time for single or all_future recurring deletes"),
     )
-    delete_parser.set_defaults(handler=handle_event_delete)
+    delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))
 
     batch_parser = add_documented_parser(
         event_subparsers,
@@ -401,4 +402,4 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="event_ids", noun="event")
-    batch_delete_parser.set_defaults(handler=handle_event_batch_delete)
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_event_batch_delete_async))
