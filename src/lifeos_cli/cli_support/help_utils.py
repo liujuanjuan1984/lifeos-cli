@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -21,6 +22,23 @@ class HelpContent:
 
 class CompactSubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Render subcommand groups without a duplicated metavar heading."""
+
+    def __init__(
+        self,
+        prog: str,
+        indent_increment: int = 2,
+        max_help_position: int = 40,
+        width: int | None = None,
+    ) -> None:
+        """Use a wider default layout so help text wraps less aggressively."""
+        terminal_width = shutil.get_terminal_size(fallback=(100, 24)).columns
+        effective_width = max(100, terminal_width) if width is None else width
+        super().__init__(
+            prog,
+            indent_increment=indent_increment,
+            max_help_position=max_help_position,
+            width=effective_width,
+        )
 
     def _format_action(self, action: argparse.Action) -> str:
         if isinstance(action, argparse._SubParsersAction):

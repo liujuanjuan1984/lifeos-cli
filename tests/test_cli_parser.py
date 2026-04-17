@@ -151,8 +151,71 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "task" in captured.out
     assert "primary command reference" in captured.out
     assert "Run `lifeos init` to initialize LifeOS before getting started." in captured.out
-    assert "Welcome bug reports and suggestions through the repo issue tracker." in captured.out
+    assert (
+        "Welcome bug reports and suggestions through https://github.com/liujuanjuan1984/lifeos-cli."
+        in captured.out
+    )
+    assert (
+        "repo: https://github.com/liujuanjuan1984/lifeos-cli\nuv tool install --upgrade lifeos-cli"
+        in captured.out
+    )
+    assert "\n  lifeos <resource> <action> [arguments] [options]" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_init_help_avoids_hard_wrapped_description_fragments(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["init", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Create or update the local LifeOS config file and verify that the database is reachable."
+        in captured.out
+    )
+    assert "--database-url DATABASE_URL           " in captured.out
+    assert (
+        "Create or update the local LifeOS config file and verify that the database\nis reachable."
+        not in captured.out
+    )
+
+
+def test_cli_config_help_avoids_hard_wrapped_description_fragments(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Inspect the effective configuration resolved from the config file and "
+        "environment variables." in captured.out
+    )
+    assert (
+        "Inspect the effective configuration resolved from the config file and\n"
+        "environment variables." not in captured.out
+    )
+
+
+def test_cli_note_add_help_avoids_hard_wrapped_description_fragments(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Use this action to capture short thoughts, prompts, or raw text before they are linked "
+        "to other domains such as tasks, people, or timelogs."
+    ) in captured.out
+    assert (
+        "Use this action to capture short thoughts, prompts, or raw text before\nthey are linked"
+        not in captured.out
+    )
 
 
 def test_cli_task_help_describes_event_bridge_without_action_level_schedule_contract(
@@ -627,7 +690,10 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     assert "area" in captured.out and "管理 `area`" in captured.out
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
-    assert "欢迎通过 repo issue 报告 bug 或提出意见建议。" in captured.out
+    assert (
+        "Welcome bug reports and suggestions through https://github.com/liujuanjuan1984/lifeos-cli."
+        in captured.out
+    )
 
 
 def test_cli_note_help_avoids_duplicated_action_heading_and_reference_boilerplate(capsys) -> None:

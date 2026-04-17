@@ -44,10 +44,11 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "Tasks are the main execution unit in LifeOS and can be nested under parent "
                     "tasks."
                 )
-                + "\n"
-                + _("Use planning-cycle fields to place a task inside a broader timebox, and use")
-                + "\n"
-                + _("`event` commands when the task also needs a concrete scheduled time block.")
+                + " "
+                + _(
+                    "Use planning-cycle fields to place a task inside a broader timebox, and use "
+                    "`event` commands when the task also needs a concrete scheduled time block."
+                )
             ),
             examples=(
                 "lifeos task add --help",
@@ -79,7 +80,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _("Create a new task for a vision.")
                 + "\n\n"
                 + _("Tasks can be root tasks or child tasks under another task in the same vision.")
-                + "\n"
+                + " "
                 + _(
                     "Planning-cycle fields describe the enclosing timebox for the task, not a "
                     "clock-time execution slot."

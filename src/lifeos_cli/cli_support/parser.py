@@ -151,13 +151,11 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             CLI_BRAND_BANNER
             + "\n\n"
-            + f"repo: {repository_url}"
-            + "\n"
-            + "uv tool install --upgrade lifeos-cli"
-            + "\n\n"
+            + f"repo: {repository_url}\n"
+            + "uv tool install --upgrade lifeos-cli\n\n"
             + _("Command grammar:")
             + "\n"
-            "  lifeos <resource> <action> [arguments] [options]"
+            + "  lifeos <resource> <action> [arguments] [options]"
         ),
         epilog=build_epilog(
             examples=(
@@ -173,7 +171,10 @@ def build_parser() -> argparse.ArgumentParser:
                     "primary command reference."
                 ),
                 _("Run `lifeos init` to initialize LifeOS before getting started."),
-                _("Welcome bug reports and suggestions through the repo issue tracker."),
+                _(
+                    "Welcome bug reports and suggestions through "
+                    "https://github.com/liujuanjuan1984/lifeos-cli."
+                ),
             ),
         ),
         formatter_class=CompactSubcommandHelpFormatter,

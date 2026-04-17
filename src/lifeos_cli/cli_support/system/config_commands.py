@@ -135,9 +135,10 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help_content=HelpContent(
             summary=_("Initialize local configuration"),
             description=(
-                _("Create or update the local LifeOS config file and verify that the database")
-                + "\n"
-                + _("is reachable.")
+                _(
+                    "Create or update the local LifeOS config file and verify that the "
+                    "database is reachable."
+                )
                 + "\n\n"
                 + _("This command is the recommended first step after installing lifeos-cli.")
             ),
@@ -233,9 +234,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help_content=HelpContent(
             summary=_("Inspect runtime configuration"),
             description=(
-                _("Inspect the effective configuration resolved from the config file and")
-                + "\n"
-                + _("environment variables.")
+                _(
+                    "Inspect the effective configuration resolved from the config file and "
+                    "environment variables."
+                )
             ),
             examples=(
                 "lifeos config show",

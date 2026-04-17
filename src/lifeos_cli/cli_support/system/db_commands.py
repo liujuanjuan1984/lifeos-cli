@@ -43,9 +43,10 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             description=(
                 _("Inspect database connectivity and apply migrations.")
                 + "\n\n"
-                + _("These commands operate on the database configured through `lifeos init`,")
-                + "\n"
-                + _("the config file, or LIFEOS_* environment variables.")
+                + _(
+                    "These commands operate on the database configured through `lifeos init`, "
+                    "the config file, or LIFEOS_* environment variables."
+                )
             ),
             examples=(
                 "lifeos db ping",

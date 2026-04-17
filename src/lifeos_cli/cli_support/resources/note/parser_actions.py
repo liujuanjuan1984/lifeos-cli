@@ -37,7 +37,7 @@ def build_note_add_parser(
                 _("Create a new note from inline text, stdin, or a file.")
                 + "\n\n"
                 + _(
-                    "Use this action to capture short thoughts, prompts, or raw text before\n"
+                    "Use this action to capture short thoughts, prompts, or raw text before "
                     "they are linked to other domains such as tasks, people, or timelogs."
                 )
             ),
@@ -170,8 +170,8 @@ def build_note_search_parser(
                 _("Search notes by keyword tokens.")
                 + "\n\n"
                 + _(
-                    "The current implementation uses a PostgreSQL-backed ILIKE token search.\n"
-                    "Each token is matched against note content, and any matching token keeps\n"
+                    "The current implementation uses a PostgreSQL-backed ILIKE token search. "
+                    "Each token is matched against note content, and any matching token keeps "
                     "the note in the result set."
                 )
             ),
@@ -344,7 +344,7 @@ def build_note_delete_parser(
                 _("Delete a note by identifier.")
                 + "\n\n"
                 + _(
-                    "By default the note is soft-deleted so it can remain visible in audit\n"
+                    "By default the note is soft-deleted so it can remain visible in audit "
                     "or recovery flows."
                 )
             ),
@@ -391,7 +391,7 @@ def build_note_batch_parser(
                 _("Apply a find/replace operation across multiple active notes.")
                 + "\n\n"
                 + _(
-                    "This is the first batch-editing primitive for notes and provides a base\n"
+                    "This is the first batch-editing primitive for notes and provides a base "
                     "shape for future bulk operations."
                 )
             ),
