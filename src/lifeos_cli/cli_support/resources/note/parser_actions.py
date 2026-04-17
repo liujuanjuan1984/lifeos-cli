@@ -45,6 +45,7 @@ def build_note_add_parser(
                 'lifeos note add "Capture the sprint retrospective idea"',
                 "printf 'line one\\nline two\\n' | lifeos note add --stdin",
                 "lifeos note add --file ./note.md",
+                'lifeos note add "Review shared feedback" --tag-id <tag-id-1> --tag-id <tag-id-2>',
                 'lifeos note add "Review the monthly budget assumptions" --task-id <task-id>',
                 'lifeos note add "Prepare the partner sync agenda" --event-id <event-id>',
             ),
@@ -52,8 +53,8 @@ def build_note_add_parser(
                 _("Wrap inline content in quotes when it contains spaces."),
                 _("Use `--stdin` or `--file` for multi-line note content."),
                 _(
-                    "Repeat `--tag-id`, `--person-id`, `--task-id`, `--vision-id`, "
-                    "`--event-id`, and `--timelog-id` to link multiple records."
+                    "Repeat the same relation flag to link multiple records of that type in one "
+                    "command."
                 ),
             ),
         ),

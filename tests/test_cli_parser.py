@@ -2355,6 +2355,21 @@ def test_cli_note_add_help_keeps_init_guidance_out_of_examples(capsys) -> None:
     assert "\n  lifeos init\n" not in captured.out
 
 
+def test_cli_note_add_help_shows_repeated_relation_flag_usage(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        'lifeos note add "Review shared feedback" --tag-id <tag-id-1> --tag-id <tag-id-2>'
+        in captured.out
+    )
+    assert "Repeat the same relation flag to link multiple records of that type" in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 
