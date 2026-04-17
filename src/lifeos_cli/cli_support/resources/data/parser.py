@@ -128,6 +128,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "restores base rows before relation links."
                 ),
                 _("Single-resource imports expect referenced foreign rows to already exist."),
+                _("Use `--dry-run` before applying a large file or a full bundle restore."),
             ),
         ),
     )
@@ -180,6 +181,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "Batch-update operates on stored records. Use public resource commands "
                     "when you need domain-specific verbs or scopes."
                 ),
+                _("Start from `data export` output when preparing machine-generated patch rows."),
             ),
         ),
     )
@@ -222,6 +224,16 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos data batch-delete task --id <task-id-1> --id <task-id-2>",
                 "lifeos data batch-delete event --ids-file event-ids.txt",
                 "lifeos data batch-delete timelog --file timelog-export.jsonl --format jsonl",
+            ),
+            notes=(
+                _(
+                    "Use this command for file-driven or machine-generated cleanup across many "
+                    "rows."
+                ),
+                _(
+                    "Use resource-specific delete commands when you want narrower human-guided "
+                    "changes."
+                ),
             ),
         ),
     )

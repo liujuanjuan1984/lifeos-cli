@@ -135,7 +135,13 @@ def build_habit_action_parser(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 "
                 '--notes "Completed after lunch"',
             ),
-            notes=(_("Use `--clear-notes` to remove optional notes."),),
+            notes=(
+                _(
+                    "Use `log` when you know the habit and date but have not looked up the "
+                    "action ID."
+                ),
+                _("Use `--clear-notes` to remove optional notes."),
+            ),
         ),
     )
     update_parser.add_argument("action_id", type=UUID, help=_("Habit-action identifier"))
@@ -164,7 +170,10 @@ def build_habit_action_parser(
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
                 '--date 2026-04-09 --status skip --notes "Travel day"',
             ),
-            notes=(_("This command follows the same editable-window rules as `update`."),),
+            notes=(
+                _("Use `update` when you already have the materialized action identifier."),
+                _("This command follows the same editable-window rules as `update`."),
+            ),
         ),
     )
     log_parser.add_argument("--habit-id", required=True, type=UUID, help=_("Habit identifier"))

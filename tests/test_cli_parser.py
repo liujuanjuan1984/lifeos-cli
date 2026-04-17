@@ -354,6 +354,83 @@ def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
     assert "yearly" in captured.out
 
 
+def test_cli_schedule_help_explains_show_list_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "show", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Use `list` when you need the same schedule view across an inclusive date range."
+        in captured.out
+    )
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schedule", "list", "--help"])
+
+    captured = capsys.readouterr()
+
+    expected = "Use `show` when you want the single-day entrypoint with the same sections."
+    assert expected in captured.out
+
+
+def test_cli_habit_action_help_explains_update_log_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit-action", "update", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `log` when you know the habit and date" in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit-action", "log", "--help"])
+
+    captured = capsys.readouterr()
+
+    expected = "Use `update` when you already have the materialized action identifier."
+    assert expected in captured.out
+
+
+def test_cli_data_help_explains_machine_workflow_boundaries(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "import", "--help"])
+
+    captured = capsys.readouterr()
+
+    expected = "Use `--dry-run` before applying a large file or a full bundle restore."
+    assert expected in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "batch-update", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Start from `data export` output when preparing machine-generated patch rows."
+        in captured.out
+    )
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["data", "batch-delete", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Use this command for file-driven or machine-generated cleanup across many rows."
+        in captured.out
+    )
+    assert (
+        "Use resource-specific delete commands when you want narrower human-guided changes."
+        in captured.out
+    )
+
+
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [

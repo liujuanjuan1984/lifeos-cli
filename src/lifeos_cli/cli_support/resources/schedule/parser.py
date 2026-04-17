@@ -87,6 +87,10 @@ def build_schedule_parser(
                 _("The output groups tasks, habit actions, and event occurrences for the day."),
                 _("Task rows come from planning-cycle overlap, not from event timeblocks."),
                 _(
+                    "Use `list` when you need the same schedule view across an inclusive "
+                    "date range."
+                ),
+                _(
                     "Event occurrences are split into appointment, timeblock, and deadline "
                     "sections."
                 ),
@@ -108,13 +112,14 @@ def build_schedule_parser(
         "list",
         help_content=HelpContent(
             summary=_("List a schedule range"),
-            description=_("Show the aggregated schedule for a local-date range."),
+            description=_("Show the aggregated schedule for one local date or an inclusive range."),
             examples=("lifeos schedule list --date 2026-04-10 --date 2026-04-16",),
             notes=(
                 _(
                     "Repeat `--date` once for one local date or twice for one inclusive "
                     "local-date range."
                 ),
+                _("Use `show` when you want the single-day entrypoint with the same sections."),
                 _("Recurring event occurrences are expanded inside the requested range."),
                 _("Event occurrences remain segmented by type inside each day block."),
                 *_build_schedule_section_header_notes(),
