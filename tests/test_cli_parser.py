@@ -1616,32 +1616,118 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
 
 
 @pytest.mark.parametrize(
-    ("resource", "expected_help_example"),
+    ("resource", "expected_help_examples"),
     [
-        ("area", "lifeos area add --help"),
-        ("data", "lifeos data export --help"),
-        ("event", "lifeos event add --help"),
-        ("habit", "lifeos habit add --help"),
-        ("habit-action", "lifeos habit-action list --help"),
-        ("note", "lifeos note add --help"),
-        ("people", "lifeos people add --help"),
-        ("schedule", "lifeos schedule show --help"),
-        ("tag", "lifeos tag add --help"),
-        ("task", "lifeos task add --help"),
-        ("timelog", "lifeos timelog add --help"),
-        ("vision", "lifeos vision add --help"),
+        ("area", ("lifeos area add --help", "lifeos area list --help", "lifeos area batch --help")),
+        (
+            "data",
+            (
+                "lifeos data export --help",
+                "lifeos data import --help",
+                "lifeos data batch-update --help",
+            ),
+        ),
+        (
+            "event",
+            ("lifeos event add --help", "lifeos event list --help", "lifeos event batch --help"),
+        ),
+        (
+            "habit",
+            ("lifeos habit add --help", "lifeos habit list --help", "lifeos habit batch --help"),
+        ),
+        (
+            "habit-action",
+            (
+                "lifeos habit-action list --help",
+                "lifeos habit-action show --help",
+                "lifeos habit-action log --help",
+            ),
+        ),
+        ("note", ("lifeos note add --help", "lifeos note list --help", "lifeos note batch --help")),
+        (
+            "people",
+            (
+                "lifeos people add --help",
+                "lifeos people list --help",
+                "lifeos people batch --help",
+            ),
+        ),
+        ("schedule", ("lifeos schedule show --help", "lifeos schedule list --help")),
+        ("tag", ("lifeos tag add --help", "lifeos tag list --help", "lifeos tag batch --help")),
+        (
+            "task",
+            ("lifeos task add --help", "lifeos task list --help", "lifeos task batch --help"),
+        ),
+        (
+            "timelog",
+            (
+                "lifeos timelog add --help",
+                "lifeos timelog list --help",
+                "lifeos timelog stats --help",
+            ),
+        ),
+        (
+            "vision",
+            ("lifeos vision add --help", "lifeos vision list --help", "lifeos vision batch --help"),
+        ),
     ],
 )
 def test_main_resource_help_surfaces_action_help_examples(
     resource: str,
-    expected_help_example: str,
+    expected_help_examples: tuple[str, ...],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     exit_code = cli.main([resource])
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert f"\n  {expected_help_example}\n" in captured.out
+    for expected_help_example in expected_help_examples:
+        assert f"\n  {expected_help_example}\n" in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_help_examples"),
+    [
+        (["area", "batch"], ("lifeos area batch delete --help",)),
+        (["event", "batch"], ("lifeos event batch delete --help",)),
+        (["habit", "batch"], ("lifeos habit batch delete --help",)),
+        (
+            ["note", "batch"],
+            ("lifeos note batch update-content --help", "lifeos note batch delete --help"),
+        ),
+        (["people", "batch"], ("lifeos people batch delete --help",)),
+        (["tag", "batch"], ("lifeos tag batch delete --help",)),
+        (["task", "batch"], ("lifeos task batch delete --help",)),
+        (
+            ["timelog", "batch"],
+            (
+                "lifeos timelog batch update --help",
+                "lifeos timelog batch restore --help",
+                "lifeos timelog batch delete --help",
+            ),
+        ),
+        (
+            ["timelog", "stats"],
+            (
+                "lifeos timelog stats day --help",
+                "lifeos timelog stats range --help",
+                "lifeos timelog stats rebuild --help",
+            ),
+        ),
+        (["vision", "batch"], ("lifeos vision batch delete --help",)),
+    ],
+)
+def test_namespace_help_surfaces_nested_help_examples(
+    argv: list[str],
+    expected_help_examples: tuple[str, ...],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(argv)
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    for expected_help_example in expected_help_examples:
+        assert f"\n  {expected_help_example}\n" in captured.out
 
 
 @pytest.mark.parametrize(
@@ -1662,6 +1748,43 @@ def test_resource_help_avoids_action_level_contract_details(
 
     assert exit_code == 0
     assert unexpected not in captured.out
+
+
+@pytest.mark.parametrize(
+    ("resource", "unexpected_examples"),
+    [
+        (
+            "note",
+            ('lifeos note add "Capture an idea"', 'lifeos note search "sprint retrospective"'),
+        ),
+        (
+            "area",
+            (
+                'lifeos area add "Health" --color "#16A34A"',
+                "lifeos area show 11111111-1111-1111-1111-111111111111",
+            ),
+        ),
+        (
+            "timelog",
+            (
+                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
+                "--end-time 2026-04-10T14:30:00-04:00",
+                "lifeos timelog restore <timelog-id>",
+            ),
+        ),
+    ],
+)
+def test_resource_help_examples_stay_navigation_focused(
+    resource: str,
+    unexpected_examples: tuple[str, ...],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main([resource])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    for unexpected_example in unexpected_examples:
+        assert unexpected_example not in captured.out
 
 
 @pytest.mark.parametrize(

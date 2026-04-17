@@ -55,13 +55,8 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
             examples=(
                 "lifeos timelog add --help",
-                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
-                "--end-time 2026-04-10T14:30:00-04:00",
+                "lifeos timelog list --help",
                 "lifeos timelog stats --help",
-                "lifeos timelog stats day --date 2026-04-10",
-                "lifeos timelog list --start-time 2026-04-10T00:00:00-04:00 "
-                "--end-time 2026-04-10T23:59:59-04:00",
-                "lifeos timelog restore <timelog-id>",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for timelogs."),
@@ -322,9 +317,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             summary=_("Run batch timelog operations"),
             description=_("Grouped namespace for multi-record timelog writes."),
             examples=(
-                "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
-                "lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",
-                "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task",
+                "lifeos timelog batch update --help",
+                "lifeos timelog batch restore --help",
+                "lifeos timelog batch delete --help",
             ),
         ),
     )
@@ -426,11 +421,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 )
             ),
             examples=(
-                "lifeos timelog stats day --date 2026-04-10",
-                "lifeos timelog stats range --date 2026-04-01 --date 2026-04-30",
-                "lifeos timelog stats week --date 2026-04-10",
-                "lifeos timelog stats month --month 2026-04",
-                "lifeos timelog stats rebuild --all",
+                "lifeos timelog stats day --help",
+                "lifeos timelog stats range --help",
+                "lifeos timelog stats rebuild --help",
             ),
             notes=(
                 _("Stats are grouped only by area; task effort remains a separate task feature."),

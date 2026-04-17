@@ -27,13 +27,8 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             description=_("Create, inspect, update, and delete note records."),
             examples=(
                 "lifeos note add --help",
-                'lifeos note add "Capture an idea"',
-                "lifeos note list --limit 20",
-                'lifeos note search "sprint retrospective"',
-                "lifeos note batch update-content --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 "
-                '--find-text "draft" --replace-text "final"',
+                "lifeos note list --help",
+                "lifeos note batch --help",
             ),
             notes=(
                 _("Run `lifeos init` before using note commands for the first time."),

@@ -45,10 +45,8 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             examples=(
                 "lifeos area add --help",
-                'lifeos area add "Health" --color "#16A34A"',
-                "lifeos area list",
-                "lifeos area show 11111111-1111-1111-1111-111111111111",
-                "lifeos area batch delete --ids 11111111-1111-1111-1111-111111111111",
+                "lifeos area list --help",
+                "lifeos area batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
@@ -228,11 +226,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "CLI shape."
                 )
             ),
-            examples=(
-                "lifeos area batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
-            ),
+            examples=("lifeos area batch delete --help",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

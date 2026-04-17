@@ -42,12 +42,8 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             examples=(
                 "lifeos event add --help",
-                'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
-                'lifeos event add "Focus Work" --type timeblock '
-                "--start-time 2026-04-10T13:00:00-04:00",
-                "lifeos event list --start-time 2026-04-10T00:00:00-04:00 "
-                "--end-time 2026-04-10T23:59:59-04:00",
-                "lifeos event batch delete --ids <event-id-1> <event-id-2>",
+                "lifeos event list --help",
+                "lifeos event batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for events."),
@@ -385,7 +381,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help_content=HelpContent(
             summary=_("Run batch event operations"),
             description=_("Grouped namespace for multi-record event writes."),
-            examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
+            examples=("lifeos event batch delete --help",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

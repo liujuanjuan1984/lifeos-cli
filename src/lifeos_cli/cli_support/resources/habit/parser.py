@@ -61,13 +61,8 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
             examples=(
                 "lifeos habit add --help",
-                'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
-                'lifeos habit add "Call Parents" --start-date 2026-04-09 --duration-days 100 '
-                "--cadence-frequency weekly --weekends-only --target-per-week 1",
-                'lifeos habit add "Monthly cleanup" --start-date 2026-04-09 --duration-days 365 '
-                "--cadence-frequency monthly --target-per-cycle 2",
-                "lifeos habit list --with-stats",
-                "lifeos habit task-associations",
+                "lifeos habit list --help",
+                "lifeos habit batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for habits."),
@@ -365,7 +360,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help_content=HelpContent(
             summary=_("Run bulk habit operations"),
             description=_("Grouped namespace for multi-record habit writes."),
-            examples=("lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",),
+            examples=("lifeos habit batch delete --help",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

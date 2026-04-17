@@ -38,12 +38,8 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             examples=(
                 "lifeos data export --help",
-                "lifeos data export timelog --format jsonl",
-                "lifeos data import timelog --file timelog.jsonl --format jsonl",
-                "lifeos data batch-update task --file task-patch.jsonl --format jsonl",
-                "lifeos data batch-delete event --ids-file event-ids.txt",
-                "lifeos data export all --output lifeos-bundle.zip",
-                "lifeos data import bundle --file lifeos-bundle.zip --replace-existing",
+                "lifeos data import --help",
+                "lifeos data batch-update --help",
             ),
             notes=(
                 _(

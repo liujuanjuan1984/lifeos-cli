@@ -45,9 +45,8 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
             examples=(
                 "lifeos vision add --help",
-                'lifeos vision add "Launch lifeos-cli" '
-                "--area-id 11111111-1111-1111-1111-111111111111",
-                "lifeos vision list --status active",
+                "lifeos vision list --help",
+                "lifeos vision batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
@@ -321,11 +320,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                     "verbs."
                 )
             ),
-            examples=(
-                "lifeos vision batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
-            ),
+            examples=("lifeos vision batch delete --help",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

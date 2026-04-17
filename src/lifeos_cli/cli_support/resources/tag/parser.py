@@ -39,8 +39,8 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             ),
             examples=(
                 "lifeos tag add --help",
-                'lifeos tag add "family" --entity-type person --category relation',
-                "lifeos tag list --entity-type note",
+                "lifeos tag list --help",
+                "lifeos tag batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
@@ -223,11 +223,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                     "verbs."
                 )
             ),
-            examples=(
-                "lifeos tag batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
-            ),
+            examples=("lifeos tag batch delete --help",),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

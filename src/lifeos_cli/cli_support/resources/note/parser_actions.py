@@ -372,13 +372,8 @@ def build_note_batch_parser(
                 )
             ),
             examples=(
-                "lifeos note batch update-content --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 "
-                '--find-text "draft" --replace-text "final"',
-                "lifeos note batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
+                "lifeos note batch update-content --help",
+                "lifeos note batch delete --help",
             ),
             notes=(
                 _("Batch commands currently accept note IDs directly."),
