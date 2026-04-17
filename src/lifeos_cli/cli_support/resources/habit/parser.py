@@ -330,6 +330,13 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             summary=_("Show habit statistics"),
             description=_("Show derived completion and streak statistics for one habit."),
             examples=("lifeos habit stats 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "These metrics are derived from cadence settings together with materialized "
+                    "`habit-action` records."
+                ),
+                _("Use `show` when you also need the underlying habit fields in the same output."),
+            ),
         ),
     )
     stats_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
@@ -343,6 +350,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             description=_("Show active habits currently linked to tasks."),
             examples=("lifeos habit task-associations",),
             notes=(
+                _("Use this command to audit which active habits are still attached to tasks."),
                 _(
                     "When results exist, the command prints a header row followed by "
                     "tab-separated columns: {columns}."

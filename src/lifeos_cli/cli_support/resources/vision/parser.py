@@ -175,6 +175,10 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary=_("Show vision stats"),
             description=_("Show task counts and effort totals for one vision."),
             examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _("Counts and effort totals aggregate all active tasks linked to the vision."),
+                _("Use `with-tasks` when you need the row-level task list instead of totals."),
+            ),
         ),
     )
     stats_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
@@ -268,6 +272,16 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary=_("Sync vision experience"),
             description=_("Synchronize experience points from root task actual effort totals."),
             examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "Use this after task effort changes when vision experience should match "
+                    "current root-task actual effort."
+                ),
+                _(
+                    "The effective hourly rate comes from the vision override when set, "
+                    "otherwise from preferences."
+                ),
+            ),
         ),
     )
     sync_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
@@ -282,6 +296,13 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             summary=_("Harvest a vision"),
             description=_("Convert a mature active vision to fruit status."),
             examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "This command succeeds only when the vision is active and already at final "
+                    "stage."
+                ),
+                _("A successful harvest changes the vision status from `active` to `fruit`."),
+            ),
         ),
     )
     harvest_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))

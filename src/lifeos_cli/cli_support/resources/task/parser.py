@@ -228,6 +228,13 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Show a task subtree"),
             description=_("Show one task with its active nested subtasks."),
             examples=("lifeos task with-subtasks 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "The root task prints first, followed by active descendants indented by "
+                    "depth with columns: task_id, status, completion_percentage, content."
+                ),
+                _("Use `hierarchy` when you need the full active tree for an entire vision."),
+            ),
         ),
     )
     with_subtasks_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
@@ -240,6 +247,13 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Show a vision task hierarchy"),
             description=_("Show all active tasks for a vision as a hierarchy."),
             examples=("lifeos task hierarchy 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "The output starts with the vision identifier, then prints each root task "
+                    "and descendant using the same indented task tree shape as `with-subtasks`."
+                ),
+                _("Use `with-subtasks` when you want to inspect only one branch of the tree."),
+            ),
         ),
     )
     hierarchy_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
@@ -252,6 +266,13 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Show task statistics"),
             description=_("Show subtree completion and effort statistics for one task."),
             examples=("lifeos task stats 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _("Totals aggregate the selected task together with all active descendants."),
+                _(
+                    "When the task has direct children, `completion_percentage` measures how "
+                    "many of those children are done."
+                ),
+            ),
         ),
     )
     stats_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))

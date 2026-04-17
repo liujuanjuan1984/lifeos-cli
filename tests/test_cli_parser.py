@@ -218,6 +218,7 @@ def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
 
     captured = capsys.readouterr()
 
+    assert "audit which active habits are still attached to tasks" in captured.out
     assert (
         "tab-separated columns: task_id, habit_id, habit_status, habit_start_date, habit_title."
         in captured.out
@@ -233,6 +234,100 @@ def test_cli_vision_with_tasks_help_documents_task_header(capsys) -> None:
     captured = capsys.readouterr()
 
     assert "tab-separated columns: task_id, status, parent_task_id, content." in captured.out
+
+
+def test_cli_task_subtree_help_explains_tree_shape(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "with-subtasks", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "active descendants indented by depth" in captured.out
+    assert "completion_percentage" in captured.out
+    assert "Use `hierarchy` when you need the full active tree" in captured.out
+
+
+def test_cli_task_hierarchy_help_explains_scope_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "hierarchy", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "The output starts with the vision identifier" in captured.out
+    assert "Use `with-subtasks` when you want to inspect only one branch" in captured.out
+
+
+def test_cli_task_stats_help_explains_aggregation_rules(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "stats", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Totals aggregate the selected task together with all active descendants." in captured.out
+    )
+    assert "`completion_percentage` measures how many of those children are done." in captured.out
+
+
+def test_cli_habit_stats_help_explains_derived_metrics(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit", "stats", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "derived from cadence settings together with materialized `habit-action` records"
+        in captured.out
+    )
+    assert "Use `show` when you also need the underlying habit fields" in captured.out
+
+
+def test_cli_vision_stats_help_explains_scope_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "stats", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Counts and effort totals aggregate all active tasks linked to the vision." in captured.out
+    )
+    assert (
+        "Use `with-tasks` when you need the row-level task list instead of totals." in captured.out
+    )
+
+
+def test_cli_vision_sync_experience_help_explains_when_to_use(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "sync-experience", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use this after task effort changes" in captured.out
+    assert "otherwise from preferences" in captured.out
+
+
+def test_cli_vision_harvest_help_explains_readiness_and_effect(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "harvest", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "only when the vision is active and already at final stage" in captured.out
+    assert "changes the vision status from `active` to `fruit`" in captured.out
 
 
 def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
