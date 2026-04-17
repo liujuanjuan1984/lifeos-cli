@@ -290,6 +290,16 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task move 11111111-1111-1111-1111-111111111111 "
                 "--new-vision-id 33333333-3333-3333-3333-333333333333 --clear-parent",
             ),
+            notes=(
+                _(
+                    "Use `reorder` when only sibling display order changes and parentage stays "
+                    "the same."
+                ),
+                _(
+                    "Use `--old-parent-task-id` as an optimistic guard when another writer may "
+                    "have already moved the task."
+                ),
+            ),
         ),
     )
     move_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
@@ -325,6 +335,13 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 "lifeos task reorder --order 11111111-1111-1111-1111-111111111111:0 "
                 "--order 22222222-2222-2222-2222-222222222222:1",
+            ),
+            notes=(
+                _(
+                    "This command changes only `display_order`; it does not move tasks between "
+                    "parents."
+                ),
+                _("Use `move` when parentage or vision membership also needs to change."),
             ),
         ),
     )

@@ -431,6 +431,41 @@ def test_cli_data_help_explains_machine_workflow_boundaries(capsys) -> None:
     )
 
 
+def test_cli_vision_experience_help_explains_manual_vs_synced_updates(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["vision", "add-experience", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use this for explicit manual credit" in captured.out
+    assert (
+        "Use `sync-experience` when experience should be recomputed from task effort."
+        in captured.out
+    )
+
+
+def test_cli_task_move_and_reorder_help_explain_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "move", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `reorder` when only sibling display order changes" in captured.out
+    assert "Use `--old-parent-task-id` as an optimistic guard" in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "reorder", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "This command changes only `display_order`" in captured.out
+    assert "Use `move` when parentage or vision membership also needs to change." in captured.out
+
+
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [

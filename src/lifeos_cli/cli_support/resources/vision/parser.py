@@ -251,6 +251,10 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             examples=(
                 "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
             ),
+            notes=(
+                _("Use this for explicit manual credit rather than for task-effort recalculation."),
+                _("Use `sync-experience` when experience should be recomputed from task effort."),
+            ),
         ),
     )
     add_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
