@@ -4,6 +4,7 @@ from typing import Any, cast
 import yaml  # type: ignore[import-untyped]
 from babel.messages import pofile
 
+GITIGNORE_TEXT = Path(".gitignore").read_text()
 DEPENDABOT_CONFIG = yaml.safe_load(Path(".github/dependabot.yml").read_text())
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
@@ -44,6 +45,7 @@ def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
 
 
 def test_dependency_scripts_keep_separate_scopes() -> None:
+    assert 'LOCAL_ENV_FILE="${REPO_ROOT}/.env"' in DOCTOR_TEXT
     assert any("uv sync --all-extras --frozen" in line for line in DOCTOR_COMMANDS)
     assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
     assert not any("uv pip list --outdated" in line for line in DOCTOR_COMMANDS)
@@ -93,6 +95,7 @@ def test_validate_workflow_runs_real_cli_integration_tests() -> None:
 def test_integration_tests_require_an_explicit_test_database_url() -> None:
     script_text = Path("scripts/integration_tests.sh").read_text()
     assert "LIFEOS_RUN_INTEGRATION" not in script_text
+    assert 'LOCAL_ENV_FILE="${REPO_ROOT}/.env"' in script_text
     assert "LIFEOS_TEST_DATABASE_URL:-" in script_text
     assert "exit 3" in script_text
     assert "uv run pytest -m integration tests/test_cli_integration_*.py" in script_text
@@ -100,6 +103,11 @@ def test_integration_tests_require_an_explicit_test_database_url() -> None:
     assert 'INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
     assert "DatabaseSettings.from_env" not in support_text
     assert 'schema = f"lifeos_test_{uuid4().hex[:12]}"' in Path("tests/conftest.py").read_text()
+
+
+def test_gitignore_keeps_local_env_files_untracked() -> None:
+    assert "\n.env\n" in GITIGNORE_TEXT
+    assert "\n.env.local\n" in GITIGNORE_TEXT
 
 
 def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:

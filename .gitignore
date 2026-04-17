@@ -43,3 +43,9 @@ core.*
 *.db
 *.db-shm
 *.db-wal
+
+# Local environment files
+.env
+.env.local
+.env.*
+!.env.example

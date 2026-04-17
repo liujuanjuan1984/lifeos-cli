@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOCAL_ENV_FILE="${REPO_ROOT}/.env"
+
+if [ -f "${LOCAL_ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${LOCAL_ENV_FILE}"
+  set +a
+fi
+
 echo "[doctor] sync dependencies"
 uv sync --all-extras --frozen
 
