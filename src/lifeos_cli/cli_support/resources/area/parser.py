@@ -51,8 +51,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
                 _("Use areas to group visions and other higher-level planning objects."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos area batch --help` for bulk delete operations."),
             ),
         ),
     )

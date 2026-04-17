@@ -61,8 +61,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "Use `lifeos event add --task-id <task-id>` when a task also needs a specific "
                     "appointment, timeblock, or deadline in the daily schedule."
                 ),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos task batch --help` for bulk delete operations."),
             ),
         ),
     )

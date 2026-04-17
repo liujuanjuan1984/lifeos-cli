@@ -32,8 +32,10 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _("Run `lifeos init` before using note commands for the first time."),
-                _("Use the `batch` namespace when one command operates on multiple note records."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _(
+                    "See `lifeos note batch --help` for bulk `update-content` and `delete` "
+                    "workflows."
+                ),
             ),
         ),
     )

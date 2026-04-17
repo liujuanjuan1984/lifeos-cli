@@ -62,8 +62,10 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 _("Use `list` as the primary query entrypoint for timelogs."),
                 _("Timelogs can optionally reference one area and one task."),
                 _("Use `stats` for timelog stats grouped by area."),
-                _("Delete operations in the public CLI always perform soft deletion."),
-                _("Use `restore` to recover a soft-deleted timelog."),
+                _(
+                    "See `lifeos timelog batch --help` for bulk `update`, `restore`, and "
+                    "`delete` workflows."
+                ),
             ),
         ),
     )

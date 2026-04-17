@@ -74,7 +74,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                     "Cadence cycles can be daily, weekly, monthly, or yearly, while "
                     "habit-action occurrences remain date-based."
                 ),
-                _("Delete operations in the public CLI always perform soft deletion."),
+                _("See `lifeos habit batch --help` for bulk delete operations."),
             ),
         ),
     )

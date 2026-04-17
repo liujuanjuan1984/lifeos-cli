@@ -45,8 +45,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
                 _("A tag is scoped by name, entity type, and category."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos tag batch --help` for bulk delete operations."),
             ),
         ),
     )

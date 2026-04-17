@@ -49,7 +49,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 _("Use `list` as the primary query entrypoint for events."),
                 _("Events can optionally reference one area and one task."),
                 _("Event types distinguish hard appointments, flexible timeblocks, and deadlines."),
-                _("Delete operations in the public CLI always perform soft deletion."),
+                _("See `lifeos event batch --help` for bulk delete operations."),
             ),
         ),
     )

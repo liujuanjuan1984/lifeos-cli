@@ -1751,6 +1751,54 @@ def test_resource_help_avoids_action_level_contract_details(
 
 
 @pytest.mark.parametrize(
+    ("resource", "expected_note"),
+    [
+        ("area", "See `lifeos area batch --help` for bulk delete operations."),
+        ("event", "See `lifeos event batch --help` for bulk delete operations."),
+        ("habit", "See `lifeos habit batch --help` for bulk delete operations."),
+        (
+            "note",
+            "See `lifeos note batch --help` for bulk `update-content` and `delete` workflows.",
+        ),
+        ("people", "See `lifeos people batch --help` for bulk delete operations."),
+        ("tag", "See `lifeos tag batch --help` for bulk delete operations."),
+        ("task", "See `lifeos task batch --help` for bulk delete operations."),
+        (
+            "timelog",
+            "See `lifeos timelog batch --help` for bulk `update`, `restore`, and `delete` "
+            "workflows.",
+        ),
+        ("vision", "See `lifeos vision batch --help` for bulk delete operations."),
+    ],
+)
+def test_resource_help_surfaces_concrete_batch_guidance(
+    resource: str,
+    expected_note: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main([resource])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert expected_note in captured.out
+
+
+@pytest.mark.parametrize(
+    "resource",
+    ("area", "event", "habit", "note", "people", "tag", "task", "timelog", "vision"),
+)
+def test_resource_help_avoids_delete_behavior_contract_details(
+    resource: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main([resource])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "soft deletion" not in captured.out
+
+
+@pytest.mark.parametrize(
     ("resource", "unexpected_examples"),
     [
         (

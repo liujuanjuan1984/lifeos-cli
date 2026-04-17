@@ -51,8 +51,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
                 _("Visions are intended to group related task trees."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos vision batch --help` for bulk delete operations."),
             ),
         ),
     )

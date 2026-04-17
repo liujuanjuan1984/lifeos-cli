@@ -54,8 +54,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(
                 _("`people` is the intentional CLI resource name for this domain."),
                 _("Use `list` as the primary query entrypoint for this resource."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos people batch --help` for bulk delete operations."),
                 _(
                     "Agent callers should keep the human partner and the automation identity "
                     "as separate records when both can own work."
