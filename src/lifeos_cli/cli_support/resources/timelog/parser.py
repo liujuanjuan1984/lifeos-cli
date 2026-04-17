@@ -54,6 +54,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 + _("Timelogs represent what really happened and how time was spent.")
             ),
             examples=(
+                "lifeos timelog add --help",
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",
                 "lifeos timelog stats day --date 2026-04-10",

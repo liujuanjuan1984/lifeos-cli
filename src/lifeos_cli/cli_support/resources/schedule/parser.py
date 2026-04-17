@@ -53,6 +53,7 @@ def build_schedule_parser(
                 )
             ),
             examples=(
+                "lifeos schedule show --help",
                 "lifeos schedule show --date 2026-04-10",
                 "lifeos schedule list --date 2026-04-10 --date 2026-04-16",
             ),

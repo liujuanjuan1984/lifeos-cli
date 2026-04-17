@@ -44,6 +44,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 + _("A vision is broader than a single task and usually lives under an area.")
             ),
             examples=(
+                "lifeos vision add --help",
                 'lifeos vision add "Launch lifeos-cli" '
                 "--area-id 11111111-1111-1111-1111-111111111111",
                 "lifeos vision list --status active",

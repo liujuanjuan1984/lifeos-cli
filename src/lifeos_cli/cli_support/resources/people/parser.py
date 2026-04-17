@@ -47,6 +47,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 )
             ),
             examples=(
+                "lifeos people add --help",
                 'lifeos people add "Human Partner" --nickname ally --location Toronto',
                 'lifeos people add "Local Agent" '
                 '--description "Automation identity for CLI workflows"',

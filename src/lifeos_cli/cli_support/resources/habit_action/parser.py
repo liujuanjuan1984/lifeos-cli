@@ -44,6 +44,7 @@ def build_habit_action_parser(
                 )
             ),
             examples=(
+                "lifeos habit-action list --help",
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action list --date 2026-04-09",
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",

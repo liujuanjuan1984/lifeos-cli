@@ -41,6 +41,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 + _("Events represent calendar intent and time allocation, not todo semantics.")
             ),
             examples=(
+                "lifeos event add --help",
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00',
                 'lifeos event add "Focus Work" --type timeblock '
                 "--start-time 2026-04-10T13:00:00-04:00",

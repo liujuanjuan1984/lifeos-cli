@@ -1612,6 +1612,35 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
 
 
 @pytest.mark.parametrize(
+    ("resource", "expected_help_example"),
+    [
+        ("area", "lifeos area add --help"),
+        ("data", "lifeos data export --help"),
+        ("event", "lifeos event add --help"),
+        ("habit", "lifeos habit add --help"),
+        ("habit-action", "lifeos habit-action list --help"),
+        ("note", "lifeos note add --help"),
+        ("people", "lifeos people add --help"),
+        ("schedule", "lifeos schedule show --help"),
+        ("tag", "lifeos tag add --help"),
+        ("task", "lifeos task add --help"),
+        ("timelog", "lifeos timelog add --help"),
+        ("vision", "lifeos vision add --help"),
+    ],
+)
+def test_main_resource_help_surfaces_action_help_examples(
+    resource: str,
+    expected_help_example: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main([resource])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"\n  {expected_help_example}\n" in captured.out
+
+
+@pytest.mark.parametrize(
     ("argv", "expected"),
     [
         (["note", "-h", "add"], "Create a new note from inline text, stdin, or a file."),

@@ -60,6 +60,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 )
             ),
             examples=(
+                "lifeos habit add --help",
                 'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
                 'lifeos habit add "Call Parents" --start-date 2026-04-09 --duration-days 100 '
                 "--cadence-frequency weekly --weekends-only --target-per-week 1",

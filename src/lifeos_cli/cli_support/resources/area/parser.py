@@ -44,6 +44,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 )
             ),
             examples=(
+                "lifeos area add --help",
                 'lifeos area add "Health" --color "#16A34A"',
                 "lifeos area list",
                 "lifeos area show 11111111-1111-1111-1111-111111111111",

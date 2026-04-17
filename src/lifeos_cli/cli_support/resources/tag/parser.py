@@ -38,6 +38,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 + _("Tags provide cross-cutting classification across otherwise separate domains.")
             ),
             examples=(
+                "lifeos tag add --help",
                 'lifeos tag add "family" --entity-type person --category relation',
                 "lifeos tag list --entity-type note",
             ),

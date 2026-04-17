@@ -50,6 +50,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 + _("`event` commands when the task also needs a concrete scheduled time block.")
             ),
             examples=(
+                "lifeos task add --help",
                 'lifeos task add "Draft the release checklist" '
                 "--vision-id 11111111-1111-1111-1111-111111111111",
                 "lifeos task list --vision-id 11111111-1111-1111-1111-111111111111",
