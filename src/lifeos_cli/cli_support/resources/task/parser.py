@@ -433,8 +433,12 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary=_("Run batch task operations"),
-            description=_("Run bulk delete operations for tasks."),
-            examples=("lifeos task batch delete --help",),
+            description=_("Soft-delete multiple tasks in one command."),
+            examples=(
+                "lifeos task batch delete --help",
+                "lifeos task batch delete --ids <task-id-1> <task-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

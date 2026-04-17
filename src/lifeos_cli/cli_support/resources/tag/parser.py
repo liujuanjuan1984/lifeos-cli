@@ -214,8 +214,12 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "batch",
         help_content=HelpContent(
             summary=_("Run batch tag operations"),
-            description=_("Run bulk delete operations for tags."),
-            examples=("lifeos tag batch delete --help",),
+            description=_("Soft-delete multiple tags in one command."),
+            examples=(
+                "lifeos tag batch delete --help",
+                "lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

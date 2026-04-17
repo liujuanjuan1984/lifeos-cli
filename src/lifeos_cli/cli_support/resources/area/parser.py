@@ -217,8 +217,12 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary=_("Run batch area operations"),
-            description=_("Run bulk delete operations for areas."),
-            examples=("lifeos area batch delete --help",),
+            description=_("Soft-delete multiple areas in one command."),
+            examples=(
+                "lifeos area batch delete --help",
+                "lifeos area batch delete --ids <area-id-1> <area-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

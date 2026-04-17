@@ -1688,16 +1688,52 @@ def test_main_resource_help_surfaces_action_help_examples(
 @pytest.mark.parametrize(
     ("argv", "expected_help_examples"),
     [
-        (["area", "batch"], ("lifeos area batch delete --help",)),
-        (["event", "batch"], ("lifeos event batch delete --help",)),
-        (["habit", "batch"], ("lifeos habit batch delete --help",)),
+        (
+            ["area", "batch"],
+            (
+                "lifeos area batch delete --help",
+                "lifeos area batch delete --ids <area-id-1> <area-id-2>",
+            ),
+        ),
+        (
+            ["event", "batch"],
+            (
+                "lifeos event batch delete --help",
+                "lifeos event batch delete --ids <event-id-1> <event-id-2>",
+            ),
+        ),
+        (
+            ["habit", "batch"],
+            (
+                "lifeos habit batch delete --help",
+                "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
+            ),
+        ),
         (
             ["note", "batch"],
             ("lifeos note batch update-content --help", "lifeos note batch delete --help"),
         ),
-        (["people", "batch"], ("lifeos people batch delete --help",)),
-        (["tag", "batch"], ("lifeos tag batch delete --help",)),
-        (["task", "batch"], ("lifeos task batch delete --help",)),
+        (
+            ["people", "batch"],
+            (
+                "lifeos people batch delete --help",
+                "lifeos people batch delete --ids <person-id-1> <person-id-2>",
+            ),
+        ),
+        (
+            ["tag", "batch"],
+            (
+                "lifeos tag batch delete --help",
+                "lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",
+            ),
+        ),
+        (
+            ["task", "batch"],
+            (
+                "lifeos task batch delete --help",
+                "lifeos task batch delete --ids <task-id-1> <task-id-2>",
+            ),
+        ),
         (
             ["timelog", "batch"],
             (
@@ -1714,7 +1750,13 @@ def test_main_resource_help_surfaces_action_help_examples(
                 "lifeos timelog stats rebuild --help",
             ),
         ),
-        (["vision", "batch"], ("lifeos vision batch delete --help",)),
+        (
+            ["vision", "batch"],
+            (
+                "lifeos vision batch delete --help",
+                "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
+            ),
+        ),
     ],
 )
 def test_namespace_help_surfaces_nested_help_examples(
@@ -1733,13 +1775,13 @@ def test_namespace_help_surfaces_nested_help_examples(
 @pytest.mark.parametrize(
     ("argv", "expected_text"),
     [
-        (["area", "batch"], "Run bulk delete operations for areas."),
-        (["event", "batch"], "Run bulk delete operations for events."),
-        (["habit", "batch"], "Run bulk delete operations for habits."),
-        (["people", "batch"], "Run bulk delete operations for people."),
-        (["tag", "batch"], "Run bulk delete operations for tags."),
-        (["task", "batch"], "Run bulk delete operations for tasks."),
-        (["vision", "batch"], "Run bulk delete operations for visions."),
+        (["area", "batch"], "Soft-delete multiple areas in one command."),
+        (["event", "batch"], "Soft-delete multiple events in one command."),
+        (["habit", "batch"], "Soft-delete multiple habits in one command."),
+        (["people", "batch"], "Soft-delete multiple people records in one command."),
+        (["tag", "batch"], "Soft-delete multiple tags in one command."),
+        (["task", "batch"], "Soft-delete multiple tasks in one command."),
+        (["vision", "batch"], "Soft-delete multiple visions in one command."),
         (
             ["note", "batch"],
             "Use `update-content` for bulk find/replace across active note content.",
@@ -1769,6 +1811,7 @@ def test_namespace_help_surfaces_user_facing_scope_guidance(
 @pytest.mark.parametrize(
     ("argv", "unexpected_text"),
     [
+        (["area", "batch"], "Run bulk delete operations for areas."),
         (["area", "batch"], "stable CLI shape"),
         (["event", "batch"], "Grouped namespace for multi-record event writes."),
         (["habit", "batch"], "Grouped namespace for multi-record habit writes."),
@@ -1791,6 +1834,30 @@ def test_namespace_help_avoids_internal_structure_rationale(
 
     assert exit_code == 0
     assert unexpected_text not in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_note"),
+    [
+        (["area", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["event", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["habit", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["people", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["tag", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["task", "batch"], "This namespace currently exposes only the `delete` workflow."),
+        (["vision", "batch"], "This namespace currently exposes only the `delete` workflow."),
+    ],
+)
+def test_single_action_batch_help_explains_current_scope(
+    argv: list[str],
+    expected_note: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(argv)
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert expected_note in captured.out
 
 
 @pytest.mark.parametrize(

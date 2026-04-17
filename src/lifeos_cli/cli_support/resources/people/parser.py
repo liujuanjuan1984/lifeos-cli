@@ -235,8 +235,12 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "batch",
         help_content=HelpContent(
             summary=_("Run batch people operations"),
-            description=_("Run bulk delete operations for people."),
-            examples=("lifeos people batch delete --help",),
+            description=_("Soft-delete multiple people records in one command."),
+            examples=(
+                "lifeos people batch delete --help",
+                "lifeos people batch delete --ids <person-id-1> <person-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

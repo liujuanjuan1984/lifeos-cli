@@ -380,8 +380,12 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         "batch",
         help_content=HelpContent(
             summary=_("Run batch event operations"),
-            description=_("Run bulk delete operations for events."),
-            examples=("lifeos event batch delete --help",),
+            description=_("Soft-delete multiple events in one command."),
+            examples=(
+                "lifeos event batch delete --help",
+                "lifeos event batch delete --ids <event-id-1> <event-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))

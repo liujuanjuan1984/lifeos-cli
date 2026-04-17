@@ -359,8 +359,12 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         "batch",
         help_content=HelpContent(
             summary=_("Run bulk habit operations"),
-            description=_("Run bulk delete operations for habits."),
-            examples=("lifeos habit batch delete --help",),
+            description=_("Soft-delete multiple habits in one command."),
+            examples=(
+                "lifeos habit batch delete --help",
+                "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
     batch_parser.set_defaults(handler=make_help_handler(batch_parser))
