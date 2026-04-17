@@ -155,7 +155,9 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert 'lifeos note add "Capture an idea"' in captured.out
 
 
-def test_cli_task_help_describes_event_and_schedule_bridge(capsys) -> None:
+def test_cli_task_help_describes_event_bridge_without_action_level_schedule_contract(
+    capsys,
+) -> None:
     parser = build_parser()
 
     with pytest.raises(SystemExit):
@@ -164,7 +166,7 @@ def test_cli_task_help_describes_event_and_schedule_bridge(capsys) -> None:
     captured = capsys.readouterr()
 
     assert "Use `lifeos event add --task-id <task-id>`" in captured.out
-    assert "A task appears in `lifeos schedule show`" in captured.out
+    assert "A task appears in `lifeos schedule show`" not in captured.out
 
 
 def test_cli_task_add_help_describes_planning_cycle_semantics(capsys) -> None:
@@ -1609,6 +1611,8 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
     assert "\n  lifeos note add --help\n" in captured.out
     assert "Run `lifeos init` before using note commands for the first time." in captured.out
     assert "\n  lifeos init\n" not in captured.out
+    assert "tab-separated columns" not in captured.out
+    assert "Use `show` to inspect the full note body" not in captured.out
 
 
 @pytest.mark.parametrize(
@@ -1638,6 +1642,26 @@ def test_main_resource_help_surfaces_action_help_examples(
 
     assert exit_code == 0
     assert f"\n  {expected_help_example}\n" in captured.out
+
+
+@pytest.mark.parametrize(
+    ("resource", "unexpected"),
+    [
+        ("task", "A task appears in `lifeos schedule show`"),
+        ("schedule", "segmented into appointment, timeblock, and deadline sections"),
+        ("timelog", "linked_notes_count"),
+    ],
+)
+def test_resource_help_avoids_action_level_contract_details(
+    resource: str,
+    unexpected: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main([resource])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert unexpected not in captured.out
 
 
 @pytest.mark.parametrize(

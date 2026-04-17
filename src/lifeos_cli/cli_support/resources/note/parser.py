@@ -30,26 +30,14 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos note add "Capture an idea"',
                 "lifeos note list --limit 20",
                 'lifeos note search "sprint retrospective"',
-                "lifeos note show 11111111-1111-1111-1111-111111111111",
                 "lifeos note batch update-content --ids "
                 "11111111-1111-1111-1111-111111111111 "
                 "22222222-2222-2222-2222-222222222222 "
                 '--find-text "draft" --replace-text "final"',
-                'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
-                "lifeos note delete 11111111-1111-1111-1111-111111111111",
             ),
             notes=(
                 _("Run `lifeos init` before using note commands for the first time."),
                 _("Use the `batch` namespace when one command operates on multiple note records."),
-                _(
-                    "The list command prints tab-separated columns: id, status, created_at, "
-                    "task_count, vision_count, event_count, people_count, timelog_count, "
-                    "tag_count, content."
-                ),
-                _(
-                    "Use `show` to inspect the full note body together with linked tags, tasks, "
-                    "visions, events, people, and timelogs."
-                ),
                 _("Delete operations in the CLI always perform soft deletion."),
             ),
         ),

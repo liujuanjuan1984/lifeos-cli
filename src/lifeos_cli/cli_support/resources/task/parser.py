@@ -54,6 +54,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos task add "Draft the release checklist" '
                 "--vision-id 11111111-1111-1111-1111-111111111111",
                 "lifeos task list --vision-id 11111111-1111-1111-1111-111111111111",
+                "lifeos task with-subtasks 11111111-1111-1111-1111-111111111111",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
@@ -61,10 +62,6 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _(
                     "Use `lifeos event add --task-id <task-id>` when a task also needs a specific "
                     "appointment, timeblock, or deadline in the daily schedule."
-                ),
-                _(
-                    "A task appears in `lifeos schedule show` when the requested local date falls "
-                    "inside its planning-cycle window."
                 ),
                 _("Use the `batch` namespace for multi-record write operations."),
                 _("Delete operations in the CLI always perform soft deletion."),

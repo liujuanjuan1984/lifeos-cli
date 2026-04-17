@@ -61,7 +61,6 @@ def build_schedule_parser(
                 _("Use `show` for one exact local day."),
                 _("Use `list` for inclusive multi-day ranges."),
                 _("Dates use the configured timezone and `day_starts_at` preference."),
-                _("Event output is segmented into appointment, timeblock, and deadline sections."),
                 _("Schedule reads from existing domains and does not create a new stored entity."),
             ),
         ),

@@ -118,5 +118,7 @@ For CLI-facing changes:
 - Update `lifeos --help`, `lifeos <resource> --help`, or `lifeos <resource> <action> --help` when command behavior, examples, arguments, or constraints change.
 - Use `uv run python scripts/audit_cli_help.py --output /tmp/cli-help-audit.md` to execute the current help surface and review the rendered report.
 - Use `--path-prefix "note"` or another parser subtree when you want to audit one resource family at a time.
+- Keep resource help focused on resource identity, primary entrypoints, and cross-command boundaries.
+- Put detailed output contracts, flag semantics, and action-specific behavior in the relevant action help instead of duplicating them at the resource level.
 - Keep repository CLI docs focused on cross-command guidance rather than duplicating command-level facts.
 - Review and update the related CLI tests so help text and user-visible behavior stay covered together.

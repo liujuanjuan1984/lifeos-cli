@@ -57,21 +57,15 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog add --help",
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",
+                "lifeos timelog stats --help",
                 "lifeos timelog stats day --date 2026-04-10",
                 "lifeos timelog list --start-time 2026-04-10T00:00:00-04:00 "
                 "--end-time 2026-04-10T23:59:59-04:00",
-                "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
-                'lifeos timelog batch update --ids <timelog-id-1> --find-title-text "old" '
-                '--replace-title-text "new"',
                 "lifeos timelog restore <timelog-id>",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for timelogs."),
                 _("Timelogs can optionally reference one area and one task."),
-                _(
-                    "Timelog list and show include `linked_notes_count` derived from note "
-                    "associations."
-                ),
                 _("Use `stats` for timelog stats grouped by area."),
                 _("Delete operations in the public CLI always perform soft deletion."),
                 _("Use `restore` to recover a soft-deleted timelog."),
