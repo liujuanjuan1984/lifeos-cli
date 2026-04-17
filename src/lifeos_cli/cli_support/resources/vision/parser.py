@@ -311,14 +311,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "batch",
         help_content=HelpContent(
             summary=_("Run batch vision operations"),
-            description=(
-                _("Run write operations that target multiple visions in one command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk maintenance instead of adding many top-level "
-                    "verbs."
-                )
-            ),
+            description=_("Run bulk delete operations for visions."),
             examples=("lifeos vision batch delete --help",),
         ),
     )

@@ -359,7 +359,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         "batch",
         help_content=HelpContent(
             summary=_("Run bulk habit operations"),
-            description=_("Grouped namespace for multi-record habit writes."),
+            description=_("Run bulk delete operations for habits."),
             examples=("lifeos habit batch delete --help",),
         ),
     )

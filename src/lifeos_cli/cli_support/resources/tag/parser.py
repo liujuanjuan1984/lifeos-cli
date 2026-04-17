@@ -214,14 +214,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "batch",
         help_content=HelpContent(
             summary=_("Run batch tag operations"),
-            description=(
-                _("Run write operations that target multiple tags in one command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk maintenance rather than adding many top-level "
-                    "verbs."
-                )
-            ),
+            description=_("Run bulk delete operations for tags."),
             examples=("lifeos tag batch delete --help",),
         ),
     )

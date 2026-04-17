@@ -363,21 +363,15 @@ def build_note_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run batch note operations"),
-            description=(
-                _("Run operations that target multiple notes in a single command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk workflows so the CLI keeps a stable shape as\n"
-                    "new note capabilities are introduced."
-                )
-            ),
+            description=_("Run note operations that target multiple records in one command."),
             examples=(
                 "lifeos note batch update-content --help",
                 "lifeos note batch delete --help",
             ),
             notes=(
+                _("Use `update-content` for bulk find/replace across active note content."),
+                _("Use `delete` to soft-delete multiple notes by identifier."),
                 _("Batch commands currently accept note IDs directly."),
-                _("Future note batch operations should be added under this namespace."),
             ),
         ),
     )

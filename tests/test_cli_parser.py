@@ -1731,6 +1731,69 @@ def test_namespace_help_surfaces_nested_help_examples(
 
 
 @pytest.mark.parametrize(
+    ("argv", "expected_text"),
+    [
+        (["area", "batch"], "Run bulk delete operations for areas."),
+        (["event", "batch"], "Run bulk delete operations for events."),
+        (["habit", "batch"], "Run bulk delete operations for habits."),
+        (["people", "batch"], "Run bulk delete operations for people."),
+        (["tag", "batch"], "Run bulk delete operations for tags."),
+        (["task", "batch"], "Run bulk delete operations for tasks."),
+        (["vision", "batch"], "Run bulk delete operations for visions."),
+        (
+            ["note", "batch"],
+            "Use `update-content` for bulk find/replace across active note content.",
+        ),
+        (
+            ["timelog", "batch"],
+            "Run bulk update, restore, and delete operations for timelogs.",
+        ),
+        (
+            ["timelog", "stats"],
+            "Use `range` for arbitrary windows and `rebuild` to refresh persisted stats.",
+        ),
+    ],
+)
+def test_namespace_help_surfaces_user_facing_scope_guidance(
+    argv: list[str],
+    expected_text: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(argv)
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert expected_text in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "unexpected_text"),
+    [
+        (["area", "batch"], "stable CLI shape"),
+        (["event", "batch"], "Grouped namespace for multi-record event writes."),
+        (["habit", "batch"], "Grouped namespace for multi-record habit writes."),
+        (["note", "batch"], "Future note batch operations should be added under this namespace."),
+        (["people", "batch"], "bulk maintenance operations"),
+        (["tag", "batch"], "adding many top-level verbs"),
+        (["task", "batch"], "adding many top-level verbs"),
+        (["timelog", "batch"], "Grouped namespace for multi-record timelog writes."),
+        (["timelog", "stats"], "Range stats aggregate directly from source timelogs"),
+        (["vision", "batch"], "adding many top-level verbs"),
+    ],
+)
+def test_namespace_help_avoids_internal_structure_rationale(
+    argv: list[str],
+    unexpected_text: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(argv)
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert unexpected_text not in captured.out
+
+
+@pytest.mark.parametrize(
     ("resource", "unexpected"),
     [
         ("task", "A task appears in `lifeos schedule show`"),
@@ -1897,6 +1960,7 @@ def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
 
     captured = capsys.readouterr()
 
-    assert "Run operations that target multiple notes in a single command." in captured.out
+    assert "Run note operations that target multiple records in one command." in captured.out
+    assert "Use `update-content` for bulk find/replace across active note content." in captured.out
     assert "update-content" in captured.out
     assert "delete" in captured.out

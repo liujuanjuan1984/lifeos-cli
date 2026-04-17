@@ -317,11 +317,15 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "batch",
         help_content=HelpContent(
             summary=_("Run batch timelog operations"),
-            description=_("Grouped namespace for multi-record timelog writes."),
+            description=_("Run bulk update, restore, and delete operations for timelogs."),
             examples=(
                 "lifeos timelog batch update --help",
                 "lifeos timelog batch restore --help",
                 "lifeos timelog batch delete --help",
+            ),
+            notes=(
+                _("Use `update` to edit mutable fields across active timelogs."),
+                _("Use `restore` and `delete` to manage soft-deleted timelog state in bulk."),
             ),
         ),
     )
@@ -414,26 +418,20 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "stats",
         help_content=HelpContent(
             summary=_("Query timelog stats grouped by area"),
-            description=(
-                _("Query timelog stats grouped by area.")
-                + "\n\n"
-                + _(
-                    "Day, week, month, and year views use persisted stats when available and "
-                    "fall back to direct aggregation when the cache has not been rebuilt yet."
-                )
-            ),
+            description=_("Query timelog stats grouped by area."),
             examples=(
                 "lifeos timelog stats day --help",
                 "lifeos timelog stats range --help",
                 "lifeos timelog stats rebuild --help",
             ),
             notes=(
+                _("Use `day`, `week`, `month`, and `year` for calendar-based views."),
+                _("Use `range` for arbitrary windows and `rebuild` to refresh persisted stats."),
                 _("Stats are grouped only by area; task effort remains a separate task feature."),
                 _(
                     "Run `timelog stats rebuild` after upgrading older datasets or importing "
                     "historical timelogs so persisted stats match historical records."
                 ),
-                _("Range stats aggregate directly from source timelogs for the requested window."),
             ),
         ),
     )

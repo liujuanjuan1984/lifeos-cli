@@ -433,14 +433,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary=_("Run batch task operations"),
-            description=(
-                _("Run write operations that target multiple tasks in one command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk maintenance rather than adding many top-level "
-                    "verbs."
-                )
-            ),
+            description=_("Run bulk delete operations for tasks."),
             examples=("lifeos task batch delete --help",),
         ),
     )

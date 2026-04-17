@@ -380,7 +380,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         "batch",
         help_content=HelpContent(
             summary=_("Run batch event operations"),
-            description=_("Grouped namespace for multi-record event writes."),
+            description=_("Run bulk delete operations for events."),
             examples=("lifeos event batch delete --help",),
         ),
     )

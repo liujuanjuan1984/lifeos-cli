@@ -217,14 +217,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary=_("Run batch area operations"),
-            description=(
-                _("Run write operations that target multiple areas in one command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk maintenance so the resource keeps a stable "
-                    "CLI shape."
-                )
-            ),
+            description=_("Run bulk delete operations for areas."),
             examples=("lifeos area batch delete --help",),
         ),
     )
