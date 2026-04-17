@@ -95,6 +95,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos task add "Prepare family meeting" '
                 "--vision-id 11111111-1111-1111-1111-111111111111 "
                 "--person-id 33333333-3333-3333-3333-333333333333",
+                'lifeos task add "Plan shared trip" '
+                "--vision-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 33333333-3333-3333-3333-333333333333 "
+                "--person-id 44444444-4444-4444-4444-444444444444",
                 'lifeos task add "Draft sprint backlog" '
                 "--vision-id 11111111-1111-1111-1111-111111111111 "
                 "--planning-cycle-type week --planning-cycle-days 7 "
@@ -110,7 +114,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "Use `lifeos event add --task-id <task-id>` if the task also needs a specific "
                     "scheduled time block on a calendar day."
                 ),
-                _("Repeat `--person-id` to associate one or more people."),
+                _(
+                    "Repeat the same `--person-id` flag to associate multiple people in one "
+                    "command."
+                ),
                 _(
                     "When an agent creates tasks on behalf of a human, use `--person-id` to "
                     "mark whether the task belongs to the human, the agent, or both."
@@ -370,6 +377,9 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "--priority 3 --display-order 20",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--person-id 33333333-3333-3333-3333-333333333333",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 33333333-3333-3333-3333-333333333333 "
+                "--person-id 44444444-4444-4444-4444-444444444444",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--planning-cycle-type month --planning-cycle-days 30 "
                 "--planning-cycle-start-date 2026-04-01",

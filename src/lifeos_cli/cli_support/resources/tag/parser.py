@@ -70,6 +70,16 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag add "
                 '"coach" --entity-type vision --person-id '
                 "11111111-1111-1111-1111-111111111111",
+                "lifeos tag add "
+                '"shared" --entity-type task --person-id '
+                "11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
+            ),
+            notes=(
+                _(
+                    "Repeat the same `--person-id` flag to associate multiple people in one "
+                    "command."
+                ),
             ),
         ),
     )
@@ -153,6 +163,9 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 "
                 "--person-id 11111111-1111-1111-1111-111111111111",
+                "lifeos tag update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
             ),
             notes=(
@@ -160,6 +173,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                     "Use `--clear-description`, `--clear-color`, or `--clear-people` "
                     "to remove optional values."
                 ),
+                _("Repeat the same `--person-id` flag to replace multiple linked people."),
             ),
         ),
     )

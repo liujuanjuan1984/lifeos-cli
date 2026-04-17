@@ -245,13 +245,14 @@ def build_note_update_parser(
             examples=(
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --task-id <task-id>",
-                "lifeos note update 11111111-1111-1111-1111-111111111111 --tag-id <tag-id>",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
             ),
             notes=(
                 _(
-                    "Repeat relation flags to replace the linked tags, people, tasks, visions, "
-                    "events, or timelogs."
+                    "Repeat the same relation flag to replace multiple linked tags, people, "
+                    "tasks, visions, events, or timelogs."
                 ),
                 _("Use relation flags without `content` when only links need to change."),
             ),

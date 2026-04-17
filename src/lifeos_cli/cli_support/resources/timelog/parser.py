@@ -85,9 +85,16 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "--end-time 2026-04-10T14:30:00-04:00",
                 'lifeos timelog add "Run" --start-time 2026-04-10T07:00:00-04:00 '
                 "--end-time 2026-04-10T07:30:00-04:00 --area-id <area-id> --energy-level 4",
+                'lifeos timelog add "Shared pairing" --start-time 2026-04-10T15:00:00-04:00 '
+                "--end-time 2026-04-10T16:30:00-04:00 "
+                "--person-id <person-id-1> --person-id <person-id-2> "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
             notes=(
-                _("Use repeated `--tag-id` and `--person-id` flags to attach tags and people."),
+                _(
+                    "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
+                    "or people in one command."
+                ),
                 _("Timelog end time is required because the record models completed time spent."),
                 _(
                     "When an agent records actual work, use `--person-id` to state whether the "
@@ -228,6 +235,9 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=(
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 --energy-level 5",
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
+                "--person-id <person-id-1> --person-id <person-id-2> "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+                "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
                 "--clear-task --clear-area",
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
                 "--clear-people --clear-tags",
@@ -343,11 +353,15 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> --clear-task",
                 "lifeos timelog batch update --ids <timelog-id-1> <timelog-id-2> "
                 '--find-title-text "deep" --replace-title-text "focused"',
-                "lifeos timelog batch update --ids <timelog-id-1> --clear-tags "
-                "--person-id <person-id>",
+                "lifeos timelog batch update --ids <timelog-id-1> "
+                "--person-id <person-id-1> --person-id <person-id-2> "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
             notes=(
-                _("Use repeated `--tag-id` and `--person-id` flags to replace associations."),
+                _(
+                    "Repeat the same `--tag-id` or `--person-id` flag to replace multiple "
+                    "linked tags or people."
+                ),
                 _("Use `--clear-*` flags to remove optional links."),
             ),
         ),

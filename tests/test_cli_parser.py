@@ -2370,6 +2370,85 @@ def test_cli_note_add_help_shows_repeated_relation_flag_usage(capsys) -> None:
     assert "Repeat the same relation flag to link multiple records of that type" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["note", "update", "--help"],
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+        (
+            ["task", "add", "--help"],
+            "--person-id 33333333-3333-3333-3333-333333333333 "
+            "--person-id 44444444-4444-4444-4444-444444444444",
+        ),
+        (
+            ["task", "update", "--help"],
+            "--person-id 33333333-3333-3333-3333-333333333333 "
+            "--person-id 44444444-4444-4444-4444-444444444444",
+        ),
+        (
+            ["vision", "add", "--help"],
+            "--person-id 11111111-1111-1111-1111-111111111111 "
+            "--person-id 22222222-2222-2222-2222-222222222222",
+        ),
+        (
+            ["vision", "update", "--help"],
+            "--person-id 11111111-1111-1111-1111-111111111111 "
+            "--person-id 22222222-2222-2222-2222-222222222222",
+        ),
+        (
+            ["tag", "add", "--help"],
+            "--person-id 11111111-1111-1111-1111-111111111111 "
+            "--person-id 22222222-2222-2222-2222-222222222222",
+        ),
+        (
+            ["tag", "update", "--help"],
+            "--person-id 11111111-1111-1111-1111-111111111111 "
+            "--person-id 22222222-2222-2222-2222-222222222222",
+        ),
+        (
+            ["event", "add", "--help"],
+            "--person-id <person-id-1> --person-id <person-id-2> "
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+        (
+            ["event", "update", "--help"],
+            "--person-id <person-id-1> --person-id <person-id-2> "
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+        (
+            ["timelog", "add", "--help"],
+            "--person-id <person-id-1> --person-id <person-id-2> "
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+        (
+            ["timelog", "update", "--help"],
+            "--person-id <person-id-1> --person-id <person-id-2> "
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+        (
+            ["timelog", "batch", "update", "--help"],
+            "--person-id <person-id-1> --person-id <person-id-2> "
+            "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+        ),
+    ],
+)
+def test_cli_help_shows_repeated_relation_flag_examples(
+    argv: list[str],
+    expected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 

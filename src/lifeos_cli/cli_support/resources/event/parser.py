@@ -70,10 +70,18 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 'lifeos event add "Deep work block" --type timeblock '
                 "--start-time 2026-04-10T13:00:00-04:00 "
                 "--task-id <task-id> --area-id <area-id>",
+                'lifeos event add "Shared planning session" '
+                "--start-time 2026-04-10T15:00:00-04:00 "
+                "--end-time 2026-04-10T16:00:00-04:00 "
+                "--person-id <person-id-1> --person-id <person-id-2> "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
             notes=(
                 _("`appointment` is the default type. Use `--type` for timeblocks and deadlines."),
-                _("Use repeated `--tag-id` and `--person-id` flags to attach tags and people."),
+                _(
+                    "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
+                    "or people in one command."
+                ),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
                 _(
                     "Use recurrence flags to create a recurring series with shared cadence "
@@ -245,6 +253,9 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 "
+                "--person-id <person-id-1> --person-id <person-id-2> "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
                 "--clear-task --clear-area",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "

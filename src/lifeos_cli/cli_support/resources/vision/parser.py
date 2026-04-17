@@ -81,6 +81,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 'lifeos vision add "Improve sleep quality" --status active',
                 'lifeos vision add "Strengthen family rhythm" '
                 "--person-id 11111111-1111-1111-1111-111111111111",
+                'lifeos vision add "Shared parenting rhythm" '
+                "--person-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
+            ),
+            notes=(
+                _(
+                    "Repeat the same `--person-id` flag to associate multiple people in one "
+                    "command."
+                ),
             ),
         ),
     )
@@ -200,11 +209,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --status archived",
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
                 "--person-id 11111111-1111-1111-1111-111111111111",
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
             ),
             notes=(
                 _("Valid statuses currently include `active`, `archived`, and `fruit`."),
                 _("Use `--clear-*` flags to remove optional values, including people."),
+                _("Repeat the same `--person-id` flag to replace multiple linked people."),
             ),
         ),
     )
