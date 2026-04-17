@@ -172,7 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
                     "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
                     "primary command reference."
                 ),
-                _("Run `lifeos init` before using database-backed resource commands."),
+                _("Run `lifeos init` to initialize LifeOS before getting started."),
                 _("Welcome bug reports and suggestions through the repo issue tracker."),
             ),
         ),

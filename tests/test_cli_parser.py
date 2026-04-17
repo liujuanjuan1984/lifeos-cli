@@ -150,7 +150,7 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     assert "schedule" in captured.out
     assert "task" in captured.out
     assert "primary command reference" in captured.out
-    assert "Run `lifeos init` before using database-backed resource commands." in captured.out
+    assert "Run `lifeos init` to initialize LifeOS before getting started." in captured.out
     assert "Welcome bug reports and suggestions through the repo issue tracker." in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
 
