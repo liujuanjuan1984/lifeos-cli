@@ -26,6 +26,7 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Capture and manage notes"),
             description=_("Create, inspect, update, and delete note records."),
             examples=(
+                "lifeos note add --help",
                 'lifeos note add "Capture an idea"',
                 "lifeos note list --limit 20",
                 'lifeos note search "sprint retrospective"',

@@ -1606,6 +1606,7 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
 
     assert exit_code == 0
     assert "Create, inspect, update, and delete note records." in captured.out
+    assert "\n  lifeos note add --help\n" in captured.out
     assert "Run `lifeos init` before using note commands for the first time." in captured.out
     assert "\n  lifeos init\n" not in captured.out
 
