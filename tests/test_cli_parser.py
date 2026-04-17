@@ -466,6 +466,69 @@ def test_cli_task_move_and_reorder_help_explain_boundary(capsys) -> None:
     assert "Use `move` when parentage or vision membership also needs to change." in captured.out
 
 
+def test_cli_init_and_config_help_explain_bootstrap_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["init", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `config set` for supported follow-up edits" in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `show` to inspect effective values" in captured.out
+    expected = "Use `set` to persist supported keys without re-running the full init flow."
+    assert expected in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "show", "--help"])
+
+    captured = capsys.readouterr()
+
+    expected = "Use `config set` to persist one supported key after reviewing the current values."
+    assert expected in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["config", "set", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `lifeos init` for first-time bootstrap" in captured.out
+
+
+def test_cli_db_help_explains_ping_upgrade_boundary(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["db", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use `ping` to validate the current connection settings" in captured.out
+    expected = "Use `upgrade` when the configured database schema needs to catch up with the code."
+    assert expected in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["db", "ping", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Use this before `db upgrade`" in captured.out
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["db", "upgrade", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "it does not rewrite local config" in captured.out
+    assert "Use `db ping` first" in captured.out
+
+
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [

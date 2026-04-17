@@ -51,6 +51,16 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
                 "lifeos db ping",
                 "lifeos db upgrade",
             ),
+            notes=(
+                _(
+                    "Use `ping` to validate the current connection settings without changing "
+                    "schema."
+                ),
+                _(
+                    "Use `upgrade` when the configured database schema needs to catch up with "
+                    "the code."
+                ),
+            ),
         ),
     )
     db_parser.set_defaults(handler=make_help_handler(db_parser))
@@ -65,6 +75,12 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             summary=_("Check database connectivity"),
             description=_("Open a database connection and run a minimal health check query."),
             examples=("lifeos db ping",),
+            notes=(
+                _(
+                    "Use this before `db upgrade` when you first need to confirm the target "
+                    "database."
+                ),
+            ),
         ),
     )
     ping_parser.set_defaults(handler=make_sync_handler(run_db_ping))
@@ -76,6 +92,13 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             summary=_("Apply migrations"),
             description=_("Apply Alembic migrations to the configured PostgreSQL database."),
             examples=("lifeos db upgrade",),
+            notes=(
+                _("This updates schema state in the database; it does not rewrite local config."),
+                _(
+                    "Use `db ping` first if you are unsure the current connection settings are "
+                    "correct."
+                ),
+            ),
         ),
     )
     upgrade_parser.set_defaults(handler=run_db_upgrade)

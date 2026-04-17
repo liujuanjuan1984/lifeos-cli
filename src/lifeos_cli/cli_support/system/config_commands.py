@@ -155,6 +155,10 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _("Database credentials may be stored in plain text in the config file."),
                 _("Preference values are also stored in the config file under [preferences]."),
                 _(
+                    "Use `config set` for supported follow-up edits when you do not need to "
+                    "re-run the full bootstrap flow."
+                ),
+                _(
                     "Interactive init explicitly confirms the language preference because agents "
                     "should use it for human-authored payload data."
                 ),
@@ -239,6 +243,8 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config set preferences.timezone America/Toronto",
             ),
             notes=(
+                _("Use `show` to inspect effective values after config-file and env resolution."),
+                _("Use `set` to persist supported keys without re-running the full init flow."),
                 _("Use `set` to persist supported keys into the local config file."),
                 _("Environment variables still override config-file values at runtime."),
                 _(
@@ -269,6 +275,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                     "LIFEOS_* overrides."
                 ),
                 _(
+                    "Use `config set` to persist one supported key after reviewing the current "
+                    "values."
+                ),
+                _(
                     "Agents should read the effective language and use it for human-authored "
                     "payload data unless the human explicitly overrides it."
                 ),
@@ -296,6 +306,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(
                 _("This command writes the config file, not environment variables."),
                 _("Supported keys: {keys}").format(keys=", ".join(SUPPORTED_CONFIG_KEYS)),
+                _(
+                    "Use `lifeos init` for first-time bootstrap or when changing the schema "
+                    "binding."
+                ),
                 _("Use `lifeos init --schema <name>` to change the database schema binding."),
                 _("Use `config show` to inspect the effective values after environment overrides."),
             ),
