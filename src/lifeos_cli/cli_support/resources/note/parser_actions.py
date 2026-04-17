@@ -42,7 +42,6 @@ def build_note_add_parser(
                 )
             ),
             examples=(
-                "lifeos init",
                 'lifeos note add "Capture the sprint retrospective idea"',
                 "printf 'line one\\nline two\\n' | lifeos note add --stdin",
                 "lifeos note add --file ./note.md",

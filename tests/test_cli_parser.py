@@ -15,6 +15,18 @@ def test_cli_parser_uses_lifeos_command_name() -> None:
     assert parser.prog == "lifeos"
 
 
+def test_cli_parser_supports_short_version_flag(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(["-v"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert captured.out.startswith("lifeos ")
+
+
 def test_cli_parser_supports_note_add_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["note", "add", "a new note"])
@@ -1595,6 +1607,37 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
     assert exit_code == 0
     assert "Create, inspect, update, and delete note records." in captured.out
     assert "Run `lifeos init` before using note commands for the first time." in captured.out
+    assert "\n  lifeos init\n" not in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (["note", "-h", "add"], "Create a new note from inline text, stdin, or a file."),
+        (["task", "-h", "add"], "Create a new task for a vision."),
+        (
+            ["note", "-h", "batch", "update-content"],
+            "Apply a find/replace operation across multiple active notes.",
+        ),
+        (
+            ["note", "batch", "-h", "update-content"],
+            "Apply a find/replace operation across multiple active notes.",
+        ),
+        (["-h", "note", "add"], "Create a new note from inline text, stdin, or a file."),
+    ],
+)
+def test_main_rewrites_misplaced_help_flags_to_target_subcommand(
+    argv: list[str],
+    expected: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(argv)
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert expected in captured.out
 
 
 def test_cli_note_list_help_explains_output_shape(capsys) -> None:
@@ -1607,6 +1650,18 @@ def test_cli_note_list_help_explains_output_shape(capsys) -> None:
 
     assert "prints a header row followed by tab-separated columns" in captured.out
     assert "Use --limit and --offset together for pagination." in captured.out
+
+
+def test_cli_note_add_help_keeps_init_guidance_out_of_examples(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["note", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Run `lifeos init`" not in captured.out
+    assert "\n  lifeos init\n" not in captured.out
 
 
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
