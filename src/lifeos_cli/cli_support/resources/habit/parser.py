@@ -245,6 +245,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "--cadence-frequency weekly --weekends-only --target-per-week 1",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 "
                 "--cadence-frequency monthly --target-per-cycle 2",
+                "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-weekdays",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-task",
             ),
             notes=(

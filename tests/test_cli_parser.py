@@ -2449,6 +2449,46 @@ def test_cli_help_shows_repeated_relation_flag_examples(
     assert expected in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["area", "update", "--help"],
+            "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-description",
+        ),
+        (
+            ["people", "update", "--help"],
+            "--clear-nicknames --clear-tags",
+        ),
+        (
+            ["habit", "update", "--help"],
+            "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-weekdays",
+        ),
+        (
+            ["habit-action", "update", "--help"],
+            "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --clear-notes",
+        ),
+        (
+            ["event", "update", "--help"],
+            "--scope single --instance-start 2026-04-10T09:00:00-04:00 --clear-end-time",
+        ),
+    ],
+)
+def test_cli_help_shows_clear_and_scope_examples(
+    argv: list[str],
+    expected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 

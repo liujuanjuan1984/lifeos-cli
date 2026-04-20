@@ -134,6 +134,7 @@ def build_habit_action_parser(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 "
                 '--notes "Completed after lunch"',
+                "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --clear-notes",
             ),
             notes=(
                 _(

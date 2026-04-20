@@ -167,6 +167,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --tag-id "
                 "22222222-2222-2222-2222-222222222222",
+                "lifeos people update 11111111-1111-1111-1111-111111111111 "
+                "--clear-nicknames --clear-tags",
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --clear-location",
             ),
             notes=(

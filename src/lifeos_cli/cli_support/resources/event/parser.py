@@ -254,6 +254,9 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
+                "--scope single --instance-start 2026-04-10T09:00:00-04:00 "
+                "--clear-end-time",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 "
                 "--person-id <person-id-1> --person-id <person-id-2> "
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "

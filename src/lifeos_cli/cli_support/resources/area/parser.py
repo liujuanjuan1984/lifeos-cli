@@ -164,6 +164,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos area update 11111111-1111-1111-1111-111111111111 --name "Fitness"',
                 "lifeos area update 11111111-1111-1111-1111-111111111111 "
                 "--display-order 20 --active",
+                "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-description",
                 "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-icon",
             ),
             notes=(_("Use `--clear-description` or `--clear-icon` to remove optional values."),),
