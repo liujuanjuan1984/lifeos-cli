@@ -8,14 +8,12 @@ from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_help_parser,
 )
-from lifeos_cli.cli_support.resources.event.parser_batch import build_event_batch_parser
-from lifeos_cli.cli_support.resources.event.parser_read import (
+from lifeos_cli.cli_support.resources.event.parser_actions import (
+    build_event_add_parser,
+    build_event_batch_parser,
+    build_event_delete_parser,
     build_event_list_parser,
     build_event_show_parser,
-)
-from lifeos_cli.cli_support.resources.event.parser_write import (
-    build_event_add_parser,
-    build_event_delete_parser,
     build_event_update_parser,
 )
 from lifeos_cli.i18n import gettext_message as _
