@@ -76,6 +76,9 @@ Static-analysis governance:
   Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`,
   SQLAlchemy declarative hooks, and gettext extraction constants.
 - Do not delete those symbols just to satisfy a generic dead-code scanner.
+- `scripts/dead_code_check.sh` keeps the name-based ignore list for Alembic revision metadata and
+  module-level `pytestmark`; use `scripts/vulture_whitelist.py` for importable framework symbols
+  that must stay intentionally reachable.
 - Keep intentional false positives documented in `scripts/vulture_whitelist.py`.
 - If you add a new framework-driven symbol that `vulture` cannot resolve, update the whitelist in
   the same change.
@@ -120,5 +123,9 @@ For CLI-facing changes:
 
 - Treat CLI help as the primary command reference.
 - Update `lifeos --help`, `lifeos <resource> --help`, or `lifeos <resource> <action> --help` when command behavior, examples, arguments, or constraints change.
+- Use `uv run python scripts/audit_cli_help.py --output /tmp/cli-help-audit.md` to execute the current help surface and review the rendered report.
+- Use `--path-prefix "note"` or another parser subtree when you want to audit one resource family at a time.
+- Keep resource help focused on resource identity, primary entrypoints, and cross-command boundaries.
+- Put detailed output contracts, flag semantics, and action-specific behavior in the relevant action help instead of duplicating them at the resource level.
 - Keep repository CLI docs focused on cross-command guidance rather than duplicating command-level facts.
 - Review and update the related CLI tests so help text and user-visible behavior stay covered together.

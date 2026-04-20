@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -27,7 +31,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_people_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the people command tree."""
-    people_parser = add_documented_parser(
+    people_parser = add_documented_help_parser(
         subparsers,
         "people",
         help_content=HelpContent(
@@ -42,21 +46,18 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 + "\n\n"
                 + _(
                     "Use it for the human partner and, when useful, a named automation "
-                    "identity so tasks, events, and timelogs can distinguish who the work "
-                    "belongs to."
+                    "identity so work ownership stays explicit."
                 )
             ),
             examples=(
-                'lifeos people add "Human Partner" --nickname ally --location Toronto',
-                'lifeos people add "Local Agent" '
-                '--description "Automation identity for CLI workflows"',
-                "lifeos people list --search ali",
+                "lifeos people add --help",
+                "lifeos people list --help",
+                "lifeos people batch --help",
             ),
             notes=(
                 _("`people` is the intentional CLI resource name for this domain."),
                 _("Use `list` as the primary query entrypoint for this resource."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos people batch --help` for bulk delete operations."),
                 _(
                     "Agent callers should keep the human partner and the automation identity "
                     "as separate records when both can own work."
@@ -64,7 +65,6 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
         ),
     )
-    people_parser.set_defaults(handler=make_help_handler(people_parser))
     people_subparsers = people_parser.add_subparsers(
         dest="people_command", title=_("actions"), metavar=_("action")
     )
@@ -78,9 +78,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 _("Create a new person.")
                 + "\n\n"
                 + _(
-                    "Use tags, nicknames, and location to capture lightweight relationship "
-                    "context or an execution subject that should appear in task, event, or "
-                    "timelog ownership."
+                    "Use tags, nicknames, and location to capture relationship context or an "
+                    "execution subject for task, event, or timelog ownership."
                 )
             ),
             examples=(
@@ -169,6 +168,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --tag-id "
                 "22222222-2222-2222-2222-222222222222",
+                "lifeos people update 11111111-1111-1111-1111-111111111111 "
+                "--clear-nicknames --clear-tags",
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --clear-location",
             ),
             notes=(
@@ -221,35 +222,26 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary=_("Delete a person"),
-            description=(
-                _("Soft-delete a person.")
-                + "\n\n"
-                + _("The record remains recoverable through deleted-aware inspection commands.")
-            ),
+            description=_("Delete a person."),
             examples=("lifeos people delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_people_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         people_subparsers,
         "batch",
         help_content=HelpContent(
             summary=_("Run batch people operations"),
-            description=(
-                _("Run write operations that target multiple people in one command.")
-                + "\n\n"
-                + _("Use this namespace for bulk maintenance operations.")
-            ),
+            description=_("Delete multiple people records in one command."),
             examples=(
-                "lifeos people batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
+                "lifeos people batch delete --help",
+                "lifeos people batch delete --ids <person-id-1> <person-id-2>",
             ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="people_batch_command",
         title=_("batch actions"),
@@ -261,8 +253,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple people"),
-            description=_("Soft-delete multiple people by identifier."),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
+            description=_("Delete multiple people by identifier."),
+            examples=("lifeos people batch delete --ids <person-id-1> <person-id-2>",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="person_ids", noun="person")

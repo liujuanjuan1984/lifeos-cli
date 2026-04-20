@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -22,14 +23,43 @@ class HelpContent:
 class CompactSubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Render subcommand groups without a duplicated metavar heading."""
 
+    def __init__(
+        self,
+        prog: str,
+        indent_increment: int = 2,
+        max_help_position: int = 48,
+        width: int | None = None,
+    ) -> None:
+        """Use a wider default layout so help text wraps less aggressively."""
+        terminal_width = shutil.get_terminal_size(fallback=(100, 24)).columns
+        effective_width = max(100, terminal_width) if width is None else width
+        super().__init__(
+            prog,
+            indent_increment=indent_increment,
+            max_help_position=max_help_position,
+            width=effective_width,
+        )
+
     def _format_action(self, action: argparse.Action) -> str:
         if isinstance(action, argparse._SubParsersAction):
-            return self._join_parts(
-                [
-                    self._format_action(subaction)
-                    for subaction in self._iter_indented_subactions(action)
-                ]
-            )
+            self._indent()
+            try:
+                subactions = list(action._get_subactions())
+                previous_max_length = self._action_max_length
+                subaction_max_length = max(
+                    (
+                        self._current_indent + len(self._format_action_invocation(subaction))
+                        for subaction in subactions
+                    ),
+                    default=0,
+                )
+                self._action_max_length = max(previous_max_length, subaction_max_length)
+                return self._join_parts(
+                    [self._format_action(subaction) for subaction in subactions]
+                )
+            finally:
+                self._action_max_length = previous_max_length
+                self._dedent()
         return super()._format_action(action)
 
 
@@ -71,3 +101,15 @@ def add_documented_parser(
         epilog=build_epilog(examples=help_content.examples, notes=help_content.notes),
         formatter_class=CompactSubcommandHelpFormatter,
     )
+
+
+def add_documented_help_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+    name: str,
+    *,
+    help_content: HelpContent,
+) -> argparse.ArgumentParser:
+    """Add a documented parser that defaults to printing its own help output."""
+    parser = add_documented_parser(subparsers, name, help_content=help_content)
+    parser.set_defaults(handler=make_help_handler(parser))
+    return parser

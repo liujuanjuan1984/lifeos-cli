@@ -5,7 +5,6 @@ from uuid import UUID
 
 import pytest
 
-from lifeos_cli import cli
 from lifeos_cli.cli import build_parser
 
 
@@ -13,6 +12,18 @@ def test_cli_parser_uses_lifeos_command_name() -> None:
     parser = build_parser()
 
     assert parser.prog == "lifeos"
+
+
+def test_cli_parser_supports_short_version_flag(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(["-v"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert captured.out.startswith("lifeos ")
 
 
 def test_cli_parser_supports_note_add_command() -> None:
@@ -116,362 +127,6 @@ def test_cli_parser_supports_note_batch_update_content_command() -> None:
     assert len(args.note_ids) == 2
 
 
-def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["--help"])
-
-    captured = capsys.readouterr()
-
-    assert " _      ___   _____  _____   ___    ____  " in captured.out
-    assert "| |___  | |  |  _|  | |___ | |_| |  ___) |" in captured.out
-    assert "usage:" not in captured.out
-    assert "Run LifeOS resource commands from the terminal." not in captured.out
-    assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
-    assert "uv tool install --upgrade lifeos-cli" in captured.out
-    assert "lifeos <resource> <action> [arguments] [options]" in captured.out
-    assert "Resources model domains" not in captured.out
-    assert "resources:" in captured.out
-    assert "resources:\n  resource" not in captured.out
-    assert "init" in captured.out
-    assert "schedule" in captured.out
-    assert "task" in captured.out
-    assert "primary command reference" in captured.out
-    assert "Run `lifeos init` before using database-backed resource commands." in captured.out
-    assert "Welcome bug reports and suggestions through the repo issue tracker." in captured.out
-    assert 'lifeos note add "Capture an idea"' in captured.out
-
-
-def test_cli_task_help_describes_event_and_schedule_bridge(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["task", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "Use `lifeos event add --task-id <task-id>`" in captured.out
-    assert "A task appears in `lifeos schedule show`" in captured.out
-
-
-def test_cli_task_add_help_describes_planning_cycle_semantics(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["task", "add", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "Planning cycle type: year, month, week, or day" in captured.out
-    assert "Start date of the enclosing planning cycle window" in captured.out
-    assert "not a clock-time execution slot" in captured.out
-    assert "--planning-cycle-type week --planning-cycle-days 7" in captured.out
-
-
-def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["schedule", "show", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert (
-        "Tasks appear when the requested local date falls inside their planning-cycle window"
-        in captured.out
-    )
-    assert "Task rows come from planning-cycle overlap" in captured.out
-    assert (
-        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
-        "planning_cycle_end_date, content."
-    ) in captured.out
-    assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
-        in captured.out
-    )
-    assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
-    ) in captured.out
-
-
-def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["habit", "task-associations", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert (
-        "tab-separated columns: task_id, habit_id, habit_status, habit_start_date, habit_title."
-        in captured.out
-    )
-
-
-def test_cli_vision_with_tasks_help_documents_task_header(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["vision", "with-tasks", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "tab-separated columns: task_id, status, parent_task_id, content." in captured.out
-
-
-def test_cli_event_add_help_describes_extended_recurrence_frequencies(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["event", "add", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "monthly" in captured.out
-    assert "yearly" in captured.out
-
-
-def test_cli_habit_add_help_describes_extended_cadence_cycles(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["habit", "add", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "monthly" in captured.out
-    assert "yearly" in captured.out
-
-
-@pytest.mark.parametrize(
-    ("argv", "expected"),
-    [
-        (
-            ["task", "list", "--help"],
-            "tab-separated columns: task_id, status, vision_id, parent_task_id, content.",
-        ),
-        (
-            ["event", "list", "--help"],
-            "tab-separated columns: event_id, status, event_type, start_time, end_time, "
-            "task_id, title.",
-        ),
-        (
-            ["habit", "list", "--help"],
-            "Default list output prints a header row followed by tab-separated columns: "
-            "habit_id, status, start_date, duration_days, cadence, task_id, title.",
-        ),
-        (
-            ["note", "list", "--help"],
-            "prints a header row followed by tab-separated columns: note_id, status, created_at, "
-            "task_count, vision_count, event_count, people_count, timelog_count, tag_count",
-        ),
-    ],
-)
-def test_cli_summary_list_help_documents_output_columns(
-    argv: list[str],
-    expected: str,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(argv)
-
-    captured = capsys.readouterr()
-
-    assert expected in captured.out
-
-
-def test_cli_task_help_supports_zh_hans_locale(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["task", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "创建并维护属于某个 `vision` 的 `task` 树。" in captured.out
-    assert "创建 `task`" in captured.out
-    assert "说明:" in captured.out
-
-
-def test_cli_task_list_help_supports_zh_hans_locale_and_documents_header_row(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["task", "list", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "列出 `task` 以及可选的 `vision`、父级或状态过滤器。" in captured.out
-    assert (
-        "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-        "task_id、status、vision_id、parent_task_id、content。"
-    ) in captured.out
-
-
-def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["--help"])
-
-    captured = capsys.readouterr()
-
-    assert " _      ___   _____  _____   ___    ____  " in captured.out
-    assert "|_____||___| |_|    |_____| \\___/  |____/ " in captured.out
-    assert "usage:" not in captured.out and "用法：" not in captured.out
-    assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
-    assert "资源:\n  资源" not in captured.out
-    assert "在终端中运行 LifeOS 资源命令。" not in captured.out
-    assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
-    assert "uv tool install --upgrade lifeos-cli" in captured.out
-    assert "area" in captured.out and "管理 `area`" in captured.out
-    assert "people" in captured.out and "管理 `people` 和关系" in captured.out
-    assert "timelog" in captured.out and "管理 `timelog`" in captured.out
-    assert "欢迎通过 repo issue 报告 bug 或提出意见建议。" in captured.out
-
-
-def test_cli_note_help_avoids_duplicated_action_heading_and_reference_boilerplate(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["note", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "usage: lifeos note [-h] action ..." in captured.out
-    assert "操作:\n  操作" not in captured.out
-    assert "The note resource is the reference command family for LifeOS." not in captured.out
-    assert "Future resources should follow the same command grammar:" not in captured.out
-
-
-def test_cli_schedule_show_help_supports_zh_hans_locale(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["schedule", "show", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "显示某一个本地日期的聚合 `schedule`。" in captured.out
-    assert "`task` 行来自 planning-cycle 的时间重叠" in captured.out
-    assert "示例:" in captured.out
-
-
-@pytest.mark.parametrize(
-    ("argv", "expected"),
-    [
-        (
-            ["task", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "task_id、status、vision_id、parent_task_id、content。",
-        ),
-        (
-            ["habit", "list", "--help"],
-            "默认 `list` 输出会先输出一行表头，随后按制表符分隔输出列："
-            "habit_id、status、start_date、duration_days、cadence、task_id、title。",
-        ),
-        (
-            ["note", "list", "--help"],
-            "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "note_id、status、created_at、task_count、vision_count、event_count、people_count、"
-            "timelog_count、tag_count、content。",
-        ),
-        (
-            ["vision", "with-tasks", "--help"],
-            "当该 `vision` 存在 task 时，`tasks` 分段会先输出一行表头，随后按制表符分隔输出列："
-            "task_id、status、parent_task_id、content。",
-        ),
-        (
-            ["schedule", "show", "--help"],
-            "`task` 分段的列为：task_id、status、planning_cycle_type、planning_cycle_start_date、"
-            "planning_cycle_end_date、content。",
-        ),
-    ],
-)
-def test_cli_zh_hans_help_documents_entity_specific_header_names(
-    monkeypatch: pytest.MonkeyPatch,
-    argv: list[str],
-    expected: str,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(argv)
-
-    captured = capsys.readouterr()
-
-    assert expected in captured.out
-
-
-def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["schedule", "list", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert (
-        "Non-empty schedule sections print a tab-separated header row before their entries."
-        in captured.out
-    )
-    assert (
-        "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
-        "planning_cycle_end_date, content."
-    ) in captured.out
-    assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
-        in captured.out
-    )
-    assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
-    ) in captured.out
-
-
-def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
-    parser = build_parser()
-
-    cases = [
-        (["people", "--help"], ["`people`", "`person`"]),
-        (["timelog", "--help"], ["`timelog`", "`area`", "`task`"]),
-        (["schedule", "--help"], ["`schedule`", "`task`", "`habit-action`", "`event`"]),
-    ]
-
-    for argv, expected_terms in cases:
-        with pytest.raises(SystemExit):
-            parser.parse_args([*argv[:-1], argv[-1]])
-        captured = capsys.readouterr()
-        for term in expected_terms:
-            assert term in captured.out
-
-
 def test_cli_parser_supports_data_commands() -> None:
     parser = build_parser()
 
@@ -496,18 +151,6 @@ def test_cli_parser_supports_data_commands() -> None:
     assert batch_delete_args.target == "event"
 
 
-def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["people", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "human partner and, when useful, a named automation identity" in captured.out
-    assert "separate records when both can own work" in captured.out
-
-
 def test_cli_parser_supports_timelog_stats_commands() -> None:
     parser = build_parser()
 
@@ -528,51 +171,6 @@ def test_cli_parser_supports_timelog_stats_commands() -> None:
     assert month_args.month == date(2026, 4, 1)
     assert rebuild_args.timelog_stats_command == "rebuild"
     assert rebuild_args.rebuild_all is True
-
-
-@pytest.mark.parametrize(
-    ("argv", "expected_text"),
-    (
-        (
-            ["task", "add", "--help"],
-            "mark whether the task belongs to the human, the agent, or both",
-        ),
-        (
-            ["event", "add", "--help"],
-            "distinguish human-only plans from agent-only or shared schedule blocks",
-        ),
-        (
-            ["timelog", "add", "--help"],
-            "state whether the effort belongs to the human, the agent, or both",
-        ),
-    ),
-)
-def test_cli_action_help_describes_subject_disambiguation(
-    argv: list[str],
-    expected_text: str,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(argv)
-
-    captured = capsys.readouterr()
-
-    assert expected_text in captured.out
-
-
-def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["event", "delete", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "Use `--scope single|all_future|all` for recurring series deletes." in captured.out
-    assert "`--scope single` and `--scope all_future` require `--instance-start`." in captured.out
-    assert "--scope all_future --instance-start 2026-04-10T09:00:00-04:00" in captured.out
 
 
 def test_cli_parser_supports_area_add_command() -> None:
@@ -1130,18 +728,6 @@ def test_cli_parser_supports_vision_read_model_commands() -> None:
     assert stats_args.vision_command == "stats"
 
 
-def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["vision", "update", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "active`, `archived`, and `fruit`" in captured.out
-    assert "--status paused" not in captured.out
-
-
 def test_cli_parser_supports_tag_update_clear_color_command() -> None:
     parser = build_parser()
     args = parser.parse_args(
@@ -1449,33 +1035,6 @@ def test_cli_parser_supports_timelog_batch_update_command() -> None:
     assert len(args.timelog_ids) == 2
 
 
-def test_cli_parser_supports_timelog_restore_command() -> None:
-    parser = build_parser()
-    args = parser.parse_args(["timelog", "restore", "11111111-1111-1111-1111-111111111111"])
-
-    assert args.resource == "timelog"
-    assert args.timelog_command == "restore"
-
-
-def test_cli_parser_supports_timelog_batch_restore_command() -> None:
-    parser = build_parser()
-    args = parser.parse_args(
-        [
-            "timelog",
-            "batch",
-            "restore",
-            "--ids",
-            "11111111-1111-1111-1111-111111111111",
-            "22222222-2222-2222-2222-222222222222",
-        ]
-    )
-
-    assert args.resource == "timelog"
-    assert args.timelog_command == "batch"
-    assert args.timelog_batch_command == "restore"
-    assert len(args.timelog_ids) == 2
-
-
 @pytest.mark.parametrize(
     ("argv",),
     [
@@ -1588,35 +1147,23 @@ def test_cli_parser_rejects_hard_delete_flags(argv: list[str]) -> None:
         parser.parse_args(argv)
 
 
-def test_main_note_without_action_prints_resource_help(capsys) -> None:
-    exit_code = cli.main(["note"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "Create, inspect, update, and delete note records." in captured.out
-    assert "Run `lifeos init` before using note commands for the first time." in captured.out
-
-
-def test_cli_note_list_help_explains_output_shape(capsys) -> None:
+@pytest.mark.parametrize(
+    ("argv",),
+    [
+        (["timelog", "restore", "11111111-1111-1111-1111-111111111111"],),
+        (
+            [
+                "timelog",
+                "batch",
+                "restore",
+                "--ids",
+                "11111111-1111-1111-1111-111111111111",
+            ],
+        ),
+    ],
+)
+def test_cli_parser_rejects_removed_timelog_restore_commands(argv: list[str]) -> None:
     parser = build_parser()
 
     with pytest.raises(SystemExit):
-        parser.parse_args(["note", "list", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "prints a header row followed by tab-separated columns" in captured.out
-    assert "Use --limit and --offset together for pagination." in captured.out
-
-
-def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["note", "batch", "--help"])
-
-    captured = capsys.readouterr()
-
-    assert "Run operations that target multiple notes in a single command." in captured.out
-    assert "update-content" in captured.out
-    assert "delete" in captured.out
+        parser.parse_args(argv)

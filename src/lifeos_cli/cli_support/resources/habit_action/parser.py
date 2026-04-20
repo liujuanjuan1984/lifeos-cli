@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
@@ -28,7 +32,7 @@ def build_habit_action_parser(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
     """Build the habit-action command tree."""
-    action_parser = add_documented_parser(
+    action_parser = add_documented_help_parser(
         subparsers,
         "habit-action",
         help_content=HelpContent(
@@ -44,11 +48,9 @@ def build_habit_action_parser(
                 )
             ),
             examples=(
-                "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
-                "lifeos habit-action list --date 2026-04-09",
-                "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
-                "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
-                "--date 2026-04-09 --status done",
+                "lifeos habit-action list --help",
+                "lifeos habit-action show --help",
+                "lifeos habit-action log --help",
             ),
             notes=(
                 _("Use `list` for both per-habit and by-date views."),
@@ -57,7 +59,6 @@ def build_habit_action_parser(
             ),
         ),
     )
-    action_parser.set_defaults(handler=make_help_handler(action_parser))
     action_subparsers = action_parser.add_subparsers(
         dest="habit_action_command",
         title=_("actions"),
@@ -136,8 +137,15 @@ def build_habit_action_parser(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 "
                 '--notes "Completed after lunch"',
+                "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --clear-notes",
             ),
-            notes=(_("Use `--clear-notes` to remove optional notes."),),
+            notes=(
+                _(
+                    "Use `log` when you know the habit and date but have not looked up the "
+                    "action ID."
+                ),
+                _("Use `--clear-notes` to remove optional notes."),
+            ),
         ),
     )
     update_parser.add_argument("action_id", type=UUID, help=_("Habit-action identifier"))
@@ -166,7 +174,10 @@ def build_habit_action_parser(
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
                 '--date 2026-04-09 --status skip --notes "Travel day"',
             ),
-            notes=(_("This command follows the same editable-window rules as `update`."),),
+            notes=(
+                _("Use `update` when you already have the materialized action identifier."),
+                _("This command follows the same editable-window rules as `update`."),
+            ),
         ),
     )
     log_parser.add_argument("--habit-id", required=True, type=UUID, help=_("Habit identifier"))

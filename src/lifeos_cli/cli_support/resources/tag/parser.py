@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -27,7 +31,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the tag command tree."""
-    tag_parser = add_documented_parser(
+    tag_parser = add_documented_help_parser(
         subparsers,
         "tag",
         help_content=HelpContent(
@@ -38,18 +42,17 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 + _("Tags provide cross-cutting classification across otherwise separate domains.")
             ),
             examples=(
-                'lifeos tag add "family" --entity-type person --category relation',
-                "lifeos tag list --entity-type note",
+                "lifeos tag add --help",
+                "lifeos tag list --help",
+                "lifeos tag batch --help",
             ),
             notes=(
                 _("Use `list` as the primary query entrypoint for this resource."),
                 _("A tag is scoped by name, entity type, and category."),
-                _("Use the `batch` namespace for multi-record write operations."),
-                _("Delete operations in the CLI always perform soft deletion."),
+                _("See `lifeos tag batch --help` for bulk delete operations."),
             ),
         ),
     )
-    tag_parser.set_defaults(handler=make_help_handler(tag_parser))
     tag_subparsers = tag_parser.add_subparsers(
         dest="tag_command", title=_("actions"), metavar=_("action")
     )
@@ -70,6 +73,16 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag add "
                 '"coach" --entity-type vision --person-id '
                 "11111111-1111-1111-1111-111111111111",
+                "lifeos tag add "
+                '"shared" --entity-type task --person-id '
+                "11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
+            ),
+            notes=(
+                _(
+                    "Repeat the same `--person-id` flag to associate multiple people in one "
+                    "command."
+                ),
             ),
         ),
     )
@@ -153,6 +166,11 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 "
                 "--person-id 11111111-1111-1111-1111-111111111111",
+                "lifeos tag update 11111111-1111-1111-1111-111111111111 "
+                "--person-id 11111111-1111-1111-1111-111111111111 "
+                "--person-id 22222222-2222-2222-2222-222222222222",
+                "lifeos tag update 11111111-1111-1111-1111-111111111111 "
+                "--clear-description --clear-people",
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
             ),
             notes=(
@@ -160,6 +178,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                     "Use `--clear-description`, `--clear-color`, or `--clear-people` "
                     "to remove optional values."
                 ),
+                _("Repeat the same `--person-id` flag to replace multiple linked people."),
             ),
         ),
     )
@@ -195,41 +214,26 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "delete",
         help_content=HelpContent(
             summary=_("Delete a tag"),
-            description=(
-                _("Soft-delete a tag.")
-                + "\n\n"
-                + _(
-                    "This keeps historical references recoverable while removing the tag "
-                    "from normal views."
-                )
-            ),
+            description=_("Delete a tag."),
             examples=("lifeos tag delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_tag_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         tag_subparsers,
         "batch",
         help_content=HelpContent(
             summary=_("Run batch tag operations"),
-            description=(
-                _("Run write operations that target multiple tags in one command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk maintenance rather than adding many top-level "
-                    "verbs."
-                )
-            ),
+            description=_("Delete multiple tags in one command."),
             examples=(
-                "lifeos tag batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
+                "lifeos tag batch delete --help",
+                "lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",
             ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="tag_batch_command",
         title=_("batch actions"),
@@ -241,8 +245,8 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple tags"),
-            description=_("Soft-delete multiple tags by identifier."),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
+            description=_("Delete multiple tags by identifier."),
+            examples=("lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="tag_ids", noun="tag")

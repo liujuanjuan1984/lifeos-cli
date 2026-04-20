@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from lifeos_cli import cli
-from lifeos_cli.cli_support.system import config_commands
+from lifeos_cli.cli_support.system import config_handlers
 from lifeos_cli.config import clear_config_cache
 
 
@@ -23,7 +23,7 @@ def test_main_init_non_interactive_writes_config(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     monkeypatch.setattr(
-        config_commands,
+        config_handlers,
         "run_configured_database_subcommand_in_subprocess",
         _noop_database_subcommand,
     )
@@ -76,11 +76,11 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     monkeypatch.setattr(
-        config_commands,
+        config_handlers,
         "run_configured_database_subcommand_in_subprocess",
         _noop_database_subcommand,
     )
-    monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(config_handlers.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
         prompts.append(prompt)
@@ -125,11 +125,11 @@ def test_main_init_reprompts_invalid_schema_in_interactive_mode(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     monkeypatch.setattr(
-        config_commands,
+        config_handlers,
         "run_configured_database_subcommand_in_subprocess",
         _noop_database_subcommand,
     )
-    monkeypatch.setattr(config_commands.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(config_handlers.sys.stdin, "isatty", lambda: True)
 
     def fake_input(prompt: str) -> str:
         prompts.append(prompt)
@@ -415,7 +415,7 @@ def test_main_init_can_repair_invalid_existing_config(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
     monkeypatch.setattr(
-        config_commands,
+        config_handlers,
         "run_configured_database_subcommand_in_subprocess",
         _noop_database_subcommand,
     )

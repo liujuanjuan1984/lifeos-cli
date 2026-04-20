@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import NOTE_SUMMARY_COLUMNS, format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
@@ -37,15 +41,15 @@ def build_note_add_parser(
                 _("Create a new note from inline text, stdin, or a file.")
                 + "\n\n"
                 + _(
-                    "Use this action to capture short thoughts, prompts, or raw text before\n"
-                    "they are linked to other domains such as tasks, people, or timelogs."
+                    "Use this action to capture short thoughts, prompts, or raw text before "
+                    "linking them to tasks, people, or timelogs."
                 )
             ),
             examples=(
-                "lifeos init",
                 'lifeos note add "Capture the sprint retrospective idea"',
                 "printf 'line one\\nline two\\n' | lifeos note add --stdin",
                 "lifeos note add --file ./note.md",
+                'lifeos note add "Review shared feedback" --tag-id <tag-id-1> --tag-id <tag-id-2>',
                 'lifeos note add "Review the monthly budget assumptions" --task-id <task-id>',
                 'lifeos note add "Prepare the partner sync agenda" --event-id <event-id>',
             ),
@@ -53,8 +57,8 @@ def build_note_add_parser(
                 _("Wrap inline content in quotes when it contains spaces."),
                 _("Use `--stdin` or `--file` for multi-line note content."),
                 _(
-                    "Repeat `--tag-id`, `--person-id`, `--task-id`, `--vision-id`, "
-                    "`--event-id`, and `--timelog-id` to link multiple records."
+                    "Repeat the same relation flag to link multiple records of that type in one "
+                    "command."
                 ),
             ),
         ),
@@ -143,7 +147,7 @@ def build_note_list_parser(
                 "lifeos note list --include-deleted",
             ),
             notes=(
-                _("Use --include-deleted when reviewing soft-deleted records."),
+                _("Use --include-deleted when reviewing deleted records."),
                 _("Use --limit and --offset together for pagination."),
             ),
         ),
@@ -171,9 +175,8 @@ def build_note_search_parser(
                 _("Search notes by keyword tokens.")
                 + "\n\n"
                 + _(
-                    "The current implementation uses a PostgreSQL-backed ILIKE token search.\n"
-                    "Each token is matched against note content, and any matching token keeps\n"
-                    "the note in the result set."
+                    "Search uses PostgreSQL-backed ILIKE token matching. Each token is checked "
+                    "against note content, and any match keeps the note in the result set."
                 )
             ),
             examples=(
@@ -221,7 +224,7 @@ def build_note_show_parser(
                 "lifeos note show 11111111-1111-1111-1111-111111111111",
                 "lifeos note show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
-            notes=(_("Use `--include-deleted` to inspect a soft-deleted note."),),
+            notes=(_("Use `--include-deleted` to inspect a deleted note."),),
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help=_("Note identifier"))
@@ -245,13 +248,16 @@ def build_note_update_parser(
             examples=(
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --task-id <task-id>",
-                "lifeos note update 11111111-1111-1111-1111-111111111111 --tag-id <tag-id>",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 "
+                "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 "
+                "--clear-tags --clear-events",
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
             ),
             notes=(
                 _(
-                    "Repeat relation flags to replace the linked tags, people, tasks, visions, "
-                    "events, or timelogs."
+                    "Repeat the same relation flag to replace multiple linked tags, people, "
+                    "tasks, visions, events, or timelogs."
                 ),
                 _("Use relation flags without `content` when only links need to change."),
             ),
@@ -341,14 +347,7 @@ def build_note_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete a note"),
-            description=(
-                _("Delete a note by identifier.")
-                + "\n\n"
-                + _(
-                    "By default the note is soft-deleted so it can remain visible in audit\n"
-                    "or recovery flows."
-                )
-            ),
+            description=_("Delete a note by identifier."),
             examples=("lifeos note delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -359,35 +358,23 @@ def build_note_delete_parser(
 def build_note_batch_parser(
     note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         note_subparsers,
         "batch",
         help_content=HelpContent(
             summary=_("Run batch note operations"),
-            description=(
-                _("Run operations that target multiple notes in a single command.")
-                + "\n\n"
-                + _(
-                    "Use this namespace for bulk workflows so the CLI keeps a stable shape as\n"
-                    "new note capabilities are introduced."
-                )
-            ),
+            description=_("Run note operations that target multiple records in one command."),
             examples=(
-                "lifeos note batch update-content --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222 "
-                '--find-text "draft" --replace-text "final"',
-                "lifeos note batch delete --ids "
-                "11111111-1111-1111-1111-111111111111 "
-                "22222222-2222-2222-2222-222222222222",
+                "lifeos note batch update-content --help",
+                "lifeos note batch delete --help",
             ),
             notes=(
+                _("Use `update-content` for bulk find/replace across active note content."),
+                _("Use `delete` to remove multiple notes by identifier."),
                 _("Batch commands currently accept note IDs directly."),
-                _("Future note batch operations should be added under this namespace."),
             ),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="note_batch_command",
         title=_("operations"),
@@ -403,7 +390,7 @@ def build_note_batch_parser(
                 _("Apply a find/replace operation across multiple active notes.")
                 + "\n\n"
                 + _(
-                    "This is the first batch-editing primitive for notes and provides a base\n"
+                    "This is the first batch-editing primitive for notes and provides a base "
                     "shape for future bulk operations."
                 )
             ),
@@ -462,7 +449,6 @@ def build_note_batch_parser(
                 "22222222-2222-2222-2222-222222222222",
             ),
             notes=(
-                _("CLI batch delete performs soft deletion only."),
                 _("Failed note IDs are printed to stderr while successful deletes stay on stdout."),
             ),
         ),

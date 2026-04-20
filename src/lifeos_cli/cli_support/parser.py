@@ -24,11 +24,9 @@ from lifeos_cli.cli_support.resources.task.parser import build_task_parser
 from lifeos_cli.cli_support.resources.timelog.parser import build_timelog_parser
 from lifeos_cli.cli_support.resources.vision.parser import build_vision_parser
 from lifeos_cli.cli_support.runtime_utils import print_database_runtime_error
-from lifeos_cli.cli_support.system.config_commands import (
-    build_config_parser,
-    build_init_parser,
-)
+from lifeos_cli.cli_support.system.config_commands import build_config_parser
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
+from lifeos_cli.cli_support.system.init_commands import build_init_parser
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import configure_argparse_translations
 from lifeos_cli.i18n import gettext_message as _
@@ -42,6 +40,7 @@ CLI_BRAND_BANNER = (
 )
 PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli"
 PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
+HELP_FLAGS = frozenset({"-h", "--help"})
 
 
 class TopLevelArgumentParser(argparse.ArgumentParser):
@@ -57,6 +56,67 @@ class TopLevelArgumentParser(argparse.ArgumentParser):
         ):
             return "".join(lines[1:]).lstrip("\n")
         return help_text
+
+
+def get_subparsers_action(
+    parser: argparse.ArgumentParser,
+) -> argparse._SubParsersAction[argparse.ArgumentParser] | None:
+    """Return the parser's subparser action when one exists."""
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return action
+    return None
+
+
+def normalize_help_request(
+    parser: argparse.ArgumentParser,
+    argv: Sequence[str],
+) -> list[str]:
+    """Rewrite misplaced help flags so subcommand help remains reachable."""
+    normalized: list[str] = []
+    tokens = list(argv)
+    active_parser = parser
+    index = 0
+    pending_help = False
+
+    while index < len(tokens):
+        subparsers_action = get_subparsers_action(active_parser)
+        if subparsers_action is None:
+            break
+
+        current = tokens[index]
+        if (
+            current in HELP_FLAGS
+            and index + 1 < len(tokens)
+            and tokens[index + 1] in subparsers_action.choices
+        ):
+            pending_help = True
+            index += 1
+            current = tokens[index]
+
+        normalized.append(current)
+        index += 1
+
+        next_parser = subparsers_action.choices.get(current)
+        if next_parser is None:
+            break
+        active_parser = next_parser
+
+        next_subparsers_action = get_subparsers_action(active_parser)
+        next_token = tokens[index] if index < len(tokens) else None
+        if pending_help and (
+            next_subparsers_action is None
+            or next_token is None
+            or next_token.startswith("-")
+            or next_token not in next_subparsers_action.choices
+        ):
+            normalized.append("--help")
+            pending_help = False
+
+    if pending_help:
+        normalized.append("--help")
+    normalized.extend(tokens[index:])
+    return normalized
 
 
 def get_project_urls() -> tuple[str, str]:
@@ -89,13 +149,11 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             CLI_BRAND_BANNER
             + "\n\n"
-            + f"repo: {repository_url}"
-            + "\n"
-            + "uv tool install --upgrade lifeos-cli"
-            + "\n\n"
+            + f"repo: {repository_url}\n"
+            + "uv tool install --upgrade lifeos-cli\n\n"
             + _("Command grammar:")
             + "\n"
-            "  lifeos <resource> <action> [arguments] [options]"
+            + "  lifeos <resource> <action> [arguments] [options]"
         ),
         epilog=build_epilog(
             examples=(
@@ -110,13 +168,17 @@ def build_parser() -> argparse.ArgumentParser:
                     "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
                     "primary command reference."
                 ),
-                _("Run `lifeos init` before using database-backed resource commands."),
-                _("Welcome bug reports and suggestions through the repo issue tracker."),
+                _("Run `lifeos init` to initialize LifeOS before getting started."),
+                _(
+                    "Welcome bug reports and suggestions through "
+                    "https://github.com/liujuanjuan1984/lifeos-cli."
+                ),
             ),
         ),
         formatter_class=CompactSubcommandHelpFormatter,
     )
     parser.add_argument(
+        "-v",
         "--version",
         action="version",
         version=f"%(prog)s {get_installed_package_version()}",
@@ -149,7 +211,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI."""
     parser = build_parser()
-    args = parser.parse_args(argv)
+    parsed_argv = sys.argv[1:] if argv is None else list(argv)
+    args = parser.parse_args(normalize_help_request(parser, parsed_argv))
     handler = getattr(args, "handler", None)
     if handler is None:
         parser.print_help()

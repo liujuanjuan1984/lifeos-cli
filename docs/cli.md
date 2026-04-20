@@ -89,33 +89,16 @@ Time-oriented behavior follows these rules:
 - date-based queries also use the configured `day_starts_at`
 - weekly habit summaries use the configured `week_starts_on`
 
-## Resource Map
+## Command Families
 
-Use help as the first-stop reference for each command family:
+The current command tree is organized around a few stable families:
 
-- `lifeos area --help`
-- `lifeos data --help`
-- `lifeos event --help`
-- `lifeos schedule --help`
-- `lifeos habit --help`
-- `lifeos habit-action --help`
-- `lifeos tag --help`
-- `lifeos people --help`
-- `lifeos vision --help`
-- `lifeos task --help`
-- `lifeos timelog --help`
-- `lifeos note --help`
+- planning resources such as `area`, `vision`, `task`, `note`, `people`, and `tag`
+- scheduling and tracking resources such as `event`, `schedule`, `timelog`, `habit`, and `habit-action`
+- system and portability commands such as `init`, `config`, `db`, and `data`
 
-Current high-level domain roles:
-
-- `event`: planned schedule blocks
-- `data`: canonical import/export, bundle backup, and batch operations
-- `schedule`: aggregated day and range read model
-- `timelog`: actual time records
-- `habit`: recurring intention with daily or weekly cadence semantics
-- `habit-action`: one dated habit execution row
-- `task`: execution unit with planning-cycle and hierarchy support
-- `vision`: longer-horizon outcome and experience container
+Use `lifeos <resource> --help` to enter one family and then follow the resource-level help into the
+action or namespace you need.
 
 ## Safety Model
 
@@ -138,13 +121,5 @@ If the caller is an agent or another automation layer:
 - use `Preference language` as the payload language for titles, descriptions, and note content unless the human explicitly asks for another language
 - keep flows identifier-driven after discovery
 - decide whether the record belongs to the human, the agent, or both before writing data
-- keep separate `people` records when the human partner and the agent should remain distinct subjects
-- use repeated `--person-id` flags on tasks, events, and timelogs to keep human-only, agent-only, and shared work separate
-
-Example pattern:
-
-```bash
-lifeos people list
-lifeos people show <person-id>
-lifeos people update <person-id> --location "Montreal"
-```
+- prefer resource help and action help over repository docs whenever an operation depends on exact
+  flags, scope rules, or examples

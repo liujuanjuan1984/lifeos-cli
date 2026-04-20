@@ -16,10 +16,16 @@ def add_include_deleted_argument(
     help_prefix: str = "Include",
 ) -> None:
     """Add a standard include-deleted flag."""
+    del noun
+    help_message = (
+        _("Allow loading deleted records")
+        if help_prefix.startswith("Allow")
+        else _("Include deleted records")
+    )
     parser.add_argument(
         "--include-deleted",
         action="store_true",
-        help=_("{help_prefix} soft-deleted {noun}").format(help_prefix=help_prefix, noun=noun),
+        help=help_message,
     )
 
 
@@ -29,17 +35,18 @@ def add_limit_offset_arguments(
     row_noun: str = "rows",
 ) -> None:
     """Add standard pagination flags."""
+    del row_noun
     parser.add_argument(
         "--limit",
         type=int,
         default=100,
-        help=_("Maximum number of {row_noun}").format(row_noun=row_noun),
+        help=_("Maximum number of results to return"),
     )
     parser.add_argument(
         "--offset",
         type=int,
         default=0,
-        help=_("Number of {row_noun} to skip").format(row_noun=row_noun),
+        help=_("Number of results to skip"),
     )
 
 
@@ -48,6 +55,7 @@ def add_identifier_list_argument(
     *,
     dest: str,
     noun: str,
+    action_verb: str = "delete",
 ) -> None:
     """Add a standard repeated UUID identifier argument."""
     parser.add_argument(
@@ -57,7 +65,10 @@ def add_identifier_list_argument(
         type=UUID,
         nargs="+",
         required=True,
-        help=_("{noun} identifiers to delete").format(noun=noun.capitalize()),
+        help=_("{noun} identifiers to {action_verb}").format(
+            noun=noun.capitalize(),
+            action_verb=action_verb,
+        ),
     )
 
 

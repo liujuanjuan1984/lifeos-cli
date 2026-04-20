@@ -10,8 +10,8 @@ from lifeos_cli.application.database import (
 )
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
+    add_documented_help_parser,
     add_documented_parser,
-    make_help_handler,
 )
 from lifeos_cli.cli_support.runtime_utils import (
     make_sync_handler,
@@ -35,7 +35,7 @@ def run_db_upgrade(_: argparse.Namespace) -> int:
 
 def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the database command tree."""
-    db_parser = add_documented_parser(
+    db_parser = add_documented_help_parser(
         subparsers,
         "db",
         help_content=HelpContent(
@@ -43,17 +43,27 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             description=(
                 _("Inspect database connectivity and apply migrations.")
                 + "\n\n"
-                + _("These commands operate on the database configured through `lifeos init`,")
-                + "\n"
-                + _("the config file, or LIFEOS_* environment variables.")
+                + _(
+                    "These commands operate on the database configured through `lifeos init`, "
+                    "the config file, or LIFEOS_* environment variables."
+                )
             ),
             examples=(
                 "lifeos db ping",
                 "lifeos db upgrade",
             ),
+            notes=(
+                _(
+                    "Use `ping` to validate the current connection settings without changing "
+                    "schema."
+                ),
+                _(
+                    "Use `upgrade` when the configured database schema needs to catch up with "
+                    "the code."
+                ),
+            ),
         ),
     )
-    db_parser.set_defaults(handler=make_help_handler(db_parser))
     db_subparsers = db_parser.add_subparsers(
         dest="db_command", title=_("actions"), metavar=_("action")
     )
@@ -65,6 +75,12 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             summary=_("Check database connectivity"),
             description=_("Open a database connection and run a minimal health check query."),
             examples=("lifeos db ping",),
+            notes=(
+                _(
+                    "Use this before `db upgrade` when you first need to confirm the target "
+                    "database."
+                ),
+            ),
         ),
     )
     ping_parser.set_defaults(handler=make_sync_handler(run_db_ping))
@@ -76,6 +92,13 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             summary=_("Apply migrations"),
             description=_("Apply Alembic migrations to the configured PostgreSQL database."),
             examples=("lifeos db upgrade",),
+            notes=(
+                _("This updates schema state in the database; it does not rewrite local config."),
+                _(
+                    "Use `db ping` first if you are unsure the current connection settings are "
+                    "correct."
+                ),
+            ),
         ),
     )
     upgrade_parser.set_defaults(handler=run_db_upgrade)

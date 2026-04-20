@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import argparse
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.resources.data.handlers import (
     handle_data_batch_delete_async,
     handle_data_batch_update_async,
@@ -22,7 +26,7 @@ IMPORT_TARGET_CHOICES = (*DATA_RESOURCE_CHOICES, "bundle")
 
 def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the data command tree."""
-    data_parser = add_documented_parser(
+    data_parser = add_documented_help_parser(
         subparsers,
         "data",
         help_content=HelpContent(
@@ -37,12 +41,9 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 )
             ),
             examples=(
-                "lifeos data export timelog --format jsonl",
-                "lifeos data import timelog --file timelog.jsonl --format jsonl",
-                "lifeos data batch-update task --file task-patch.jsonl --format jsonl",
-                "lifeos data batch-delete event --ids-file event-ids.txt",
-                "lifeos data export all --output lifeos-bundle.zip",
-                "lifeos data import bundle --file lifeos-bundle.zip --replace-existing",
+                "lifeos data export --help",
+                "lifeos data import --help",
+                "lifeos data batch-update --help",
             ),
             notes=(
                 _(
@@ -65,7 +66,6 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    data_parser.set_defaults(handler=make_help_handler(data_parser))
     data_subparsers = data_parser.add_subparsers(
         dest="data_command", title=_("actions"), metavar=_("action")
     )
@@ -103,7 +103,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     export_parser.add_argument(
         "--exclude-deleted",
         action="store_true",
-        help=_("Exclude soft-deleted rows from exported snapshots"),
+        help=_("Exclude deleted rows from exported snapshots"),
     )
     export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
@@ -131,6 +131,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "restores base rows before relation links."
                 ),
                 _("Single-resource imports expect referenced foreign rows to already exist."),
+                _("Use `--dry-run` before applying a large file or a full bundle restore."),
             ),
         ),
     )
@@ -177,12 +178,15 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 "lifeos data batch-update timelog --file timelog-patch.jsonl --format jsonl",
                 "lifeos data batch-update people --stdin --format json",
+                "lifeos data batch-update event --file event-patch.jsonl --format jsonl "
+                "--dry-run --error-file event-errors.jsonl",
             ),
             notes=(
                 _(
                     "Batch-update operates on stored records. Use public resource commands "
                     "when you need domain-specific verbs or scopes."
                 ),
+                _("Start from `data export` output when preparing machine-generated patch rows."),
             ),
         ),
     )
@@ -217,7 +221,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Batch-delete one resource by identifiers"),
             description=(
                 _(
-                    "Soft-delete multiple rows for one resource using repeated IDs, an IDs "
+                    "Delete multiple rows for one resource using repeated IDs, an IDs "
                     "file, or JSON/JSONL input containing row IDs."
                 )
             ),
@@ -225,6 +229,16 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos data batch-delete task --id <task-id-1> --id <task-id-2>",
                 "lifeos data batch-delete event --ids-file event-ids.txt",
                 "lifeos data batch-delete timelog --file timelog-export.jsonl --format jsonl",
+            ),
+            notes=(
+                _(
+                    "Use this command for file-driven or machine-generated cleanup across many "
+                    "rows."
+                ),
+                _(
+                    "Use resource-specific delete commands when you want narrower human-guided "
+                    "changes."
+                ),
             ),
         ),
     )
