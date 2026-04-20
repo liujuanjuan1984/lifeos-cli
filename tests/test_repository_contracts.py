@@ -1,62 +1,107 @@
 from pathlib import Path
+from typing import Any, cast
 
+import yaml  # type: ignore[import-untyped]
 from babel.messages import pofile
 
-DEPENDABOT_TEXT = Path(".github/dependabot.yml").read_text()
+GITIGNORE_TEXT = Path(".gitignore").read_text()
+DEPENDABOT_CONFIG = yaml.safe_load(Path(".github/dependabot.yml").read_text())
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
-PRE_COMMIT_TEXT = Path(".pre-commit-config.yaml").read_text()
-VALIDATE_WORKFLOW_TEXT = Path(".github/workflows/validate.yml").read_text()
+PRE_COMMIT_CONFIG = yaml.safe_load(Path(".pre-commit-config.yaml").read_text())
+VALIDATE_WORKFLOW = yaml.safe_load(Path(".github/workflows/validate.yml").read_text())
 VULTURE_WHITELIST_TEXT = Path("scripts/vulture_whitelist.py").read_text()
 LOAD_LOCAL_ENV_TEXT = Path("scripts/load_local_env.sh").read_text()
 
 
+def _non_comment_shell_lines(text: str) -> list[str]:
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
+def _workflow_job_steps(workflow: dict[str, Any], job_name: str) -> list[dict[str, Any]]:
+    jobs = cast(dict[str, Any], workflow["jobs"])
+    steps = cast(list[dict[str, Any]], jobs[job_name]["steps"])
+    assert isinstance(steps, list)
+    return steps
+
+
+DOCTOR_COMMANDS = _non_comment_shell_lines(DOCTOR_TEXT)
+DEPENDENCY_HEALTH_COMMANDS = _non_comment_shell_lines(DEPENDENCY_HEALTH_TEXT)
+QUALITY_GATE_STEPS = _workflow_job_steps(VALIDATE_WORKFLOW, "quality-gate")
+INTEGRATION_JOB_STEPS = _workflow_job_steps(VALIDATE_WORKFLOW, "integration-postgres")
+
+
 def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
-    assert 'package-ecosystem: "uv"' in DEPENDABOT_TEXT
-    assert 'package-ecosystem: "github-actions"' not in DEPENDABOT_TEXT
-    assert "open-pull-requests-limit: 1" in DEPENDABOT_TEXT
-    assert "uv-all-updates" in DEPENDABOT_TEXT
+    updates = DEPENDABOT_CONFIG["updates"]
+    assert isinstance(updates, list)
+    ecosystems = {entry["package-ecosystem"] for entry in updates}
+    assert ecosystems == {"uv"}
+    uv_entry = updates[0]
+    assert uv_entry["open-pull-requests-limit"] == 1
+    assert uv_entry["groups"]["uv-all-updates"]["patterns"] == ["*"]
 
 
 def test_dependency_scripts_keep_separate_scopes() -> None:
-    assert "uv run pytest" in DOCTOR_TEXT
-    assert "uv pip list --outdated" not in DOCTOR_TEXT
-    assert "uv pip list --outdated" in DEPENDENCY_HEALTH_TEXT
-    assert "uv run pip-audit" in DEPENDENCY_HEALTH_TEXT
-    assert "uv run pytest" not in DEPENDENCY_HEALTH_TEXT
+    assert 'source "${SCRIPT_DIR}/load_local_env.sh"' in DOCTOR_TEXT
+    assert 'load_local_env "${REPO_ROOT}/.env"' in DOCTOR_TEXT
+    assert any("uv sync --all-extras --frozen" in line for line in DOCTOR_COMMANDS)
+    assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
+    assert not any("uv pip list --outdated" in line for line in DOCTOR_COMMANDS)
+    assert any("uv run pip-audit" in line for line in DOCTOR_COMMANDS)
+    assert any("uv build --no-sources" in line for line in DOCTOR_COMMANDS)
+    assert any("uv pip list --outdated" in line for line in DEPENDENCY_HEALTH_COMMANDS)
+    assert any("uv run pip-audit" in line for line in DEPENDENCY_HEALTH_COMMANDS)
+    assert not any("uv run pytest" in line for line in DEPENDENCY_HEALTH_COMMANDS)
 
 
 def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
-    assert "bash ./scripts/dead_code_check.sh" in PRE_COMMIT_TEXT
-    assert "uv run pre-commit run --all-files" in DOCTOR_TEXT
-    assert 'uv run pytest -m "not integration"' in DOCTOR_TEXT
-    assert "bash ./scripts/integration_tests.sh" in DOCTOR_TEXT
-    assert "source ./scripts/load_local_env.sh" in DOCTOR_TEXT
-    assert 'load_local_env "./.env"' in DOCTOR_TEXT
+    repo_hooks = PRE_COMMIT_CONFIG["repos"]
+    assert isinstance(repo_hooks, list)
+    local_repo = next(repo for repo in repo_hooks if repo["repo"] == "local")
+    hook_ids = {hook["id"] for hook in local_repo["hooks"]}
+    assert "dead-code" in hook_ids
+    assert any("uv run pre-commit run --all-files" in line for line in DOCTOR_COMMANDS)
+    assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
+    assert any("bash ./scripts/integration_tests.sh" in line for line in DOCTOR_COMMANDS)
 
 
 def test_locale_catalog_sync_is_part_of_the_default_validation_gate() -> None:
-    assert "uv run python scripts/check_locale_catalog.py" in PRE_COMMIT_TEXT
+    repo_hooks = PRE_COMMIT_CONFIG["repos"]
+    assert isinstance(repo_hooks, list)
+    local_repo = next(repo for repo in repo_hooks if repo["repo"] == "local")
+    hook_entries = {hook["id"]: hook["entry"] for hook in local_repo["hooks"]}
+    assert hook_entries["locale-catalog-sync"] == "uv run python scripts/check_locale_catalog.py"
 
 
 def test_validate_workflow_runs_real_cli_integration_tests() -> None:
-    expected_database_url = (
-        "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/"  # pragma: allowlist secret
-        "lifeos_test"
+    quality_gate_run_steps = [
+        step["run"] for step in QUALITY_GATE_STEPS if isinstance(step, dict) and "run" in step
+    ]
+    assert any("bash ./scripts/doctor.sh" in run for run in quality_gate_run_steps)
+
+    integration_run_step = next(
+        step for step in INTEGRATION_JOB_STEPS if step.get("name") == "Run CLI integration tests"
     )
-    assert "integration-postgres" in VALIDATE_WORKFLOW_TEXT
-    assert expected_database_url in VALIDATE_WORKFLOW_TEXT
-    assert 'uv run pytest -m "not integration"' in VALIDATE_WORKFLOW_TEXT
-    assert "bash ./scripts/integration_tests.sh" in VALIDATE_WORKFLOW_TEXT
+    integration_env = integration_run_step["env"]
+    assert "LIFEOS_TEST_DATABASE_URL" in integration_env
+    database_url = integration_env["LIFEOS_TEST_DATABASE_URL"]
+    assert "127.0.0.1:5432" in database_url
+    assert "lifeos_test" in database_url
+    assert integration_run_step["run"] == "bash ./scripts/integration_tests.sh"
 
 
 def test_integration_tests_require_an_explicit_test_database_url() -> None:
     script_text = Path("scripts/integration_tests.sh").read_text()
     assert "LIFEOS_RUN_INTEGRATION" not in script_text
     assert "LIFEOS_TEST_DATABASE_URL:-" in script_text
+    assert "exit 3" in script_text
     assert "uv run pytest -m integration tests/test_cli_integration_*.py" in script_text
-    assert "source ./scripts/load_local_env.sh" in script_text
-    assert 'load_local_env "./.env"' in script_text
+    assert 'source "${SCRIPT_DIR}/load_local_env.sh"' in script_text
+    assert 'load_local_env "${REPO_ROOT}/.env"' in script_text
     support_text = Path("tests/cli_integration_support.py").read_text()
     assert 'INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
     assert "DatabaseSettings.from_env" not in support_text
@@ -69,6 +114,11 @@ def test_load_local_env_script_exports_local_env_files() -> None:
     assert '. "$env_file"' in LOAD_LOCAL_ENV_TEXT
     assert "set -a" in LOAD_LOCAL_ENV_TEXT
     assert "set +a" in LOAD_LOCAL_ENV_TEXT
+
+
+def test_gitignore_keeps_local_env_files_untracked() -> None:
+    assert "\n.env\n" in GITIGNORE_TEXT
+    assert "\n.env.local\n" in GITIGNORE_TEXT
 
 
 def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:

@@ -31,20 +31,6 @@ jobs:
       - name: Run default validation
         run: bash ./scripts/doctor.sh
 
-      - name: Export runtime requirements for vulnerability audit
-        run: >
-          uv export --format requirements.txt --no-dev --locked --no-emit-project
-          --output-file /tmp/runtime-requirements.txt >/dev/null
-
-      - name: Run runtime dependency vulnerability audit
-        run: uv run pip-audit --requirement /tmp/runtime-requirements.txt
-
-      - name: Clean previous build artifacts
-        run: rm -rf build dist
-
-      - name: Build package artifacts
-        run: uv build --no-sources
-
   runtime-matrix:
     name: Validate Runtime Matrix (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

@@ -32,8 +32,11 @@ bash ./scripts/doctor.sh
 ```
 
 The default validation baseline includes dead-code scanning through `vulture`.
-It runs the default non-integration test suite directly and then calls
+It validates locked dependency resolution, runs lint plus the default non-integration test suite,
+exports runtime requirements for `pip-audit`, builds package artifacts, and then calls
 `bash ./scripts/integration_tests.sh` as the explicit PostgreSQL-backed integration entrypoint.
+When `LIFEOS_TEST_DATABASE_URL` is unset, the integration script reports an explicit skip and
+`doctor.sh` finishes with a warning that PostgreSQL CLI coverage did not run.
 
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
@@ -51,17 +54,14 @@ LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432
 bash ./scripts/integration_tests.sh
 ```
 
-For local-only development, `bash ./scripts/doctor.sh` and
-`bash ./scripts/integration_tests.sh` also load `./.env` when it exists, so you can keep
-`LIFEOS_TEST_DATABASE_URL` in an untracked local file instead of retyping it each time.
+For local convenience, `scripts/doctor.sh` and `scripts/integration_tests.sh` also load a
+project-root `.env` file when present. Keep `.env` untracked and use it only for machine-local
+development settings such as `LIFEOS_TEST_DATABASE_URL`.
 
 If you change dependency or release workflows, also run:
 
 ```bash
 bash ./scripts/dependency_health.sh
-uv export --format requirements.txt --no-dev --locked --no-emit-project --output-file /tmp/runtime-requirements.txt >/dev/null
-uv run pip-audit --requirement /tmp/runtime-requirements.txt
-rm -rf build dist && uv build --no-sources
 ```
 
 Dependency maintenance policy:

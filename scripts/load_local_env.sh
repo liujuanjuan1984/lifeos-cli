@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 load_local_env() {
   local env_file="${1:-.env}"
