@@ -269,7 +269,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help_content=HelpContent(
             summary=_("Show effective configuration"),
             description=_("Print the effective config values used by the current process."),
-            examples=("lifeos config show",),
+            examples=(
+                "lifeos config show",
+                "lifeos config show --show-secrets",
+            ),
             notes=(
                 _("Database URLs hide passwords by default. Use --show-secrets when needed."),
                 _(
@@ -303,6 +306,9 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             examples=(
                 "lifeos config set preferences.timezone America/Toronto",
                 "lifeos config set database.echo true",
+                "lifeos config set database.url "
+                "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
+                "--show-secrets",
                 "lifeos config set preferences.vision_experience_rate_per_hour 120",
             ),
             notes=(

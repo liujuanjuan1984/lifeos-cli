@@ -175,6 +175,8 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 "lifeos data batch-update timelog --file timelog-patch.jsonl --format jsonl",
                 "lifeos data batch-update people --stdin --format json",
+                "lifeos data batch-update event --file event-patch.jsonl --format jsonl "
+                "--dry-run --error-file event-errors.jsonl",
             ),
             notes=(
                 _(

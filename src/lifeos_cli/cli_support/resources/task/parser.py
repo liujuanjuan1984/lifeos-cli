@@ -296,6 +296,10 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task move 11111111-1111-1111-1111-111111111111 "
                 "--new-parent-task-id 22222222-2222-2222-2222-222222222222",
                 "lifeos task move 11111111-1111-1111-1111-111111111111 "
+                "--old-parent-task-id 00000000-0000-0000-0000-000000000000 "
+                "--new-parent-task-id 22222222-2222-2222-2222-222222222222 "
+                "--new-display-order 10",
+                "lifeos task move 11111111-1111-1111-1111-111111111111 "
                 "--new-vision-id 33333333-3333-3333-3333-333333333333 --clear-parent",
             ),
             notes=(

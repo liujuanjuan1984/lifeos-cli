@@ -2609,6 +2609,47 @@ def test_cli_batch_action_ids_help_matches_action_semantics(
     assert unexpected not in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["task", "move", "--help"],
+            "--old-parent-task-id 00000000-0000-0000-0000-000000000000 "
+            "--new-parent-task-id 22222222-2222-2222-2222-222222222222 "
+            "--new-display-order 10",
+        ),
+        (
+            ["config", "show", "--help"],
+            "lifeos config show --show-secrets",
+        ),
+        (
+            ["config", "set", "--help"],
+            "lifeos config set database.url "
+            "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
+            "--show-secrets",
+        ),
+        (
+            ["data", "batch-update", "--help"],
+            "lifeos data batch-update event --file event-patch.jsonl --format jsonl "
+            "--dry-run --error-file event-errors.jsonl",
+        ),
+    ],
+)
+def test_cli_help_shows_branching_operation_examples(
+    argv: list[str],
+    expected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 
