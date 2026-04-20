@@ -822,6 +822,128 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
             assert term in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected_terms", "forbidden_terms"),
+    [
+        (
+            ["event", "add", "--help"],
+            [
+                "创建一个计划中的 `event`。",
+                "`event` 类型：appointment、timeblock 或 deadline",
+                "重复附加一个或多个 `tag`",
+                "共享的排期块",
+            ],
+            [
+                "浙江活动",
+                "`event``tag`",
+                "路线块",
+            ],
+        ),
+        (
+            ["event", "update", "--help"],
+            [
+                "清除描述",
+                "清除结束时间",
+                "清除关联的 `task`",
+                "移除所有 `people`",
+            ],
+            [
+                "清晰的描述",
+                "明确结束时间",
+                "明确链接 `task`",
+                "撤走所有 `people`",
+            ],
+        ),
+        (
+            ["task", "--help"],
+            [
+                "hierarchy      显示 `vision` 的 `task` 层级",
+                "使用 planning-cycle 字段将 `task` 放入更大的时间范围内；"
+                "当 `task` 还需要具体的排期时间块时，请使用 `event` 命令。",
+                "批量删除操作请查看 `lifeos task batch --help`。",
+            ],
+            [
+                "`vision``task`",
+                "Use planning-cycle fields to place a task inside a broader timebox",
+                "See `lifeos task batch --help` for bulk delete operations.",
+            ],
+        ),
+        (
+            ["task", "hierarchy", "--help"],
+            [
+                "输出会先打印 `vision` 标识符，然后使用与 `with-subtasks` 相同的"
+                "缩进树形结构打印每个根 `task` 及其后代。",
+                "当你只想查看树中的一个分支时，请使用 `with-subtasks`。",
+            ],
+            [
+                "The output starts with the vision identifier",
+                "Use `with-subtasks` when you want to inspect only one branch of the tree.",
+            ],
+        ),
+        (
+            ["timelog", "add", "--help"],
+            [
+                "可选备注",
+                "重复附加一个或多个 `tag`",
+                "重复使用同一个 `--tag-id` 或 `--person-id` 参数，即可在一条命令中"
+                "附加多个 `tag` 或 `people`。",
+            ],
+            [
+                "可选 `note`",
+                "`timelog``tag`",
+                "Repeat the same `--tag-id` or `--person-id` flag to attach "
+                "multiple tags or people in one command.",
+            ],
+        ),
+        (
+            ["timelog", "update", "--help"],
+            [
+                "更新备注",
+                "清除位置",
+                "清除能量等级",
+                "清除备注",
+            ],
+            [
+                "更新 `note`",
+                "清晰的位置",
+                "清晰的能量水平",
+                "清除 `note`",
+            ],
+        ),
+        (
+            ["vision", "update", "--help"],
+            [
+                "更新可变的 `vision` 字段。",
+                "清除可选的 `vision` 描述",
+            ],
+            [
+                "更新可变的 `vision``area`。",
+                "明确可选的 `vision` 描述",
+            ],
+        ),
+    ],
+)
+def test_cli_zh_hans_help_avoids_misleading_translations(
+    monkeypatch: pytest.MonkeyPatch,
+    argv: list[str],
+    expected_terms: list[str],
+    forbidden_terms: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    for expected_term in expected_terms:
+        assert expected_term in captured.out
+    for forbidden_term in forbidden_terms:
+        assert forbidden_term not in captured.out
+
+
 def test_cli_parser_supports_data_commands() -> None:
     parser = build_parser()
 
