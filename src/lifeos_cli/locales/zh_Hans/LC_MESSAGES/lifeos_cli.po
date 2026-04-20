@@ -718,8 +718,8 @@ msgstr "使用 recurrence 参数创建 daily、weekly、monthly 或 yearly 的�
 #: src/lifeos_cli/cli_support/resources/event/parser.py:88
 msgid ""
 "When an agent creates events for a human, use `--person-id` to keep "
-"human-only, agent-only, and shared schedule blocks distinct."
-msgstr "当代理为人类创建 `event` 时，使用 `--person-id` 区分仅限人类、仅限代理和共享的排期块。"
+"human-only, agent-only, and shared time blocks distinct."
+msgstr "当代理为人类创建 `event` 时，使用 `--person-id` 区分仅限人类、仅限代理和共享的时间块。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:82
 msgid ""
@@ -2417,8 +2417,8 @@ msgstr "`task` 是 LifeOS 中的主要执行单元，可以嵌套在父 `task` �
 #: src/lifeos_cli/cli_support/resources/task/parser.py:45
 msgid ""
 "Use planning-cycle fields for the broader timebox. Use `event` when the "
-"task also needs a concrete scheduled time block."
-msgstr "使用 planning-cycle 字段表示更大的时间范围。当 `task` 还需要具体的排期时间块时，请使用 `event`。"
+"task also needs a concrete time block."
+msgstr "使用 planning-cycle 字段表示更大的时间范围。当 `task` 还需要具体的时间块时，请使用 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:56
 msgid "Tasks can form trees through `--parent-task-id`."
@@ -2474,8 +2474,8 @@ msgstr "使用 planning-cycle 字段描述 `task` 所属的 year、month、week 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:111
 msgid ""
 "Use `lifeos event add --task-id <task-id>` if the task also needs a "
-"specific scheduled time block on a calendar day."
-msgstr "如果 `task` 还需要日历日的特定计划时间段，请使用 `lifeos event add --task-id <task-id>`。"
+"specific time block on a calendar day."
+msgstr "如果 `task` 还需要日历日的特定时间块，请使用 `lifeos event add --task-id <task-id>`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:114
 msgid "Repeat `--person-id` to associate one or more people."

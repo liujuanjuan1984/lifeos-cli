@@ -67,7 +67,7 @@ def build_event_add_parser(
                 ),
                 _(
                     "When an agent creates events for a human, use `--person-id` to keep "
-                    "human-only, agent-only, and shared schedule blocks distinct."
+                    "human-only, agent-only, and shared time blocks distinct."
                 ),
             ),
         ),

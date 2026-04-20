@@ -568,7 +568,7 @@ def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> N
         ),
         (
             ["event", "add", "--help"],
-            "keep human-only, agent-only, and shared schedule blocks distinct",
+            "keep human-only, agent-only, and shared time blocks distinct",
         ),
         (
             ["timelog", "add", "--help"],

@@ -45,7 +45,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 + " "
                 + _(
                     "Use planning-cycle fields for the broader timebox. Use `event` when the "
-                    "task also needs a concrete scheduled time block."
+                    "task also needs a concrete time block."
                 )
             ),
             examples=(

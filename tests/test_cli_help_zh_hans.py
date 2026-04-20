@@ -239,7 +239,7 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
                 "创建一个计划中的 `event`。",
                 "`event` 类型：appointment、timeblock 或 deadline",
                 "重复附加一个或多个 `tag`",
-                "共享的排期块",
+                "共享的时间块",
             ],
             [
                 "浙江活动",
@@ -267,7 +267,7 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
             [
                 "显示 `vision` 的 `task` 层级",
                 "使用 planning-cycle 字段表示更大的时间范围。"
-                "当 `task` 还需要具体的排期时间块时，请使用 `event`。",
+                "当 `task` 还需要具体的时间块时，请使用 `event`。",
                 "批量删除操作请查看 `lifeos task batch --help`。",
             ],
             [

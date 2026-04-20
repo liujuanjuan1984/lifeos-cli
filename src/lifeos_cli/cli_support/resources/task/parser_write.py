@@ -60,7 +60,7 @@ def build_task_add_parser(
                 ),
                 _(
                     "Use `lifeos event add --task-id <task-id>` if the task also needs a specific "
-                    "scheduled time block on a calendar day."
+                    "time block on a calendar day."
                 ),
                 _(
                     "Repeat the same `--person-id` flag to associate multiple people in one "
