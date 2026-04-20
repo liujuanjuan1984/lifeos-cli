@@ -179,13 +179,13 @@ def test_namespace_help_surfaces_nested_help_examples(
 @pytest.mark.parametrize(
     ("argv", "expected_text"),
     [
-        (["area", "batch"], "Soft-delete multiple areas in one command."),
-        (["event", "batch"], "Soft-delete multiple events in one command."),
-        (["habit", "batch"], "Soft-delete multiple habits in one command."),
-        (["people", "batch"], "Soft-delete multiple people records in one command."),
-        (["tag", "batch"], "Soft-delete multiple tags in one command."),
-        (["task", "batch"], "Soft-delete multiple tasks in one command."),
-        (["vision", "batch"], "Soft-delete multiple visions in one command."),
+        (["area", "batch"], "Delete multiple areas in one command."),
+        (["event", "batch"], "Delete multiple events in one command."),
+        (["habit", "batch"], "Delete multiple habits in one command."),
+        (["people", "batch"], "Delete multiple people records in one command."),
+        (["tag", "batch"], "Delete multiple tags in one command."),
+        (["task", "batch"], "Delete multiple tasks in one command."),
+        (["vision", "batch"], "Delete multiple visions in one command."),
         (
             ["note", "batch"],
             "Use `update-content` for bulk find/replace across active note content.",

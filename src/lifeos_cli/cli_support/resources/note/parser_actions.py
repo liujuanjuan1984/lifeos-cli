@@ -147,7 +147,7 @@ def build_note_list_parser(
                 "lifeos note list --include-deleted",
             ),
             notes=(
-                _("Use --include-deleted when reviewing soft-deleted records."),
+                _("Use --include-deleted when reviewing deleted records."),
                 _("Use --limit and --offset together for pagination."),
             ),
         ),
@@ -224,7 +224,7 @@ def build_note_show_parser(
                 "lifeos note show 11111111-1111-1111-1111-111111111111",
                 "lifeos note show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
-            notes=(_("Use `--include-deleted` to inspect a soft-deleted note."),),
+            notes=(_("Use `--include-deleted` to inspect a deleted note."),),
         ),
     )
     show_parser.add_argument("note_id", type=UUID, help=_("Note identifier"))
@@ -347,14 +347,7 @@ def build_note_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete a note"),
-            description=(
-                _("Delete a note by identifier.")
-                + "\n\n"
-                + _(
-                    "By default the note is soft-deleted so it can remain visible in audit "
-                    "or recovery flows."
-                )
-            ),
+            description=_("Delete a note by identifier."),
             examples=("lifeos note delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -377,7 +370,7 @@ def build_note_batch_parser(
             ),
             notes=(
                 _("Use `update-content` for bulk find/replace across active note content."),
-                _("Use `delete` to soft-delete multiple notes by identifier."),
+                _("Use `delete` to remove multiple notes by identifier."),
                 _("Batch commands currently accept note IDs directly."),
             ),
         ),
@@ -456,7 +449,6 @@ def build_note_batch_parser(
                 "22222222-2222-2222-2222-222222222222",
             ),
             notes=(
-                _("CLI batch delete performs soft deletion only."),
                 _("Failed note IDs are printed to stderr while successful deletes stay on stdout."),
             ),
         ),

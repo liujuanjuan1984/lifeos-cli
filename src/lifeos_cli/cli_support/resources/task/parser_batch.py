@@ -24,7 +24,7 @@ def build_task_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run batch task operations"),
-            description=_("Soft-delete multiple tasks in one command."),
+            description=_("Delete multiple tasks in one command."),
             examples=(
                 "lifeos task batch delete --help",
                 "lifeos task batch delete --ids <task-id-1> <task-id-2>",
@@ -43,9 +43,8 @@ def build_task_batch_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple tasks"),
-            description=_("Soft-delete multiple tasks by identifier."),
+            description=_("Delete multiple tasks by identifier."),
             examples=("lifeos task batch delete --ids <task-id-1> <task-id-2>",),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="task_ids", noun="task")

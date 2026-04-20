@@ -302,8 +302,8 @@ def build_habit_delete_parser(
         habit_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Soft-delete a habit"),
-            description=_("Soft-delete one habit. Public CLI deletion is never permanent."),
+            summary=_("Delete a habit"),
+            description=_("Delete one habit."),
             examples=("lifeos habit delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -369,7 +369,7 @@ def build_habit_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run bulk habit operations"),
-            description=_("Soft-delete multiple habits in one command."),
+            description=_("Delete multiple habits in one command."),
             examples=(
                 "lifeos habit batch delete --help",
                 "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
@@ -386,8 +386,8 @@ def build_habit_batch_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Soft-delete multiple habits"),
-            description=_("Soft-delete multiple habits in one command."),
+            summary=_("Delete multiple habits"),
+            description=_("Delete multiple habits in one command."),
             examples=("lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",),
         ),
     )

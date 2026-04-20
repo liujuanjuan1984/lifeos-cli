@@ -18,9 +18,9 @@ def add_include_deleted_argument(
     """Add a standard include-deleted flag."""
     del noun
     help_message = (
-        _("Allow loading soft-deleted records")
+        _("Allow loading deleted records")
         if help_prefix.startswith("Allow")
-        else _("Include soft-deleted records")
+        else _("Include deleted records")
     )
     parser.add_argument(
         "--include-deleted",

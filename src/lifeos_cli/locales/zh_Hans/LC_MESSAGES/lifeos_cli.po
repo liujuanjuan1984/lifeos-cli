@@ -160,12 +160,12 @@ msgid "resource"
 msgstr "资源"
 
 #: src/lifeos_cli/cli_support/parser_common.py:21
-msgid "Include soft-deleted records"
-msgstr "包含已软删除的记录"
+msgid "Include deleted records"
+msgstr "包含已删除的记录"
 
 #: src/lifeos_cli/cli_support/parser_common.py:24
-msgid "Allow loading soft-deleted records"
-msgstr "允许加载已软删除的记录"
+msgid "Allow loading deleted records"
+msgstr "允许加载已删除的记录"
 
 #: src/lifeos_cli/cli_support/parser_common.py:38
 msgid "Maximum number of results to return"
@@ -317,8 +317,8 @@ msgid ""
 msgstr "此处使用过滤器和分页标志，而不是期望单独的搜索命令。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:112
-msgid "Soft-deleted areas are hidden unless `--include-deleted` is set."
-msgstr "除非设置了 `--include-deleted`，否则软删除的 `area` 将被隐藏。"
+msgid "Deleted areas are hidden unless `--include-deleted` is set."
+msgstr "除非设置了 `--include-deleted`，否则已删除的 `area` 将被隐藏。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:113
 msgid "Use `--limit` and `--offset` together for pagination."
@@ -343,8 +343,8 @@ msgid ""
 msgstr "当您需要精确的字段值而不是紧凑列表视图时，请使用此操作。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:141
-msgid "Use `--include-deleted` to inspect a soft-deleted area."
-msgstr "使用 `--include-deleted` 检查软删除的 `area`。"
+msgid "Use `--include-deleted` to inspect a deleted area."
+msgstr "使用 `--include-deleted` 检查已删除的 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:144
 #: src/lifeos_cli/cli_support/resources/area/parser.py:167
@@ -412,8 +412,8 @@ msgid "Delete an area"
 msgstr "删除 `area`"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:197
-msgid "Soft-delete an area."
-msgstr "软删除一个 `area`。"
+msgid "Delete an area."
+msgstr "删除一个 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:200
 msgid ""
@@ -428,8 +428,8 @@ msgid "Run batch area operations"
 msgstr "执行批量 `area` 操作"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:216
-msgid "Run write operations that target multiple areas in one command."
-msgstr "在一个命令中运行针对多个 `area` 的写入操作。"
+msgid "Delete multiple areas in one command."
+msgstr "在一个命令中删除多个 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:219
 msgid ""
@@ -461,8 +461,8 @@ msgid "Delete multiple areas"
 msgstr "删除多个 `area`"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:242
-msgid "Soft-delete multiple areas by identifier."
-msgstr "通过标识符软删除多个 `area`。"
+msgid "Delete multiple areas by identifier."
+msgstr "通过标识符删除多个 `area`。"
 
 #: src/lifeos_cli/cli_support/resources/area/parser.py:243
 #: src/lifeos_cli/cli_support/resources/people/parser.py:256
@@ -537,8 +537,8 @@ msgid "Write exported data to a file instead of stdout"
 msgstr "将导出的数据写入文件而不是 stdout"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:105
-msgid "Exclude soft-deleted rows from exported snapshots"
-msgstr "从导出的快照中排除软删除的行"
+msgid "Exclude deleted rows from exported snapshots"
+msgstr "从导出的快照中排除已删除的行"
 
 #: src/lifeos_cli/cli_support/resources/data/parser.py:113
 msgid "Import one resource or a full bundle"
@@ -1068,8 +1068,8 @@ msgid "Delete an event"
 msgstr "删除 `event`"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:333
-msgid "Soft-delete one event."
-msgstr "软删除一个 `event`。"
+msgid "Delete one event."
+msgstr "删除一个 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:342
 msgid "Use `--scope single|all_future|all` for recurring series deletes."
@@ -1088,8 +1088,8 @@ msgid "Run batch event operations"
 msgstr "执行批量 `event` 操作"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:365
-msgid "Grouped namespace for multi-record event writes."
-msgstr "用于多记录 `event` 写入的分组命名空间。"
+msgid "Delete multiple events in one command."
+msgstr "在一个命令中删除多个 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:371
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:354
@@ -1102,8 +1102,8 @@ msgid "Delete multiple events"
 msgstr "删除多个 `event`"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:378
-msgid "Soft-delete multiple events by identifier."
-msgstr "通过标识符软删除多个 `event`。"
+msgid "Delete multiple events by identifier."
+msgstr "通过标识符删除多个 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:47
 msgid "Manage recurring habits"
@@ -1340,12 +1340,12 @@ msgid "Remove the linked task reference"
 msgstr "删除链接的 `task` 参考"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:310
-msgid "Soft-delete a habit"
-msgstr "软删除 `habit`"
+msgid "Delete a habit"
+msgstr "删除 `habit`"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:311
-msgid "Soft-delete one habit. Public CLI deletion is never permanent."
-msgstr "软删除一个 `habit`。公共 CLI 删除永远不会是永久的。"
+msgid "Delete one habit."
+msgstr "删除一个 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:322
 msgid "Show habit statistics"
@@ -1368,16 +1368,16 @@ msgid "Run bulk habit operations"
 msgstr "执行批量 `habit` 操作"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:346
-msgid "Grouped namespace for multi-record habit writes."
-msgstr "用于多记录 `habit` 写入的分组命名空间。"
+msgid "Delete multiple habits in one command."
+msgstr "在一个命令中删除多个 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:360
-msgid "Soft-delete multiple habits"
-msgstr "软删除多个 `habit`"
+msgid "Delete multiple habits"
+msgstr "删除多个 `habit`"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:361
-msgid "Soft-delete multiple habits in one command."
-msgstr "在一个命令中软删除多个 `habit`。"
+msgid "Delete multiple habits in one command."
+msgstr "在一个命令中删除多个 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit_action/parser.py:31
 msgid "Manage dated habit actions"
@@ -1655,8 +1655,8 @@ msgstr ""
 "timelog_count、tag_count，以及规范化后的内容预览。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:145
-msgid "Use --include-deleted when reviewing soft-deleted records."
-msgstr "查看软删除记录时使用 --include-deleted。"
+msgid "Use --include-deleted when reviewing deleted records."
+msgstr "查看已删除记录时使用 --include-deleted。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:146
 msgid "Use --limit and --offset together for pagination."
@@ -1718,8 +1718,8 @@ msgid ""
 msgstr "当您需要检查保留的换行符而不是来自 `note list ` 的单行摘要时，请使用此操作。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:223
-msgid "Use `--include-deleted` to inspect a soft-deleted note."
-msgstr "使用 `--include-deleted` 检查软删除的 `note`。"
+msgid "Use `--include-deleted` to inspect a deleted note."
+msgstr "使用 `--include-deleted` 检查已删除的 `note`。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:226
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:259
@@ -1806,8 +1806,8 @@ msgid "Run batch note operations"
 msgstr "执行批量 `note` 操作"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:367
-msgid "Run operations that target multiple notes in a single command."
-msgstr "在单条命令中执行针对多个 `note` 的操作。"
+msgid "Run note operations that target multiple records in one command."
+msgstr "在一个命令中执行针对多条 `note` 记录的操作。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:370
 msgid ""
@@ -1820,6 +1820,14 @@ msgstr ""
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:384
 msgid "Batch commands currently accept note IDs directly."
 msgstr "批处理命令目前直接接受 `note` ID。"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:382
+msgid "Use `update-content` for bulk find/replace across active note content."
+msgstr "使用 `update-content` 对活动 `note` 内容执行批量查找替换。"
+
+#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:383
+msgid "Use `delete` to remove multiple notes by identifier."
+msgstr "使用 `delete` 按标识符删除多个 `note`。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:385
 msgid "Future note batch operations should be added under this namespace."
@@ -1886,10 +1894,6 @@ msgstr "在一个命令中删除多个 `note`。"
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:454
 msgid "This command mirrors `lifeos note delete`, but works across many note IDs."
 msgstr "此命令镜像 `lifeos note delete`，但适用于许多 `note` ID。"
-
-#: src/lifeos_cli/cli_support/resources/note/parser_actions.py:462
-msgid "CLI batch delete performs soft deletion only."
-msgstr "CLI 批量删除仅执行软删除。"
 
 #: src/lifeos_cli/cli_support/resources/note/parser_actions.py:463
 msgid ""
@@ -2077,8 +2081,8 @@ msgid "Delete a person"
 msgstr "删除 `person`"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:216
-msgid "Soft-delete a person."
-msgstr "软删除 `person`。"
+msgid "Delete a person."
+msgstr "删除 `person`。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:218
 msgid "The record remains recoverable through deleted-aware inspection commands."
@@ -2089,8 +2093,8 @@ msgid "Run batch people operations"
 msgstr "执行批量 `people` 操作"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:232
-msgid "Run write operations that target multiple people in one command."
-msgstr "在一个命令中运行针对多个 `people` 的写入操作。"
+msgid "Delete multiple people records in one command."
+msgstr "在一个命令中删除多条 `people` 记录。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:234
 msgid "Use this namespace for bulk maintenance operations."
@@ -2101,8 +2105,8 @@ msgid "Delete multiple people"
 msgstr "删除多个 `people`"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:255
-msgid "Soft-delete multiple people by identifier."
-msgstr "按标识符软删除多个 `people`。"
+msgid "Delete multiple people by identifier."
+msgstr "按标识符删除多个 `people`。"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:24
 msgid "Inspect aggregated schedule views"
@@ -2368,8 +2372,8 @@ msgid "Delete a tag"
 msgstr "删除 `tag`"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:190
-msgid "Soft-delete a tag."
-msgstr "软删除 `tag`。"
+msgid "Delete a tag."
+msgstr "删除 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:193
 msgid ""
@@ -2382,8 +2386,8 @@ msgid "Run batch tag operations"
 msgstr "执行批量 `tag` 操作"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:209
-msgid "Run write operations that target multiple tags in one command."
-msgstr "在一个命令中运行针对多个 `tag` 的写入操作。"
+msgid "Delete multiple tags in one command."
+msgstr "在一个命令中删除多个 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:212
 #: src/lifeos_cli/cli_support/resources/task/parser.py:438
@@ -2397,8 +2401,8 @@ msgid "Delete multiple tags"
 msgstr "删除多个 `tag`"
 
 #: src/lifeos_cli/cli_support/resources/tag/parser.py:235
-msgid "Soft-delete multiple tags by identifier."
-msgstr "按标识符软删除多个 `tag`。"
+msgid "Delete multiple tags by identifier."
+msgstr "按标识符删除多个 `tag`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:36
 msgid "Manage hierarchical tasks"
@@ -2792,8 +2796,8 @@ msgid "Delete a task"
 msgstr "删除 `task`"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:416
-msgid "Soft-delete a task."
-msgstr "软删除 `task`。"
+msgid "Delete a task."
+msgstr "删除 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:419
 msgid ""
@@ -2806,16 +2810,16 @@ msgid "Run batch task operations"
 msgstr "执行批量 `task` 操作"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:435
-msgid "Run write operations that target multiple tasks in one command."
-msgstr "在一个命令中运行针对多个 `task` 的写入操作。"
+msgid "Delete multiple tasks in one command."
+msgstr "在一个命令中删除多个 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:460
 msgid "Delete multiple tasks"
 msgstr "删除多个 `task`"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:461
-msgid "Soft-delete multiple tasks by identifier."
-msgstr "通过标识符软删除多个 `task`。"
+msgid "Delete multiple tasks by identifier."
+msgstr "通过标识符删除多个 `task`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:51
 msgid "Manage actual time records"
@@ -2848,8 +2852,8 @@ msgid "Use `stats` for timelog stats grouped by area."
 msgstr "使用 `stats` 查看按 `area` 分组的 `timelog` 统计。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:77
-msgid "Use `restore` to recover a soft-deleted timelog."
-msgstr "使用 `restore` 恢复软删除的 `timelog`。"
+msgid "Use `restore` to recover a deleted timelog."
+msgstr "使用 `restore` 恢复已删除的 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:90
 msgid "Create a timelog"
@@ -3007,16 +3011,16 @@ msgid "Delete a timelog"
 msgstr "删除 `timelog`"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:283
-msgid "Soft-delete one timelog."
-msgstr "软删除一个 `timelog`。"
+msgid "Delete one timelog."
+msgstr "删除一个 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:294
 msgid "Restore a timelog"
 msgstr "恢复 `timelog`"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:295
-msgid "Restore one soft-deleted timelog."
-msgstr "恢复一个软删除的 `timelog`。"
+msgid "Restore one deleted timelog."
+msgstr "恢复一个已删除的 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:297
 msgid "The referenced area and task must still be active if they are linked."
@@ -3027,8 +3031,8 @@ msgid "Run batch timelog operations"
 msgstr "执行批量 `timelog` 操作"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:308
-msgid "Grouped namespace for multi-record timelog writes."
-msgstr "用于多记录 `timelog` 写入的分组命名空间。"
+msgid "Run bulk update, restore, and delete operations for timelogs."
+msgstr "对 `timelog` 执行批量 update、restore 和 delete 操作。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:324
 msgid "Update multiple timelogs"
@@ -3071,16 +3075,16 @@ msgid "Restore multiple timelogs"
 msgstr "恢复多个 `timelog`"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:383
-msgid "Restore multiple soft-deleted timelogs by identifier."
-msgstr "通过标识符恢复多个软删除的 `timelog`。"
+msgid "Restore multiple deleted timelogs by identifier."
+msgstr "通过标识符恢复多个已删除的 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:393
 msgid "Delete multiple timelogs"
 msgstr "删除多个 `timelog`"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:394
-msgid "Soft-delete multiple timelogs by identifier."
-msgstr "按标识符软删除多个 `timelog`。"
+msgid "Delete multiple timelogs by identifier."
+msgstr "按标识符删除多个 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:404
 msgid "Query timelog stats grouped by area"
@@ -3411,8 +3415,8 @@ msgid "Delete a vision"
 msgstr "删除 `vision`"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:277
-msgid "Soft-delete a vision."
-msgstr "软删除 `vision`。"
+msgid "Delete a vision."
+msgstr "删除 `vision`。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:280
 msgid ""
@@ -3425,8 +3429,8 @@ msgid "Run batch vision operations"
 msgstr "执行批量 `vision` 操作"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:296
-msgid "Run write operations that target multiple visions in one command."
-msgstr "在一个命令中运行针对多个 `vision` 的写入操作。"
+msgid "Delete multiple visions in one command."
+msgstr "在一个命令中删除多个 `vision`。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:299
 msgid ""
@@ -3439,8 +3443,8 @@ msgid "Delete multiple visions"
 msgstr "删除多重 `vision`"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:322
-msgid "Soft-delete multiple visions by identifier."
-msgstr "通过标识符软删除多个 `vision`。"
+msgid "Delete multiple visions by identifier."
+msgstr "通过标识符删除多个 `vision`。"
 
 #: src/lifeos_cli/cli_support/system/config_commands.py:66
 msgid "Enable SQL echo logging"
@@ -3843,6 +3847,10 @@ msgstr "当其他写入方可能已经移动了该 `task` 时，使用 `--old-pa
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:330
 msgid "Run bulk update, restore, and delete operations for timelogs."
 msgstr "对 `timelog` 执行批量 update、restore 和 delete 操作。"
+
+#: src/lifeos_cli/cli_support/resources/timelog/parser.py:331
+msgid "Use `restore` and `delete` to manage deleted timelogs in bulk."
+msgstr "使用 `restore` 和 `delete` 批量管理已删除的 `timelog`。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:300
 msgid "The effective hourly rate comes from the vision override when set, otherwise from preferences."

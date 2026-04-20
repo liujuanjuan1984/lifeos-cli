@@ -279,7 +279,7 @@ def build_timelog_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete a timelog"),
-            description=_("Soft-delete one timelog."),
+            description=_("Delete one timelog."),
             examples=("lifeos timelog delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -296,7 +296,7 @@ def build_timelog_restore_parser(
         "restore",
         help_content=HelpContent(
             summary=_("Restore a timelog"),
-            description=_("Restore one soft-deleted timelog."),
+            description=_("Restore one deleted timelog."),
             examples=("lifeos timelog restore 11111111-1111-1111-1111-111111111111",),
             notes=(_("The referenced area and task must still be active if they are linked."),),
         ),

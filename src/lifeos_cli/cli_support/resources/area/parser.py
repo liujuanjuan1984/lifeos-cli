@@ -113,7 +113,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos area list --include-deleted --limit 20 --offset 20",
             ),
             notes=(
-                _("Soft-deleted areas are hidden unless `--include-deleted` is set."),
+                _("Deleted areas are hidden unless `--include-deleted` is set."),
                 _(
                     "When results exist, the list command prints a header row followed by "
                     "tab-separated columns: {columns}."
@@ -146,7 +146,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos area show 11111111-1111-1111-1111-111111111111",
                 "lifeos area show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
-            notes=(_("Use `--include-deleted` to inspect a soft-deleted area."),),
+            notes=(_("Use `--include-deleted` to inspect a deleted area."),),
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
@@ -202,14 +202,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary=_("Delete an area"),
-            description=(
-                _("Soft-delete an area.")
-                + "\n\n"
-                + _(
-                    "The record remains in the database and can still be inspected through "
-                    "`list --include-deleted` or `show --include-deleted`."
-                )
-            ),
+            description=_("Delete an area."),
             examples=("lifeos area delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -221,7 +214,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "batch",
         help_content=HelpContent(
             summary=_("Run batch area operations"),
-            description=_("Soft-delete multiple areas in one command."),
+            description=_("Delete multiple areas in one command."),
             examples=(
                 "lifeos area batch delete --help",
                 "lifeos area batch delete --ids <area-id-1> <area-id-2>",
@@ -240,9 +233,8 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple areas"),
-            description=_("Soft-delete multiple areas by identifier."),
+            description=_("Delete multiple areas by identifier."),
             examples=("lifeos area batch delete --ids <area-id-1> <area-id-2>",),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="area_ids", noun="area")

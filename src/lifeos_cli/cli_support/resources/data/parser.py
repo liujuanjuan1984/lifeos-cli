@@ -103,7 +103,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     export_parser.add_argument(
         "--exclude-deleted",
         action="store_true",
-        help=_("Exclude soft-deleted rows from exported snapshots"),
+        help=_("Exclude deleted rows from exported snapshots"),
     )
     export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
@@ -221,7 +221,7 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             summary=_("Batch-delete one resource by identifiers"),
             description=(
                 _(
-                    "Soft-delete multiple rows for one resource using repeated IDs, an IDs "
+                    "Delete multiple rows for one resource using repeated IDs, an IDs "
                     "file, or JSON/JSONL input containing row IDs."
                 )
             ),

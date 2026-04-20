@@ -222,14 +222,7 @@ def build_task_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete a task"),
-            description=(
-                _("Soft-delete a task.")
-                + "\n\n"
-                + _(
-                    "The record remains recoverable and visible through deleted-aware "
-                    "inspection commands."
-                )
-            ),
+            description=_("Delete a task."),
             examples=("lifeos task delete 11111111-1111-1111-1111-111111111111",),
         ),
     )

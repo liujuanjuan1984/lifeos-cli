@@ -222,11 +222,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary=_("Delete a person"),
-            description=(
-                _("Soft-delete a person.")
-                + "\n\n"
-                + _("The record remains recoverable through deleted-aware inspection commands.")
-            ),
+            description=_("Delete a person."),
             examples=("lifeos people delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -238,7 +234,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "batch",
         help_content=HelpContent(
             summary=_("Run batch people operations"),
-            description=_("Soft-delete multiple people records in one command."),
+            description=_("Delete multiple people records in one command."),
             examples=(
                 "lifeos people batch delete --help",
                 "lifeos people batch delete --ids <person-id-1> <person-id-2>",
@@ -257,9 +253,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple people"),
-            description=_("Soft-delete multiple people by identifier."),
+            description=_("Delete multiple people by identifier."),
             examples=("lifeos people batch delete --ids <person-id-1> <person-id-2>",),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="person_ids", noun="person")

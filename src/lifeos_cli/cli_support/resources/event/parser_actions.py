@@ -360,7 +360,7 @@ def build_event_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete an event"),
-            description=_("Soft-delete one event."),
+            description=_("Delete one event."),
             examples=(
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
@@ -397,7 +397,7 @@ def build_event_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run batch event operations"),
-            description=_("Soft-delete multiple events in one command."),
+            description=_("Delete multiple events in one command."),
             examples=(
                 "lifeos event batch delete --help",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
@@ -413,7 +413,7 @@ def build_event_batch_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple events"),
-            description=_("Soft-delete multiple events by identifier."),
+            description=_("Delete multiple events by identifier."),
             examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
         ),
     )

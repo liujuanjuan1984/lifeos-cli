@@ -37,7 +37,7 @@ def build_timelog_batch_parser(
             ),
             notes=(
                 _("Use `update` to edit mutable fields across active timelogs."),
-                _("Use `restore` and `delete` to manage soft-deleted timelog state in bulk."),
+                _("Use `restore` and `delete` to manage deleted timelogs in bulk."),
             ),
         ),
     )
@@ -117,7 +117,7 @@ def build_timelog_batch_parser(
         "restore",
         help_content=HelpContent(
             summary=_("Restore multiple timelogs"),
-            description=_("Restore multiple soft-deleted timelogs by identifier."),
+            description=_("Restore multiple deleted timelogs by identifier."),
             examples=("lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",),
         ),
     )
@@ -134,7 +134,7 @@ def build_timelog_batch_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple timelogs"),
-            description=_("Soft-delete multiple timelogs by identifier."),
+            description=_("Delete multiple timelogs by identifier."),
             examples=("lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",),
         ),
     )

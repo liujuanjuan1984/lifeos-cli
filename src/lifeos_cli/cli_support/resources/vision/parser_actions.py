@@ -225,14 +225,7 @@ def build_vision_delete_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete a vision"),
-            description=(
-                _("Soft-delete a vision.")
-                + "\n\n"
-                + _(
-                    "The record remains in the database and can still be inspected with "
-                    "deleted-aware commands."
-                )
-            ),
+            description=_("Delete a vision."),
             examples=("lifeos vision delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
@@ -378,7 +371,7 @@ def build_vision_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run batch vision operations"),
-            description=_("Soft-delete multiple visions in one command."),
+            description=_("Delete multiple visions in one command."),
             examples=(
                 "lifeos vision batch delete --help",
                 "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
@@ -397,9 +390,8 @@ def build_vision_batch_parser(
         "delete",
         help_content=HelpContent(
             summary=_("Delete multiple visions"),
-            description=_("Soft-delete multiple visions by identifier."),
+            description=_("Delete multiple visions by identifier."),
             examples=("lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",),
-            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")
