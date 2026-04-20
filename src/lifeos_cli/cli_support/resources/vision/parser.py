@@ -9,20 +9,16 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_help_parser,
 )
 from lifeos_cli.cli_support.resources.vision.parser_actions import (
+    build_vision_add_experience_parser,
     build_vision_add_parser,
+    build_vision_batch_parser,
     build_vision_delete_parser,
+    build_vision_harvest_parser,
     build_vision_list_parser,
     build_vision_show_parser,
-    build_vision_update_parser,
-)
-from lifeos_cli.cli_support.resources.vision.parser_batch import build_vision_batch_parser
-from lifeos_cli.cli_support.resources.vision.parser_experience import (
-    build_vision_add_experience_parser,
-    build_vision_harvest_parser,
-    build_vision_sync_experience_parser,
-)
-from lifeos_cli.cli_support.resources.vision.parser_read_models import (
     build_vision_stats_parser,
+    build_vision_sync_experience_parser,
+    build_vision_update_parser,
     build_vision_with_tasks_parser,
 )
 from lifeos_cli.i18n import gettext_message as _

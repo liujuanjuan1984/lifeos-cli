@@ -5,19 +5,31 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.vision.handlers import (
     VISION_SUMMARY_COLUMNS,
+    VISION_WITH_TASKS_COLUMNS,
     handle_vision_add_async,
+    handle_vision_add_experience_async,
+    handle_vision_batch_delete_async,
     handle_vision_delete_async,
+    handle_vision_harvest_async,
     handle_vision_list_async,
     handle_vision_show_async,
+    handle_vision_stats_async,
+    handle_vision_sync_experience_async,
     handle_vision_update_async,
+    handle_vision_with_tasks_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.i18n import gettext_message as _
@@ -226,3 +238,169 @@ def build_vision_delete_parser(
     )
     delete_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_vision_delete_async))
+
+
+def build_vision_with_tasks_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision with-tasks command."""
+    with_tasks_parser = add_documented_parser(
+        vision_subparsers,
+        "with-tasks",
+        help_content=HelpContent(
+            summary=_("Show a vision task tree"),
+            description=_("Show one vision with its active tasks."),
+            examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "When the vision has tasks, the `tasks` section prints a header row "
+                    "followed by tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(VISION_WITH_TASKS_COLUMNS)),
+            ),
+        ),
+    )
+    with_tasks_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    with_tasks_parser.set_defaults(handler=make_sync_handler(handle_vision_with_tasks_async))
+
+
+def build_vision_stats_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision stats command."""
+    stats_parser = add_documented_parser(
+        vision_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary=_("Show vision stats"),
+            description=_("Show task counts and effort totals for one vision."),
+            examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _("Counts and effort totals aggregate all active tasks linked to the vision."),
+                _("Use `with-tasks` when you need the row-level task list instead of totals."),
+            ),
+        ),
+    )
+    stats_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    stats_parser.set_defaults(handler=make_sync_handler(handle_vision_stats_async))
+
+
+def build_vision_add_experience_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision add-experience command."""
+    add_experience_parser = add_documented_parser(
+        vision_subparsers,
+        "add-experience",
+        help_content=HelpContent(
+            summary=_("Add vision experience"),
+            description=_("Add manual experience points to an active vision."),
+            examples=(
+                "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
+            ),
+            notes=(
+                _("Use this for explicit manual credit rather than for task-effort recalculation."),
+                _("Use `sync-experience` when experience should be recomputed from task effort."),
+            ),
+        ),
+    )
+    add_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    add_experience_parser.add_argument(
+        "--points",
+        dest="experience_points",
+        type=int,
+        required=True,
+        help=_("Experience points to add"),
+    )
+    add_experience_parser.set_defaults(
+        handler=make_sync_handler(handle_vision_add_experience_async)
+    )
+
+
+def build_vision_sync_experience_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision sync-experience command."""
+    sync_experience_parser = add_documented_parser(
+        vision_subparsers,
+        "sync-experience",
+        help_content=HelpContent(
+            summary=_("Sync vision experience"),
+            description=_("Synchronize experience points from root task actual effort totals."),
+            examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "Use this after task effort changes when vision experience should match "
+                    "current root-task actual effort."
+                ),
+                _(
+                    "The effective hourly rate comes from the vision override when set, "
+                    "otherwise from preferences."
+                ),
+            ),
+        ),
+    )
+    sync_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    sync_experience_parser.set_defaults(
+        handler=make_sync_handler(handle_vision_sync_experience_async)
+    )
+
+
+def build_vision_harvest_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision harvest command."""
+    harvest_parser = add_documented_parser(
+        vision_subparsers,
+        "harvest",
+        help_content=HelpContent(
+            summary=_("Harvest a vision"),
+            description=_("Convert a mature active vision to fruit status."),
+            examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "This command succeeds only when the vision is active and already at final "
+                    "stage."
+                ),
+                _("A successful harvest changes the vision status from `active` to `fruit`."),
+            ),
+        ),
+    )
+    harvest_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    harvest_parser.set_defaults(handler=make_sync_handler(handle_vision_harvest_async))
+
+
+def build_vision_batch_parser(
+    vision_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the vision batch command tree."""
+    batch_parser = add_documented_help_parser(
+        vision_subparsers,
+        "batch",
+        help_content=HelpContent(
+            summary=_("Run batch vision operations"),
+            description=_("Soft-delete multiple visions in one command."),
+            examples=(
+                "lifeos vision batch delete --help",
+                "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+        ),
+    )
+    batch_subparsers = batch_parser.add_subparsers(
+        dest="vision_batch_command",
+        title=_("batch actions"),
+        metavar=_("batch_action"),
+    )
+
+    batch_delete_parser = add_documented_parser(
+        batch_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary=_("Delete multiple visions"),
+            description=_("Soft-delete multiple visions by identifier."),
+            examples=("lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",),
+            notes=(_("Batch delete never performs hard deletion from the public CLI."),),
+        ),
+    )
+    add_identifier_list_argument(batch_delete_parser, dest="vision_ids", noun="vision")
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_vision_batch_delete_async))
