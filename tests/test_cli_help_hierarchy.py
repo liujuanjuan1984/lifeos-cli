@@ -347,8 +347,8 @@ def test_resource_help_avoids_delete_behavior_contract_details(
         (
             "timelog",
             (
-                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
-                "--end-time 2026-04-10T14:30:00-04:00",
+                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00 '
+                "--end-time 2026-04-10T14:30:00",
             ),
         ),
     ],

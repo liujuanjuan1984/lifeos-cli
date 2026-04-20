@@ -53,6 +53,52 @@ def _read_rows(path: str | None, *, stdin: bool, input_format: str) -> list[dict
     return list(rows)
 
 
+def _coerce_batch_delete_id(item: object, *, input_format: str) -> UUID:
+    if isinstance(item, str):
+        return UUID(item)
+    if isinstance(item, dict) and "id" in item:
+        return UUID(str(item["id"]))
+    raise data_ops.DataOperationError(
+        f"Batch-delete {input_format.upper()} input must contain UUID strings or objects with `id`."
+    )
+
+
+def _read_ids_from_plain_text(raw_text: str) -> list[UUID]:
+    return [UUID(line.strip()) for line in raw_text.splitlines() if line.strip()]
+
+
+def _read_ids_from_jsonl(raw_text: str) -> list[UUID]:
+    record_ids: list[UUID] = []
+    for line in raw_text.splitlines():
+        if not line.strip():
+            continue
+        record_ids.append(_coerce_batch_delete_id(json.loads(line), input_format="jsonl"))
+    return record_ids
+
+
+def _read_ids_from_json(raw_text: str) -> list[UUID]:
+    loaded = json.loads(raw_text)
+    if not isinstance(loaded, list):
+        raise data_ops.DataOperationError("Batch-delete JSON input must be a JSON array.")
+    return [_coerce_batch_delete_id(item, input_format="json") for item in loaded]
+
+
+def _read_ids_from_text_input(
+    *,
+    file_path: str | None,
+    stdin: bool,
+    input_format: str,
+) -> list[UUID]:
+    raw_text = _read_text(file_path, stdin=stdin)
+    if input_format == "plain":
+        return _read_ids_from_plain_text(raw_text)
+    if input_format == "jsonl":
+        return _read_ids_from_jsonl(raw_text)
+    if input_format == "json":
+        return _read_ids_from_json(raw_text)
+    raise data_ops.DataOperationError(f"Unsupported delete input format {input_format!r}.")
+
+
 def _read_ids(
     *,
     repeated_ids: list[UUID] | None,
@@ -64,49 +110,13 @@ def _read_ids(
     ids = list(repeated_ids or [])
     try:
         if ids_file is not None:
-            ids.extend(
-                UUID(line.strip())
-                for line in Path(ids_file).read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            )
+            ids.extend(_read_ids_from_plain_text(Path(ids_file).read_text(encoding="utf-8")))
         if file_path is not None or stdin:
-            raw_text = _read_text(file_path, stdin=stdin)
-            if input_format == "plain":
-                ids.extend(UUID(line.strip()) for line in raw_text.splitlines() if line.strip())
-            elif input_format == "jsonl":
-                for line in raw_text.splitlines():
-                    if not line.strip():
-                        continue
-                    loaded = json.loads(line)
-                    if isinstance(loaded, str):
-                        ids.append(UUID(loaded))
-                    elif isinstance(loaded, dict) and "id" in loaded:
-                        ids.append(UUID(str(loaded["id"])))
-                    else:
-                        raise data_ops.DataOperationError(
-                            "Batch-delete JSONL input must contain UUID strings or "
-                            "objects with `id`."
-                        )
-            elif input_format == "json":
-                loaded = json.loads(raw_text)
-                if not isinstance(loaded, list):
-                    raise data_ops.DataOperationError(
-                        "Batch-delete JSON input must be a JSON array."
-                    )
-                for item in loaded:
-                    if isinstance(item, str):
-                        ids.append(UUID(item))
-                    elif isinstance(item, dict) and "id" in item:
-                        ids.append(UUID(str(item["id"])))
-                    else:
-                        raise data_ops.DataOperationError(
-                            "Batch-delete JSON input must contain UUID strings or "
-                            "objects with `id`."
-                        )
-            else:
-                raise data_ops.DataOperationError(
-                    f"Unsupported delete input format {input_format!r}."
+            ids.extend(
+                _read_ids_from_text_input(
+                    file_path=file_path, stdin=stdin, input_format=input_format
                 )
+            )
     except json.JSONDecodeError as exc:
         raise data_ops.DataOperationError(f"Invalid JSON input: {exc.msg}.") from exc
     except ValueError as exc:

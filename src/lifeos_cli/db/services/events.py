@@ -322,16 +322,10 @@ async def create_event(
     recurrence_instance_start: datetime | None = None,
 ) -> EventView:
     """Create a new event."""
-    normalized_start_time = normalize_event_datetime(start_time, field_name="start_time")
-    normalized_end_time = normalize_optional_event_datetime(end_time, field_name="end_time")
-    normalized_recurrence_until = normalize_optional_event_datetime(
-        recurrence_until,
-        field_name="recurrence_until",
-    )
-    normalized_instance_start = normalize_optional_event_datetime(
-        recurrence_instance_start,
-        field_name="recurrence_instance_start",
-    )
+    normalized_start_time = normalize_event_datetime(start_time)
+    normalized_end_time = normalize_optional_event_datetime(end_time)
+    normalized_recurrence_until = normalize_optional_event_datetime(recurrence_until)
+    normalized_instance_start = normalize_optional_event_datetime(recurrence_instance_start)
     normalized_title = validate_event_title(title)
     validate_event_time_range(start_time=normalized_start_time, end_time=normalized_end_time)
     normalized_priority = validate_event_priority(priority)
@@ -610,12 +604,9 @@ async def _update_event_record(
     recurrence_until: datetime | None,
     clear_recurrence: bool,
 ) -> EventView:
-    normalized_start_time = normalize_optional_event_datetime(start_time, field_name="start_time")
-    normalized_end_time = normalize_optional_event_datetime(end_time, field_name="end_time")
-    normalized_recurrence_until = normalize_optional_event_datetime(
-        recurrence_until,
-        field_name="recurrence_until",
-    )
+    normalized_start_time = normalize_optional_event_datetime(start_time)
+    normalized_end_time = normalize_optional_event_datetime(end_time)
+    normalized_recurrence_until = normalize_optional_event_datetime(recurrence_until)
     next_start_time = (
         normalized_start_time if normalized_start_time is not None else event.start_time
     )
@@ -1036,10 +1027,7 @@ async def update_event(
         raise EventNotFoundError(f"Event {event_id} was not found")
 
     normalized_scope = validate_event_scope(scope)
-    normalized_instance_start = normalize_optional_event_datetime(
-        instance_start,
-        field_name="instance_start",
-    )
+    normalized_instance_start = normalize_optional_event_datetime(instance_start)
     if normalized_scope in {"single", "all_future"}:
         if normalized_instance_start is None:
             raise EventValidationError("Instance-level recurring updates require --instance-start.")
@@ -1143,10 +1131,7 @@ async def delete_event(
         raise EventNotFoundError(f"Event {event_id} was not found")
 
     normalized_scope = validate_event_scope(scope)
-    normalized_instance_start = normalize_optional_event_datetime(
-        instance_start,
-        field_name="instance_start",
-    )
+    normalized_instance_start = normalize_optional_event_datetime(instance_start)
     if normalized_scope == "all":
         event.soft_delete()
         await session.flush()

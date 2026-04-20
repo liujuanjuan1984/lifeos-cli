@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.time_preferences import normalize_user_datetime_to_utc
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
@@ -94,24 +95,16 @@ def validate_event_time_range(
         raise EventValidationError("Event end time must be on or after the start time")
 
 
-def normalize_event_datetime(value: datetime, *, field_name: str) -> datetime:
+def normalize_event_datetime(value: datetime) -> datetime:
     """Normalize one event datetime to UTC for storage."""
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise EventValidationError(
-            f"Event {field_name} must include timezone information, for example `-04:00` or `Z`."
-        )
-    return value.astimezone(timezone.utc)
+    return normalize_user_datetime_to_utc(value)
 
 
-def normalize_optional_event_datetime(
-    value: datetime | None,
-    *,
-    field_name: str,
-) -> datetime | None:
+def normalize_optional_event_datetime(value: datetime | None) -> datetime | None:
     """Normalize an optional event datetime to UTC for storage."""
     if value is None:
         return None
-    return normalize_event_datetime(value, field_name=field_name)
+    return normalize_event_datetime(value)
 
 
 def validate_event_priority(priority: int) -> int:

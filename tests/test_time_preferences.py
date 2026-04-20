@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 
 from lifeos_cli.application.time_preferences import (
+    apply_preferred_timezone,
     get_operational_date,
     get_utc_window_for_local_date,
     get_week_bounds,
+    normalize_user_datetime_to_utc,
     to_preferred_timezone,
 )
 from lifeos_cli.config import clear_config_cache
@@ -18,6 +20,24 @@ def test_to_preferred_timezone_uses_configured_timezone(monkeypatch, tmp_path) -
     converted = to_preferred_timezone(datetime(2026, 4, 10, 7, 30, tzinfo=timezone.utc))
 
     assert converted.isoformat() == "2026-04-10T03:30:00-04:00"
+    clear_config_cache()
+
+
+def test_apply_preferred_timezone_attaches_configured_timezone(monkeypatch, tmp_path) -> None:
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
+
+    converted = apply_preferred_timezone(datetime(2026, 4, 10, 9, 0))
+
+    assert converted.isoformat() == "2026-04-10T09:00:00-04:00"
+    clear_config_cache()
+
+
+def test_normalize_user_datetime_to_utc_preserves_explicit_timezone(monkeypatch, tmp_path) -> None:
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
+
+    normalized = normalize_user_datetime_to_utc(datetime(2026, 4, 10, 9, 0, tzinfo=timezone.utc))
+
+    assert normalized.isoformat() == "2026-04-10T09:00:00+00:00"
     clear_config_cache()
 
 

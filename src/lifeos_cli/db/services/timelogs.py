@@ -259,8 +259,8 @@ async def create_timelog(
     person_ids: list[UUID] | None = None,
 ) -> TimelogView:
     """Create a new timelog."""
-    normalized_start_time = normalize_timelog_datetime(start_time, field_name="start_time")
-    normalized_end_time = normalize_timelog_datetime(end_time, field_name="end_time")
+    normalized_start_time = normalize_timelog_datetime(start_time)
+    normalized_end_time = normalize_timelog_datetime(end_time)
     normalized_title = validate_timelog_title(title)
     validate_timelog_time_range(
         start_time=normalized_start_time,
@@ -324,6 +324,17 @@ async def get_timelog(
     if timelog is None:
         return None
     return await _build_timelog_view(session, timelog)
+
+
+async def get_latest_timelog_end_time(session: AsyncSession) -> datetime | None:
+    """Return the latest active timelog end time for quick-add cursor inheritance."""
+    stmt = (
+        select(Timelog.end_time)
+        .where(Timelog.deleted_at.is_(None))
+        .order_by(Timelog.end_time.desc(), Timelog.id.desc())
+        .limit(1)
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def list_timelogs(
@@ -458,12 +469,8 @@ async def update_timelog(
     old_start_time = timelog.start_time
     old_end_time = timelog.end_time
 
-    normalized_start_time = (
-        normalize_timelog_datetime(start_time, field_name="start_time") if start_time else None
-    )
-    normalized_end_time = (
-        normalize_timelog_datetime(end_time, field_name="end_time") if end_time else None
-    )
+    normalized_start_time = normalize_timelog_datetime(start_time) if start_time else None
+    normalized_end_time = normalize_timelog_datetime(end_time) if end_time else None
     next_start_time = (
         normalized_start_time if normalized_start_time is not None else timelog.start_time
     )
@@ -713,6 +720,7 @@ __all__ = [
     "count_timelogs",
     "delete_timelog",
     "get_timelog",
+    "get_latest_timelog_end_time",
     "list_timelogs",
     "update_timelog",
 ]

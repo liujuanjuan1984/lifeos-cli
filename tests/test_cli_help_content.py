@@ -601,7 +601,8 @@ def test_cli_event_delete_help_describes_recurring_scope_requirements(capsys) ->
 
     assert "Use `--scope single|all_future|all` for recurring series deletes." in captured.out
     assert "`--scope single` and `--scope all_future` require `--instance-start`." in captured.out
-    assert "--scope all_future --instance-start 2026-04-10T09:00:00-04:00" in captured.out
+    assert "--scope all_future --instance-start 2026-04-10T09:00:00" in captured.out
+    assert "configured timezone is used before the value is converted to UTC" in captured.out
 
 
 def test_cli_vision_update_help_lists_valid_statuses(capsys) -> None:
@@ -653,6 +654,20 @@ def test_cli_note_add_help_shows_repeated_relation_flag_usage(capsys) -> None:
         in captured.out
     )
     assert "Repeat the same relation flag to link multiple records of that type" in captured.out
+
+
+def test_cli_timelog_add_help_describes_quick_batch_mode(capsys) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert '--entry "0700 Breakfast" --entry "0830 Deep work"' in captured.out
+    assert "always previews the parsed rows" in captured.out
+    assert "latest active timelog end time" in captured.out
+    assert "configured timezone is used before the value is converted to UTC" in captured.out
 
 
 @pytest.mark.parametrize(
@@ -755,7 +770,7 @@ def test_cli_help_shows_repeated_relation_flag_examples(
         ),
         (
             ["event", "update", "--help"],
-            "--scope single --instance-start 2026-04-10T09:00:00-04:00 --clear-end-time",
+            "--scope single --instance-start 2026-04-10T09:00:00 --clear-end-time",
         ),
     ],
 )

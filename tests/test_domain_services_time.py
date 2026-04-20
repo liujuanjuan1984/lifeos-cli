@@ -9,6 +9,7 @@ from uuid import UUID
 
 import pytest
 
+from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services import events, task_effort, timelogs
 from tests.support import utc_datetime
 
@@ -19,6 +20,11 @@ async def _identity_event_view(_: object, event: object) -> object:
 
 async def _identity_timelog_view(_: object, timelog: object) -> object:
     return timelog
+
+
+def _set_timezone(monkeypatch: pytest.MonkeyPatch, timezone_name: str = "America/Toronto") -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", timezone_name)
 
 
 def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -149,6 +155,82 @@ def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.Mon
     assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
 
 
+def test_create_event_interprets_naive_datetimes_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            title="Local event",
+            start_time=datetime(2026, 4, 10, 9, 0),
+            end_time=datetime(2026, 4, 10, 10, 0),
+        )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
+
+
+def test_create_timelog_interprets_naive_datetimes_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_flush_and_recompute(_: object, **__: object) -> None:
+        await session.flush()
+
+    session.add = fake_add
+    monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_timelog_dependents",
+        fake_flush_and_recompute,
+    )
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
+
+    created = asyncio.run(
+        timelogs.create_timelog(
+            cast(Any, session),
+            title="Local timelog",
+            start_time=datetime(2026, 4, 10, 9, 0),
+            end_time=datetime(2026, 4, 10, 10, 0),
+        )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
+
+
 def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
 
@@ -242,18 +324,46 @@ def test_create_event_accepts_event_type(monkeypatch: pytest.MonkeyPatch) -> Non
     assert created.event_type == "timeblock"
 
 
-def test_create_timelog_rejects_naive_datetimes() -> None:
-    session = SimpleNamespace()
+def test_create_timelog_interprets_naive_datetimes_using_utc_preference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch, "UTC")
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
 
-    with pytest.raises(timelogs.TimelogValidationError):
-        asyncio.run(
-            timelogs.create_timelog(
-                cast(Any, session),
-                title="Naive record",
-                start_time=datetime(2026, 4, 10, 13, 0),
-                end_time=datetime(2026, 4, 10, 14, 0),
-            )
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_flush_and_recompute(_: object, **__: object) -> None:
+        await session.flush()
+
+    session.add = fake_add
+    monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_timelog_dependents",
+        fake_flush_and_recompute,
+    )
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
+
+    created = asyncio.run(
+        timelogs.create_timelog(
+            cast(Any, session),
+            title="Naive record",
+            start_time=datetime(2026, 4, 10, 13, 0),
+            end_time=datetime(2026, 4, 10, 14, 0),
         )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
 
 
 def test_timelog_minutes_uses_whole_positive_minutes() -> None:
@@ -371,6 +481,56 @@ def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPa
 
     record_skip.assert_awaited_once()
     session.flush.assert_awaited_once()
+
+
+def test_delete_event_single_interprets_naive_instance_start_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    event = SimpleNamespace(
+        id=UUID("abababab-abab-abab-abab-abababababab"),
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 14, 0),
+        recurrence_frequency="daily",
+        recurrence_interval=1,
+        recurrence_count=3,
+        recurrence_until=None,
+        recurrence_parent_event_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock())
+    record_skip = AsyncMock()
+
+    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+        assert event_id == UUID("abababab-abab-abab-abab-abababababab")
+        assert include_deleted is False
+        return event
+
+    async def fake_get_override_event(
+        _: object,
+        *,
+        master_event_id: UUID,
+        instance_start: datetime,
+    ) -> object | None:
+        assert master_event_id == event.id
+        assert instance_start == utc_datetime(2026, 4, 11, 13, 0)
+        return None
+
+    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
+    monkeypatch.setattr(events, "_get_override_event_for_instance", fake_get_override_event)
+    monkeypatch.setattr(events, "_record_skip_exception", record_skip)
+
+    asyncio.run(
+        events.delete_event(
+            cast(Any, session),
+            event_id=UUID("abababab-abab-abab-abab-abababababab"),
+            scope="single",
+            instance_start=datetime(2026, 4, 11, 9, 0),
+        )
+    )
+
+    record_skip.assert_awaited_once()
+    session.flush.assert_awaited_once()
+    clear_config_cache()
 
 
 def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() -> None:

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from datetime import date
+import io
+from datetime import date, datetime
 from uuid import UUID
 
 import pytest
 
 from lifeos_cli import cli
+from lifeos_cli.cli_support.resources.timelog import handlers as timelog_handlers
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit import Habit
@@ -18,11 +20,21 @@ from lifeos_cli.db.services import (
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
+class _PromptInput(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def _isoformat_datetime(value: object) -> str:
+    assert isinstance(value, datetime)
+    return value.isoformat()
+
+
 def test_main_timelog_add_creates_timelog(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_timelog(session: object, **kwargs: object) -> object:
+    async def fake_create_timelog(_session: object, **kwargs: object) -> object:
         assert kwargs["title"] == "Deep work"
         assert kwargs["tracking_method"] == "manual"
         return make_record(id=UUID("13131313-1313-1313-1313-131313131313"))
@@ -36,15 +48,88 @@ def test_main_timelog_add_creates_timelog(
             "add",
             "Deep work",
             "--start-time",
-            "2026-04-10T13:00:00-04:00",
+            "2026-04-10T13:00:00",
             "--end-time",
-            "2026-04-10T14:30:00-04:00",
+            "2026-04-10T14:30:00",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert "Created timelog 13131313-1313-1313-1313-131313131313" in captured.out
+
+
+def test_main_timelog_add_quick_batch_creates_timelogs_after_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_calls: list[dict[str, object]] = []
+
+    async def fake_create_timelog(_session: object, **kwargs: object) -> object:
+        captured_calls.append(kwargs)
+        return make_record(id=UUID(f"13131313-1313-1313-1313-13131313131{len(captured_calls)}"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "create_timelog", fake_create_timelog)
+    monkeypatch.setattr(timelog_handlers.sys, "stdin", _PromptInput("yes\n"))
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/Toronto")
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "add",
+            "--entry",
+            "0700 Breakfast",
+            "--entry",
+            "0830 Deep work",
+            "--first-start-time",
+            "2026-04-10T06:30:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert len(captured_calls) == 2
+    assert captured_calls[0]["title"] == "Breakfast"
+    assert _isoformat_datetime(captured_calls[0]["start_time"]) == "2026-04-10T06:30:00-04:00"
+    assert _isoformat_datetime(captured_calls[0]["end_time"]) == "2026-04-10T07:00:00-04:00"
+    assert captured_calls[1]["title"] == "Deep work"
+    assert _isoformat_datetime(captured_calls[1]["start_time"]) == "2026-04-10T07:00:00-04:00"
+    assert _isoformat_datetime(captured_calls[1]["end_time"]) == "2026-04-10T08:30:00-04:00"
+    assert "Quick batch timelog preview:" in captured.out
+    assert "Created timelogs: 2" in captured.out
+    clear_config_cache()
+
+
+def test_main_timelog_add_quick_batch_inherits_latest_end_time(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_calls: list[dict[str, object]] = []
+
+    async def fake_get_latest_timelog_end_time(_session: object) -> object:
+        return utc_datetime(2026, 4, 10, 10, 30)
+
+    async def fake_create_timelog(_session: object, **kwargs: object) -> object:
+        captured_calls.append(kwargs)
+        return make_record(id=UUID("14141414-1414-1414-1414-141414141414"))
+
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/Toronto")
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "get_latest_timelog_end_time", fake_get_latest_timelog_end_time)
+    monkeypatch.setattr(timelogs, "create_timelog", fake_create_timelog)
+    monkeypatch.setattr(timelog_handlers.sys, "stdin", _PromptInput("yes\n"))
+
+    exit_code = cli.main(["timelog", "add", "--entry", "0700 Breakfast"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert _isoformat_datetime(captured_calls[0]["start_time"]) == "2026-04-10T06:30:00-04:00"
+    assert _isoformat_datetime(captured_calls[0]["end_time"]) == "2026-04-10T07:00:00-04:00"
+    assert "Quick batch timelog preview:" in captured.out
+    clear_config_cache()
 
 
 def test_main_timelog_list_passes_search_filters(
@@ -54,7 +139,7 @@ def test_main_timelog_list_passes_search_filters(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
 
-    async def fake_list_timelogs(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["query"] == "deep work"
         assert kwargs["notes_contains"] == "focused"
         assert kwargs["area_name"] == "Work"
@@ -73,7 +158,7 @@ def test_main_timelog_list_passes_search_filters(
             )
         ]
 
-    async def fake_count_timelogs(session: object, **kwargs: object) -> int:
+    async def fake_count_timelogs(_session: object, **kwargs: object) -> int:
         assert kwargs["query"] == "deep work"
         assert kwargs["notes_contains"] == "focused"
         assert kwargs["area_name"] == "Work"
@@ -117,7 +202,7 @@ def test_main_timelog_list_passes_inclusive_date_range(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_timelogs(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["start_date"] == date(2026, 4, 10)
         assert kwargs["end_date"] == date(2026, 4, 11)
         return []
@@ -136,7 +221,7 @@ def test_main_timelog_batch_update_passes_relation_and_title_updates(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_batch_update_timelogs(session: object, **kwargs: object) -> object:
+    async def fake_batch_update_timelogs(_session: object, **kwargs: object) -> object:
         assert kwargs["timelog_ids"] == [
             UUID("13131313-1313-1313-1313-131313131313"),
             UUID("14141414-1414-1414-1414-141414141414"),
@@ -182,7 +267,7 @@ def test_main_task_add_creates_task(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_task(session: object, **kwargs: object) -> object:
+    async def fake_create_task(_session: object, **kwargs: object) -> object:
         assert kwargs["content"] == "Draft release checklist"
         assert kwargs["priority"] == 2
         assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
@@ -232,18 +317,18 @@ def test_main_task_read_model_commands_print_results(
         ),
     )
 
-    async def fake_get_task_with_subtasks(session: object, **kwargs: object) -> object:
+    async def fake_get_task_with_subtasks(_session: object, **kwargs: object) -> object:
         assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
         return root_task
 
-    async def fake_get_hierarchy(session: object, **kwargs: object) -> object:
+    async def fake_get_hierarchy(_session: object, **kwargs: object) -> object:
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         return make_record(
             vision_id=UUID("44444444-4444-4444-4444-444444444444"),
             root_tasks=(root_task,),
         )
 
-    async def fake_get_stats(session: object, **kwargs: object) -> object:
+    async def fake_get_stats(_session: object, **kwargs: object) -> object:
         assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
         return tasks.TaskStats(
             total_subtasks=1,
@@ -279,7 +364,7 @@ def test_main_task_list_prints_header_and_rows(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_tasks(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_tasks(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["vision_id"] is None
         return [
             make_record(
@@ -315,7 +400,7 @@ def test_main_task_list_passes_extended_filters(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_tasks(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_tasks(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["vision_in"] == "44444444-4444-4444-4444-444444444444"
         assert kwargs["status_in"] == "todo,in_progress"
         assert kwargs["exclude_status"] == "cancelled"
@@ -355,7 +440,7 @@ def test_main_task_move_and_reorder_call_services(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_move_task(session: object, **kwargs: object) -> object:
+    async def fake_move_task(_session: object, **kwargs: object) -> object:
         assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
         assert kwargs["old_parent_task_id"] == UUID("66666666-6666-6666-6666-666666666666")
         assert kwargs["new_parent_task_id"] == UUID("77777777-7777-7777-7777-777777777777")
@@ -366,7 +451,7 @@ def test_main_task_move_and_reorder_call_services(
             updated_descendants=(),
         )
 
-    async def fake_reorder_tasks(session: object, **kwargs: object) -> None:
+    async def fake_reorder_tasks(_session: object, **kwargs: object) -> None:
         assert kwargs["task_orders"] == [
             (UUID("55555555-5555-5555-5555-555555555555"), 0),
             (UUID("66666666-6666-6666-6666-666666666666"), 1),
@@ -413,7 +498,7 @@ def test_main_task_move_preserves_parent_when_parent_flag_is_omitted(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_move_task(session: object, **kwargs: object) -> object:
+    async def fake_move_task(_session: object, **kwargs: object) -> object:
         assert kwargs["task_id"] == UUID("55555555-5555-5555-5555-555555555555")
         assert "new_parent_task_id" not in kwargs
         assert kwargs["new_display_order"] == 4
@@ -445,7 +530,7 @@ def test_main_task_batch_delete_prints_summary(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_batch_delete_tasks(
-        session: object,
+        _session: object,
         *,
         task_ids: list[UUID],
     ) -> object:
@@ -482,7 +567,7 @@ def test_main_task_update_can_clear_parent(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_task(session: object, **kwargs: object) -> object:
+    async def fake_update_task(_session: object, **kwargs: object) -> object:
         assert kwargs["clear_parent"] is True
         assert kwargs["parent_task_id"] is None
         return make_record(id=UUID("55555555-5555-5555-5555-555555555555"))
@@ -508,7 +593,7 @@ def test_main_task_update_can_clear_people(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_task(session: object, **kwargs: object) -> object:
+    async def fake_update_task(_session: object, **kwargs: object) -> object:
         assert kwargs["clear_people"] is True
         assert kwargs["person_ids"] is None
         return make_record(id=UUID("55555555-5555-5555-5555-555555555555"))
@@ -591,7 +676,7 @@ def test_main_habit_add_creates_habit(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_habit(session: object, **kwargs: object) -> object:
+    async def fake_create_habit(_session: object, **kwargs: object) -> object:
         assert kwargs["title"] == "Daily Exercise"
         assert str(kwargs["start_date"]) == "2026-04-09"
         assert kwargs["duration_days"] == 21
@@ -624,7 +709,7 @@ def test_main_habit_add_passes_weekly_cadence_fields(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_habit(session: object, **kwargs: object) -> object:
+    async def fake_create_habit(_session: object, **kwargs: object) -> object:
         assert kwargs["cadence_frequency"] == "weekly"
         assert kwargs["cadence_weekdays"] == ["saturday", "sunday"]
         assert kwargs["target_per_cycle"] == 1
@@ -659,7 +744,7 @@ def test_main_habit_add_passes_monthly_cadence_fields(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_habit(session: object, **kwargs: object) -> object:
+    async def fake_create_habit(_session: object, **kwargs: object) -> object:
         assert kwargs["cadence_frequency"] == "monthly"
         assert kwargs["cadence_weekdays"] is None
         assert kwargs["target_per_cycle"] == 2
@@ -693,7 +778,7 @@ def test_main_habit_list_prints_count(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_habits(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_habits(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["status"] == "active"
         return [
             make_record(
@@ -710,7 +795,7 @@ def test_main_habit_list_prints_count(
             )
         ]
 
-    async def fake_count_habits(session: object, **kwargs: object) -> int:
+    async def fake_count_habits(_session: object, **kwargs: object) -> int:
         assert kwargs["status"] == "active"
         return 1
 
@@ -736,7 +821,7 @@ def test_main_habit_list_with_stats_prints_header(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_habit_overviews(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_habit_overviews(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["status"] == "active"
         habit = Habit(
             title="Strength training",
@@ -759,7 +844,7 @@ def test_main_habit_list_with_stats_prints_header(
             }
         ]
 
-    async def fake_count_habits(session: object, **kwargs: object) -> int:
+    async def fake_count_habits(_session: object, **kwargs: object) -> int:
         assert kwargs["status"] == "active"
         return 1
 
@@ -796,7 +881,7 @@ def test_main_habit_task_associations_prints_header(
     )
     habit.id = UUID("77777777-7777-7777-7777-777777777777")
 
-    async def fake_get_habit_task_associations(session: object) -> dict[UUID, list[Habit]]:
+    async def fake_get_habit_task_associations(_session: object) -> dict[UUID, list[Habit]]:
         return {UUID("66666666-6666-6666-6666-666666666666"): [habit]}
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -858,7 +943,7 @@ def test_main_habit_action_list_prints_count(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_habit_actions(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["start_date"] == date(2026, 4, 9)
         assert kwargs["end_date"] == date(2026, 4, 9)
         return [
@@ -872,7 +957,7 @@ def test_main_habit_action_list_prints_count(
             )
         ]
 
-    async def fake_count_habit_actions(session: object, **kwargs: object) -> int:
+    async def fake_count_habit_actions(_session: object, **kwargs: object) -> int:
         assert kwargs["start_date"] == date(2026, 4, 9)
         assert kwargs["end_date"] == date(2026, 4, 9)
         return 1
@@ -899,7 +984,7 @@ def test_main_habit_action_log_updates_by_habit_and_date(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_habit_action_by_date(session: object, **kwargs: object) -> object:
+    async def fake_update_habit_action_by_date(_session: object, **kwargs: object) -> object:
         assert kwargs["habit_id"] == UUID("77777777-7777-7777-7777-777777777777")
         assert kwargs["action_date"] == date(2026, 4, 9)
         assert kwargs["status"] == "done"
@@ -938,7 +1023,7 @@ def test_main_habit_action_list_passes_inclusive_date_range(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_list_habit_actions(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
         assert kwargs["start_date"] == date(2026, 4, 9)
         assert kwargs["end_date"] == date(2026, 4, 11)
         return []
@@ -957,7 +1042,7 @@ def test_main_habit_action_update_can_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_habit_action(session: object, **kwargs: object) -> object:
+    async def fake_update_habit_action(_session: object, **kwargs: object) -> object:
         assert kwargs["clear_notes"] is True
         assert kwargs["notes"] is None
         return make_record(id=UUID("88888888-8888-8888-8888-888888888888"))

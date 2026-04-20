@@ -23,7 +23,7 @@ def test_main_area_add_creates_area(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_area(session: object, **kwargs: object) -> object:
+    async def fake_create_area(_session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "Health"
         return make_record(id=UUID("11111111-1111-1111-1111-111111111111"))
 
@@ -63,7 +63,7 @@ def test_main_summary_list_commands_print_headers(
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
 
-    async def fake_list_areas(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_areas(_session: object, **_kwargs: object) -> list[object]:
         return [
             make_record(
                 id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
@@ -74,7 +74,7 @@ def test_main_summary_list_commands_print_headers(
             )
         ]
 
-    async def fake_list_people(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_people(_session: object, **_kwargs: object) -> list[object]:
         return [
             make_record(
                 id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
@@ -85,7 +85,7 @@ def test_main_summary_list_commands_print_headers(
             )
         ]
 
-    async def fake_list_visions(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_visions(_session: object, **_kwargs: object) -> list[object]:
         return [
             make_record(
                 id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
@@ -96,7 +96,7 @@ def test_main_summary_list_commands_print_headers(
             )
         ]
 
-    async def fake_list_tags(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_tags(_session: object, **_kwargs: object) -> list[object]:
         return [
             make_record(
                 id=UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
@@ -107,7 +107,7 @@ def test_main_summary_list_commands_print_headers(
             )
         ]
 
-    async def fake_list_events(session: object, **kwargs: object) -> list[object]:
+    async def fake_list_events(_session: object, **_kwargs: object) -> list[object]:
         return [
             make_record(
                 id=UUID("ffffffff-ffff-ffff-ffff-ffffffffffff"),
@@ -170,7 +170,7 @@ def test_main_event_add_creates_event(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_event(session: object, **kwargs: object) -> object:
+    async def fake_create_event(_session: object, **kwargs: object) -> object:
         assert kwargs["title"] == "Doctor appointment"
         assert kwargs["event_type"] == "appointment"
         assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
@@ -185,7 +185,7 @@ def test_main_event_add_creates_event(
             "add",
             "Doctor appointment",
             "--start-time",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
             "--person-id",
             "11111111-1111-1111-1111-111111111111",
         ]
@@ -200,7 +200,7 @@ def test_main_event_add_passes_recurrence_fields(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_event(session: object, **kwargs: object) -> object:
+    async def fake_create_event(_session: object, **kwargs: object) -> object:
         assert kwargs["recurrence_frequency"] == "daily"
         assert kwargs["recurrence_interval"] == 2
         assert kwargs["recurrence_count"] == 5
@@ -215,7 +215,7 @@ def test_main_event_add_passes_recurrence_fields(
             "add",
             "Daily review",
             "--start-time",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
             "--recurrence-frequency",
             "daily",
             "--recurrence-interval",
@@ -234,7 +234,7 @@ def test_main_event_add_passes_monthly_recurrence_frequency(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_event(session: object, **kwargs: object) -> object:
+    async def fake_create_event(_session: object, **kwargs: object) -> object:
         assert kwargs["recurrence_frequency"] == "monthly"
         return make_record(id=UUID("56565656-5656-5656-5656-565656565656"))
 
@@ -247,7 +247,7 @@ def test_main_event_add_passes_monthly_recurrence_frequency(
             "add",
             "Monthly review",
             "--start-time",
-            "2026-04-30T16:00:00-04:00",
+            "2026-04-30T16:00:00",
             "--recurrence-frequency",
             "monthly",
         ]
@@ -262,7 +262,7 @@ def test_main_event_add_passes_event_type(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_event(session: object, **kwargs: object) -> object:
+    async def fake_create_event(_session: object, **kwargs: object) -> object:
         assert kwargs["event_type"] == "timeblock"
         return make_record(id=UUID("45454545-4545-4545-4545-454545454545"))
 
@@ -277,7 +277,7 @@ def test_main_event_add_passes_event_type(
             "--type",
             "timeblock",
             "--start-time",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
         ]
     )
     captured = capsys.readouterr()
@@ -290,7 +290,7 @@ def test_main_tag_add_creates_tag(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_tag(session: object, **kwargs: object) -> object:
+    async def fake_create_tag(_session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "family"
         assert kwargs["entity_type"] == "person"
         return make_record(id=UUID("22222222-2222-2222-2222-222222222222"))
@@ -309,7 +309,7 @@ def test_main_tag_update_can_clear_people(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_tag(session: object, **kwargs: object) -> object:
+    async def fake_update_tag(_session: object, **kwargs: object) -> object:
         assert kwargs["clear_people"] is True
         assert kwargs["person_ids"] is None
         return make_record(id=UUID("22222222-2222-2222-2222-222222222222"))
@@ -336,11 +336,12 @@ def test_main_people_show_prints_tags(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_get_person(
-        session: object,
+        _session: object,
         *,
         person_id: UUID,
         include_deleted: bool,
     ) -> object:
+        _ = include_deleted
         return make_record(
             id=person_id,
             name="Alice",
@@ -388,12 +389,12 @@ def test_main_event_update_passes_scope_fields(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_event(session: object, **kwargs: object) -> object:
+    async def fake_update_event(_session: object, **kwargs: object) -> object:
         assert kwargs["scope"] == "single"
         assert kwargs["event_type"] == "deadline"
         instance_start = cast(datetime, kwargs["instance_start"])
         assert instance_start is not None
-        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00-04:00"
+        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00"
         return make_record(id=UUID("56565656-5656-5656-5656-565656565656"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -407,7 +408,7 @@ def test_main_event_update_passes_scope_fields(
             "--scope",
             "single",
             "--instance-start",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
             "--type",
             "deadline",
             "--title",
@@ -424,11 +425,11 @@ def test_main_event_delete_passes_scope_fields(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_delete_event(session: object, **kwargs: object) -> None:
+    async def fake_delete_event(_session: object, **kwargs: object) -> None:
         assert kwargs["scope"] == "all_future"
         instance_start = cast(datetime, kwargs["instance_start"])
         assert instance_start is not None
-        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00-04:00"
+        assert str(instance_start.isoformat()) == "2026-04-10T09:00:00"
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(events, "delete_event", fake_delete_event)
@@ -441,7 +442,7 @@ def test_main_event_delete_passes_scope_fields(
             "--scope",
             "all_future",
             "--instance-start",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
         ]
     )
     captured = capsys.readouterr()
@@ -454,7 +455,7 @@ def test_main_people_update_can_clear_location(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_update_person(session: object, **kwargs: object) -> object:
+    async def fake_update_person(_session: object, **kwargs: object) -> object:
         assert kwargs["clear_location"] is True
         assert kwargs["location"] is None
         return make_record(id=UUID("33333333-3333-3333-3333-333333333333"))
@@ -480,7 +481,7 @@ def test_main_vision_add_creates_vision(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_create_vision(session: object, **kwargs: object) -> object:
+    async def fake_create_vision(_session: object, **kwargs: object) -> object:
         assert kwargs["name"] == "Launch lifeos-cli"
         assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
@@ -528,18 +529,18 @@ def test_main_vision_experience_commands_call_services(
 ) -> None:
     calls: list[str] = []
 
-    async def fake_add_experience(session: object, **kwargs: object) -> object:
+    async def fake_add_experience(_session: object, **kwargs: object) -> object:
         calls.append("add")
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         assert kwargs["experience_points"] == 120
         return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
 
-    async def fake_sync_experience(session: object, **kwargs: object) -> object:
+    async def fake_sync_experience(_session: object, **kwargs: object) -> object:
         calls.append("sync")
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
 
-    async def fake_harvest(session: object, **kwargs: object) -> object:
+    async def fake_harvest(_session: object, **kwargs: object) -> object:
         calls.append("harvest")
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         return make_record(id=UUID("44444444-4444-4444-4444-444444444444"))
@@ -575,7 +576,7 @@ def test_main_vision_read_model_commands_print_results(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_get_with_tasks(session: object, **kwargs: object) -> object:
+    async def fake_get_with_tasks(_session: object, **kwargs: object) -> object:
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         return make_record(
             id=UUID("44444444-4444-4444-4444-444444444444"),
@@ -600,7 +601,7 @@ def test_main_vision_read_model_commands_print_results(
             deleted_at=None,
         )
 
-    async def fake_get_stats(session: object, **kwargs: object) -> object:
+    async def fake_get_stats(_session: object, **kwargs: object) -> object:
         assert kwargs["vision_id"] == UUID("44444444-4444-4444-4444-444444444444")
         return visions.VisionStats(
             total_tasks=1,
@@ -636,7 +637,7 @@ def test_main_people_batch_delete_reports_missing_ids(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_batch_delete_people(
-        session: object,
+        _session: object,
         *,
         person_ids: list[UUID],
     ) -> object:

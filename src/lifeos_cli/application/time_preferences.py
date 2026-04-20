@@ -8,6 +8,19 @@ from zoneinfo import ZoneInfo
 from lifeos_cli.config import get_preferences_settings
 
 
+def apply_preferred_timezone(value: datetime) -> datetime:
+    """Attach the configured timezone when a user datetime omits one."""
+    if value.tzinfo is not None and value.utcoffset() is not None:
+        return value
+    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
+    return value.replace(tzinfo=preferred_timezone)
+
+
+def normalize_user_datetime_to_utc(value: datetime) -> datetime:
+    """Normalize one user-facing datetime into UTC storage semantics."""
+    return apply_preferred_timezone(value).astimezone(timezone.utc)
+
+
 def to_preferred_timezone(value: datetime) -> datetime:
     """Convert a stored timestamp to the preferred display timezone."""
     preferred_timezone = ZoneInfo(get_preferences_settings().timezone)

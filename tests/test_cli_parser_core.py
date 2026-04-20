@@ -215,7 +215,7 @@ def test_cli_parser_supports_event_add_command() -> None:
             "add",
             "Doctor appointment",
             "--start-time",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
             "--person-id",
             "11111111-1111-1111-1111-111111111111",
         ]
@@ -245,7 +245,7 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
             "add",
             "Daily review",
             "--start-time",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
             "--recurrence-frequency",
             "daily",
             "--recurrence-interval",
@@ -270,7 +270,7 @@ def test_cli_parser_supports_event_monthly_recurrence_add_flags() -> None:
             "add",
             "Monthly review",
             "--start-time",
-            "2026-04-30T16:00:00-04:00",
+            "2026-04-30T16:00:00",
             "--recurrence-frequency",
             "monthly",
         ]
@@ -309,14 +309,14 @@ def test_cli_parser_supports_event_update_scope_flags() -> None:
             "--scope",
             "single",
             "--instance-start",
-            "2026-04-10T09:00:00-04:00",
+            "2026-04-10T09:00:00",
         ]
     )
 
     assert args.resource == "event"
     assert args.event_command == "update"
     assert args.scope == "single"
-    assert args.instance_start.isoformat() == "2026-04-10T09:00:00-04:00"
+    assert args.instance_start.isoformat() == "2026-04-10T09:00:00"
 
 
 def test_cli_parser_supports_people_add_command() -> None:
@@ -644,9 +644,9 @@ def test_cli_parser_supports_timelog_add_command() -> None:
             "add",
             "Deep work",
             "--start-time",
-            "2026-04-10T13:00:00-04:00",
+            "2026-04-10T13:00:00",
             "--end-time",
-            "2026-04-10T14:30:00-04:00",
+            "2026-04-10T14:30:00",
             "--tracking-method",
             "manual",
         ]
@@ -656,6 +656,28 @@ def test_cli_parser_supports_timelog_add_command() -> None:
     assert args.timelog_command == "add"
     assert args.title == "Deep work"
     assert args.tracking_method == "manual"
+
+
+def test_cli_parser_supports_timelog_add_quick_batch_mode() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "add",
+            "--entry",
+            "0700 Breakfast",
+            "--entry",
+            "0830 Deep work",
+            "--first-start-time",
+            "2026-04-10T06:30:00",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "add"
+    assert args.entry_lines == ["0700 Breakfast", "0830 Deep work"]
+    assert args.first_start_time.isoformat() == "2026-04-10T06:30:00"
+    assert args.title is None
 
 
 def test_cli_parser_supports_vision_update_clear_area_command() -> None:
