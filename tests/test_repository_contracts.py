@@ -7,6 +7,7 @@ from babel.messages import pofile
 GITIGNORE_TEXT = Path(".gitignore").read_text()
 DEPENDABOT_CONFIG = yaml.safe_load(Path(".github/dependabot.yml").read_text())
 DOCTOR_TEXT = Path("scripts/doctor.sh").read_text()
+DEAD_CODE_CHECK_TEXT = Path("scripts/dead_code_check.sh").read_text()
 DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
 PRE_COMMIT_CONFIG = yaml.safe_load(Path(".pre-commit-config.yaml").read_text())
 VALIDATE_WORKFLOW = yaml.safe_load(Path(".github/workflows/validate.yml").read_text())
@@ -67,6 +68,11 @@ def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert any("uv run pre-commit run --all-files" in line for line in DOCTOR_COMMANDS)
     assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
     assert any("bash ./scripts/integration_tests.sh" in line for line in DOCTOR_COMMANDS)
+    assert (
+        'FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,pytestmark"'
+        in DEAD_CODE_CHECK_TEXT
+    )
+    assert '--ignore-names "${FRAMEWORK_IGNORE_NAMES}"' in DEAD_CODE_CHECK_TEXT
 
 
 def test_locale_catalog_sync_is_part_of_the_default_validation_gate() -> None:

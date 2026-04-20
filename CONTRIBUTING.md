@@ -76,6 +76,9 @@ Static-analysis governance:
   Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`,
   SQLAlchemy declarative hooks, and gettext extraction constants.
 - Do not delete those symbols just to satisfy a generic dead-code scanner.
+- `scripts/dead_code_check.sh` keeps the name-based ignore list for Alembic revision metadata and
+  module-level `pytestmark`; use `scripts/vulture_whitelist.py` for importable framework symbols
+  that must stay intentionally reachable.
 - Keep intentional false positives documented in `scripts/vulture_whitelist.py`.
 - If you add a new framework-driven symbol that `vulture` cannot resolve, update the whitelist in
   the same change.
