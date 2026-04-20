@@ -51,6 +51,10 @@ LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432
 bash ./scripts/integration_tests.sh
 ```
 
+For local-only development, `bash ./scripts/doctor.sh` and
+`bash ./scripts/integration_tests.sh` also load `./.env` when it exists, so you can keep
+`LIFEOS_TEST_DATABASE_URL` in an untracked local file instead of retyping it each time.
+
 If you change dependency or release workflows, also run:
 
 ```bash

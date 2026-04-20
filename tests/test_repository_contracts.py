@@ -8,6 +8,7 @@ DEPENDENCY_HEALTH_TEXT = Path("scripts/dependency_health.sh").read_text()
 PRE_COMMIT_TEXT = Path(".pre-commit-config.yaml").read_text()
 VALIDATE_WORKFLOW_TEXT = Path(".github/workflows/validate.yml").read_text()
 VULTURE_WHITELIST_TEXT = Path("scripts/vulture_whitelist.py").read_text()
+LOAD_LOCAL_ENV_TEXT = Path("scripts/load_local_env.sh").read_text()
 
 
 def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
@@ -30,6 +31,8 @@ def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert "uv run pre-commit run --all-files" in DOCTOR_TEXT
     assert 'uv run pytest -m "not integration"' in DOCTOR_TEXT
     assert "bash ./scripts/integration_tests.sh" in DOCTOR_TEXT
+    assert "source ./scripts/load_local_env.sh" in DOCTOR_TEXT
+    assert 'load_local_env "./.env"' in DOCTOR_TEXT
 
 
 def test_locale_catalog_sync_is_part_of_the_default_validation_gate() -> None:
@@ -52,10 +55,20 @@ def test_integration_tests_require_an_explicit_test_database_url() -> None:
     assert "LIFEOS_RUN_INTEGRATION" not in script_text
     assert "LIFEOS_TEST_DATABASE_URL:-" in script_text
     assert "uv run pytest -m integration tests/test_cli_integration_*.py" in script_text
+    assert "source ./scripts/load_local_env.sh" in script_text
+    assert 'load_local_env "./.env"' in script_text
     support_text = Path("tests/cli_integration_support.py").read_text()
     assert 'INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
     assert "DatabaseSettings.from_env" not in support_text
     assert 'schema = f"lifeos_test_{uuid4().hex[:12]}"' in Path("tests/conftest.py").read_text()
+
+
+def test_load_local_env_script_exports_local_env_files() -> None:
+    assert "load_local_env()" in LOAD_LOCAL_ENV_TEXT
+    assert 'local env_file="${1:-.env}"' in LOAD_LOCAL_ENV_TEXT
+    assert '. "$env_file"' in LOAD_LOCAL_ENV_TEXT
+    assert "set -a" in LOAD_LOCAL_ENV_TEXT
+    assert "set +a" in LOAD_LOCAL_ENV_TEXT
 
 
 def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:

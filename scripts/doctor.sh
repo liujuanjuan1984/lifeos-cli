@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source ./scripts/load_local_env.sh
+load_local_env "./.env"
+
 echo "[doctor] sync dependencies"
 if [ "${CI:-}" = "true" ]; then
   uv sync --all-extras --frozen
