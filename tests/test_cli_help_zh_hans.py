@@ -106,6 +106,44 @@ def test_cli_resource_help_keeps_long_action_summaries_on_one_line(
     )
 
 
+def test_cli_task_add_help_keeps_long_option_invocation_with_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["task", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert any(
+        "--planning-cycle-type PLANNING_CYCLE_TYPE" in line
+        and "planning-cycle 类型：year、month、week 或 day" in line
+        for line in captured.out.splitlines()
+    )
+
+
+def test_cli_event_add_help_keeps_long_option_invocation_with_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["event", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert any(
+        "--recurrence-frequency RECURRENCE_FREQUENCY" in line
+        and "可选的 recurrence frequency：daily、weekly、monthly 或" in line
+        for line in captured.out.splitlines()
+    )
+
+
 def test_cli_schedule_show_help_supports_zh_hans_locale(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

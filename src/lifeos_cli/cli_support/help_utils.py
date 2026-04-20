@@ -27,7 +27,7 @@ class CompactSubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
         self,
         prog: str,
         indent_increment: int = 2,
-        max_help_position: int = 40,
+        max_help_position: int = 48,
         width: int | None = None,
     ) -> None:
         """Use a wider default layout so help text wraps less aggressively."""
