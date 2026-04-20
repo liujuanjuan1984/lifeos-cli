@@ -65,6 +65,20 @@ class EventOccurrence:
     instance_start: datetime
 
 
+@dataclass(frozen=True)
+class _DerivedEventCreateOptions:
+    start_time: datetime
+    end_time: datetime | None
+    tag_ids: list[UUID]
+    person_ids: list[UUID]
+    recurrence_frequency: str | None = None
+    recurrence_interval: int | None = None
+    recurrence_count: int | None = None
+    recurrence_until: datetime | None = None
+    recurrence_parent_event_id: UUID | None = None
+    recurrence_instance_start: datetime | None = None
+
+
 async def _build_event_views(session: AsyncSession, events: list[Event]) -> list[EventView]:
     if not events:
         return []
@@ -380,6 +394,100 @@ async def _apply_event_association_updates(
         event=event,
         tag_ids=next_tag_ids,
         person_ids=next_person_ids,
+    )
+
+
+def _resolve_event_create_description(
+    master_event: Event,
+    changes: EventUpdateInput,
+) -> str | None:
+    if changes.clear_description:
+        return None
+    if changes.description is not None:
+        return changes.description
+    return master_event.description
+
+
+def _resolve_event_create_reference_id(
+    *,
+    explicit_id: UUID | None,
+    clear_flag: bool,
+    existing_id: UUID | None,
+) -> UUID | None:
+    if clear_flag:
+        return None
+    if explicit_id is not None:
+        return explicit_id
+    return existing_id
+
+
+async def _resolve_derived_event_association_ids(
+    session: AsyncSession,
+    *,
+    source_event: Event,
+    changes: EventUpdateInput,
+) -> tuple[list[UUID], list[UUID]]:
+    existing_tag_map = await load_tags_for_entities(
+        session,
+        entity_ids=[source_event.id],
+        entity_type="event",
+    )
+    existing_people_map = await load_people_for_entities(
+        session,
+        entity_ids=[source_event.id],
+        entity_type="event",
+    )
+    existing_tag_ids = [tag.id for tag in existing_tag_map.get(source_event.id, ())]
+    existing_person_ids = [person.id for person in existing_people_map.get(source_event.id, ())]
+    return (
+        _resolve_link_ids(
+            explicit_ids=changes.tag_ids,
+            clear_flag=changes.clear_tags,
+            existing_ids=existing_tag_ids,
+        ),
+        _resolve_link_ids(
+            explicit_ids=changes.person_ids,
+            clear_flag=changes.clear_people,
+            existing_ids=existing_person_ids,
+        ),
+    )
+
+
+def _build_derived_event_create_input(
+    master_event: Event,
+    changes: EventUpdateInput,
+    *,
+    options: _DerivedEventCreateOptions,
+) -> EventCreateInput:
+    return EventCreateInput(
+        title=changes.title or master_event.title,
+        description=_resolve_event_create_description(master_event, changes),
+        start_time=options.start_time,
+        end_time=options.end_time,
+        priority=changes.priority if changes.priority is not None else master_event.priority,
+        status=changes.status or master_event.status,
+        event_type=changes.event_type or master_event.event_type,
+        is_all_day=(
+            changes.is_all_day if changes.is_all_day is not None else master_event.is_all_day
+        ),
+        area_id=_resolve_event_create_reference_id(
+            explicit_id=changes.area_id,
+            clear_flag=changes.clear_area,
+            existing_id=master_event.area_id,
+        ),
+        task_id=_resolve_event_create_reference_id(
+            explicit_id=changes.task_id,
+            clear_flag=changes.clear_task,
+            existing_id=master_event.task_id,
+        ),
+        tag_ids=options.tag_ids,
+        person_ids=options.person_ids,
+        recurrence_frequency=options.recurrence_frequency,
+        recurrence_interval=options.recurrence_interval,
+        recurrence_count=options.recurrence_count,
+        recurrence_until=options.recurrence_until,
+        recurrence_parent_event_id=options.recurrence_parent_event_id,
+        recurrence_instance_start=options.recurrence_instance_start,
     )
 
 
@@ -724,18 +832,6 @@ async def _update_single_occurrence(
         master_event_id=master_event.id,
         instance_start=instance_start,
     )
-    existing_tag_map = await load_tags_for_entities(
-        session,
-        entity_ids=[master_event.id],
-        entity_type="event",
-    )
-    existing_people_map = await load_people_for_entities(
-        session,
-        entity_ids=[master_event.id],
-        entity_type="event",
-    )
-    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
-    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
     if override_event_model is None:
         override_start_time = (
             changes.start_time if changes.start_time is not None else instance_start
@@ -747,55 +843,24 @@ async def _update_single_occurrence(
             if changes.end_time is not None
             else _event_occurrence_end(master_event, occurrence_start=instance_start)
         )
-        resolved_tag_ids = _resolve_link_ids(
-            explicit_ids=changes.tag_ids,
-            clear_flag=changes.clear_tags,
-            existing_ids=existing_tag_ids,
-        )
-        resolved_person_ids = _resolve_link_ids(
-            explicit_ids=changes.person_ids,
-            clear_flag=changes.clear_people,
-            existing_ids=existing_person_ids,
+        resolved_tag_ids, resolved_person_ids = await _resolve_derived_event_association_ids(
+            session,
+            source_event=master_event,
+            changes=changes,
         )
         override_event_view = await create_event(
             session,
-            payload=EventCreateInput(
-                title=changes.title or master_event.title,
-                description=None
-                if changes.clear_description
-                else changes.description
-                if changes.description is not None
-                else master_event.description,
-                start_time=override_start_time,
-                end_time=override_end_time,
-                priority=changes.priority
-                if changes.priority is not None
-                else master_event.priority,
-                status=changes.status or master_event.status,
-                event_type=changes.event_type or master_event.event_type,
-                is_all_day=(
-                    changes.is_all_day
-                    if changes.is_all_day is not None
-                    else master_event.is_all_day
+            payload=_build_derived_event_create_input(
+                master_event,
+                changes,
+                options=_DerivedEventCreateOptions(
+                    start_time=override_start_time,
+                    end_time=override_end_time,
+                    tag_ids=resolved_tag_ids,
+                    person_ids=resolved_person_ids,
+                    recurrence_parent_event_id=master_event.id,
+                    recurrence_instance_start=instance_start,
                 ),
-                area_id=(
-                    None
-                    if changes.clear_area
-                    else changes.area_id
-                    if changes.area_id is not None
-                    else master_event.area_id
-                ),
-                task_id=(
-                    None
-                    if changes.clear_task
-                    else changes.task_id
-                    if changes.task_id is not None
-                    else master_event.task_id
-                ),
-                tag_ids=resolved_tag_ids,
-                person_ids=resolved_person_ids,
-                recurrence_parent_event_id=master_event.id,
-                recurrence_instance_start=instance_start,
             ),
         )
     else:
@@ -832,28 +897,10 @@ async def _update_future_series(
 
     master_event.recurrence_until = previous_start
     await session.flush()
-    existing_tag_map = await load_tags_for_entities(
+    resolved_tag_ids, resolved_person_ids = await _resolve_derived_event_association_ids(
         session,
-        entity_ids=[master_event.id],
-        entity_type="event",
-    )
-    existing_people_map = await load_people_for_entities(
-        session,
-        entity_ids=[master_event.id],
-        entity_type="event",
-    )
-    existing_tag_ids = [tag.id for tag in existing_tag_map.get(master_event.id, ())]
-    existing_person_ids = [person.id for person in existing_people_map.get(master_event.id, ())]
-
-    resolved_tag_ids = _resolve_link_ids(
-        explicit_ids=changes.tag_ids,
-        clear_flag=changes.clear_tags,
-        existing_ids=existing_tag_ids,
-    )
-    resolved_person_ids = _resolve_link_ids(
-        explicit_ids=changes.person_ids,
-        clear_flag=changes.clear_people,
-        existing_ids=existing_person_ids,
+        source_event=master_event,
+        changes=changes,
     )
     next_recurrence_frequency = (
         None
@@ -889,45 +936,23 @@ async def _update_future_series(
     )
     return await create_event(
         session,
-        payload=EventCreateInput(
-            title=changes.title or master_event.title,
-            description=None
-            if changes.clear_description
-            else changes.description
-            if changes.description is not None
-            else master_event.description,
-            start_time=changes.start_time or instance_start,
-            end_time=None
-            if changes.clear_end_time
-            else changes.end_time
-            if changes.end_time is not None
-            else _event_occurrence_end(master_event, occurrence_start=instance_start),
-            priority=changes.priority if changes.priority is not None else master_event.priority,
-            status=changes.status or master_event.status,
-            event_type=changes.event_type or master_event.event_type,
-            is_all_day=changes.is_all_day
-            if changes.is_all_day is not None
-            else master_event.is_all_day,
-            area_id=(
-                None
-                if changes.clear_area
-                else changes.area_id
-                if changes.area_id is not None
-                else master_event.area_id
+        payload=_build_derived_event_create_input(
+            master_event,
+            changes,
+            options=_DerivedEventCreateOptions(
+                start_time=changes.start_time or instance_start,
+                end_time=None
+                if changes.clear_end_time
+                else changes.end_time
+                if changes.end_time is not None
+                else _event_occurrence_end(master_event, occurrence_start=instance_start),
+                tag_ids=resolved_tag_ids,
+                person_ids=resolved_person_ids,
+                recurrence_frequency=next_recurrence_frequency,
+                recurrence_interval=next_recurrence_interval,
+                recurrence_count=next_recurrence_count,
+                recurrence_until=next_recurrence_until,
             ),
-            task_id=(
-                None
-                if changes.clear_task
-                else changes.task_id
-                if changes.task_id is not None
-                else master_event.task_id
-            ),
-            tag_ids=resolved_tag_ids,
-            person_ids=resolved_person_ids,
-            recurrence_frequency=next_recurrence_frequency,
-            recurrence_interval=next_recurrence_interval,
-            recurrence_count=next_recurrence_count,
-            recurrence_until=next_recurrence_until,
         ),
     )
 

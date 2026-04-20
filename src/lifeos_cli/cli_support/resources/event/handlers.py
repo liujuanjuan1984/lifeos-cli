@@ -12,6 +12,7 @@ from lifeos_cli.cli_support.output_utils import (
 )
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
+    ResolvedDateTimeQuery,
     resolve_exclusive_date_or_datetime_query,
 )
 from lifeos_cli.db import session as db_session
@@ -67,29 +68,86 @@ def _format_event_detail(event: event_services.EventView) -> str:
     )
 
 
+def _build_event_create_input(args: argparse.Namespace) -> event_services.EventCreateInput:
+    return event_services.EventCreateInput(
+        title=args.title,
+        description=args.description,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        priority=args.priority,
+        status=args.status,
+        event_type=args.event_type,
+        is_all_day=args.all_day,
+        area_id=args.area_id,
+        task_id=args.task_id,
+        tag_ids=args.tag_ids,
+        person_ids=args.person_ids,
+        recurrence_frequency=args.recurrence_frequency,
+        recurrence_interval=args.recurrence_interval,
+        recurrence_count=args.recurrence_count,
+        recurrence_until=args.recurrence_until,
+    )
+
+
+def _build_event_list_input(
+    args: argparse.Namespace,
+    *,
+    query: ResolvedDateTimeQuery,
+) -> event_services.EventListInput:
+    return event_services.EventListInput(
+        filters=event_services.EventQueryFilters(
+            title_contains=args.title_contains,
+            status=args.status,
+            event_type=args.event_type,
+            area_id=args.area_id,
+            task_id=args.task_id,
+            person_id=args.person_id,
+            tag_id=args.tag_id,
+            start_date=query.start_date,
+            end_date=query.end_date,
+            window_start=query.window_start,
+            window_end=query.window_end,
+            include_deleted=args.include_deleted,
+        ),
+        limit=args.limit,
+        offset=args.offset,
+    )
+
+
+def _build_event_update_input(args: argparse.Namespace) -> event_services.EventUpdateInput:
+    return event_services.EventUpdateInput(
+        title=args.title,
+        description=args.description,
+        clear_description=args.clear_description,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        clear_end_time=args.clear_end_time,
+        priority=args.priority,
+        status=args.status,
+        event_type=args.event_type,
+        is_all_day=args.all_day,
+        area_id=args.area_id,
+        clear_area=args.clear_area,
+        task_id=args.task_id,
+        clear_task=args.clear_task,
+        tag_ids=args.tag_ids,
+        clear_tags=args.clear_tags,
+        person_ids=args.person_ids,
+        clear_people=args.clear_people,
+        recurrence_frequency=args.recurrence_frequency,
+        recurrence_interval=args.recurrence_interval,
+        recurrence_count=args.recurrence_count,
+        recurrence_until=args.recurrence_until,
+        clear_recurrence=args.clear_recurrence,
+    )
+
+
 async def handle_event_add_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         try:
             event = await event_services.create_event(
                 session,
-                payload=event_services.EventCreateInput(
-                    title=args.title,
-                    description=args.description,
-                    start_time=args.start_time,
-                    end_time=args.end_time,
-                    priority=args.priority,
-                    status=args.status,
-                    event_type=args.event_type,
-                    is_all_day=args.all_day,
-                    area_id=args.area_id,
-                    task_id=args.task_id,
-                    tag_ids=args.tag_ids,
-                    person_ids=args.person_ids,
-                    recurrence_frequency=args.recurrence_frequency,
-                    recurrence_interval=args.recurrence_interval,
-                    recurrence_count=args.recurrence_count,
-                    recurrence_until=args.recurrence_until,
-                ),
+                payload=_build_event_create_input(args),
             )
         except (
             event_services.EventAreaReferenceNotFoundError,
@@ -113,27 +171,9 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
-            filters = event_services.EventQueryFilters(
-                title_contains=args.title_contains,
-                status=args.status,
-                event_type=args.event_type,
-                area_id=args.area_id,
-                task_id=args.task_id,
-                person_id=args.person_id,
-                tag_id=args.tag_id,
-                start_date=query.start_date,
-                end_date=query.end_date,
-                window_start=query.window_start,
-                window_end=query.window_end,
-                include_deleted=args.include_deleted,
-            )
             events = await event_services.list_events(
                 session,
-                query=event_services.EventListInput(
-                    filters=filters,
-                    limit=args.limit,
-                    offset=args.offset,
-                ),
+                query=_build_event_list_input(args, query=query),
             )
         except event_services.EventValidationError as exc:
             return cli_handler_utils.print_cli_error(exc)
@@ -194,31 +234,7 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
             event = await event_services.update_event(
                 session,
                 event_id=args.event_id,
-                changes=event_services.EventUpdateInput(
-                    title=args.title,
-                    description=args.description,
-                    clear_description=args.clear_description,
-                    start_time=args.start_time,
-                    end_time=args.end_time,
-                    clear_end_time=args.clear_end_time,
-                    priority=args.priority,
-                    status=args.status,
-                    event_type=args.event_type,
-                    is_all_day=args.all_day,
-                    area_id=args.area_id,
-                    clear_area=args.clear_area,
-                    task_id=args.task_id,
-                    clear_task=args.clear_task,
-                    tag_ids=args.tag_ids,
-                    clear_tags=args.clear_tags,
-                    person_ids=args.person_ids,
-                    clear_people=args.clear_people,
-                    recurrence_frequency=args.recurrence_frequency,
-                    recurrence_interval=args.recurrence_interval,
-                    recurrence_count=args.recurrence_count,
-                    recurrence_until=args.recurrence_until,
-                    clear_recurrence=args.clear_recurrence,
-                ),
+                changes=_build_event_update_input(args),
                 scope=args.scope,
                 instance_start=args.instance_start,
             )

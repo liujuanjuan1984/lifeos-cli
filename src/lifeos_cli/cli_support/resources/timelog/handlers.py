@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
@@ -20,6 +21,7 @@ from lifeos_cli.cli_support.resources.timelog.bulk_add import (
 )
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
+    ResolvedDateTimeQuery,
     resolve_date_interval_arguments,
     resolve_exclusive_date_or_datetime_query,
     resolve_required_date_interval_arguments,
@@ -185,6 +187,81 @@ def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> st
     return "\n".join(lines)
 
 
+def _build_timelog_create_input(
+    args: argparse.Namespace,
+    *,
+    title: str,
+    start_time: datetime,
+    end_time: datetime,
+) -> timelog_services.TimelogCreateInput:
+    return timelog_services.TimelogCreateInput(
+        title=title,
+        start_time=start_time,
+        end_time=end_time,
+        tracking_method=args.tracking_method,
+        location=args.location,
+        energy_level=args.energy_level,
+        notes=args.notes,
+        area_id=args.area_id,
+        task_id=args.task_id,
+        tag_ids=args.tag_ids,
+        person_ids=args.person_ids,
+    )
+
+
+def _build_timelog_list_input(
+    args: argparse.Namespace,
+    *,
+    query: ResolvedDateTimeQuery,
+) -> timelog_services.TimelogListInput:
+    filters = timelog_services.TimelogQueryFilters(
+        title_contains=args.title_contains,
+        notes_contains=args.notes_contains,
+        query=args.query,
+        tracking_method=args.tracking_method,
+        area_id=args.area_id,
+        area_name=args.area_name,
+        without_area=args.without_area,
+        task_id=args.task_id,
+        without_task=args.without_task,
+        person_id=args.person_id,
+        tag_id=args.tag_id,
+        start_date=query.start_date,
+        end_date=query.end_date,
+        window_start=query.window_start,
+        window_end=query.window_end,
+        include_deleted=args.include_deleted,
+    )
+    return timelog_services.TimelogListInput(
+        filters=filters,
+        limit=args.limit,
+        offset=args.offset,
+    )
+
+
+def _build_timelog_update_input(args: argparse.Namespace) -> timelog_services.TimelogUpdateInput:
+    return timelog_services.TimelogUpdateInput(
+        title=args.title,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        tracking_method=args.tracking_method,
+        location=args.location,
+        clear_location=args.clear_location,
+        energy_level=args.energy_level,
+        clear_energy_level=args.clear_energy_level,
+        notes=args.notes,
+        clear_notes=args.clear_notes,
+        area_id=args.area_id,
+        clear_area=args.clear_area,
+        task_id=args.task_id,
+        clear_task=args.clear_task,
+        tag_ids=args.tag_ids,
+        clear_tags=args.clear_tags,
+        person_ids=args.person_ids,
+        clear_people=args.clear_people,
+    )
+
+
 async def handle_timelog_add_async(args: argparse.Namespace) -> int:
     if _timelog_add_uses_batch_mode(args):
         _validate_bulk_timelog_add_args(args)
@@ -208,18 +285,11 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
                 for draft in drafts:
                     timelog = await timelog_services.create_timelog(
                         session,
-                        payload=timelog_services.TimelogCreateInput(
+                        payload=_build_timelog_create_input(
+                            args,
                             title=draft.title,
                             start_time=draft.start_time,
                             end_time=draft.end_time,
-                            tracking_method=args.tracking_method,
-                            location=args.location,
-                            energy_level=args.energy_level,
-                            notes=args.notes,
-                            area_id=args.area_id,
-                            task_id=args.task_id,
-                            tag_ids=args.tag_ids,
-                            person_ids=args.person_ids,
                         ),
                     )
                     created_ids.append(timelog.id)
@@ -239,18 +309,11 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
         try:
             timelog = await timelog_services.create_timelog(
                 session,
-                payload=timelog_services.TimelogCreateInput(
+                payload=_build_timelog_create_input(
+                    args,
                     title=args.title,
                     start_time=args.start_time,
                     end_time=args.end_time,
-                    tracking_method=args.tracking_method,
-                    location=args.location,
-                    energy_level=args.energy_level,
-                    notes=args.notes,
-                    area_id=args.area_id,
-                    task_id=args.task_id,
-                    tag_ids=args.tag_ids,
-                    person_ids=args.person_ids,
                 ),
             )
         except (
@@ -287,36 +350,15 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
         return conflict_error
     async with db_session.session_scope() as session:
         try:
-            filters = timelog_services.TimelogQueryFilters(
-                title_contains=args.title_contains,
-                notes_contains=args.notes_contains,
-                query=args.query,
-                tracking_method=args.tracking_method,
-                area_id=args.area_id,
-                area_name=args.area_name,
-                without_area=args.without_area,
-                task_id=args.task_id,
-                without_task=args.without_task,
-                person_id=args.person_id,
-                tag_id=args.tag_id,
-                start_date=query.start_date,
-                end_date=query.end_date,
-                window_start=query.window_start,
-                window_end=query.window_end,
-                include_deleted=args.include_deleted,
-            )
+            list_input = _build_timelog_list_input(args, query=query)
             timelogs = await timelog_services.list_timelogs(
                 session,
-                query=timelog_services.TimelogListInput(
-                    filters=filters,
-                    limit=args.limit,
-                    offset=args.offset,
-                ),
+                query=list_input,
             )
             total_count = (
                 await timelog_services.count_timelogs(
                     session,
-                    filters=filters,
+                    filters=list_input.filters,
                 )
                 if args.count
                 else None
@@ -369,26 +411,7 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
             timelog = await timelog_services.update_timelog(
                 session,
                 timelog_id=args.timelog_id,
-                changes=timelog_services.TimelogUpdateInput(
-                    title=args.title,
-                    start_time=args.start_time,
-                    end_time=args.end_time,
-                    tracking_method=args.tracking_method,
-                    location=args.location,
-                    clear_location=args.clear_location,
-                    energy_level=args.energy_level,
-                    clear_energy_level=args.clear_energy_level,
-                    notes=args.notes,
-                    clear_notes=args.clear_notes,
-                    area_id=args.area_id,
-                    clear_area=args.clear_area,
-                    task_id=args.task_id,
-                    clear_task=args.clear_task,
-                    tag_ids=args.tag_ids,
-                    clear_tags=args.clear_tags,
-                    person_ids=args.person_ids,
-                    clear_people=args.clear_people,
-                ),
+                changes=_build_timelog_update_input(args),
             )
         except (
             timelog_services.TimelogNotFoundError,
