@@ -15,7 +15,6 @@ from lifeos_cli.db.services import (
     tasks,
     timelogs,
 )
-from lifeos_cli.db.services.batching import BatchRestoreResult
 from tests.support import make_record, make_session_scope, utc_datetime
 
 
@@ -177,62 +176,6 @@ def test_main_timelog_batch_update_passes_relation_and_title_updates(
 
     assert exit_code == 0
     assert "Updated timelogs: 2" in captured.out
-
-
-def test_main_timelog_restore_calls_service(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    async def fake_restore_timelog(session: object, **kwargs: object) -> object:
-        assert kwargs["timelog_id"] == UUID("13131313-1313-1313-1313-131313131313")
-        return make_record(id=UUID("13131313-1313-1313-1313-131313131313"))
-
-    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
-    monkeypatch.setattr(timelogs, "restore_timelog", fake_restore_timelog)
-
-    exit_code = cli.main(["timelog", "restore", "13131313-1313-1313-1313-131313131313"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "Restored timelog 13131313-1313-1313-1313-131313131313" in captured.out
-
-
-def test_main_timelog_batch_restore_reports_failed_ids(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    missing_id = UUID("14141414-1414-1414-1414-141414141414")
-
-    async def fake_batch_restore_timelogs(session: object, **kwargs: object) -> object:
-        assert kwargs["timelog_ids"] == [
-            UUID("13131313-1313-1313-1313-131313131313"),
-            missing_id,
-        ]
-        return BatchRestoreResult(
-            restored_count=1,
-            failed_ids=(missing_id,),
-            errors=(f"Timelog {missing_id} was not found",),
-        )
-
-    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
-    monkeypatch.setattr(timelogs, "batch_restore_timelogs", fake_batch_restore_timelogs)
-
-    exit_code = cli.main(
-        [
-            "timelog",
-            "batch",
-            "restore",
-            "--ids",
-            "13131313-1313-1313-1313-131313131313",
-            "14141414-1414-1414-1414-141414141414",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 1
-    assert "Restored timelogs: 1" in captured.out
-    assert "Failed timelog IDs" in captured.err
-    assert f"Error: Timelog {missing_id} was not found" in captured.err
 
 
 def test_main_task_add_creates_task(

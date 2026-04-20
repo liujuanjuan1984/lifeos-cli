@@ -275,24 +275,6 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-async def handle_timelog_restore_async(args: argparse.Namespace) -> int:
-    async with db_session.session_scope() as session:
-        try:
-            timelog = await timelog_services.restore_timelog(
-                session,
-                timelog_id=args.timelog_id,
-            )
-        except (
-            timelog_services.TimelogAreaReferenceNotFoundError,
-            timelog_services.TimelogNotFoundError,
-            timelog_services.TimelogTaskReferenceNotFoundError,
-            timelog_services.TimelogValidationError,
-        ) as exc:
-            return cli_handler_utils.print_cli_error(exc)
-    print(f"Restored timelog {timelog.id}")
-    return 0
-
-
 def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
     return any(
         (
@@ -360,20 +342,6 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     for error in result.errors:
         print(f"Error: {error}", file=sys.stderr)
     return 1 if result.failed_ids else 0
-
-
-async def handle_timelog_batch_restore_async(args: argparse.Namespace) -> int:
-    async with db_session.session_scope() as session:
-        result = await timelog_services.batch_restore_timelogs(
-            session,
-            timelog_ids=list(args.timelog_ids),
-        )
-    return print_batch_result(
-        success_label="Restored timelogs",
-        success_count=result.restored_count,
-        failed_label="Failed timelog IDs",
-        result=result,
-    )
 
 
 async def handle_timelog_batch_delete_async(args: argparse.Namespace) -> int:

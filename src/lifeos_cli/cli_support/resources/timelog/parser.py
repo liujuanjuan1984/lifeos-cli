@@ -12,7 +12,6 @@ from lifeos_cli.cli_support.resources.timelog.parser_actions import (
     build_timelog_add_parser,
     build_timelog_delete_parser,
     build_timelog_list_parser,
-    build_timelog_restore_parser,
     build_timelog_show_parser,
     build_timelog_update_parser,
 )
@@ -42,10 +41,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 _("Use `list` as the primary query entrypoint for timelogs."),
                 _("Timelogs can optionally reference one area and one task."),
                 _("Use `stats` for timelog stats grouped by area."),
-                _(
-                    "See `lifeos timelog batch --help` for bulk `update`, `restore`, and "
-                    "`delete` workflows."
-                ),
+                _("See `lifeos timelog batch --help` for bulk `update` and `delete` workflows."),
             ),
         ),
     )
@@ -58,6 +54,5 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     build_timelog_show_parser(timelog_subparsers)
     build_timelog_update_parser(timelog_subparsers)
     build_timelog_delete_parser(timelog_subparsers)
-    build_timelog_restore_parser(timelog_subparsers)
     build_timelog_batch_parser(timelog_subparsers)
     build_timelog_stats_parser(timelog_subparsers)

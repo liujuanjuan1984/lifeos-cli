@@ -142,7 +142,6 @@ def test_main_resource_help_surfaces_action_help_examples(
             ["timelog", "batch"],
             (
                 "lifeos timelog batch update --help",
-                "lifeos timelog batch restore --help",
                 "lifeos timelog batch delete --help",
             ),
         ),
@@ -192,7 +191,7 @@ def test_namespace_help_surfaces_nested_help_examples(
         ),
         (
             ["timelog", "batch"],
-            "Run bulk update, restore, and delete operations for timelogs.",
+            "Run bulk update and delete operations for timelogs.",
         ),
         (
             ["timelog", "stats"],
@@ -299,8 +298,7 @@ def test_resource_help_avoids_action_level_contract_details(
         ("task", "See `lifeos task batch --help` for bulk delete operations."),
         (
             "timelog",
-            "See `lifeos timelog batch --help` for bulk `update`, `restore`, and `delete` "
-            "workflows.",
+            "See `lifeos timelog batch --help` for bulk `update` and `delete` workflows.",
         ),
         ("vision", "See `lifeos vision batch --help` for bulk delete operations."),
     ],
@@ -351,7 +349,6 @@ def test_resource_help_avoids_delete_behavior_contract_details(
             (
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
                 "--end-time 2026-04-10T14:30:00-04:00",
-                "lifeos timelog restore <timelog-id>",
             ),
         ),
     ],

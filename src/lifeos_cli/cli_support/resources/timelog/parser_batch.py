@@ -13,7 +13,6 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.parser_common import add_identifier_list_argument
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_batch_delete_async,
-    handle_timelog_batch_restore_async,
     handle_timelog_batch_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
@@ -29,15 +28,14 @@ def build_timelog_batch_parser(
         "batch",
         help_content=HelpContent(
             summary=_("Run batch timelog operations"),
-            description=_("Run bulk update, restore, and delete operations for timelogs."),
+            description=_("Run bulk update and delete operations for timelogs."),
             examples=(
                 "lifeos timelog batch update --help",
-                "lifeos timelog batch restore --help",
                 "lifeos timelog batch delete --help",
             ),
             notes=(
                 _("Use `update` to edit mutable fields across active timelogs."),
-                _("Use `restore` and `delete` to manage deleted timelogs in bulk."),
+                _("Use `delete` to remove multiple timelogs in one command."),
             ),
         ),
     )
@@ -111,23 +109,6 @@ def build_timelog_batch_parser(
         help=_("Remove all people"),
     )
     batch_update_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_update_async))
-
-    batch_restore_parser = add_documented_parser(
-        batch_subparsers,
-        "restore",
-        help_content=HelpContent(
-            summary=_("Restore multiple timelogs"),
-            description=_("Restore multiple deleted timelogs by identifier."),
-            examples=("lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",),
-        ),
-    )
-    add_identifier_list_argument(
-        batch_restore_parser,
-        dest="timelog_ids",
-        noun="timelog",
-        action_verb="restore",
-    )
-    batch_restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_restore_async))
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,

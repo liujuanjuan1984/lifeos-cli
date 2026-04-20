@@ -838,10 +838,6 @@ def test_cli_help_shows_update_clear_examples(
             "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
         ),
         (
-            ["timelog", "batch", "restore", "--help"],
-            "lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",
-        ),
-        (
             ["timelog", "batch", "delete", "--help"],
             "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
         ),
@@ -868,11 +864,6 @@ def test_cli_batch_action_help_shows_concrete_examples(
         (
             ["timelog", "batch", "update", "--help"],
             "Timelog identifiers to update",
-            "Timelog identifiers to delete",
-        ),
-        (
-            ["timelog", "batch", "restore", "--help"],
-            "Timelog identifiers to restore",
             "Timelog identifiers to delete",
         ),
     ],

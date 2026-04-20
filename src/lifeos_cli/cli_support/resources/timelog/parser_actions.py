@@ -18,7 +18,6 @@ from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_add_async,
     handle_timelog_delete_async,
     handle_timelog_list_async,
-    handle_timelog_restore_async,
     handle_timelog_show_async,
     handle_timelog_update_async,
 )
@@ -285,21 +284,3 @@ def build_timelog_delete_parser(
     )
     delete_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_delete_async))
-
-
-def build_timelog_restore_parser(
-    timelog_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
-) -> None:
-    """Build the timelog restore command."""
-    restore_parser = add_documented_parser(
-        timelog_subparsers,
-        "restore",
-        help_content=HelpContent(
-            summary=_("Restore a timelog"),
-            description=_("Restore one deleted timelog."),
-            examples=("lifeos timelog restore 11111111-1111-1111-1111-111111111111",),
-            notes=(_("The referenced area and task must still be active if they are linked."),),
-        ),
-    )
-    restore_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
-    restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_restore_async))
