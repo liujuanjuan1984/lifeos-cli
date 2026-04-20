@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -33,7 +37,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the vision command tree."""
-    vision_parser = add_documented_parser(
+    vision_parser = add_documented_help_parser(
         subparsers,
         "vision",
         help_content=HelpContent(
@@ -55,7 +59,6 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
         ),
     )
-    vision_parser.set_defaults(handler=make_help_handler(vision_parser))
     vision_subparsers = vision_parser.add_subparsers(
         dest="vision_command",
         title=_("actions"),
@@ -346,7 +349,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     delete_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_vision_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         vision_subparsers,
         "batch",
         help_content=HelpContent(
@@ -359,7 +362,6 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="vision_batch_command",
         title=_("batch actions"),

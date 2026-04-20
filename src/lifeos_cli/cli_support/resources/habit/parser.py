@@ -7,7 +7,11 @@ import re
 from datetime import date
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -45,7 +49,7 @@ def _parse_habit_weekdays(value: str) -> list[str]:
 
 def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the habit command tree."""
-    habit_parser = add_documented_parser(
+    habit_parser = add_documented_help_parser(
         subparsers,
         "habit",
         help_content=HelpContent(
@@ -78,7 +82,6 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
         ),
     )
-    habit_parser.set_defaults(handler=make_help_handler(habit_parser))
     habit_subparsers = habit_parser.add_subparsers(
         dest="habit_command",
         title=_("actions"),
@@ -363,7 +366,7 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         handler=make_sync_handler(handle_habit_task_associations_async)
     )
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         habit_subparsers,
         "batch",
         help_content=HelpContent(
@@ -376,7 +379,6 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="habit_batch_command",
         title=_("batch actions"),

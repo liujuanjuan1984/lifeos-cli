@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import add_date_range_arguments
 from lifeos_cli.cli_support.resources.schedule.handlers import (
@@ -39,7 +43,7 @@ def build_schedule_parser(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
     """Build the schedule command tree."""
-    schedule_parser = add_documented_parser(
+    schedule_parser = add_documented_help_parser(
         subparsers,
         "schedule",
         help_content=HelpContent(
@@ -64,7 +68,6 @@ def build_schedule_parser(
             ),
         ),
     )
-    schedule_parser.set_defaults(handler=make_help_handler(schedule_parser))
     schedule_subparsers = schedule_parser.add_subparsers(
         dest="schedule_command", title=_("actions"), metavar=_("action")
     )

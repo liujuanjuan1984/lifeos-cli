@@ -10,8 +10,8 @@ from lifeos_cli.application.database import (
 )
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
+    add_documented_help_parser,
     add_documented_parser,
-    make_help_handler,
 )
 from lifeos_cli.cli_support.runtime_utils import (
     make_sync_handler,
@@ -35,7 +35,7 @@ def run_db_upgrade(_: argparse.Namespace) -> int:
 
 def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the database command tree."""
-    db_parser = add_documented_parser(
+    db_parser = add_documented_help_parser(
         subparsers,
         "db",
         help_content=HelpContent(
@@ -64,7 +64,6 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             ),
         ),
     )
-    db_parser.set_defaults(handler=make_help_handler(db_parser))
     db_subparsers = db_parser.add_subparsers(
         dest="db_command", title=_("actions"), metavar=_("action")
     )

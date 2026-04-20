@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -27,7 +31,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the tag command tree."""
-    tag_parser = add_documented_parser(
+    tag_parser = add_documented_help_parser(
         subparsers,
         "tag",
         help_content=HelpContent(
@@ -49,7 +53,6 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             ),
         ),
     )
-    tag_parser.set_defaults(handler=make_help_handler(tag_parser))
     tag_subparsers = tag_parser.add_subparsers(
         dest="tag_command", title=_("actions"), metavar=_("action")
     )
@@ -225,7 +228,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     delete_parser.add_argument("tag_id", type=UUID, help=_("Tag identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_tag_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         tag_subparsers,
         "batch",
         help_content=HelpContent(
@@ -238,7 +241,6 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
             notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="tag_batch_command",
         title=_("batch actions"),

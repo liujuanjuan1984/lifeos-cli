@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import NOTE_SUMMARY_COLUMNS, format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
@@ -362,7 +366,7 @@ def build_note_delete_parser(
 def build_note_batch_parser(
     note_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         note_subparsers,
         "batch",
         help_content=HelpContent(
@@ -379,7 +383,6 @@ def build_note_batch_parser(
             ),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="note_batch_command",
         title=_("operations"),

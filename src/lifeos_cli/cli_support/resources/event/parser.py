@@ -6,7 +6,11 @@ import argparse
 from datetime import datetime
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
@@ -30,7 +34,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the event command tree."""
-    event_parser = add_documented_parser(
+    event_parser = add_documented_help_parser(
         subparsers,
         "event",
         help_content=HelpContent(
@@ -53,7 +57,6 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             ),
         ),
     )
-    event_parser.set_defaults(handler=make_help_handler(event_parser))
     event_subparsers = event_parser.add_subparsers(
         dest="event_command", title=_("actions"), metavar=_("action")
     )
@@ -389,7 +392,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         event_subparsers,
         "batch",
         help_content=HelpContent(
@@ -402,7 +405,6 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
             notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="event_batch_command", title=_("batch actions"), metavar=_("batch-action")
     )

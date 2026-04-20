@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import argparse
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.resources.data.handlers import (
     handle_data_batch_delete_async,
     handle_data_batch_update_async,
@@ -22,7 +26,7 @@ IMPORT_TARGET_CHOICES = (*DATA_RESOURCE_CHOICES, "bundle")
 
 def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the data command tree."""
-    data_parser = add_documented_parser(
+    data_parser = add_documented_help_parser(
         subparsers,
         "data",
         help_content=HelpContent(
@@ -62,7 +66,6 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    data_parser.set_defaults(handler=make_help_handler(data_parser))
     data_subparsers = data_parser.add_subparsers(
         dest="data_command", title=_("actions"), metavar=_("action")
     )

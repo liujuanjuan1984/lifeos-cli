@@ -24,11 +24,9 @@ from lifeos_cli.cli_support.resources.task.parser import build_task_parser
 from lifeos_cli.cli_support.resources.timelog.parser import build_timelog_parser
 from lifeos_cli.cli_support.resources.vision.parser import build_vision_parser
 from lifeos_cli.cli_support.runtime_utils import print_database_runtime_error
-from lifeos_cli.cli_support.system.config_commands import (
-    build_config_parser,
-    build_init_parser,
-)
+from lifeos_cli.cli_support.system.config_commands import build_config_parser
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
+from lifeos_cli.cli_support.system.init_commands import build_init_parser
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import configure_argparse_translations
 from lifeos_cli.i18n import gettext_message as _

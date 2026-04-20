@@ -7,7 +7,11 @@ from datetime import date, datetime
 from functools import partial
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
@@ -43,7 +47,7 @@ def _month_value(value: str) -> date:
 
 def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the timelog command tree."""
-    timelog_parser = add_documented_parser(
+    timelog_parser = add_documented_help_parser(
         subparsers,
         "timelog",
         help_content=HelpContent(
@@ -69,7 +73,6 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
         ),
     )
-    timelog_parser.set_defaults(handler=make_help_handler(timelog_parser))
     timelog_subparsers = timelog_parser.add_subparsers(
         dest="timelog_command", title=_("actions"), metavar=_("action")
     )
@@ -322,7 +325,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     restore_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_restore_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         timelog_subparsers,
         "batch",
         help_content=HelpContent(
@@ -339,7 +342,6 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="timelog_batch_command", title=_("batch actions"), metavar=_("batch-action")
     )
@@ -439,7 +441,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     add_identifier_list_argument(batch_delete_parser, dest="timelog_ids", noun="timelog")
     batch_delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_delete_async))
 
-    stats_parser = add_documented_parser(
+    stats_parser = add_documented_help_parser(
         timelog_subparsers,
         "stats",
         help_content=HelpContent(
@@ -461,7 +463,6 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
         ),
     )
-    stats_parser.set_defaults(handler=make_help_handler(stats_parser))
     stats_subparsers = stats_parser.add_subparsers(
         dest="timelog_stats_command", title=_("stats actions"), metavar=_("stats-action")
     )

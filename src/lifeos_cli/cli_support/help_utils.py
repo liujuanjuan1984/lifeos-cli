@@ -89,3 +89,15 @@ def add_documented_parser(
         epilog=build_epilog(examples=help_content.examples, notes=help_content.notes),
         formatter_class=CompactSubcommandHelpFormatter,
     )
+
+
+def add_documented_help_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+    name: str,
+    *,
+    help_content: HelpContent,
+) -> argparse.ArgumentParser:
+    """Add a documented parser that defaults to printing its own help output."""
+    parser = add_documented_parser(subparsers, name, help_content=help_content)
+    parser.set_defaults(handler=make_help_handler(parser))
+    return parser

@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser, make_help_handler
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
@@ -32,7 +36,7 @@ from lifeos_cli.i18n import gettext_message as _
 
 def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Build the task command tree."""
-    task_parser = add_documented_parser(
+    task_parser = add_documented_help_parser(
         subparsers,
         "task",
         help_content=HelpContent(
@@ -66,7 +70,6 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    task_parser.set_defaults(handler=make_help_handler(task_parser))
     task_subparsers = task_parser.add_subparsers(
         dest="task_command", title=_("actions"), metavar=_("action")
     )
@@ -483,7 +486,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     delete_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_task_delete_async))
 
-    batch_parser = add_documented_parser(
+    batch_parser = add_documented_help_parser(
         task_subparsers,
         "batch",
         help_content=HelpContent(
@@ -496,7 +499,6 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             notes=(_("This namespace currently exposes only the `delete` workflow."),),
         ),
     )
-    batch_parser.set_defaults(handler=make_help_handler(batch_parser))
     batch_subparsers = batch_parser.add_subparsers(
         dest="task_batch_command",
         title=_("batch actions"),
