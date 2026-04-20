@@ -72,22 +72,24 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
         try:
             event = await event_services.create_event(
                 session,
-                title=args.title,
-                description=args.description,
-                start_time=args.start_time,
-                end_time=args.end_time,
-                priority=args.priority,
-                status=args.status,
-                event_type=args.event_type,
-                is_all_day=args.all_day,
-                area_id=args.area_id,
-                task_id=args.task_id,
-                tag_ids=args.tag_ids,
-                person_ids=args.person_ids,
-                recurrence_frequency=args.recurrence_frequency,
-                recurrence_interval=args.recurrence_interval,
-                recurrence_count=args.recurrence_count,
-                recurrence_until=args.recurrence_until,
+                payload=event_services.EventCreateInput(
+                    title=args.title,
+                    description=args.description,
+                    start_time=args.start_time,
+                    end_time=args.end_time,
+                    priority=args.priority,
+                    status=args.status,
+                    event_type=args.event_type,
+                    is_all_day=args.all_day,
+                    area_id=args.area_id,
+                    task_id=args.task_id,
+                    tag_ids=args.tag_ids,
+                    person_ids=args.person_ids,
+                    recurrence_frequency=args.recurrence_frequency,
+                    recurrence_interval=args.recurrence_interval,
+                    recurrence_count=args.recurrence_count,
+                    recurrence_until=args.recurrence_until,
+                ),
             )
         except (
             event_services.EventAreaReferenceNotFoundError,
@@ -111,8 +113,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
         return cli_handler_utils.print_cli_error(exc)
     async with db_session.session_scope() as session:
         try:
-            events = await event_services.list_events(
-                session,
+            filters = event_services.EventQueryFilters(
                 title_contains=args.title_contains,
                 status=args.status,
                 event_type=args.event_type,
@@ -125,8 +126,14 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                 window_start=query.window_start,
                 window_end=query.window_end,
                 include_deleted=args.include_deleted,
-                limit=args.limit,
-                offset=args.offset,
+            )
+            events = await event_services.list_events(
+                session,
+                query=event_services.EventListInput(
+                    filters=filters,
+                    limit=args.limit,
+                    offset=args.offset,
+                ),
             )
         except event_services.EventValidationError as exc:
             return cli_handler_utils.print_cli_error(exc)

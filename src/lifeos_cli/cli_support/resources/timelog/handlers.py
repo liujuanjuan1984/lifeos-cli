@@ -208,17 +208,19 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
                 for draft in drafts:
                     timelog = await timelog_services.create_timelog(
                         session,
-                        title=draft.title,
-                        start_time=draft.start_time,
-                        end_time=draft.end_time,
-                        tracking_method=args.tracking_method,
-                        location=args.location,
-                        energy_level=args.energy_level,
-                        notes=args.notes,
-                        area_id=args.area_id,
-                        task_id=args.task_id,
-                        tag_ids=args.tag_ids,
-                        person_ids=args.person_ids,
+                        payload=timelog_services.TimelogCreateInput(
+                            title=draft.title,
+                            start_time=draft.start_time,
+                            end_time=draft.end_time,
+                            tracking_method=args.tracking_method,
+                            location=args.location,
+                            energy_level=args.energy_level,
+                            notes=args.notes,
+                            area_id=args.area_id,
+                            task_id=args.task_id,
+                            tag_ids=args.tag_ids,
+                            person_ids=args.person_ids,
+                        ),
                     )
                     created_ids.append(timelog.id)
             except (
@@ -237,17 +239,19 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
         try:
             timelog = await timelog_services.create_timelog(
                 session,
-                title=args.title,
-                start_time=args.start_time,
-                end_time=args.end_time,
-                tracking_method=args.tracking_method,
-                location=args.location,
-                energy_level=args.energy_level,
-                notes=args.notes,
-                area_id=args.area_id,
-                task_id=args.task_id,
-                tag_ids=args.tag_ids,
-                person_ids=args.person_ids,
+                payload=timelog_services.TimelogCreateInput(
+                    title=args.title,
+                    start_time=args.start_time,
+                    end_time=args.end_time,
+                    tracking_method=args.tracking_method,
+                    location=args.location,
+                    energy_level=args.energy_level,
+                    notes=args.notes,
+                    area_id=args.area_id,
+                    task_id=args.task_id,
+                    tag_ids=args.tag_ids,
+                    person_ids=args.person_ids,
+                ),
             )
         except (
             timelog_services.TimelogAreaReferenceNotFoundError,
@@ -283,8 +287,7 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
         return conflict_error
     async with db_session.session_scope() as session:
         try:
-            timelogs = await timelog_services.list_timelogs(
-                session,
+            filters = timelog_services.TimelogQueryFilters(
                 title_contains=args.title_contains,
                 notes_contains=args.notes_contains,
                 query=args.query,
@@ -301,28 +304,19 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                 window_start=query.window_start,
                 window_end=query.window_end,
                 include_deleted=args.include_deleted,
-                limit=args.limit,
-                offset=args.offset,
+            )
+            timelogs = await timelog_services.list_timelogs(
+                session,
+                query=timelog_services.TimelogListInput(
+                    filters=filters,
+                    limit=args.limit,
+                    offset=args.offset,
+                ),
             )
             total_count = (
                 await timelog_services.count_timelogs(
                     session,
-                    title_contains=args.title_contains,
-                    notes_contains=args.notes_contains,
-                    query=args.query,
-                    tracking_method=args.tracking_method,
-                    area_id=args.area_id,
-                    area_name=args.area_name,
-                    without_area=args.without_area,
-                    task_id=args.task_id,
-                    without_task=args.without_task,
-                    person_id=args.person_id,
-                    tag_id=args.tag_id,
-                    start_date=query.start_date,
-                    end_date=query.end_date,
-                    window_start=query.window_start,
-                    window_end=query.window_end,
-                    include_deleted=args.include_deleted,
+                    filters=filters,
                 )
                 if args.count
                 else None

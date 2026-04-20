@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -72,6 +72,66 @@ class EventUpdateInput:
     recurrence_count: int | None = None
     recurrence_until: datetime | None = None
     clear_recurrence: bool = False
+
+
+@dataclass(frozen=True)
+class EventCreateInput:
+    """Normalized writable fields for event creation."""
+
+    title: str
+    start_time: datetime
+    end_time: datetime | None = None
+    description: str | None = None
+    priority: int = 0
+    status: str = "planned"
+    event_type: str = "appointment"
+    is_all_day: bool = False
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    tag_ids: list[UUID] | None = None
+    person_ids: list[UUID] | None = None
+    recurrence_frequency: str | None = None
+    recurrence_interval: int | None = None
+    recurrence_count: int | None = None
+    recurrence_until: datetime | None = None
+    recurrence_parent_event_id: UUID | None = None
+    recurrence_instance_start: datetime | None = None
+
+
+@dataclass(frozen=True)
+class EventQueryFilters:
+    """Shared filter set for event list and occurrence operations."""
+
+    title_contains: str | None = None
+    status: str | None = None
+    event_type: str | None = None
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    person_id: UUID | None = None
+    tag_id: UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    include_deleted: bool = False
+
+
+@dataclass(frozen=True)
+class EventOccurrenceQuery:
+    """Occurrence expansion intent for one UTC time window."""
+
+    window_start: datetime
+    window_end: datetime
+    filters: EventQueryFilters = field(default_factory=EventQueryFilters)
+
+
+@dataclass(frozen=True)
+class EventListInput:
+    """List intent for events with optional occurrence expansion."""
+
+    filters: EventQueryFilters = field(default_factory=EventQueryFilters)
+    limit: int = 100
+    offset: int = 0
 
 
 def validate_event_scope(scope: str) -> str:

@@ -171,9 +171,10 @@ def test_main_event_add_creates_event(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_create_event(_session: object, **kwargs: object) -> object:
-        assert kwargs["title"] == "Doctor appointment"
-        assert kwargs["event_type"] == "appointment"
-        assert kwargs["person_ids"] == [UUID("11111111-1111-1111-1111-111111111111")]
+        payload = cast(events.EventCreateInput, kwargs["payload"])
+        assert payload.title == "Doctor appointment"
+        assert payload.event_type == "appointment"
+        assert payload.person_ids == [UUID("11111111-1111-1111-1111-111111111111")]
         return make_record(id=UUID("12121212-1212-1212-1212-121212121212"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -201,9 +202,10 @@ def test_main_event_add_passes_recurrence_fields(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_create_event(_session: object, **kwargs: object) -> object:
-        assert kwargs["recurrence_frequency"] == "daily"
-        assert kwargs["recurrence_interval"] == 2
-        assert kwargs["recurrence_count"] == 5
+        payload = cast(events.EventCreateInput, kwargs["payload"])
+        assert payload.recurrence_frequency == "daily"
+        assert payload.recurrence_interval == 2
+        assert payload.recurrence_count == 5
         return make_record(id=UUID("34343434-3434-3434-3434-343434343434"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -235,7 +237,8 @@ def test_main_event_add_passes_monthly_recurrence_frequency(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_create_event(_session: object, **kwargs: object) -> object:
-        assert kwargs["recurrence_frequency"] == "monthly"
+        payload = cast(events.EventCreateInput, kwargs["payload"])
+        assert payload.recurrence_frequency == "monthly"
         return make_record(id=UUID("56565656-5656-5656-5656-565656565656"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -263,7 +266,8 @@ def test_main_event_add_passes_event_type(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_create_event(_session: object, **kwargs: object) -> object:
-        assert kwargs["event_type"] == "timeblock"
+        payload = cast(events.EventCreateInput, kwargs["payload"])
+        assert payload.event_type == "timeblock"
         return make_record(id=UUID("45454545-4545-4545-4545-454545454545"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())

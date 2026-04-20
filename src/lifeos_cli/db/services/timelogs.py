@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -30,7 +30,10 @@ from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby
 from lifeos_cli.db.services.timelog_support import (
     TimelogAreaReferenceNotFoundError,
     TimelogBatchUpdateInput,
+    TimelogCreateInput,
+    TimelogListInput,
     TimelogNotFoundError,
+    TimelogQueryFilters,
     TimelogTaskReferenceNotFoundError,
     TimelogUpdateInput,
     TimelogValidationError,
@@ -122,58 +125,49 @@ def _capture_timelog_dependency_snapshot(timelog: Timelog) -> _TimelogDependency
     )
 
 
+@dataclass(frozen=True)
+class _TimelogDependencyChange:
+    previous: _TimelogDependencySnapshot
+    current: _TimelogDependencySnapshot
+
+
+def _empty_timelog_dependency_snapshot() -> _TimelogDependencySnapshot:
+    return _TimelogDependencySnapshot(
+        task_id=None,
+        start_time=None,
+        end_time=None,
+        area_id=None,
+    )
+
+
 async def _recompute_timelog_dependents(
     session: AsyncSession,
     *,
-    old_task_id: UUID | None,
-    new_task_id: UUID | None,
-    old_start_time: datetime | None,
-    old_end_time: datetime | None,
-    old_area_id: UUID | None,
-    new_start_time: datetime | None,
-    new_end_time: datetime | None,
-    new_area_id: UUID | None,
+    change: _TimelogDependencyChange,
 ) -> None:
     await recompute_task_effort_after_timelog_change(
         session,
-        old_task_id=old_task_id,
-        new_task_id=new_task_id,
+        old_task_id=change.previous.task_id,
+        new_task_id=change.current.task_id,
     )
     await recompute_timelog_stats_groupby_area_after_change(
         session,
-        old_start_time=old_start_time,
-        old_end_time=old_end_time,
-        old_area_id=old_area_id,
-        new_start_time=new_start_time,
-        new_end_time=new_end_time,
-        new_area_id=new_area_id,
+        old_start_time=change.previous.start_time,
+        old_end_time=change.previous.end_time,
+        old_area_id=change.previous.area_id,
+        new_start_time=change.current.start_time,
+        new_end_time=change.current.end_time,
+        new_area_id=change.current.area_id,
     )
 
 
 async def _flush_and_recompute_timelog_dependents(
     session: AsyncSession,
     *,
-    old_task_id: UUID | None,
-    new_task_id: UUID | None,
-    old_start_time: datetime | None,
-    old_end_time: datetime | None,
-    old_area_id: UUID | None,
-    new_start_time: datetime | None,
-    new_end_time: datetime | None,
-    new_area_id: UUID | None,
+    change: _TimelogDependencyChange,
 ) -> None:
     await session.flush()
-    await _recompute_timelog_dependents(
-        session,
-        old_task_id=old_task_id,
-        new_task_id=new_task_id,
-        old_start_time=old_start_time,
-        old_end_time=old_end_time,
-        old_area_id=old_area_id,
-        new_start_time=new_start_time,
-        new_end_time=new_end_time,
-        new_area_id=new_area_id,
-    )
+    await _recompute_timelog_dependents(session, change=change)
     await session.flush()
 
 
@@ -301,33 +295,23 @@ async def _resolve_batch_timelog_title(
     return None, not changes.has_non_title_update()
 
 
-def _apply_timelog_filters(
-    stmt: Any,
-    *,
-    title_contains: str | None = None,
-    notes_contains: str | None = None,
-    query: str | None = None,
-    tracking_method: str | None = None,
-    area_id: UUID | None = None,
-    area_name: str | None = None,
-    without_area: bool = False,
-    task_id: UUID | None = None,
-    without_task: bool = False,
-    person_id: UUID | None = None,
-    tag_id: UUID | None = None,
-    window_start: datetime | None = None,
-    window_end: datetime | None = None,
-    include_deleted: bool = False,
-) -> Any:
+def _apply_timelog_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
     """Apply shared timelog list filters to a SQLAlchemy select."""
-    if not include_deleted:
+    if not filters.include_deleted:
         stmt = stmt.where(Timelog.deleted_at.is_(None))
-    if title_contains:
-        stmt = stmt.where(Timelog.title.ilike(f"%{title_contains.strip()}%"))
-    if notes_contains:
-        stmt = stmt.where(Timelog.notes.ilike(f"%{notes_contains.strip()}%"))
-    if query:
-        keywords = [keyword.strip() for keyword in query.split() if keyword.strip()]
+    stmt = _apply_timelog_text_filters(stmt, filters=filters)
+    stmt = _apply_timelog_area_task_filters(stmt, filters=filters)
+    stmt = _apply_timelog_association_filters(stmt, filters=filters)
+    return _apply_timelog_window_filters(stmt, filters=filters)
+
+
+def _apply_timelog_text_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
+    if filters.title_contains:
+        stmt = stmt.where(Timelog.title.ilike(f"%{filters.title_contains.strip()}%"))
+    if filters.notes_contains:
+        stmt = stmt.where(Timelog.notes.ilike(f"%{filters.notes_contains.strip()}%"))
+    if filters.query:
+        keywords = [keyword.strip() for keyword in filters.query.split() if keyword.strip()]
         if keywords:
             stmt = stmt.where(
                 or_(
@@ -340,113 +324,114 @@ def _apply_timelog_filters(
                     )
                 )
             )
-    if tracking_method is not None:
-        stmt = stmt.where(Timelog.tracking_method == validate_tracking_method(tracking_method))
-    if without_area:
+    if filters.tracking_method is not None:
+        stmt = stmt.where(
+            Timelog.tracking_method == validate_tracking_method(filters.tracking_method)
+        )
+    return stmt
+
+
+def _apply_timelog_area_task_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
+    if filters.without_area:
         stmt = stmt.where(Timelog.area_id.is_(None))
-    elif area_id is not None:
-        stmt = stmt.where(Timelog.area_id == area_id)
-    if area_name:
+    elif filters.area_id is not None:
+        stmt = stmt.where(Timelog.area_id == filters.area_id)
+    if filters.area_name:
         stmt = stmt.join(Area, Timelog.area_id == Area.id).where(
-            Area.name == area_name.strip(),
+            Area.name == filters.area_name.strip(),
             Area.deleted_at.is_(None),
         )
-    if without_task:
+    if filters.without_task:
         stmt = stmt.where(Timelog.task_id.is_(None))
-    elif task_id is not None:
-        stmt = stmt.where(Timelog.task_id == task_id)
-    if person_id is not None:
+    elif filters.task_id is not None:
+        stmt = stmt.where(Timelog.task_id == filters.task_id)
+    return stmt
+
+
+def _apply_timelog_association_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
+    if filters.person_id is not None:
         stmt = stmt.join(
             person_associations,
             (person_associations.c.entity_id == Timelog.id)
             & (person_associations.c.entity_type == "timelog"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
+        ).where(person_associations.c.person_id == filters.person_id)
+    if filters.tag_id is not None:
         stmt = stmt.join(
             tag_associations,
             (tag_associations.c.entity_id == Timelog.id)
             & (tag_associations.c.entity_type == "timelog"),
-        ).where(tag_associations.c.tag_id == tag_id)
-    if window_start is not None:
-        stmt = stmt.where(Timelog.end_time >= window_start)
-    if window_end is not None:
-        stmt = stmt.where(Timelog.start_time <= window_end)
+        ).where(tag_associations.c.tag_id == filters.tag_id)
     return stmt
 
 
-def _resolve_timelog_window(
-    *,
-    start_date: date | None,
-    end_date: date | None,
-    window_start: datetime | None,
-    window_end: datetime | None,
-) -> tuple[datetime | None, datetime | None]:
-    if start_date is not None and end_date is not None:
-        return get_utc_window_for_local_date_range(start_date, end_date)
-    return window_start, window_end
+def _apply_timelog_window_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
+    if filters.window_start is not None:
+        stmt = stmt.where(Timelog.end_time >= filters.window_start)
+    if filters.window_end is not None:
+        stmt = stmt.where(Timelog.start_time <= filters.window_end)
+    return stmt
+
+
+def _resolve_timelog_filters(filters: TimelogQueryFilters) -> TimelogQueryFilters:
+    if filters.start_date is not None and filters.end_date is not None:
+        window_start, window_end = get_utc_window_for_local_date_range(
+            filters.start_date,
+            filters.end_date,
+        )
+        return replace(filters, window_start=window_start, window_end=window_end)
+    return filters
 
 
 async def create_timelog(
     session: AsyncSession,
     *,
-    title: str,
-    start_time: datetime,
-    end_time: datetime,
-    tracking_method: str = "manual",
-    location: str | None = None,
-    energy_level: int | None = None,
-    notes: str | None = None,
-    area_id: UUID | None = None,
-    task_id: UUID | None = None,
-    tag_ids: list[UUID] | None = None,
-    person_ids: list[UUID] | None = None,
+    payload: TimelogCreateInput,
 ) -> TimelogView:
     """Create a new timelog."""
-    normalized_start_time = normalize_timelog_datetime(start_time)
-    normalized_end_time = normalize_timelog_datetime(end_time)
-    normalized_title = validate_timelog_title(title)
+    normalized_start_time = normalize_timelog_datetime(payload.start_time)
+    normalized_end_time = normalize_timelog_datetime(payload.end_time)
+    normalized_title = validate_timelog_title(payload.title)
     validate_timelog_time_range(
         start_time=normalized_start_time,
         end_time=normalized_end_time,
     )
-    normalized_tracking_method = validate_tracking_method(tracking_method)
-    normalized_energy_level = validate_energy_level(energy_level)
-    await ensure_timelog_area_exists(session, area_id)
-    await ensure_timelog_task_exists(session, task_id)
+    normalized_tracking_method = validate_tracking_method(payload.tracking_method)
+    normalized_energy_level = validate_energy_level(payload.energy_level)
+    await ensure_timelog_area_exists(session, payload.area_id)
+    await ensure_timelog_task_exists(session, payload.task_id)
     timelog = Timelog(
         title=normalized_title,
         start_time=normalized_start_time,
         end_time=normalized_end_time,
         tracking_method=normalized_tracking_method,
-        location=location,
+        location=payload.location,
         energy_level=normalized_energy_level,
-        notes=notes,
-        area_id=area_id,
-        task_id=task_id,
+        notes=payload.notes,
+        area_id=payload.area_id,
+        task_id=payload.task_id,
     )
     session.add(timelog)
     await session.flush()
-    if tag_ids is not None:
+    if payload.tag_ids is not None:
         await sync_entity_tags(
-            session, entity_id=timelog.id, entity_type="timelog", desired_tag_ids=tag_ids
+            session,
+            entity_id=timelog.id,
+            entity_type="timelog",
+            desired_tag_ids=payload.tag_ids,
         )
-    if person_ids is not None:
+    if payload.person_ids is not None:
         await sync_entity_people(
             session,
             entity_id=timelog.id,
             entity_type="timelog",
-            desired_person_ids=person_ids,
+            desired_person_ids=payload.person_ids,
         )
     await _flush_and_recompute_timelog_dependents(
         session,
-        old_task_id=None,
-        old_start_time=None,
-        old_end_time=None,
-        old_area_id=None,
-        new_task_id=timelog.task_id,
-        new_start_time=timelog.start_time,
-        new_end_time=timelog.end_time,
-        new_area_id=timelog.area_id,
+        change=_TimelogDependencyChange(
+            previous=_empty_timelog_dependency_snapshot(),
+            current=_capture_timelog_dependency_snapshot(timelog),
+        ),
     )
     await session.refresh(timelog)
     return await _build_timelog_view(session, timelog)
@@ -483,51 +468,17 @@ async def get_latest_timelog_end_time(session: AsyncSession) -> datetime | None:
 async def list_timelogs(
     session: AsyncSession,
     *,
-    title_contains: str | None = None,
-    notes_contains: str | None = None,
-    query: str | None = None,
-    tracking_method: str | None = None,
-    area_id: UUID | None = None,
-    area_name: str | None = None,
-    without_area: bool = False,
-    task_id: UUID | None = None,
-    without_task: bool = False,
-    person_id: UUID | None = None,
-    tag_id: UUID | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
-    window_start: datetime | None = None,
-    window_end: datetime | None = None,
-    include_deleted: bool = False,
-    limit: int = 100,
-    offset: int = 0,
+    query: TimelogListInput,
 ) -> list[TimelogView]:
     """List timelogs with optional filters."""
-    window_start, window_end = _resolve_timelog_window(
-        start_date=start_date,
-        end_date=end_date,
-        window_start=window_start,
-        window_end=window_end,
-    )
+    resolved_filters = _resolve_timelog_filters(query.filters)
     stmt = select(Timelog).options(selectinload(Timelog.area), selectinload(Timelog.task))
-    stmt = _apply_timelog_filters(
-        stmt,
-        title_contains=title_contains,
-        notes_contains=notes_contains,
-        query=query,
-        tracking_method=tracking_method,
-        area_id=area_id,
-        area_name=area_name,
-        without_area=without_area,
-        task_id=task_id,
-        without_task=without_task,
-        person_id=person_id,
-        tag_id=tag_id,
-        window_start=window_start,
-        window_end=window_end,
-        include_deleted=include_deleted,
+    stmt = _apply_timelog_filters(stmt, filters=resolved_filters)
+    stmt = (
+        stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc())
+        .offset(query.offset)
+        .limit(query.limit)
     )
-    stmt = stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc()).offset(offset).limit(limit)
     timelogs = list((await session.execute(stmt)).scalars())
     return await _build_timelog_views(session, timelogs)
 
@@ -535,46 +486,12 @@ async def list_timelogs(
 async def count_timelogs(
     session: AsyncSession,
     *,
-    title_contains: str | None = None,
-    notes_contains: str | None = None,
-    query: str | None = None,
-    tracking_method: str | None = None,
-    area_id: UUID | None = None,
-    area_name: str | None = None,
-    without_area: bool = False,
-    task_id: UUID | None = None,
-    without_task: bool = False,
-    person_id: UUID | None = None,
-    tag_id: UUID | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
-    window_start: datetime | None = None,
-    window_end: datetime | None = None,
-    include_deleted: bool = False,
+    filters: TimelogQueryFilters,
 ) -> int:
     """Count timelogs with the same filters used by list_timelogs."""
-    window_start, window_end = _resolve_timelog_window(
-        start_date=start_date,
-        end_date=end_date,
-        window_start=window_start,
-        window_end=window_end,
-    )
     id_stmt = _apply_timelog_filters(
         select(Timelog.id),
-        title_contains=title_contains,
-        notes_contains=notes_contains,
-        query=query,
-        tracking_method=tracking_method,
-        area_id=area_id,
-        area_name=area_name,
-        without_area=without_area,
-        task_id=task_id,
-        without_task=without_task,
-        person_id=person_id,
-        tag_id=tag_id,
-        window_start=window_start,
-        window_end=window_end,
-        include_deleted=include_deleted,
+        filters=_resolve_timelog_filters(filters),
     )
     count_stmt = select(func.count()).select_from(id_stmt.subquery())
     return int((await session.execute(count_stmt)).scalar_one())
@@ -602,14 +519,10 @@ async def update_timelog(
     await _apply_timelog_association_updates(session, timelog=timelog, changes=changes)
     await _flush_and_recompute_timelog_dependents(
         session,
-        old_task_id=previous_state.task_id,
-        old_start_time=previous_state.start_time,
-        old_end_time=previous_state.end_time,
-        old_area_id=previous_state.area_id,
-        new_task_id=timelog.task_id,
-        new_start_time=timelog.start_time,
-        new_end_time=timelog.end_time,
-        new_area_id=timelog.area_id,
+        change=_TimelogDependencyChange(
+            previous=previous_state,
+            current=_capture_timelog_dependency_snapshot(timelog),
+        ),
     )
     await session.refresh(timelog)
     return await _build_timelog_view(session, timelog)
@@ -679,14 +592,15 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     timelog.soft_delete()
     await _flush_and_recompute_timelog_dependents(
         session,
-        old_task_id=old_task_id,
-        old_start_time=old_start_time,
-        old_end_time=old_end_time,
-        old_area_id=old_area_id,
-        new_task_id=None,
-        new_start_time=None,
-        new_end_time=None,
-        new_area_id=None,
+        change=_TimelogDependencyChange(
+            previous=_TimelogDependencySnapshot(
+                task_id=old_task_id,
+                start_time=old_start_time,
+                end_time=old_end_time,
+                area_id=old_area_id,
+            ),
+            current=_empty_timelog_dependency_snapshot(),
+        ),
     )
 
 
@@ -705,9 +619,12 @@ async def batch_delete_timelogs(
 
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
+    "TimelogCreateInput",
     "TimelogBatchUpdateResult",
     "TimelogBatchUpdateInput",
+    "TimelogListInput",
     "TimelogNotFoundError",
+    "TimelogQueryFilters",
     "TimelogTaskReferenceNotFoundError",
     "TimelogUpdateInput",
     "TimelogValidationError",

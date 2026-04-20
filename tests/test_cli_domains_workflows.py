@@ -36,8 +36,9 @@ def test_main_timelog_add_creates_timelog(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_create_timelog(_session: object, **kwargs: object) -> object:
-        assert kwargs["title"] == "Deep work"
-        assert kwargs["tracking_method"] == "manual"
+        payload = cast(timelogs.TimelogCreateInput, kwargs["payload"])
+        assert payload.title == "Deep work"
+        assert payload.tracking_method == "manual"
         return make_record(id=UUID("13131313-1313-1313-1313-131313131313"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -92,12 +93,14 @@ def test_main_timelog_add_quick_batch_creates_timelogs_after_confirmation(
 
     assert exit_code == 0
     assert len(captured_calls) == 2
-    assert captured_calls[0]["title"] == "Breakfast"
-    assert _isoformat_datetime(captured_calls[0]["start_time"]) == "2026-04-10T06:30:00-04:00"
-    assert _isoformat_datetime(captured_calls[0]["end_time"]) == "2026-04-10T07:00:00-04:00"
-    assert captured_calls[1]["title"] == "Deep work"
-    assert _isoformat_datetime(captured_calls[1]["start_time"]) == "2026-04-10T07:00:00-04:00"
-    assert _isoformat_datetime(captured_calls[1]["end_time"]) == "2026-04-10T08:30:00-04:00"
+    first_payload = cast(timelogs.TimelogCreateInput, captured_calls[0]["payload"])
+    second_payload = cast(timelogs.TimelogCreateInput, captured_calls[1]["payload"])
+    assert first_payload.title == "Breakfast"
+    assert _isoformat_datetime(first_payload.start_time) == "2026-04-10T06:30:00-04:00"
+    assert _isoformat_datetime(first_payload.end_time) == "2026-04-10T07:00:00-04:00"
+    assert second_payload.title == "Deep work"
+    assert _isoformat_datetime(second_payload.start_time) == "2026-04-10T07:00:00-04:00"
+    assert _isoformat_datetime(second_payload.end_time) == "2026-04-10T08:30:00-04:00"
     assert "Quick batch timelog preview:" in captured.out
     assert "Created timelogs: 2" in captured.out
     clear_config_cache()
@@ -127,8 +130,9 @@ def test_main_timelog_add_quick_batch_inherits_latest_end_time(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert _isoformat_datetime(captured_calls[0]["start_time"]) == "2026-04-10T06:30:00-04:00"
-    assert _isoformat_datetime(captured_calls[0]["end_time"]) == "2026-04-10T07:00:00-04:00"
+    payload = cast(timelogs.TimelogCreateInput, captured_calls[0]["payload"])
+    assert _isoformat_datetime(payload.start_time) == "2026-04-10T06:30:00-04:00"
+    assert _isoformat_datetime(payload.end_time) == "2026-04-10T07:00:00-04:00"
     assert "Quick batch timelog preview:" in captured.out
     clear_config_cache()
 
@@ -141,11 +145,12 @@ def test_main_timelog_list_passes_search_filters(
     monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
 
     async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
-        assert kwargs["query"] == "deep work"
-        assert kwargs["notes_contains"] == "focused"
-        assert kwargs["area_name"] == "Work"
-        assert kwargs["without_area"] is False
-        assert kwargs["without_task"] is True
+        query = cast(timelogs.TimelogListInput, kwargs["query"])
+        assert query.filters.query == "deep work"
+        assert query.filters.notes_contains == "focused"
+        assert query.filters.area_name == "Work"
+        assert query.filters.without_area is False
+        assert query.filters.without_task is True
         return [
             make_record(
                 id=UUID("13131313-1313-1313-1313-131313131313"),
@@ -160,11 +165,12 @@ def test_main_timelog_list_passes_search_filters(
         ]
 
     async def fake_count_timelogs(_session: object, **kwargs: object) -> int:
-        assert kwargs["query"] == "deep work"
-        assert kwargs["notes_contains"] == "focused"
-        assert kwargs["area_name"] == "Work"
-        assert kwargs["without_area"] is False
-        assert kwargs["without_task"] is True
+        filters = cast(timelogs.TimelogQueryFilters, kwargs["filters"])
+        assert filters.query == "deep work"
+        assert filters.notes_contains == "focused"
+        assert filters.area_name == "Work"
+        assert filters.without_area is False
+        assert filters.without_task is True
         return 1
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -204,8 +210,9 @@ def test_main_timelog_list_passes_inclusive_date_range(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
-        assert kwargs["start_date"] == date(2026, 4, 10)
-        assert kwargs["end_date"] == date(2026, 4, 11)
+        query = cast(timelogs.TimelogListInput, kwargs["query"])
+        assert query.filters.start_date == date(2026, 4, 10)
+        assert query.filters.end_date == date(2026, 4, 11)
         return []
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())

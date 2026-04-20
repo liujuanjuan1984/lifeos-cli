@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,6 +73,23 @@ class TimelogUpdateInput:
 
 
 @dataclass(frozen=True)
+class TimelogCreateInput:
+    """Normalized writable fields for timelog creation."""
+
+    title: str
+    start_time: datetime
+    end_time: datetime
+    tracking_method: str = "manual"
+    location: str | None = None
+    energy_level: int | None = None
+    notes: str | None = None
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    tag_ids: list[UUID] | None = None
+    person_ids: list[UUID] | None = None
+
+
+@dataclass(frozen=True)
 class TimelogBatchUpdateInput:
     """Batch-update intent for multiple timelogs."""
 
@@ -90,6 +107,37 @@ class TimelogBatchUpdateInput:
         return any(
             (self.title is not None, self.find_title_text is not None, self.has_non_title_update())
         )
+
+
+@dataclass(frozen=True)
+class TimelogQueryFilters:
+    """Shared filter set for timelog list and count operations."""
+
+    title_contains: str | None = None
+    notes_contains: str | None = None
+    query: str | None = None
+    tracking_method: str | None = None
+    area_id: UUID | None = None
+    area_name: str | None = None
+    without_area: bool = False
+    task_id: UUID | None = None
+    without_task: bool = False
+    person_id: UUID | None = None
+    tag_id: UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    include_deleted: bool = False
+
+
+@dataclass(frozen=True)
+class TimelogListInput:
+    """List intent for timelog queries with pagination."""
+
+    filters: TimelogQueryFilters = field(default_factory=TimelogQueryFilters)
+    limit: int = 100
+    offset: int = 0
 
 
 def validate_timelog_title(title: str) -> str:

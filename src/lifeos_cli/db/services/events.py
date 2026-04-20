@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -22,7 +22,11 @@ from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.event_support import (
     EventAreaReferenceNotFoundError,
+    EventCreateInput,
+    EventListInput,
     EventNotFoundError,
+    EventOccurrenceQuery,
+    EventQueryFilters,
     EventTaskReferenceNotFoundError,
     EventUpdateInput,
     EventValidationError,
@@ -379,113 +383,92 @@ async def _apply_event_association_updates(
     )
 
 
-def _apply_event_query_filters(
-    stmt: Any,
-    *,
-    title_contains: str | None,
-    normalized_status: str | None,
-    normalized_event_type: str | None,
-    area_id: UUID | None,
-    task_id: UUID | None,
-    person_id: UUID | None,
-    tag_id: UUID | None,
-) -> Any:
-    if title_contains:
-        stmt = stmt.where(Event.title.ilike(f"%{title_contains.strip()}%"))
-    if normalized_status is not None:
-        stmt = stmt.where(Event.status == normalized_status)
-    if normalized_event_type is not None:
-        stmt = stmt.where(Event.event_type == normalized_event_type)
-    if area_id is not None:
-        stmt = stmt.where(Event.area_id == area_id)
-    if task_id is not None:
-        stmt = stmt.where(Event.task_id == task_id)
-    if person_id is not None:
+def _normalize_event_filters(filters: EventQueryFilters) -> EventQueryFilters:
+    normalized_status = (
+        validate_event_status(filters.status) if filters.status is not None else None
+    )
+    normalized_event_type = (
+        validate_event_type(filters.event_type) if filters.event_type is not None else None
+    )
+    return EventQueryFilters(
+        title_contains=filters.title_contains,
+        status=normalized_status,
+        event_type=normalized_event_type,
+        area_id=filters.area_id,
+        task_id=filters.task_id,
+        person_id=filters.person_id,
+        tag_id=filters.tag_id,
+        start_date=filters.start_date,
+        end_date=filters.end_date,
+        window_start=filters.window_start,
+        window_end=filters.window_end,
+        include_deleted=filters.include_deleted,
+    )
+
+
+def _apply_event_query_filters(stmt: Any, *, filters: EventQueryFilters) -> Any:
+    if filters.title_contains:
+        stmt = stmt.where(Event.title.ilike(f"%{filters.title_contains.strip()}%"))
+    if filters.status is not None:
+        stmt = stmt.where(Event.status == filters.status)
+    if filters.event_type is not None:
+        stmt = stmt.where(Event.event_type == filters.event_type)
+    if filters.area_id is not None:
+        stmt = stmt.where(Event.area_id == filters.area_id)
+    if filters.task_id is not None:
+        stmt = stmt.where(Event.task_id == filters.task_id)
+    if filters.person_id is not None:
         stmt = stmt.join(
             person_associations,
             (person_associations.c.entity_id == Event.id)
             & (person_associations.c.entity_type == "event"),
-        ).where(person_associations.c.person_id == person_id)
-    if tag_id is not None:
+        ).where(person_associations.c.person_id == filters.person_id)
+    if filters.tag_id is not None:
         stmt = stmt.join(
             tag_associations,
             (tag_associations.c.entity_id == Event.id)
             & (tag_associations.c.entity_type == "event"),
-        ).where(tag_associations.c.tag_id == tag_id)
+        ).where(tag_associations.c.tag_id == filters.tag_id)
     return stmt
 
 
-def _build_event_values(
-    *,
-    title: str,
-    start_time: datetime,
-    end_time: datetime | None,
-    description: str | None,
-    priority: int,
-    status: str,
-    event_type: str,
-    is_all_day: bool,
-    area_id: UUID | None,
-    task_id: UUID | None,
-    recurrence_frequency: str | None,
-    recurrence_interval: int | None,
-    recurrence_count: int | None,
-    recurrence_until: datetime | None,
-    recurrence_parent_event_id: UUID | None,
-    recurrence_instance_start: datetime | None,
-) -> dict[str, object]:
-    return {
-        "title": title,
-        "start_time": start_time,
-        "end_time": end_time,
-        "description": description,
-        "priority": priority,
-        "status": status,
-        "event_type": event_type,
-        "is_all_day": is_all_day,
-        "area_id": area_id,
-        "task_id": task_id,
-        "recurrence_frequency": recurrence_frequency,
-        "recurrence_interval": recurrence_interval,
-        "recurrence_count": recurrence_count,
-        "recurrence_until": recurrence_until,
-        "recurrence_parent_event_id": recurrence_parent_event_id,
-        "recurrence_instance_start": recurrence_instance_start,
-    }
+def _resolve_event_list_filters(filters: EventQueryFilters) -> EventQueryFilters:
+    normalized = _normalize_event_filters(filters)
+    if normalized.start_date is not None and normalized.end_date is not None:
+        window_start, window_end = get_utc_window_for_local_date_range(
+            normalized.start_date,
+            normalized.end_date,
+        )
+        return EventQueryFilters(
+            title_contains=normalized.title_contains,
+            status=normalized.status,
+            event_type=normalized.event_type,
+            area_id=normalized.area_id,
+            task_id=normalized.task_id,
+            person_id=normalized.person_id,
+            tag_id=normalized.tag_id,
+            window_start=window_start,
+            window_end=window_end,
+            include_deleted=normalized.include_deleted,
+        )
+    return normalized
 
 
 async def create_event(
     session: AsyncSession,
     *,
-    title: str,
-    start_time: datetime,
-    end_time: datetime | None = None,
-    description: str | None = None,
-    priority: int = 0,
-    status: str = "planned",
-    event_type: str = "appointment",
-    is_all_day: bool = False,
-    area_id: UUID | None = None,
-    task_id: UUID | None = None,
-    tag_ids: list[UUID] | None = None,
-    person_ids: list[UUID] | None = None,
-    recurrence_frequency: str | None = None,
-    recurrence_interval: int | None = None,
-    recurrence_count: int | None = None,
-    recurrence_until: datetime | None = None,
-    recurrence_parent_event_id: UUID | None = None,
-    recurrence_instance_start: datetime | None = None,
+    payload: EventCreateInput,
 ) -> EventView:
     """Create a new event."""
-    normalized_start_time = normalize_event_datetime(start_time)
-    normalized_end_time = normalize_optional_event_datetime(end_time)
-    normalized_recurrence_until = normalize_optional_event_datetime(recurrence_until)
-    normalized_instance_start = normalize_optional_event_datetime(recurrence_instance_start)
-    normalized_title = validate_event_title(title)
+    normalized_start_time = normalize_event_datetime(payload.start_time)
+    normalized_end_time = normalize_optional_event_datetime(payload.end_time)
+    normalized_recurrence_until = normalize_optional_event_datetime(payload.recurrence_until)
+    normalized_instance_start = normalize_optional_event_datetime(payload.recurrence_instance_start)
+    normalized_title = validate_event_title(payload.title)
     validate_event_time_range(start_time=normalized_start_time, end_time=normalized_end_time)
-    normalized_priority = validate_event_priority(priority)
-    normalized_status = validate_event_status(status)
-    normalized_event_type = validate_event_type(event_type)
+    normalized_priority = validate_event_priority(payload.priority)
+    normalized_status = validate_event_status(payload.status)
+    normalized_event_type = validate_event_type(payload.event_type)
     (
         normalized_recurrence_frequency,
         normalized_recurrence_interval,
@@ -493,36 +476,39 @@ async def create_event(
         normalized_recurrence_until,
     ) = validate_event_recurrence(
         start_time=normalized_start_time,
-        recurrence_frequency=recurrence_frequency,
-        recurrence_interval=recurrence_interval,
-        recurrence_count=recurrence_count,
+        recurrence_frequency=payload.recurrence_frequency,
+        recurrence_interval=payload.recurrence_interval,
+        recurrence_count=payload.recurrence_count,
         recurrence_until=normalized_recurrence_until,
     )
-    await ensure_event_area_exists(session, area_id)
-    await ensure_event_task_exists(session, task_id)
+    await ensure_event_area_exists(session, payload.area_id)
+    await ensure_event_task_exists(session, payload.task_id)
     event = Event(
-        **_build_event_values(
-            title=normalized_title,
-            start_time=normalized_start_time,
-            end_time=normalized_end_time,
-            description=description,
-            priority=normalized_priority,
-            status=normalized_status,
-            event_type=normalized_event_type,
-            is_all_day=is_all_day,
-            area_id=area_id,
-            task_id=task_id,
-            recurrence_frequency=normalized_recurrence_frequency,
-            recurrence_interval=normalized_recurrence_interval,
-            recurrence_count=normalized_recurrence_count,
-            recurrence_until=normalized_recurrence_until,
-            recurrence_parent_event_id=recurrence_parent_event_id,
-            recurrence_instance_start=normalized_instance_start,
-        )
+        title=normalized_title,
+        start_time=normalized_start_time,
+        end_time=normalized_end_time,
+        description=payload.description,
+        priority=normalized_priority,
+        status=normalized_status,
+        event_type=normalized_event_type,
+        is_all_day=payload.is_all_day,
+        area_id=payload.area_id,
+        task_id=payload.task_id,
+        recurrence_frequency=normalized_recurrence_frequency,
+        recurrence_interval=normalized_recurrence_interval,
+        recurrence_count=normalized_recurrence_count,
+        recurrence_until=normalized_recurrence_until,
+        recurrence_parent_event_id=payload.recurrence_parent_event_id,
+        recurrence_instance_start=normalized_instance_start,
     )
     session.add(event)
     await session.flush()
-    await _apply_event_links(session, event=event, tag_ids=tag_ids, person_ids=person_ids)
+    await _apply_event_links(
+        session,
+        event=event,
+        tag_ids=payload.tag_ids,
+        person_ids=payload.person_ids,
+    )
     await session.refresh(event)
     return await _build_event_view(session, event)
 
@@ -543,20 +529,12 @@ async def get_event(
 async def list_event_occurrences(
     session: AsyncSession,
     *,
-    window_start: datetime,
-    window_end: datetime,
-    title_contains: str | None = None,
-    status: str | None = None,
-    event_type: str | None = None,
-    area_id: UUID | None = None,
-    task_id: UUID | None = None,
-    person_id: UUID | None = None,
-    tag_id: UUID | None = None,
-    include_deleted: bool = False,
+    query: EventOccurrenceQuery,
 ) -> list[EventOccurrence]:
     """List expanded event occurrences that overlap one time window."""
-    normalized_status = validate_event_status(status) if status is not None else None
-    normalized_event_type = validate_event_type(event_type) if event_type is not None else None
+    normalized_filters = _normalize_event_filters(query.filters)
+    window_start = query.window_start
+    window_end = query.window_end
 
     master_stmt = select(Event).where(
         Event.recurrence_parent_event_id.is_(None),
@@ -567,18 +545,9 @@ async def list_event_occurrences(
             Event.end_time >= window_start,
         ),
     )
-    if not include_deleted:
+    if not normalized_filters.include_deleted:
         master_stmt = master_stmt.where(Event.deleted_at.is_(None))
-    master_stmt = _apply_event_query_filters(
-        master_stmt,
-        title_contains=title_contains,
-        normalized_status=normalized_status,
-        normalized_event_type=normalized_event_type,
-        area_id=area_id,
-        task_id=task_id,
-        person_id=person_id,
-        tag_id=tag_id,
-    )
+    master_stmt = _apply_event_query_filters(master_stmt, filters=normalized_filters)
     masters = list((await session.execute(master_stmt)).scalars())
     master_ids = [event.id for event in masters if event_is_recurring(event)]
     skip_map = await _load_skip_exceptions(session, master_event_ids=master_ids)
@@ -588,18 +557,9 @@ async def list_event_occurrences(
         Event.start_time <= window_end,
         or_(Event.end_time.is_(None), Event.end_time >= window_start),
     )
-    if not include_deleted:
+    if not normalized_filters.include_deleted:
         override_stmt = override_stmt.where(Event.deleted_at.is_(None))
-    override_stmt = _apply_event_query_filters(
-        override_stmt,
-        title_contains=title_contains,
-        normalized_status=normalized_status,
-        normalized_event_type=normalized_event_type,
-        area_id=area_id,
-        task_id=task_id,
-        person_id=person_id,
-        tag_id=tag_id,
-    )
+    override_stmt = _apply_event_query_filters(override_stmt, filters=normalized_filters)
     overrides = list((await session.execute(override_stmt)).scalars())
     override_keys = {
         (override.recurrence_parent_event_id, override.recurrence_instance_start): override
@@ -671,62 +631,37 @@ async def list_event_occurrences(
 async def list_events(
     session: AsyncSession,
     *,
-    title_contains: str | None = None,
-    status: str | None = None,
-    event_type: str | None = None,
-    area_id: UUID | None = None,
-    task_id: UUID | None = None,
-    person_id: UUID | None = None,
-    tag_id: UUID | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
-    window_start: datetime | None = None,
-    window_end: datetime | None = None,
-    include_deleted: bool = False,
-    limit: int = 100,
-    offset: int = 0,
+    query: EventListInput,
 ) -> list[EventOccurrence | EventView]:
     """List events with optional filters."""
-    normalized_status = validate_event_status(status) if status is not None else None
-    normalized_event_type = validate_event_type(event_type) if event_type is not None else None
-
-    if start_date is not None and end_date is not None:
-        window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
+    resolved_filters = _resolve_event_list_filters(query.filters)
+    window_start = resolved_filters.window_start
+    window_end = resolved_filters.window_end
 
     if window_start is not None and window_end is not None:
         occurrences = await list_event_occurrences(
             session,
-            window_start=window_start,
-            window_end=window_end,
-            title_contains=title_contains,
-            status=normalized_status,
-            event_type=normalized_event_type,
-            area_id=area_id,
-            task_id=task_id,
-            person_id=person_id,
-            tag_id=tag_id,
-            include_deleted=include_deleted,
+            query=EventOccurrenceQuery(
+                window_start=window_start,
+                window_end=window_end,
+                filters=resolved_filters,
+            ),
         )
-        return list(occurrences[offset : offset + limit])
+        return list(occurrences[query.offset : query.offset + query.limit])
 
     stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
-    if not include_deleted:
+    if not resolved_filters.include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
-    stmt = _apply_event_query_filters(
-        stmt,
-        title_contains=title_contains,
-        normalized_status=normalized_status,
-        normalized_event_type=normalized_event_type,
-        area_id=area_id,
-        task_id=task_id,
-        person_id=person_id,
-        tag_id=tag_id,
-    )
+    stmt = _apply_event_query_filters(stmt, filters=resolved_filters)
     if window_start is not None:
         stmt = stmt.where(or_(Event.end_time.is_(None), Event.end_time >= window_start))
     if window_end is not None:
         stmt = stmt.where(Event.start_time <= window_end)
-    stmt = stmt.order_by(Event.start_time.desc(), Event.id.desc()).offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(Event.start_time.desc(), Event.id.desc())
+        .offset(query.offset)
+        .limit(query.limit)
+    )
     events = list((await session.execute(stmt)).scalars())
     return list(await _build_event_views(session, events))
 
@@ -824,38 +759,44 @@ async def _update_single_occurrence(
         )
         override_event_view = await create_event(
             session,
-            title=changes.title or master_event.title,
-            description=None
-            if changes.clear_description
-            else changes.description
-            if changes.description is not None
-            else master_event.description,
-            start_time=override_start_time,
-            end_time=override_end_time,
-            priority=changes.priority if changes.priority is not None else master_event.priority,
-            status=changes.status or master_event.status,
-            event_type=changes.event_type or master_event.event_type,
-            is_all_day=(
-                changes.is_all_day if changes.is_all_day is not None else master_event.is_all_day
+            payload=EventCreateInput(
+                title=changes.title or master_event.title,
+                description=None
+                if changes.clear_description
+                else changes.description
+                if changes.description is not None
+                else master_event.description,
+                start_time=override_start_time,
+                end_time=override_end_time,
+                priority=changes.priority
+                if changes.priority is not None
+                else master_event.priority,
+                status=changes.status or master_event.status,
+                event_type=changes.event_type or master_event.event_type,
+                is_all_day=(
+                    changes.is_all_day
+                    if changes.is_all_day is not None
+                    else master_event.is_all_day
+                ),
+                area_id=(
+                    None
+                    if changes.clear_area
+                    else changes.area_id
+                    if changes.area_id is not None
+                    else master_event.area_id
+                ),
+                task_id=(
+                    None
+                    if changes.clear_task
+                    else changes.task_id
+                    if changes.task_id is not None
+                    else master_event.task_id
+                ),
+                tag_ids=resolved_tag_ids,
+                person_ids=resolved_person_ids,
+                recurrence_parent_event_id=master_event.id,
+                recurrence_instance_start=instance_start,
             ),
-            area_id=(
-                None
-                if changes.clear_area
-                else changes.area_id
-                if changes.area_id is not None
-                else master_event.area_id
-            ),
-            task_id=(
-                None
-                if changes.clear_task
-                else changes.task_id
-                if changes.task_id is not None
-                else master_event.task_id
-            ),
-            tag_ids=resolved_tag_ids,
-            person_ids=resolved_person_ids,
-            recurrence_parent_event_id=master_event.id,
-            recurrence_instance_start=instance_start,
         )
     else:
         override_event_view = await _update_event_record(
@@ -948,44 +889,46 @@ async def _update_future_series(
     )
     return await create_event(
         session,
-        title=changes.title or master_event.title,
-        description=None
-        if changes.clear_description
-        else changes.description
-        if changes.description is not None
-        else master_event.description,
-        start_time=changes.start_time or instance_start,
-        end_time=None
-        if changes.clear_end_time
-        else changes.end_time
-        if changes.end_time is not None
-        else _event_occurrence_end(master_event, occurrence_start=instance_start),
-        priority=changes.priority if changes.priority is not None else master_event.priority,
-        status=changes.status or master_event.status,
-        event_type=changes.event_type or master_event.event_type,
-        is_all_day=changes.is_all_day
-        if changes.is_all_day is not None
-        else master_event.is_all_day,
-        area_id=(
-            None
-            if changes.clear_area
-            else changes.area_id
-            if changes.area_id is not None
-            else master_event.area_id
+        payload=EventCreateInput(
+            title=changes.title or master_event.title,
+            description=None
+            if changes.clear_description
+            else changes.description
+            if changes.description is not None
+            else master_event.description,
+            start_time=changes.start_time or instance_start,
+            end_time=None
+            if changes.clear_end_time
+            else changes.end_time
+            if changes.end_time is not None
+            else _event_occurrence_end(master_event, occurrence_start=instance_start),
+            priority=changes.priority if changes.priority is not None else master_event.priority,
+            status=changes.status or master_event.status,
+            event_type=changes.event_type or master_event.event_type,
+            is_all_day=changes.is_all_day
+            if changes.is_all_day is not None
+            else master_event.is_all_day,
+            area_id=(
+                None
+                if changes.clear_area
+                else changes.area_id
+                if changes.area_id is not None
+                else master_event.area_id
+            ),
+            task_id=(
+                None
+                if changes.clear_task
+                else changes.task_id
+                if changes.task_id is not None
+                else master_event.task_id
+            ),
+            tag_ids=resolved_tag_ids,
+            person_ids=resolved_person_ids,
+            recurrence_frequency=next_recurrence_frequency,
+            recurrence_interval=next_recurrence_interval,
+            recurrence_count=next_recurrence_count,
+            recurrence_until=next_recurrence_until,
         ),
-        task_id=(
-            None
-            if changes.clear_task
-            else changes.task_id
-            if changes.task_id is not None
-            else master_event.task_id
-        ),
-        tag_ids=resolved_tag_ids,
-        person_ids=resolved_person_ids,
-        recurrence_frequency=next_recurrence_frequency,
-        recurrence_interval=next_recurrence_interval,
-        recurrence_count=next_recurrence_count,
-        recurrence_until=next_recurrence_until,
     )
 
 
@@ -1094,8 +1037,12 @@ async def batch_delete_events(
 
 __all__ = [
     "EventAreaReferenceNotFoundError",
+    "EventCreateInput",
+    "EventListInput",
     "EventNotFoundError",
     "EventOccurrence",
+    "EventOccurrenceQuery",
+    "EventQueryFilters",
     "EventUpdateInput",
     "EventTaskReferenceNotFoundError",
     "EventValidationError",

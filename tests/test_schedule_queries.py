@@ -165,11 +165,11 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
     async def fake_list_event_occurrences(
         session: object,
         *,
-        window_start: object,
-        window_end: object,
+        query: object,
         **_: object,
     ) -> list[object]:
-        calls.append((window_start, window_end))
+        occurrence_query = cast(schedule_queries.EventOccurrenceQuery, query)
+        calls.append((occurrence_query.window_start, occurrence_query.window_end))
         return [
             make_record(
                 id=UUID("33333333-3333-3333-3333-333333333333"),
