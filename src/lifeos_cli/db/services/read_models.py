@@ -428,33 +428,3 @@ def build_note_view(
         events=tuple(build_event_summary(event) for event in events),
         timelogs=tuple(build_timelog_summary(timelog) for timelog in timelogs),
     )
-
-
-__all__ = [
-    "EventSummaryView",
-    "EventView",
-    "NoteView",
-    "PersonSummaryView",
-    "PersonView",
-    "TagSummaryView",
-    "TagView",
-    "TaskSummaryView",
-    "TaskView",
-    "TimelogSummaryView",
-    "TimelogView",
-    "VisionSummaryView",
-    "VisionView",
-    "build_event_summary",
-    "build_event_view",
-    "build_note_view",
-    "build_person_summary",
-    "build_person_view",
-    "build_tag_summary",
-    "build_tag_view",
-    "build_task_summary",
-    "build_task_view",
-    "build_timelog_summary",
-    "build_timelog_view",
-    "build_vision_summary",
-    "build_vision_view",
-]

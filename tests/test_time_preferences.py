@@ -7,8 +7,8 @@ from lifeos_cli.application.time_preferences import (
     get_operational_date,
     get_utc_window_for_local_date,
     get_week_bounds,
-    normalize_user_datetime_to_utc,
     to_preferred_timezone,
+    to_storage_timezone,
 )
 from lifeos_cli.config import clear_config_cache
 from tests.config_support import install_test_config
@@ -32,10 +32,10 @@ def test_apply_preferred_timezone_attaches_configured_timezone(monkeypatch, tmp_
     clear_config_cache()
 
 
-def test_normalize_user_datetime_to_utc_preserves_explicit_timezone(monkeypatch, tmp_path) -> None:
+def test_to_storage_timezone_preserves_explicit_timezone(monkeypatch, tmp_path) -> None:
     install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
 
-    normalized = normalize_user_datetime_to_utc(datetime(2026, 4, 10, 9, 0, tzinfo=timezone.utc))
+    normalized = to_storage_timezone(datetime(2026, 4, 10, 9, 0, tzinfo=timezone.utc))
 
     assert normalized.isoformat() == "2026-04-10T09:00:00+00:00"
     clear_config_cache()

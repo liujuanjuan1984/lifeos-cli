@@ -25,9 +25,6 @@ from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.daily_timelog_stats_groupby_area import DailyTimelogStatsGroupByArea
 from lifeos_cli.db.models.timelog import Timelog
 
-VALID_TIMELOG_STATS_GRANULARITIES = ("day", "range", "week", "month", "year")
-PERSISTED_TIMELOG_STATS_GRANULARITIES = ("week", "month", "year")
-
 
 class TimelogStatsValidationError(RuntimeError):
     """Raised when timelog stats input is invalid."""
@@ -571,24 +568,3 @@ async def rebuild_timelog_stats_groupby_area(
         session, local_dates=local_dates
     )
     return local_dates
-
-
-__all__ = [
-    "PERSISTED_TIMELOG_STATS_GRANULARITIES",
-    "TimelogAreaStatsRow",
-    "TimelogStatsReport",
-    "TimelogStatsValidationError",
-    "VALID_TIMELOG_STATS_GRANULARITIES",
-    "get_month_bounds",
-    "get_timelog_stats_groupby_area_for_day",
-    "get_timelog_stats_groupby_area_for_period",
-    "get_timelog_stats_groupby_area_for_range",
-    "get_year_bounds",
-    "iter_local_dates_for_timelog_window",
-    "overlap_minutes_for_window",
-    "rebuild_timelog_stats_groupby_area",
-    "recompute_aggregated_timelog_stats_groupby_area_for_dates",
-    "recompute_daily_timelog_stats_groupby_area_for_dates",
-    "recompute_timelog_stats_groupby_area_after_change",
-    "resolve_stats_period",
-]

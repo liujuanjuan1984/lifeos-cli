@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime
 from pathlib import Path
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
@@ -21,7 +20,6 @@ from lifeos_cli.cli_support.resources.timelog.bulk_add import (
 )
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
-    ResolvedDateTimeQuery,
     resolve_date_interval_arguments,
     resolve_exclusive_date_or_datetime_query,
     resolve_required_date_interval_arguments,
@@ -84,10 +82,6 @@ def _format_timelog_detail(timelog: TimelogView) -> str:
             f"deleted_at: {format_timestamp(timelog.deleted_at)}",
         )
     )
-
-
-def _timelog_add_uses_batch_mode(args: argparse.Namespace) -> bool:
-    return args.entry_lines is not None or args.file is not None
 
 
 def _resolve_bulk_timelog_input_text(args: argparse.Namespace) -> str:
@@ -187,83 +181,8 @@ def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> st
     return "\n".join(lines)
 
 
-def _build_timelog_create_input(
-    args: argparse.Namespace,
-    *,
-    title: str,
-    start_time: datetime,
-    end_time: datetime,
-) -> timelog_services.TimelogCreateInput:
-    return timelog_services.TimelogCreateInput(
-        title=title,
-        start_time=start_time,
-        end_time=end_time,
-        tracking_method=args.tracking_method,
-        location=args.location,
-        energy_level=args.energy_level,
-        notes=args.notes,
-        area_id=args.area_id,
-        task_id=args.task_id,
-        tag_ids=args.tag_ids,
-        person_ids=args.person_ids,
-    )
-
-
-def _build_timelog_list_input(
-    args: argparse.Namespace,
-    *,
-    query: ResolvedDateTimeQuery,
-) -> timelog_services.TimelogListInput:
-    filters = timelog_services.TimelogQueryFilters(
-        title_contains=args.title_contains,
-        notes_contains=args.notes_contains,
-        query=args.query,
-        tracking_method=args.tracking_method,
-        area_id=args.area_id,
-        area_name=args.area_name,
-        without_area=args.without_area,
-        task_id=args.task_id,
-        without_task=args.without_task,
-        person_id=args.person_id,
-        tag_id=args.tag_id,
-        start_date=query.start_date,
-        end_date=query.end_date,
-        window_start=query.window_start,
-        window_end=query.window_end,
-        include_deleted=args.include_deleted,
-    )
-    return timelog_services.TimelogListInput(
-        filters=filters,
-        limit=args.limit,
-        offset=args.offset,
-    )
-
-
-def _build_timelog_update_input(args: argparse.Namespace) -> timelog_services.TimelogUpdateInput:
-    return timelog_services.TimelogUpdateInput(
-        title=args.title,
-        start_time=args.start_time,
-        end_time=args.end_time,
-        tracking_method=args.tracking_method,
-        location=args.location,
-        clear_location=args.clear_location,
-        energy_level=args.energy_level,
-        clear_energy_level=args.clear_energy_level,
-        notes=args.notes,
-        clear_notes=args.clear_notes,
-        area_id=args.area_id,
-        clear_area=args.clear_area,
-        task_id=args.task_id,
-        clear_task=args.clear_task,
-        tag_ids=args.tag_ids,
-        clear_tags=args.clear_tags,
-        person_ids=args.person_ids,
-        clear_people=args.clear_people,
-    )
-
-
 async def handle_timelog_add_async(args: argparse.Namespace) -> int:
-    if _timelog_add_uses_batch_mode(args):
+    if args.entry_lines is not None or args.file is not None:
         _validate_bulk_timelog_add_args(args)
         raw_text = _resolve_bulk_timelog_input_text(args)
         async with db_session.session_scope() as session:
@@ -285,11 +204,18 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
                 for draft in drafts:
                     timelog = await timelog_services.create_timelog(
                         session,
-                        payload=_build_timelog_create_input(
-                            args,
+                        payload=timelog_services.TimelogCreateInput(
                             title=draft.title,
                             start_time=draft.start_time,
                             end_time=draft.end_time,
+                            tracking_method=args.tracking_method,
+                            location=args.location,
+                            energy_level=args.energy_level,
+                            notes=args.notes,
+                            area_id=args.area_id,
+                            task_id=args.task_id,
+                            tag_ids=args.tag_ids,
+                            person_ids=args.person_ids,
                         ),
                     )
                     created_ids.append(timelog.id)
@@ -309,11 +235,18 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
         try:
             timelog = await timelog_services.create_timelog(
                 session,
-                payload=_build_timelog_create_input(
-                    args,
+                payload=timelog_services.TimelogCreateInput(
                     title=args.title,
                     start_time=args.start_time,
                     end_time=args.end_time,
+                    tracking_method=args.tracking_method,
+                    location=args.location,
+                    energy_level=args.energy_level,
+                    notes=args.notes,
+                    area_id=args.area_id,
+                    task_id=args.task_id,
+                    tag_ids=args.tag_ids,
+                    person_ids=args.person_ids,
                 ),
             )
         except (
@@ -350,7 +283,28 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
         return conflict_error
     async with db_session.session_scope() as session:
         try:
-            list_input = _build_timelog_list_input(args, query=query)
+            list_input = timelog_services.TimelogListInput(
+                filters=timelog_services.TimelogQueryFilters(
+                    title_contains=args.title_contains,
+                    notes_contains=args.notes_contains,
+                    query=args.query,
+                    tracking_method=args.tracking_method,
+                    area_id=args.area_id,
+                    area_name=args.area_name,
+                    without_area=args.without_area,
+                    task_id=args.task_id,
+                    without_task=args.without_task,
+                    person_id=args.person_id,
+                    tag_id=args.tag_id,
+                    start_date=query.start_date,
+                    end_date=query.end_date,
+                    window_start=query.window_start,
+                    window_end=query.window_end,
+                    include_deleted=args.include_deleted,
+                ),
+                limit=args.limit,
+                offset=args.offset,
+            )
             timelogs = await timelog_services.list_timelogs(
                 session,
                 query=list_input,
@@ -411,7 +365,26 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
             timelog = await timelog_services.update_timelog(
                 session,
                 timelog_id=args.timelog_id,
-                changes=_build_timelog_update_input(args),
+                changes=timelog_services.TimelogUpdateInput(
+                    title=args.title,
+                    start_time=args.start_time,
+                    end_time=args.end_time,
+                    tracking_method=args.tracking_method,
+                    location=args.location,
+                    clear_location=args.clear_location,
+                    energy_level=args.energy_level,
+                    clear_energy_level=args.clear_energy_level,
+                    notes=args.notes,
+                    clear_notes=args.clear_notes,
+                    area_id=args.area_id,
+                    clear_area=args.clear_area,
+                    task_id=args.task_id,
+                    clear_task=args.clear_task,
+                    tag_ids=args.tag_ids,
+                    clear_tags=args.clear_tags,
+                    person_ids=args.person_ids,
+                    clear_people=args.clear_people,
+                ),
             )
         except (
             timelog_services.TimelogNotFoundError,
@@ -435,23 +408,6 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
-    return any(
-        (
-            args.title is not None,
-            args.find_title_text is not None,
-            args.area_id is not None,
-            args.clear_area,
-            args.task_id is not None,
-            args.clear_task,
-            args.tag_ids is not None,
-            args.clear_tags,
-            args.person_ids is not None,
-            args.clear_people,
-        )
-    )
-
-
 async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     conflicts = (
         (
@@ -471,7 +427,20 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     if args.replace_title_text is not None and args.find_title_text is None:
         print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
         return 1
-    if not _timelog_batch_update_requested(args):
+    if not any(
+        (
+            args.title is not None,
+            args.find_title_text is not None,
+            args.area_id is not None,
+            args.clear_area,
+            args.task_id is not None,
+            args.clear_task,
+            args.tag_ids is not None,
+            args.clear_tags,
+            args.person_ids is not None,
+            args.clear_people,
+        )
+    ):
         print("At least one batch update option is required.", file=sys.stderr)
         return 1
 

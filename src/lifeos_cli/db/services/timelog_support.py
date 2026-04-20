@@ -8,7 +8,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.time_preferences import normalize_user_datetime_to_utc
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.model_utils import ensure_optional_reference_exists
@@ -154,11 +153,6 @@ def validate_timelog_time_range(*, start_time: datetime, end_time: datetime) -> 
     """Validate a timelog time range."""
     if end_time < start_time:
         raise TimelogValidationError("Timelog end time must be on or after the start time")
-
-
-def normalize_timelog_datetime(value: datetime) -> datetime:
-    """Normalize one timelog datetime to UTC for storage."""
-    return normalize_user_datetime_to_utc(value)
 
 
 def validate_tracking_method(tracking_method: str) -> str:

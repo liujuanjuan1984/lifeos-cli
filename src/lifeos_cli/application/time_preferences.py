@@ -16,8 +16,8 @@ def apply_preferred_timezone(value: datetime) -> datetime:
     return value.replace(tzinfo=preferred_timezone)
 
 
-def normalize_user_datetime_to_utc(value: datetime) -> datetime:
-    """Normalize one user-facing datetime into UTC storage semantics."""
+def to_storage_timezone(value: datetime) -> datetime:
+    """Interpret one user-facing datetime and convert it to UTC storage semantics."""
     return apply_preferred_timezone(value).astimezone(timezone.utc)
 
 

@@ -11,7 +11,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date_range
+from lifeos_cli.application.time_preferences import (
+    get_utc_window_for_local_date_range,
+    to_storage_timezone,
+)
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
@@ -21,13 +24,14 @@ from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.event_support import (
-    EventAreaReferenceNotFoundError,
+    EventAreaReferenceNotFoundError as EventAreaReferenceNotFoundError,
+)
+from lifeos_cli.db.services.event_support import (
     EventCreateInput,
     EventListInput,
     EventNotFoundError,
     EventOccurrenceQuery,
     EventQueryFilters,
-    EventTaskReferenceNotFoundError,
     EventUpdateInput,
     EventValidationError,
     ensure_event_area_exists,
@@ -36,8 +40,6 @@ from lifeos_cli.db.services.event_support import (
     get_event_occurrence_index,
     get_event_occurrence_starts_in_range,
     get_previous_event_occurrence_start,
-    normalize_event_datetime,
-    normalize_optional_event_datetime,
     validate_event_instance_start,
     validate_event_priority,
     validate_event_recurrence,
@@ -46,6 +48,9 @@ from lifeos_cli.db.services.event_support import (
     validate_event_time_range,
     validate_event_title,
     validate_event_type,
+)
+from lifeos_cli.db.services.event_support import (
+    EventTaskReferenceNotFoundError as EventTaskReferenceNotFoundError,
 )
 from lifeos_cli.db.services.read_models import EventView, build_event_view
 
@@ -268,8 +273,10 @@ def _resolve_event_times(
     event: Event,
     changes: EventUpdateInput,
 ) -> tuple[datetime | None, datetime | None, datetime]:
-    normalized_start_time = normalize_optional_event_datetime(changes.start_time)
-    normalized_end_time = normalize_optional_event_datetime(changes.end_time)
+    normalized_start_time = (
+        to_storage_timezone(changes.start_time) if changes.start_time is not None else None
+    )
+    normalized_end_time = to_storage_timezone(changes.end_time) if changes.end_time else None
     next_start_time = (
         normalized_start_time if normalized_start_time is not None else event.start_time
     )
@@ -290,7 +297,9 @@ def _resolve_event_recurrence_update(
     *,
     next_start_time: datetime,
 ) -> tuple[str | None, int | None, int | None, datetime | None]:
-    normalized_recurrence_until = normalize_optional_event_datetime(changes.recurrence_until)
+    normalized_recurrence_until = (
+        to_storage_timezone(changes.recurrence_until) if changes.recurrence_until else None
+    )
     next_recurrence_frequency = (
         None
         if changes.clear_recurrence
@@ -568,10 +577,16 @@ async def create_event(
     payload: EventCreateInput,
 ) -> EventView:
     """Create a new event."""
-    normalized_start_time = normalize_event_datetime(payload.start_time)
-    normalized_end_time = normalize_optional_event_datetime(payload.end_time)
-    normalized_recurrence_until = normalize_optional_event_datetime(payload.recurrence_until)
-    normalized_instance_start = normalize_optional_event_datetime(payload.recurrence_instance_start)
+    normalized_start_time = to_storage_timezone(payload.start_time)
+    normalized_end_time = to_storage_timezone(payload.end_time) if payload.end_time else None
+    normalized_recurrence_until = (
+        to_storage_timezone(payload.recurrence_until) if payload.recurrence_until else None
+    )
+    normalized_instance_start = (
+        to_storage_timezone(payload.recurrence_instance_start)
+        if payload.recurrence_instance_start
+        else None
+    )
     normalized_title = validate_event_title(payload.title)
     validate_event_time_range(start_time=normalized_start_time, end_time=normalized_end_time)
     normalized_priority = validate_event_priority(payload.priority)
@@ -971,7 +986,7 @@ async def update_event(
         raise EventNotFoundError(f"Event {event_id} was not found")
 
     normalized_scope = validate_event_scope(scope)
-    normalized_instance_start = normalize_optional_event_datetime(instance_start)
+    normalized_instance_start = to_storage_timezone(instance_start) if instance_start else None
     if normalized_scope in {"single", "all_future"}:
         if normalized_instance_start is None:
             raise EventValidationError("Instance-level recurring updates require --instance-start.")
@@ -1010,7 +1025,7 @@ async def delete_event(
         raise EventNotFoundError(f"Event {event_id} was not found")
 
     normalized_scope = validate_event_scope(scope)
-    normalized_instance_start = normalize_optional_event_datetime(instance_start)
+    normalized_instance_start = to_storage_timezone(instance_start) if instance_start else None
     if normalized_scope == "all":
         event.soft_delete()
         await session.flush()
@@ -1058,24 +1073,3 @@ async def batch_delete_events(
         delete_record=lambda event_id: delete_event(session, event_id=event_id),
         handled_exceptions=(EventNotFoundError,),
     )
-
-
-__all__ = [
-    "EventAreaReferenceNotFoundError",
-    "EventCreateInput",
-    "EventListInput",
-    "EventNotFoundError",
-    "EventOccurrence",
-    "EventOccurrenceQuery",
-    "EventQueryFilters",
-    "EventUpdateInput",
-    "EventTaskReferenceNotFoundError",
-    "EventValidationError",
-    "batch_delete_events",
-    "create_event",
-    "delete_event",
-    "get_event",
-    "list_event_occurrences",
-    "list_events",
-    "update_event",
-]

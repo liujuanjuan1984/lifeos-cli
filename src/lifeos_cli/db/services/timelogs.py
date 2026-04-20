@@ -11,7 +11,10 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from lifeos_cli.application.time_preferences import get_utc_window_for_local_date_range
+from lifeos_cli.application.time_preferences import (
+    get_utc_window_for_local_date_range,
+    to_storage_timezone,
+)
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
@@ -39,7 +42,6 @@ from lifeos_cli.db.services.timelog_support import (
     TimelogValidationError,
     ensure_timelog_area_exists,
     ensure_timelog_task_exists,
-    normalize_timelog_datetime,
     validate_energy_level,
     validate_timelog_time_range,
     validate_timelog_title,
@@ -175,10 +177,8 @@ def _resolve_timelog_times(
     timelog: Timelog,
     changes: TimelogUpdateInput,
 ) -> tuple[datetime | None, datetime | None]:
-    normalized_start_time = (
-        normalize_timelog_datetime(changes.start_time) if changes.start_time else None
-    )
-    normalized_end_time = normalize_timelog_datetime(changes.end_time) if changes.end_time else None
+    normalized_start_time = to_storage_timezone(changes.start_time) if changes.start_time else None
+    normalized_end_time = to_storage_timezone(changes.end_time) if changes.end_time else None
     next_start_time = (
         normalized_start_time if normalized_start_time is not None else timelog.start_time
     )
@@ -388,8 +388,8 @@ async def create_timelog(
     payload: TimelogCreateInput,
 ) -> TimelogView:
     """Create a new timelog."""
-    normalized_start_time = normalize_timelog_datetime(payload.start_time)
-    normalized_end_time = normalize_timelog_datetime(payload.end_time)
+    normalized_start_time = to_storage_timezone(payload.start_time)
+    normalized_end_time = to_storage_timezone(payload.end_time)
     normalized_title = validate_timelog_title(payload.title)
     validate_timelog_time_range(
         start_time=normalized_start_time,
@@ -615,26 +615,3 @@ async def batch_delete_timelogs(
         delete_record=lambda timelog_id: delete_timelog(session, timelog_id=timelog_id),
         handled_exceptions=(TimelogNotFoundError,),
     )
-
-
-__all__ = [
-    "TimelogAreaReferenceNotFoundError",
-    "TimelogCreateInput",
-    "TimelogBatchUpdateResult",
-    "TimelogBatchUpdateInput",
-    "TimelogListInput",
-    "TimelogNotFoundError",
-    "TimelogQueryFilters",
-    "TimelogTaskReferenceNotFoundError",
-    "TimelogUpdateInput",
-    "TimelogValidationError",
-    "batch_delete_timelogs",
-    "batch_update_timelogs",
-    "create_timelog",
-    "count_timelogs",
-    "delete_timelog",
-    "get_timelog",
-    "get_latest_timelog_end_time",
-    "list_timelogs",
-    "update_timelog",
-]

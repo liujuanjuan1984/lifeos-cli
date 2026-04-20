@@ -9,7 +9,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.time_preferences import normalize_user_datetime_to_utc
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
@@ -183,18 +182,6 @@ def validate_event_time_range(
     """Validate that an event time range is coherent."""
     if end_time is not None and end_time < start_time:
         raise EventValidationError("Event end time must be on or after the start time")
-
-
-def normalize_event_datetime(value: datetime) -> datetime:
-    """Normalize one event datetime to UTC for storage."""
-    return normalize_user_datetime_to_utc(value)
-
-
-def normalize_optional_event_datetime(value: datetime | None) -> datetime | None:
-    """Normalize an optional event datetime to UTC for storage."""
-    if value is None:
-        return None
-    return normalize_event_datetime(value)
 
 
 def validate_event_priority(priority: int) -> int:

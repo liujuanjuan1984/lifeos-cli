@@ -6,9 +6,11 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from lifeos_cli.application.time_preferences import to_preferred_timezone
+from lifeos_cli.application.time_preferences import (
+    to_preferred_timezone,
+    to_storage_timezone,
+)
 from lifeos_cli.config import ConfigurationError
-from lifeos_cli.db.services.timelog_support import normalize_timelog_datetime
 
 _RANGE_SEPARATOR_REGEX = re.compile(r"[~～\-–—﹣－˗‒﹘﹣⎯]")
 _FULL_WIDTH_SPACE = re.compile(r"[\u3000]")
@@ -136,7 +138,7 @@ def parse_bulk_timelog_text(
     first_start_time: datetime,
 ) -> list[BulkTimelogDraft]:
     """Parse quick-entry text into normalized timelog drafts."""
-    normalized_first_start_time = normalize_timelog_datetime(first_start_time)
+    normalized_first_start_time = to_storage_timezone(first_start_time)
     initial_cursor = to_preferred_timezone(normalized_first_start_time)
     lines = [
         (line_number, _normalize_line(line))
@@ -198,6 +200,3 @@ def parse_bulk_timelog_text(
         )
         cursor = end_time
     return drafts
-
-
-__all__ = ["BulkTimelogDraft", "parse_bulk_timelog_text"]

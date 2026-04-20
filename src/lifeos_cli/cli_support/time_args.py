@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
-from lifeos_cli.application.time_preferences import normalize_user_datetime_to_utc
+from lifeos_cli.application.time_preferences import to_storage_timezone
 
 _DATE_ONLY_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -101,7 +101,7 @@ def normalize_query_datetime_bound(
     if isinstance(value, date) and not isinstance(value, datetime):
         local_time = time.max if is_end else time.min
         value = datetime.combine(value, local_time)
-    return normalize_user_datetime_to_utc(value)
+    return to_storage_timezone(value)
 
 
 def resolve_exclusive_date_or_datetime_query(
