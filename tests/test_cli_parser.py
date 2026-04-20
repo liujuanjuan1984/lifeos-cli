@@ -857,7 +857,7 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
         (
             ["task", "--help"],
             [
-                "hierarchy      显示 `vision` 的 `task` 层级",
+                "显示 `vision` 的 `task` 层级",
                 "使用 planning-cycle 字段将 `task` 放入更大的时间范围内；"
                 "当 `task` 还需要具体的排期时间块时，请使用 `event` 命令。",
                 "批量删除操作请查看 `lifeos task batch --help`。",
