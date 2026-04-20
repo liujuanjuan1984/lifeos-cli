@@ -42,7 +42,7 @@ def build_note_add_parser(
                 + "\n\n"
                 + _(
                     "Use this action to capture short thoughts, prompts, or raw text before "
-                    "they are linked to other domains such as tasks, people, or timelogs."
+                    "linking them to tasks, people, or timelogs."
                 )
             ),
             examples=(
@@ -175,9 +175,8 @@ def build_note_search_parser(
                 _("Search notes by keyword tokens.")
                 + "\n\n"
                 + _(
-                    "The current implementation uses a PostgreSQL-backed ILIKE token search. "
-                    "Each token is matched against note content, and any matching token keeps "
-                    "the note in the result set."
+                    "Search uses PostgreSQL-backed ILIKE token matching. Each token is checked "
+                    "against note content, and any match keeps the note in the result set."
                 )
             ),
             examples=(

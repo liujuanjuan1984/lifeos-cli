@@ -32,9 +32,8 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 _("Create and maintain recurring habits with explicit cadence rules.")
                 + "\n\n"
                 + _(
-                    "A habit acts as a recurring definition. Query windows materialize "
-                    "habit-action occurrences on demand, while cadence controls how progress "
-                    "is evaluated across daily, weekly, monthly, or yearly cycles."
+                    "Habits define recurring work. Query windows materialize habit-action "
+                    "occurrences on demand, and cadence decides how progress is measured."
                 )
             ),
             examples=(

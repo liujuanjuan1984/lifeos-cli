@@ -42,8 +42,8 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "re-run the full bootstrap flow."
                 ),
                 _(
-                    "Interactive init explicitly confirms the language preference because agents "
-                    "should use it for human-authored payload data."
+                    "Interactive init confirms the language preference because agents should use "
+                    "it for human-authored payload data."
                 ),
                 _("Re-run `lifeos init` at any time to update stored preferences."),
             ),

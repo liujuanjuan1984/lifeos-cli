@@ -86,11 +86,11 @@ def test_cli_note_add_help_avoids_hard_wrapped_description_fragments(capsys) -> 
     captured = capsys.readouterr()
 
     assert (
-        "Use this action to capture short thoughts, prompts, or raw text before they are linked "
-        "to other domains such as tasks, people, or timelogs."
+        "Use this action to capture short thoughts, prompts, or raw text before linking them "
+        "to tasks, people, or timelogs."
     ) in captured.out
     assert (
-        "Use this action to capture short thoughts, prompts, or raw text before\nthey are linked"
+        "Use this action to capture short thoughts, prompts, or raw text before linking\nthem"
         not in captured.out
     )
 
@@ -132,8 +132,7 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     captured = capsys.readouterr()
 
     assert (
-        "Tasks appear when the requested local date falls inside their planning-cycle window"
-        in captured.out
+        "Tasks appear when the local date falls inside their planning-cycle window." in captured.out
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
     assert (
@@ -569,7 +568,7 @@ def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> N
         ),
         (
             ["event", "add", "--help"],
-            "distinguish human-only plans from agent-only or shared schedule blocks",
+            "keep human-only, agent-only, and shared schedule blocks distinct",
         ),
         (
             ["timelog", "add", "--help"],

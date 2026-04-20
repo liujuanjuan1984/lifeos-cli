@@ -74,8 +74,8 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                     "values."
                 ),
                 _(
-                    "Agents should read the effective language and use it for human-authored "
-                    "payload data unless the human explicitly overrides it."
+                    "Agents should use the effective language for human-authored payload data "
+                    "unless the human explicitly overrides it."
                 ),
             ),
         ),

@@ -266,13 +266,13 @@ def test_cli_zh_hans_help_keeps_internal_entity_terms_in_english(
             ["task", "--help"],
             [
                 "显示 `vision` 的 `task` 层级",
-                "使用 planning-cycle 字段将 `task` 放入更大的时间范围内；"
-                "当 `task` 还需要具体的排期时间块时，请使用 `event` 命令。",
+                "使用 planning-cycle 字段表示更大的时间范围。"
+                "当 `task` 还需要具体的排期时间块时，请使用 `event`。",
                 "批量删除操作请查看 `lifeos task batch --help`。",
             ],
             [
                 "`vision``task`",
-                "Use planning-cycle fields to place a task inside a broader timebox",
+                "Use planning-cycle fields for the broader timebox",
                 "See `lifeos task batch --help` for bulk delete operations.",
             ],
         ),

@@ -44,8 +44,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 )
                 + " "
                 + _(
-                    "Use planning-cycle fields to place a task inside a broader timebox, and use "
-                    "`event` commands when the task also needs a concrete scheduled time block."
+                    "Use planning-cycle fields for the broader timebox. Use `event` when the "
+                    "task also needs a concrete scheduled time block."
                 )
             ),
             examples=(
@@ -57,8 +57,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _("Use `list` as the primary query entrypoint for this resource."),
                 _("Tasks can form trees through `--parent-task-id`."),
                 _(
-                    "Use `lifeos event add --task-id <task-id>` when a task also needs a specific "
-                    "appointment, timeblock, or deadline in the daily schedule."
+                    "Use `lifeos event add --task-id <task-id>` when the task also needs a "
+                    "specific appointment, timeblock, or deadline."
                 ),
                 _("See `lifeos task batch --help` for bulk delete operations."),
             ),

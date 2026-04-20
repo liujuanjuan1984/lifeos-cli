@@ -81,8 +81,8 @@ def build_schedule_parser(
                 _("Show the aggregated schedule for one local day.")
                 + "\n\n"
                 + _(
-                    "Tasks appear when the requested local date falls inside their planning-cycle "
-                    "window, while events appear when their scheduled time overlaps that day."
+                    "Tasks appear when the local date falls inside their planning-cycle window. "
+                    "Events appear when their scheduled time overlaps that day."
                 )
             ),
             examples=("lifeos schedule show --date 2026-04-10",),

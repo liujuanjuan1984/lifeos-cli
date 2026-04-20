@@ -62,12 +62,12 @@ def build_event_add_parser(
                 ),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
                 _(
-                    "Use recurrence flags to create a recurring series with shared cadence "
-                    "primitives across daily, weekly, monthly, and yearly patterns."
+                    "Use recurrence flags to create recurring daily, weekly, monthly, or yearly "
+                    "series."
                 ),
                 _(
-                    "When an agent creates events for a human, use `--person-id` to distinguish "
-                    "human-only plans from agent-only or shared schedule blocks."
+                    "When an agent creates events for a human, use `--person-id` to keep "
+                    "human-only, agent-only, and shared schedule blocks distinct."
                 ),
             ),
         ),

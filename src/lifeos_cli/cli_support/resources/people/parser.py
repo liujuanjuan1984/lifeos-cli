@@ -46,8 +46,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 + "\n\n"
                 + _(
                     "Use it for the human partner and, when useful, a named automation "
-                    "identity so tasks, events, and timelogs can distinguish who the work "
-                    "belongs to."
+                    "identity so work ownership stays explicit."
                 )
             ),
             examples=(
@@ -79,9 +78,8 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 _("Create a new person.")
                 + "\n\n"
                 + _(
-                    "Use tags, nicknames, and location to capture lightweight relationship "
-                    "context or an execution subject that should appear in task, event, or "
-                    "timelog ownership."
+                    "Use tags, nicknames, and location to capture relationship context or an "
+                    "execution subject for task, event, or timelog ownership."
                 )
             ),
             examples=(
