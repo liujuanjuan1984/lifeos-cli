@@ -48,6 +48,7 @@ def add_identifier_list_argument(
     *,
     dest: str,
     noun: str,
+    action_verb: str = "delete",
 ) -> None:
     """Add a standard repeated UUID identifier argument."""
     parser.add_argument(
@@ -57,7 +58,10 @@ def add_identifier_list_argument(
         type=UUID,
         nargs="+",
         required=True,
-        help=_("{noun} identifiers to delete").format(noun=noun.capitalize()),
+        help=_("{noun} identifiers to {action_verb}").format(
+            noun=noun.capitalize(),
+            action_verb=action_verb,
+        ),
     )
 
 

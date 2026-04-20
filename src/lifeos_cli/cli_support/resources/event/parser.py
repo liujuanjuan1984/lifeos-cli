@@ -412,6 +412,7 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         help_content=HelpContent(
             summary=_("Delete multiple events"),
             description=_("Soft-delete multiple events by identifier."),
+            examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="event_ids", noun="event")

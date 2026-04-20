@@ -239,6 +239,7 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help_content=HelpContent(
             summary=_("Delete multiple areas"),
             description=_("Soft-delete multiple areas by identifier."),
+            examples=("lifeos area batch delete --ids <area-id-1> <area-id-2>",),
             notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )

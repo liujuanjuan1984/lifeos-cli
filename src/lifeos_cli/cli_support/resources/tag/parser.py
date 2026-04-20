@@ -251,6 +251,7 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         help_content=HelpContent(
             summary=_("Delete multiple tags"),
             description=_("Soft-delete multiple tags by identifier."),
+            examples=("lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",),
             notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )

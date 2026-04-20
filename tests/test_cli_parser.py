@@ -2525,6 +2525,90 @@ def test_cli_help_shows_update_clear_examples(
     assert expected in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["area", "batch", "delete", "--help"],
+            "lifeos area batch delete --ids <area-id-1> <area-id-2>",
+        ),
+        (
+            ["people", "batch", "delete", "--help"],
+            "lifeos people batch delete --ids <person-id-1> <person-id-2>",
+        ),
+        (
+            ["event", "batch", "delete", "--help"],
+            "lifeos event batch delete --ids <event-id-1> <event-id-2>",
+        ),
+        (
+            ["task", "batch", "delete", "--help"],
+            "lifeos task batch delete --ids <task-id-1> <task-id-2>",
+        ),
+        (
+            ["tag", "batch", "delete", "--help"],
+            "lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",
+        ),
+        (
+            ["vision", "batch", "delete", "--help"],
+            "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
+        ),
+        (
+            ["timelog", "batch", "restore", "--help"],
+            "lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",
+        ),
+        (
+            ["timelog", "batch", "delete", "--help"],
+            "lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",
+        ),
+    ],
+)
+def test_cli_batch_action_help_shows_concrete_examples(
+    argv: list[str],
+    expected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected", "unexpected"),
+    [
+        (
+            ["timelog", "batch", "update", "--help"],
+            "Timelog identifiers to update",
+            "Timelog identifiers to delete",
+        ),
+        (
+            ["timelog", "batch", "restore", "--help"],
+            "Timelog identifiers to restore",
+            "Timelog identifiers to delete",
+        ),
+    ],
+)
+def test_cli_batch_action_ids_help_matches_action_semantics(
+    argv: list[str],
+    expected: str,
+    unexpected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+    assert unexpected not in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 

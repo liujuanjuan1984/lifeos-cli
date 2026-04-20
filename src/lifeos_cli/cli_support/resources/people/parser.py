@@ -258,6 +258,7 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help_content=HelpContent(
             summary=_("Delete multiple people"),
             description=_("Soft-delete multiple people by identifier."),
+            examples=("lifeos people batch delete --ids <person-id-1> <person-id-2>",),
             notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )

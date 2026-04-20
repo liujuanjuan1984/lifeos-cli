@@ -366,7 +366,12 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             ),
         ),
     )
-    add_identifier_list_argument(batch_update_parser, dest="timelog_ids", noun="timelog")
+    add_identifier_list_argument(
+        batch_update_parser,
+        dest="timelog_ids",
+        noun="timelog",
+        action_verb="update",
+    )
     batch_update_parser.add_argument("--title", help=_("Replace the full title"))
     batch_update_parser.add_argument("--find-title-text", help=_("Title text to find"))
     batch_update_parser.add_argument(
@@ -411,9 +416,15 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary=_("Restore multiple timelogs"),
             description=_("Restore multiple soft-deleted timelogs by identifier."),
+            examples=("lifeos timelog batch restore --ids <timelog-id-1> <timelog-id-2>",),
         ),
     )
-    add_identifier_list_argument(batch_restore_parser, dest="timelog_ids", noun="timelog")
+    add_identifier_list_argument(
+        batch_restore_parser,
+        dest="timelog_ids",
+        noun="timelog",
+        action_verb="restore",
+    )
     batch_restore_parser.set_defaults(handler=make_sync_handler(handle_timelog_batch_restore_async))
 
     batch_delete_parser = add_documented_parser(
@@ -422,6 +433,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary=_("Delete multiple timelogs"),
             description=_("Soft-delete multiple timelogs by identifier."),
+            examples=("lifeos timelog batch delete --ids <timelog-id-1> <timelog-id-2>",),
         ),
     )
     add_identifier_list_argument(batch_delete_parser, dest="timelog_ids", noun="timelog")

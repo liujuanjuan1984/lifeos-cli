@@ -372,6 +372,7 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         help_content=HelpContent(
             summary=_("Delete multiple visions"),
             description=_("Soft-delete multiple visions by identifier."),
+            examples=("lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",),
             notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )

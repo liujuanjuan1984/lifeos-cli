@@ -505,6 +505,7 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         help_content=HelpContent(
             summary=_("Delete multiple tasks"),
             description=_("Soft-delete multiple tasks by identifier."),
+            examples=("lifeos task batch delete --ids <task-id-1> <task-id-2>",),
             notes=(_("Batch delete never performs hard deletion from the public CLI."),),
         ),
     )
