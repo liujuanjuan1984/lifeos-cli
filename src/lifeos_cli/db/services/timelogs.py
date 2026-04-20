@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import Any
 from uuid import UUID
@@ -29,8 +29,10 @@ from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timel
 from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby_area_after_change
 from lifeos_cli.db.services.timelog_support import (
     TimelogAreaReferenceNotFoundError,
+    TimelogBatchUpdateInput,
     TimelogNotFoundError,
     TimelogTaskReferenceNotFoundError,
+    TimelogUpdateInput,
     TimelogValidationError,
     ensure_timelog_area_exists,
     ensure_timelog_task_exists,
@@ -103,6 +105,23 @@ async def _get_timelog_model(
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
+@dataclass(frozen=True)
+class _TimelogDependencySnapshot:
+    task_id: UUID | None
+    start_time: datetime | None
+    end_time: datetime | None
+    area_id: UUID | None
+
+
+def _capture_timelog_dependency_snapshot(timelog: Timelog) -> _TimelogDependencySnapshot:
+    return _TimelogDependencySnapshot(
+        task_id=timelog.task_id,
+        start_time=timelog.start_time,
+        end_time=timelog.end_time,
+        area_id=timelog.area_id,
+    )
+
+
 async def _recompute_timelog_dependents(
     session: AsyncSession,
     *,
@@ -156,6 +175,130 @@ async def _flush_and_recompute_timelog_dependents(
         new_area_id=new_area_id,
     )
     await session.flush()
+
+
+def _resolve_timelog_times(
+    timelog: Timelog,
+    changes: TimelogUpdateInput,
+) -> tuple[datetime | None, datetime | None]:
+    normalized_start_time = (
+        normalize_timelog_datetime(changes.start_time) if changes.start_time else None
+    )
+    normalized_end_time = normalize_timelog_datetime(changes.end_time) if changes.end_time else None
+    next_start_time = (
+        normalized_start_time if normalized_start_time is not None else timelog.start_time
+    )
+    next_end_time = normalized_end_time if normalized_end_time is not None else timelog.end_time
+    validate_timelog_time_range(start_time=next_start_time, end_time=next_end_time)
+    return normalized_start_time, normalized_end_time
+
+
+def _apply_timelog_scalar_updates(
+    timelog: Timelog,
+    changes: TimelogUpdateInput,
+    *,
+    normalized_start_time: datetime | None,
+    normalized_end_time: datetime | None,
+) -> None:
+    if changes.title is not None:
+        timelog.title = validate_timelog_title(changes.title)
+    if normalized_start_time is not None:
+        timelog.start_time = normalized_start_time
+    if normalized_end_time is not None:
+        timelog.end_time = normalized_end_time
+    if changes.tracking_method is not None:
+        timelog.tracking_method = validate_tracking_method(changes.tracking_method)
+    if changes.clear_location:
+        timelog.location = None
+    elif changes.location is not None:
+        timelog.location = changes.location
+    timelog.energy_level = (
+        None
+        if changes.clear_energy_level
+        else validate_energy_level(changes.energy_level)
+        if changes.energy_level is not None
+        else timelog.energy_level
+    )
+    if changes.clear_notes:
+        timelog.notes = None
+    elif changes.notes is not None:
+        timelog.notes = changes.notes
+
+
+async def _apply_timelog_reference_updates(
+    session: AsyncSession,
+    *,
+    timelog: Timelog,
+    changes: TimelogUpdateInput,
+) -> None:
+    next_area_id = (
+        None
+        if changes.clear_area
+        else changes.area_id
+        if changes.area_id is not None
+        else timelog.area_id
+    )
+    next_task_id = (
+        None
+        if changes.clear_task
+        else changes.task_id
+        if changes.task_id is not None
+        else timelog.task_id
+    )
+    if next_area_id != timelog.area_id:
+        await ensure_timelog_area_exists(session, next_area_id)
+        timelog.area_id = next_area_id
+    if next_task_id != timelog.task_id:
+        await ensure_timelog_task_exists(session, next_task_id)
+        timelog.task_id = next_task_id
+
+
+async def _apply_timelog_association_updates(
+    session: AsyncSession,
+    *,
+    timelog: Timelog,
+    changes: TimelogUpdateInput,
+) -> None:
+    next_tag_ids = [] if changes.clear_tags else changes.tag_ids
+    next_person_ids = [] if changes.clear_people else changes.person_ids
+    if next_tag_ids is not None:
+        await sync_entity_tags(
+            session,
+            entity_id=timelog.id,
+            entity_type="timelog",
+            desired_tag_ids=next_tag_ids,
+        )
+    if next_person_ids is not None:
+        await sync_entity_people(
+            session,
+            entity_id=timelog.id,
+            entity_type="timelog",
+            desired_person_ids=next_person_ids,
+        )
+
+
+async def _resolve_batch_timelog_title(
+    session: AsyncSession,
+    *,
+    timelog_id: UUID,
+    changes: TimelogBatchUpdateInput,
+) -> tuple[str | None, bool]:
+    if changes.find_title_text is None:
+        return changes.title, False
+    timelog = await get_timelog(
+        session,
+        timelog_id=timelog_id,
+        include_deleted=False,
+    )
+    if timelog is None:
+        raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
+    replaced_title = timelog.title.replace(
+        changes.find_title_text,
+        changes.replace_title_text,
+    )
+    if replaced_title != timelog.title:
+        return replaced_title, False
+    return None, not changes.has_non_title_update()
 
 
 def _apply_timelog_filters(
@@ -441,97 +584,28 @@ async def update_timelog(
     session: AsyncSession,
     *,
     timelog_id: UUID,
-    title: str | None = None,
-    start_time: datetime | None = None,
-    end_time: datetime | None = None,
-    tracking_method: str | None = None,
-    location: str | None = None,
-    clear_location: bool = False,
-    energy_level: int | None = None,
-    clear_energy_level: bool = False,
-    notes: str | None = None,
-    clear_notes: bool = False,
-    area_id: UUID | None = None,
-    clear_area: bool = False,
-    task_id: UUID | None = None,
-    clear_task: bool = False,
-    tag_ids: list[UUID] | None = None,
-    clear_tags: bool = False,
-    person_ids: list[UUID] | None = None,
-    clear_people: bool = False,
+    changes: TimelogUpdateInput,
 ) -> TimelogView:
     """Update one timelog."""
     timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=False)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
-    old_task_id = timelog.task_id
-    old_area_id = timelog.area_id
-    old_start_time = timelog.start_time
-    old_end_time = timelog.end_time
-
-    normalized_start_time = normalize_timelog_datetime(start_time) if start_time else None
-    normalized_end_time = normalize_timelog_datetime(end_time) if end_time else None
-    next_start_time = (
-        normalized_start_time if normalized_start_time is not None else timelog.start_time
+    previous_state = _capture_timelog_dependency_snapshot(timelog)
+    normalized_start_time, normalized_end_time = _resolve_timelog_times(timelog, changes)
+    _apply_timelog_scalar_updates(
+        timelog,
+        changes,
+        normalized_start_time=normalized_start_time,
+        normalized_end_time=normalized_end_time,
     )
-    next_end_time = normalized_end_time if normalized_end_time is not None else timelog.end_time
-    validate_timelog_time_range(start_time=next_start_time, end_time=next_end_time)
-
-    if title is not None:
-        timelog.title = validate_timelog_title(title)
-    if normalized_start_time is not None:
-        timelog.start_time = normalized_start_time
-    if normalized_end_time is not None:
-        timelog.end_time = normalized_end_time
-    if tracking_method is not None:
-        timelog.tracking_method = validate_tracking_method(tracking_method)
-    if clear_location:
-        timelog.location = None
-    elif location is not None:
-        timelog.location = location
-    if clear_energy_level:
-        timelog.energy_level = None
-    elif energy_level is not None:
-        timelog.energy_level = validate_energy_level(energy_level)
-    if clear_notes:
-        timelog.notes = None
-    elif notes is not None:
-        timelog.notes = notes
-    if clear_area:
-        timelog.area_id = None
-    elif area_id is not None:
-        await ensure_timelog_area_exists(session, area_id)
-        timelog.area_id = area_id
-    if clear_task:
-        timelog.task_id = None
-    elif task_id is not None:
-        await ensure_timelog_task_exists(session, task_id)
-        timelog.task_id = task_id
-    if clear_tags:
-        await sync_entity_tags(
-            session, entity_id=timelog.id, entity_type="timelog", desired_tag_ids=[]
-        )
-    elif tag_ids is not None:
-        await sync_entity_tags(
-            session, entity_id=timelog.id, entity_type="timelog", desired_tag_ids=tag_ids
-        )
-    if clear_people:
-        await sync_entity_people(
-            session, entity_id=timelog.id, entity_type="timelog", desired_person_ids=[]
-        )
-    elif person_ids is not None:
-        await sync_entity_people(
-            session,
-            entity_id=timelog.id,
-            entity_type="timelog",
-            desired_person_ids=person_ids,
-        )
+    await _apply_timelog_reference_updates(session, timelog=timelog, changes=changes)
+    await _apply_timelog_association_updates(session, timelog=timelog, changes=changes)
     await _flush_and_recompute_timelog_dependents(
         session,
-        old_task_id=old_task_id,
-        old_start_time=old_start_time,
-        old_end_time=old_end_time,
-        old_area_id=old_area_id,
+        old_task_id=previous_state.task_id,
+        old_start_time=previous_state.start_time,
+        old_end_time=previous_state.end_time,
+        old_area_id=previous_state.area_id,
         new_task_id=timelog.task_id,
         new_start_time=timelog.start_time,
         new_end_time=timelog.end_time,
@@ -541,82 +615,19 @@ async def update_timelog(
     return await _build_timelog_view(session, timelog)
 
 
-def _has_timelog_batch_update(
-    *,
-    title: str | None,
-    find_title_text: str | None,
-    area_id: UUID | None,
-    clear_area: bool,
-    task_id: UUID | None,
-    clear_task: bool,
-    tag_ids: list[UUID] | None,
-    clear_tags: bool,
-    person_ids: list[UUID] | None,
-    clear_people: bool,
-) -> bool:
-    return any(
-        (
-            title is not None,
-            find_title_text is not None,
-            area_id is not None,
-            clear_area,
-            task_id is not None,
-            clear_task,
-            tag_ids is not None,
-            clear_tags,
-            person_ids is not None,
-            clear_people,
-        )
-    )
-
-
 async def batch_update_timelogs(
     session: AsyncSession,
     *,
     timelog_ids: list[UUID],
-    title: str | None = None,
-    find_title_text: str | None = None,
-    replace_title_text: str = "",
-    area_id: UUID | None = None,
-    clear_area: bool = False,
-    task_id: UUID | None = None,
-    clear_task: bool = False,
-    tag_ids: list[UUID] | None = None,
-    clear_tags: bool = False,
-    person_ids: list[UUID] | None = None,
-    clear_people: bool = False,
+    changes: TimelogBatchUpdateInput,
 ) -> TimelogBatchUpdateResult:
     """Update multiple active timelogs while preserving per-record errors."""
-    if title is not None and find_title_text is not None:
+    if changes.title is not None and changes.find_title_text is not None:
         raise TimelogValidationError("Use either title or title find/replace, not both.")
-    if find_title_text is not None and not find_title_text.strip():
+    if changes.find_title_text is not None and not changes.find_title_text.strip():
         raise TimelogValidationError("Title find text must not be empty.")
-    if not _has_timelog_batch_update(
-        title=title,
-        find_title_text=find_title_text,
-        area_id=area_id,
-        clear_area=clear_area,
-        task_id=task_id,
-        clear_task=clear_task,
-        tag_ids=tag_ids,
-        clear_tags=clear_tags,
-        person_ids=person_ids,
-        clear_people=clear_people,
-    ):
+    if not changes.has_update():
         raise TimelogValidationError("At least one batch update option is required.")
-
-    has_non_title_update = any(
-        (
-            area_id is not None,
-            clear_area,
-            task_id is not None,
-            clear_task,
-            tag_ids is not None,
-            clear_tags,
-            person_ids is not None,
-            clear_people,
-        )
-    )
     updated_count = 0
     unchanged_ids: list[UUID] = []
     failed_ids: list[UUID] = []
@@ -624,34 +635,18 @@ async def batch_update_timelogs(
 
     for timelog_id in deduplicate_preserving_order(timelog_ids):
         try:
-            next_title = title
-            if find_title_text is not None:
-                timelog = await get_timelog(
-                    session,
-                    timelog_id=timelog_id,
-                    include_deleted=False,
-                )
-                if timelog is None:
-                    raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
-                replaced_title = timelog.title.replace(find_title_text, replace_title_text)
-                if replaced_title != timelog.title:
-                    next_title = replaced_title
-                elif not has_non_title_update:
-                    unchanged_ids.append(timelog_id)
-                    continue
-
+            next_title, unchanged = await _resolve_batch_timelog_title(
+                session,
+                timelog_id=timelog_id,
+                changes=changes,
+            )
+            if unchanged:
+                unchanged_ids.append(timelog_id)
+                continue
             await update_timelog(
                 session,
                 timelog_id=timelog_id,
-                title=next_title,
-                area_id=area_id,
-                clear_area=clear_area,
-                task_id=task_id,
-                clear_task=clear_task,
-                tag_ids=tag_ids,
-                clear_tags=clear_tags,
-                person_ids=person_ids,
-                clear_people=clear_people,
+                changes=replace(changes.changes, title=next_title),
             )
             updated_count += 1
         except (
@@ -711,8 +706,10 @@ async def batch_delete_timelogs(
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
     "TimelogBatchUpdateResult",
+    "TimelogBatchUpdateInput",
     "TimelogNotFoundError",
     "TimelogTaskReferenceNotFoundError",
+    "TimelogUpdateInput",
     "TimelogValidationError",
     "batch_delete_timelogs",
     "batch_update_timelogs",

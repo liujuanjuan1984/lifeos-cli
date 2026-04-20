@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 from datetime import date, datetime
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -222,14 +223,15 @@ def test_main_timelog_batch_update_passes_relation_and_title_updates(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_batch_update_timelogs(_session: object, **kwargs: object) -> object:
+        changes = cast(timelogs.TimelogBatchUpdateInput, kwargs["changes"])
         assert kwargs["timelog_ids"] == [
             UUID("13131313-1313-1313-1313-131313131313"),
             UUID("14141414-1414-1414-1414-141414141414"),
         ]
-        assert kwargs["find_title_text"] == "deep"
-        assert kwargs["replace_title_text"] == "focused"
-        assert kwargs["clear_task"] is True
-        assert kwargs["person_ids"] == [UUID("33333333-3333-3333-3333-333333333333")]
+        assert changes.find_title_text == "deep"
+        assert changes.replace_title_text == "focused"
+        assert changes.changes.clear_task is True
+        assert changes.changes.person_ids == [UUID("33333333-3333-3333-3333-333333333333")]
         return timelogs.TimelogBatchUpdateResult(
             updated_count=2,
             unchanged_ids=(),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
@@ -29,6 +30,66 @@ class TimelogTaskReferenceNotFoundError(LookupError):
 
 class TimelogValidationError(ValueError):
     """Raised when timelog data is invalid."""
+
+
+@dataclass(frozen=True)
+class TimelogUpdateInput:
+    """Normalized mutable fields for timelog update operations."""
+
+    title: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    tracking_method: str | None = None
+    location: str | None = None
+    clear_location: bool = False
+    energy_level: int | None = None
+    clear_energy_level: bool = False
+    notes: str | None = None
+    clear_notes: bool = False
+    area_id: UUID | None = None
+    clear_area: bool = False
+    task_id: UUID | None = None
+    clear_task: bool = False
+    tag_ids: list[UUID] | None = None
+    clear_tags: bool = False
+    person_ids: list[UUID] | None = None
+    clear_people: bool = False
+
+    def has_batch_update(self) -> bool:
+        """Return whether this payload includes one batch-supported update."""
+        return any(
+            (
+                self.title is not None,
+                self.area_id is not None,
+                self.clear_area,
+                self.task_id is not None,
+                self.clear_task,
+                self.tag_ids is not None,
+                self.clear_tags,
+                self.person_ids is not None,
+                self.clear_people,
+            )
+        )
+
+
+@dataclass(frozen=True)
+class TimelogBatchUpdateInput:
+    """Batch-update intent for multiple timelogs."""
+
+    title: str | None = None
+    find_title_text: str | None = None
+    replace_title_text: str = ""
+    changes: TimelogUpdateInput = field(default_factory=TimelogUpdateInput)
+
+    def has_non_title_update(self) -> bool:
+        """Return whether the batch request includes non-title mutations."""
+        return self.changes.has_batch_update()
+
+    def has_update(self) -> bool:
+        """Return whether the batch request includes any mutation."""
+        return any(
+            (self.title is not None, self.find_title_text is not None, self.has_non_title_update())
+        )
 
 
 def validate_timelog_title(title: str) -> str:

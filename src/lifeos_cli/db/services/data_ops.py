@@ -885,7 +885,7 @@ def _batch_update_habit_action_kwargs(payload: dict[str, Any]) -> dict[str, Any]
 
 
 def _batch_update_event_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {"event_id": UUID(str(payload["id"]))}
+    change_kwargs: dict[str, Any] = {}
     for field in (
         "title",
         "start_time",
@@ -898,31 +898,41 @@ def _batch_update_event_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         "recurrence_until",
     ):
         if field in payload and payload[field] is not None:
-            kwargs[field] = payload[field]
-    kwargs.update(_null_means_clear(payload, field="description", clear_flag="clear_description"))
-    kwargs.update(_null_means_clear(payload, field="end_time", clear_flag="clear_end_time"))
-    kwargs.update(_null_means_clear(payload, field="area_id", clear_flag="clear_area"))
-    kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
-    kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
-    kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
+            change_kwargs[field] = payload[field]
+    change_kwargs.update(
+        _null_means_clear(payload, field="description", clear_flag="clear_description")
+    )
+    change_kwargs.update(_null_means_clear(payload, field="end_time", clear_flag="clear_end_time"))
+    change_kwargs.update(_null_means_clear(payload, field="area_id", clear_flag="clear_area"))
+    change_kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    change_kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
+    change_kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
     if "recurrence_frequency" in payload and payload["recurrence_frequency"] is None:
-        kwargs["clear_recurrence"] = True
-    return kwargs
+        change_kwargs["clear_recurrence"] = True
+    return {
+        "event_id": UUID(str(payload["id"])),
+        "changes": events.EventUpdateInput(**change_kwargs),
+    }
 
 
 def _batch_update_timelog_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {"timelog_id": UUID(str(payload["id"]))}
+    change_kwargs: dict[str, Any] = {}
     for field in ("title", "start_time", "end_time", "tracking_method"):
         if field in payload:
-            kwargs[field] = payload[field]
-    kwargs.update(_null_means_clear(payload, field="location", clear_flag="clear_location"))
-    kwargs.update(_null_means_clear(payload, field="energy_level", clear_flag="clear_energy_level"))
-    kwargs.update(_null_means_clear(payload, field="notes", clear_flag="clear_notes"))
-    kwargs.update(_null_means_clear(payload, field="area_id", clear_flag="clear_area"))
-    kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
-    kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
-    kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
-    return kwargs
+            change_kwargs[field] = payload[field]
+    change_kwargs.update(_null_means_clear(payload, field="location", clear_flag="clear_location"))
+    change_kwargs.update(
+        _null_means_clear(payload, field="energy_level", clear_flag="clear_energy_level")
+    )
+    change_kwargs.update(_null_means_clear(payload, field="notes", clear_flag="clear_notes"))
+    change_kwargs.update(_null_means_clear(payload, field="area_id", clear_flag="clear_area"))
+    change_kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
+    change_kwargs.update(_null_means_clear(payload, field="tag_ids", clear_flag="clear_tags"))
+    change_kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
+    return {
+        "timelog_id": UUID(str(payload["id"])),
+        "changes": timelogs.TimelogUpdateInput(**change_kwargs),
+    }
 
 
 def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:

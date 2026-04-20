@@ -420,12 +420,14 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
         events.update_event(
             cast(Any, session),
             event_id=UUID("abababab-abab-abab-abab-abababababab"),
-            clear_description=True,
-            clear_end_time=True,
-            clear_area=True,
-            clear_task=True,
-            clear_tags=True,
-            clear_people=True,
+            changes=events.EventUpdateInput(
+                clear_description=True,
+                clear_end_time=True,
+                clear_area=True,
+                clear_task=True,
+                clear_tags=True,
+                clear_people=True,
+            ),
         )
     )
 
@@ -783,13 +785,15 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         timelogs.update_timelog(
             cast(Any, session),
             timelog_id=UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd"),
-            clear_location=True,
-            clear_energy_level=True,
-            clear_notes=True,
-            clear_area=True,
-            clear_task=True,
-            clear_tags=True,
-            clear_people=True,
+            changes=timelogs.TimelogUpdateInput(
+                clear_location=True,
+                clear_energy_level=True,
+                clear_notes=True,
+                clear_area=True,
+                clear_task=True,
+                clear_tags=True,
+                clear_people=True,
+            ),
         )
     )
 
@@ -840,10 +844,14 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
         timelogs.batch_update_timelogs(
             cast(Any, session),
             timelog_ids=[timelog_id, timelog_id, missing_id],
-            find_title_text="Deep",
-            replace_title_text="Focused",
-            task_id=task_id,
-            clear_people=True,
+            changes=timelogs.TimelogBatchUpdateInput(
+                find_title_text="Deep",
+                replace_title_text="Focused",
+                changes=timelogs.TimelogUpdateInput(
+                    task_id=task_id,
+                    clear_people=True,
+                ),
+            ),
         )
     )
 
@@ -852,15 +860,17 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
     assert update_calls == [
         {
             "timelog_id": timelog_id,
-            "title": "Focused work",
-            "area_id": None,
-            "clear_area": False,
-            "task_id": task_id,
-            "clear_task": False,
-            "tag_ids": None,
-            "clear_tags": False,
-            "person_ids": None,
-            "clear_people": True,
+            "changes": timelogs.TimelogUpdateInput(
+                title="Focused work",
+                area_id=None,
+                clear_area=False,
+                task_id=task_id,
+                clear_task=False,
+                tag_ids=None,
+                clear_tags=False,
+                person_ids=None,
+                clear_people=True,
+            ),
         }
     ]
 
@@ -889,8 +899,10 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
         timelogs.batch_update_timelogs(
             cast(Any, session),
             timelog_ids=[timelog_id],
-            find_title_text="Planning",
-            replace_title_text="Review",
+            changes=timelogs.TimelogBatchUpdateInput(
+                find_title_text="Planning",
+                replace_title_text="Review",
+            ),
         )
     )
 

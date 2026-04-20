@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -42,6 +43,35 @@ class EventTaskReferenceNotFoundError(LookupError):
 
 class EventValidationError(ValueError):
     """Raised when event data is invalid."""
+
+
+@dataclass(frozen=True)
+class EventUpdateInput:
+    """Normalized mutable fields for event update operations."""
+
+    title: str | None = None
+    description: str | None = None
+    clear_description: bool = False
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    clear_end_time: bool = False
+    priority: int | None = None
+    status: str | None = None
+    event_type: str | None = None
+    is_all_day: bool | None = None
+    area_id: UUID | None = None
+    clear_area: bool = False
+    task_id: UUID | None = None
+    clear_task: bool = False
+    tag_ids: list[UUID] | None = None
+    clear_tags: bool = False
+    person_ids: list[UUID] | None = None
+    clear_people: bool = False
+    recurrence_frequency: str | None = None
+    recurrence_interval: int | None = None
+    recurrence_count: int | None = None
+    recurrence_until: datetime | None = None
+    clear_recurrence: bool = False
 
 
 def validate_event_scope(scope: str) -> str:

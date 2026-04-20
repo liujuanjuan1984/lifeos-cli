@@ -391,7 +391,9 @@ def test_main_event_update_passes_scope_fields(
 ) -> None:
     async def fake_update_event(_session: object, **kwargs: object) -> object:
         assert kwargs["scope"] == "single"
-        assert kwargs["event_type"] == "deadline"
+        changes = cast(events.EventUpdateInput, kwargs["changes"])
+        assert changes.event_type == "deadline"
+        assert changes.title == "Updated review"
         instance_start = cast(datetime, kwargs["instance_start"])
         assert instance_start is not None
         assert str(instance_start.isoformat()) == "2026-04-10T09:00:00"
