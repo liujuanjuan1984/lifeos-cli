@@ -160,19 +160,20 @@ msgid "resource"
 msgstr "资源"
 
 #: src/lifeos_cli/cli_support/parser_common.py:21
-#, python-brace-format
-msgid "{help_prefix} soft-deleted {noun}"
-msgstr "{help_prefix}已软删除的{noun}"
+msgid "Include soft-deleted records"
+msgstr "包含已软删除的记录"
 
-#: src/lifeos_cli/cli_support/parser_common.py:35
-#, python-brace-format
-msgid "Maximum number of {row_noun}"
-msgstr "{row_noun}的最大数量"
+#: src/lifeos_cli/cli_support/parser_common.py:24
+msgid "Allow loading soft-deleted records"
+msgstr "允许加载已软删除的记录"
 
-#: src/lifeos_cli/cli_support/parser_common.py:41
-#, python-brace-format
-msgid "Number of {row_noun} to skip"
-msgstr "要跳过的{row_noun}数量"
+#: src/lifeos_cli/cli_support/parser_common.py:38
+msgid "Maximum number of results to return"
+msgstr "返回结果的最大数量"
+
+#: src/lifeos_cli/cli_support/parser_common.py:44
+msgid "Number of results to skip"
+msgstr "要跳过的结果数量"
 
 #: src/lifeos_cli/cli_support/parser_common.py:59
 #, python-brace-format
@@ -804,8 +805,8 @@ msgid "List events with optional time-window and relation filters."
 msgstr "列出具有可选时间窗口和关系过滤器的 `event`。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:161
-msgid "Use this command as the main query entrypoint for scheduled events."
-msgstr "使用此命令作为预定 `event` 的主要查询入口点。"
+msgid "Use this command as the primary query entrypoint for scheduled events."
+msgstr "使用此命令作为预定 `event` 的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/event/parser.py:172
 msgid "When both window flags are given, overlapping events are returned."
@@ -1213,8 +1214,8 @@ msgid "List habits with optional status, title, and activity-window filters."
 msgstr "列出带有可选状态、标题和活动窗口过滤器的 `habit`。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:169
-msgid "Use this command as the main habit query entrypoint."
-msgstr "使用此命令作为主要的 `habit` 查询入口点。"
+msgid "Use this command as the primary query entrypoint for habits."
+msgstr "使用此命令作为 `habit` 的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/habit/parser.py:179
 msgid ""
@@ -1986,7 +1987,7 @@ msgstr "使用可选的搜索或 `tag` 过滤器列出 `people`。"
 msgid ""
 "Use this as the primary query entrypoint for people rather than expecting"
 " a separate search command."
-msgstr "将此用作 `people` 的主要查询入口点，而不是期望单独的搜索命令。"
+msgstr "将此作为 `people` 的主要查询入口，而不是期待单独的搜索命令。"
 
 #: src/lifeos_cli/cli_support/resources/people/parser.py:124
 msgid "Search currently matches name, nicknames, and location."
@@ -2538,7 +2539,7 @@ msgstr "列出 `task` 以及可选的 `vision`、父级或状态过滤器。"
 msgid ""
 "Use this command as the primary query entrypoint for structured task "
 "views."
-msgstr "使用此命令作为结构化 `task` 视图的主要查询入口点。"
+msgstr "使用此命令作为结构化 `task` 视图的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/task/parser.py:176
 msgid ""
@@ -2913,8 +2914,8 @@ msgid "List timelogs with optional time-window, relation, and method filters."
 msgstr "列出 `timelog` 以及可选的时间窗口、关系和方法过滤器。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:145
-msgid "Use this command as the main query entrypoint for actual time data."
-msgstr "使用此命令作为实际时间数据的主要查询入口点。"
+msgid "Use this command as the primary query entrypoint for timelogs."
+msgstr "使用此命令作为 `timelog` 的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/timelog/parser.py:161
 msgid "Use `--query` for lightweight text filtering across titles and notes."
@@ -3286,8 +3287,8 @@ msgid "List visions with optional status or area filters."
 msgstr "列出 `vision` 以及可选的状态或 `area` 过滤器。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:111
-msgid "Use this as the main query entrypoint for visions."
-msgstr "将此作为 `vision` 的主要查询入口点。"
+msgid "Use this as the primary query entrypoint for visions."
+msgstr "将此作为 `vision` 的主要查询入口。"
 
 #: src/lifeos_cli/cli_support/resources/vision/parser.py:121
 msgid "Filter by status"

@@ -138,7 +138,7 @@ def build_habit_list_parser(
             description=(
                 _("List habits with optional status, title, and activity-window filters.")
                 + "\n\n"
-                + _("Use this command as the main habit query entrypoint.")
+                + _("Use this command as the primary query entrypoint for habits.")
             ),
             examples=(
                 "lifeos habit list",

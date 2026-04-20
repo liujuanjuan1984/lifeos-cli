@@ -102,7 +102,7 @@ def build_vision_list_parser(
             description=(
                 _("List visions with optional status or area filters.")
                 + "\n\n"
-                + _("Use this as the main query entrypoint for visions.")
+                + _("Use this as the primary query entrypoint for visions.")
             ),
             examples=(
                 "lifeos vision list",

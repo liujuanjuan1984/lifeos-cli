@@ -104,7 +104,7 @@ def build_timelog_list_parser(
             description=(
                 _("List timelogs with optional time-window, relation, and method filters.")
                 + "\n\n"
-                + _("Use this command as the main query entrypoint for actual time data.")
+                + _("Use this command as the primary query entrypoint for timelogs.")
             ),
             examples=(
                 "lifeos timelog list",

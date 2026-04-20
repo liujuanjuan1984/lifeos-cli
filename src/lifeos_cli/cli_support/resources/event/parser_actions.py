@@ -144,7 +144,7 @@ def build_event_list_parser(
             description=(
                 _("List events with optional time-window and relation filters.")
                 + "\n\n"
-                + _("Use this command as the main query entrypoint for scheduled events.")
+                + _("Use this command as the primary query entrypoint for scheduled events.")
             ),
             examples=(
                 "lifeos event list",
