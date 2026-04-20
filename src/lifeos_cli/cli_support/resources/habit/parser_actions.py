@@ -7,19 +7,28 @@ import re
 from datetime import date
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_help_parser,
+    add_documented_parser,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
+    add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.habit.handlers import (
     HABIT_SUMMARY_COLUMNS,
     HABIT_SUMMARY_WITH_STATS_COLUMNS,
+    HABIT_TASK_ASSOCIATION_COLUMNS,
     handle_habit_add_async,
+    handle_habit_batch_delete_async,
     handle_habit_delete_async,
     handle_habit_list_async,
     handle_habit_show_async,
+    handle_habit_stats_async,
+    handle_habit_task_associations_async,
     handle_habit_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
@@ -300,3 +309,87 @@ def build_habit_delete_parser(
     )
     delete_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_habit_delete_async))
+
+
+def build_habit_stats_parser(
+    habit_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the habit stats command."""
+    stats_parser = add_documented_parser(
+        habit_subparsers,
+        "stats",
+        help_content=HelpContent(
+            summary=_("Show habit statistics"),
+            description=_("Show derived completion and streak statistics for one habit."),
+            examples=("lifeos habit stats 11111111-1111-1111-1111-111111111111",),
+            notes=(
+                _(
+                    "These metrics are derived from cadence settings together with materialized "
+                    "`habit-action` records."
+                ),
+                _("Use `show` when you also need the underlying habit fields in the same output."),
+            ),
+        ),
+    )
+    stats_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    stats_parser.set_defaults(handler=make_sync_handler(handle_habit_stats_async))
+
+
+def build_habit_task_associations_parser(
+    habit_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the habit task-associations command."""
+    associations_parser = add_documented_parser(
+        habit_subparsers,
+        "task-associations",
+        help_content=HelpContent(
+            summary=_("List task-to-habit associations"),
+            description=_("Show active habits currently linked to tasks."),
+            examples=("lifeos habit task-associations",),
+            notes=(
+                _("Use this command to audit which active habits are still attached to tasks."),
+                _(
+                    "When results exist, the command prints a header row followed by "
+                    "tab-separated columns: {columns}."
+                ).format(columns=format_summary_column_list(HABIT_TASK_ASSOCIATION_COLUMNS)),
+            ),
+        ),
+    )
+    associations_parser.set_defaults(
+        handler=make_sync_handler(handle_habit_task_associations_async)
+    )
+
+
+def build_habit_batch_parser(
+    habit_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the habit batch command tree."""
+    batch_parser = add_documented_help_parser(
+        habit_subparsers,
+        "batch",
+        help_content=HelpContent(
+            summary=_("Run bulk habit operations"),
+            description=_("Soft-delete multiple habits in one command."),
+            examples=(
+                "lifeos habit batch delete --help",
+                "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
+            ),
+            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+        ),
+    )
+    batch_subparsers = batch_parser.add_subparsers(
+        dest="habit_batch_command",
+        title=_("batch actions"),
+        metavar=_("batch-action"),
+    )
+    batch_delete_parser = add_documented_parser(
+        batch_subparsers,
+        "delete",
+        help_content=HelpContent(
+            summary=_("Soft-delete multiple habits"),
+            description=_("Soft-delete multiple habits in one command."),
+            examples=("lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",),
+        ),
+    )
+    add_identifier_list_argument(batch_delete_parser, dest="habit_ids", noun="habit")
+    batch_delete_parser.set_defaults(handler=make_sync_handler(handle_habit_batch_delete_async))

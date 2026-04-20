@@ -10,15 +10,13 @@ from lifeos_cli.cli_support.help_utils import (
 )
 from lifeos_cli.cli_support.resources.habit.parser_actions import (
     build_habit_add_parser,
+    build_habit_batch_parser,
     build_habit_delete_parser,
     build_habit_list_parser,
     build_habit_show_parser,
-    build_habit_update_parser,
-)
-from lifeos_cli.cli_support.resources.habit.parser_batch import build_habit_batch_parser
-from lifeos_cli.cli_support.resources.habit.parser_insights import (
     build_habit_stats_parser,
     build_habit_task_associations_parser,
+    build_habit_update_parser,
 )
 from lifeos_cli.i18n import gettext_message as _
 
