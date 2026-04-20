@@ -42,12 +42,24 @@ class CompactSubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
     def _format_action(self, action: argparse.Action) -> str:
         if isinstance(action, argparse._SubParsersAction):
-            return self._join_parts(
-                [
-                    self._format_action(subaction)
-                    for subaction in self._iter_indented_subactions(action)
-                ]
-            )
+            self._indent()
+            try:
+                subactions = list(action._get_subactions())
+                previous_max_length = self._action_max_length
+                subaction_max_length = max(
+                    (
+                        self._current_indent + len(self._format_action_invocation(subaction))
+                        for subaction in subactions
+                    ),
+                    default=0,
+                )
+                self._action_max_length = max(previous_max_length, subaction_max_length)
+                return self._join_parts(
+                    [self._format_action(subaction) for subaction in subactions]
+                )
+            finally:
+                self._action_max_length = previous_max_length
+                self._dedent()
         return super()._format_action(action)
 
 

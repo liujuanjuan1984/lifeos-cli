@@ -70,6 +70,42 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     )
 
 
+def test_cli_top_level_help_keeps_long_resource_summaries_on_one_line(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--help"])
+
+    captured = capsys.readouterr()
+
+    assert any(
+        "habit-action" in line and "管理按日期生成的 `habit-action`" in line
+        for line in captured.out.splitlines()
+    )
+
+
+def test_cli_resource_help_keeps_long_action_summaries_on_one_line(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["habit", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert any(
+        "task-associations" in line and "列出 `task` 与 `habit` 的关联" in line
+        for line in captured.out.splitlines()
+    )
+
+
 def test_cli_schedule_show_help_supports_zh_hans_locale(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
