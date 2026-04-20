@@ -18,9 +18,7 @@ from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import (
     BatchDeleteResult,
-    BatchRestoreResult,
     batch_delete_records,
-    batch_restore_records,
 )
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import count_sources_for_targets
@@ -690,31 +688,6 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     )
 
 
-async def restore_timelog(session: AsyncSession, *, timelog_id: UUID) -> TimelogView:
-    """Restore one soft-deleted timelog."""
-    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=True)
-    if timelog is None:
-        raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
-    if timelog.deleted_at is None:
-        raise TimelogValidationError(f"Timelog {timelog_id} is not deleted")
-    await ensure_timelog_area_exists(session, timelog.area_id)
-    await ensure_timelog_task_exists(session, timelog.task_id)
-    timelog.deleted_at = None
-    await _flush_and_recompute_timelog_dependents(
-        session,
-        old_task_id=None,
-        old_start_time=None,
-        old_end_time=None,
-        old_area_id=None,
-        new_task_id=timelog.task_id,
-        new_start_time=timelog.start_time,
-        new_end_time=timelog.end_time,
-        new_area_id=timelog.area_id,
-    )
-    await session.refresh(timelog)
-    return await _build_timelog_view(session, timelog)
-
-
 async def batch_delete_timelogs(
     session: AsyncSession,
     *,
@@ -728,24 +701,6 @@ async def batch_delete_timelogs(
     )
 
 
-async def batch_restore_timelogs(
-    session: AsyncSession,
-    *,
-    timelog_ids: list[UUID],
-) -> BatchRestoreResult:
-    """Restore multiple soft-deleted timelogs."""
-    return await batch_restore_records(
-        identifiers=deduplicate_preserving_order(timelog_ids),
-        restore_record=lambda timelog_id: restore_timelog(session, timelog_id=timelog_id),
-        handled_exceptions=(
-            TimelogAreaReferenceNotFoundError,
-            TimelogNotFoundError,
-            TimelogTaskReferenceNotFoundError,
-            TimelogValidationError,
-        ),
-    )
-
-
 __all__ = [
     "TimelogAreaReferenceNotFoundError",
     "TimelogBatchUpdateResult",
@@ -753,13 +708,11 @@ __all__ = [
     "TimelogTaskReferenceNotFoundError",
     "TimelogValidationError",
     "batch_delete_timelogs",
-    "batch_restore_timelogs",
     "batch_update_timelogs",
     "create_timelog",
     "count_timelogs",
     "delete_timelog",
     "get_timelog",
     "list_timelogs",
-    "restore_timelog",
     "update_timelog",
 ]

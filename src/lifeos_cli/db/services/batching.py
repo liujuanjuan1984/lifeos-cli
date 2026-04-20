@@ -16,15 +16,6 @@ class BatchDeleteResult:
     errors: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class BatchRestoreResult:
-    """Summary for a batch restore operation."""
-
-    restored_count: int
-    failed_ids: tuple[UUID, ...]
-    errors: tuple[str, ...]
-
-
 async def _run_batch_operation(
     *,
     identifiers: Iterable[UUID],
@@ -60,25 +51,6 @@ async def batch_delete_records(
     )
     return BatchDeleteResult(
         deleted_count=deleted_count,
-        failed_ids=failed_ids,
-        errors=errors,
-    )
-
-
-async def batch_restore_records(
-    *,
-    identifiers: Iterable[UUID],
-    restore_record: Callable[[UUID], Awaitable[object]],
-    handled_exceptions: tuple[type[Exception], ...],
-) -> BatchRestoreResult:
-    """Run a batch restore operation with per-record error reporting."""
-    restored_count, failed_ids, errors = await _run_batch_operation(
-        identifiers=identifiers,
-        operation=restore_record,
-        handled_exceptions=handled_exceptions,
-    )
-    return BatchRestoreResult(
-        restored_count=restored_count,
         failed_ids=failed_ids,
         errors=errors,
     )
