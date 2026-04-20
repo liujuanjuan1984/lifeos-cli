@@ -247,6 +247,8 @@ def build_note_update_parser(
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --task-id <task-id>",
                 "lifeos note update 11111111-1111-1111-1111-111111111111 "
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 "
+                "--clear-tags --clear-events",
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
             ),
             notes=(

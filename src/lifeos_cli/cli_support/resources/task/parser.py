@@ -381,6 +381,8 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "--person-id 33333333-3333-3333-3333-333333333333 "
                 "--person-id 44444444-4444-4444-4444-444444444444",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 "
+                "--clear-description --clear-estimated-effort",
+                "lifeos task update 11111111-1111-1111-1111-111111111111 "
                 "--planning-cycle-type month --planning-cycle-days 30 "
                 "--planning-cycle-start-date 2026-04-01",
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-parent",

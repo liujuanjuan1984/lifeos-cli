@@ -212,6 +212,8 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
                 "--person-id 11111111-1111-1111-1111-111111111111 "
                 "--person-id 22222222-2222-2222-2222-222222222222",
+                "lifeos vision update 11111111-1111-1111-1111-111111111111 "
+                "--clear-description --clear-experience-rate",
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
             ),
             notes=(

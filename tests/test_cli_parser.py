@@ -2489,6 +2489,42 @@ def test_cli_help_shows_clear_and_scope_examples(
     assert expected in captured.out
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (
+            ["vision", "update", "--help"],
+            "--clear-description --clear-experience-rate",
+        ),
+        (
+            ["tag", "update", "--help"],
+            "--clear-description --clear-people",
+        ),
+        (
+            ["task", "update", "--help"],
+            "--clear-description --clear-estimated-effort",
+        ),
+        (
+            ["note", "update", "--help"],
+            "--clear-tags --clear-events",
+        ),
+    ],
+)
+def test_cli_help_shows_update_clear_examples(
+    argv: list[str],
+    expected: str,
+    capsys,
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert expected in captured.out
+
+
 def test_cli_note_batch_help_explains_namespace_intent(capsys) -> None:
     parser = build_parser()
 
