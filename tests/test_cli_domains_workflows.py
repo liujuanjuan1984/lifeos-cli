@@ -106,6 +106,85 @@ def test_main_timelog_add_quick_batch_creates_timelogs_after_confirmation(
     clear_config_cache()
 
 
+def test_main_timelog_add_quick_batch_reads_entries_from_stdin_without_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_calls: list[dict[str, object]] = []
+
+    async def fake_create_timelog(_session: object, **kwargs: object) -> object:
+        captured_calls.append(kwargs)
+        return make_record(id=UUID(f"15151515-1515-1515-1515-15151515151{len(captured_calls)}"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "create_timelog", fake_create_timelog)
+    monkeypatch.setattr(
+        timelog_handlers.sys,
+        "stdin",
+        io.StringIO("0700 Breakfast\n0830 Deep work\n"),
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/Toronto")
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "add",
+            "--stdin",
+            "--first-start-time",
+            "2026-04-10T06:30:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert len(captured_calls) == 2
+    first_payload = cast(timelogs.TimelogCreateInput, captured_calls[0]["payload"])
+    second_payload = cast(timelogs.TimelogCreateInput, captured_calls[1]["payload"])
+    assert first_payload.title == "Breakfast"
+    assert _isoformat_datetime(first_payload.start_time) == "2026-04-10T06:30:00-04:00"
+    assert _isoformat_datetime(first_payload.end_time) == "2026-04-10T07:00:00-04:00"
+    assert second_payload.title == "Deep work"
+    assert _isoformat_datetime(second_payload.start_time) == "2026-04-10T07:00:00-04:00"
+    assert _isoformat_datetime(second_payload.end_time) == "2026-04-10T08:30:00-04:00"
+    assert "Quick batch timelog preview:" in captured.out
+    assert "Created timelogs: 2" in captured.out
+    clear_config_cache()
+
+
+def test_main_timelog_add_quick_batch_skips_confirmation_prompt_for_stdin(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_calls: list[dict[str, object]] = []
+
+    async def fake_create_timelog(_session: object, **kwargs: object) -> object:
+        captured_calls.append(kwargs)
+        return make_record(id=UUID("16161616-1616-1616-1616-161616161616"))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "create_timelog", fake_create_timelog)
+    monkeypatch.setattr(timelog_handlers.sys, "stdin", io.StringIO("0700 Breakfast\n"))
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/Toronto")
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "add",
+            "--stdin",
+            "--first-start-time",
+            "2026-04-10T06:30:00",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert len(captured_calls) == 1
+    assert "Type `yes` to create these timelogs:" not in captured.out
+    clear_config_cache()
+
+
 def test_main_timelog_add_quick_batch_inherits_latest_end_time(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

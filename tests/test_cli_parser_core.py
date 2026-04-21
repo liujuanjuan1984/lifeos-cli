@@ -680,6 +680,28 @@ def test_cli_parser_supports_timelog_add_quick_batch_mode() -> None:
     assert args.title is None
 
 
+def test_cli_parser_supports_timelog_add_quick_batch_from_stdin() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "add",
+            "--stdin",
+            "--first-start-time",
+            "2026-04-10T06:30:00",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "add"
+    assert args.stdin is True
+    assert args.yes is False
+    assert args.entry_lines is None
+    assert args.file is None
+    assert args.first_start_time.isoformat() == "2026-04-10T06:30:00"
+    assert args.title is None
+
+
 def test_cli_parser_supports_vision_update_clear_area_command() -> None:
     parser = build_parser()
     args = parser.parse_args(

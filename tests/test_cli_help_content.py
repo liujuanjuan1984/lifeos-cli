@@ -665,7 +665,9 @@ def test_cli_timelog_add_help_describes_quick_batch_mode(capsys) -> None:
     captured = capsys.readouterr()
 
     assert '--entry "0700 Breakfast" --entry "0830 Deep work"' in captured.out
+    assert "lifeos timelog add --stdin" in captured.out
     assert "always previews the parsed rows" in captured.out
+    assert "skips the prompt when input comes from `--stdin`" in captured.out
     assert "latest active timelog end time" in captured.out
     assert "configured timezone is used before the value is converted to UTC" in captured.out
 

@@ -355,6 +355,38 @@ def test_real_cli_timelog_add_quick_batch_inherits_latest_end_time(
     assert "Deep work" in timelog_list_result.stdout
 
 
+def test_real_cli_timelog_add_quick_batch_accepts_multiline_stdin(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    batch_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "--stdin",
+        "--first-start-time",
+        "2026-04-10T06:30:00-04:00",
+        input_text="0700 Breakfast\n0830 Deep work\n",
+    )
+    assert_ok(batch_result)
+    assert "Quick batch timelog preview:" in batch_result.stdout
+    assert "Created timelogs: 2" in batch_result.stdout
+
+    timelog_list_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--start-time",
+        "2026-04-10T00:00:00-04:00",
+        "--end-time",
+        "2026-04-10T23:59:59-04:00",
+    )
+    assert_ok(timelog_list_result)
+    assert "Breakfast" in timelog_list_result.stdout
+    assert "Deep work" in timelog_list_result.stdout
+
+
 def test_real_cli_event_and_timelog_accept_naive_write_datetimes(
     integration_context: IntegrationContext,
 ) -> None:

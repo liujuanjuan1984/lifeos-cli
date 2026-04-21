@@ -46,6 +46,8 @@ def build_timelog_add_parser(
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
                 'lifeos timelog add --entry "0700 Breakfast" --entry "0830 Deep work" '
                 "--first-start-time 2026-04-10T06:30:00",
+                "printf '0700 Breakfast\\n0830 Deep work\\n' | lifeos timelog add --stdin "
+                "--first-start-time 2026-04-10T06:30:00",
                 "lifeos timelog add --file quick-timelog.txt",
             ),
             notes=(
@@ -59,7 +61,9 @@ def build_timelog_add_parser(
                 ),
                 _(
                     "Quick batch mode accepts `HHMM Title` and `HH:MM-HH:MM Title` lines, "
-                    "always previews the parsed rows, and asks for confirmation before writing."
+                    "always previews the parsed rows, asks for confirmation before writing by "
+                    "default, and skips the prompt when input comes from `--stdin` or `--yes` "
+                    "is provided."
                 ),
                 _(
                     "When a datetime omits timezone information, the configured timezone is used "
@@ -86,11 +90,21 @@ def build_timelog_add_parser(
         default=None,
         help=_("Repeat to add one quick batch-entry line"),
     )
+    add_parser.add_argument(
+        "--stdin",
+        action="store_true",
+        help=_("Read quick batch entries from standard input"),
+    )
     add_parser.add_argument("--file", help=_("Read quick batch entries from a UTF-8 text file"))
     add_parser.add_argument(
         "--first-start-time",
         type=parse_user_datetime_value,
         help=_("First quick batch start time; defaults to the latest active timelog end time"),
+    )
+    add_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help=_("Write quick batch timelogs without interactive confirmation after preview"),
     )
     add_parser.add_argument("--tracking-method", default="manual", help=_("Tracking method"))
     add_parser.add_argument("--location", help=_("Optional location"))

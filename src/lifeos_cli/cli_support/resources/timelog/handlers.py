@@ -86,14 +86,19 @@ def _format_timelog_detail(timelog: TimelogView) -> str:
 
 def _resolve_bulk_timelog_input_text(args: argparse.Namespace) -> str:
     provided_sources = sum(
-        1 for candidate in (args.entry_lines is not None, args.file is not None) if candidate
+        1
+        for candidate in (args.entry_lines is not None, args.stdin, args.file is not None)
+        if candidate
     )
     if provided_sources != 1:
         raise ConfigurationError(
-            "Provide quick batch timelog input with exactly one source: `--entry` or `--file`."
+            "Provide quick batch timelog input with exactly one source: `--entry`, `--stdin`, "
+            "or `--file`."
         )
     if args.entry_lines is not None:
         content = "\n".join(args.entry_lines)
+    elif args.stdin:
+        content = sys.stdin.read()
     else:
         try:
             content = Path(args.file).read_text(encoding="utf-8")
@@ -116,6 +121,8 @@ def _validate_single_timelog_add_args(args: argparse.Namespace) -> None:
         )
     if args.first_start_time is not None:
         raise ConfigurationError("Use `--first-start-time` only with quick batch mode.")
+    if args.yes:
+        raise ConfigurationError("Use `--yes` only with quick batch mode.")
 
 
 def _validate_bulk_timelog_add_args(args: argparse.Namespace) -> None:
@@ -182,7 +189,7 @@ def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> st
 
 
 async def handle_timelog_add_async(args: argparse.Namespace) -> int:
-    if args.entry_lines is not None or args.file is not None:
+    if args.entry_lines is not None or args.stdin or args.file is not None:
         _validate_bulk_timelog_add_args(args)
         raw_text = _resolve_bulk_timelog_input_text(args)
         async with db_session.session_scope() as session:
@@ -196,7 +203,7 @@ async def handle_timelog_add_async(args: argparse.Namespace) -> int:
                 )
             drafts = parse_bulk_timelog_text(raw_text, first_start_time=first_start_time)
             _print_bulk_timelog_preview(drafts)
-            if _read_bulk_timelog_confirmation() != "yes":
+            if not args.stdin and not args.yes and _read_bulk_timelog_confirmation() != "yes":
                 print("Quick batch timelog creation cancelled. No changes were written.")
                 return 1
             created_ids = []
