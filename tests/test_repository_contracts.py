@@ -49,6 +49,9 @@ def test_dependabot_configuration_prefers_a_single_grouped_uv_pr() -> None:
 def test_dependency_scripts_keep_separate_scopes() -> None:
     assert 'source "${SCRIPT_DIR}/load_local_env.sh"' in DOCTOR_TEXT
     assert 'load_local_env "${REPO_ROOT}/.env"' in DOCTOR_TEXT
+    assert "clean_build_artifacts()" in DOCTOR_TEXT
+    assert "rm -rf build dist src/*.egg-info" in DOCTOR_TEXT
+    assert "[doctor] clean build artifacts after validation" in DOCTOR_TEXT
     assert any("uv sync --all-extras --frozen" in line for line in DOCTOR_COMMANDS)
     assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
     assert not any("uv pip list --outdated" in line for line in DOCTOR_COMMANDS)
