@@ -158,6 +158,11 @@ def build_note_list_parser(
     list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     list_parser.add_argument("--timelog-id", type=UUID, help=_("Filter by linked timelog"))
     list_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
+    list_parser.add_argument(
+        "--with-counts",
+        action="store_true",
+        help=_("Include relationship count columns in summary output"),
+    )
     add_include_deleted_argument(list_parser, noun="notes")
     add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=make_sync_handler(handle_note_list_async))
@@ -199,6 +204,11 @@ def build_note_search_parser(
     search_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     search_parser.add_argument("--timelog-id", type=UUID, help=_("Filter by linked timelog"))
     search_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
+    search_parser.add_argument(
+        "--with-counts",
+        action="store_true",
+        help=_("Include relationship count columns in summary output"),
+    )
     add_include_deleted_argument(search_parser, noun="notes in the search scope")
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=make_sync_handler(handle_note_search_async))

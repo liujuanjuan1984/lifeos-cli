@@ -488,7 +488,7 @@ def test_cli_db_help_explains_ping_upgrade_boundary(capsys) -> None:
         (
             ["note", "list", "--help"],
             "prints a header row followed by tab-separated columns: note_id, status, created_at, "
-            "task_count, vision_count, event_count, people_count, timelog_count, tag_count",
+            "content.",
         ),
     ],
 )

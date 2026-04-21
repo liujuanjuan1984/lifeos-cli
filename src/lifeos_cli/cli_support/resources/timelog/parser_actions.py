@@ -14,6 +14,7 @@ from lifeos_cli.cli_support.parser_common import (
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     TIMELOG_SUMMARY_COLUMNS,
+    TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS,
     handle_timelog_add_async,
     handle_timelog_delete_async,
     handle_timelog_list_async,
@@ -165,6 +166,9 @@ def build_timelog_list_parser(
                     "When results exist, the list command prints a header row followed by "
                     "tab-separated columns: {columns}."
                 ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS)),
+                _("Use `--with-counts` to add relationship count columns: {columns}.").format(
+                    columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS)
+                ),
             ),
         ),
     )
@@ -187,6 +191,11 @@ def build_timelog_list_parser(
     )
     list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
+    list_parser.add_argument(
+        "--with-counts",
+        action="store_true",
+        help=_("Include relationship count columns in summary output"),
+    )
     add_date_range_arguments(
         list_parser,
         date_help=_(
