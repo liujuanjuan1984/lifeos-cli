@@ -59,6 +59,9 @@ jobs:
       - name: Run default regression baseline
         run: bash ./scripts/doctor.sh
 
+      - name: Build release artifacts
+        run: uv build --no-sources
+
       - name: Verify published version matches tag
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
