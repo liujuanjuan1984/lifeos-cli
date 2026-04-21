@@ -10,7 +10,11 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_help_parser,
     add_documented_parser,
 )
-from lifeos_cli.cli_support.output_utils import NOTE_SUMMARY_COLUMNS, format_summary_column_list
+from lifeos_cli.cli_support.output_utils import (
+    NOTE_SUMMARY_COLUMNS,
+    NOTE_SUMMARY_COLUMNS_WITH_COUNTS,
+    format_summary_column_list,
+)
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
@@ -149,6 +153,9 @@ def build_note_list_parser(
             notes=(
                 _("Use --include-deleted when reviewing deleted records."),
                 _("Use --limit and --offset together for pagination."),
+                _(
+                    "Use `--with-counts` to add relationship count columns: {columns}."
+                ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)),
             ),
         ),
     )
@@ -193,6 +200,9 @@ def build_note_search_parser(
             ),
             notes=(
                 _("Results use the same summary format as `lifeos note list`."),
+                _(
+                    "Use `--with-counts` to add relationship count columns: {columns}."
+                ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)),
                 _("Multi-word queries are split into tokens and matched with OR semantics."),
             ),
         ),
