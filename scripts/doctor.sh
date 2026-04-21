@@ -7,6 +7,10 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/load_local_env.sh"
 load_local_env "${REPO_ROOT}/.env"
 
+clean_build_artifacts() {
+  rm -rf build dist src/*.egg-info
+}
+
 echo "[doctor] sync dependencies"
 uv sync --all-extras --frozen
 
@@ -24,7 +28,7 @@ echo "[doctor] run runtime dependency vulnerability audit"
 uv run pip-audit --requirement /tmp/runtime-requirements.txt
 
 echo "[doctor] clean build artifacts"
-rm -rf build dist
+clean_build_artifacts
 
 echo "[doctor] build package artifacts"
 uv build --no-sources
@@ -42,6 +46,9 @@ else
     exit "$status"
   fi
 fi
+
+echo "[doctor] clean build artifacts after validation"
+clean_build_artifacts
 
 if [ "$integration_status" = "skipped" ]; then
   echo "[doctor] completed without PostgreSQL CLI integration coverage" >&2

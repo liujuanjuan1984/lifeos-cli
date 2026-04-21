@@ -308,6 +308,127 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
     assert "deleted" in deleted_timelog_result.stdout
 
 
+def test_real_cli_timelog_add_quick_batch_inherits_latest_end_time(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    seed_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Seed session",
+        "--start-time",
+        "2026-04-10T06:00:00-04:00",
+        "--end-time",
+        "2026-04-10T06:30:00-04:00",
+    )
+    assert_ok(seed_result)
+
+    quick_file = integration_context.config_path.parent / "quick-timelog.txt"
+    quick_file.write_text("0700 Breakfast\n0830 Deep work\n", encoding="utf-8")
+
+    batch_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "--file",
+        str(quick_file),
+        input_text="yes\n",
+    )
+    assert_ok(batch_result)
+    assert "Quick batch timelog preview:" in batch_result.stdout
+    assert "Created timelogs: 2" in batch_result.stdout
+
+    timelog_list_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--start-time",
+        "2026-04-10T00:00:00-04:00",
+        "--end-time",
+        "2026-04-10T23:59:59-04:00",
+    )
+    assert_ok(timelog_list_result)
+    assert "Seed session" in timelog_list_result.stdout
+    assert "Breakfast" in timelog_list_result.stdout
+    assert "Deep work" in timelog_list_result.stdout
+
+
+def test_real_cli_timelog_add_quick_batch_accepts_multiline_stdin(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    batch_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "--stdin",
+        "--first-start-time",
+        "2026-04-10T06:30:00-04:00",
+        input_text="0700 Breakfast\n0830 Deep work\n",
+    )
+    assert_ok(batch_result)
+    assert "Quick batch timelog preview:" in batch_result.stdout
+    assert "Created timelogs: 2" in batch_result.stdout
+
+    timelog_list_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--start-time",
+        "2026-04-10T00:00:00-04:00",
+        "--end-time",
+        "2026-04-10T23:59:59-04:00",
+    )
+    assert_ok(timelog_list_result)
+    assert "Breakfast" in timelog_list_result.stdout
+    assert "Deep work" in timelog_list_result.stdout
+
+
+def test_real_cli_event_and_timelog_accept_naive_write_datetimes(
+    integration_context: IntegrationContext,
+) -> None:
+    init_context(integration_context)
+
+    event_result = run_lifeos(
+        integration_context,
+        "event",
+        "add",
+        "Naive event",
+        "--start-time",
+        "2026-04-10T09:00:00",
+        "--end-time",
+        "2026-04-10T10:00:00",
+    )
+    assert_ok(event_result)
+    event_id = extract_created_id(event_result.stdout)
+
+    timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "add",
+        "Naive timelog",
+        "--start-time",
+        "2026-04-10T10:15:00",
+        "--end-time",
+        "2026-04-10T11:45:00",
+    )
+    assert_ok(timelog_result)
+    timelog_id = extract_created_id(timelog_result.stdout)
+
+    event_show_result = run_lifeos(integration_context, "event", "show", event_id)
+    assert_ok(event_show_result)
+    assert "start_time: 2026-04-10T09:00:00-04:00" in event_show_result.stdout
+    assert "end_time: 2026-04-10T10:00:00-04:00" in event_show_result.stdout
+
+    timelog_show_result = run_lifeos(integration_context, "timelog", "show", timelog_id)
+    assert_ok(timelog_show_result)
+    assert "start_time: 2026-04-10T10:15:00-04:00" in timelog_show_result.stdout
+    assert "end_time: 2026-04-10T11:45:00-04:00" in timelog_show_result.stdout
+
+
 def test_real_cli_timelog_stats_groupby_area_updates_after_writes(
     integration_context: IntegrationContext,
 ) -> None:

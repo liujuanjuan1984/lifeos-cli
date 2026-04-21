@@ -46,7 +46,7 @@ def test_main_data_export_prints_json(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_export_resource_snapshot(
-        session: object,
+        _session: object,
         *,
         resource: str,
         include_deleted: bool,
@@ -74,7 +74,7 @@ def test_main_data_export_all_uses_bundle_writer(
     bundle_path = tmp_path / "lifeos-bundle.zip"
 
     async def fake_export_bundle(
-        session: object,
+        _session: object,
         *,
         output_path: Path,
         include_deleted: bool,
@@ -236,14 +236,16 @@ def test_main_data_import_records_lookup_failures_without_crashing(
     )
 
     async def fake_import_resource_snapshot(
-        session_obj: object,
+        _session_obj: object,
         *,
         resource: str,
         rows: list[dict[str, object]],
     ) -> data_ops.DataImportReport:
+        _ = (resource, rows)
         raise LookupError("Unknown person IDs for entity type timelog: missing-person")
 
-    async def fake_run_post_import_hooks(session_obj: object, *, resources: set[str]) -> None:
+    async def fake_run_post_import_hooks(_session_obj: object, *, resources: set[str]) -> None:
+        _ = resources
         raise AssertionError("post-import hooks should not run after a stopping failure")
 
     monkeypatch.setattr(
@@ -286,7 +288,7 @@ def test_main_data_batch_update_records_lookup_failures_without_crashing(
     )
 
     async def fake_batch_update_resource(
-        session_obj: object,
+        _session_obj: object,
         *,
         resource: str,
         rows: list[dict[str, object]],
@@ -333,3 +335,85 @@ def test_main_data_batch_update_records_lookup_failures_without_crashing(
     assert "Resource: people" in captured.out
     assert "Failed rows: 1" in captured.out
     assert session.rolled_back is True
+
+
+def test_main_data_batch_delete_reads_ids_from_json_array(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    session = FakeAsyncSession()
+    ids_path = tmp_path / "event-ids.json"
+    ids_path.write_text(
+        ('["11111111-1111-1111-1111-111111111111", {"id":"22222222-2222-2222-2222-222222222222"}]'),
+        encoding="utf-8",
+    )
+    captured_ids: list[object] = []
+
+    async def fake_batch_delete_resource(
+        session_obj: object,
+        *,
+        resource: str,
+        record_ids: list[object],
+    ) -> data_ops.DataBatchDeleteReport:
+        assert session_obj is session
+        assert resource == "event"
+        captured_ids.extend(record_ids)
+        return data_ops.DataBatchDeleteReport(
+            resource=resource,
+            processed_count=len(record_ids),
+            deleted_count=len(record_ids),
+            failed_count=0,
+            failures=(),
+        )
+
+    monkeypatch.setattr(
+        db_session,
+        "get_async_session_factory",
+        _make_session_factory_getter(session),
+    )
+    monkeypatch.setattr(data_ops, "batch_delete_resource", fake_batch_delete_resource)
+
+    exit_code = cli.main(
+        [
+            "data",
+            "batch-delete",
+            "event",
+            "--file",
+            str(ids_path),
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured_ids == [
+        UUID("11111111-1111-1111-1111-111111111111"),
+        UUID("22222222-2222-2222-2222-222222222222"),
+    ]
+    assert "Deleted rows: 2" in captured.out
+
+
+def test_main_data_batch_delete_rejects_invalid_json_item(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    ids_path = tmp_path / "invalid-event-ids.json"
+    ids_path.write_text('[{"name":"missing-id"}]\n', encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data",
+            "batch-delete",
+            "event",
+            "--file",
+            str(ids_path),
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Batch-delete JSON input must contain UUID strings or objects with `id`." in captured.err

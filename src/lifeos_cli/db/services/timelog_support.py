@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,114 @@ class TimelogValidationError(ValueError):
     """Raised when timelog data is invalid."""
 
 
+@dataclass(frozen=True)
+class TimelogUpdateInput:
+    """Normalized mutable fields for timelog update operations."""
+
+    title: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    tracking_method: str | None = None
+    location: str | None = None
+    clear_location: bool = False
+    energy_level: int | None = None
+    clear_energy_level: bool = False
+    notes: str | None = None
+    clear_notes: bool = False
+    area_id: UUID | None = None
+    clear_area: bool = False
+    task_id: UUID | None = None
+    clear_task: bool = False
+    tag_ids: list[UUID] | None = None
+    clear_tags: bool = False
+    person_ids: list[UUID] | None = None
+    clear_people: bool = False
+
+    def has_batch_update(self) -> bool:
+        """Return whether this payload includes one batch-supported update."""
+        return any(
+            (
+                self.title is not None,
+                self.area_id is not None,
+                self.clear_area,
+                self.task_id is not None,
+                self.clear_task,
+                self.tag_ids is not None,
+                self.clear_tags,
+                self.person_ids is not None,
+                self.clear_people,
+            )
+        )
+
+
+@dataclass(frozen=True)
+class TimelogCreateInput:
+    """Normalized writable fields for timelog creation."""
+
+    title: str
+    start_time: datetime
+    end_time: datetime
+    tracking_method: str = "manual"
+    location: str | None = None
+    energy_level: int | None = None
+    notes: str | None = None
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    tag_ids: list[UUID] | None = None
+    person_ids: list[UUID] | None = None
+
+
+@dataclass(frozen=True)
+class TimelogBatchUpdateInput:
+    """Batch-update intent for multiple timelogs."""
+
+    title: str | None = None
+    find_title_text: str | None = None
+    replace_title_text: str = ""
+    changes: TimelogUpdateInput = field(default_factory=TimelogUpdateInput)
+
+    def has_non_title_update(self) -> bool:
+        """Return whether the batch request includes non-title mutations."""
+        return self.changes.has_batch_update()
+
+    def has_update(self) -> bool:
+        """Return whether the batch request includes any mutation."""
+        return any(
+            (self.title is not None, self.find_title_text is not None, self.has_non_title_update())
+        )
+
+
+@dataclass(frozen=True)
+class TimelogQueryFilters:
+    """Shared filter set for timelog list and count operations."""
+
+    title_contains: str | None = None
+    notes_contains: str | None = None
+    query: str | None = None
+    tracking_method: str | None = None
+    area_id: UUID | None = None
+    area_name: str | None = None
+    without_area: bool = False
+    task_id: UUID | None = None
+    without_task: bool = False
+    person_id: UUID | None = None
+    tag_id: UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    include_deleted: bool = False
+
+
+@dataclass(frozen=True)
+class TimelogListInput:
+    """List intent for timelog queries with pagination."""
+
+    filters: TimelogQueryFilters = field(default_factory=TimelogQueryFilters)
+    limit: int = 100
+    offset: int = 0
+
+
 def validate_timelog_title(title: str) -> str:
     """Validate and normalize a timelog title."""
     normalized = title.strip()
@@ -44,15 +153,6 @@ def validate_timelog_time_range(*, start_time: datetime, end_time: datetime) -> 
     """Validate a timelog time range."""
     if end_time < start_time:
         raise TimelogValidationError("Timelog end time must be on or after the start time")
-
-
-def normalize_timelog_datetime(value: datetime, *, field_name: str) -> datetime:
-    """Normalize one timelog datetime to UTC for storage."""
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise TimelogValidationError(
-            f"Timelog {field_name} must include timezone information, for example `-04:00` or `Z`."
-        )
-    return value.astimezone(timezone.utc)
 
 
 def validate_tracking_method(tracking_method: str) -> str:

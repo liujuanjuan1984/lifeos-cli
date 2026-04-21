@@ -5,10 +5,9 @@ from __future__ import annotations
 import argparse
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, time
 
-from lifeos_cli.config import get_preferences_settings
+from lifeos_cli.application.time_preferences import to_storage_timezone
 
 _DATE_ONLY_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -46,6 +45,11 @@ def parse_datetime_or_date_value(value: str) -> datetime | date:
     """Parse one ISO datetime or date value for query filters."""
     if _DATE_ONLY_PATTERN.fullmatch(value):
         return parse_date_value(value)
+    return parse_user_datetime_value(value)
+
+
+def parse_user_datetime_value(value: str) -> datetime:
+    """Parse one ISO datetime value for user-facing write arguments."""
     try:
         return datetime.fromisoformat(value)
     except ValueError as exc:
@@ -94,13 +98,10 @@ def normalize_query_datetime_bound(
     """Normalize one CLI query datetime bound into UTC."""
     if value is None:
         return None
-    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
     if isinstance(value, date) and not isinstance(value, datetime):
         local_time = time.max if is_end else time.min
-        value = datetime.combine(value, local_time, tzinfo=preferred_timezone)
-    elif value.tzinfo is None or value.utcoffset() is None:
-        value = value.replace(tzinfo=preferred_timezone)
-    return value.astimezone(timezone.utc)
+        value = datetime.combine(value, local_time)
+    return to_storage_timezone(value)
 
 
 def resolve_exclusive_date_or_datetime_query(

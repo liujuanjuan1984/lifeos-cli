@@ -9,6 +9,7 @@ from uuid import UUID
 
 import pytest
 
+from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services import events, task_effort, timelogs
 from tests.support import utc_datetime
 
@@ -19,6 +20,11 @@ async def _identity_event_view(_: object, event: object) -> object:
 
 async def _identity_timelog_view(_: object, timelog: object) -> object:
     return timelog
+
+
+def _set_timezone(monkeypatch: pytest.MonkeyPatch, timezone_name: str = "America/Toronto") -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", timezone_name)
 
 
 def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -46,8 +52,10 @@ def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch
     event = asyncio.run(
         events.create_event(
             cast(Any, session),
-            title="Doctor appointment",
-            start_time=utc_datetime(2026, 4, 10, 13, 0),
+            payload=events.EventCreateInput(
+                title="Doctor appointment",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+            ),
         )
     )
 
@@ -105,10 +113,12 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
     timelog = asyncio.run(
         timelogs.create_timelog(
             cast(Any, session),
-            title="Deep work",
-            start_time=utc_datetime(2026, 4, 10, 13, 0),
-            end_time=utc_datetime(2026, 4, 10, 14, 0),
-            tag_ids=[UUID("22222222-2222-2222-2222-222222222222")],
+            payload=timelogs.TimelogCreateInput(
+                title="Deep work",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                end_time=utc_datetime(2026, 4, 10, 14, 0),
+                tag_ids=[UUID("22222222-2222-2222-2222-222222222222")],
+            ),
         )
     )
 
@@ -139,14 +149,96 @@ def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.Mon
     created = asyncio.run(
         events.create_event(
             cast(Any, session),
-            title="Offset event",
-            start_time=datetime(2026, 4, 10, 9, 0, tzinfo=timezone(timedelta(hours=-4))),
-            end_time=datetime(2026, 4, 10, 10, 0, tzinfo=timezone(timedelta(hours=-4))),
+            payload=events.EventCreateInput(
+                title="Offset event",
+                start_time=datetime(2026, 4, 10, 9, 0, tzinfo=timezone(timedelta(hours=-4))),
+                end_time=datetime(2026, 4, 10, 10, 0, tzinfo=timezone(timedelta(hours=-4))),
+            ),
         )
     )
 
     assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
     assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+
+
+def test_create_event_interprets_naive_datetimes_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    session.add = fake_add
+    monkeypatch.setattr(events, "ensure_event_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(events, "ensure_event_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
+
+    created = asyncio.run(
+        events.create_event(
+            cast(Any, session),
+            payload=events.EventCreateInput(
+                title="Local event",
+                start_time=datetime(2026, 4, 10, 9, 0),
+                end_time=datetime(2026, 4, 10, 10, 0),
+            ),
+        )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
+
+
+def test_create_timelog_interprets_naive_datetimes_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
+
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_flush_and_recompute(_: object, **__: object) -> None:
+        await session.flush()
+
+    session.add = fake_add
+    monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_timelog_dependents",
+        fake_flush_and_recompute,
+    )
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
+
+    created = asyncio.run(
+        timelogs.create_timelog(
+            cast(Any, session),
+            payload=timelogs.TimelogCreateInput(
+                title="Local timelog",
+                start_time=datetime(2026, 4, 10, 9, 0),
+                end_time=datetime(2026, 4, 10, 10, 0),
+            ),
+        )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
 
 
 def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -169,11 +261,13 @@ def test_create_event_accepts_recurrence_fields(monkeypatch: pytest.MonkeyPatch)
     created = asyncio.run(
         events.create_event(
             cast(Any, session),
-            title="Daily review",
-            start_time=utc_datetime(2026, 4, 10, 13, 0),
-            recurrence_frequency="daily",
-            recurrence_interval=2,
-            recurrence_count=5,
+            payload=events.EventCreateInput(
+                title="Daily review",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                recurrence_frequency="daily",
+                recurrence_interval=2,
+                recurrence_count=5,
+            ),
         )
     )
 
@@ -202,9 +296,11 @@ def test_create_event_accepts_monthly_recurrence(monkeypatch: pytest.MonkeyPatch
     created = asyncio.run(
         events.create_event(
             cast(Any, session),
-            title="Monthly review",
-            start_time=utc_datetime(2026, 4, 30, 20, 0),
-            recurrence_frequency="monthly",
+            payload=events.EventCreateInput(
+                title="Monthly review",
+                start_time=utc_datetime(2026, 4, 30, 20, 0),
+                recurrence_frequency="monthly",
+            ),
         )
     )
 
@@ -233,27 +329,59 @@ def test_create_event_accepts_event_type(monkeypatch: pytest.MonkeyPatch) -> Non
     created = asyncio.run(
         events.create_event(
             cast(Any, session),
-            title="Focus block",
-            start_time=utc_datetime(2026, 4, 10, 13, 0),
-            event_type="timeblock",
+            payload=events.EventCreateInput(
+                title="Focus block",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                event_type="timeblock",
+            ),
         )
     )
 
     assert created.event_type == "timeblock"
 
 
-def test_create_timelog_rejects_naive_datetimes() -> None:
-    session = SimpleNamespace()
+def test_create_timelog_interprets_naive_datetimes_using_utc_preference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch, "UTC")
+    session = SimpleNamespace(add=None, flush=AsyncMock(), refresh=AsyncMock())
 
-    with pytest.raises(timelogs.TimelogValidationError):
-        asyncio.run(
-            timelogs.create_timelog(
-                cast(Any, session),
+    def fake_add(_: object) -> None:
+        pass
+
+    async def fake_ensure_area_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_flush_and_recompute(_: object, **__: object) -> None:
+        await session.flush()
+
+    session.add = fake_add
+    monkeypatch.setattr(timelogs, "ensure_timelog_area_exists", fake_ensure_area_exists)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_timelog_dependents",
+        fake_flush_and_recompute,
+    )
+    monkeypatch.setattr(timelogs, "_build_timelog_view", _identity_timelog_view)
+
+    created = asyncio.run(
+        timelogs.create_timelog(
+            cast(Any, session),
+            payload=timelogs.TimelogCreateInput(
                 title="Naive record",
                 start_time=datetime(2026, 4, 10, 13, 0),
                 end_time=datetime(2026, 4, 10, 14, 0),
-            )
+            ),
         )
+    )
+
+    assert created.start_time == utc_datetime(2026, 4, 10, 13, 0)
+    assert created.end_time == utc_datetime(2026, 4, 10, 14, 0)
+    clear_config_cache()
 
 
 def test_timelog_minutes_uses_whole_positive_minutes() -> None:
@@ -310,12 +438,14 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
         events.update_event(
             cast(Any, session),
             event_id=UUID("abababab-abab-abab-abab-abababababab"),
-            clear_description=True,
-            clear_end_time=True,
-            clear_area=True,
-            clear_task=True,
-            clear_tags=True,
-            clear_people=True,
+            changes=events.EventUpdateInput(
+                clear_description=True,
+                clear_end_time=True,
+                clear_area=True,
+                clear_task=True,
+                clear_tags=True,
+                clear_people=True,
+            ),
         )
     )
 
@@ -373,6 +503,56 @@ def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPa
     session.flush.assert_awaited_once()
 
 
+def test_delete_event_single_interprets_naive_instance_start_using_preferred_timezone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_timezone(monkeypatch)
+    event = SimpleNamespace(
+        id=UUID("abababab-abab-abab-abab-abababababab"),
+        start_time=utc_datetime(2026, 4, 10, 13, 0),
+        end_time=utc_datetime(2026, 4, 10, 14, 0),
+        recurrence_frequency="daily",
+        recurrence_interval=1,
+        recurrence_count=3,
+        recurrence_until=None,
+        recurrence_parent_event_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock())
+    record_skip = AsyncMock()
+
+    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+        assert event_id == UUID("abababab-abab-abab-abab-abababababab")
+        assert include_deleted is False
+        return event
+
+    async def fake_get_override_event(
+        _: object,
+        *,
+        master_event_id: UUID,
+        instance_start: datetime,
+    ) -> object | None:
+        assert master_event_id == event.id
+        assert instance_start == utc_datetime(2026, 4, 11, 13, 0)
+        return None
+
+    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
+    monkeypatch.setattr(events, "_get_override_event_for_instance", fake_get_override_event)
+    monkeypatch.setattr(events, "_record_skip_exception", record_skip)
+
+    asyncio.run(
+        events.delete_event(
+            cast(Any, session),
+            event_id=UUID("abababab-abab-abab-abab-abababababab"),
+            scope="single",
+            instance_start=datetime(2026, 4, 11, 9, 0),
+        )
+    )
+
+    record_skip.assert_awaited_once()
+    session.flush.assert_awaited_once()
+    clear_config_cache()
+
+
 def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() -> None:
     class _Result:
         def __init__(self, values: list[object]) -> None:
@@ -420,8 +600,10 @@ def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() 
     occurrences = asyncio.run(
         events.list_event_occurrences(
             cast(Any, _Session()),
-            window_start=utc_datetime(2026, 4, 10, 0, 0),
-            window_end=utc_datetime(2026, 4, 12, 23, 59),
+            query=events.EventOccurrenceQuery(
+                window_start=utc_datetime(2026, 4, 10, 0, 0),
+                window_end=utc_datetime(2026, 4, 12, 23, 59),
+            ),
         )
     )
 
@@ -471,8 +653,10 @@ def test_list_event_occurrences_expands_monthly_series() -> None:
     occurrences = asyncio.run(
         events.list_event_occurrences(
             cast(Any, _Session()),
-            window_start=utc_datetime(2026, 4, 1, 0, 0),
-            window_end=utc_datetime(2026, 6, 30, 23, 59),
+            query=events.EventOccurrenceQuery(
+                window_start=utc_datetime(2026, 4, 1, 0, 0),
+                window_end=utc_datetime(2026, 6, 30, 23, 59),
+            ),
         )
     )
 
@@ -509,15 +693,19 @@ def test_list_event_occurrences_applies_all_supported_filters() -> None:
     occurrences = asyncio.run(
         events.list_event_occurrences(
             cast(Any, session),
-            window_start=utc_datetime(2026, 4, 10, 0, 0),
-            window_end=utc_datetime(2026, 4, 12, 23, 59),
-            title_contains="review",
-            status="planned",
-            event_type="deadline",
-            area_id=area_id,
-            task_id=task_id,
-            person_id=person_id,
-            tag_id=tag_id,
+            query=events.EventOccurrenceQuery(
+                window_start=utc_datetime(2026, 4, 10, 0, 0),
+                window_end=utc_datetime(2026, 4, 12, 23, 59),
+                filters=events.EventQueryFilters(
+                    title_contains="review",
+                    status="planned",
+                    event_type="deadline",
+                    area_id=area_id,
+                    task_id=task_id,
+                    person_id=person_id,
+                    tag_id=tag_id,
+                ),
+            ),
         )
     )
 
@@ -559,7 +747,11 @@ def test_list_events_with_one_sided_window_uses_overlap_query(
     listed = asyncio.run(
         events.list_events(
             cast(Any, session),
-            window_start=utc_datetime(2026, 4, 10, 12, 0),
+            query=events.EventListInput(
+                filters=events.EventQueryFilters(
+                    window_start=utc_datetime(2026, 4, 10, 12, 0),
+                )
+            ),
         )
     )
 
@@ -623,13 +815,15 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         timelogs.update_timelog(
             cast(Any, session),
             timelog_id=UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd"),
-            clear_location=True,
-            clear_energy_level=True,
-            clear_notes=True,
-            clear_area=True,
-            clear_task=True,
-            clear_tags=True,
-            clear_people=True,
+            changes=timelogs.TimelogUpdateInput(
+                clear_location=True,
+                clear_energy_level=True,
+                clear_notes=True,
+                clear_area=True,
+                clear_task=True,
+                clear_tags=True,
+                clear_people=True,
+            ),
         )
     )
 
@@ -680,10 +874,14 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
         timelogs.batch_update_timelogs(
             cast(Any, session),
             timelog_ids=[timelog_id, timelog_id, missing_id],
-            find_title_text="Deep",
-            replace_title_text="Focused",
-            task_id=task_id,
-            clear_people=True,
+            changes=timelogs.TimelogBatchUpdateInput(
+                find_title_text="Deep",
+                replace_title_text="Focused",
+                changes=timelogs.TimelogUpdateInput(
+                    task_id=task_id,
+                    clear_people=True,
+                ),
+            ),
         )
     )
 
@@ -692,15 +890,17 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
     assert update_calls == [
         {
             "timelog_id": timelog_id,
-            "title": "Focused work",
-            "area_id": None,
-            "clear_area": False,
-            "task_id": task_id,
-            "clear_task": False,
-            "tag_ids": None,
-            "clear_tags": False,
-            "person_ids": None,
-            "clear_people": True,
+            "changes": timelogs.TimelogUpdateInput(
+                title="Focused work",
+                area_id=None,
+                clear_area=False,
+                task_id=task_id,
+                clear_task=False,
+                tag_ids=None,
+                clear_tags=False,
+                person_ids=None,
+                clear_people=True,
+            ),
         }
     ]
 
@@ -729,8 +929,10 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
         timelogs.batch_update_timelogs(
             cast(Any, session),
             timelog_ids=[timelog_id],
-            find_title_text="Planning",
-            replace_title_text="Review",
+            changes=timelogs.TimelogBatchUpdateInput(
+                find_title_text="Planning",
+                replace_title_text="Review",
+            ),
         )
     )
 

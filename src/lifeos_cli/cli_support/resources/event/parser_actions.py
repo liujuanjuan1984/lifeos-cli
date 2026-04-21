@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import (
@@ -28,7 +27,7 @@ from lifeos_cli.cli_support.resources.event.handlers import (
     handle_event_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
+from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value, parse_user_datetime_value
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -43,14 +42,14 @@ def build_event_add_parser(
             summary=_("Create an event"),
             description=_("Create a planned schedule event."),
             examples=(
-                'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00-04:00 '
-                "--end-time 2026-04-10T10:00:00-04:00",
+                'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00 '
+                "--end-time 2026-04-10T10:00:00",
                 'lifeos event add "Deep work block" --type timeblock '
-                "--start-time 2026-04-10T13:00:00-04:00 "
+                "--start-time 2026-04-10T13:00:00 "
                 "--task-id <task-id> --area-id <area-id>",
                 'lifeos event add "Shared planning session" '
-                "--start-time 2026-04-10T15:00:00-04:00 "
-                "--end-time 2026-04-10T16:00:00-04:00 "
+                "--start-time 2026-04-10T15:00:00 "
+                "--end-time 2026-04-10T16:00:00 "
                 "--person-id <person-id-1> --person-id <person-id-2> "
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
@@ -61,6 +60,10 @@ def build_event_add_parser(
                     "or people in one command."
                 ),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
+                _(
+                    "When a datetime omits timezone information, the configured timezone is used "
+                    "before the value is converted to UTC."
+                ),
                 _(
                     "Use recurrence flags to create recurring daily, weekly, monthly, or yearly "
                     "series."
@@ -75,9 +78,11 @@ def build_event_add_parser(
     add_parser.add_argument("title", help=_("Event title"))
     add_parser.add_argument("--description", help=_("Optional event description"))
     add_parser.add_argument(
-        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
+        "--start-time", required=True, type=parse_user_datetime_value, help=_("Start time")
     )
-    add_parser.add_argument("--end-time", type=datetime.fromisoformat, help=_("Optional end time"))
+    add_parser.add_argument(
+        "--end-time", type=parse_user_datetime_value, help=_("Optional end time")
+    )
     add_parser.add_argument("--priority", type=int, default=0, help=_("Priority from 0 to 5"))
     add_parser.add_argument("--status", default="planned", help=_("Event status"))
     add_parser.add_argument(
@@ -110,7 +115,7 @@ def build_event_add_parser(
     )
     add_parser.add_argument(
         "--recurrence-until",
-        type=datetime.fromisoformat,
+        type=parse_user_datetime_value,
         help=_("Optional final allowed occurrence start time"),
     )
     add_parser.add_argument(
@@ -150,8 +155,8 @@ def build_event_list_parser(
                 "lifeos event list",
                 "lifeos event list --date 2026-04-10",
                 "lifeos event list --date 2026-04-10 --date 2026-04-16",
-                "lifeos event list --status planned --start-time 2026-04-10T00:00:00-04:00 "
-                "--end-time 2026-04-10T23:59:59-04:00",
+                "lifeos event list --status planned --start-time 2026-04-10T00:00:00 "
+                "--end-time 2026-04-10T23:59:59",
                 "lifeos event list --type deadline --date 2026-04-10",
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
@@ -247,7 +252,9 @@ def build_event_update_parser(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
-                "--scope single --instance-start 2026-04-10T09:00:00-04:00 "
+                "--start-time 2026-04-10T09:00:00 --end-time 2026-04-10T10:00:00",
+                "lifeos event update 11111111-1111-1111-1111-111111111111 "
+                "--scope single --instance-start 2026-04-10T09:00:00 "
                 "--clear-end-time",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 "
                 "--person-id <person-id-1> --person-id <person-id-2> "
@@ -261,6 +268,10 @@ def build_event_update_parser(
                 _("Use `--type` to retag an event as appointment, timeblock, or deadline."),
                 _("Use `--clear-*` flags to explicitly remove optional values."),
                 _("Do not mix a value flag with the matching clear flag in the same command."),
+                _(
+                    "When a datetime omits timezone information, the configured timezone is used "
+                    "before the value is converted to UTC."
+                ),
                 _("Use `--scope single|all_future|all` for recurring series updates."),
                 _("`--scope single` and `--scope all_future` require `--instance-start`."),
                 _(
@@ -277,10 +288,10 @@ def build_event_update_parser(
         "--clear-description", action="store_true", help=_("Clear description")
     )
     update_parser.add_argument(
-        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+        "--start-time", type=parse_user_datetime_value, help=_("Updated start time")
     )
     update_parser.add_argument(
-        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+        "--end-time", type=parse_user_datetime_value, help=_("Updated end time")
     )
     update_parser.add_argument("--clear-end-time", action="store_true", help=_("Clear end time"))
     update_parser.add_argument("--priority", type=int, help=_("Updated priority from 0 to 5"))
@@ -312,7 +323,7 @@ def build_event_update_parser(
     update_parser.add_argument("--recurrence-count", type=int, help=_("Updated recurrence count"))
     update_parser.add_argument(
         "--recurrence-until",
-        type=datetime.fromisoformat,
+        type=parse_user_datetime_value,
         help=_("Updated recurrence until datetime"),
     )
     update_parser.add_argument(
@@ -327,7 +338,7 @@ def build_event_update_parser(
     )
     update_parser.add_argument(
         "--instance-start",
-        type=datetime.fromisoformat,
+        type=parse_user_datetime_value,
         help=_("Instance start time for single or all_future recurring updates"),
     )
     update_parser.add_argument(
@@ -364,13 +375,17 @@ def build_event_delete_parser(
             examples=(
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
-                "--scope single --instance-start 2026-04-10T09:00:00-04:00",
+                "--scope single --instance-start 2026-04-10T09:00:00",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
-                "--scope all_future --instance-start 2026-04-10T09:00:00-04:00",
+                "--scope all_future --instance-start 2026-04-10T09:00:00",
             ),
             notes=(
                 _("Use `--scope single|all_future|all` for recurring series deletes."),
                 _("`--scope single` and `--scope all_future` require `--instance-start`."),
+                _(
+                    "When a datetime omits timezone information, the configured timezone is used "
+                    "before the value is converted to UTC."
+                ),
             ),
         ),
     )
@@ -382,7 +397,7 @@ def build_event_delete_parser(
     )
     delete_parser.add_argument(
         "--instance-start",
-        type=datetime.fromisoformat,
+        type=parse_user_datetime_value,
         help=_("Instance start time for single or all_future recurring deletes"),
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))

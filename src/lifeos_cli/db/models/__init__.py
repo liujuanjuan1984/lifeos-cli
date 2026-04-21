@@ -1,11 +1,17 @@
 """ORM models for lifeos_cli."""
 
-from .aggregated_timelog_stats_groupby_area import AggregatedTimelogStatsGroupByArea
+from .aggregated_timelog_stats_groupby_area import (
+    AggregatedTimelogStatsGroupByArea,
+)
 from .area import Area
 from .association import Association
-from .daily_timelog_stats_groupby_area import DailyTimelogStatsGroupByArea
+from .daily_timelog_stats_groupby_area import (
+    DailyTimelogStatsGroupByArea,
+)
 from .event import Event
-from .event_occurrence_exception import EventOccurrenceException
+from .event_occurrence_exception import (
+    EventOccurrenceException,
+)
 from .habit import Habit
 from .habit_action import HabitAction
 from .note import Note

@@ -49,12 +49,14 @@ def test_batch_update_resource_parses_typed_timelog_fields(
 
     assert report.updated_count == 1
     assert captured["timelog_id"] == UUID("11111111-1111-1111-1111-111111111111")
-    assert str(captured["start_time"]) == "2026-04-10 13:00:00+00:00"
-    assert str(captured["end_time"]) == "2026-04-10 14:30:00+00:00"
-    assert captured["area_id"] == UUID("22222222-2222-2222-2222-222222222222")
-    assert captured["task_id"] == UUID("33333333-3333-3333-3333-333333333333")
-    assert captured["tag_ids"] == [UUID("44444444-4444-4444-4444-444444444444")]
-    assert captured["person_ids"] == [UUID("55555555-5555-5555-5555-555555555555")]
+    changes = captured["changes"]
+    assert isinstance(changes, data_ops.timelogs.TimelogUpdateInput)
+    assert str(changes.start_time) == "2026-04-10 13:00:00+00:00"
+    assert str(changes.end_time) == "2026-04-10 14:30:00+00:00"
+    assert changes.area_id == UUID("22222222-2222-2222-2222-222222222222")
+    assert changes.task_id == UUID("33333333-3333-3333-3333-333333333333")
+    assert changes.tag_ids == [UUID("44444444-4444-4444-4444-444444444444")]
+    assert changes.person_ids == [UUID("55555555-5555-5555-5555-555555555555")]
 
 
 def test_batch_update_resource_parses_extended_note_relation_fields(

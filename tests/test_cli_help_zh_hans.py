@@ -161,6 +161,23 @@ def test_cli_schedule_show_help_supports_zh_hans_locale(
     assert "示例:" in captured.out
 
 
+def test_cli_timelog_add_help_supports_zh_hans_locale_for_stdin_batch_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "add", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "从标准输入读取快捷批量条目" in captured.out
+    assert "预览后直接写入快捷批量 `timelog`，无需交互确认" in captured.out
+    assert "并在输入来自 `--stdin` 或提供 `--yes` 时跳过提示" in captured.out
+
+
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [

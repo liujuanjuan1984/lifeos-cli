@@ -14,6 +14,7 @@ from lifeos_cli.application.time_preferences import (
     get_utc_window_for_local_date_range,
 )
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.services.event_support import EventOccurrenceQuery
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
 from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
 from lifeos_cli.db.services.read_models import HabitActionView
@@ -123,8 +124,10 @@ async def _load_schedule_events(
     )
     return await list_event_occurrences(
         session,
-        window_start=range_window_start,
-        window_end=range_window_end,
+        query=EventOccurrenceQuery(
+            window_start=range_window_start,
+            window_end=range_window_end,
+        ),
     )
 
 

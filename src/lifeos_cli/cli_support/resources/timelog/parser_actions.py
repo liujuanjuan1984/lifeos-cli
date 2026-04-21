@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser
@@ -22,7 +21,7 @@ from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value
+from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value, parse_user_datetime_value
 from lifeos_cli.i18n import gettext_message as _
 
 
@@ -35,23 +34,45 @@ def build_timelog_add_parser(
         "add",
         help_content=HelpContent(
             summary=_("Create a timelog"),
-            description=_("Create one actual time record."),
+            description=_("Create one actual time record or preview a quick batch add."),
             examples=(
-                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00-04:00 '
-                "--end-time 2026-04-10T14:30:00-04:00",
-                'lifeos timelog add "Run" --start-time 2026-04-10T07:00:00-04:00 '
-                "--end-time 2026-04-10T07:30:00-04:00 --area-id <area-id> --energy-level 4",
-                'lifeos timelog add "Shared pairing" --start-time 2026-04-10T15:00:00-04:00 '
-                "--end-time 2026-04-10T16:30:00-04:00 "
+                'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00 '
+                "--end-time 2026-04-10T14:30:00",
+                'lifeos timelog add "Run" --start-time 2026-04-10T07:00:00 '
+                "--end-time 2026-04-10T07:30:00 --area-id <area-id> --energy-level 4",
+                'lifeos timelog add "Shared pairing" --start-time 2026-04-10T15:00:00 '
+                "--end-time 2026-04-10T16:30:00 "
                 "--person-id <person-id-1> --person-id <person-id-2> "
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
+                'lifeos timelog add --entry "0700 Breakfast" --entry "0830 Deep work" '
+                "--first-start-time 2026-04-10T06:30:00",
+                "printf '0700 Breakfast\\n0830 Deep work\\n' | lifeos timelog add --stdin "
+                "--first-start-time 2026-04-10T06:30:00",
+                "lifeos timelog add --file quick-timelog.txt",
             ),
             notes=(
                 _(
                     "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
                     "or people in one command."
                 ),
-                _("Timelog end time is required because the record models completed time spent."),
+                _(
+                    "Single-record mode requires both `--start-time` and `--end-time` because "
+                    "the record models completed time spent."
+                ),
+                _(
+                    "Quick batch mode accepts `HHMM Title` and `HH:MM-HH:MM Title` lines, "
+                    "always previews the parsed rows, asks for confirmation before writing by "
+                    "default, and skips the prompt when input comes from `--stdin` or `--yes` "
+                    "is provided."
+                ),
+                _(
+                    "When a datetime omits timezone information, the configured timezone is used "
+                    "before the value is converted to UTC."
+                ),
+                _(
+                    "When quick batch mode omits `--first-start-time`, the first row inherits "
+                    "the latest active timelog end time."
+                ),
                 _(
                     "When an agent records actual work, use `--person-id` to state whether the "
                     "effort belongs to the human, the agent, or both."
@@ -59,12 +80,31 @@ def build_timelog_add_parser(
             ),
         ),
     )
-    add_parser.add_argument("title", help=_("Timelog title"))
+    add_parser.add_argument("title", nargs="?", help=_("Timelog title"))
+    add_parser.add_argument("--start-time", type=parse_user_datetime_value, help=_("Start time"))
+    add_parser.add_argument("--end-time", type=parse_user_datetime_value, help=_("End time"))
     add_parser.add_argument(
-        "--start-time", required=True, type=datetime.fromisoformat, help=_("Start time")
+        "--entry",
+        dest="entry_lines",
+        action="append",
+        default=None,
+        help=_("Repeat to add one quick batch-entry line"),
     )
     add_parser.add_argument(
-        "--end-time", required=True, type=datetime.fromisoformat, help=_("End time")
+        "--stdin",
+        action="store_true",
+        help=_("Read quick batch entries from standard input"),
+    )
+    add_parser.add_argument("--file", help=_("Read quick batch entries from a UTF-8 text file"))
+    add_parser.add_argument(
+        "--first-start-time",
+        type=parse_user_datetime_value,
+        help=_("First quick batch start time; defaults to the latest active timelog end time"),
+    )
+    add_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help=_("Write quick batch timelogs without interactive confirmation after preview"),
     )
     add_parser.add_argument("--tracking-method", default="manual", help=_("Tracking method"))
     add_parser.add_argument("--location", help=_("Optional location"))
@@ -110,8 +150,8 @@ def build_timelog_list_parser(
                 "lifeos timelog list --date 2026-04-10",
                 "lifeos timelog list --date 2026-04-10 --date 2026-04-16",
                 "lifeos timelog list --tracking-method manual "
-                "--start-time 2026-04-10T00:00:00-04:00 "
-                "--end-time 2026-04-10T23:59:59-04:00",
+                "--start-time 2026-04-10T00:00:00 "
+                "--end-time 2026-04-10T23:59:59",
                 "lifeos timelog list --task-id <task-id> --person-id <person-id>",
                 'lifeos timelog list --query "deep work" --count',
             ),
@@ -206,6 +246,8 @@ def build_timelog_update_parser(
             examples=(
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 --energy-level 5",
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
+                "--start-time 2026-04-10T13:00:00 --end-time 2026-04-10T14:00:00",
+                "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
                 "--person-id <person-id-1> --person-id <person-id-2> "
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
@@ -217,6 +259,10 @@ def build_timelog_update_parser(
                 _("Use `--clear-*` flags to explicitly remove optional values."),
                 _("Do not mix a value flag with the matching clear flag in the same command."),
                 _(
+                    "When a datetime omits timezone information, the configured timezone is used "
+                    "before the value is converted to UTC."
+                ),
+                _(
                     "Use repeated `--person-id` to keep actual human effort, agent effort, "
                     "and shared effort distinct."
                 ),
@@ -226,10 +272,10 @@ def build_timelog_update_parser(
     update_parser.add_argument("timelog_id", type=UUID, help=_("Timelog identifier"))
     update_parser.add_argument("--title", help=_("Updated timelog title"))
     update_parser.add_argument(
-        "--start-time", type=datetime.fromisoformat, help=_("Updated start time")
+        "--start-time", type=parse_user_datetime_value, help=_("Updated start time")
     )
     update_parser.add_argument(
-        "--end-time", type=datetime.fromisoformat, help=_("Updated end time")
+        "--end-time", type=parse_user_datetime_value, help=_("Updated end time")
     )
     update_parser.add_argument("--tracking-method", help=_("Updated tracking method"))
     update_parser.add_argument("--location", help=_("Updated location"))

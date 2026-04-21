@@ -4,13 +4,19 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     format_id_lines,
+    format_summary_header,
     format_timestamp,
     print_batch_result,
     print_summary_rows,
+)
+from lifeos_cli.cli_support.resources.timelog.bulk_add import (
+    BulkTimelogDraft,
+    parse_bulk_timelog_text,
 )
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
@@ -18,6 +24,7 @@ from lifeos_cli.cli_support.time_args import (
     resolve_exclusive_date_or_datetime_query,
     resolve_required_date_interval_arguments,
 )
+from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import timelog_stats
 from lifeos_cli.db.services import timelogs as timelog_services
@@ -31,6 +38,15 @@ TIMELOG_SUMMARY_COLUMNS = (
     "task_id",
     "linked_notes_count",
     "title",
+)
+
+TIMELOG_BULK_PREVIEW_COLUMNS = (
+    "line",
+    "start_time",
+    "end_time",
+    "minutes",
+    "title",
+    "warnings",
 )
 
 
@@ -68,6 +84,87 @@ def _format_timelog_detail(timelog: TimelogView) -> str:
     )
 
 
+def _resolve_bulk_timelog_input_text(args: argparse.Namespace) -> str:
+    provided_sources = sum(
+        1
+        for candidate in (args.entry_lines is not None, args.stdin, args.file is not None)
+        if candidate
+    )
+    if provided_sources != 1:
+        raise ConfigurationError(
+            "Provide quick batch timelog input with exactly one source: `--entry`, `--stdin`, "
+            "or `--file`."
+        )
+    if args.entry_lines is not None:
+        content = "\n".join(args.entry_lines)
+    elif args.stdin:
+        content = sys.stdin.read()
+    else:
+        try:
+            content = Path(args.file).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ConfigurationError(
+                f"Could not read quick batch timelog input from {args.file}: {exc}"
+            ) from exc
+    normalized = content.rstrip("\n")
+    if not normalized.strip():
+        raise ConfigurationError("Quick batch timelog input must not be empty.")
+    return normalized
+
+
+def _validate_single_timelog_add_args(args: argparse.Namespace) -> None:
+    if args.title is None:
+        raise ConfigurationError("Single-record mode requires `title`.")
+    if args.start_time is None or args.end_time is None:
+        raise ConfigurationError(
+            "Single-record mode requires both `--start-time` and `--end-time`."
+        )
+    if args.first_start_time is not None:
+        raise ConfigurationError("Use `--first-start-time` only with quick batch mode.")
+    if args.yes:
+        raise ConfigurationError("Use `--yes` only with quick batch mode.")
+
+
+def _validate_bulk_timelog_add_args(args: argparse.Namespace) -> None:
+    if args.title is not None:
+        raise ConfigurationError("Quick batch mode cannot be combined with single-record `title`.")
+    if args.start_time is not None:
+        raise ConfigurationError("Quick batch mode uses `--first-start-time`, not `--start-time`.")
+    if args.end_time is not None:
+        raise ConfigurationError("Quick batch mode cannot be combined with `--end-time`.")
+
+
+def _format_bulk_timelog_preview_row(draft: BulkTimelogDraft) -> str:
+    minutes = int((draft.end_time - draft.start_time).total_seconds() // 60)
+    warning_text = "; ".join(draft.warnings) if draft.warnings else "-"
+    return (
+        f"{draft.line_number}\t{format_timestamp(draft.start_time)}\t"
+        f"{format_timestamp(draft.end_time)}\t{minutes}\t{draft.title}\t{warning_text}"
+    )
+
+
+def _print_bulk_timelog_preview(drafts: list[BulkTimelogDraft]) -> None:
+    total_minutes = sum(
+        int((draft.end_time - draft.start_time).total_seconds() // 60) for draft in drafts
+    )
+    print("Quick batch timelog preview:")
+    print(format_summary_header(TIMELOG_BULK_PREVIEW_COLUMNS))
+    for draft in drafts:
+        print(_format_bulk_timelog_preview_row(draft))
+    print(f"Total timelogs: {len(drafts)}")
+    print(f"Total minutes: {total_minutes}")
+
+
+def _read_bulk_timelog_confirmation() -> str:
+    print("Type `yes` to create these timelogs: ", end="", flush=True)
+    response = sys.stdin.readline()
+    if response == "":
+        raise ConfigurationError(
+            "Quick batch timelog confirmation aborted before any changes were written."
+        )
+    return response.strip().lower()
+
+
 def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> str:
     lines = [
         f"granularity: {report.granularity}",
@@ -92,21 +189,72 @@ def _format_timelog_stats_report(report: timelog_stats.TimelogStatsReport) -> st
 
 
 async def handle_timelog_add_async(args: argparse.Namespace) -> int:
+    if args.entry_lines is not None or args.stdin or args.file is not None:
+        _validate_bulk_timelog_add_args(args)
+        raw_text = _resolve_bulk_timelog_input_text(args)
+        async with db_session.session_scope() as session:
+            first_start_time = args.first_start_time
+            if first_start_time is None:
+                first_start_time = await timelog_services.get_latest_timelog_end_time(session)
+            if first_start_time is None:
+                raise ConfigurationError(
+                    "Quick batch mode requires `--first-start-time` when no active timelog "
+                    "exists to provide the initial cursor."
+                )
+            drafts = parse_bulk_timelog_text(raw_text, first_start_time=first_start_time)
+            _print_bulk_timelog_preview(drafts)
+            if not args.stdin and not args.yes and _read_bulk_timelog_confirmation() != "yes":
+                print("Quick batch timelog creation cancelled. No changes were written.")
+                return 1
+            created_ids = []
+            try:
+                for draft in drafts:
+                    timelog = await timelog_services.create_timelog(
+                        session,
+                        payload=timelog_services.TimelogCreateInput(
+                            title=draft.title,
+                            start_time=draft.start_time,
+                            end_time=draft.end_time,
+                            tracking_method=args.tracking_method,
+                            location=args.location,
+                            energy_level=args.energy_level,
+                            notes=args.notes,
+                            area_id=args.area_id,
+                            task_id=args.task_id,
+                            tag_ids=args.tag_ids,
+                            person_ids=args.person_ids,
+                        ),
+                    )
+                    created_ids.append(timelog.id)
+            except (
+                timelog_services.TimelogAreaReferenceNotFoundError,
+                timelog_services.TimelogTaskReferenceNotFoundError,
+                timelog_services.TimelogValidationError,
+                LookupError,
+            ) as exc:
+                return cli_handler_utils.print_cli_error(exc)
+        print(f"Created timelogs: {len(created_ids)}")
+        print(format_id_lines("timelog_ids", created_ids))
+        return 0
+
+    _validate_single_timelog_add_args(args)
     async with db_session.session_scope() as session:
         try:
             timelog = await timelog_services.create_timelog(
                 session,
-                title=args.title,
-                start_time=args.start_time,
-                end_time=args.end_time,
-                tracking_method=args.tracking_method,
-                location=args.location,
-                energy_level=args.energy_level,
-                notes=args.notes,
-                area_id=args.area_id,
-                task_id=args.task_id,
-                tag_ids=args.tag_ids,
-                person_ids=args.person_ids,
+                payload=timelog_services.TimelogCreateInput(
+                    title=args.title,
+                    start_time=args.start_time,
+                    end_time=args.end_time,
+                    tracking_method=args.tracking_method,
+                    location=args.location,
+                    energy_level=args.energy_level,
+                    notes=args.notes,
+                    area_id=args.area_id,
+                    task_id=args.task_id,
+                    tag_ids=args.tag_ids,
+                    person_ids=args.person_ids,
+                ),
             )
         except (
             timelog_services.TimelogAreaReferenceNotFoundError,
@@ -142,30 +290,8 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
         return conflict_error
     async with db_session.session_scope() as session:
         try:
-            timelogs = await timelog_services.list_timelogs(
-                session,
-                title_contains=args.title_contains,
-                notes_contains=args.notes_contains,
-                query=args.query,
-                tracking_method=args.tracking_method,
-                area_id=args.area_id,
-                area_name=args.area_name,
-                without_area=args.without_area,
-                task_id=args.task_id,
-                without_task=args.without_task,
-                person_id=args.person_id,
-                tag_id=args.tag_id,
-                start_date=query.start_date,
-                end_date=query.end_date,
-                window_start=query.window_start,
-                window_end=query.window_end,
-                include_deleted=args.include_deleted,
-                limit=args.limit,
-                offset=args.offset,
-            )
-            total_count = (
-                await timelog_services.count_timelogs(
-                    session,
+            list_input = timelog_services.TimelogListInput(
+                filters=timelog_services.TimelogQueryFilters(
                     title_contains=args.title_contains,
                     notes_contains=args.notes_contains,
                     query=args.query,
@@ -182,6 +308,18 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                     window_start=query.window_start,
                     window_end=query.window_end,
                     include_deleted=args.include_deleted,
+                ),
+                limit=args.limit,
+                offset=args.offset,
+            )
+            timelogs = await timelog_services.list_timelogs(
+                session,
+                query=list_input,
+            )
+            total_count = (
+                await timelog_services.count_timelogs(
+                    session,
+                    filters=list_input.filters,
                 )
                 if args.count
                 else None
@@ -234,24 +372,26 @@ async def handle_timelog_update_async(args: argparse.Namespace) -> int:
             timelog = await timelog_services.update_timelog(
                 session,
                 timelog_id=args.timelog_id,
-                title=args.title,
-                start_time=args.start_time,
-                end_time=args.end_time,
-                tracking_method=args.tracking_method,
-                location=args.location,
-                clear_location=args.clear_location,
-                energy_level=args.energy_level,
-                clear_energy_level=args.clear_energy_level,
-                notes=args.notes,
-                clear_notes=args.clear_notes,
-                area_id=args.area_id,
-                clear_area=args.clear_area,
-                task_id=args.task_id,
-                clear_task=args.clear_task,
-                tag_ids=args.tag_ids,
-                clear_tags=args.clear_tags,
-                person_ids=args.person_ids,
-                clear_people=args.clear_people,
+                changes=timelog_services.TimelogUpdateInput(
+                    title=args.title,
+                    start_time=args.start_time,
+                    end_time=args.end_time,
+                    tracking_method=args.tracking_method,
+                    location=args.location,
+                    clear_location=args.clear_location,
+                    energy_level=args.energy_level,
+                    clear_energy_level=args.clear_energy_level,
+                    notes=args.notes,
+                    clear_notes=args.clear_notes,
+                    area_id=args.area_id,
+                    clear_area=args.clear_area,
+                    task_id=args.task_id,
+                    clear_task=args.clear_task,
+                    tag_ids=args.tag_ids,
+                    clear_tags=args.clear_tags,
+                    person_ids=args.person_ids,
+                    clear_people=args.clear_people,
+                ),
             )
         except (
             timelog_services.TimelogNotFoundError,
@@ -275,23 +415,6 @@ async def handle_timelog_delete_async(args: argparse.Namespace) -> int:
     return 0
 
 
-def _timelog_batch_update_requested(args: argparse.Namespace) -> bool:
-    return any(
-        (
-            args.title is not None,
-            args.find_title_text is not None,
-            args.area_id is not None,
-            args.clear_area,
-            args.task_id is not None,
-            args.clear_task,
-            args.tag_ids is not None,
-            args.clear_tags,
-            args.person_ids is not None,
-            args.clear_people,
-        )
-    )
-
-
 async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     conflicts = (
         (
@@ -311,7 +434,20 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
     if args.replace_title_text is not None and args.find_title_text is None:
         print("Use --replace-title-text only with --find-title-text.", file=sys.stderr)
         return 1
-    if not _timelog_batch_update_requested(args):
+    if not any(
+        (
+            args.title is not None,
+            args.find_title_text is not None,
+            args.area_id is not None,
+            args.clear_area,
+            args.task_id is not None,
+            args.clear_task,
+            args.tag_ids is not None,
+            args.clear_tags,
+            args.person_ids is not None,
+            args.clear_people,
+        )
+    ):
         print("At least one batch update option is required.", file=sys.stderr)
         return 1
 
@@ -320,17 +456,21 @@ async def handle_timelog_batch_update_async(args: argparse.Namespace) -> int:
             result = await timelog_services.batch_update_timelogs(
                 session,
                 timelog_ids=list(args.timelog_ids),
-                title=args.title,
-                find_title_text=args.find_title_text,
-                replace_title_text=args.replace_title_text or "",
-                area_id=args.area_id,
-                clear_area=args.clear_area,
-                task_id=args.task_id,
-                clear_task=args.clear_task,
-                tag_ids=args.tag_ids,
-                clear_tags=args.clear_tags,
-                person_ids=args.person_ids,
-                clear_people=args.clear_people,
+                changes=timelog_services.TimelogBatchUpdateInput(
+                    title=args.title,
+                    find_title_text=args.find_title_text,
+                    replace_title_text=args.replace_title_text or "",
+                    changes=timelog_services.TimelogUpdateInput(
+                        area_id=args.area_id,
+                        clear_area=args.clear_area,
+                        task_id=args.task_id,
+                        clear_task=args.clear_task,
+                        tag_ids=args.tag_ids,
+                        clear_tags=args.clear_tags,
+                        person_ids=args.person_ids,
+                        clear_people=args.clear_people,
+                    ),
+                ),
             )
         except timelog_services.TimelogValidationError as exc:
             return cli_handler_utils.print_cli_error(exc)
