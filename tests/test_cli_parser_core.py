@@ -426,6 +426,7 @@ def test_cli_parser_supports_note_list_relation_filters() -> None:
             "11111111-1111-1111-1111-111111111111",
             "--timelog-id",
             "22222222-2222-2222-2222-222222222222",
+            "--with-counts",
         ]
     )
 
@@ -433,6 +434,7 @@ def test_cli_parser_supports_note_list_relation_filters() -> None:
     assert args.note_command == "list"
     assert args.person_id == UUID("11111111-1111-1111-1111-111111111111")
     assert args.timelog_id == UUID("22222222-2222-2222-2222-222222222222")
+    assert args.with_counts is True
 
 
 def test_cli_parser_supports_schedule_show_command() -> None:
@@ -512,6 +514,7 @@ def test_cli_parser_supports_timelog_list_search_filters() -> None:
             "--area-name",
             "Work",
             "--without-task",
+            "--with-counts",
             "--count",
         ]
     )
@@ -522,6 +525,7 @@ def test_cli_parser_supports_timelog_list_search_filters() -> None:
     assert args.notes_contains == "focused"
     assert args.area_name == "Work"
     assert args.without_task is True
+    assert args.with_counts is True
     assert args.count is True
 
 

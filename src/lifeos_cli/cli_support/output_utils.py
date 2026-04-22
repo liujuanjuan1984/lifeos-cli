@@ -93,6 +93,13 @@ NOTE_SUMMARY_COLUMNS = (
     "note_id",
     "status",
     "created_at",
+    "content",
+)
+
+NOTE_SUMMARY_COLUMNS_WITH_COUNTS = (
+    "note_id",
+    "status",
+    "created_at",
     "task_count",
     "vision_count",
     "event_count",
@@ -103,13 +110,15 @@ NOTE_SUMMARY_COLUMNS = (
 )
 
 
-def format_note_summary(note: NoteView) -> str:
+def format_note_summary(note: NoteView, *, include_counts: bool = False) -> str:
     """Render a note as a single-line summary for CLI output."""
     normalized_content = " ".join(note.content.split())
     if len(normalized_content) > 80:
         normalized_content = f"{normalized_content[:77]}..."
     created_label = format_timestamp(note.created_at)
     status = "deleted" if note.deleted_at is not None else "active"
+    if not include_counts:
+        return f"{note.id}\t{status}\t{created_label}\t{normalized_content}"
     return (
         f"{note.id}\t{status}\t{created_label}\t{len(note.tasks)}\t{len(note.visions)}\t"
         f"{len(note.events)}\t{len(note.people)}\t{len(note.timelogs)}\t"

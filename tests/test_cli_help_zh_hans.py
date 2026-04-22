@@ -194,8 +194,7 @@ def test_cli_timelog_add_help_supports_zh_hans_locale_for_stdin_batch_mode(
         (
             ["note", "list", "--help"],
             "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列："
-            "note_id、status、created_at、task_count、vision_count、event_count、people_count、"
-            "timelog_count、tag_count、content。",
+            "note_id、status、created_at、content。",
         ),
         (
             ["vision", "with-tasks", "--help"],

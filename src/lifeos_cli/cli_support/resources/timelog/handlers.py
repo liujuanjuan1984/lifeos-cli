@@ -36,6 +36,15 @@ TIMELOG_SUMMARY_COLUMNS = (
     "start_time",
     "end_time",
     "task_id",
+    "title",
+)
+
+TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS = (
+    "timelog_id",
+    "status",
+    "start_time",
+    "end_time",
+    "task_id",
     "linked_notes_count",
     "title",
 )
@@ -50,8 +59,13 @@ TIMELOG_BULK_PREVIEW_COLUMNS = (
 )
 
 
-def _format_timelog_summary(timelog: TimelogView) -> str:
+def _format_timelog_summary(timelog: TimelogView, *, include_counts: bool = False) -> str:
     status = "deleted" if timelog.deleted_at is not None else timelog.tracking_method
+    if not include_counts:
+        return (
+            f"{timelog.id}\t{status}\t{format_timestamp(timelog.start_time)}\t"
+            f"{format_timestamp(timelog.end_time)}\t{timelog.task_id or '-'}\t{timelog.title}"
+        )
     return (
         f"{timelog.id}\t{status}\t{format_timestamp(timelog.start_time)}\t"
         f"{format_timestamp(timelog.end_time)}\t{timelog.task_id or '-'}\t"
@@ -329,8 +343,12 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     trailer_lines = () if total_count is None else (f"Total timelogs: {total_count}",)
     print_summary_rows(
         items=timelogs,
-        columns=TIMELOG_SUMMARY_COLUMNS,
-        row_formatter=_format_timelog_summary,
+        columns=(
+            TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS if args.with_counts else TIMELOG_SUMMARY_COLUMNS
+        ),
+        row_formatter=lambda timelog: _format_timelog_summary(
+            timelog, include_counts=args.with_counts
+        ),
         empty_message="No timelogs found.",
         trailer_lines=trailer_lines,
     )

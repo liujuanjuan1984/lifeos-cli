@@ -10,7 +10,11 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_help_parser,
     add_documented_parser,
 )
-from lifeos_cli.cli_support.output_utils import NOTE_SUMMARY_COLUMNS, format_summary_column_list
+from lifeos_cli.cli_support.output_utils import (
+    NOTE_SUMMARY_COLUMNS,
+    NOTE_SUMMARY_COLUMNS_WITH_COUNTS,
+    format_summary_column_list,
+)
 from lifeos_cli.cli_support.parser_common import (
     add_include_deleted_argument,
     add_limit_offset_arguments,
@@ -149,6 +153,9 @@ def build_note_list_parser(
             notes=(
                 _("Use --include-deleted when reviewing deleted records."),
                 _("Use --limit and --offset together for pagination."),
+                _("Use `--with-counts` to add relationship count columns: {columns}.").format(
+                    columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)
+                ),
             ),
         ),
     )
@@ -158,6 +165,11 @@ def build_note_list_parser(
     list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     list_parser.add_argument("--timelog-id", type=UUID, help=_("Filter by linked timelog"))
     list_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
+    list_parser.add_argument(
+        "--with-counts",
+        action="store_true",
+        help=_("Include relationship count columns in summary output"),
+    )
     add_include_deleted_argument(list_parser, noun="notes")
     add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=make_sync_handler(handle_note_list_async))
@@ -188,6 +200,9 @@ def build_note_search_parser(
             ),
             notes=(
                 _("Results use the same summary format as `lifeos note list`."),
+                _("Use `--with-counts` to add relationship count columns: {columns}.").format(
+                    columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)
+                ),
                 _("Multi-word queries are split into tokens and matched with OR semantics."),
             ),
         ),
@@ -199,6 +214,11 @@ def build_note_search_parser(
     search_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
     search_parser.add_argument("--timelog-id", type=UUID, help=_("Filter by linked timelog"))
     search_parser.add_argument("--vision-id", type=UUID, help=_("Filter by linked vision"))
+    search_parser.add_argument(
+        "--with-counts",
+        action="store_true",
+        help=_("Include relationship count columns in summary output"),
+    )
     add_include_deleted_argument(search_parser, noun="notes in the search scope")
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=make_sync_handler(handle_note_search_async))

@@ -274,12 +274,52 @@ def test_main_timelog_list_passes_search_filters(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
+        "timelog_id\tstatus\tstart_time\tend_time\ttask_id\ttitle",
+        (
+            "13131313-1313-1313-1313-131313131313\tmanual\t2026-04-10T13:00:00+00:00\t"
+            "2026-04-10T14:00:00+00:00\t-\tDeep work"
+        ),
+        "Total timelogs: 1",
+    ]
+    clear_config_cache()
+
+
+def test_main_timelog_list_can_include_relationship_counts(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+
+    async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
+        query = cast(timelogs.TimelogListInput, kwargs["query"])
+        assert query.filters.query is None
+        return [
+            make_record(
+                id=UUID("13131313-1313-1313-1313-131313131313"),
+                deleted_at=None,
+                tracking_method="manual",
+                start_time=utc_datetime(2026, 4, 10, 13, 0),
+                end_time=utc_datetime(2026, 4, 10, 14, 0),
+                task_id=None,
+                linked_notes_count=2,
+                title="Deep work",
+            )
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "list_timelogs", fake_list_timelogs)
+
+    exit_code = cli.main(["timelog", "list", "--with-counts"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
         "timelog_id\tstatus\tstart_time\tend_time\ttask_id\tlinked_notes_count\ttitle",
         (
             "13131313-1313-1313-1313-131313131313\tmanual\t2026-04-10T13:00:00+00:00\t"
-            "2026-04-10T14:00:00+00:00\t-\t0\tDeep work"
+            "2026-04-10T14:00:00+00:00\t-\t2\tDeep work"
         ),
-        "Total timelogs: 1",
     ]
     clear_config_cache()
 

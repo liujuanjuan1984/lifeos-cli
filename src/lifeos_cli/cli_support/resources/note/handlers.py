@@ -9,6 +9,7 @@ from pathlib import Path
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import (
     NOTE_SUMMARY_COLUMNS,
+    NOTE_SUMMARY_COLUMNS_WITH_COUNTS,
     format_id_lines,
     format_note_detail,
     format_note_summary,
@@ -112,8 +113,8 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
             )
     print_summary_rows(
         items=notes,
-        columns=NOTE_SUMMARY_COLUMNS,
-        row_formatter=format_note_summary,
+        columns=NOTE_SUMMARY_COLUMNS_WITH_COUNTS if args.with_counts else NOTE_SUMMARY_COLUMNS,
+        row_formatter=lambda note: format_note_summary(note, include_counts=args.with_counts),
         empty_message="No notes found.",
     )
     return 0
@@ -157,8 +158,8 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
             )
     print_summary_rows(
         items=notes,
-        columns=NOTE_SUMMARY_COLUMNS,
-        row_formatter=format_note_summary,
+        columns=NOTE_SUMMARY_COLUMNS_WITH_COUNTS if args.with_counts else NOTE_SUMMARY_COLUMNS,
+        row_formatter=lambda note: format_note_summary(note, include_counts=args.with_counts),
         empty_message="No matching notes found.",
     )
     return 0

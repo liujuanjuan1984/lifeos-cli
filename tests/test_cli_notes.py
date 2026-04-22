@@ -280,9 +280,9 @@ def test_main_note_search_prints_matching_notes(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "note_id\tstatus\tcreated_at\ttask_count\tvision_count\tevent_count\tpeople_count\ttimelog_count\ttag_count\tcontent",
+        "note_id\tstatus\tcreated_at\tcontent",
         (
-            "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t0\t0\t0\t0\t0\t0\t"
+            "44444444-4444-4444-4444-444444444444\tactive\t2026-04-09T04:05:06+00:00\t"
             "meeting notes for april planning"
         ),
     ]
@@ -418,10 +418,53 @@ def test_main_note_list_prints_formatted_notes(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
+        "note_id\tstatus\tcreated_at\tcontent",
+        "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\tfirst note",
+    ]
+
+
+def test_main_note_list_can_include_relationship_counts(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_notes(
+        session: object,
+        *,
+        include_deleted: bool,
+        limit: int,
+        offset: int,
+    ) -> list[object]:
+        assert include_deleted is False
+        assert limit == 100
+        assert offset == 0
+        return [
+            make_record(
+                id=UUID("22222222-2222-2222-2222-222222222222"),
+                content="first note",
+                created_at=utc_datetime(2026, 4, 9, 1, 2, 3),
+                updated_at=utc_datetime(2026, 4, 9, 1, 2, 3),
+                deleted_at=None,
+                tags=[object()],
+                people=[],
+                tasks=[object()],
+                visions=[],
+                events=[],
+                timelogs=[],
+            )
+        ]
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(note_services, "list_notes", fake_list_notes)
+
+    exit_code = cli.main(["note", "list", "--with-counts"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
         "note_id\tstatus\tcreated_at\ttask_count\tvision_count\tevent_count\tpeople_count\ttimelog_count\ttag_count\tcontent",
         (
-            "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t0\t0\t0\t0\t0\t0\t"
-            "first note"
+            "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t"
+            "1\t0\t0\t0\t0\t1\tfirst note"
         ),
     ]
 

@@ -4012,3 +4012,9 @@ msgstr "快捷批量 `timelog` 输入必须且只能提供一种来源：`--entr
 
 msgid "Use `--yes` only with quick batch mode."
 msgstr "仅在快捷批量模式下使用 `--yes`。"
+
+msgid "Include relationship count columns in summary output"
+msgstr "在摘要输出中包含关系计数列"
+
+msgid "Use `--with-counts` to add relationship count columns: {columns}."
+msgstr "使用 `--with-counts` 添加关系计数列：{columns}。"
