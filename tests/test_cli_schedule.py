@@ -78,7 +78,9 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "todo\t2026-04-10\tDaily Review" in captured.out
     assert "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" not in captured.out
     assert "events:" in captured.out
-    assert "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttitle" in captured.out
+    assert "  event_id\tevent_type\tstart_time\tend_time\ttitle" in captured.out
+    assert "33333333-3333-3333-3333-333333333333\tappointment" in captured.out
+    assert "33333333-3333-3333-3333-333333333333\tplanned" not in captured.out
     assert "appointments:" not in captured.out
     assert "timeblocks:" not in captured.out
     assert "deadlines:" not in captured.out

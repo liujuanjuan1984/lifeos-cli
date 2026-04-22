@@ -149,7 +149,7 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
         in captured.out
     )
     assert (
-        "Event section columns: event_id, status, event_type, start_time, end_time, title."
+        "Event section columns: event_id, event_type, start_time, end_time, title."
     ) in captured.out
     assert (
         "When `--date` is omitted, `show` uses the current configured local date." in captured.out
@@ -554,7 +554,7 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         in captured.out
     )
     assert (
-        "Event section columns: event_id, status, event_type, start_time, end_time, title."
+        "Event section columns: event_id, event_type, start_time, end_time, title."
     ) in captured.out
     assert "--hide-overdue-unfinished" in captured.out
 

@@ -30,7 +30,6 @@ SCHEDULE_HABIT_ACTION_COLUMNS = (
 )
 SCHEDULE_EVENT_COLUMNS = (
     "event_id",
-    "status",
     "event_type",
     "start_time",
     "end_time",
@@ -51,7 +50,7 @@ def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionIte
 
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     return (
-        f"  {item.id}\t{item.status}\t{item.event_type}\t{format_timestamp(item.start_time)}\t"
+        f"  {item.id}\t{item.event_type}\t{format_timestamp(item.start_time)}\t"
         f"{format_timestamp(item.end_time)}\t{item.title}"
     )
 
