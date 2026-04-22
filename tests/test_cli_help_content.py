@@ -137,8 +137,8 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
     assert (
-        "Habit action rows use `action_date`; earlier unfinished rows remain visible"
-        in captured.out
+        "Habit action rows use `action_date`; earlier pending rows remain visible until they are "
+        "completed, missed, or hidden with `--hide-overdue-unfinished`." in captured.out
     )
     assert (
         "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "

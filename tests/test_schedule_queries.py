@@ -197,6 +197,14 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
                 habit_title="Completed Review",
             ),
             make_record(
+                id=UUID("77777777-7777-7777-7777-777777777777"),
+                habit_id=UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                action_date=date(2026, 4, 10),
+                status="miss",
+                notes=None,
+                habit_title="Missed Review",
+            ),
+            make_record(
                 id=UUID("66666666-6666-6666-6666-666666666666"),
                 habit_id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                 action_date=date(2026, 4, 12),
@@ -243,6 +251,7 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
     assert [item.habit_title for item in days[0].habit_actions] == [
         "Overdue Review",
         "Completed Review",
+        "Missed Review",
     ]
     assert [item.content for item in days[2].tasks] == ["Overdue todo", "Today todo"]
     assert [item.habit_title for item in days[2].habit_actions] == [

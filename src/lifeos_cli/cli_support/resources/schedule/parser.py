@@ -100,8 +100,8 @@ def build_schedule_parser(
                 _("The output groups tasks, habit actions, and event occurrences for the day."),
                 _("Task rows come from planning-cycle overlap, not from event timeblocks."),
                 _(
-                    "Habit action rows use `action_date`; earlier unfinished rows remain visible "
-                    "until hidden with `--hide-overdue-unfinished`."
+                    "Habit action rows use `action_date`; earlier pending rows remain visible "
+                    "until they are completed, missed, or hidden with `--hide-overdue-unfinished`."
                 ),
                 _("When `--date` is omitted, `show` uses the current configured local date."),
                 _(

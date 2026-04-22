@@ -183,7 +183,7 @@ def _is_overdue_unfinished_habit_action(
     *,
     local_today: date,
 ) -> bool:
-    return item.status != "done" and item.action_date < local_today
+    return item.status == "pending" and item.action_date < local_today
 
 
 async def list_schedule_in_range(
@@ -230,7 +230,7 @@ async def list_schedule_in_range(
             or (
                 current_date <= local_today
                 and item.action_date < current_date
-                and item.status != "done"
+                and item.status == "pending"
             )
         )
         if hide_overdue_unfinished:
