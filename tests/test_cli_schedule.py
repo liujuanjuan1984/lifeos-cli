@@ -57,6 +57,15 @@ def test_main_schedule_show_prints_grouped_sections(
                     end_time=utc_datetime(2026, 4, 10, 14, 0),
                     task_id=None,
                 ),
+                schedules.ScheduleEventItem(
+                    id=UUID("44444444-4444-4444-4444-444444444444"),
+                    title="Tax deadline",
+                    status="planned",
+                    event_type="deadline",
+                    start_time=utc_datetime(2026, 4, 10, 23, 59, 59),
+                    end_time=None,
+                    task_id=None,
+                ),
             ),
         )
 
@@ -80,6 +89,13 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "events:" in captured.out
     assert "  event_id\tevent_type\tstart_time\tend_time\ttitle" in captured.out
     assert "33333333-3333-3333-3333-333333333333\tappointment" in captured.out
+    deadline_line = next(
+        line for line in captured.out.splitlines() if "44444444-4444-4444-4444-444444444444" in line
+    )
+    deadline_columns = deadline_line.split("\t")
+    assert deadline_columns[1] == "deadline"
+    assert deadline_columns[2] == deadline_columns[3]
+    assert deadline_columns[-1] == "Tax deadline"
     assert "33333333-3333-3333-3333-333333333333\tplanned" not in captured.out
     assert "appointments:" not in captured.out
     assert "timeblocks:" not in captured.out

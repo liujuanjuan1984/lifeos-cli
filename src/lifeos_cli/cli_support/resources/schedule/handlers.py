@@ -48,10 +48,16 @@ def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionIte
     return f"  {item.id}\t{item.status}\t{item.action_date}\t{item.habit_title}"
 
 
+def _format_schedule_event_end_time(item: schedule_services.ScheduleEventItem) -> str:
+    if item.end_time is None and item.event_type == "deadline":
+        return format_timestamp(item.start_time)
+    return format_timestamp(item.end_time)
+
+
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     return (
         f"  {item.id}\t{item.event_type}\t{format_timestamp(item.start_time)}\t"
-        f"{format_timestamp(item.end_time)}\t{item.title}"
+        f"{_format_schedule_event_end_time(item)}\t{item.title}"
     )
 
 
