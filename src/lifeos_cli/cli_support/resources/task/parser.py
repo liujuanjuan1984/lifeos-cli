@@ -25,7 +25,7 @@ from lifeos_cli.cli_support.resources.task.parser_write import (
     build_task_delete_parser,
     build_task_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -34,19 +34,13 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "task",
         help_content=HelpContent(
-            summary=_("Manage hierarchical tasks"),
+            summary=_("messages.manage_hierarchical_tasks_bd490711"),
             description=(
-                _("Create and maintain task trees that belong to a vision.")
+                _("messages.create_and_maintain_task_trees_that_belong_to_a_vision_4e8941ee")
                 + "\n\n"
-                + _(
-                    "Tasks are the main execution unit in LifeOS and can be nested under parent "
-                    "tasks."
-                )
+                + _("messages.tasks_are_the_main_execution_unit_in_lifeos_and_can_be_n_5050add9")
                 + " "
-                + _(
-                    "Use planning-cycle fields for the broader timebox. Use `event` when the "
-                    "task also needs a concrete time block."
-                )
+                + _("messages.use_planning_cycle_fields_for_the_broader_timebox_use_ev_f40c735d")
             ),
             examples=(
                 "lifeos task add --help",
@@ -54,18 +48,17 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for this resource."),
-                _("Tasks can form trees through `--parent-task-id`."),
-                _(
-                    "Use `lifeos event add --task-id <task-id>` when the task also needs a "
-                    "specific appointment, timeblock, or deadline."
-                ),
-                _("See `lifeos task batch --help` for bulk delete operations."),
+                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
+                _("messages.tasks_can_form_trees_through_parent_task_id_9a18c68d"),
+                _("messages.use_lifeos_event_add_task_id_task_id_when_the_task_also_7da1a2e8"),
+                _("messages.see_lifeos_task_batch_help_for_bulk_delete_operations_c79691a4"),
             ),
         ),
     )
     task_subparsers = task_parser.add_subparsers(
-        dest="task_command", title=_("actions"), metavar=_("action")
+        dest="task_command",
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     build_task_add_parser(task_subparsers)

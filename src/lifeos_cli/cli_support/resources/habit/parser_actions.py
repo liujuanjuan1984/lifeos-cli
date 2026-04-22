@@ -32,7 +32,7 @@ from lifeos_cli.cli_support.resources.habit.handlers import (
     handle_habit_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 _WEEKDAY_SPLIT_PATTERN = re.compile(r"[\s,]+")
 
@@ -55,8 +55,10 @@ def build_habit_add_parser(
         habit_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create a habit"),
-            description=_("Create a recurring habit with cadence-aligned on-demand occurrences."),
+            summary=_("messages.create_a_habit_cb8fcf74"),
+            description=_(
+                "messages.create_a_recurring_habit_with_cadence_aligned_on_demand_98ecd5be"
+            ),
             examples=(
                 'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
                 'lifeos habit add "Morning Review" --start-date 2026-04-09 --duration-days 100 '
@@ -68,61 +70,57 @@ def build_habit_add_parser(
                 "--cadence-frequency yearly --target-per-cycle 6",
             ),
             notes=(
-                _("Duration must be one of the supported program lengths."),
-                _(
-                    "Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
-                    "evaluation cycles."
-                ),
-                _(
-                    "`--weekdays` restricts on-demand habit-action occurrences "
-                    "to selected weekdays."
-                ),
-                _("If `--task-id` is provided, the task must already exist."),
+                _("messages.duration_must_be_one_of_the_supported_program_lengths_9205f44d"),
+                _("messages.use_cadence_frequency_to_choose_daily_weekly_monthly_or_ddf6a78b"),
+                _("messages.weekdays_restricts_on_demand_habit_action_occurrences_to_ea85ef52"),
+                _("messages.if_task_id_is_provided_the_task_must_already_exist_d53cbc34"),
             ),
         ),
     )
-    add_parser.add_argument("title", help=_("Habit title"))
-    add_parser.add_argument("--description", help=_("Optional habit description"))
+    add_parser.add_argument("title", help=_("messages.habit_title_f9978d48"))
+    add_parser.add_argument("--description", help=_("messages.optional_habit_description_f84cfedd"))
     add_parser.add_argument(
         "--start-date",
         required=True,
         type=date.fromisoformat,
-        help=_("Habit start date in YYYY-MM-DD format"),
+        help=_("messages.habit_start_date_in_yyyy_mm_dd_format_7e91d5d4"),
     )
     add_parser.add_argument(
         "--duration-days",
         required=True,
         type=int,
-        help=_("Habit duration in days"),
+        help=_("messages.habit_duration_in_days_4f87bd2b"),
     )
     add_parser.add_argument(
         "--cadence-frequency",
         default="daily",
-        help=_("Habit cadence frequency: daily, weekly, monthly, or yearly"),
+        help=_("messages.habit_cadence_frequency_daily_weekly_monthly_or_yearly_bb11048a"),
     )
     add_parser.add_argument(
         "--weekdays",
         type=_parse_habit_weekdays,
-        help=_("Allowed weekdays, for example monday,wednesday,friday"),
+        help=_("messages.allowed_weekdays_for_example_monday_wednesday_friday_716c8ff7"),
     )
     add_parser.add_argument(
         "--weekends-only",
         action="store_true",
-        help=_("Shortcut for `--weekdays saturday,sunday`"),
+        help=_("messages.shortcut_for_weekdays_saturday_sunday_8cce4458"),
     )
     add_parser.add_argument(
         "--target-per-cycle",
         dest="target_per_cycle",
         type=int,
-        help=_("Cadence target count for one cycle. Daily habits must keep 1."),
+        help=_("messages.cadence_target_count_for_one_cycle_daily_habits_must_kee_1f90f1af"),
     )
     add_parser.add_argument(
         "--target-per-week",
         dest="target_per_cycle",
         type=int,
-        help=_("Weekly alias for `--target-per-cycle`"),
+        help=_("messages.weekly_alias_for_target_per_cycle_2adeaeb9"),
     )
-    add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
+    add_parser.add_argument(
+        "--task-id", type=UUID, help=_("messages.optional_linked_task_identifier_ee0966fa")
+    )
     add_parser.set_defaults(handler=make_sync_handler(handle_habit_add_async))
 
 
@@ -134,11 +132,11 @@ def build_habit_list_parser(
         habit_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List habits"),
+            summary=_("messages.list_habits_e59ebbc9"),
             description=(
-                _("List habits with optional status, title, and activity-window filters.")
+                _("messages.list_habits_with_optional_status_title_and_activity_wind_d4e358a6")
                 + "\n\n"
-                + _("Use this command as the primary query entrypoint for habits.")
+                + _("messages.use_this_command_as_the_primary_query_entrypoint_for_hab_8697b6e4")
             ),
             examples=(
                 "lifeos habit list",
@@ -147,34 +145,32 @@ def build_habit_list_parser(
                 "lifeos habit list --status active --count",
             ),
             notes=(
+                _("messages.use_with_stats_when_the_summary_should_include_cycle_pro_20e931b4"),
+                _("messages.use_active_window_only_to_show_habits_whose_duration_sti_c1783dfe"),
                 _(
-                    "Use `--with-stats` when the summary should include cycle progress "
-                    "and streak fields."
-                ),
-                _("Use `--active-window-only` to show habits whose duration still covers today."),
-                _(
-                    "Default list output prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "messages.default_list_output_prints_a_header_row_followed_by_tab_c00fead9"
                 ).format(columns=format_summary_column_list(HABIT_SUMMARY_COLUMNS)),
-                _("With `--with-stats`, the header changes to: {columns}.").format(
+                _("messages.with_with_stats_the_header_changes_to_columns_4640ebee").format(
                     columns=format_summary_column_list(HABIT_SUMMARY_WITH_STATS_COLUMNS)
                 ),
             ),
         ),
     )
-    list_parser.add_argument("--status", help=_("Filter by habit status"))
-    list_parser.add_argument("--title", help=_("Filter by exact habit title"))
+    list_parser.add_argument("--status", help=_("messages.filter_by_habit_status_100f19e0"))
+    list_parser.add_argument("--title", help=_("messages.filter_by_exact_habit_title_cd89d9b3"))
     list_parser.add_argument(
         "--active-window-only",
         action="store_true",
-        help=_("Restrict results to habits whose duration still covers today"),
+        help=_("messages.restrict_results_to_habits_whose_duration_still_covers_t_f2a0bc12"),
     )
     list_parser.add_argument(
         "--with-stats",
         action="store_true",
-        help=_("Include progress and streak information in each summary row"),
+        help=_("messages.include_progress_and_streak_information_in_each_summary_07568227"),
     )
-    list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
+    list_parser.add_argument(
+        "--count", action="store_true", help=_("messages.print_total_matched_count_b60ad049")
+    )
     add_include_deleted_argument(list_parser, noun="habits")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_habit_list_async))
@@ -188,15 +184,17 @@ def build_habit_show_parser(
         habit_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show a habit"),
-            description=_("Show one habit with full metadata and derived statistics."),
+            summary=_("messages.show_a_habit_70abfd28"),
+            description=_(
+                "messages.show_one_habit_with_full_metadata_and_derived_statistics_d35d94a2"
+            ),
             examples=(
                 "lifeos habit show 11111111-1111-1111-1111-111111111111",
                 "lifeos habit show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    show_parser.add_argument("habit_id", type=UUID, help=_("messages.habit_identifier_e1aa7a05"))
     add_include_deleted_argument(show_parser, noun="habits", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_show_async))
 
@@ -209,14 +207,11 @@ def build_habit_update_parser(
         habit_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update a habit"),
+            summary=_("messages.update_a_habit_91b3b7e0"),
             description=(
-                _("Update mutable habit fields.")
+                _("messages.update_mutable_habit_fields_364be941")
                 + "\n\n"
-                + _(
-                    "Cadence and timing changes reconcile materialized habit-action records "
-                    "without regenerating full histories."
-                )
+                + _("messages.cadence_and_timing_changes_reconcile_materialized_habit_42a06227")
             ),
             examples=(
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --status paused",
@@ -230,66 +225,69 @@ def build_habit_update_parser(
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-task",
             ),
             notes=(
-                _("Use `--clear-description` or `--clear-task` to remove optional values."),
-                _(
-                    "Use `--clear-weekdays` to remove weekday restrictions without "
-                    "resetting cadence."
-                ),
-                _("Reactivating a habit still respects the active habit limit."),
+                _("messages.use_clear_description_or_clear_task_to_remove_optional_v_fd2fb2a5"),
+                _("messages.use_clear_weekdays_to_remove_weekday_restrictions_withou_f667d530"),
+                _("messages.reactivating_a_habit_still_respects_the_active_habit_lim_5ce2e6f7"),
             ),
         ),
     )
-    update_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
-    update_parser.add_argument("--title", help=_("Updated habit title"))
-    update_parser.add_argument("--description", help=_("Updated habit description"))
+    update_parser.add_argument("habit_id", type=UUID, help=_("messages.habit_identifier_e1aa7a05"))
+    update_parser.add_argument("--title", help=_("messages.updated_habit_title_8c537cc0"))
+    update_parser.add_argument(
+        "--description", help=_("messages.updated_habit_description_9a105b5a")
+    )
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("Clear the optional habit description"),
+        help=_("messages.clear_the_optional_habit_description_bac8e06e"),
     )
     update_parser.add_argument(
         "--start-date",
         type=date.fromisoformat,
-        help=_("Updated habit start date in YYYY-MM-DD format"),
+        help=_("messages.updated_habit_start_date_in_yyyy_mm_dd_format_ce18f425"),
     )
-    update_parser.add_argument("--duration-days", type=int, help=_("Updated duration in days"))
+    update_parser.add_argument(
+        "--duration-days", type=int, help=_("messages.updated_duration_in_days_3fa305f7")
+    )
     update_parser.add_argument(
         "--cadence-frequency",
-        help=_("Updated cadence frequency: daily, weekly, monthly, or yearly"),
+        help=_("messages.updated_cadence_frequency_daily_weekly_monthly_or_yearly_e2dbfba2"),
     )
     update_parser.add_argument(
         "--weekdays",
         type=_parse_habit_weekdays,
-        help=_("Updated allowed weekdays, for example monday,wednesday,friday"),
+        help=_("messages.updated_allowed_weekdays_for_example_monday_wednesday_fr_c7f11e93"),
     )
     update_parser.add_argument(
         "--weekends-only",
         action="store_true",
-        help=_("Shortcut for `--weekdays saturday,sunday`"),
+        help=_("messages.shortcut_for_weekdays_saturday_sunday_8cce4458"),
     )
     update_parser.add_argument(
         "--clear-weekdays",
         action="store_true",
-        help=_("Remove weekday restrictions from the habit cadence"),
+        help=_("messages.remove_weekday_restrictions_from_the_habit_cadence_8d138d31"),
     )
     update_parser.add_argument(
         "--target-per-cycle",
         dest="target_per_cycle",
         type=int,
-        help=_("Updated cadence target count for one cycle"),
+        help=_("messages.updated_cadence_target_count_for_one_cycle_00ff62bb"),
     )
     update_parser.add_argument(
         "--target-per-week",
         dest="target_per_cycle",
         type=int,
-        help=_("Weekly alias for `--target-per-cycle`"),
+        help=_("messages.weekly_alias_for_target_per_cycle_2adeaeb9"),
     )
-    update_parser.add_argument("--status", help=_("Updated habit status"))
-    update_parser.add_argument("--task-id", type=UUID, help=_("Updated linked task identifier"))
+    update_parser.add_argument("--status", help=_("messages.updated_habit_status_cc4995bd"))
+    update_parser.add_argument(
+        "--task-id", type=UUID, help=_("messages.updated_linked_task_identifier_50e34b5a")
+    )
     update_parser.add_argument(
         "--clear-task",
         action="store_true",
-        help=_("Remove the linked task reference"),
+        help=_("messages.remove_the_linked_task_reference_90a3c063"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_habit_update_async))
 
@@ -302,12 +300,12 @@ def build_habit_delete_parser(
         habit_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete a habit"),
-            description=_("Delete one habit."),
+            summary=_("messages.delete_a_habit_2c94871e"),
+            description=_("messages.delete_one_habit_0db2235c"),
             examples=("lifeos habit delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    delete_parser.add_argument("habit_id", type=UUID, help=_("messages.habit_identifier_e1aa7a05"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_habit_delete_async))
 
 
@@ -319,19 +317,18 @@ def build_habit_stats_parser(
         habit_subparsers,
         "stats",
         help_content=HelpContent(
-            summary=_("Show habit statistics"),
-            description=_("Show derived completion and streak statistics for one habit."),
+            summary=_("messages.show_habit_statistics_3e37e627"),
+            description=_(
+                "messages.show_derived_completion_and_streak_statistics_for_one_ha_da8729f3"
+            ),
             examples=("lifeos habit stats 11111111-1111-1111-1111-111111111111",),
             notes=(
-                _(
-                    "These metrics are derived from cadence settings together with materialized "
-                    "`habit-action` records."
-                ),
-                _("Use `show` when you also need the underlying habit fields in the same output."),
+                _("messages.these_metrics_are_derived_from_cadence_settings_together_73ca6bab"),
+                _("messages.use_show_when_you_also_need_the_underlying_habit_fields_bce03af3"),
             ),
         ),
     )
-    stats_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    stats_parser.add_argument("habit_id", type=UUID, help=_("messages.habit_identifier_e1aa7a05"))
     stats_parser.set_defaults(handler=make_sync_handler(handle_habit_stats_async))
 
 
@@ -343,14 +340,13 @@ def build_habit_task_associations_parser(
         habit_subparsers,
         "task-associations",
         help_content=HelpContent(
-            summary=_("List task-to-habit associations"),
-            description=_("Show active habits currently linked to tasks."),
+            summary=_("messages.list_task_to_habit_associations_1ac86c9a"),
+            description=_("messages.show_active_habits_currently_linked_to_tasks_bc6d28c5"),
             examples=("lifeos habit task-associations",),
             notes=(
-                _("Use this command to audit which active habits are still attached to tasks."),
+                _("messages.use_this_command_to_audit_which_active_habits_are_still_91299ff5"),
                 _(
-                    "When results exist, the command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "messages.when_results_exist_the_command_prints_a_header_row_follo_52827ea6"
                 ).format(columns=format_summary_column_list(HABIT_TASK_ASSOCIATION_COLUMNS)),
             ),
         ),
@@ -368,26 +364,28 @@ def build_habit_batch_parser(
         habit_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run bulk habit operations"),
-            description=_("Delete multiple habits in one command."),
+            summary=_("messages.run_bulk_habit_operations_a8cad038"),
+            description=_("messages.delete_multiple_habits_in_one_command_cfba9dc0"),
             examples=(
                 "lifeos habit batch delete --help",
                 "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(
+                _("messages.this_namespace_currently_exposes_only_the_delete_workflo_8e17bac4"),
+            ),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="habit_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch-action"),
+        title=_("messages.batch_actions_fb880b71"),
+        metavar=_("messages.batch_action_a7c086fa"),
     )
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple habits"),
-            description=_("Delete multiple habits in one command."),
+            summary=_("messages.delete_multiple_habits_3ae01222"),
+            description=_("messages.delete_multiple_habits_in_one_command_cfba9dc0"),
             examples=("lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",),
         ),
     )

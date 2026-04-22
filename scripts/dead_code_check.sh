@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,pytestmark"
+FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,pytestmark,ngettext"
 
 # Vulture cannot resolve a few framework-owned entrypoints by static reference:
 # - Alembic revision metadata and downgrade functions

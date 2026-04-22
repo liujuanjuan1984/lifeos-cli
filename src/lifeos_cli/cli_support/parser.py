@@ -28,8 +28,8 @@ from lifeos_cli.cli_support.system.config_commands import build_config_parser
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
 from lifeos_cli.cli_support.system.init_commands import build_init_parser
 from lifeos_cli.config import ConfigurationError
+from lifeos_cli.i18n import cli_message as _
 from lifeos_cli.i18n import configure_argparse_translations
-from lifeos_cli.i18n import gettext_message as _
 
 CLI_BRAND_BANNER = (
     " _      ___   _____  _____   ___    ____  \n"
@@ -151,7 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
             + "\n\n"
             + f"repo: {repository_url}\n"
             + "uv tool install --upgrade lifeos-cli\n\n"
-            + _("Command grammar:")
+            + _("messages.command_grammar_483e0e8b")
             + "\n"
             + "  lifeos <resource> <action> [arguments] [options]"
         ),
@@ -164,15 +164,9 @@ def build_parser() -> argparse.ArgumentParser:
                 'lifeos note add "Capture an idea"',
             ),
             notes=(
-                _(
-                    "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
-                    "primary command reference."
-                ),
-                _("Run `lifeos init` to initialize LifeOS before getting started."),
-                _(
-                    "Welcome bug reports and suggestions through "
-                    "https://github.com/liujuanjuan1984/lifeos-cli."
-                ),
+                _("messages.use_lifeos_resource_help_and_lifeos_resource_action_help_2ae24712"),
+                _("messages.run_lifeos_init_to_initialize_lifeos_before_getting_star_0edf60ac"),
+                _("messages.welcome_bug_reports_and_suggestions_through_https_github_865c9de0"),
             ),
         ),
         formatter_class=CompactSubcommandHelpFormatter,
@@ -182,12 +176,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--version",
         action="version",
         version=f"%(prog)s {get_installed_package_version()}",
-        help=_("Show the program version and exit"),
+        help=_("messages.show_the_program_version_and_exit_a7a67250"),
     )
     subparsers = parser.add_subparsers(
         dest="resource",
-        title=_("resources"),
-        metavar=_("resource"),
+        title=_("messages.resources_0189424a"),
+        metavar=_("messages.resource_7a104738"),
         parser_class=argparse.ArgumentParser,
     )
     build_init_parser(subparsers)

@@ -17,7 +17,7 @@ from lifeos_cli.cli_support.resources.timelog.parser_actions import (
 )
 from lifeos_cli.cli_support.resources.timelog.parser_batch import build_timelog_batch_parser
 from lifeos_cli.cli_support.resources.timelog.parser_stats import build_timelog_stats_parser
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -26,11 +26,11 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         subparsers,
         "timelog",
         help_content=HelpContent(
-            summary=_("Manage actual time records"),
+            summary=_("messages.manage_actual_time_records_bb78d507"),
             description=(
-                _("Create and maintain actual time records.")
+                _("messages.create_and_maintain_actual_time_records_151e12f4")
                 + "\n\n"
-                + _("Timelogs represent what really happened and how time was spent.")
+                + _("messages.timelogs_represent_what_really_happened_and_how_time_was_bf2bdd62")
             ),
             examples=(
                 "lifeos timelog add --help",
@@ -38,15 +38,17 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog stats --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for timelogs."),
-                _("Timelogs can optionally reference one area and one task."),
-                _("Use `stats` for timelog stats grouped by area."),
-                _("See `lifeos timelog batch --help` for bulk `update` and `delete` workflows."),
+                _("messages.use_list_as_the_primary_query_entrypoint_for_timelogs_95a80899"),
+                _("messages.timelogs_can_optionally_reference_one_area_and_one_task_7787d8da"),
+                _("messages.use_stats_for_timelog_stats_grouped_by_area_e3e85de1"),
+                _("messages.see_lifeos_timelog_batch_help_for_bulk_update_and_delete_6cb9d62f"),
             ),
         ),
     )
     timelog_subparsers = timelog_parser.add_subparsers(
-        dest="timelog_command", title=_("actions"), metavar=_("action")
+        dest="timelog_command",
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     build_timelog_add_parser(timelog_subparsers)

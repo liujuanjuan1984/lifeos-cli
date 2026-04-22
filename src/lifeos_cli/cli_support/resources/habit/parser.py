@@ -18,7 +18,7 @@ from lifeos_cli.cli_support.resources.habit.parser_actions import (
     build_habit_task_associations_parser,
     build_habit_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -27,14 +27,11 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "habit",
         help_content=HelpContent(
-            summary=_("Manage recurring habits"),
+            summary=_("messages.manage_recurring_habits_a85e7fe2"),
             description=(
-                _("Create and maintain recurring habits with explicit cadence rules.")
+                _("messages.create_and_maintain_recurring_habits_with_explicit_caden_afa95d72")
                 + "\n\n"
-                + _(
-                    "Habits define recurring work. Query windows materialize habit-action "
-                    "occurrences on demand, and cadence decides how progress is measured."
-                )
+                + _("messages.habits_define_recurring_work_query_windows_materialize_h_cd82f257")
             ),
             examples=(
                 "lifeos habit add --help",
@@ -42,23 +39,17 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos habit batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for habits."),
-                _(
-                    "Habit creation and timing updates no longer pre-generate full "
-                    "habit-action histories."
-                ),
-                _(
-                    "Cadence cycles can be daily, weekly, monthly, or yearly, while "
-                    "habit-action occurrences remain date-based."
-                ),
-                _("See `lifeos habit batch --help` for bulk delete operations."),
+                _("messages.use_list_as_the_primary_query_entrypoint_for_habits_e26a6666"),
+                _("messages.habit_creation_and_timing_updates_no_longer_pre_generate_57865747"),
+                _("messages.cadence_cycles_can_be_daily_weekly_monthly_or_yearly_whi_2dae95cd"),
+                _("messages.see_lifeos_habit_batch_help_for_bulk_delete_operations_a1c4f033"),
             ),
         ),
     )
     habit_subparsers = habit_parser.add_subparsers(
         dest="habit_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     build_habit_add_parser(habit_subparsers)

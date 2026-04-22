@@ -16,7 +16,7 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.runtime_utils import (
     make_sync_handler,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 async def run_db_ping(_: argparse.Namespace) -> int:
@@ -39,47 +39,39 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         subparsers,
         "db",
         help_content=HelpContent(
-            summary=_("Run database maintenance commands"),
+            summary=_("messages.run_database_maintenance_commands_5791d225"),
             description=(
-                _("Inspect database connectivity and apply migrations.")
+                _("messages.inspect_database_connectivity_and_apply_migrations_f3271993")
                 + "\n\n"
-                + _(
-                    "These commands operate on the database configured through `lifeos init`, "
-                    "the config file, or LIFEOS_* environment variables."
-                )
+                + _("messages.these_commands_operate_on_the_database_configured_throug_9ee5be9f")
             ),
             examples=(
                 "lifeos db ping",
                 "lifeos db upgrade",
             ),
             notes=(
-                _(
-                    "Use `ping` to validate the current connection settings without changing "
-                    "schema."
-                ),
-                _(
-                    "Use `upgrade` when the configured database schema needs to catch up with "
-                    "the code."
-                ),
+                _("messages.use_ping_to_validate_the_current_connection_settings_wit_ba1ec864"),
+                _("messages.use_upgrade_when_the_configured_database_schema_needs_to_96fbb948"),
             ),
         ),
     )
     db_subparsers = db_parser.add_subparsers(
-        dest="db_command", title=_("actions"), metavar=_("action")
+        dest="db_command",
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     ping_parser = add_documented_parser(
         db_subparsers,
         "ping",
         help_content=HelpContent(
-            summary=_("Check database connectivity"),
-            description=_("Open a database connection and run a minimal health check query."),
+            summary=_("messages.check_database_connectivity_2b474dbe"),
+            description=_(
+                "messages.open_a_database_connection_and_run_a_minimal_health_chec_abe2868b"
+            ),
             examples=("lifeos db ping",),
             notes=(
-                _(
-                    "Use this before `db upgrade` when you first need to confirm the target "
-                    "database."
-                ),
+                _("messages.use_this_before_db_upgrade_when_you_first_need_to_confir_38589c5e"),
             ),
         ),
     )
@@ -89,15 +81,14 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         db_subparsers,
         "upgrade",
         help_content=HelpContent(
-            summary=_("Apply migrations"),
-            description=_("Apply Alembic migrations to the configured PostgreSQL database."),
+            summary=_("messages.apply_migrations_c714f550"),
+            description=_(
+                "messages.apply_alembic_migrations_to_the_configured_postgresql_da_b7a89035"
+            ),
             examples=("lifeos db upgrade",),
             notes=(
-                _("This updates schema state in the database; it does not rewrite local config."),
-                _(
-                    "Use `db ping` first if you are unsure the current connection settings are "
-                    "correct."
-                ),
+                _("messages.this_updates_schema_state_in_the_database_it_does_not_re_b8e2d289"),
+                _("messages.use_db_ping_first_if_you_are_unsure_the_current_connecti_14e97ded"),
             ),
         ),
     )

@@ -16,7 +16,7 @@ from lifeos_cli.cli_support.resources.event.parser_actions import (
     build_event_show_parser,
     build_event_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -25,11 +25,11 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "event",
         help_content=HelpContent(
-            summary=_("Manage planned schedule events"),
+            summary=_("messages.manage_planned_schedule_events_714cf569"),
             description=(
-                _("Create and maintain planned schedule blocks.")
+                _("messages.create_and_maintain_planned_schedule_blocks_aab2919b")
                 + "\n\n"
-                + _("Events represent calendar intent and time allocation, not todo semantics.")
+                + _("messages.events_represent_calendar_intent_and_time_allocation_not_f399eb99")
             ),
             examples=(
                 "lifeos event add --help",
@@ -37,15 +37,17 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for events."),
-                _("Events can optionally reference one area and one task."),
-                _("Event types distinguish hard appointments, flexible timeblocks, and deadlines."),
-                _("See `lifeos event batch --help` for bulk delete operations."),
+                _("messages.use_list_as_the_primary_query_entrypoint_for_events_5c6e9ceb"),
+                _("messages.events_can_optionally_reference_one_area_and_one_task_10f8c28a"),
+                _("messages.event_types_distinguish_hard_appointments_flexible_timeb_3ab32dbc"),
+                _("messages.see_lifeos_event_batch_help_for_bulk_delete_operations_c4213924"),
             ),
         ),
     )
     event_subparsers = event_parser.add_subparsers(
-        dest="event_command", title=_("actions"), metavar=_("action")
+        dest="event_command",
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     build_event_add_parser(event_subparsers)

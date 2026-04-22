@@ -21,7 +21,7 @@ from lifeos_cli.cli_support.resources.vision.parser_actions import (
     build_vision_update_parser,
     build_vision_with_tasks_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -30,11 +30,11 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "vision",
         help_content=HelpContent(
-            summary=_("Manage visions"),
+            summary=_("messages.manage_visions_10140be7"),
             description=(
-                _("Create and maintain high-level containers composed of one or more task trees.")
+                _("messages.create_and_maintain_high_level_containers_composed_of_on_fe153229")
                 + "\n\n"
-                + _("A vision is broader than a single task and usually lives under an area.")
+                + _("messages.a_vision_is_broader_than_a_single_task_and_usually_lives_f3e29360")
             ),
             examples=(
                 "lifeos vision add --help",
@@ -42,16 +42,16 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for this resource."),
-                _("Visions are intended to group related task trees."),
-                _("See `lifeos vision batch --help` for bulk delete operations."),
+                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
+                _("messages.visions_are_intended_to_group_related_task_trees_bc42e9f5"),
+                _("messages.see_lifeos_vision_batch_help_for_bulk_delete_operations_1ac649c8"),
             ),
         ),
     )
     vision_subparsers = vision_parser.add_subparsers(
         dest="vision_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("messages.actions_326b426f"),
+        metavar=_("messages.action_34eb4c4e"),
     )
 
     build_vision_add_parser(vision_subparsers)

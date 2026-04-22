@@ -6,7 +6,7 @@ import argparse
 from uuid import UUID
 
 from lifeos_cli.cli_support.time_args import parse_date_value
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def add_include_deleted_argument(
@@ -18,9 +18,9 @@ def add_include_deleted_argument(
     """Add a standard include-deleted flag."""
     del noun
     help_message = (
-        _("Allow loading deleted records")
+        _("messages.allow_loading_deleted_records_3eda4cff")
         if help_prefix.startswith("Allow")
-        else _("Include deleted records")
+        else _("messages.include_deleted_records_e2a935bc")
     )
     parser.add_argument(
         "--include-deleted",
@@ -40,13 +40,13 @@ def add_limit_offset_arguments(
         "--limit",
         type=int,
         default=100,
-        help=_("Maximum number of results to return"),
+        help=_("messages.maximum_number_of_results_to_return_01403bbf"),
     )
     parser.add_argument(
         "--offset",
         type=int,
         default=0,
-        help=_("Number of results to skip"),
+        help=_("messages.number_of_results_to_skip_16e0a809"),
     )
 
 
@@ -65,7 +65,7 @@ def add_identifier_list_argument(
         type=UUID,
         nargs="+",
         required=True,
-        help=_("{noun} identifiers to {action_verb}").format(
+        help=_("messages.noun_identifiers_to_action_verb_092e3fe2").format(
             noun=noun.capitalize(),
             action_verb=action_verb,
         ),

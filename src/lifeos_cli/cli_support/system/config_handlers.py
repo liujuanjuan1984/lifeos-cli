@@ -24,7 +24,7 @@ from lifeos_cli.config import (
     validate_database_url,
     validate_language,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def handle_init(args: argparse.Namespace) -> int:
@@ -58,7 +58,7 @@ def handle_init(args: argparse.Namespace) -> int:
             ),
             prompt_database_echo=partial(
                 init_prompts.prompt_bool,
-                _("Enable SQL echo logging"),
+                _("messages.enable_sql_echo_logging_47e24c6b"),
             ),
         ),
     )
