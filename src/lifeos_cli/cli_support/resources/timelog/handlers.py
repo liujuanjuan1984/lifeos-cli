@@ -20,7 +20,7 @@ from lifeos_cli.cli_support.resources.timelog.bulk_add import (
 )
 from lifeos_cli.cli_support.time_args import (
     DateArgumentError,
-    resolve_date_interval_arguments,
+    resolve_date_selection_arguments,
     resolve_exclusive_date_or_datetime_query,
     resolve_required_date_interval_arguments,
 )
@@ -285,6 +285,8 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
     try:
         query = resolve_exclusive_date_or_datetime_query(
             date_values=args.date_values,
+            start_date=args.start_date,
+            end_date=args.end_date,
             window_start=args.window_start,
             window_end=args.window_end,
         )
@@ -317,6 +319,7 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                     without_task=args.without_task,
                     person_id=args.person_id,
                     tag_id=args.tag_id,
+                    date_values=query.date_values,
                     start_date=query.start_date,
                     end_date=query.end_date,
                     window_start=query.window_start,
@@ -529,7 +532,8 @@ async def handle_timelog_stats_day_async(args: argparse.Namespace) -> int:
 async def handle_timelog_stats_range_async(args: argparse.Namespace) -> int:
     try:
         start_date, end_date = resolve_required_date_interval_arguments(
-            date_values=args.date_values,
+            start_date=args.start_date,
+            end_date=args.end_date,
         )
     except DateArgumentError as exc:
         return cli_handler_utils.print_cli_error(exc)
@@ -568,20 +572,26 @@ async def handle_timelog_stats_period_async(
 
 async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
     try:
-        start_date, end_date = resolve_date_interval_arguments(
+        date_selection = resolve_date_selection_arguments(
             date_values=args.date_values,
+            start_date=args.start_date,
+            end_date=args.end_date,
         )
     except DateArgumentError as exc:
         return cli_handler_utils.print_cli_error(exc)
-    if args.rebuild_all and any(value is not None for value in (start_date, end_date)):
-        print("Use --all by itself, without --date.", file=sys.stderr)
+    has_date_selection = bool(date_selection.date_values) or (
+        date_selection.start_date is not None or date_selection.end_date is not None
+    )
+    if args.rebuild_all and has_date_selection:
+        print("Use --all by itself, without date filters.", file=sys.stderr)
         return 1
     async with db_session.session_scope() as session:
         try:
             rebuilt_dates = await timelog_stats.rebuild_timelog_stats_groupby_area(
                 session,
-                start_date=start_date,
-                end_date=end_date,
+                date_values=date_selection.date_values,
+                start_date=date_selection.start_date,
+                end_date=date_selection.end_date,
                 rebuild_all=args.rebuild_all,
             )
         except timelog_stats.TimelogStatsValidationError as exc:

@@ -156,7 +156,15 @@ def test_cli_parser_supports_timelog_stats_commands() -> None:
 
     day_args = parser.parse_args(["timelog", "stats", "day", "--date", "2026-04-10"])
     range_args = parser.parse_args(
-        ["timelog", "stats", "range", "--date", "2026-04-01", "--date", "2026-04-30"]
+        [
+            "timelog",
+            "stats",
+            "range",
+            "--start-date",
+            "2026-04-01",
+            "--end-date",
+            "2026-04-30",
+        ]
     )
     month_args = parser.parse_args(["timelog", "stats", "month", "--month", "2026-04"])
     rebuild_args = parser.parse_args(["timelog", "stats", "rebuild", "--all"])
@@ -166,7 +174,8 @@ def test_cli_parser_supports_timelog_stats_commands() -> None:
     assert day_args.timelog_stats_command == "day"
     assert day_args.target_date == date(2026, 4, 10)
     assert range_args.timelog_stats_command == "range"
-    assert range_args.date_values == [date(2026, 4, 1), date(2026, 4, 30)]
+    assert range_args.start_date == date(2026, 4, 1)
+    assert range_args.end_date == date(2026, 4, 30)
     assert month_args.timelog_stats_command == "month"
     assert month_args.month == date(2026, 4, 1)
     assert rebuild_args.timelog_stats_command == "rebuild"
@@ -454,6 +463,27 @@ def test_cli_parser_supports_schedule_list_command() -> None:
     assert args.resource == "schedule"
     assert args.schedule_command == "list"
     assert args.date_values == [date(2026, 4, 10), date(2026, 4, 16)]
+    assert args.hide_overdue_unfinished is False
+
+
+def test_cli_parser_supports_schedule_list_explicit_date_range_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "schedule",
+            "list",
+            "--start-date",
+            "2026-04-10",
+            "--end-date",
+            "2026-04-16",
+        ]
+    )
+
+    assert args.resource == "schedule"
+    assert args.schedule_command == "list"
+    assert args.start_date == date(2026, 4, 10)
+    assert args.end_date == date(2026, 4, 16)
+    assert args.date_values is None
     assert args.hide_overdue_unfinished is False
 
 

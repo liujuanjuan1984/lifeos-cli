@@ -55,29 +55,27 @@ def test_main_timelog_stats_range_rejects_inverted_dates(
             "timelog",
             "stats",
             "range",
-            "--date",
+            "--start-date",
             "2026-04-11",
-            "--date",
+            "--end-date",
             "2026-04-10",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert (
-        "When --date is repeated, the second date must be on or after the first date."
-        in captured.err
-    )
+    assert "The --end-date value must be on or after --start-date." in captured.err
 
 
-def test_main_timelog_stats_rebuild_reports_selected_scope(
+def test_main_timelog_stats_rebuild_reports_discrete_date_scope(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_rebuild(session: object, **kwargs: object) -> tuple[date, ...]:
-        assert kwargs["start_date"] == date(2026, 4, 1)
-        assert kwargs["end_date"] == date(2026, 4, 3)
-        return (date(2026, 4, 1), date(2026, 4, 2), date(2026, 4, 3))
+        assert kwargs["date_values"] == (date(2026, 4, 1), date(2026, 4, 3))
+        assert kwargs["start_date"] is None
+        assert kwargs["end_date"] is None
+        return (date(2026, 4, 1), date(2026, 4, 3))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(timelog_stats, "rebuild_timelog_stats_groupby_area", fake_rebuild)
@@ -96,6 +94,6 @@ def test_main_timelog_stats_rebuild_reports_selected_scope(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Rebuilt timelog stats grouped by area for 3 dates." in captured.out
+    assert "Rebuilt timelog stats grouped by area for 2 dates." in captured.out
     assert "start_date: 2026-04-01" in captured.out
     assert "end_date: 2026-04-03" in captured.out

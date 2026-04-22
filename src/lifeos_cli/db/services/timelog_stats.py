@@ -544,24 +544,31 @@ async def load_rebuildable_timelog_date_range(
 async def rebuild_timelog_stats_groupby_area(
     session: AsyncSession,
     *,
+    date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
     rebuild_all: bool = False,
 ) -> tuple[date, ...]:
     """Rebuild persisted timelog stats grouped by area for a selected local scope."""
     if rebuild_all:
-        if start_date is not None or end_date is not None:
-            raise TimelogStatsValidationError("Use `--all` by itself, without `--date`.")
+        if date_values or start_date is not None or end_date is not None:
+            raise TimelogStatsValidationError("Use `--all` by itself, without date filters.")
         date_range = await load_rebuildable_timelog_date_range(session)
         if date_range is None:
             return ()
         local_dates = iter_date_range(*date_range)
+    elif date_values:
+        local_dates = tuple(dict.fromkeys(date_values))
     elif start_date is not None or end_date is not None:
         if start_date is None or end_date is None:
-            raise TimelogStatsValidationError("Provide `--date` once or twice, or use `--all`.")
+            raise TimelogStatsValidationError(
+                "Provide `--date`, `--start-date/--end-date`, or `--all`."
+            )
         local_dates = iter_date_range(start_date, end_date)
     else:
-        raise TimelogStatsValidationError("Select one rebuild scope with `--date` or `--all`.")
+        raise TimelogStatsValidationError(
+            "Select one rebuild scope with `--date`, `--start-date/--end-date`, or `--all`."
+        )
 
     await recompute_daily_timelog_stats_groupby_area_for_dates(session, local_dates=local_dates)
     await recompute_aggregated_timelog_stats_groupby_area_for_dates(

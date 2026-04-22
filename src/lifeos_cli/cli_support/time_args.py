@@ -17,9 +17,19 @@ class DateArgumentError(ValueError):
 
 
 @dataclass(frozen=True)
+class ResolvedDateSelection:
+    """Normalized local-date selection from CLI flags."""
+
+    date_values: tuple[date, ...]
+    start_date: date | None
+    end_date: date | None
+
+
+@dataclass(frozen=True)
 class ResolvedDateTimeQuery:
     """Normalized date-or-time query filters for list commands."""
 
+    date_values: tuple[date, ...]
     start_date: date | None
     end_date: date | None
     window_start: datetime | None
@@ -56,38 +66,43 @@ def parse_user_datetime_value(value: str) -> datetime:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
-def resolve_date_interval_arguments(
+def resolve_date_selection_arguments(
     *,
     date_values: list[date] | None,
-) -> tuple[date | None, date | None]:
-    """Resolve one canonical inclusive date interval from CLI flags."""
-    repeated_dates = list(date_values or [])
-    if len(repeated_dates) > 2:
-        raise DateArgumentError(
-            "Use --date once for one date or twice for one inclusive date range."
-        )
-    if len(repeated_dates) == 1:
-        return repeated_dates[0], repeated_dates[0]
-    if len(repeated_dates) == 2:
-        first_date, second_date = repeated_dates
-        if second_date < first_date:
-            raise DateArgumentError(
-                "When --date is repeated, the second date must be on or after the first date."
-            )
-        return first_date, second_date
-    return None, None
+    start_date: date | None = None,
+    end_date: date | None = None,
+    conflict_message: str = "Use either --date or --start-date/--end-date, not both.",
+    incomplete_message: str = "Provide both --start-date and --end-date.",
+    explicit_inverted_message: str = "The --end-date value must be on or after --start-date.",
+) -> ResolvedDateSelection:
+    """Resolve repeated discrete dates or one explicit inclusive date range."""
+    selected_dates = tuple(date_values or ())
+    if selected_dates and (start_date is not None or end_date is not None):
+        raise DateArgumentError(conflict_message)
+    if start_date is not None or end_date is not None:
+        if start_date is None or end_date is None:
+            raise DateArgumentError(incomplete_message)
+        if end_date < start_date:
+            raise DateArgumentError(explicit_inverted_message)
+        return ResolvedDateSelection(date_values=(), start_date=start_date, end_date=end_date)
+    return ResolvedDateSelection(date_values=selected_dates, start_date=None, end_date=None)
 
 
 def resolve_required_date_interval_arguments(
     *,
-    date_values: list[date] | None,
-    empty_message: str = "Provide --date once or twice.",
+    start_date: date | None = None,
+    end_date: date | None = None,
+    empty_message: str = "Provide both --start-date and --end-date.",
 ) -> tuple[date, date]:
-    """Resolve one required inclusive date interval from CLI flags."""
-    start_date, end_date = resolve_date_interval_arguments(date_values=date_values)
-    if start_date is None or end_date is None:
+    """Resolve one required explicit inclusive date interval from CLI flags."""
+    selection = resolve_date_selection_arguments(
+        date_values=None,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    if selection.start_date is None or selection.end_date is None:
         raise DateArgumentError(empty_message)
-    return start_date, end_date
+    return selection.start_date, selection.end_date
 
 
 def normalize_query_datetime_bound(
@@ -107,21 +122,33 @@ def normalize_query_datetime_bound(
 def resolve_exclusive_date_or_datetime_query(
     *,
     date_values: list[date] | None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     window_start: datetime | date | None,
     window_end: datetime | date | None,
-    conflict_message: str = "Use either --date or --start-time/--end-time, not both.",
+    conflict_message: str = (
+        "Use either --date, --start-date/--end-date, or --start-time/--end-time."
+    ),
 ) -> ResolvedDateTimeQuery:
     """Resolve one query scope that may be either a date interval or a datetime window."""
-    start_date, end_date = resolve_date_interval_arguments(date_values=date_values)
+    selection = resolve_date_selection_arguments(
+        date_values=date_values,
+        start_date=start_date,
+        end_date=end_date,
+    )
     normalized_window_start = normalize_query_datetime_bound(window_start, is_end=False)
     normalized_window_end = normalize_query_datetime_bound(window_end, is_end=True)
-    if (start_date is not None or end_date is not None) and (
+    has_date_selection = bool(selection.date_values) or (
+        selection.start_date is not None or selection.end_date is not None
+    )
+    if has_date_selection and (
         normalized_window_start is not None or normalized_window_end is not None
     ):
         raise DateArgumentError(conflict_message)
     return ResolvedDateTimeQuery(
-        start_date=start_date,
-        end_date=end_date,
+        date_values=selection.date_values,
+        start_date=selection.start_date,
+        end_date=selection.end_date,
         window_start=normalized_window_start,
         window_end=normalized_window_end,
     )

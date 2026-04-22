@@ -7,7 +7,7 @@ import sys
 
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
-from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_interval_arguments
+from lifeos_cli.cli_support.time_args import DateArgumentError, resolve_date_selection_arguments
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
@@ -47,8 +47,10 @@ def _format_habit_action_detail(action: HabitAction) -> str:
 
 async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
     try:
-        start_date, end_date = resolve_date_interval_arguments(
+        date_selection = resolve_date_selection_arguments(
             date_values=args.date_values,
+            start_date=args.start_date,
+            end_date=args.end_date,
         )
     except DateArgumentError as exc:
         return cli_handler_utils.print_cli_error(exc)
@@ -58,8 +60,9 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                 session,
                 habit_id=args.habit_id,
                 status=args.status,
-                start_date=start_date,
-                end_date=end_date,
+                date_values=date_selection.date_values,
+                start_date=date_selection.start_date,
+                end_date=date_selection.end_date,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -69,8 +72,9 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                     session,
                     habit_id=args.habit_id,
                     status=args.status,
-                    start_date=start_date,
-                    end_date=end_date,
+                    date_values=date_selection.date_values,
+                    start_date=date_selection.start_date,
+                    end_date=date_selection.end_date,
                     include_deleted=args.include_deleted,
                 )
                 if args.count

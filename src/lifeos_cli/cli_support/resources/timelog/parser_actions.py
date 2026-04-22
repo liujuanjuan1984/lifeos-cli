@@ -15,6 +15,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
     add_include_deleted_argument,
     add_limit_offset_arguments,
+    add_start_end_date_arguments,
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     TIMELOG_SUMMARY_COLUMNS,
@@ -177,6 +178,7 @@ def build_timelog_list_parser(
                 "lifeos timelog list",
                 "lifeos timelog list --date 2026-04-10",
                 "lifeos timelog list --date 2026-04-10 --date 2026-04-16",
+                "lifeos timelog list --start-date 2026-04-10 --end-date 2026-04-16",
                 "lifeos timelog list --tracking-method manual "
                 "--start-time 2026-04-10T00:00:00 "
                 "--end-time 2026-04-10T23:59:59",
@@ -184,7 +186,10 @@ def build_timelog_list_parser(
                 'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
-                help_message("notes.dateRange.repeatedDate"),
+                help_message("notes.dateSelection.dateOrRange"),
+                _(
+                    "resources.timelog.parser_actions.use_start_time_end_time_as_overlap_window_not_exact_field_matches"
+                ),
                 _(
                     "resources.timelog.parser_actions.use_query_for_lightweight_text_filtering_across_titles_and_notes"
                 ),
@@ -239,7 +244,12 @@ def build_timelog_list_parser(
     )
     add_date_range_arguments(
         list_parser,
-        date_help=help_message("arguments.dateRange.repeatedDate"),
+        date_help=help_message("arguments.dateSelection.repeatedDate"),
+    )
+    add_start_end_date_arguments(
+        list_parser,
+        start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
+        end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
     list_parser.add_argument(
         "--start-time",

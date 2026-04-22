@@ -106,6 +106,8 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
     try:
         query = resolve_exclusive_date_or_datetime_query(
             date_values=args.date_values,
+            start_date=args.start_date,
+            end_date=args.end_date,
             window_start=args.window_start,
             window_end=args.window_end,
         )
@@ -124,6 +126,7 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                         task_id=args.task_id,
                         person_id=args.person_id,
                         tag_id=args.tag_id,
+                        date_values=query.date_values,
                         start_date=query.start_date,
                         end_date=query.end_date,
                         window_start=query.window_start,

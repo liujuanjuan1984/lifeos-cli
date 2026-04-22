@@ -1,7 +1,7 @@
 {
   "arguments": {
-    "dateRange": {
-      "repeatedDate": "Repeat once for one configured local day or twice for one inclusive local-date range in YYYY-MM-DD format"
+    "dateSelection": {
+      "repeatedDate": "Repeat for one or more discrete configured local days in YYYY-MM-DD format"
     }
   },
   "notes": {
@@ -9,8 +9,8 @@
       "explicitOptionalValues": "Use `--clear-*` flags to explicitly remove optional values.",
       "valueConflict": "Do not mix a value flag with the matching clear flag in the same command."
     },
-    "dateRange": {
-      "repeatedDate": "Repeat `--date` once for one configured local day or twice for one inclusive local-date range."
+    "dateSelection": {
+      "dateOrRange": "Repeat `--date` for one or more discrete local dates. Use `--start-date/--end-date` for one inclusive local-date range."
     },
     "datetime": {
       "configuredTimezone": "When a datetime omits timezone information, the configured timezone is used before the value is converted to UTC."

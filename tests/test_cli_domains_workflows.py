@@ -324,14 +324,15 @@ def test_main_timelog_list_can_include_relationship_counts(
     clear_config_cache()
 
 
-def test_main_timelog_list_passes_inclusive_date_range(
+def test_main_timelog_list_passes_discrete_date_values(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
         query = cast(timelogs.TimelogListInput, kwargs["query"])
-        assert query.filters.start_date == date(2026, 4, 10)
-        assert query.filters.end_date == date(2026, 4, 11)
+        assert query.filters.date_values == (date(2026, 4, 10), date(2026, 4, 11))
+        assert query.filters.start_date is None
+        assert query.filters.end_date is None
         return []
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -1072,8 +1073,9 @@ def test_main_habit_action_list_prints_count(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
-        assert kwargs["start_date"] == date(2026, 4, 9)
-        assert kwargs["end_date"] == date(2026, 4, 9)
+        assert kwargs["date_values"] == (date(2026, 4, 9),)
+        assert kwargs["start_date"] is None
+        assert kwargs["end_date"] is None
         return [
             make_record(
                 id=UUID("88888888-8888-8888-8888-888888888888"),
@@ -1086,8 +1088,9 @@ def test_main_habit_action_list_prints_count(
         ]
 
     async def fake_count_habit_actions(_session: object, **kwargs: object) -> int:
-        assert kwargs["start_date"] == date(2026, 4, 9)
-        assert kwargs["end_date"] == date(2026, 4, 9)
+        assert kwargs["date_values"] == (date(2026, 4, 9),)
+        assert kwargs["start_date"] is None
+        assert kwargs["end_date"] is None
         return 1
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -1147,13 +1150,14 @@ def test_main_habit_action_log_updates_by_habit_and_date(
     assert "Updated habit action 88888888-8888-8888-8888-888888888888" in captured.out
 
 
-def test_main_habit_action_list_passes_inclusive_date_range(
+def test_main_habit_action_list_passes_discrete_date_values(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
-        assert kwargs["start_date"] == date(2026, 4, 9)
-        assert kwargs["end_date"] == date(2026, 4, 11)
+        assert kwargs["date_values"] == (date(2026, 4, 9), date(2026, 4, 11))
+        assert kwargs["start_date"] is None
+        assert kwargs["end_date"] is None
         return []
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())

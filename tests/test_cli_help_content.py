@@ -325,6 +325,8 @@ def test_cli_schedule_help_explains_show_list_boundary(capsys) -> None:
 
     expected = "Use `show` when you want the single-day entrypoint with the same sections."
     assert expected in captured.out
+    assert "lifeos schedule list --start-date 2026-04-10 --end-date 2026-04-16" in captured.out
+    assert "Use either repeated `--date` or `--start-date/--end-date`, not both." in captured.out
 
 
 def test_cli_habit_action_help_explains_update_log_boundary(capsys) -> None:
@@ -740,13 +742,14 @@ def test_cli_event_timelog_list_help_shows_shared_date_range_text(
     normalized_output = " ".join(captured.out.split())
 
     assert (
-        "Repeat `--date` once for one configured local day or twice for one "
-        "inclusive local-date range."
+        "Repeat `--date` for one or more discrete local dates. Use "
+        "`--start-date/--end-date` for one inclusive local-date range."
     ) in captured.out
-    assert (
-        "Repeat once for one configured local day or twice for one inclusive "
-        "local-date range in YYYY-MM-DD format"
-    ) in normalized_output
+    assert "one or more discrete" in normalized_output
+    assert "--start-date START_DATE" in normalized_output
+    assert "--end-date END_DATE" in normalized_output
+    assert "define an overlap window, not exact" in captured.out
+    assert "use `--start-date/--end-date` for local-date ranges" in captured.out
 
 
 @pytest.mark.parametrize("argv", (["event", "update", "--help"], ["timelog", "update", "--help"]))
