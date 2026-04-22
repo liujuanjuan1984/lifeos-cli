@@ -9,14 +9,7 @@ from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_help_parser,
     add_documented_parser,
-    clear_flags_note,
-    configured_timezone_datetime_note,
-    local_date_range_argument_help,
-    local_date_range_note,
-    recurring_scope_instance_start_note,
-    recurring_scope_note,
-    repeated_tag_or_person_attach_note,
-    value_clear_conflict_note,
+    help_message,
 )
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
@@ -63,9 +56,9 @@ def build_event_add_parser(
             ),
             notes=(
                 _("`appointment` is the default type. Use `--type` for timeblocks and deadlines."),
-                repeated_tag_or_person_attach_note(),
+                help_message("notes.relations.repeatTagOrPersonAttach"),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
-                configured_timezone_datetime_note(),
+                help_message("notes.datetime.configuredTimezone"),
                 _(
                     "Use recurrence flags to create recurring daily, weekly, monthly, or yearly "
                     "series."
@@ -163,7 +156,7 @@ def build_event_list_parser(
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                local_date_range_note(),
+                help_message("notes.dateRange.repeatedDate"),
                 _(
                     "When both `--start-time` and `--end-time` are given, overlapping "
                     "events are returned."
@@ -194,7 +187,7 @@ def build_event_list_parser(
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
     add_date_range_arguments(
         list_parser,
-        date_help=local_date_range_argument_help(),
+        date_help=help_message("arguments.dateRange.repeatedDate"),
     )
     list_parser.add_argument(
         "--start-time",
@@ -262,11 +255,11 @@ def build_event_update_parser(
             ),
             notes=(
                 _("Use `--type` to retag an event as appointment, timeblock, or deadline."),
-                clear_flags_note(),
-                value_clear_conflict_note(),
-                configured_timezone_datetime_note(),
-                recurring_scope_note("updates"),
-                recurring_scope_instance_start_note(),
+                help_message("notes.clearFlags.explicitOptionalValues"),
+                help_message("notes.clearFlags.valueConflict"),
+                help_message("notes.datetime.configuredTimezone"),
+                help_message("notes.recurringScope.updates"),
+                help_message("notes.recurringScope.instanceStartRequired"),
                 _(
                     "Use repeated `--person-id` to keep human-only, agent-only, and shared "
                     "ownership explicit as plans change."
@@ -373,9 +366,9 @@ def build_event_delete_parser(
                 "--scope all_future --instance-start 2026-04-10T09:00:00",
             ),
             notes=(
-                recurring_scope_note("deletes"),
-                recurring_scope_instance_start_note(),
-                configured_timezone_datetime_note(),
+                help_message("notes.recurringScope.deletes"),
+                help_message("notes.recurringScope.instanceStartRequired"),
+                help_message("notes.datetime.configuredTimezone"),
             ),
         ),
     )

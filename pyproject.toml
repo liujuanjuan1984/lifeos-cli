@@ -72,7 +72,12 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-lifeos_cli = ["py.typed", "locales/*/LC_MESSAGES/*.mo", "locales/*/LC_MESSAGES/*.po"]
+lifeos_cli = [
+    "py.typed",
+    "locales/*/*.json",
+    "locales/*/LC_MESSAGES/*.mo",
+    "locales/*/LC_MESSAGES/*.po",
+]
 "lifeos_cli.alembic" = ["script.py.mako"]
 
 [tool.setuptools_scm]

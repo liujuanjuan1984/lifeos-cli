@@ -8,6 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import keyed_message
 
 
 @dataclass(frozen=True)
@@ -77,60 +78,9 @@ def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ())
     return "\n\n".join(sections)
 
 
-def configured_timezone_datetime_note() -> str:
-    """Return the standard note for timezone-naive datetime input."""
-    return _(
-        "When a datetime omits timezone information, the configured timezone is used "
-        "before the value is converted to UTC."
-    )
-
-
-def local_date_range_note() -> str:
-    """Return the standard note for repeated local-date range filters."""
-    return _(
-        "Repeat `--date` once for one configured local day or twice for one "
-        "inclusive local-date range."
-    )
-
-
-def local_date_range_argument_help() -> str:
-    """Return the standard help text for repeated local-date range arguments."""
-    return _(
-        "Repeat once for one configured local day or twice for one inclusive "
-        "local-date range in YYYY-MM-DD format"
-    )
-
-
-def repeated_tag_or_person_attach_note() -> str:
-    """Return the standard note for attach-time tag and person relation flags."""
-    return _(
-        "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
-        "or people in one command."
-    )
-
-
-def clear_flags_note() -> str:
-    """Return the standard note for explicit clear flags."""
-    return _("Use `--clear-*` flags to explicitly remove optional values.")
-
-
-def value_clear_conflict_note() -> str:
-    """Return the standard note for value and clear flag conflicts."""
-    return _("Do not mix a value flag with the matching clear flag in the same command.")
-
-
-def recurring_scope_note(action: str) -> str:
-    """Return the standard recurring-series scope note for one action."""
-    if action == "updates":
-        return _("Use `--scope single|all_future|all` for recurring series updates.")
-    if action == "deletes":
-        return _("Use `--scope single|all_future|all` for recurring series deletes.")
-    raise ValueError(f"Unsupported recurring scope action: {action}")
-
-
-def recurring_scope_instance_start_note() -> str:
-    """Return the standard recurring-series instance-start requirement note."""
-    return _("`--scope single` and `--scope all_future` require `--instance-start`.")
+def help_message(key: str) -> str:
+    """Return one CLI help message from the keyed help catalog."""
+    return keyed_message("cli_help", key)
 
 
 def make_help_handler(parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], int]:

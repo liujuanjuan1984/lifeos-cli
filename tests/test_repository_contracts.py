@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Any, cast
 
@@ -28,6 +29,20 @@ def _workflow_job_steps(workflow: dict[str, Any], job_name: str) -> list[dict[st
     steps = cast(list[dict[str, Any]], jobs[job_name]["steps"])
     assert isinstance(steps, list)
     return steps
+
+
+def _flatten_json_catalog_keys(catalog: dict[str, Any]) -> dict[str, str]:
+    flattened: dict[str, str] = {}
+
+    def _visit(node: Any, prefix: tuple[str, ...]) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                _visit(value, (*prefix, str(key)))
+            return
+        flattened[".".join(prefix)] = node if isinstance(node, str) else ""
+
+    _visit(catalog, ())
+    return flattened
 
 
 DOCTOR_COMMANDS = _non_comment_shell_lines(DOCTOR_TEXT)
@@ -152,6 +167,22 @@ def test_zh_hans_cli_catalog_is_complete() -> None:
     assert all(message.string for message in entries)
     assert all("fuzzy" not in message.flags for message in entries)
     assert all(message.string != message.id for message in entries)
+
+
+def test_cli_help_json_catalogs_are_complete() -> None:
+    default_catalog_path = Path("src/lifeos_cli/locales/en/cli_help.json")
+    zh_hans_catalog_path = Path("src/lifeos_cli/locales/zh_Hans/cli_help.json")
+
+    default_catalog = json.loads(default_catalog_path.read_text(encoding="utf-8"))
+    zh_hans_catalog = json.loads(zh_hans_catalog_path.read_text(encoding="utf-8"))
+
+    default_keys = _flatten_json_catalog_keys(default_catalog)
+    zh_hans_keys = _flatten_json_catalog_keys(zh_hans_catalog)
+
+    assert default_keys
+    assert set(zh_hans_keys) == set(default_keys)
+    assert all(default_keys.values())
+    assert all(zh_hans_keys.values())
 
 
 def test_zh_hans_cli_catalog_keeps_internal_entity_terms_in_english() -> None:

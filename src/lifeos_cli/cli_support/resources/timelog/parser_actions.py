@@ -8,12 +8,7 @@ from uuid import UUID
 from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_parser,
-    clear_flags_note,
-    configured_timezone_datetime_note,
-    local_date_range_argument_help,
-    local_date_range_note,
-    repeated_tag_or_person_attach_note,
-    value_clear_conflict_note,
+    help_message,
 )
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
@@ -61,7 +56,7 @@ def build_timelog_add_parser(
                 "lifeos timelog add --file quick-timelog.txt",
             ),
             notes=(
-                repeated_tag_or_person_attach_note(),
+                help_message("notes.relations.repeatTagOrPersonAttach"),
                 _(
                     "Single-record mode requires both `--start-time` and `--end-time` because "
                     "the record models completed time spent."
@@ -72,7 +67,7 @@ def build_timelog_add_parser(
                     "default, and skips the prompt when input comes from `--stdin` or `--yes` "
                     "is provided."
                 ),
-                configured_timezone_datetime_note(),
+                help_message("notes.datetime.configuredTimezone"),
                 _(
                     "When quick batch mode omits `--first-start-time`, the first row inherits "
                     "the latest active timelog end time."
@@ -160,7 +155,7 @@ def build_timelog_list_parser(
                 'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
-                local_date_range_note(),
+                help_message("notes.dateRange.repeatedDate"),
                 _("Use `--query` for lightweight text filtering across titles and notes."),
                 _(
                     "When results exist, the list command prints a header row followed by "
@@ -198,7 +193,7 @@ def build_timelog_list_parser(
     )
     add_date_range_arguments(
         list_parser,
-        date_help=local_date_range_argument_help(),
+        date_help=help_message("arguments.dateRange.repeatedDate"),
     )
     list_parser.add_argument(
         "--start-time",
@@ -262,9 +257,9 @@ def build_timelog_update_parser(
                 "--clear-people --clear-tags",
             ),
             notes=(
-                clear_flags_note(),
-                value_clear_conflict_note(),
-                configured_timezone_datetime_note(),
+                help_message("notes.clearFlags.explicitOptionalValues"),
+                help_message("notes.clearFlags.valueConflict"),
+                help_message("notes.datetime.configuredTimezone"),
                 _(
                     "Use repeated `--person-id` to keep actual human effort, agent effort, "
                     "and shared effort distinct."

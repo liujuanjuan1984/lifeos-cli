@@ -176,6 +176,7 @@ def test_cli_timelog_add_help_supports_zh_hans_locale_for_stdin_batch_mode(
     assert "从标准输入读取快捷批量条目" in captured.out
     assert "预览后直接写入快捷批量 `timelog`，无需交互确认" in captured.out
     assert "并在输入来自 `--stdin` 或提供 `--yes` 时跳过提示" in captured.out
+    assert "当 datetime 省略 timezone 信息时" in captured.out
 
 
 @pytest.mark.parametrize(
