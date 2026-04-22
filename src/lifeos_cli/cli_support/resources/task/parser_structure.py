@@ -22,9 +22,9 @@ def build_task_move_parser(
         task_subparsers,
         "move",
         help_content=HelpContent(
-            summary=_("messages.move_a_task_95f7e77f"),
+            summary=_("resources.task.parser_structure.move_task"),
             description=_(
-                "messages.move_a_task_to_a_new_parent_and_optionally_a_new_vision_cefc864d"
+                "resources.task.parser_structure.move_task_to_new_parent_and_optionally_new_vision"
             ),
             examples=(
                 "lifeos task move 11111111-1111-1111-1111-111111111111 "
@@ -37,34 +37,40 @@ def build_task_move_parser(
                 "--new-vision-id 33333333-3333-3333-3333-333333333333 --clear-parent",
             ),
             notes=(
-                _("messages.use_reorder_when_only_sibling_display_order_changes_and_6ebef6cd"),
-                _("messages.use_old_parent_task_id_as_an_optimistic_guard_when_anoth_c3e82a0f"),
+                _(
+                    "resources.task.parser_structure.use_reorder_when_only_sibling_display_order_changes_and_parentage_stays_same"
+                ),
+                _(
+                    "resources.task.parser_structure.use_old_parent_task_id_as_optimistic_guard_when_another_writer_may"
+                ),
             ),
         ),
     )
-    move_parser.add_argument("task_id", type=UUID, help=_("messages.task_identifier_b5d5c4ca"))
+    move_parser.add_argument("task_id", type=UUID, help=_("common.messages.task_identifier"))
     move_parser.add_argument(
         "--old-parent-task-id",
         type=UUID,
-        help=_("messages.expected_current_parent_task_identifier_42b0e8ff"),
+        help=_("resources.task.parser_structure.expected_current_parent_task_identifier"),
     )
     move_parser.add_argument(
         "--new-parent-task-id",
         type=UUID,
-        help=_("messages.target_parent_task_identifier_402ac7d3"),
+        help=_("resources.task.parser_structure.target_parent_task_identifier"),
     )
     move_parser.add_argument(
         "--clear-parent",
         action="store_true",
-        help=_("messages.move_the_task_to_the_root_level_a356578e"),
+        help=_("resources.task.parser_structure.move_task_to_root_level"),
     )
     move_parser.add_argument(
-        "--new-vision-id", type=UUID, help=_("messages.target_vision_identifier_ca47f7ee")
+        "--new-vision-id",
+        type=UUID,
+        help=_("resources.task.parser_structure.target_vision_identifier"),
     )
     move_parser.add_argument(
         "--new-display-order",
         type=int,
-        help=_("messages.target_display_order_a7668e1d"),
+        help=_("resources.task.parser_structure.target_display_order"),
     )
     move_parser.set_defaults(handler=make_sync_handler(handle_task_move_async))
 
@@ -77,15 +83,21 @@ def build_task_reorder_parser(
         task_subparsers,
         "reorder",
         help_content=HelpContent(
-            summary=_("messages.reorder_tasks_cea281fe"),
-            description=_("messages.update_display_order_values_for_one_or_more_tasks_bd04d3bd"),
+            summary=_("resources.task.parser_structure.reorder_tasks"),
+            description=_(
+                "resources.task.parser_structure.update_display_order_values_for_one_or_more_tasks"
+            ),
             examples=(
                 "lifeos task reorder --order 11111111-1111-1111-1111-111111111111:0 "
                 "--order 22222222-2222-2222-2222-222222222222:1",
             ),
             notes=(
-                _("messages.this_command_changes_only_display_order_it_does_not_move_fa9f3996"),
-                _("messages.use_move_when_parentage_or_vision_membership_also_needs_66429e3a"),
+                _(
+                    "resources.task.parser_structure.this_command_changes_only_display_order_it_does_not_move_tasks_between"
+                ),
+                _(
+                    "resources.task.parser_structure.use_move_when_parentage_or_vision_membership_also_needs_to_change"
+                ),
             ),
         ),
     )
@@ -93,6 +105,8 @@ def build_task_reorder_parser(
         "--order",
         action="append",
         required=True,
-        help=_("messages.task_order_in_task_id_display_order_format_repeat_for_mu_1e78ff4f"),
+        help=_(
+            "resources.task.parser_structure.task_order_in_task_id_display_order_format_repeat_for_multiple_tasks"
+        ),
     )
     reorder_parser.set_defaults(handler=make_sync_handler(handle_task_reorder_async))

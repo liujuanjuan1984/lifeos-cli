@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -99,12 +98,10 @@ def cli_message(key: str) -> str:
 
 
 def _message_key_for_text(message: str) -> str:
-    """Return the catalog key generated for an argparse built-in message."""
+    """Return the stable catalog key for an argparse built-in message."""
     normalized = re.sub(r"[^a-zA-Z0-9]+", "_", message.lower()).strip("_")
     normalized = re.sub(r"_+", "_", normalized)
-    slug = normalized[:56].strip("_") or "message"
-    digest = hashlib.sha1(message.encode("utf-8")).hexdigest()[:8]
-    return f"messages.{slug}_{digest}"
+    return f"messages.{normalized or 'message'}"
 
 
 def _argparse_message(message: str | None) -> str | None:
@@ -117,7 +114,7 @@ def _argparse_message(message: str | None) -> str | None:
         return message
 
 
-def _argparse_ngettext(singular: str, plural: str, count: int) -> str:
+def _argparse_plural_message(singular: str, plural: str, count: int) -> str:
     """Translate one argparse plural message."""
     translated = _argparse_message(singular if count == 1 else plural)
     assert translated is not None
@@ -128,4 +125,4 @@ def configure_argparse_translations() -> None:
     """Route argparse built-in help and error text through keyed JSON catalogs."""
     argparse_module = cast(Any, argparse)
     argparse_module._ = _argparse_message
-    argparse_module.ngettext = _argparse_ngettext
+    setattr(argparse_module, "ngettext", _argparse_plural_message)  # noqa: B010

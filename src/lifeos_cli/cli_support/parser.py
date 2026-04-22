@@ -151,7 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
             + "\n\n"
             + f"repo: {repository_url}\n"
             + "uv tool install --upgrade lifeos-cli\n\n"
-            + _("messages.command_grammar_483e0e8b")
+            + _("app.parser.command_grammar")
             + "\n"
             + "  lifeos <resource> <action> [arguments] [options]"
         ),
@@ -164,9 +164,13 @@ def build_parser() -> argparse.ArgumentParser:
                 'lifeos note add "Capture an idea"',
             ),
             notes=(
-                _("messages.use_lifeos_resource_help_and_lifeos_resource_action_help_2ae24712"),
-                _("messages.run_lifeos_init_to_initialize_lifeos_before_getting_star_0edf60ac"),
-                _("messages.welcome_bug_reports_and_suggestions_through_https_github_865c9de0"),
+                _(
+                    "app.parser.use_lifeos_resource_help_and_lifeos_resource_action_help_as_primary_command"
+                ),
+                _("app.parser.run_lifeos_init_to_initialize_lifeos_before_getting_started"),
+                _(
+                    "app.parser.welcome_bug_reports_and_suggestions_through_https_github_com_liujuanjuan1984_lifeos_cli"
+                ),
             ),
         ),
         formatter_class=CompactSubcommandHelpFormatter,
@@ -176,12 +180,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--version",
         action="version",
         version=f"%(prog)s {get_installed_package_version()}",
-        help=_("messages.show_the_program_version_and_exit_a7a67250"),
+        help=_("app.parser.show_program_version_and_exit"),
     )
     subparsers = parser.add_subparsers(
         dest="resource",
-        title=_("messages.resources_0189424a"),
-        metavar=_("messages.resource_7a104738"),
+        title=_("app.parser.resources"),
+        metavar=_("app.parser.resource"),
         parser_class=argparse.ArgumentParser,
     )
     build_init_parser(subparsers)

@@ -87,7 +87,7 @@ def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert any("bash ./scripts/integration_tests.sh" in line for line in DOCTOR_COMMANDS)
     assert (
         'FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,'
-        'pytestmark,ngettext"' in DEAD_CODE_CHECK_TEXT
+        'pytestmark"' in DEAD_CODE_CHECK_TEXT
     )
     assert '--ignore-names "${FRAMEWORK_IGNORE_NAMES}"' in DEAD_CODE_CHECK_TEXT
 

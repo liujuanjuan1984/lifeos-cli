@@ -18,9 +18,9 @@ def add_include_deleted_argument(
     """Add a standard include-deleted flag."""
     del noun
     help_message = (
-        _("messages.allow_loading_deleted_records_3eda4cff")
+        _("common.parser.allow_loading_deleted_records")
         if help_prefix.startswith("Allow")
-        else _("messages.include_deleted_records_e2a935bc")
+        else _("common.parser.include_deleted_records")
     )
     parser.add_argument(
         "--include-deleted",
@@ -40,13 +40,13 @@ def add_limit_offset_arguments(
         "--limit",
         type=int,
         default=100,
-        help=_("messages.maximum_number_of_results_to_return_01403bbf"),
+        help=_("common.parser.maximum_number_of_results_to_return"),
     )
     parser.add_argument(
         "--offset",
         type=int,
         default=0,
-        help=_("messages.number_of_results_to_skip_16e0a809"),
+        help=_("common.parser.number_of_results_to_skip"),
     )
 
 
@@ -65,7 +65,7 @@ def add_identifier_list_argument(
         type=UUID,
         nargs="+",
         required=True,
-        help=_("messages.noun_identifiers_to_action_verb_092e3fe2").format(
+        help=_("common.parser.noun_identifiers_to_action_verb").format(
             noun=noun.capitalize(),
             action_verb=action_verb,
         ),

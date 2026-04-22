@@ -25,11 +25,13 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "event",
         help_content=HelpContent(
-            summary=_("messages.manage_planned_schedule_events_714cf569"),
+            summary=_("resources.event.parser.manage_planned_schedule_events"),
             description=(
-                _("messages.create_and_maintain_planned_schedule_blocks_aab2919b")
+                _("resources.event.parser.create_and_maintain_planned_schedule_blocks")
                 + "\n\n"
-                + _("messages.events_represent_calendar_intent_and_time_allocation_not_f399eb99")
+                + _(
+                    "resources.event.parser.events_represent_calendar_intent_and_time_allocation_not_todo_semantics"
+                )
             ),
             examples=(
                 "lifeos event add --help",
@@ -37,17 +39,19 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event batch --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_events_5c6e9ceb"),
-                _("messages.events_can_optionally_reference_one_area_and_one_task_10f8c28a"),
-                _("messages.event_types_distinguish_hard_appointments_flexible_timeb_3ab32dbc"),
-                _("messages.see_lifeos_event_batch_help_for_bulk_delete_operations_c4213924"),
+                _("resources.event.parser.use_list_as_primary_query_entrypoint_for_events"),
+                _("resources.event.parser.events_can_optionally_reference_one_area_and_one_task"),
+                _(
+                    "resources.event.parser.event_types_distinguish_hard_appointments_flexible_timeblocks_and_deadlines"
+                ),
+                _("resources.event.parser.see_lifeos_event_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     event_subparsers = event_parser.add_subparsers(
         dest="event_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_event_add_parser(event_subparsers)

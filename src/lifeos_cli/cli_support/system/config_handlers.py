@@ -58,7 +58,7 @@ def handle_init(args: argparse.Namespace) -> int:
             ),
             prompt_database_echo=partial(
                 init_prompts.prompt_bool,
-                _("messages.enable_sql_echo_logging_47e24c6b"),
+                _("system.config_handlers.enable_sql_echo_logging"),
             ),
         ),
     )

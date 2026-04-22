@@ -26,14 +26,16 @@ from lifeos_cli.i18n import cli_message as _
 def _build_schedule_section_header_notes() -> tuple[str, ...]:
     """Describe the section header schema used by aggregated schedule output."""
     return (
-        _("messages.non_empty_schedule_sections_print_a_tab_separated_header_930d64f0"),
-        _("messages.task_section_columns_columns_c13e4218").format(
+        _(
+            "resources.schedule.parser.non_empty_schedule_sections_print_tab_separated_header_row_before_their_entries"
+        ),
+        _("resources.schedule.parser.task_section_columns_columns").format(
             columns=format_summary_column_list(SCHEDULE_TASK_COLUMNS)
         ),
-        _("messages.habit_action_section_columns_columns_d3a0f385").format(
+        _("resources.schedule.parser.habit_action_section_columns_columns").format(
             columns=format_summary_column_list(SCHEDULE_HABIT_ACTION_COLUMNS)
         ),
-        _("messages.event_section_columns_columns_d47a79e1").format(
+        _("resources.schedule.parser.event_section_columns_columns").format(
             columns=format_summary_column_list(SCHEDULE_EVENT_COLUMNS)
         ),
     )
@@ -43,7 +45,9 @@ def _add_hide_overdue_unfinished_argument(parser: argparse.ArgumentParser) -> No
     parser.add_argument(
         "--hide-overdue-unfinished",
         action="store_true",
-        help=_("messages.hide_overdue_unfinished_planning_tasks_and_habit_actions_0ba4db2c"),
+        help=_(
+            "resources.schedule.parser.hide_overdue_unfinished_planning_tasks_and_habit_actions"
+        ),
     )
 
 
@@ -55,49 +59,71 @@ def build_schedule_parser(
         subparsers,
         "schedule",
         help_content=HelpContent(
-            summary=_("messages.inspect_aggregated_schedule_views_02980e60"),
+            summary=_("resources.schedule.parser.inspect_aggregated_schedule_views"),
             description=(
-                _("messages.show_schedule_views_grouped_by_local_date_c46106c9")
+                _("resources.schedule.parser.show_schedule_views_grouped_by_local_date")
                 + "\n\n"
-                + _("messages.schedule_is_a_cli_read_model_built_from_tasks_habit_acti_e65a5fb4")
+                + _(
+                    "resources.schedule.parser.schedule_is_cli_read_model_built_from_tasks_habit_actions_and_events"
+                )
             ),
             examples=(
                 "lifeos schedule show --help",
                 "lifeos schedule list --help",
             ),
             notes=(
-                _("messages.use_show_for_one_exact_local_day_067d48f7"),
-                _("messages.use_list_for_inclusive_multi_day_ranges_f2820178"),
-                _("messages.dates_use_the_configured_timezone_and_day_starts_at_pref_28eaf2d4"),
-                _("messages.schedule_reads_from_existing_domains_and_does_not_create_e72139bf"),
+                _("resources.schedule.parser.use_show_for_one_exact_local_day"),
+                _("resources.schedule.parser.use_list_for_inclusive_multi_day_ranges"),
+                _(
+                    "resources.schedule.parser.dates_use_configured_timezone_and_day_starts_at_preference"
+                ),
+                _(
+                    "resources.schedule.parser.schedule_reads_from_existing_domains_and_does_not_create_new_stored_entity"
+                ),
             ),
         ),
     )
     schedule_subparsers = schedule_parser.add_subparsers(
         dest="schedule_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     show_parser = add_documented_parser(
         schedule_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_one_schedule_day_0bff0895"),
+            summary=_("resources.schedule.parser.show_one_schedule_day"),
             description=(
-                _("messages.show_the_aggregated_schedule_for_one_local_day_b0b6ce8f")
+                _("resources.schedule.parser.show_aggregated_schedule_for_one_local_day")
                 + "\n\n"
-                + _("messages.tasks_appear_when_the_local_date_falls_inside_their_plan_0a58dda7")
+                + _(
+                    "resources.schedule.parser.tasks_appear_when_local_date_falls_inside_their_planning_cycle_window_overdue"
+                )
             ),
             examples=("lifeos schedule show", "lifeos schedule show --date 2026-04-10"),
             notes=(
-                _("messages.the_output_groups_tasks_habit_actions_and_event_occurren_6201cf0e"),
-                _("messages.task_rows_come_from_planning_cycle_overlap_not_from_even_90d14ccf"),
-                _("messages.habit_action_rows_use_action_date_earlier_pending_rows_r_3bb08a35"),
-                _("messages.when_date_is_omitted_show_uses_the_current_configured_lo_63d84a52"),
-                _("messages.use_list_when_you_need_the_same_schedule_view_across_an_f605c81a"),
-                _("messages.event_rows_stay_under_the_event_section_and_include_thei_65206f2f"),
-                _("messages.overdue_unfinished_planning_tasks_and_habit_actions_are_eb42f95b"),
+                _(
+                    "resources.schedule.parser.the_output_groups_tasks_habit_actions_and_event_occurrences_for_day"
+                ),
+                _(
+                    "resources.schedule.parser.task_rows_come_from_planning_cycle_overlap_not_from_event_timeblocks"
+                ),
+                _(
+                    "resources.schedule.parser.habit_action_rows_use_action_date_earlier_pending_rows_remain_visible_until"
+                ),
+                _(
+                    "resources.schedule.parser.when_date_is_omitted_show_uses_current_configured_local_date"
+                ),
+                _(
+                    "resources.schedule.parser.use_list_when_you_need_same_schedule_view_across_inclusive_date_range"
+                ),
+                _(
+                    "resources.schedule.parser.event_rows_stay_under_event_section_and_include_their_event_type"
+                ),
+                _(
+                    "resources.schedule.parser.overdue_unfinished_planning_tasks_and_habit_actions_are_shown_by_default_use"
+                ),
                 *_build_schedule_section_header_notes(),
             ),
         ),
@@ -106,7 +132,9 @@ def build_schedule_parser(
         "--date",
         dest="target_date",
         type=date.fromisoformat,
-        help=_("messages.target_local_date_in_yyyy_mm_dd_format_defaults_to_today_5ea5a4cf"),
+        help=_(
+            "resources.schedule.parser.target_local_date_in_yyyy_mm_dd_format_defaults_to_today_when"
+        ),
     )
     _add_hide_overdue_unfinished_argument(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_schedule_show_async))
@@ -115,24 +143,34 @@ def build_schedule_parser(
         schedule_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_a_schedule_range_e149fa14"),
+            summary=_("resources.schedule.parser.list_schedule_range"),
             description=_(
-                "messages.show_the_aggregated_schedule_for_one_local_date_or_an_in_8cd15729"
+                "resources.schedule.parser.show_aggregated_schedule_for_one_local_date_or_inclusive_range"
             ),
             examples=("lifeos schedule list --date 2026-04-10 --date 2026-04-16",),
             notes=(
-                _("messages.repeat_date_once_for_one_local_date_or_twice_for_one_inc_0574ebc4"),
-                _("messages.use_show_when_you_want_the_single_day_entrypoint_with_th_78b62121"),
-                _("messages.recurring_event_occurrences_are_expanded_inside_the_requ_d33f14b1"),
-                _("messages.event_rows_stay_under_the_event_section_and_include_thei_65206f2f"),
-                _("messages.overdue_unfinished_planning_tasks_and_habit_actions_are_eb42f95b"),
+                _("common.messages.repeat_date_once_for_one_local_date_or_twice_for_one_inclusive"),
+                _(
+                    "resources.schedule.parser.use_show_when_you_want_single_day_entrypoint_with_same_sections"
+                ),
+                _(
+                    "resources.schedule.parser.recurring_event_occurrences_are_expanded_inside_requested_range"
+                ),
+                _(
+                    "resources.schedule.parser.event_rows_stay_under_event_section_and_include_their_event_type"
+                ),
+                _(
+                    "resources.schedule.parser.overdue_unfinished_planning_tasks_and_habit_actions_are_shown_by_default_use"
+                ),
                 *_build_schedule_section_header_notes(),
             ),
         ),
     )
     add_date_range_arguments(
         list_parser,
-        date_help=_("messages.repeat_once_for_one_local_date_or_twice_for_one_inclusiv_b2bcbda1"),
+        date_help=_(
+            "common.messages.repeat_once_for_one_local_date_or_twice_for_one_inclusive_local"
+        ),
     )
     _add_hide_overdue_unfinished_argument(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_schedule_list_async))

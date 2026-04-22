@@ -35,11 +35,15 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         subparsers,
         "tag",
         help_content=HelpContent(
-            summary=_("messages.manage_tags_b2f3136b"),
+            summary=_("resources.tag.parser.manage_tags"),
             description=(
-                _("messages.create_and_maintain_tags_for_notes_people_visions_tasks_aa8183dc")
+                _(
+                    "resources.tag.parser.create_and_maintain_tags_for_notes_people_visions_tasks_and_areas"
+                )
                 + "\n\n"
-                + _("messages.tags_provide_cross_cutting_classification_across_otherwi_e6f029e1")
+                + _(
+                    "resources.tag.parser.tags_provide_cross_cutting_classification_across_otherwise_separate_domains"
+                )
             ),
             examples=(
                 "lifeos tag add --help",
@@ -47,27 +51,29 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag batch --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
-                _("messages.a_tag_is_scoped_by_name_entity_type_and_category_240d9f36"),
-                _("messages.see_lifeos_tag_batch_help_for_bulk_delete_operations_42255f0b"),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _("resources.tag.parser.a_tag_is_scoped_by_name_entity_type_and_category"),
+                _("resources.tag.parser.see_lifeos_tag_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     tag_subparsers = tag_parser.add_subparsers(
         dest="tag_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     add_parser = add_documented_parser(
         tag_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_tag_c5a7c043"),
+            summary=_("resources.tag.parser.create_tag"),
             description=(
-                _("messages.create_a_new_tag_3f0cd95b")
+                _("resources.tag.parser.create_new_tag")
                 + "\n\n"
-                + _("messages.tags_are_intended_for_structured_labeling_not_free_form_822763fe")
+                + _(
+                    "resources.tag.parser.tags_are_intended_for_structured_labeling_not_free_form_note_content"
+                )
             ),
             examples=(
                 'lifeos tag add "family" --entity-type person --category relation',
@@ -81,26 +87,30 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "--person-id 22222222-2222-2222-2222-222222222222",
             ),
             notes=(
-                _("messages.repeat_the_same_person_id_flag_to_associate_multiple_peo_648ea09d"),
+                _(
+                    "common.messages.repeat_same_person_id_flag_to_associate_multiple_people_in_one_command"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("name", help=_("messages.tag_name_fcf2d565"))
+    add_parser.add_argument("name", help=_("resources.tag.parser.tag_name"))
     add_parser.add_argument(
-        "--entity-type", required=True, help=_("messages.target_entity_type_a187a48c")
+        "--entity-type", required=True, help=_("resources.tag.parser.target_entity_type")
     )
     add_parser.add_argument(
-        "--category", default="general", help=_("messages.tag_category_29d62659")
+        "--category", default="general", help=_("resources.tag.parser.tag_category")
     )
-    add_parser.add_argument("--description", help=_("messages.optional_tag_description_58ce2a7b"))
-    add_parser.add_argument("--color", help=_("messages.optional_hex_color_code_cce62a2d"))
+    add_parser.add_argument(
+        "--description", help=_("resources.tag.parser.optional_tag_description")
+    )
+    add_parser.add_argument("--color", help=_("resources.tag.parser.optional_hex_color_code"))
     add_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_people_cf6b79d8"),
+        help=_("common.messages.repeat_to_associate_one_or_more_people"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_tag_add_async))
 
@@ -108,11 +118,13 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_tags_2ead822e"),
+            summary=_("resources.tag.parser.list_tags"),
             description=(
-                _("messages.list_tags_with_optional_filters_2149f6e3")
+                _("resources.tag.parser.list_tags_with_optional_filters")
                 + "\n\n"
-                + _("messages.use_entity_type_and_category_to_narrow_the_result_set_be_b2a39b89")
+                + _(
+                    "resources.tag.parser.use_entity_type_and_category_to_narrow_result_set_before_inspecting_one"
+                )
             ),
             examples=(
                 "lifeos tag list",
@@ -121,17 +133,17 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag list --entity-type task --category priority --limit 20",
             ),
             notes=(
-                _("messages.use_include_deleted_to_review_previously_deleted_tags_c5c4b67b"),
+                _("resources.tag.parser.use_include_deleted_to_review_previously_deleted_tags"),
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(TAG_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--entity-type", help=_("messages.filter_by_entity_type_3eb1ea0b"))
-    list_parser.add_argument("--category", help=_("messages.filter_by_category_459a08e4"))
+    list_parser.add_argument("--entity-type", help=_("resources.tag.parser.filter_by_entity_type"))
+    list_parser.add_argument("--category", help=_("resources.tag.parser.filter_by_category"))
     list_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_identifier_8e385113")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person_identifier")
     )
     add_include_deleted_argument(list_parser, noun="tags")
     add_limit_offset_arguments(list_parser)
@@ -141,15 +153,15 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_a_tag_aff21f85"),
-            description=_("messages.show_one_tag_with_full_metadata_d3b8ed31"),
+            summary=_("resources.tag.parser.show_tag"),
+            description=_("resources.tag.parser.show_one_tag_with_full_metadata"),
             examples=(
                 "lifeos tag show 11111111-1111-1111-1111-111111111111",
                 "lifeos tag show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("tag_id", type=UUID, help=_("messages.tag_identifier_c22630bb"))
+    show_parser.add_argument("tag_id", type=UUID, help=_("resources.tag.parser.tag_identifier"))
     add_include_deleted_argument(show_parser, noun="tags", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_tag_show_async))
 
@@ -157,11 +169,13 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_tag_6b3ffdcc"),
+            summary=_("resources.tag.parser.update_tag"),
             description=(
-                _("messages.update_mutable_tag_fields_40039218")
+                _("resources.tag.parser.update_mutable_tag_fields")
                 + "\n\n"
-                + _("messages.only_explicitly_provided_flags_are_changed_omitted_value_552bbcfd")
+                + _(
+                    "common.messages.only_explicitly_provided_flags_are_changed_omitted_values_are_preserved"
+                )
             ),
             examples=(
                 'lifeos tag update 11111111-1111-1111-1111-111111111111 --name "urgent"',
@@ -175,26 +189,30 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag update 11111111-1111-1111-1111-111111111111 --clear-color",
             ),
             notes=(
-                _("messages.use_clear_description_clear_color_or_clear_people_to_rem_6317de8d"),
-                _("messages.repeat_the_same_person_id_flag_to_replace_multiple_linke_0f7ca8f3"),
+                _(
+                    "resources.tag.parser.use_clear_description_clear_color_or_clear_people_to_remove_optional_values"
+                ),
+                _("common.messages.repeat_same_person_id_flag_to_replace_multiple_linked_people"),
             ),
         ),
     )
-    update_parser.add_argument("tag_id", type=UUID, help=_("messages.tag_identifier_c22630bb"))
-    update_parser.add_argument("--name", help=_("messages.updated_tag_name_07ce93cc"))
-    update_parser.add_argument("--entity-type", help=_("messages.updated_entity_type_ce2779f8"))
-    update_parser.add_argument("--category", help=_("messages.updated_tag_category_a81e7385"))
-    update_parser.add_argument("--description", help=_("messages.updated_tag_description_a62161b1"))
+    update_parser.add_argument("tag_id", type=UUID, help=_("resources.tag.parser.tag_identifier"))
+    update_parser.add_argument("--name", help=_("resources.tag.parser.updated_tag_name"))
+    update_parser.add_argument("--entity-type", help=_("resources.tag.parser.updated_entity_type"))
+    update_parser.add_argument("--category", help=_("resources.tag.parser.updated_tag_category"))
+    update_parser.add_argument(
+        "--description", help=_("resources.tag.parser.updated_tag_description")
+    )
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("messages.clear_the_optional_tag_description_a94227c3"),
+        help=_("resources.tag.parser.clear_optional_tag_description"),
     )
-    update_parser.add_argument("--color", help=_("messages.updated_hex_color_code_e9130756"))
+    update_parser.add_argument("--color", help=_("common.messages.updated_hex_color_code"))
     update_parser.add_argument(
         "--clear-color",
         action="store_true",
-        help=_("messages.clear_the_optional_tag_color_2ac78569"),
+        help=_("resources.tag.parser.clear_optional_tag_color"),
     )
     update_parser.add_argument(
         "--person-id",
@@ -202,10 +220,10 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_tag_update_async))
 
@@ -213,41 +231,39 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         tag_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_tag_5bb92738"),
-            description=_("messages.delete_a_tag_e85ede86"),
+            summary=_("resources.tag.parser.delete_tag"),
+            description=_("resources.tag.parser.delete_tag_description"),
             examples=("lifeos tag delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("tag_id", type=UUID, help=_("messages.tag_identifier_c22630bb"))
+    delete_parser.add_argument("tag_id", type=UUID, help=_("resources.tag.parser.tag_identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_tag_delete_async))
 
     batch_parser = add_documented_help_parser(
         tag_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("messages.run_batch_tag_operations_6171641e"),
-            description=_("messages.delete_multiple_tags_in_one_command_80e2112c"),
+            summary=_("resources.tag.parser.run_batch_tag_operations"),
+            description=_("resources.tag.parser.delete_multiple_tags_in_one_command"),
             examples=(
                 "lifeos tag batch delete --help",
                 "lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",
             ),
-            notes=(
-                _("messages.this_namespace_currently_exposes_only_the_delete_workflo_8e17bac4"),
-            ),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="tag_batch_command",
-        title=_("messages.batch_actions_fb880b71"),
-        metavar=_("messages.batch_action_3c29d393"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_multiple_tags_e69c82f8"),
-            description=_("messages.delete_multiple_tags_by_identifier_bcdba42e"),
+            summary=_("resources.tag.parser.delete_multiple_tags"),
+            description=_("resources.tag.parser.delete_multiple_tags_by_identifier"),
             examples=("lifeos tag batch delete --ids <tag-id-1> <tag-id-2>",),
         ),
     )

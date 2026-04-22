@@ -36,13 +36,19 @@ def build_habit_action_parser(
         subparsers,
         "habit-action",
         help_content=HelpContent(
-            summary=_("messages.manage_dated_habit_actions_63327a0f"),
+            summary=_("resources.habit_action.parser.manage_dated_habit_actions"),
             description=(
-                _("messages.inspect_and_update_dated_habit_action_occurrences_materi_d09df8b6")
+                _(
+                    "resources.habit_action.parser.inspect_and_update_dated_habit_action_occurrences_materialized_from_habits"
+                )
                 + "\n\n"
-                + _("messages.habit_actions_are_materialized_on_demand_when_queried_or_73f2411c")
+                + _(
+                    "resources.habit_action.parser.habit_actions_are_materialized_on_demand_when_queried_or_logged"
+                )
                 + "\n\n"
-                + _("messages.cadence_based_habits_still_log_dated_rows_but_progress_a_ee576cf3")
+                + _(
+                    "resources.habit_action.parser.cadence_based_habits_still_log_dated_rows_but_progress_and_streaks_are"
+                )
             ),
             examples=(
                 "lifeos habit-action list --help",
@@ -50,27 +56,35 @@ def build_habit_action_parser(
                 "lifeos habit-action log --help",
             ),
             notes=(
-                _("messages.use_list_for_both_per_habit_and_by_date_views_5f6adf71"),
-                _("messages.habit_cadence_decides_how_rows_are_grouped_into_completi_2134dec5"),
-                _("messages.use_log_to_materialize_and_update_an_occurrence_by_habit_4c3e9945"),
+                _("resources.habit_action.parser.use_list_for_both_per_habit_and_by_date_views"),
+                _(
+                    "resources.habit_action.parser.habit_cadence_decides_how_rows_are_grouped_into_completion_cycles"
+                ),
+                _(
+                    "resources.habit_action.parser.use_log_to_materialize_and_update_occurrence_by_habit_and_date"
+                ),
             ),
         ),
     )
     action_subparsers = action_parser.add_subparsers(
         dest="habit_action_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     list_parser = add_documented_parser(
         action_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_habit_actions_eccc00a5"),
+            summary=_("resources.habit_action.parser.list_habit_actions"),
             description=(
-                _("messages.list_habit_actions_for_one_habit_or_by_date_filters_b0c0a4f2")
+                _(
+                    "resources.habit_action.parser.list_habit_actions_for_one_habit_or_by_date_filters"
+                )
                 + "\n\n"
-                + _("messages.use_this_command_to_inspect_daily_occurrence_views_and_m_cd66a3cc")
+                + _(
+                    "resources.habit_action.parser.use_this_command_to_inspect_daily_occurrence_views_and_materialized_records"
+                )
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
@@ -79,23 +93,29 @@ def build_habit_action_parser(
                 "lifeos habit-action list --date 2026-04-09 --count",
             ),
             notes=(
-                _("messages.repeat_date_once_for_one_action_date_or_twice_for_one_in_d68e5e90"),
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "resources.habit_action.parser.repeat_date_once_for_one_action_date_or_twice_for_one_inclusive"
+                ),
+                _(
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(HABIT_ACTION_SUMMARY_COLUMNS)),
             ),
         ),
     )
     list_parser.add_argument(
-        "--habit-id", type=UUID, help=_("messages.filter_by_habit_identifier_defbda37")
-    )
-    list_parser.add_argument("--status", help=_("messages.filter_by_habit_action_status_f2f559e4"))
-    add_date_range_arguments(
-        list_parser,
-        date_help=_("messages.repeat_once_for_one_action_date_or_twice_for_one_inclusi_23beefec"),
+        "--habit-id", type=UUID, help=_("resources.habit_action.parser.filter_by_habit_identifier")
     )
     list_parser.add_argument(
-        "--count", action="store_true", help=_("messages.print_total_matched_count_b60ad049")
+        "--status", help=_("resources.habit_action.parser.filter_by_habit_action_status")
+    )
+    add_date_range_arguments(
+        list_parser,
+        date_help=_(
+            "resources.habit_action.parser.repeat_once_for_one_action_date_or_twice_for_one_inclusive_date"
+        ),
+    )
+    list_parser.add_argument(
+        "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
@@ -105,8 +125,10 @@ def build_habit_action_parser(
         action_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_a_habit_action_11614784"),
-            description=_("messages.show_one_habit_action_with_its_linked_habit_metadata_2213b145"),
+            summary=_("resources.habit_action.parser.show_habit_action"),
+            description=_(
+                "resources.habit_action.parser.show_one_habit_action_with_its_linked_habit_metadata"
+            ),
             examples=(
                 "lifeos habit-action show 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action show 11111111-1111-1111-1111-111111111111 --include-deleted",
@@ -114,7 +136,7 @@ def build_habit_action_parser(
         ),
     )
     show_parser.add_argument(
-        "action_id", type=UUID, help=_("messages.habit_action_identifier_190ca8b4")
+        "action_id", type=UUID, help=_("resources.habit_action.parser.habit_action_identifier")
     )
     add_include_deleted_argument(show_parser, noun="habit actions", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_action_show_async))
@@ -123,11 +145,13 @@ def build_habit_action_parser(
         action_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_habit_action_659f3778"),
+            summary=_("resources.habit_action.parser.update_habit_action"),
             description=(
-                _("messages.update_one_materialized_habit_action_26bd8ded")
+                _("resources.habit_action.parser.update_one_materialized_habit_action")
                 + "\n\n"
-                + _("messages.this_command_only_allows_status_and_notes_changes_within_409275a4")
+                + _(
+                    "resources.habit_action.parser.this_command_only_allows_status_and_notes_changes_within_editable_window"
+                )
             ),
             examples=(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
@@ -136,20 +160,24 @@ def build_habit_action_parser(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --clear-notes",
             ),
             notes=(
-                _("messages.use_log_when_you_know_the_habit_and_date_but_have_not_lo_ff822f6b"),
-                _("messages.use_clear_notes_to_remove_optional_notes_2cb096df"),
+                _(
+                    "resources.habit_action.parser.use_log_when_you_know_habit_and_date_but_have_not_looked"
+                ),
+                _("resources.habit_action.parser.use_clear_notes_to_remove_optional_notes"),
             ),
         ),
     )
     update_parser.add_argument(
-        "action_id", type=UUID, help=_("messages.habit_action_identifier_190ca8b4")
+        "action_id", type=UUID, help=_("resources.habit_action.parser.habit_action_identifier")
     )
-    update_parser.add_argument("--status", help=_("messages.updated_habit_action_status_0ad85bcf"))
-    update_parser.add_argument("--notes", help=_("messages.updated_notes_5143e05e"))
+    update_parser.add_argument(
+        "--status", help=_("resources.habit_action.parser.updated_habit_action_status")
+    )
+    update_parser.add_argument("--notes", help=_("common.messages.updated_notes"))
     update_parser.add_argument(
         "--clear-notes",
         action="store_true",
-        help=_("messages.clear_the_optional_notes_field_f5beea04"),
+        help=_("resources.habit_action.parser.clear_optional_notes_field"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_habit_action_update_async))
 
@@ -157,11 +185,15 @@ def build_habit_action_parser(
         action_subparsers,
         "log",
         help_content=HelpContent(
-            summary=_("messages.update_a_habit_action_by_date_7f64e2ac"),
+            summary=_("resources.habit_action.parser.update_habit_action_by_date"),
             description=(
-                _("messages.materialize_or_update_a_habit_action_by_habit_identifier_21639e25")
+                _(
+                    "resources.habit_action.parser.materialize_or_update_habit_action_by_habit_identifier_and_action_date"
+                )
                 + "\n\n"
-                + _("messages.use_this_command_when_checking_in_without_first_looking_101c522e")
+                + _(
+                    "resources.habit_action.parser.use_this_command_when_checking_in_without_first_looking_up_action_id"
+                )
             ),
             examples=(
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
@@ -170,26 +202,32 @@ def build_habit_action_parser(
                 '--date 2026-04-09 --status skip --notes "Travel day"',
             ),
             notes=(
-                _("messages.use_update_when_you_already_have_the_materialized_action_183c30c4"),
-                _("messages.this_command_follows_the_same_editable_window_rules_as_u_13c7ce34"),
+                _(
+                    "resources.habit_action.parser.use_update_when_you_already_have_materialized_action_identifier"
+                ),
+                _(
+                    "resources.habit_action.parser.this_command_follows_same_editable_window_rules_as_update"
+                ),
             ),
         ),
     )
     log_parser.add_argument(
-        "--habit-id", required=True, type=UUID, help=_("messages.habit_identifier_e1aa7a05")
+        "--habit-id", required=True, type=UUID, help=_("common.messages.habit_identifier")
     )
     log_parser.add_argument(
         "--date",
         dest="action_date",
         required=True,
         type=parse_date_value,
-        help=_("messages.action_date_in_yyyy_mm_dd_format_d01687b4"),
+        help=_("resources.habit_action.parser.action_date_in_yyyy_mm_dd_format"),
     )
-    log_parser.add_argument("--status", help=_("messages.updated_habit_action_status_0ad85bcf"))
-    log_parser.add_argument("--notes", help=_("messages.updated_notes_5143e05e"))
+    log_parser.add_argument(
+        "--status", help=_("resources.habit_action.parser.updated_habit_action_status")
+    )
+    log_parser.add_argument("--notes", help=_("common.messages.updated_notes"))
     log_parser.add_argument(
         "--clear-notes",
         action="store_true",
-        help=_("messages.clear_the_optional_notes_field_f5beea04"),
+        help=_("resources.habit_action.parser.clear_optional_notes_field"),
     )
     log_parser.set_defaults(handler=make_sync_handler(handle_habit_action_log_async))

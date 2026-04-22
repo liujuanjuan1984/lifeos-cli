@@ -40,11 +40,13 @@ def build_note_add_parser(
         note_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_note_6c3277da"),
+            summary=_("resources.note.parser_actions.create_note"),
             description=(
-                _("messages.create_a_new_note_from_inline_text_stdin_or_a_file_da088bdc")
+                _("resources.note.parser_actions.create_new_note_from_inline_text_stdin_or_file")
                 + "\n\n"
-                + _("messages.use_this_action_to_capture_short_thoughts_prompts_or_raw_35d8228d")
+                + _(
+                    "resources.note.parser_actions.use_this_action_to_capture_short_thoughts_prompts_or_raw_text_before"
+                )
             ),
             examples=(
                 'lifeos note add "Capture the sprint retrospective idea"',
@@ -55,20 +57,26 @@ def build_note_add_parser(
                 'lifeos note add "Prepare the partner sync agenda" --event-id <event-id>',
             ),
             notes=(
-                _("messages.wrap_inline_content_in_quotes_when_it_contains_spaces_cec19fa2"),
-                _("messages.use_stdin_or_file_for_multi_line_note_content_fc07536b"),
-                _("messages.repeat_the_same_relation_flag_to_link_multiple_records_o_d691fed7"),
+                _(
+                    "resources.note.parser_actions.wrap_inline_content_in_quotes_when_it_contains_spaces"
+                ),
+                _("resources.note.parser_actions.use_stdin_or_file_for_multi_line_note_content"),
+                _(
+                    "resources.note.parser_actions.repeat_same_relation_flag_to_link_multiple_records_of_that_type_in"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("content", nargs="?", help=_("messages.inline_note_content_d9202024"))
+    add_parser.add_argument(
+        "content", nargs="?", help=_("resources.note.parser_actions.inline_note_content")
+    )
     add_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("messages.read_note_content_from_standard_input_bfb8814e"),
+        help=_("resources.note.parser_actions.read_note_content_from_standard_input"),
     )
     add_parser.add_argument(
-        "--file", help=_("messages.read_note_content_from_a_utf_8_text_file_a4c91750")
+        "--file", help=_("resources.note.parser_actions.read_note_content_from_utf_8_text_file")
     )
     add_parser.add_argument(
         "--tag-id",
@@ -76,7 +84,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_tags_e5411318"),
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_tags"),
     )
     add_parser.add_argument(
         "--person-id",
@@ -84,7 +92,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_people_cf6b79d8"),
+        help=_("common.messages.repeat_to_associate_one_or_more_people"),
     )
     add_parser.add_argument(
         "--task-id",
@@ -92,7 +100,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_tasks_9aa6e7b1"),
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_tasks"),
     )
     add_parser.add_argument(
         "--vision-id",
@@ -100,7 +108,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_visions_74e977b4"),
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_visions"),
     )
     add_parser.add_argument(
         "--event-id",
@@ -108,7 +116,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_events_8c3af0be"),
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_events"),
     )
     add_parser.add_argument(
         "--timelog-id",
@@ -116,7 +124,7 @@ def build_note_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_timelogs_ae3cc25a"),
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_timelogs"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_note_add_async))
 
@@ -128,12 +136,12 @@ def build_note_list_parser(
         note_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_notes_9a0c8587"),
+            summary=_("resources.note.parser_actions.list_notes"),
             description=(
-                _("messages.list_notes_in_reverse_creation_order_8ab1cda9")
+                _("resources.note.parser_actions.list_notes_in_reverse_creation_order")
                 + "\n\n"
                 + _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS))
             ),
             examples=(
@@ -146,36 +154,36 @@ def build_note_list_parser(
                 "lifeos note list --include-deleted",
             ),
             notes=(
-                _("messages.use_include_deleted_when_reviewing_deleted_records_f14ea31c"),
-                _("messages.use_limit_and_offset_together_for_pagination_9c38907c"),
                 _(
-                    "messages.use_with_counts_to_add_relationship_count_columns_column_39685a70"
+                    "resources.note.parser_actions.use_include_deleted_when_reviewing_deleted_records"
+                ),
+                _("resources.note.parser_actions.use_limit_and_offset_together_for_pagination"),
+                _(
+                    "common.messages.use_with_counts_to_add_relationship_count_columns_columns"
                 ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)),
             ),
         ),
     )
+    list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
     list_parser.add_argument(
-        "--tag-id", type=UUID, help=_("messages.filter_by_linked_tag_c1bc2105")
+        "--event-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_event")
     )
     list_parser.add_argument(
-        "--event-id", type=UUID, help=_("messages.filter_by_linked_event_db2564be")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
     )
     list_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_8b21ab5b")
+        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
     )
     list_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.filter_by_linked_task_bc80bbeb")
+        "--timelog-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_timelog")
     )
     list_parser.add_argument(
-        "--timelog-id", type=UUID, help=_("messages.filter_by_linked_timelog_6d45b661")
-    )
-    list_parser.add_argument(
-        "--vision-id", type=UUID, help=_("messages.filter_by_linked_vision_0cf8f869")
+        "--vision-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_vision")
     )
     list_parser.add_argument(
         "--with-counts",
         action="store_true",
-        help=_("messages.include_relationship_count_columns_in_summary_output_f5b275f8"),
+        help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
     add_include_deleted_argument(list_parser, noun="notes")
     add_limit_offset_arguments(list_parser, row_noun="notes")
@@ -189,11 +197,13 @@ def build_note_search_parser(
         note_subparsers,
         "search",
         help_content=HelpContent(
-            summary=_("messages.search_notes_246ce514"),
+            summary=_("resources.note.parser_actions.search_notes"),
             description=(
-                _("messages.search_notes_by_keyword_tokens_0dde19c5")
+                _("resources.note.parser_actions.search_notes_by_keyword_tokens")
                 + "\n\n"
-                + _("messages.search_uses_postgresql_backed_ilike_token_matching_each_ea1a013e")
+                + _(
+                    "resources.note.parser_actions.search_uses_postgresql_backed_ilike_token_matching_each_token_is_checked_against"
+                )
             ),
             examples=(
                 'lifeos note search "meeting notes"',
@@ -203,37 +213,41 @@ def build_note_search_parser(
                 'lifeos note search "archived idea" --include-deleted',
             ),
             notes=(
-                _("messages.results_use_the_same_summary_format_as_lifeos_note_list_70496ac6"),
                 _(
-                    "messages.use_with_counts_to_add_relationship_count_columns_column_39685a70"
+                    "resources.note.parser_actions.results_use_same_summary_format_as_lifeos_note_list"
+                ),
+                _(
+                    "common.messages.use_with_counts_to_add_relationship_count_columns_columns"
                 ).format(columns=format_summary_column_list(NOTE_SUMMARY_COLUMNS_WITH_COUNTS)),
-                _("messages.multi_word_queries_are_split_into_tokens_and_matched_wit_e8781e98"),
+                _(
+                    "resources.note.parser_actions.multi_word_queries_are_split_into_tokens_and_matched_with_or_semantics"
+                ),
             ),
         ),
     )
-    search_parser.add_argument("query", help=_("messages.search_query_string_3dde4fea"))
+    search_parser.add_argument("query", help=_("resources.note.parser_actions.search_query_string"))
     search_parser.add_argument(
-        "--tag-id", type=UUID, help=_("messages.filter_by_linked_tag_c1bc2105")
+        "--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag")
     )
     search_parser.add_argument(
-        "--event-id", type=UUID, help=_("messages.filter_by_linked_event_db2564be")
+        "--event-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_event")
     )
     search_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_8b21ab5b")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
     )
     search_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.filter_by_linked_task_bc80bbeb")
+        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
     )
     search_parser.add_argument(
-        "--timelog-id", type=UUID, help=_("messages.filter_by_linked_timelog_6d45b661")
+        "--timelog-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_timelog")
     )
     search_parser.add_argument(
-        "--vision-id", type=UUID, help=_("messages.filter_by_linked_vision_0cf8f869")
+        "--vision-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_vision")
     )
     search_parser.add_argument(
         "--with-counts",
         action="store_true",
-        help=_("messages.include_relationship_count_columns_in_summary_output_f5b275f8"),
+        help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
     add_include_deleted_argument(search_parser, noun="notes in the search scope")
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
@@ -247,20 +261,26 @@ def build_note_show_parser(
         note_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_full_note_content_0801f676"),
+            summary=_("resources.note.parser_actions.show_full_note_content"),
             description=(
-                _("messages.show_a_single_note_with_full_metadata_and_the_original_c_fac94dee")
+                _(
+                    "resources.note.parser_actions.show_single_note_with_full_metadata_and_original_content_body"
+                )
                 + "\n\n"
-                + _("messages.use_this_action_when_you_need_to_inspect_preserved_line_51d26407")
+                + _(
+                    "resources.note.parser_actions.use_this_action_when_you_need_to_inspect_preserved_line_breaks_instead"
+                )
             ),
             examples=(
                 "lifeos note show 11111111-1111-1111-1111-111111111111",
                 "lifeos note show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
-            notes=(_("messages.use_include_deleted_to_inspect_a_deleted_note_9b4a7e0d"),),
+            notes=(_("resources.note.parser_actions.use_include_deleted_to_inspect_deleted_note"),),
         ),
     )
-    show_parser.add_argument("note_id", type=UUID, help=_("messages.note_identifier_45195a2f"))
+    show_parser.add_argument(
+        "note_id", type=UUID, help=_("resources.note.parser_actions.note_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="notes", help_prefix="Allow loading")
     show_parser.set_defaults(handler=make_sync_handler(handle_note_show_async))
 
@@ -272,11 +292,15 @@ def build_note_update_parser(
         note_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_note_922bd82a"),
+            summary=_("resources.note.parser_actions.update_note"),
             description=(
-                _("messages.update_note_content_and_weak_associations_in_place_a7f14957")
+                _(
+                    "resources.note.parser_actions.update_note_content_and_weak_associations_in_place"
+                )
                 + "\n\n"
-                + _("messages.omitted_fields_remain_unchanged_use_clear_flags_to_remov_35cb3302")
+                + _(
+                    "resources.note.parser_actions.omitted_fields_remain_unchanged_use_clear_flags_to_remove_links"
+                )
             ),
             examples=(
                 'lifeos note update 11111111-1111-1111-1111-111111111111 "Rewrite the note"',
@@ -288,14 +312,20 @@ def build_note_update_parser(
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
             ),
             notes=(
-                _("messages.repeat_the_same_relation_flag_to_replace_multiple_linked_5249e52c"),
-                _("messages.use_relation_flags_without_content_when_only_links_need_e9644074"),
+                _(
+                    "resources.note.parser_actions.repeat_same_relation_flag_to_replace_multiple_linked_tags_people_tasks_visions"
+                ),
+                _(
+                    "resources.note.parser_actions.use_relation_flags_without_content_when_only_links_need_to_change"
+                ),
             ),
         ),
     )
-    update_parser.add_argument("note_id", type=UUID, help=_("messages.note_identifier_45195a2f"))
     update_parser.add_argument(
-        "content", nargs="?", help=_("messages.replacement_note_content_2bd846c4")
+        "note_id", type=UUID, help=_("resources.note.parser_actions.note_identifier")
+    )
+    update_parser.add_argument(
+        "content", nargs="?", help=_("resources.note.parser_actions.replacement_note_content")
     )
     update_parser.add_argument(
         "--tag-id",
@@ -303,10 +333,10 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_tags_with_one_or_more_identifiers_4e3e164c"),
+        help=_("common.messages.repeat_to_replace_tags_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-tags", action="store_true", help=_("messages.remove_all_tags_43833702")
+        "--clear-tags", action="store_true", help=_("common.messages.remove_all_tags")
     )
     update_parser.add_argument(
         "--person-id",
@@ -314,10 +344,10 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.add_argument(
         "--task-id",
@@ -325,13 +355,15 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_tasks_with_one_or_more_identifiers_e9ad6137"),
+        help=_(
+            "resources.note.parser_actions.repeat_to_replace_tasks_with_one_or_more_identifiers"
+        ),
     )
     update_parser.add_argument(
         "--clear-tasks",
         dest="clear_tasks",
         action="store_true",
-        help=_("messages.remove_all_linked_tasks_3dabf39b"),
+        help=_("resources.note.parser_actions.remove_all_linked_tasks"),
     )
     update_parser.add_argument(
         "--vision-id",
@@ -339,12 +371,14 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_visions_with_one_or_more_identifiers_897b6843"),
+        help=_(
+            "resources.note.parser_actions.repeat_to_replace_visions_with_one_or_more_identifiers"
+        ),
     )
     update_parser.add_argument(
         "--clear-visions",
         action="store_true",
-        help=_("messages.remove_all_linked_visions_638d3c34"),
+        help=_("resources.note.parser_actions.remove_all_linked_visions"),
     )
     update_parser.add_argument(
         "--event-id",
@@ -352,12 +386,14 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_events_with_one_or_more_identifiers_8156f328"),
+        help=_(
+            "resources.note.parser_actions.repeat_to_replace_events_with_one_or_more_identifiers"
+        ),
     )
     update_parser.add_argument(
         "--clear-events",
         action="store_true",
-        help=_("messages.remove_all_linked_events_484c72c8"),
+        help=_("resources.note.parser_actions.remove_all_linked_events"),
     )
     update_parser.add_argument(
         "--timelog-id",
@@ -365,12 +401,14 @@ def build_note_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_timelogs_with_one_or_more_identifiers_223cf4fd"),
+        help=_(
+            "resources.note.parser_actions.repeat_to_replace_timelogs_with_one_or_more_identifiers"
+        ),
     )
     update_parser.add_argument(
         "--clear-timelogs",
         action="store_true",
-        help=_("messages.remove_all_linked_timelogs_5f2ce15d"),
+        help=_("resources.note.parser_actions.remove_all_linked_timelogs"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_note_update_async))
 
@@ -382,12 +420,14 @@ def build_note_delete_parser(
         note_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_note_feec9616"),
-            description=_("messages.delete_a_note_by_identifier_a50f7cab"),
+            summary=_("resources.note.parser_actions.delete_note"),
+            description=_("resources.note.parser_actions.delete_note_by_identifier"),
             examples=("lifeos note delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("note_id", type=UUID, help=_("messages.note_identifier_45195a2f"))
+    delete_parser.add_argument(
+        "note_id", type=UUID, help=_("resources.note.parser_actions.note_identifier")
+    )
     delete_parser.set_defaults(handler=make_sync_handler(handle_note_delete_async))
 
 
@@ -398,36 +438,46 @@ def build_note_batch_parser(
         note_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("messages.run_batch_note_operations_821fd597"),
+            summary=_("resources.note.parser_actions.run_batch_note_operations"),
             description=_(
-                "messages.run_note_operations_that_target_multiple_records_in_one_d9de2136"
+                "resources.note.parser_actions.run_note_operations_that_target_multiple_records_in_one_command"
             ),
             examples=(
                 "lifeos note batch update-content --help",
                 "lifeos note batch delete --help",
             ),
             notes=(
-                _("messages.use_update_content_for_bulk_find_replace_across_active_n_fb4cfbc0"),
-                _("messages.use_delete_to_remove_multiple_notes_by_identifier_a1ee2b5f"),
-                _("messages.batch_commands_currently_accept_note_ids_directly_f30c29ea"),
+                _(
+                    "resources.note.parser_actions.use_update_content_for_bulk_find_replace_across_active_note_content"
+                ),
+                _(
+                    "resources.note.parser_actions.use_delete_to_remove_multiple_notes_by_identifier"
+                ),
+                _(
+                    "resources.note.parser_actions.batch_commands_currently_accept_note_ids_directly"
+                ),
             ),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="note_batch_command",
-        title=_("messages.operations_e8c39c4d"),
-        metavar=_("messages.operation_fcb60bc5"),
+        title=_("resources.note.parser_actions.operations"),
+        metavar=_("resources.note.parser_actions.operation"),
     )
 
     batch_update_parser = add_documented_parser(
         batch_subparsers,
         "update-content",
         help_content=HelpContent(
-            summary=_("messages.find_and_replace_note_content_in_bulk_594215fe"),
+            summary=_("resources.note.parser_actions.find_and_replace_note_content_in_bulk"),
             description=(
-                _("messages.apply_a_find_replace_operation_across_multiple_active_no_3ea77fbb")
+                _(
+                    "resources.note.parser_actions.apply_find_replace_operation_across_multiple_active_notes"
+                )
                 + "\n\n"
-                + _("messages.this_is_the_first_batch_editing_primitive_for_notes_and_494db2ef")
+                + _(
+                    "resources.note.parser_actions.this_is_first_batch_editing_primitive_for_notes_and_provides_base_shape"
+                )
             ),
             examples=(
                 "lifeos note batch update-content --ids "
@@ -439,8 +489,10 @@ def build_note_batch_parser(
                 '--find-text "TODO" --replace-text "DONE" --case-sensitive',
             ),
             notes=(
-                _("messages.only_active_notes_are_updated_by_this_command_9e7f92dd"),
-                _("messages.failed_note_ids_are_printed_to_stderr_while_successful_u_2b981ab2"),
+                _("resources.note.parser_actions.only_active_notes_are_updated_by_this_command"),
+                _(
+                    "resources.note.parser_actions.failed_note_ids_are_printed_to_stderr_while_successful_updates_stay_on"
+                ),
             ),
         ),
     )
@@ -451,20 +503,24 @@ def build_note_batch_parser(
         nargs="+",
         required=True,
         type=UUID,
-        help=_("messages.one_or_more_note_identifiers_to_update_e210092e"),
+        help=_("resources.note.parser_actions.one_or_more_note_identifiers_to_update"),
     )
     batch_update_parser.add_argument(
-        "--find-text", required=True, help=_("messages.text_to_find_in_each_target_note_e147da50")
+        "--find-text",
+        required=True,
+        help=_("resources.note.parser_actions.text_to_find_in_each_target_note"),
     )
     batch_update_parser.add_argument(
         "--replace-text",
         default="",
-        help=_("messages.replacement_text_for_matched_content_dc465d57"),
+        help=_("resources.note.parser_actions.replacement_text_for_matched_content"),
     )
     batch_update_parser.add_argument(
         "--case-sensitive",
         action="store_true",
-        help=_("messages.use_a_case_sensitive_find_replace_instead_of_case_insens_de32e20b"),
+        help=_(
+            "resources.note.parser_actions.use_case_sensitive_find_replace_instead_of_case_insensitive_matching"
+        ),
     )
     batch_update_parser.set_defaults(
         handler=make_sync_handler(handle_note_batch_update_content_async)
@@ -474,11 +530,13 @@ def build_note_batch_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_multiple_notes_328b9065"),
+            summary=_("resources.note.parser_actions.delete_multiple_notes"),
             description=(
-                _("messages.delete_multiple_notes_in_one_command_be81a022")
+                _("resources.note.parser_actions.delete_multiple_notes_in_one_command")
                 + "\n\n"
-                + _("messages.this_command_mirrors_lifeos_note_delete_but_works_across_782b1718")
+                + _(
+                    "resources.note.parser_actions.this_command_mirrors_lifeos_note_delete_but_works_across_many_note_ids"
+                )
             ),
             examples=(
                 "lifeos note batch delete --ids "
@@ -486,7 +544,9 @@ def build_note_batch_parser(
                 "22222222-2222-2222-2222-222222222222",
             ),
             notes=(
-                _("messages.failed_note_ids_are_printed_to_stderr_while_successful_d_95db6a31"),
+                _(
+                    "resources.note.parser_actions.failed_note_ids_are_printed_to_stderr_while_successful_deletes_stay_on"
+                ),
             ),
         ),
     )
@@ -497,6 +557,6 @@ def build_note_batch_parser(
         nargs="+",
         required=True,
         type=UUID,
-        help=_("messages.one_or_more_note_identifiers_to_delete_34bbc196"),
+        help=_("resources.note.parser_actions.one_or_more_note_identifiers_to_delete"),
     )
     batch_delete_parser.set_defaults(handler=make_sync_handler(handle_note_batch_delete_async))

@@ -35,13 +35,19 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "people",
         help_content=HelpContent(
-            summary=_("messages.manage_people_and_relationships_d33e9c4a"),
+            summary=_("resources.people.parser.manage_people_and_relationships"),
             description=(
-                _("messages.create_and_maintain_people_records_for_your_social_conte_4e509772")
+                _(
+                    "resources.people.parser.create_and_maintain_people_records_for_your_social_context"
+                )
                 + "\n\n"
-                + _("messages.this_resource_is_for_named_people_relationship_context_a_9831d9d0")
+                + _(
+                    "resources.people.parser.this_resource_is_for_named_people_relationship_context_and_explicit_execution_subjects"
+                )
                 + "\n\n"
-                + _("messages.use_it_for_the_human_partner_and_when_useful_a_named_aut_83fce86b")
+                + _(
+                    "resources.people.parser.use_it_for_human_partner_and_when_useful_named_automation_identity_so"
+                )
             ),
             examples=(
                 "lifeos people add --help",
@@ -49,28 +55,36 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people batch --help",
             ),
             notes=(
-                _("messages.people_is_the_intentional_cli_resource_name_for_this_dom_272f3498"),
-                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
-                _("messages.see_lifeos_people_batch_help_for_bulk_delete_operations_6d70e29b"),
-                _("messages.agent_callers_should_keep_the_human_partner_and_the_auto_a71a83ca"),
+                _(
+                    "resources.people.parser.people_is_intentional_cli_resource_name_for_this_domain"
+                ),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _(
+                    "resources.people.parser.see_lifeos_people_batch_help_for_bulk_delete_operations"
+                ),
+                _(
+                    "resources.people.parser.agent_callers_should_keep_human_partner_and_automation_identity_as_separate_records"
+                ),
             ),
         ),
     )
     people_subparsers = people_parser.add_subparsers(
         dest="people_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     add_parser = add_documented_parser(
         people_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_person_2968351f"),
+            summary=_("resources.people.parser.create_person"),
             description=(
-                _("messages.create_a_new_person_c4ba49e5")
+                _("resources.people.parser.create_new_person")
                 + "\n\n"
-                + _("messages.use_tags_nicknames_and_location_to_capture_relationship_85de19f4")
+                + _(
+                    "resources.people.parser.use_tags_nicknames_and_location_to_capture_relationship_context_or_execution_subject"
+                )
             ),
             examples=(
                 'lifeos people add "Human Partner" --nickname ally --location Toronto',
@@ -78,26 +92,30 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 '--description "Automation identity for CLI workflows"',
             ),
             notes=(
-                _("messages.create_separate_records_when_the_human_and_the_agent_sho_7090d3b5"),
+                _(
+                    "resources.people.parser.create_separate_records_when_human_and_agent_should_remain_distinct_subjects_in"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("name", help=_("messages.person_name_d7359462"))
+    add_parser.add_argument("name", help=_("resources.people.parser.person_name"))
     add_parser.add_argument(
-        "--description", help=_("messages.optional_person_description_b615a798")
+        "--description", help=_("resources.people.parser.optional_person_description")
     )
     add_parser.add_argument(
-        "--nickname", action="append", help=_("messages.nickname_or_alias_repeatable_3f9657cf")
+        "--nickname",
+        action="append",
+        help=_("resources.people.parser.nickname_or_alias_repeatable"),
     )
     add_parser.add_argument(
-        "--birth-date", help=_("messages.birth_date_in_iso_format_yyyy_mm_dd_220e6f81")
+        "--birth-date", help=_("resources.people.parser.birth_date_in_iso_format_yyyy_mm_dd")
     )
-    add_parser.add_argument("--location", help=_("messages.location_label_a69606c0"))
+    add_parser.add_argument("--location", help=_("resources.people.parser.location_label"))
     add_parser.add_argument(
         "--tag-id",
         action="append",
         type=UUID,
-        help=_("messages.tag_identifier_repeatable_45bbee7e"),
+        help=_("resources.people.parser.tag_identifier_repeatable"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_people_add_async))
 
@@ -105,11 +123,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_people_b04d9557"),
+            summary=_("resources.people.parser.list_people"),
             description=(
-                _("messages.list_people_with_optional_search_or_tag_filters_e2b843ed")
+                _("resources.people.parser.list_people_with_optional_search_or_tag_filters")
                 + "\n\n"
-                + _("messages.use_this_as_the_primary_query_entrypoint_for_people_rath_48858586")
+                + _(
+                    "resources.people.parser.use_this_as_primary_query_entrypoint_for_people_rather_than_expecting_separate"
+                )
             ),
             examples=(
                 "lifeos people list",
@@ -117,18 +137,18 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people list --tag-id 11111111-1111-1111-1111-111111111111 --limit 20",
             ),
             notes=(
-                _("messages.search_currently_matches_name_nicknames_and_location_2fed7e56"),
+                _("resources.people.parser.search_currently_matches_name_nicknames_and_location"),
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(PERSON_SUMMARY_COLUMNS)),
             ),
         ),
     )
     list_parser.add_argument(
-        "--search", help=_("messages.search_by_name_nickname_or_location_f7a0b108")
+        "--search", help=_("resources.people.parser.search_by_name_nickname_or_location")
     )
     list_parser.add_argument(
-        "--tag-id", type=UUID, help=_("messages.filter_by_tag_identifier_32ede5f4")
+        "--tag-id", type=UUID, help=_("resources.people.parser.filter_by_tag_identifier")
     )
     add_include_deleted_argument(list_parser, noun="people")
     add_limit_offset_arguments(list_parser)
@@ -138,15 +158,17 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_a_person_f956427c"),
-            description=_("messages.show_one_person_with_full_metadata_0cb42823"),
+            summary=_("resources.people.parser.show_person"),
+            description=_("resources.people.parser.show_one_person_with_full_metadata"),
             examples=(
                 "lifeos people show 11111111-1111-1111-1111-111111111111",
                 "lifeos people show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("person_id", type=UUID, help=_("messages.person_identifier_bf1cd8a1"))
+    show_parser.add_argument(
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="people", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_people_show_async))
 
@@ -154,11 +176,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_person_b72d2858"),
+            summary=_("resources.people.parser.update_person"),
             description=(
-                _("messages.update_mutable_person_fields_f22ff586")
+                _("resources.people.parser.update_mutable_person_fields")
                 + "\n\n"
-                + _("messages.only_explicitly_supplied_flags_are_changed_omitted_field_9f9e6dd8")
+                + _(
+                    "resources.people.parser.only_explicitly_supplied_flags_are_changed_omitted_fields_are_preserved"
+                )
             ),
             examples=(
                 'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
@@ -169,52 +193,57 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --clear-location",
             ),
             notes=(
-                _("messages.use_clear_flags_to_remove_optional_values_instead_of_rep_513a48d5"),
+                _(
+                    "resources.people.parser.use_clear_flags_to_remove_optional_values_instead_of_replacing_them"
+                ),
             ),
         ),
     )
     update_parser.add_argument(
-        "person_id", type=UUID, help=_("messages.person_identifier_bf1cd8a1")
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
     )
-    update_parser.add_argument("--name", help=_("messages.updated_person_name_c1095f52"))
-    update_parser.add_argument("--description", help=_("messages.updated_description_ce962f11"))
+    update_parser.add_argument("--name", help=_("resources.people.parser.updated_person_name"))
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("messages.clear_the_optional_person_description_439d9b1e"),
+        help=_("resources.people.parser.clear_optional_person_description"),
     )
     update_parser.add_argument(
-        "--nickname", action="append", help=_("messages.updated_nicknames_repeatable_fceb85ac")
+        "--nickname",
+        action="append",
+        help=_("resources.people.parser.updated_nicknames_repeatable"),
     )
     update_parser.add_argument(
         "--clear-nicknames",
         action="store_true",
-        help=_("messages.clear_all_nicknames_dd3c53a3"),
+        help=_("resources.people.parser.clear_all_nicknames"),
     )
     update_parser.add_argument(
-        "--birth-date", help=_("messages.updated_birth_date_in_iso_format_yyyy_mm_dd_fa173b03")
+        "--birth-date",
+        help=_("resources.people.parser.updated_birth_date_in_iso_format_yyyy_mm_dd"),
     )
     update_parser.add_argument(
         "--clear-birth-date",
         action="store_true",
-        help=_("messages.clear_the_optional_birth_date_5c002535"),
+        help=_("resources.people.parser.clear_optional_birth_date"),
     )
-    update_parser.add_argument("--location", help=_("messages.updated_location_0ce63126"))
+    update_parser.add_argument("--location", help=_("common.messages.updated_location"))
     update_parser.add_argument(
         "--clear-location",
         action="store_true",
-        help=_("messages.clear_the_optional_location_df32cac8"),
+        help=_("resources.people.parser.clear_optional_location"),
     )
     update_parser.add_argument(
         "--tag-id",
         action="append",
         type=UUID,
-        help=_("messages.replacement_tag_identifiers_36c9dc13"),
+        help=_("resources.people.parser.replacement_tag_identifiers"),
     )
     update_parser.add_argument(
         "--clear-tags",
         action="store_true",
-        help=_("messages.remove_all_tag_associations_from_the_person_d3e66633"),
+        help=_("resources.people.parser.remove_all_tag_associations_from_person"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_people_update_async))
 
@@ -222,13 +251,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_person_8d7a7e79"),
-            description=_("messages.delete_a_person_cf7757af"),
+            summary=_("resources.people.parser.delete_person"),
+            description=_("resources.people.parser.delete_person_description"),
             examples=("lifeos people delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument(
-        "person_id", type=UUID, help=_("messages.person_identifier_bf1cd8a1")
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_people_delete_async))
 
@@ -236,29 +265,27 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("messages.run_batch_people_operations_2b832021"),
-            description=_("messages.delete_multiple_people_records_in_one_command_92718b1b"),
+            summary=_("resources.people.parser.run_batch_people_operations"),
+            description=_("resources.people.parser.delete_multiple_people_records_in_one_command"),
             examples=(
                 "lifeos people batch delete --help",
                 "lifeos people batch delete --ids <person-id-1> <person-id-2>",
             ),
-            notes=(
-                _("messages.this_namespace_currently_exposes_only_the_delete_workflo_8e17bac4"),
-            ),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="people_batch_command",
-        title=_("messages.batch_actions_fb880b71"),
-        metavar=_("messages.batch_action_3c29d393"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_multiple_people_f43304f6"),
-            description=_("messages.delete_multiple_people_by_identifier_7390aba6"),
+            summary=_("resources.people.parser.delete_multiple_people"),
+            description=_("resources.people.parser.delete_multiple_people_by_identifier"),
             examples=("lifeos people batch delete --ids <person-id-1> <person-id-2>",),
         ),
     )

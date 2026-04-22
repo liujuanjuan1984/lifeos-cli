@@ -69,10 +69,10 @@ def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ())
     sections: list[str] = []
     if examples:
         example_lines = "\n".join(f"  {example}" for example in examples)
-        sections.append(f"{_('messages.examples_eb01bf04')}:\n{example_lines}")
+        sections.append(f"{_('common.help.examples')}:\n{example_lines}")
     if notes:
         note_lines = "\n".join(f"  {note}" for note in notes)
-        sections.append(f"{_('messages.notes_70440046')}:\n{note_lines}")
+        sections.append(f"{_('common.help.notes')}:\n{note_lines}")
     if not sections:
         return None
     return "\n\n".join(sections)

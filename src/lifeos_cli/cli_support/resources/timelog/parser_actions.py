@@ -38,9 +38,9 @@ def build_timelog_add_parser(
         timelog_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_timelog_c3a7a0cc"),
+            summary=_("resources.timelog.parser_actions.create_timelog"),
             description=_(
-                "messages.create_one_actual_time_record_or_preview_a_quick_batch_a_de052581"
+                "resources.timelog.parser_actions.create_one_actual_time_record_or_preview_quick_batch_add"
             ),
             examples=(
                 'lifeos timelog add "Deep work" --start-time 2026-04-10T13:00:00 '
@@ -59,59 +59,82 @@ def build_timelog_add_parser(
             ),
             notes=(
                 help_message("notes.relations.repeatTagOrPersonAttach"),
-                _("messages.single_record_mode_requires_both_start_time_and_end_time_ee8c94a7"),
-                _("messages.quick_batch_mode_accepts_hhmm_title_and_hh_mm_hh_mm_titl_ba472358"),
+                _(
+                    "resources.timelog.parser_actions.single_record_mode_requires_both_start_time_and_end_time_because_record"
+                ),
+                _(
+                    "resources.timelog.parser_actions.quick_batch_mode_accepts_hhmm_title_and_hh_mm_hh_mm_title"
+                ),
                 help_message("notes.datetime.configuredTimezone"),
-                _("messages.when_quick_batch_mode_omits_first_start_time_the_first_r_beec670a"),
-                _("messages.when_an_agent_records_actual_work_use_person_id_to_state_c4b76f20"),
+                _(
+                    "resources.timelog.parser_actions.when_quick_batch_mode_omits_first_start_time_first_row_inherits_latest"
+                ),
+                _(
+                    "resources.timelog.parser_actions.when_agent_records_actual_work_use_person_id_to_state_whether_effort"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("title", nargs="?", help=_("messages.timelog_title_fd63a24c"))
     add_parser.add_argument(
-        "--start-time", type=parse_user_datetime_value, help=_("messages.start_time_88d8206d")
+        "title", nargs="?", help=_("resources.timelog.parser_actions.timelog_title")
     )
     add_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("messages.end_time_cd7800da")
+        "--start-time", type=parse_user_datetime_value, help=_("common.messages.start_time")
+    )
+    add_parser.add_argument(
+        "--end-time",
+        type=parse_user_datetime_value,
+        help=_("resources.timelog.parser_actions.end_time"),
     )
     add_parser.add_argument(
         "--entry",
         dest="entry_lines",
         action="append",
         default=None,
-        help=_("messages.repeat_to_add_one_quick_batch_entry_line_9fdc1ef7"),
+        help=_("resources.timelog.parser_actions.repeat_to_add_one_quick_batch_entry_line"),
     )
     add_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("messages.read_quick_batch_entries_from_standard_input_8e42bc71"),
+        help=_("resources.timelog.parser_actions.read_quick_batch_entries_from_standard_input"),
     )
     add_parser.add_argument(
-        "--file", help=_("messages.read_quick_batch_entries_from_a_utf_8_text_file_11f3dd88")
+        "--file",
+        help=_("resources.timelog.parser_actions.read_quick_batch_entries_from_utf_8_text_file"),
     )
     add_parser.add_argument(
         "--first-start-time",
         type=parse_user_datetime_value,
-        help=_("messages.first_quick_batch_start_time_defaults_to_the_latest_acti_5be583c9"),
+        help=_(
+            "resources.timelog.parser_actions.first_quick_batch_start_time_defaults_to_latest_active_timelog_end_time"
+        ),
     )
     add_parser.add_argument(
         "--yes",
         action="store_true",
-        help=_("messages.write_quick_batch_timelogs_without_interactive_confirmat_13c4da0c"),
+        help=_(
+            "resources.timelog.parser_actions.write_quick_batch_timelogs_without_interactive_confirmation_after_preview"
+        ),
     )
     add_parser.add_argument(
-        "--tracking-method", default="manual", help=_("messages.tracking_method_51ed2fd3")
-    )
-    add_parser.add_argument("--location", help=_("messages.optional_location_52a06657"))
-    add_parser.add_argument(
-        "--energy-level", type=int, help=_("messages.optional_energy_level_from_1_to_5_aaa249ff")
-    )
-    add_parser.add_argument("--notes", help=_("messages.optional_notes_410d4818"))
-    add_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.optional_linked_area_identifier_a9c6209e")
+        "--tracking-method",
+        default="manual",
+        help=_("resources.timelog.parser_actions.tracking_method"),
     )
     add_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.optional_linked_task_identifier_ee0966fa")
+        "--location", help=_("resources.timelog.parser_actions.optional_location")
+    )
+    add_parser.add_argument(
+        "--energy-level",
+        type=int,
+        help=_("resources.timelog.parser_actions.optional_energy_level_from_1_to_5"),
+    )
+    add_parser.add_argument("--notes", help=_("resources.timelog.parser_actions.optional_notes"))
+    add_parser.add_argument(
+        "--area-id", type=UUID, help=_("common.messages.optional_linked_area_identifier")
+    )
+    add_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.optional_linked_task_identifier")
     )
     add_parser.add_argument(
         "--tag-id",
@@ -119,7 +142,7 @@ def build_timelog_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_attach_one_or_more_timelog_tags_823d9b67"),
+        help=_("resources.timelog.parser_actions.repeat_to_attach_one_or_more_timelog_tags"),
     )
     add_parser.add_argument(
         "--person-id",
@@ -127,7 +150,7 @@ def build_timelog_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_attach_one_or_more_people_381be396"),
+        help=_("common.messages.repeat_to_attach_one_or_more_people"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_timelog_add_async))
 
@@ -140,11 +163,15 @@ def build_timelog_list_parser(
         timelog_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_timelogs_30fa2490"),
+            summary=_("resources.timelog.parser_actions.list_timelogs"),
             description=(
-                _("messages.list_timelogs_with_optional_time_window_relation_and_met_3d06b155")
+                _(
+                    "resources.timelog.parser_actions.list_timelogs_with_optional_time_window_relation_and_method_filters"
+                )
                 + "\n\n"
-                + _("messages.use_this_command_as_the_primary_query_entrypoint_for_tim_67e6e27a")
+                + _(
+                    "resources.timelog.parser_actions.use_this_command_as_primary_query_entrypoint_for_timelogs"
+                )
             ),
             examples=(
                 "lifeos timelog list",
@@ -158,57 +185,57 @@ def build_timelog_list_parser(
             ),
             notes=(
                 help_message("notes.dateRange.repeatedDate"),
-                _("messages.use_query_for_lightweight_text_filtering_across_titles_a_8d129626"),
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "resources.timelog.parser_actions.use_query_for_lightweight_text_filtering_across_titles_and_notes"
+                ),
+                _(
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS)),
                 _(
-                    "messages.use_with_counts_to_add_relationship_count_columns_column_39685a70"
+                    "common.messages.use_with_counts_to_add_relationship_count_columns_columns"
                 ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS)),
             ),
         ),
     )
     list_parser.add_argument(
-        "--title-contains", help=_("messages.filter_by_title_substring_e38c0eef")
+        "--title-contains", help=_("common.messages.filter_by_title_substring")
     )
     list_parser.add_argument(
-        "--notes-contains", help=_("messages.filter_by_notes_substring_94b90860")
+        "--notes-contains", help=_("resources.timelog.parser_actions.filter_by_notes_substring")
     )
     list_parser.add_argument(
-        "--query", help=_("messages.search_title_and_notes_by_keyword_01e619a8")
+        "--query", help=_("resources.timelog.parser_actions.search_title_and_notes_by_keyword")
     )
     list_parser.add_argument(
-        "--tracking-method", help=_("messages.filter_by_tracking_method_b797bff1")
+        "--tracking-method", help=_("resources.timelog.parser_actions.filter_by_tracking_method")
     )
     list_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.filter_by_linked_area_e5ff3ef1")
+        "--area-id", type=UUID, help=_("common.messages.filter_by_linked_area")
     )
     list_parser.add_argument(
-        "--area-name", help=_("messages.filter_by_exact_linked_area_name_67ae4b33")
+        "--area-name", help=_("resources.timelog.parser_actions.filter_by_exact_linked_area_name")
     )
     list_parser.add_argument(
         "--without-area",
         action="store_true",
-        help=_("messages.filter_timelogs_without_a_linked_area_7859f87f"),
+        help=_("resources.timelog.parser_actions.filter_timelogs_without_linked_area"),
     )
     list_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.filter_by_linked_task_bc80bbeb")
+        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
     )
     list_parser.add_argument(
         "--without-task",
         action="store_true",
-        help=_("messages.filter_timelogs_without_a_linked_task_b4f523b5"),
+        help=_("resources.timelog.parser_actions.filter_timelogs_without_linked_task"),
     )
     list_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_8b21ab5b")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
     )
-    list_parser.add_argument(
-        "--tag-id", type=UUID, help=_("messages.filter_by_linked_tag_c1bc2105")
-    )
+    list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
     list_parser.add_argument(
         "--with-counts",
         action="store_true",
-        help=_("messages.include_relationship_count_columns_in_summary_output_f5b275f8"),
+        help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
     add_date_range_arguments(
         list_parser,
@@ -218,16 +245,20 @@ def build_timelog_list_parser(
         "--start-time",
         dest="window_start",
         type=parse_datetime_or_date_value,
-        help=_("messages.inclusive_time_filter_start_date_only_values_use_the_con_7e5b8ef4"),
+        help=_(
+            "common.messages.inclusive_time_filter_start_date_only_values_use_configured_timezone"
+        ),
     )
     list_parser.add_argument(
         "--end-time",
         dest="window_end",
         type=parse_datetime_or_date_value,
-        help=_("messages.inclusive_time_filter_end_date_only_values_use_the_confi_0d238973"),
+        help=_(
+            "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
+        ),
     )
     list_parser.add_argument(
-        "--count", action="store_true", help=_("messages.print_total_matched_count_b60ad049")
+        "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
     add_include_deleted_argument(list_parser, noun="timelogs")
     add_limit_offset_arguments(list_parser)
@@ -242,9 +273,9 @@ def build_timelog_show_parser(
         timelog_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_a_timelog_eacbce65"),
+            summary=_("resources.timelog.parser_actions.show_timelog"),
             description=_(
-                "messages.show_one_timelog_with_full_metadata_and_derived_note_lin_73ef1e8a"
+                "resources.timelog.parser_actions.show_one_timelog_with_full_metadata_and_derived_note_link_counts"
             ),
             examples=(
                 "lifeos timelog show 11111111-1111-1111-1111-111111111111",
@@ -253,7 +284,7 @@ def build_timelog_show_parser(
         ),
     )
     show_parser.add_argument(
-        "timelog_id", type=UUID, help=_("messages.timelog_identifier_b02fb68f")
+        "timelog_id", type=UUID, help=_("resources.timelog.parser_actions.timelog_identifier")
     )
     add_include_deleted_argument(show_parser, noun="timelogs", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_timelog_show_async))
@@ -267,8 +298,8 @@ def build_timelog_update_parser(
         timelog_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_timelog_c7249293"),
-            description=_("messages.update_mutable_timelog_fields_022ba979"),
+            summary=_("resources.timelog.parser_actions.update_timelog"),
+            description=_("resources.timelog.parser_actions.update_mutable_timelog_fields"),
             examples=(
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 --energy-level 5",
                 "lifeos timelog update 11111111-1111-1111-1111-111111111111 "
@@ -285,52 +316,60 @@ def build_timelog_update_parser(
                 help_message("notes.clearFlags.explicitOptionalValues"),
                 help_message("notes.clearFlags.valueConflict"),
                 help_message("notes.datetime.configuredTimezone"),
-                _("messages.use_repeated_person_id_to_keep_actual_human_effort_agent_15baf6c7"),
+                _(
+                    "resources.timelog.parser_actions.use_repeated_person_id_to_keep_actual_human_effort_agent_effort_and"
+                ),
             ),
         ),
     )
     update_parser.add_argument(
-        "timelog_id", type=UUID, help=_("messages.timelog_identifier_b02fb68f")
+        "timelog_id", type=UUID, help=_("resources.timelog.parser_actions.timelog_identifier")
     )
-    update_parser.add_argument("--title", help=_("messages.updated_timelog_title_8551c2a2"))
+    update_parser.add_argument(
+        "--title", help=_("resources.timelog.parser_actions.updated_timelog_title")
+    )
     update_parser.add_argument(
         "--start-time",
         type=parse_user_datetime_value,
-        help=_("messages.updated_start_time_d1e7934a"),
+        help=_("common.messages.updated_start_time"),
     )
     update_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("messages.updated_end_time_bacbe83a")
+        "--end-time", type=parse_user_datetime_value, help=_("common.messages.updated_end_time")
     )
     update_parser.add_argument(
-        "--tracking-method", help=_("messages.updated_tracking_method_16fb6c9e")
+        "--tracking-method", help=_("resources.timelog.parser_actions.updated_tracking_method")
     )
-    update_parser.add_argument("--location", help=_("messages.updated_location_0ce63126"))
+    update_parser.add_argument("--location", help=_("common.messages.updated_location"))
     update_parser.add_argument(
-        "--clear-location", action="store_true", help=_("messages.clear_location_e088320b")
+        "--clear-location",
+        action="store_true",
+        help=_("resources.timelog.parser_actions.clear_location"),
     )
     update_parser.add_argument(
-        "--energy-level", type=int, help=_("messages.updated_energy_level_from_1_to_5_caf58598")
+        "--energy-level",
+        type=int,
+        help=_("resources.timelog.parser_actions.updated_energy_level_from_1_to_5"),
     )
     update_parser.add_argument(
         "--clear-energy-level",
         action="store_true",
-        help=_("messages.clear_energy_level_5c8bec94"),
+        help=_("resources.timelog.parser_actions.clear_energy_level"),
     )
-    update_parser.add_argument("--notes", help=_("messages.updated_notes_5143e05e"))
+    update_parser.add_argument("--notes", help=_("common.messages.updated_notes"))
     update_parser.add_argument(
-        "--clear-notes", action="store_true", help=_("messages.clear_notes_0a0a8523")
-    )
-    update_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.updated_linked_area_identifier_41dce28e")
+        "--clear-notes", action="store_true", help=_("resources.timelog.parser_actions.clear_notes")
     )
     update_parser.add_argument(
-        "--clear-area", action="store_true", help=_("messages.clear_linked_area_58b02385")
+        "--area-id", type=UUID, help=_("common.messages.updated_linked_area_identifier")
     )
     update_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.updated_linked_task_identifier_50e34b5a")
+        "--clear-area", action="store_true", help=_("common.messages.clear_linked_area")
     )
     update_parser.add_argument(
-        "--clear-task", action="store_true", help=_("messages.clear_linked_task_6f9bf5d9")
+        "--task-id", type=UUID, help=_("common.messages.updated_linked_task_identifier")
+    )
+    update_parser.add_argument(
+        "--clear-task", action="store_true", help=_("common.messages.clear_linked_task")
     )
     update_parser.add_argument(
         "--tag-id",
@@ -338,10 +377,10 @@ def build_timelog_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_tags_with_one_or_more_identifiers_4e3e164c"),
+        help=_("common.messages.repeat_to_replace_tags_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-tags", action="store_true", help=_("messages.remove_all_tags_43833702")
+        "--clear-tags", action="store_true", help=_("common.messages.remove_all_tags")
     )
     update_parser.add_argument(
         "--person-id",
@@ -349,10 +388,10 @@ def build_timelog_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_timelog_update_async))
 
@@ -365,12 +404,12 @@ def build_timelog_delete_parser(
         timelog_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_timelog_9331d336"),
-            description=_("messages.delete_one_timelog_7f49fcb7"),
+            summary=_("resources.timelog.parser_actions.delete_timelog"),
+            description=_("resources.timelog.parser_actions.delete_one_timelog"),
             examples=("lifeos timelog delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
     delete_parser.add_argument(
-        "timelog_id", type=UUID, help=_("messages.timelog_identifier_b02fb68f")
+        "timelog_id", type=UUID, help=_("resources.timelog.parser_actions.timelog_identifier")
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_timelog_delete_async))

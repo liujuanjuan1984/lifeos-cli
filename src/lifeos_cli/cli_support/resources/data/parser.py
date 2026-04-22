@@ -30,11 +30,13 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "data",
         help_content=HelpContent(
-            summary=_("messages.run_unified_data_import_export_and_batch_commands_d8edd05d"),
+            summary=_("resources.data.parser.run_unified_data_import_export_and_batch_commands"),
             description=(
-                _("messages.run_canonical_data_operations_across_lifeos_resources_004d5874")
+                _("resources.data.parser.run_canonical_data_operations_across_lifeos_resources")
                 + "\n\n"
-                + _("messages.use_this_namespace_for_machine_oriented_bulk_workflows_s_2a4ebcf1")
+                + _(
+                    "resources.data.parser.use_this_namespace_for_machine_oriented_bulk_workflows_such_as_export_import"
+                )
             ),
             examples=(
                 "lifeos data export --help",
@@ -42,29 +44,41 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos data batch-update --help",
             ),
             notes=(
-                _("messages.this_namespace_uses_canonical_json_jsonl_snapshot_rows_i_93839840"),
-                _("messages.use_export_output_as_the_round_trip_contract_for_later_i_80e382c1"),
-                _("messages.bundle_import_export_preserves_record_identifiers_and_re_e73020e0"),
-                _("messages.use_resource_specific_commands_for_higher_level_behavior_3efbe2e4"),
-                _("messages.use_dry_run_before_applying_large_imports_or_batch_chang_02f7b3b5"),
+                _(
+                    "resources.data.parser.this_namespace_uses_canonical_json_jsonl_snapshot_rows_instead_of_ad_hoc"
+                ),
+                _(
+                    "resources.data.parser.use_export_output_as_round_trip_contract_for_later_import_or_batch"
+                ),
+                _(
+                    "resources.data.parser.bundle_import_export_preserves_record_identifiers_and_relationships_across_resources"
+                ),
+                _(
+                    "resources.data.parser.use_resource_specific_commands_for_higher_level_behaviors_such_as_recurring_event"
+                ),
+                _(
+                    "resources.data.parser.use_dry_run_before_applying_large_imports_or_batch_changes"
+                ),
             ),
         ),
     )
     data_subparsers = data_parser.add_subparsers(
         dest="data_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     export_parser = add_documented_parser(
         data_subparsers,
         "export",
         help_content=HelpContent(
-            summary=_("messages.export_one_resource_or_a_full_bundle_d4636f1c"),
+            summary=_("resources.data.parser.export_one_resource_or_full_bundle"),
             description=(
-                _("messages.export_canonical_snapshot_rows_for_one_resource_or_creat_bddebae1")
+                _(
+                    "resources.data.parser.export_canonical_snapshot_rows_for_one_resource_or_create_full_bundle_zip"
+                )
                 + " "
-                + _("messages.bundle_export_is_implied_when_the_target_is_all_320aa071")
+                + _("resources.data.parser.bundle_export_is_implied_when_target_is_all")
             ),
             examples=(
                 "lifeos data export task --format jsonl",
@@ -78,15 +92,15 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--format",
         choices=("jsonl", "json", "bundle"),
         default="jsonl",
-        help=_("messages.export_format_for_one_resource_bundle_is_implied_for_all_b06717a7"),
+        help=_("resources.data.parser.export_format_for_one_resource_bundle_is_implied_for_all"),
     )
     export_parser.add_argument(
-        "--output", help=_("messages.write_exported_data_to_a_file_instead_of_stdout_2c8a427b")
+        "--output", help=_("resources.data.parser.write_exported_data_to_file_instead_of_stdout")
     )
     export_parser.add_argument(
         "--exclude-deleted",
         action="store_true",
-        help=_("messages.exclude_deleted_rows_from_exported_snapshots_4b7838c9"),
+        help=_("resources.data.parser.exclude_deleted_rows_from_exported_snapshots"),
     )
     export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
@@ -94,11 +108,13 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         data_subparsers,
         "import",
         help_content=HelpContent(
-            summary=_("messages.import_one_resource_or_a_full_bundle_efc44b7e"),
+            summary=_("resources.data.parser.import_one_resource_or_full_bundle"),
             description=(
-                _("messages.import_canonical_snapshot_rows_for_one_resource_or_resto_eea26ee9")
+                _(
+                    "resources.data.parser.import_canonical_snapshot_rows_for_one_resource_or_restore_full_bundle_zip"
+                )
                 + " "
-                + _("messages.bundle_import_is_implied_when_the_target_is_bundle_c4c2622b")
+                + _("resources.data.parser.bundle_import_is_implied_when_target_is_bundle")
             ),
             examples=(
                 "lifeos data import timelog --file timelog.jsonl --format jsonl",
@@ -106,40 +122,50 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos data import bundle --file lifeos-bundle.zip --replace-existing",
             ),
             notes=(
-                _("messages.use_import_bundle_for_full_backup_restore_bundle_restore_957d578b"),
-                _("messages.single_resource_imports_expect_referenced_foreign_rows_t_fc35cf01"),
-                _("messages.use_dry_run_before_applying_a_large_file_or_a_full_bundl_82b591fe"),
+                _(
+                    "resources.data.parser.use_import_bundle_for_full_backup_restore_bundle_restore_is_atomic_and"
+                ),
+                _(
+                    "resources.data.parser.single_resource_imports_expect_referenced_foreign_rows_to_already_exist"
+                ),
+                _(
+                    "resources.data.parser.use_dry_run_before_applying_large_file_or_full_bundle_restore"
+                ),
             ),
         ),
     )
     import_parser.add_argument("target", choices=IMPORT_TARGET_CHOICES)
-    import_parser.add_argument("--file", help=_("messages.read_input_data_from_a_file_5cf0402f"))
+    import_parser.add_argument("--file", help=_("resources.data.parser.read_input_data_from_file"))
     import_parser.add_argument(
-        "--stdin", action="store_true", help=_("messages.read_input_data_from_stdin_cf996286")
+        "--stdin", action="store_true", help=_("resources.data.parser.read_input_data_from_stdin")
     )
     import_parser.add_argument(
         "--format",
         choices=("jsonl", "json", "bundle"),
         default="jsonl",
-        help=_("messages.input_format_for_one_resource_bundle_is_implied_for_impo_f7840b78"),
+        help=_(
+            "resources.data.parser.input_format_for_one_resource_bundle_is_implied_for_import_bundle"
+        ),
     )
     import_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("messages.validate_input_without_committing_1341e3f6"),
+        help=_("resources.data.parser.validate_input_without_committing"),
     )
     import_parser.add_argument(
         "--continue-on-error",
         action="store_true",
-        help=_("messages.continue_processing_later_rows_after_a_failure_38a2cc47"),
+        help=_("resources.data.parser.continue_processing_later_rows_after_failure"),
     )
     import_parser.add_argument(
         "--replace-existing",
         action="store_true",
-        help=_("messages.for_bundle_imports_truncate_supported_data_before_restor_35fdf1d0"),
+        help=_(
+            "resources.data.parser.for_bundle_imports_truncate_supported_data_before_restoring_bundle"
+        ),
     )
     import_parser.add_argument(
-        "--error-file", help=_("messages.write_row_level_failures_to_a_jsonl_file_42e8339d")
+        "--error-file", help=_("resources.data.parser.write_row_level_failures_to_jsonl_file")
     )
     import_parser.set_defaults(handler=make_sync_handler(handle_data_import_async))
 
@@ -147,11 +173,15 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         data_subparsers,
         "batch-update",
         help_content=HelpContent(
-            summary=_("messages.batch_update_one_resource_from_canonical_patch_rows_df6d0e83"),
+            summary=_("resources.data.parser.batch_update_one_resource_from_canonical_patch_rows"),
             description=(
-                _("messages.apply_patch_rows_to_one_resource_using_the_same_canonica_a5f4d924")
+                _(
+                    "resources.data.parser.apply_patch_rows_to_one_resource_using_same_canonical_record_shape_used"
+                )
                 + " "
-                + _("messages.omitted_fields_stay_unchanged_explicit_null_clears_clear_8fc2d646")
+                + _(
+                    "resources.data.parser.omitted_fields_stay_unchanged_explicit_null_clears_clearable_fields"
+                )
             ),
             examples=(
                 "lifeos data batch-update timelog --file timelog-patch.jsonl --format jsonl",
@@ -160,34 +190,38 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "--dry-run --error-file event-errors.jsonl",
             ),
             notes=(
-                _("messages.batch_update_operates_on_stored_records_use_public_resou_b8a77862"),
-                _("messages.start_from_data_export_output_when_preparing_machine_gen_c318245a"),
+                _(
+                    "resources.data.parser.batch_update_operates_on_stored_records_use_public_resource_commands_when_you"
+                ),
+                _(
+                    "resources.data.parser.start_from_data_export_output_when_preparing_machine_generated_patch_rows"
+                ),
             ),
         ),
     )
     batch_update_parser.add_argument("target", choices=DATA_RESOURCE_CHOICES)
     batch_update_parser.add_argument(
-        "--file", help=_("messages.read_patch_rows_from_a_file_6feac3a2")
+        "--file", help=_("resources.data.parser.read_patch_rows_from_file")
     )
     batch_update_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("messages.read_patch_rows_from_stdin_c9181a84"),
+        help=_("resources.data.parser.read_patch_rows_from_stdin"),
     )
     batch_update_parser.add_argument("--format", choices=("jsonl", "json"), default="jsonl")
     batch_update_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("messages.validate_without_committing_37c8796c"),
+        help=_("resources.data.parser.validate_without_committing"),
     )
     batch_update_parser.add_argument(
         "--continue-on-error",
         action="store_true",
-        help=_("messages.continue_processing_later_rows_after_a_failure_38a2cc47"),
+        help=_("resources.data.parser.continue_processing_later_rows_after_failure"),
     )
     batch_update_parser.add_argument(
         "--error-file",
-        help=_("messages.write_row_level_failures_to_a_jsonl_file_42e8339d"),
+        help=_("resources.data.parser.write_row_level_failures_to_jsonl_file"),
     )
     batch_update_parser.set_defaults(handler=make_sync_handler(handle_data_batch_update_async))
 
@@ -195,9 +229,11 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         data_subparsers,
         "batch-delete",
         help_content=HelpContent(
-            summary=_("messages.batch_delete_one_resource_by_identifiers_4bc971be"),
+            summary=_("resources.data.parser.batch_delete_one_resource_by_identifiers"),
             description=(
-                _("messages.delete_multiple_rows_for_one_resource_using_repeated_ids_294cda00")
+                _(
+                    "resources.data.parser.delete_multiple_rows_for_one_resource_using_repeated_ids_ids_file_or"
+                )
             ),
             examples=(
                 "lifeos data batch-delete task --id <task-id-1> --id <task-id-2>",
@@ -205,8 +241,12 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos data batch-delete timelog --file timelog-export.jsonl --format jsonl",
             ),
             notes=(
-                _("messages.use_this_command_for_file_driven_or_machine_generated_cl_d16a0d93"),
-                _("messages.use_resource_specific_delete_commands_when_you_want_narr_5d634a3a"),
+                _(
+                    "resources.data.parser.use_this_command_for_file_driven_or_machine_generated_cleanup_across_many"
+                ),
+                _(
+                    "resources.data.parser.use_resource_specific_delete_commands_when_you_want_narrower_human_guided_changes"
+                ),
             ),
         ),
     )
@@ -215,18 +255,18 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--id",
         dest="record_ids",
         action="append",
-        help=_("messages.repeat_to_delete_one_or_more_record_identifiers_77b6fcfa"),
+        help=_("resources.data.parser.repeat_to_delete_one_or_more_record_identifiers"),
     )
     batch_delete_parser.add_argument(
-        "--ids-file", help=_("messages.read_one_uuid_per_line_from_a_file_37bbd563")
+        "--ids-file", help=_("resources.data.parser.read_one_uuid_per_line_from_file")
     )
     batch_delete_parser.add_argument(
-        "--file", help=_("messages.read_identifiers_or_resource_rows_from_a_file_62aea967")
+        "--file", help=_("resources.data.parser.read_identifiers_or_resource_rows_from_file")
     )
     batch_delete_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("messages.read_identifiers_from_stdin_7c52ef0a"),
+        help=_("resources.data.parser.read_identifiers_from_stdin"),
     )
     batch_delete_parser.add_argument(
         "--format",
@@ -236,10 +276,10 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     batch_delete_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("messages.validate_without_committing_37c8796c"),
+        help=_("resources.data.parser.validate_without_committing"),
     )
     batch_delete_parser.add_argument(
         "--error-file",
-        help=_("messages.write_row_level_failures_to_a_jsonl_file_42e8339d"),
+        help=_("resources.data.parser.write_row_level_failures_to_jsonl_file"),
     )
     batch_delete_parser.set_defaults(handler=make_sync_handler(handle_data_batch_delete_async))

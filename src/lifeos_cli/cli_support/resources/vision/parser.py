@@ -30,11 +30,15 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "vision",
         help_content=HelpContent(
-            summary=_("messages.manage_visions_10140be7"),
+            summary=_("resources.vision.parser.manage_visions"),
             description=(
-                _("messages.create_and_maintain_high_level_containers_composed_of_on_fe153229")
+                _(
+                    "resources.vision.parser.create_and_maintain_high_level_containers_composed_of_one_or_more_task"
+                )
                 + "\n\n"
-                + _("messages.a_vision_is_broader_than_a_single_task_and_usually_lives_f3e29360")
+                + _(
+                    "resources.vision.parser.a_vision_is_broader_than_single_task_and_usually_lives_under_area"
+                )
             ),
             examples=(
                 "lifeos vision add --help",
@@ -42,16 +46,18 @@ def build_vision_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos vision batch --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
-                _("messages.visions_are_intended_to_group_related_task_trees_bc42e9f5"),
-                _("messages.see_lifeos_vision_batch_help_for_bulk_delete_operations_1ac649c8"),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _("resources.vision.parser.visions_are_intended_to_group_related_task_trees"),
+                _(
+                    "resources.vision.parser.see_lifeos_vision_batch_help_for_bulk_delete_operations"
+                ),
             ),
         ),
     )
     vision_subparsers = vision_parser.add_subparsers(
         dest="vision_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_vision_add_parser(vision_subparsers)

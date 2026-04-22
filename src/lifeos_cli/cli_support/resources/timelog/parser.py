@@ -26,11 +26,13 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         subparsers,
         "timelog",
         help_content=HelpContent(
-            summary=_("messages.manage_actual_time_records_bb78d507"),
+            summary=_("resources.timelog.parser.manage_actual_time_records"),
             description=(
-                _("messages.create_and_maintain_actual_time_records_151e12f4")
+                _("resources.timelog.parser.create_and_maintain_actual_time_records")
                 + "\n\n"
-                + _("messages.timelogs_represent_what_really_happened_and_how_time_was_bf2bdd62")
+                + _(
+                    "resources.timelog.parser.timelogs_represent_what_really_happened_and_how_time_was_spent"
+                )
             ),
             examples=(
                 "lifeos timelog add --help",
@@ -38,17 +40,21 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos timelog stats --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_timelogs_95a80899"),
-                _("messages.timelogs_can_optionally_reference_one_area_and_one_task_7787d8da"),
-                _("messages.use_stats_for_timelog_stats_grouped_by_area_e3e85de1"),
-                _("messages.see_lifeos_timelog_batch_help_for_bulk_update_and_delete_6cb9d62f"),
+                _("resources.timelog.parser.use_list_as_primary_query_entrypoint_for_timelogs"),
+                _(
+                    "resources.timelog.parser.timelogs_can_optionally_reference_one_area_and_one_task"
+                ),
+                _("resources.timelog.parser.use_stats_for_timelog_stats_grouped_by_area"),
+                _(
+                    "resources.timelog.parser.see_lifeos_timelog_batch_help_for_bulk_update_and_delete_workflows"
+                ),
             ),
         ),
     )
     timelog_subparsers = timelog_parser.add_subparsers(
         dest="timelog_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_timelog_add_parser(timelog_subparsers)

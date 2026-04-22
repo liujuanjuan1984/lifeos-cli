@@ -23,13 +23,17 @@ def build_task_add_parser(
         task_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_task_c071049b"),
+            summary=_("resources.task.parser_write.create_task"),
             description=(
-                _("messages.create_a_new_task_for_a_vision_10c32750")
+                _("resources.task.parser_write.create_new_task_for_vision")
                 + "\n\n"
-                + _("messages.tasks_can_be_root_tasks_or_child_tasks_under_another_tas_b5b055a8")
+                + _(
+                    "resources.task.parser_write.tasks_can_be_root_tasks_or_child_tasks_under_another_task_in"
+                )
                 + " "
-                + _("messages.planning_cycle_fields_describe_the_enclosing_timebox_for_1bc9d464")
+                + _(
+                    "resources.task.parser_write.planning_cycle_fields_describe_enclosing_timebox_for_task_not_clock_time_execution"
+                )
             ),
             examples=(
                 'lifeos task add "Draft the release checklist" '
@@ -50,31 +54,47 @@ def build_task_add_parser(
                 "--planning-cycle-start-date 2026-04-14",
             ),
             notes=(
-                _("messages.planning_cycle_flags_must_be_supplied_as_a_complete_set_b70f2ac9"),
-                _("messages.use_planning_cycle_fields_for_the_broader_year_month_wee_29ef599d"),
-                _("messages.use_lifeos_event_add_task_id_task_id_if_the_task_also_ne_318baeeb"),
-                _("messages.repeat_the_same_person_id_flag_to_associate_multiple_peo_648ea09d"),
-                _("messages.when_an_agent_creates_tasks_on_behalf_of_a_human_use_per_5b6b0e90"),
+                _(
+                    "resources.task.parser_write.planning_cycle_flags_must_be_supplied_as_complete_set_when_used"
+                ),
+                _(
+                    "resources.task.parser_write.use_planning_cycle_fields_for_broader_year_month_week_or_day_window"
+                ),
+                _(
+                    "resources.task.parser_write.use_lifeos_event_add_task_id_task_id_if_task_also_needs"
+                ),
+                _(
+                    "common.messages.repeat_same_person_id_flag_to_associate_multiple_people_in_one_command"
+                ),
+                _(
+                    "resources.task.parser_write.when_agent_creates_tasks_on_behalf_of_human_use_person_id_to"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("content", help=_("messages.task_content_7baf7d11"))
+    add_parser.add_argument("content", help=_("resources.task.parser_write.task_content"))
     add_parser.add_argument(
         "--vision-id",
         required=True,
         type=UUID,
-        help=_("messages.owning_vision_identifier_4e7e119c"),
-    )
-    add_parser.add_argument("--description", help=_("messages.optional_task_description_58d58247"))
-    add_parser.add_argument(
-        "--parent-task-id", type=UUID, help=_("messages.optional_parent_task_identifier_f5f58a25")
-    )
-    add_parser.add_argument("--status", default="todo", help=_("messages.task_status_7dbc579e"))
-    add_parser.add_argument(
-        "--priority", type=int, default=0, help=_("messages.task_priority_37e4e62c")
+        help=_("resources.task.parser_write.owning_vision_identifier"),
     )
     add_parser.add_argument(
-        "--display-order", type=int, default=0, help=_("messages.display_order_5f1293a2")
+        "--description", help=_("resources.task.parser_write.optional_task_description")
+    )
+    add_parser.add_argument(
+        "--parent-task-id",
+        type=UUID,
+        help=_("resources.task.parser_write.optional_parent_task_identifier"),
+    )
+    add_parser.add_argument(
+        "--status", default="todo", help=_("resources.task.parser_write.task_status")
+    )
+    add_parser.add_argument(
+        "--priority", type=int, default=0, help=_("resources.task.parser_write.task_priority")
+    )
+    add_parser.add_argument(
+        "--display-order", type=int, default=0, help=_("common.messages.display_order")
     )
     add_parser.add_argument(
         "--person-id",
@@ -82,23 +102,27 @@ def build_task_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_people_cf6b79d8"),
+        help=_("common.messages.repeat_to_associate_one_or_more_people"),
     )
     add_parser.add_argument(
-        "--estimated-effort", type=int, help=_("messages.estimated_effort_in_minutes_98e10372")
+        "--estimated-effort",
+        type=int,
+        help=_("resources.task.parser_write.estimated_effort_in_minutes"),
     )
     add_parser.add_argument(
         "--planning-cycle-type",
-        help=_("messages.planning_cycle_type_year_month_week_or_day_bb4f7e82"),
+        help=_("resources.task.parser_write.planning_cycle_type_year_month_week_or_day"),
     )
     add_parser.add_argument(
         "--planning-cycle-days",
         type=int,
-        help=_("messages.planning_cycle_duration_in_days_for_the_enclosing_timebo_8267754c"),
+        help=_("resources.task.parser_write.planning_cycle_duration_in_days_for_enclosing_timebox"),
     )
     add_parser.add_argument(
         "--planning-cycle-start-date",
-        help=_("messages.start_date_of_the_enclosing_planning_cycle_window_in_yyy_1e2d2ad2"),
+        help=_(
+            "resources.task.parser_write.start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd_format"
+        ),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_task_add_async))
 
@@ -111,11 +135,13 @@ def build_task_update_parser(
         task_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_task_1215413b"),
+            summary=_("resources.task.parser_write.update_task"),
             description=(
-                _("messages.update_mutable_task_fields_1bc4e36b")
+                _("resources.task.parser_write.update_mutable_task_fields")
                 + "\n\n"
-                + _("messages.only_explicitly_provided_flags_are_changed_omitted_field_0644c34c")
+                + _(
+                    "resources.task.parser_write.only_explicitly_provided_flags_are_changed_omitted_fields_stay_unchanged"
+                )
             ),
             examples=(
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --status in_progress",
@@ -135,34 +161,54 @@ def build_task_update_parser(
                 "lifeos task update 11111111-1111-1111-1111-111111111111 --clear-planning-cycle",
             ),
             notes=(
-                _("messages.parent_task_references_must_stay_within_the_same_vision_5161a1dc"),
-                _("messages.use_clear_parent_to_move_a_child_task_back_to_the_root_l_57221cab"),
-                _("messages.updated_planning_cycle_fields_still_describe_the_enclosi_f34b4fb4"),
-                _("messages.use_clear_flags_to_remove_optional_values_such_as_descri_205dc5c6"),
-                _("messages.use_repeated_person_id_to_keep_human_only_agent_only_and_4359aefb"),
+                _(
+                    "resources.task.parser_write.parent_task_references_must_stay_within_same_vision"
+                ),
+                _(
+                    "resources.task.parser_write.use_clear_parent_to_move_child_task_back_to_root_level"
+                ),
+                _(
+                    "resources.task.parser_write.updated_planning_cycle_fields_still_describe_enclosing_timebox_not_specific_scheduled_timestamp"
+                ),
+                _(
+                    "resources.task.parser_write.use_clear_flags_to_remove_optional_values_such_as_descriptions_or_planning"
+                ),
+                _(
+                    "resources.task.parser_write.use_repeated_person_id_to_keep_human_only_agent_only_and_shared"
+                ),
             ),
         ),
     )
-    update_parser.add_argument("task_id", type=UUID, help=_("messages.task_identifier_b5d5c4ca"))
-    update_parser.add_argument("--content", help=_("messages.updated_task_content_6cfba441"))
-    update_parser.add_argument("--description", help=_("messages.updated_description_ce962f11"))
+    update_parser.add_argument("task_id", type=UUID, help=_("common.messages.task_identifier"))
+    update_parser.add_argument(
+        "--content", help=_("resources.task.parser_write.updated_task_content")
+    )
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("messages.clear_the_optional_task_description_dd24976c"),
+        help=_("resources.task.parser_write.clear_optional_task_description"),
     )
     update_parser.add_argument(
-        "--parent-task-id", type=UUID, help=_("messages.updated_parent_task_identifier_dea0eedf")
+        "--parent-task-id",
+        type=UUID,
+        help=_("resources.task.parser_write.updated_parent_task_identifier"),
     )
     update_parser.add_argument(
         "--clear-parent",
         action="store_true",
-        help=_("messages.move_the_task_to_the_root_level_by_clearing_its_parent_t_d2a99765"),
+        help=_(
+            "resources.task.parser_write.move_task_to_root_level_by_clearing_its_parent_task_reference"
+        ),
     )
-    update_parser.add_argument("--status", help=_("messages.updated_task_status_8a82e91d"))
-    update_parser.add_argument("--priority", type=int, help=_("messages.updated_priority_596c81d7"))
     update_parser.add_argument(
-        "--display-order", type=int, help=_("messages.updated_display_order_6dbf2e30")
+        "--status", help=_("resources.task.parser_write.updated_task_status")
+    )
+    update_parser.add_argument(
+        "--priority", type=int, help=_("resources.task.parser_write.updated_priority")
+    )
+    update_parser.add_argument(
+        "--display-order", type=int, help=_("common.messages.updated_display_order")
     )
     update_parser.add_argument(
         "--person-id",
@@ -170,36 +216,42 @@ def build_task_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.add_argument(
-        "--estimated-effort", type=int, help=_("messages.updated_estimated_effort_f496f004")
+        "--estimated-effort",
+        type=int,
+        help=_("resources.task.parser_write.updated_estimated_effort"),
     )
     update_parser.add_argument(
         "--clear-estimated-effort",
         action="store_true",
-        help=_("messages.clear_the_optional_estimated_effort_value_a9f16ec2"),
+        help=_("resources.task.parser_write.clear_optional_estimated_effort_value"),
     )
     update_parser.add_argument(
         "--planning-cycle-type",
-        help=_("messages.updated_planning_cycle_type_year_month_week_or_day_d2dbf991"),
+        help=_("resources.task.parser_write.updated_planning_cycle_type_year_month_week_or_day"),
     )
     update_parser.add_argument(
         "--planning-cycle-days",
         type=int,
-        help=_("messages.updated_planning_cycle_duration_in_days_for_the_enclosin_9939bda0"),
+        help=_(
+            "resources.task.parser_write.updated_planning_cycle_duration_in_days_for_enclosing_timebox"
+        ),
     )
     update_parser.add_argument(
         "--planning-cycle-start-date",
-        help=_("messages.updated_start_date_of_the_enclosing_planning_cycle_windo_f766bd8f"),
+        help=_(
+            "resources.task.parser_write.updated_start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd"
+        ),
     )
     update_parser.add_argument(
         "--clear-planning-cycle",
         action="store_true",
-        help=_("messages.clear_all_planning_cycle_fields_c406e56d"),
+        help=_("resources.task.parser_write.clear_all_planning_cycle_fields"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_task_update_async))
 
@@ -212,10 +264,10 @@ def build_task_delete_parser(
         task_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_task_51496d63"),
-            description=_("messages.delete_a_task_e630d5bc"),
+            summary=_("resources.task.parser_write.delete_task"),
+            description=_("resources.task.parser_write.delete_task_description"),
             examples=("lifeos task delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("task_id", type=UUID, help=_("messages.task_identifier_b5d5c4ca"))
+    delete_parser.add_argument("task_id", type=UUID, help=_("common.messages.task_identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_task_delete_async))

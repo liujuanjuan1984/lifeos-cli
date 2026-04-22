@@ -40,8 +40,8 @@ def build_event_add_parser(
         event_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_an_event_89c8eadc"),
-            description=_("messages.create_a_planned_schedule_event_fe9bbd9b"),
+            summary=_("resources.event.parser_actions.create_event"),
+            description=_("resources.event.parser_actions.create_planned_schedule_event"),
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00 '
                 "--end-time 2026-04-10T10:00:00",
@@ -55,66 +55,85 @@ def build_event_add_parser(
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
             notes=(
-                _("messages.appointment_is_the_default_type_use_type_for_timeblocks_4ec4b61d"),
+                _(
+                    "resources.event.parser_actions.appointment_is_default_type_use_type_for_timeblocks_and_deadlines"
+                ),
                 help_message("notes.relations.repeatTagOrPersonAttach"),
-                _("messages.if_end_time_is_omitted_the_event_is_treated_as_open_ende_48367370"),
+                _(
+                    "resources.event.parser_actions.if_end_time_is_omitted_event_is_treated_as_open_ended"
+                ),
                 help_message("notes.datetime.configuredTimezone"),
-                _("messages.use_recurrence_flags_to_create_recurring_daily_weekly_mo_a80c6fb8"),
-                _("messages.when_an_agent_creates_events_for_a_human_use_person_id_t_7e92ca95"),
+                _(
+                    "resources.event.parser_actions.use_recurrence_flags_to_create_recurring_daily_weekly_monthly_or_yearly_series"
+                ),
+                _(
+                    "resources.event.parser_actions.when_agent_creates_events_for_human_use_person_id_to_keep_human"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("title", help=_("messages.event_title_6315a404"))
-    add_parser.add_argument("--description", help=_("messages.optional_event_description_8a62ca2f"))
+    add_parser.add_argument("title", help=_("resources.event.parser_actions.event_title"))
+    add_parser.add_argument(
+        "--description", help=_("resources.event.parser_actions.optional_event_description")
+    )
     add_parser.add_argument(
         "--start-time",
         required=True,
         type=parse_user_datetime_value,
-        help=_("messages.start_time_88d8206d"),
+        help=_("common.messages.start_time"),
     )
     add_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("messages.optional_end_time_90b27163")
+        "--end-time",
+        type=parse_user_datetime_value,
+        help=_("resources.event.parser_actions.optional_end_time"),
     )
     add_parser.add_argument(
-        "--priority", type=int, default=0, help=_("messages.priority_from_0_to_5_9d3acd4c")
+        "--priority",
+        type=int,
+        default=0,
+        help=_("resources.event.parser_actions.priority_from_0_to_5"),
     )
-    add_parser.add_argument("--status", default="planned", help=_("messages.event_status_ff961022"))
+    add_parser.add_argument(
+        "--status", default="planned", help=_("resources.event.parser_actions.event_status")
+    )
     add_parser.add_argument(
         "--type",
         dest="event_type",
         default="appointment",
-        help=_("messages.event_type_appointment_timeblock_or_deadline_e48b2cc5"),
+        help=_("resources.event.parser_actions.event_type_appointment_timeblock_or_deadline"),
     )
     add_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help=_("messages.mark_the_event_as_all_day_72fdaad7"),
+        help=_("resources.event.parser_actions.mark_event_as_all_day"),
     )
     add_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.optional_linked_area_identifier_a9c6209e")
+        "--area-id", type=UUID, help=_("common.messages.optional_linked_area_identifier")
     )
     add_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.optional_linked_task_identifier_ee0966fa")
+        "--task-id", type=UUID, help=_("common.messages.optional_linked_task_identifier")
     )
     add_parser.add_argument(
         "--recurrence-frequency",
-        help=_("messages.optional_recurrence_frequency_daily_weekly_monthly_or_ye_16f821c6"),
+        help=_(
+            "resources.event.parser_actions.optional_recurrence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     add_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help=_("messages.optional_recurrence_interval_default_1_337ef169"),
+        help=_("resources.event.parser_actions.optional_recurrence_interval_default_1"),
     )
     add_parser.add_argument(
         "--recurrence-count",
         type=int,
-        help=_("messages.optional_total_occurrence_count_574b755f"),
+        help=_("resources.event.parser_actions.optional_total_occurrence_count"),
     )
     add_parser.add_argument(
         "--recurrence-until",
         type=parse_user_datetime_value,
-        help=_("messages.optional_final_allowed_occurrence_start_time_44bb7594"),
+        help=_("resources.event.parser_actions.optional_final_allowed_occurrence_start_time"),
     )
     add_parser.add_argument(
         "--tag-id",
@@ -122,7 +141,7 @@ def build_event_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_attach_one_or_more_event_tags_c2251a3d"),
+        help=_("resources.event.parser_actions.repeat_to_attach_one_or_more_event_tags"),
     )
     add_parser.add_argument(
         "--person-id",
@@ -130,7 +149,7 @@ def build_event_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_attach_one_or_more_people_381be396"),
+        help=_("common.messages.repeat_to_attach_one_or_more_people"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_event_add_async))
 
@@ -143,11 +162,15 @@ def build_event_list_parser(
         event_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_events_f24627c3"),
+            summary=_("resources.event.parser_actions.list_events"),
             description=(
-                _("messages.list_events_with_optional_time_window_and_relation_filte_714de1c4")
+                _(
+                    "resources.event.parser_actions.list_events_with_optional_time_window_and_relation_filters"
+                )
                 + "\n\n"
-                + _("messages.use_this_command_as_the_primary_query_entrypoint_for_sch_cc2f6900")
+                + _(
+                    "resources.event.parser_actions.use_this_command_as_primary_query_entrypoint_for_scheduled_events"
+                )
             ),
             examples=(
                 "lifeos event list",
@@ -160,37 +183,47 @@ def build_event_list_parser(
             ),
             notes=(
                 help_message("notes.dateRange.repeatedDate"),
-                _("messages.when_both_start_time_and_end_time_are_given_overlapping_e0026cde"),
-                _("messages.recurring_series_are_expanded_for_bounded_window_queries_2e5b8d5c"),
-                _("messages.use_type_to_narrow_results_to_one_event_topology_bc90f929"),
-                _("messages.use_title_contains_for_lightweight_text_filtering_instea_7e171696"),
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "resources.event.parser_actions.when_both_start_time_and_end_time_are_given_overlapping_events_are"
+                ),
+                _(
+                    "resources.event.parser_actions.recurring_series_are_expanded_for_bounded_window_queries_and_schedule_views"
+                ),
+                _(
+                    "resources.event.parser_actions.use_type_to_narrow_results_to_one_event_topology"
+                ),
+                _(
+                    "resources.event.parser_actions.use_title_contains_for_lightweight_text_filtering_instead_of_separate_search_command"
+                ),
+                _(
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(EVENT_SUMMARY_COLUMNS)),
             ),
         ),
     )
     list_parser.add_argument(
-        "--title-contains", help=_("messages.filter_by_title_substring_e38c0eef")
+        "--title-contains", help=_("common.messages.filter_by_title_substring")
     )
-    list_parser.add_argument("--status", help=_("messages.filter_by_event_status_c4119a07"))
+    list_parser.add_argument(
+        "--status", help=_("resources.event.parser_actions.filter_by_event_status")
+    )
     list_parser.add_argument(
         "--type",
         dest="event_type",
-        help=_("messages.filter_by_event_type_appointment_timeblock_or_deadline_7475bd3e"),
+        help=_(
+            "resources.event.parser_actions.filter_by_event_type_appointment_timeblock_or_deadline"
+        ),
     )
     list_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.filter_by_linked_area_e5ff3ef1")
+        "--area-id", type=UUID, help=_("common.messages.filter_by_linked_area")
     )
     list_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.filter_by_linked_task_bc80bbeb")
+        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
     )
     list_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_8b21ab5b")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
     )
-    list_parser.add_argument(
-        "--tag-id", type=UUID, help=_("messages.filter_by_linked_tag_c1bc2105")
-    )
+    list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
     add_date_range_arguments(
         list_parser,
         date_help=help_message("arguments.dateRange.repeatedDate"),
@@ -199,13 +232,17 @@ def build_event_list_parser(
         "--start-time",
         dest="window_start",
         type=parse_datetime_or_date_value,
-        help=_("messages.inclusive_time_filter_start_date_only_values_use_the_con_7e5b8ef4"),
+        help=_(
+            "common.messages.inclusive_time_filter_start_date_only_values_use_configured_timezone"
+        ),
     )
     list_parser.add_argument(
         "--end-time",
         dest="window_end",
         type=parse_datetime_or_date_value,
-        help=_("messages.inclusive_time_filter_end_date_only_values_use_the_confi_0d238973"),
+        help=_(
+            "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
+        ),
     )
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
@@ -220,15 +257,17 @@ def build_event_show_parser(
         event_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_an_event_54d23192"),
-            description=_("messages.show_one_event_with_full_metadata_3002e83a"),
+            summary=_("resources.event.parser_actions.show_event"),
+            description=_("resources.event.parser_actions.show_one_event_with_full_metadata"),
             examples=(
                 "lifeos event show 11111111-1111-1111-1111-111111111111",
                 "lifeos event show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("event_id", type=UUID, help=_("messages.event_identifier_34cf5279"))
+    show_parser.add_argument(
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
@@ -241,8 +280,8 @@ def build_event_update_parser(
         event_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_an_event_dc70c7a6"),
-            description=_("messages.update_mutable_event_fields_156401a5"),
+            summary=_("resources.event.parser_actions.update_event"),
+            description=_("resources.event.parser_actions.update_mutable_event_fields"),
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
@@ -260,91 +299,117 @@ def build_event_update_parser(
                 "--clear-people --clear-tags",
             ),
             notes=(
-                _("messages.use_type_to_retag_an_event_as_appointment_timeblock_or_d_771e8247"),
+                _(
+                    "resources.event.parser_actions.use_type_to_retag_event_as_appointment_timeblock_or_deadline"
+                ),
                 help_message("notes.clearFlags.explicitOptionalValues"),
                 help_message("notes.clearFlags.valueConflict"),
                 help_message("notes.datetime.configuredTimezone"),
                 help_message("notes.recurringScope.updates"),
                 help_message("notes.recurringScope.instanceStartRequired"),
-                _("messages.use_repeated_person_id_to_keep_human_only_agent_only_and_659d77e2"),
+                _(
+                    "resources.event.parser_actions.use_repeated_person_id_to_keep_human_only_agent_only_and_shared"
+                ),
             ),
         ),
     )
-    update_parser.add_argument("event_id", type=UUID, help=_("messages.event_identifier_34cf5279"))
-    update_parser.add_argument("--title", help=_("messages.updated_event_title_419657cc"))
-    update_parser.add_argument("--description", help=_("messages.updated_description_ce962f11"))
     update_parser.add_argument(
-        "--clear-description", action="store_true", help=_("messages.clear_description_47e9b8bd")
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
+    )
+    update_parser.add_argument(
+        "--title", help=_("resources.event.parser_actions.updated_event_title")
+    )
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help=_("resources.event.parser_actions.clear_description"),
     )
     update_parser.add_argument(
         "--start-time",
         type=parse_user_datetime_value,
-        help=_("messages.updated_start_time_d1e7934a"),
+        help=_("common.messages.updated_start_time"),
     )
     update_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("messages.updated_end_time_bacbe83a")
+        "--end-time", type=parse_user_datetime_value, help=_("common.messages.updated_end_time")
     )
     update_parser.add_argument(
-        "--clear-end-time", action="store_true", help=_("messages.clear_end_time_473a3ac7")
+        "--clear-end-time",
+        action="store_true",
+        help=_("resources.event.parser_actions.clear_end_time"),
     )
     update_parser.add_argument(
-        "--priority", type=int, help=_("messages.updated_priority_from_0_to_5_97845746")
+        "--priority",
+        type=int,
+        help=_("resources.event.parser_actions.updated_priority_from_0_to_5"),
     )
-    update_parser.add_argument("--status", help=_("messages.updated_event_status_f676d620"))
+    update_parser.add_argument(
+        "--status", help=_("resources.event.parser_actions.updated_event_status")
+    )
     update_parser.add_argument(
         "--type",
         dest="event_type",
-        help=_("messages.updated_event_type_appointment_timeblock_or_deadline_e4d78fc0"),
+        help=_(
+            "resources.event.parser_actions.updated_event_type_appointment_timeblock_or_deadline"
+        ),
     )
     update_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help=_("messages.toggle_all_day_status_52833d6a"),
+        help=_("resources.event.parser_actions.toggle_all_day_status"),
     )
     update_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.updated_linked_area_identifier_41dce28e")
+        "--area-id", type=UUID, help=_("common.messages.updated_linked_area_identifier")
     )
     update_parser.add_argument(
-        "--clear-area", action="store_true", help=_("messages.clear_linked_area_58b02385")
+        "--clear-area", action="store_true", help=_("common.messages.clear_linked_area")
     )
     update_parser.add_argument(
-        "--task-id", type=UUID, help=_("messages.updated_linked_task_identifier_50e34b5a")
+        "--task-id", type=UUID, help=_("common.messages.updated_linked_task_identifier")
     )
     update_parser.add_argument(
-        "--clear-task", action="store_true", help=_("messages.clear_linked_task_6f9bf5d9")
+        "--clear-task", action="store_true", help=_("common.messages.clear_linked_task")
     )
     update_parser.add_argument(
         "--recurrence-frequency",
-        help=_("messages.updated_recurrence_frequency_daily_weekly_monthly_or_yea_7e92df59"),
+        help=_(
+            "resources.event.parser_actions.updated_recurrence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     update_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help=_("messages.updated_recurrence_interval_7c83c267"),
+        help=_("resources.event.parser_actions.updated_recurrence_interval"),
     )
     update_parser.add_argument(
-        "--recurrence-count", type=int, help=_("messages.updated_recurrence_count_24f76f96")
+        "--recurrence-count",
+        type=int,
+        help=_("resources.event.parser_actions.updated_recurrence_count"),
     )
     update_parser.add_argument(
         "--recurrence-until",
         type=parse_user_datetime_value,
-        help=_("messages.updated_recurrence_until_datetime_de734b25"),
+        help=_("resources.event.parser_actions.updated_recurrence_until_datetime"),
     )
     update_parser.add_argument(
         "--clear-recurrence",
         action="store_true",
-        help=_("messages.remove_recurrence_from_the_event_150176f1"),
+        help=_("resources.event.parser_actions.remove_recurrence_from_event"),
     )
     update_parser.add_argument(
         "--scope",
         default="all",
-        help=_("messages.update_scope_for_recurring_events_single_all_future_or_a_f2fe788b"),
+        help=_(
+            "resources.event.parser_actions.update_scope_for_recurring_events_single_all_future_or_all"
+        ),
     )
     update_parser.add_argument(
         "--instance-start",
         type=parse_user_datetime_value,
-        help=_("messages.instance_start_time_for_single_or_all_future_recurring_u_1b2105c6"),
+        help=_(
+            "resources.event.parser_actions.instance_start_time_for_single_or_all_future_recurring_updates"
+        ),
     )
     update_parser.add_argument(
         "--tag-id",
@@ -352,10 +417,10 @@ def build_event_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_tags_with_one_or_more_identifiers_4e3e164c"),
+        help=_("common.messages.repeat_to_replace_tags_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-tags", action="store_true", help=_("messages.remove_all_tags_43833702")
+        "--clear-tags", action="store_true", help=_("common.messages.remove_all_tags")
     )
     update_parser.add_argument(
         "--person-id",
@@ -363,10 +428,10 @@ def build_event_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_event_update_async))
 
@@ -379,8 +444,8 @@ def build_event_delete_parser(
         event_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_an_event_fc389f53"),
-            description=_("messages.delete_one_event_45d9c6e6"),
+            summary=_("resources.event.parser_actions.delete_event"),
+            description=_("resources.event.parser_actions.delete_one_event"),
             examples=(
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
@@ -395,16 +460,22 @@ def build_event_delete_parser(
             ),
         ),
     )
-    delete_parser.add_argument("event_id", type=UUID, help=_("messages.event_identifier_34cf5279"))
+    delete_parser.add_argument(
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
+    )
     delete_parser.add_argument(
         "--scope",
         default="all",
-        help=_("messages.delete_scope_for_recurring_events_single_all_future_or_a_2554a852"),
+        help=_(
+            "resources.event.parser_actions.delete_scope_for_recurring_events_single_all_future_or_all"
+        ),
     )
     delete_parser.add_argument(
         "--instance-start",
         type=parse_user_datetime_value,
-        help=_("messages.instance_start_time_for_single_or_all_future_recurring_d_683d92f5"),
+        help=_(
+            "resources.event.parser_actions.instance_start_time_for_single_or_all_future_recurring_deletes"
+        ),
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))
 
@@ -417,28 +488,26 @@ def build_event_batch_parser(
         event_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("messages.run_batch_event_operations_05a22620"),
-            description=_("messages.delete_multiple_events_in_one_command_abcd32ce"),
+            summary=_("resources.event.parser_actions.run_batch_event_operations"),
+            description=_("resources.event.parser_actions.delete_multiple_events_in_one_command"),
             examples=(
                 "lifeos event batch delete --help",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
             ),
-            notes=(
-                _("messages.this_namespace_currently_exposes_only_the_delete_workflo_8e17bac4"),
-            ),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="event_batch_command",
-        title=_("messages.batch_actions_fb880b71"),
-        metavar=_("messages.batch_action_a7c086fa"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action_hyphenated_metavar"),
     )
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_multiple_events_84930f0b"),
-            description=_("messages.delete_multiple_events_by_identifier_3e0435cf"),
+            summary=_("resources.event.parser_actions.delete_multiple_events"),
+            description=_("resources.event.parser_actions.delete_multiple_events_by_identifier"),
             examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
         ),
     )

@@ -27,11 +27,15 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "habit",
         help_content=HelpContent(
-            summary=_("messages.manage_recurring_habits_a85e7fe2"),
+            summary=_("resources.habit.parser.manage_recurring_habits"),
             description=(
-                _("messages.create_and_maintain_recurring_habits_with_explicit_caden_afa95d72")
+                _(
+                    "resources.habit.parser.create_and_maintain_recurring_habits_with_explicit_cadence_rules"
+                )
                 + "\n\n"
-                + _("messages.habits_define_recurring_work_query_windows_materialize_h_cd82f257")
+                + _(
+                    "resources.habit.parser.habits_define_recurring_work_query_windows_materialize_habit_action_occurrences_on_demand"
+                )
             ),
             examples=(
                 "lifeos habit add --help",
@@ -39,17 +43,21 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos habit batch --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_habits_e26a6666"),
-                _("messages.habit_creation_and_timing_updates_no_longer_pre_generate_57865747"),
-                _("messages.cadence_cycles_can_be_daily_weekly_monthly_or_yearly_whi_2dae95cd"),
-                _("messages.see_lifeos_habit_batch_help_for_bulk_delete_operations_a1c4f033"),
+                _("resources.habit.parser.use_list_as_primary_query_entrypoint_for_habits"),
+                _(
+                    "resources.habit.parser.habit_creation_and_timing_updates_no_longer_pre_generate_full_habit_action"
+                ),
+                _(
+                    "resources.habit.parser.cadence_cycles_can_be_daily_weekly_monthly_or_yearly_while_habit_action"
+                ),
+                _("resources.habit.parser.see_lifeos_habit_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     habit_subparsers = habit_parser.add_subparsers(
         dest="habit_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_habit_add_parser(habit_subparsers)

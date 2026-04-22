@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CLI_SUPPORT_DIR = REPO_ROOT / "src" / "lifeos_cli" / "cli_support"
 LOCALES_DIR = REPO_ROOT / "src" / "lifeos_cli" / "locales"
 DEFAULT_JSON_LOCALE = "en"
 
@@ -82,6 +84,50 @@ def _check_json_catalogs() -> list[str]:
     return failures
 
 
+def _iter_literal_call_keys(function_name: str) -> list[tuple[str, Path, int]]:
+    keys: list[tuple[str, Path, int]] = []
+    for path in sorted(CLI_SUPPORT_DIR.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if not isinstance(node.func, ast.Name) or node.func.id != function_name:
+                continue
+            if not node.args:
+                continue
+            first_arg = node.args[0]
+            if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                keys.append((first_arg.value, path, node.lineno))
+    return keys
+
+
+def _check_source_key_references() -> list[str]:
+    failures: list[str] = []
+    checks = (
+        ("cli_messages.json", "_"),
+        ("cli_help.json", "help_message"),
+    )
+
+    for catalog_name, function_name in checks:
+        catalog_path = LOCALES_DIR / DEFAULT_JSON_LOCALE / catalog_name
+        catalog_keys = set(_flatten_json_catalog_keys(_load_json_catalog(catalog_path)))
+        source_refs = _iter_literal_call_keys(function_name)
+        source_keys = {key for key, _path, _lineno in source_refs}
+
+        for key, path, lineno in source_refs:
+            if key not in catalog_keys:
+                failures.append(
+                    f"{path.relative_to(REPO_ROOT)}:{lineno} references missing "
+                    f"{catalog_name} key: {key}"
+                )
+
+        unused_keys = sorted(catalog_keys - source_keys)
+        if unused_keys:
+            failures.append(f"{catalog_name} has unreferenced keys: {', '.join(unused_keys)}")
+
+    return failures
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     return parser.parse_args()
@@ -89,7 +135,7 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     _parse_args()
-    failures = _check_json_catalogs()
+    failures = [*_check_json_catalogs(), *_check_source_key_references()]
     if not failures:
         return 0
     print("\n".join(failures), file=sys.stderr)

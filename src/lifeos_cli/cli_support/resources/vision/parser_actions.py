@@ -43,11 +43,13 @@ def build_vision_add_parser(
         vision_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("messages.create_a_vision_ccac1771"),
+            summary=_("resources.vision.parser_actions.create_vision"),
             description=(
-                _("messages.create_a_new_vision_7a830924")
+                _("resources.vision.parser_actions.create_new_vision")
                 + "\n\n"
-                + _("messages.visions_usually_represent_medium_or_long_running_themes_a00bbf01")
+                + _(
+                    "resources.vision.parser_actions.visions_usually_represent_medium_or_long_running_themes_that_will_own_multiple"
+                )
             ),
             examples=(
                 'lifeos vision add "Launch lifeos-cli" '
@@ -60,17 +62,21 @@ def build_vision_add_parser(
                 "--person-id 22222222-2222-2222-2222-222222222222",
             ),
             notes=(
-                _("messages.repeat_the_same_person_id_flag_to_associate_multiple_peo_648ea09d"),
+                _(
+                    "common.messages.repeat_same_person_id_flag_to_associate_multiple_people_in_one_command"
+                ),
             ),
         ),
     )
-    add_parser.add_argument("name", help=_("messages.vision_name_4762f26a"))
+    add_parser.add_argument("name", help=_("resources.vision.parser_actions.vision_name"))
     add_parser.add_argument(
-        "--description", help=_("messages.optional_vision_description_4e953afa")
+        "--description", help=_("resources.vision.parser_actions.optional_vision_description")
     )
-    add_parser.add_argument("--status", default="active", help=_("messages.vision_status_c0b5ee3d"))
     add_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.owning_area_identifier_77f31997")
+        "--status", default="active", help=_("resources.vision.parser_actions.vision_status")
+    )
+    add_parser.add_argument(
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.owning_area_identifier")
     )
     add_parser.add_argument(
         "--person-id",
@@ -78,12 +84,12 @@ def build_vision_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_associate_one_or_more_people_cf6b79d8"),
+        help=_("common.messages.repeat_to_associate_one_or_more_people"),
     )
     add_parser.add_argument(
         "--experience-rate-per-hour",
         type=int,
-        help=_("messages.optional_experience_rate_3d5fc5d5"),
+        help=_("resources.vision.parser_actions.optional_experience_rate"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_vision_add_async))
 
@@ -96,11 +102,15 @@ def build_vision_list_parser(
         vision_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("messages.list_visions_27359c11"),
+            summary=_("resources.vision.parser_actions.list_visions"),
             description=(
-                _("messages.list_visions_with_optional_status_or_area_filters_644e5a7c")
+                _(
+                    "resources.vision.parser_actions.list_visions_with_optional_status_or_area_filters"
+                )
                 + "\n\n"
-                + _("messages.use_this_as_the_primary_query_entrypoint_for_visions_e3f6feb6")
+                + _(
+                    "resources.vision.parser_actions.use_this_as_primary_query_entrypoint_for_visions"
+                )
             ),
             examples=(
                 "lifeos vision list",
@@ -110,17 +120,17 @@ def build_vision_list_parser(
             ),
             notes=(
                 _(
-                    "messages.when_results_exist_the_list_command_prints_a_header_row_e9bd5ee0"
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(VISION_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--status", help=_("messages.filter_by_status_f43653d7"))
+    list_parser.add_argument("--status", help=_("resources.vision.parser_actions.filter_by_status"))
     list_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.filter_by_area_identifier_00c6b36e")
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.filter_by_area_identifier")
     )
     list_parser.add_argument(
-        "--person-id", type=UUID, help=_("messages.filter_by_linked_person_identifier_8e385113")
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person_identifier")
     )
     add_include_deleted_argument(list_parser, noun="visions")
     add_limit_offset_arguments(list_parser)
@@ -135,15 +145,15 @@ def build_vision_show_parser(
         vision_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("messages.show_a_vision_85f76298"),
-            description=_("messages.show_one_vision_with_full_metadata_1a7b0f13"),
+            summary=_("resources.vision.parser_actions.show_vision"),
+            description=_("resources.vision.parser_actions.show_one_vision_with_full_metadata"),
             examples=(
                 "lifeos vision show 11111111-1111-1111-1111-111111111111",
                 "lifeos vision show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78"))
+    show_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_vision_show_async))
 
@@ -156,11 +166,13 @@ def build_vision_update_parser(
         vision_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("messages.update_a_vision_41c2c4ef"),
+            summary=_("resources.vision.parser_actions.update_vision"),
             description=(
-                _("messages.update_mutable_vision_fields_c922951d")
+                _("resources.vision.parser_actions.update_mutable_vision_fields")
                 + "\n\n"
-                + _("messages.only_explicitly_provided_flags_are_changed_omitted_value_552bbcfd")
+                + _(
+                    "common.messages.only_explicitly_provided_flags_are_changed_omitted_values_are_preserved"
+                )
             ),
             examples=(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
@@ -176,32 +188,36 @@ def build_vision_update_parser(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
             ),
             notes=(
-                _("messages.valid_statuses_currently_include_active_archived_and_fru_b6d79280"),
-                _("messages.use_clear_flags_to_remove_optional_values_including_peop_51e64d1c"),
-                _("messages.repeat_the_same_person_id_flag_to_replace_multiple_linke_0f7ca8f3"),
+                _(
+                    "resources.vision.parser_actions.valid_statuses_currently_include_active_archived_and_fruit"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_clear_flags_to_remove_optional_values_including_people"
+                ),
+                _("common.messages.repeat_same_person_id_flag_to_replace_multiple_linked_people"),
             ),
         ),
     )
+    update_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     update_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
+        "--name", help=_("resources.vision.parser_actions.updated_vision_name")
     )
-    update_parser.add_argument("--name", help=_("messages.updated_vision_name_470542e4"))
     update_parser.add_argument(
-        "--description", help=_("messages.updated_vision_description_d290f91c")
+        "--description", help=_("resources.vision.parser_actions.updated_vision_description")
     )
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("messages.clear_the_optional_vision_description_99499062"),
+        help=_("resources.vision.parser_actions.clear_optional_vision_description"),
     )
-    update_parser.add_argument("--status", help=_("messages.updated_status_22e160b6"))
+    update_parser.add_argument("--status", help=_("resources.vision.parser_actions.updated_status"))
     update_parser.add_argument(
-        "--area-id", type=UUID, help=_("messages.updated_area_identifier_9dd5fa89")
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.updated_area_identifier")
     )
     update_parser.add_argument(
         "--clear-area",
         action="store_true",
-        help=_("messages.clear_the_optional_area_reference_41a1597e"),
+        help=_("resources.vision.parser_actions.clear_optional_area_reference"),
     )
     update_parser.add_argument(
         "--person-id",
@@ -209,18 +225,20 @@ def build_vision_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("messages.repeat_to_replace_people_with_one_or_more_identifiers_3ec3c70d"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
     update_parser.add_argument(
-        "--clear-people", action="store_true", help=_("messages.remove_all_people_d2c07476")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
     )
     update_parser.add_argument(
-        "--experience-rate-per-hour", type=int, help=_("messages.updated_experience_rate_8456bdcd")
+        "--experience-rate-per-hour",
+        type=int,
+        help=_("resources.vision.parser_actions.updated_experience_rate"),
     )
     update_parser.add_argument(
         "--clear-experience-rate",
         action="store_true",
-        help=_("messages.clear_the_optional_experience_rate_621221b1"),
+        help=_("resources.vision.parser_actions.clear_optional_experience_rate"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_vision_update_async))
 
@@ -233,14 +251,12 @@ def build_vision_delete_parser(
         vision_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_a_vision_6dbec190"),
-            description=_("messages.delete_a_vision_37e30f6b"),
+            summary=_("resources.vision.parser_actions.delete_vision_summary"),
+            description=_("resources.vision.parser_actions.delete_vision"),
             examples=("lifeos vision delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
-    )
+    delete_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_vision_delete_async))
 
 
@@ -252,18 +268,18 @@ def build_vision_with_tasks_parser(
         vision_subparsers,
         "with-tasks",
         help_content=HelpContent(
-            summary=_("messages.show_a_vision_task_tree_0b33c8e2"),
-            description=_("messages.show_one_vision_with_its_active_tasks_a0fb8058"),
+            summary=_("resources.vision.parser_actions.show_vision_task_tree"),
+            description=_("resources.vision.parser_actions.show_one_vision_with_its_active_tasks"),
             examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
             notes=(
                 _(
-                    "messages.when_the_vision_has_tasks_the_tasks_section_prints_a_hea_94b38260"
+                    "resources.vision.parser_actions.when_vision_has_tasks_tasks_section_prints_header_row_followed_by_tab"
                 ).format(columns=format_summary_column_list(VISION_WITH_TASKS_COLUMNS)),
             ),
         ),
     )
     with_tasks_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
     )
     with_tasks_parser.set_defaults(handler=make_sync_handler(handle_vision_with_tasks_async))
 
@@ -276,16 +292,22 @@ def build_vision_stats_parser(
         vision_subparsers,
         "stats",
         help_content=HelpContent(
-            summary=_("messages.show_vision_stats_9f59d17f"),
-            description=_("messages.show_task_counts_and_effort_totals_for_one_vision_bd791182"),
+            summary=_("resources.vision.parser_actions.show_vision_stats"),
+            description=_(
+                "resources.vision.parser_actions.show_task_counts_and_effort_totals_for_one_vision"
+            ),
             examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
             notes=(
-                _("messages.counts_and_effort_totals_aggregate_all_active_tasks_link_d6dfe4a0"),
-                _("messages.use_with_tasks_when_you_need_the_row_level_task_list_ins_9fe6c946"),
+                _(
+                    "resources.vision.parser_actions.counts_and_effort_totals_aggregate_all_active_tasks_linked_to_vision"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_with_tasks_when_you_need_row_level_task_list_instead_of"
+                ),
             ),
         ),
     )
-    stats_parser.add_argument("vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78"))
+    stats_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     stats_parser.set_defaults(handler=make_sync_handler(handle_vision_stats_async))
 
 
@@ -297,26 +319,32 @@ def build_vision_add_experience_parser(
         vision_subparsers,
         "add-experience",
         help_content=HelpContent(
-            summary=_("messages.add_vision_experience_2a0c55bc"),
-            description=_("messages.add_manual_experience_points_to_an_active_vision_9b95545c"),
+            summary=_("resources.vision.parser_actions.add_vision_experience"),
+            description=_(
+                "resources.vision.parser_actions.add_manual_experience_points_to_active_vision"
+            ),
             examples=(
                 "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
             ),
             notes=(
-                _("messages.use_this_for_explicit_manual_credit_rather_than_for_task_561cad36"),
-                _("messages.use_sync_experience_when_experience_should_be_recomputed_75c420e1"),
+                _(
+                    "resources.vision.parser_actions.use_this_for_explicit_manual_credit_rather_than_for_task_effort_recalculation"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_sync_experience_when_experience_should_be_recomputed_from_task_effort"
+                ),
             ),
         ),
     )
     add_experience_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
     )
     add_experience_parser.add_argument(
         "--points",
         dest="experience_points",
         type=int,
         required=True,
-        help=_("messages.experience_points_to_add_9301f02c"),
+        help=_("resources.vision.parser_actions.experience_points_to_add"),
     )
     add_experience_parser.set_defaults(
         handler=make_sync_handler(handle_vision_add_experience_async)
@@ -331,19 +359,23 @@ def build_vision_sync_experience_parser(
         vision_subparsers,
         "sync-experience",
         help_content=HelpContent(
-            summary=_("messages.sync_vision_experience_54f35591"),
+            summary=_("resources.vision.parser_actions.sync_vision_experience"),
             description=_(
-                "messages.synchronize_experience_points_from_root_task_actual_effo_f678572e"
+                "resources.vision.parser_actions.synchronize_experience_points_from_root_task_actual_effort_totals"
             ),
             examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
             notes=(
-                _("messages.use_this_after_task_effort_changes_when_vision_experienc_cf3862ed"),
-                _("messages.the_effective_hourly_rate_comes_from_the_vision_override_7b5da9f1"),
+                _(
+                    "resources.vision.parser_actions.use_this_after_task_effort_changes_when_vision_experience_should_match_current"
+                ),
+                _(
+                    "resources.vision.parser_actions.the_effective_hourly_rate_comes_from_vision_override_when_set_otherwise_from"
+                ),
             ),
         ),
     )
     sync_experience_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
     )
     sync_experience_parser.set_defaults(
         handler=make_sync_handler(handle_vision_sync_experience_async)
@@ -358,18 +390,22 @@ def build_vision_harvest_parser(
         vision_subparsers,
         "harvest",
         help_content=HelpContent(
-            summary=_("messages.harvest_a_vision_46968ed0"),
-            description=_("messages.convert_a_mature_active_vision_to_fruit_status_c856d9c4"),
+            summary=_("resources.vision.parser_actions.harvest_vision"),
+            description=_(
+                "resources.vision.parser_actions.convert_mature_active_vision_to_fruit_status"
+            ),
             examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
             notes=(
-                _("messages.this_command_succeeds_only_when_the_vision_is_active_and_7ae5db8e"),
-                _("messages.a_successful_harvest_changes_the_vision_status_from_acti_86c8d2d6"),
+                _(
+                    "resources.vision.parser_actions.this_command_succeeds_only_when_vision_is_active_and_already_at_final"
+                ),
+                _(
+                    "resources.vision.parser_actions.a_successful_harvest_changes_vision_status_from_active_to_fruit"
+                ),
             ),
         ),
     )
-    harvest_parser.add_argument(
-        "vision_id", type=UUID, help=_("messages.vision_identifier_6ecf0a78")
-    )
+    harvest_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     harvest_parser.set_defaults(handler=make_sync_handler(handle_vision_harvest_async))
 
 
@@ -381,29 +417,27 @@ def build_vision_batch_parser(
         vision_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("messages.run_batch_vision_operations_87df7c45"),
-            description=_("messages.delete_multiple_visions_in_one_command_39749616"),
+            summary=_("resources.vision.parser_actions.run_batch_vision_operations"),
+            description=_("resources.vision.parser_actions.delete_multiple_visions_in_one_command"),
             examples=(
                 "lifeos vision batch delete --help",
                 "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
             ),
-            notes=(
-                _("messages.this_namespace_currently_exposes_only_the_delete_workflo_8e17bac4"),
-            ),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="vision_batch_command",
-        title=_("messages.batch_actions_fb880b71"),
-        metavar=_("messages.batch_action_3c29d393"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("messages.delete_multiple_visions_d26efe41"),
-            description=_("messages.delete_multiple_visions_by_identifier_e3e3b941"),
+            summary=_("resources.vision.parser_actions.delete_multiple_visions"),
+            description=_("resources.vision.parser_actions.delete_multiple_visions_by_identifier"),
             examples=("lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",),
         ),
     )

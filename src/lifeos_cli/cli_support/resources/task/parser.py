@@ -34,13 +34,17 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "task",
         help_content=HelpContent(
-            summary=_("messages.manage_hierarchical_tasks_bd490711"),
+            summary=_("resources.task.parser.manage_hierarchical_tasks"),
             description=(
-                _("messages.create_and_maintain_task_trees_that_belong_to_a_vision_4e8941ee")
+                _("resources.task.parser.create_and_maintain_task_trees_that_belong_to_vision")
                 + "\n\n"
-                + _("messages.tasks_are_the_main_execution_unit_in_lifeos_and_can_be_n_5050add9")
+                + _(
+                    "resources.task.parser.tasks_are_main_execution_unit_in_lifeos_and_can_be_nested_under"
+                )
                 + " "
-                + _("messages.use_planning_cycle_fields_for_the_broader_timebox_use_ev_f40c735d")
+                + _(
+                    "resources.task.parser.use_planning_cycle_fields_for_broader_timebox_use_event_when_task_also"
+                )
             ),
             examples=(
                 "lifeos task add --help",
@@ -48,17 +52,19 @@ def build_task_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos task batch --help",
             ),
             notes=(
-                _("messages.use_list_as_the_primary_query_entrypoint_for_this_resour_6b284135"),
-                _("messages.tasks_can_form_trees_through_parent_task_id_9a18c68d"),
-                _("messages.use_lifeos_event_add_task_id_task_id_when_the_task_also_7da1a2e8"),
-                _("messages.see_lifeos_task_batch_help_for_bulk_delete_operations_c79691a4"),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _("resources.task.parser.tasks_can_form_trees_through_parent_task_id"),
+                _(
+                    "resources.task.parser.use_lifeos_event_add_task_id_task_id_when_task_also_needs"
+                ),
+                _("resources.task.parser.see_lifeos_task_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     task_subparsers = task_parser.add_subparsers(
         dest="task_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_task_add_parser(task_subparsers)

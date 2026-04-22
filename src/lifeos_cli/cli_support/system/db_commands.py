@@ -39,39 +39,47 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         subparsers,
         "db",
         help_content=HelpContent(
-            summary=_("messages.run_database_maintenance_commands_5791d225"),
+            summary=_("system.db_commands.run_database_maintenance_commands"),
             description=(
-                _("messages.inspect_database_connectivity_and_apply_migrations_f3271993")
+                _("system.db_commands.inspect_database_connectivity_and_apply_migrations")
                 + "\n\n"
-                + _("messages.these_commands_operate_on_the_database_configured_throug_9ee5be9f")
+                + _(
+                    "system.db_commands.these_commands_operate_on_database_configured_through_lifeos_init_config_file_or"
+                )
             ),
             examples=(
                 "lifeos db ping",
                 "lifeos db upgrade",
             ),
             notes=(
-                _("messages.use_ping_to_validate_the_current_connection_settings_wit_ba1ec864"),
-                _("messages.use_upgrade_when_the_configured_database_schema_needs_to_96fbb948"),
+                _(
+                    "system.db_commands.use_ping_to_validate_current_connection_settings_without_changing_schema"
+                ),
+                _(
+                    "system.db_commands.use_upgrade_when_configured_database_schema_needs_to_catch_up_with_code"
+                ),
             ),
         ),
     )
     db_subparsers = db_parser.add_subparsers(
         dest="db_command",
-        title=_("messages.actions_326b426f"),
-        metavar=_("messages.action_34eb4c4e"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     ping_parser = add_documented_parser(
         db_subparsers,
         "ping",
         help_content=HelpContent(
-            summary=_("messages.check_database_connectivity_2b474dbe"),
+            summary=_("system.db_commands.check_database_connectivity"),
             description=_(
-                "messages.open_a_database_connection_and_run_a_minimal_health_chec_abe2868b"
+                "system.db_commands.open_database_connection_and_run_minimal_health_check_query"
             ),
             examples=("lifeos db ping",),
             notes=(
-                _("messages.use_this_before_db_upgrade_when_you_first_need_to_confir_38589c5e"),
+                _(
+                    "system.db_commands.use_this_before_db_upgrade_when_you_first_need_to_confirm_target"
+                ),
             ),
         ),
     )
@@ -81,14 +89,18 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         db_subparsers,
         "upgrade",
         help_content=HelpContent(
-            summary=_("messages.apply_migrations_c714f550"),
+            summary=_("system.db_commands.apply_migrations"),
             description=_(
-                "messages.apply_alembic_migrations_to_the_configured_postgresql_da_b7a89035"
+                "system.db_commands.apply_alembic_migrations_to_configured_postgresql_database"
             ),
             examples=("lifeos db upgrade",),
             notes=(
-                _("messages.this_updates_schema_state_in_the_database_it_does_not_re_b8e2d289"),
-                _("messages.use_db_ping_first_if_you_are_unsure_the_current_connecti_14e97ded"),
+                _(
+                    "system.db_commands.this_updates_schema_state_in_database_it_does_not_rewrite_local_config"
+                ),
+                _(
+                    "system.db_commands.use_db_ping_first_if_you_are_unsure_current_connection_settings_are"
+                ),
             ),
         ),
     )
