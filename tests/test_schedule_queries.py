@@ -451,7 +451,7 @@ def test_list_schedule_in_range_keeps_all_events_under_event_section(monkeypatch
             make_record(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
                 title="Focus block",
-                status="planned",
+                status="completed",
                 event_type="timeblock",
                 start_time=utc_datetime(2026, 4, 10, 15, 0),
                 end_time=utc_datetime(2026, 4, 10, 16, 0),
@@ -494,12 +494,10 @@ def test_list_schedule_in_range_keeps_all_events_under_event_section(monkeypatch
 
     assert [item.event_type for item in days[0].events] == [
         "appointment",
-        "timeblock",
         "deadline",
     ]
     assert [item.title for item in days[0].events] == [
         "Doctor appointment",
-        "Focus block",
         "Tax deadline",
     ]
 

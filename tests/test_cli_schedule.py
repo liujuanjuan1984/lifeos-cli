@@ -74,10 +74,11 @@ def test_main_schedule_show_prints_grouped_sections(
         "planning_cycle_end_date\tcontent" in captured.out
     )
     assert "habit_actions:" in captured.out
-    assert "  habit_action_id\tstatus\taction_date\thabit_id\thabit_title" in captured.out
-    assert "todo\t2026-04-10\taaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\tDaily Review" in captured.out
+    assert "  habit_action_id\tstatus\taction_date\thabit_title" in captured.out
+    assert "todo\t2026-04-10\tDaily Review" in captured.out
+    assert "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" not in captured.out
     assert "events:" in captured.out
-    assert "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle" in captured.out
+    assert "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttitle" in captured.out
     assert "appointments:" not in captured.out
     assert "timeblocks:" not in captured.out
     assert "deadlines:" not in captured.out

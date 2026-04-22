@@ -252,7 +252,8 @@ async def list_schedule_in_range(
         current_events = tuple(
             item
             for item in event_items
-            if item.start_time <= current_window_end
+            if item.status != "completed"
+            and item.start_time <= current_window_end
             and (item.end_time is None or item.end_time >= current_window_start)
         )
         days.append(
