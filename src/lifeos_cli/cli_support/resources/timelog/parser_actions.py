@@ -5,7 +5,16 @@ from __future__ import annotations
 import argparse
 from uuid import UUID
 
-from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser
+from lifeos_cli.cli_support.help_utils import (
+    HelpContent,
+    add_documented_parser,
+    clear_flags_note,
+    configured_timezone_datetime_note,
+    local_date_range_argument_help,
+    local_date_range_note,
+    repeated_tag_or_person_attach_note,
+    value_clear_conflict_note,
+)
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
@@ -52,10 +61,7 @@ def build_timelog_add_parser(
                 "lifeos timelog add --file quick-timelog.txt",
             ),
             notes=(
-                _(
-                    "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
-                    "or people in one command."
-                ),
+                repeated_tag_or_person_attach_note(),
                 _(
                     "Single-record mode requires both `--start-time` and `--end-time` because "
                     "the record models completed time spent."
@@ -66,10 +72,7 @@ def build_timelog_add_parser(
                     "default, and skips the prompt when input comes from `--stdin` or `--yes` "
                     "is provided."
                 ),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
+                configured_timezone_datetime_note(),
                 _(
                     "When quick batch mode omits `--first-start-time`, the first row inherits "
                     "the latest active timelog end time."
@@ -157,10 +160,7 @@ def build_timelog_list_parser(
                 'lifeos timelog list --query "deep work" --count',
             ),
             notes=(
-                _(
-                    "Repeat `--date` once for one configured local day or twice for one "
-                    "inclusive local-date range."
-                ),
+                local_date_range_note(),
                 _("Use `--query` for lightweight text filtering across titles and notes."),
                 _(
                     "When results exist, the list command prints a header row followed by "
@@ -198,10 +198,7 @@ def build_timelog_list_parser(
     )
     add_date_range_arguments(
         list_parser,
-        date_help=_(
-            "Repeat once for one configured local day or twice for one inclusive "
-            "local-date range in YYYY-MM-DD format"
-        ),
+        date_help=local_date_range_argument_help(),
     )
     list_parser.add_argument(
         "--start-time",
@@ -265,12 +262,9 @@ def build_timelog_update_parser(
                 "--clear-people --clear-tags",
             ),
             notes=(
-                _("Use `--clear-*` flags to explicitly remove optional values."),
-                _("Do not mix a value flag with the matching clear flag in the same command."),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
+                clear_flags_note(),
+                value_clear_conflict_note(),
+                configured_timezone_datetime_note(),
                 _(
                     "Use repeated `--person-id` to keep actual human effort, agent effort, "
                     "and shared effort distinct."

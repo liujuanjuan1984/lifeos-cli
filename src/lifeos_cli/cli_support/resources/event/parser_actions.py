@@ -9,6 +9,14 @@ from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_help_parser,
     add_documented_parser,
+    clear_flags_note,
+    configured_timezone_datetime_note,
+    local_date_range_argument_help,
+    local_date_range_note,
+    recurring_scope_instance_start_note,
+    recurring_scope_note,
+    repeated_tag_or_person_attach_note,
+    value_clear_conflict_note,
 )
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
@@ -55,15 +63,9 @@ def build_event_add_parser(
             ),
             notes=(
                 _("`appointment` is the default type. Use `--type` for timeblocks and deadlines."),
-                _(
-                    "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
-                    "or people in one command."
-                ),
+                repeated_tag_or_person_attach_note(),
                 _("If `--end-time` is omitted, the event is treated as open-ended."),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
+                configured_timezone_datetime_note(),
                 _(
                     "Use recurrence flags to create recurring daily, weekly, monthly, or yearly "
                     "series."
@@ -161,10 +163,7 @@ def build_event_list_parser(
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                _(
-                    "Repeat `--date` once for one configured local day or twice for one "
-                    "inclusive local-date range."
-                ),
+                local_date_range_note(),
                 _(
                     "When both `--start-time` and `--end-time` are given, overlapping "
                     "events are returned."
@@ -195,10 +194,7 @@ def build_event_list_parser(
     list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
     add_date_range_arguments(
         list_parser,
-        date_help=_(
-            "Repeat once for one configured local day or twice for one inclusive "
-            "local-date range in YYYY-MM-DD format"
-        ),
+        date_help=local_date_range_argument_help(),
     )
     list_parser.add_argument(
         "--start-time",
@@ -266,14 +262,11 @@ def build_event_update_parser(
             ),
             notes=(
                 _("Use `--type` to retag an event as appointment, timeblock, or deadline."),
-                _("Use `--clear-*` flags to explicitly remove optional values."),
-                _("Do not mix a value flag with the matching clear flag in the same command."),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
-                _("Use `--scope single|all_future|all` for recurring series updates."),
-                _("`--scope single` and `--scope all_future` require `--instance-start`."),
+                clear_flags_note(),
+                value_clear_conflict_note(),
+                configured_timezone_datetime_note(),
+                recurring_scope_note("updates"),
+                recurring_scope_instance_start_note(),
                 _(
                     "Use repeated `--person-id` to keep human-only, agent-only, and shared "
                     "ownership explicit as plans change."
@@ -380,12 +373,9 @@ def build_event_delete_parser(
                 "--scope all_future --instance-start 2026-04-10T09:00:00",
             ),
             notes=(
-                _("Use `--scope single|all_future|all` for recurring series deletes."),
-                _("`--scope single` and `--scope all_future` require `--instance-start`."),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
+                recurring_scope_note("deletes"),
+                recurring_scope_instance_start_note(),
+                configured_timezone_datetime_note(),
             ),
         ),
     )
