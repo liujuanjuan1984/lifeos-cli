@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
 from lifeos_cli.cli_support.time_args import (
@@ -21,8 +22,19 @@ SCHEDULE_TASK_COLUMNS = (
     "planning_cycle_end_date",
     "content",
 )
-SCHEDULE_HABIT_ACTION_COLUMNS = ("habit_action_id", "status", "habit_id", "habit_title")
-SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "title")
+SCHEDULE_HABIT_ACTION_COLUMNS = (
+    "habit_action_id",
+    "status",
+    "action_date",
+    "habit_title",
+)
+SCHEDULE_EVENT_COLUMNS = (
+    "event_id",
+    "event_type",
+    "start_time",
+    "end_time",
+    "title",
+)
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
@@ -33,28 +45,20 @@ def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
 
 
 def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionItem) -> str:
-    return f"  {item.id}\t{item.status}\t{item.habit_id}\t{item.habit_title}"
+    return f"  {item.id}\t{item.status}\t{item.action_date}\t{item.habit_title}"
+
+
+def _format_schedule_event_end_time(item: schedule_services.ScheduleEventItem) -> str:
+    if item.end_time is None and item.event_type == "deadline":
+        return format_timestamp(item.start_time)
+    return format_timestamp(item.end_time)
 
 
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     return (
-        f"  {item.id}\t{item.status}\t{format_timestamp(item.start_time)}\t"
-        f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t{item.title}"
+        f"  {item.id}\t{item.event_type}\t{format_timestamp(item.start_time)}\t"
+        f"{_format_schedule_event_end_time(item)}\t{item.title}"
     )
-
-
-def _append_schedule_event_section(
-    lines: list[str],
-    *,
-    heading: str,
-    events: tuple[schedule_services.ScheduleEventItem, ...],
-) -> None:
-    lines.append(heading)
-    if events:
-        lines.append(f"  {format_summary_header(SCHEDULE_EVENT_COLUMNS)}")
-        lines.extend(_format_schedule_event(item) for item in events)
-    else:
-        lines.append("  -")
 
 
 def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
@@ -72,27 +76,23 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
     else:
         lines.append("  -")
 
-    _append_schedule_event_section(
-        lines,
-        heading="appointments:",
-        events=day.appointments,
-    )
-    _append_schedule_event_section(
-        lines,
-        heading="timeblocks:",
-        events=day.timeblocks,
-    )
-    _append_schedule_event_section(
-        lines,
-        heading="deadlines:",
-        events=day.deadlines,
-    )
+    lines.append("events:")
+    if day.events:
+        lines.append(f"  {format_summary_header(SCHEDULE_EVENT_COLUMNS)}")
+        lines.extend(_format_schedule_event(item) for item in day.events)
+    else:
+        lines.append("  -")
     return "\n".join(lines)
 
 
 async def handle_schedule_show_async(args: argparse.Namespace) -> int:
+    target_date = args.target_date or get_operational_date()
     async with db_session.session_scope() as session:
-        day = await schedule_services.get_schedule_for_date(session, target_date=args.target_date)
+        day = await schedule_services.get_schedule_for_date(
+            session,
+            target_date=target_date,
+            hide_overdue_unfinished=args.hide_overdue_unfinished,
+        )
     print(_format_schedule_day(day))
     return 0
 
@@ -109,6 +109,7 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
             session,
             start_date=start_date,
             end_date=end_date,
+            hide_overdue_unfinished=args.hide_overdue_unfinished,
         )
     print("\n\n".join(_format_schedule_day(day) for day in days))
     return 0

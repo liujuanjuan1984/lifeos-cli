@@ -33,9 +33,17 @@ def _build_schedule_section_header_notes() -> tuple[str, ...]:
         _("Habit action section columns: {columns}.").format(
             columns=format_summary_column_list(SCHEDULE_HABIT_ACTION_COLUMNS)
         ),
-        _("Event section columns for appointments, timeblocks, and deadlines: {columns}.").format(
+        _("Event section columns: {columns}.").format(
             columns=format_summary_column_list(SCHEDULE_EVENT_COLUMNS)
         ),
+    )
+
+
+def _add_hide_overdue_unfinished_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--hide-overdue-unfinished",
+        action="store_true",
+        help=_("Hide overdue unfinished planning tasks and habit actions"),
     )
 
 
@@ -82,20 +90,28 @@ def build_schedule_parser(
                 + "\n\n"
                 + _(
                     "Tasks appear when the local date falls inside their planning-cycle window. "
-                    "Events appear when their scheduled time overlaps that day."
+                    "Overdue unfinished tasks and habit actions also roll forward into "
+                    "non-future schedule days. Events appear when their scheduled time overlaps "
+                    "that day."
                 )
             ),
-            examples=("lifeos schedule show --date 2026-04-10",),
+            examples=("lifeos schedule show", "lifeos schedule show --date 2026-04-10"),
             notes=(
                 _("The output groups tasks, habit actions, and event occurrences for the day."),
                 _("Task rows come from planning-cycle overlap, not from event timeblocks."),
                 _(
+                    "Habit action rows use `action_date`; earlier pending rows remain visible "
+                    "until they are completed, missed, or hidden with `--hide-overdue-unfinished`."
+                ),
+                _("When `--date` is omitted, `show` uses the current configured local date."),
+                _(
                     "Use `list` when you need the same schedule view across an inclusive "
                     "date range."
                 ),
+                _("Event rows stay under the event section and include their `event_type`."),
                 _(
-                    "Event occurrences are split into appointment, timeblock, and deadline "
-                    "sections."
+                    "Overdue unfinished planning tasks and habit actions are shown by default; "
+                    "use `--hide-overdue-unfinished` to hide them."
                 ),
                 *_build_schedule_section_header_notes(),
             ),
@@ -104,10 +120,10 @@ def build_schedule_parser(
     show_parser.add_argument(
         "--date",
         dest="target_date",
-        required=True,
         type=date.fromisoformat,
-        help=_("Target local date in YYYY-MM-DD format"),
+        help=_("Target local date in YYYY-MM-DD format; defaults to today when omitted"),
     )
+    _add_hide_overdue_unfinished_argument(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_schedule_show_async))
 
     list_parser = add_documented_parser(
@@ -124,7 +140,11 @@ def build_schedule_parser(
                 ),
                 _("Use `show` when you want the single-day entrypoint with the same sections."),
                 _("Recurring event occurrences are expanded inside the requested range."),
-                _("Event occurrences remain segmented by type inside each day block."),
+                _("Event rows stay under the event section and include their `event_type`."),
+                _(
+                    "Overdue unfinished planning tasks and habit actions are shown by default; "
+                    "use `--hide-overdue-unfinished` to hide them."
+                ),
                 *_build_schedule_section_header_notes(),
             ),
         ),
@@ -136,4 +156,5 @@ def build_schedule_parser(
             "in YYYY-MM-DD format"
         ),
     )
+    _add_hide_overdue_unfinished_argument(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_schedule_list_async))

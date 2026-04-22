@@ -132,21 +132,33 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     captured = capsys.readouterr()
 
     assert (
-        "Tasks appear when the local date falls inside their planning-cycle window." in captured.out
+        "Overdue unfinished tasks and habit actions also roll forward into non-future "
+        "schedule days." in captured.out
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
+    assert (
+        "Habit action rows use `action_date`; earlier pending rows remain visible until they are "
+        "completed, missed, or hidden with `--hide-overdue-unfinished`." in captured.out
+    )
     assert (
         "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
         "planning_cycle_end_date, content."
     ) in captured.out
     assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
+        "Habit action section columns: habit_action_id, status, action_date, habit_title."
         in captured.out
     )
     assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "Event section columns: event_id, event_type, start_time, end_time, title."
     ) in captured.out
+    assert (
+        "When `--date` is omitted, `show` uses the current configured local date." in captured.out
+    )
+    assert "Event rows stay under the event section and include their `event_type`." in captured.out
+    assert "--hide-overdue-unfinished" in captured.out
+    assert (
+        "Overdue unfinished planning tasks and habit actions are shown by default" in captured.out
+    )
 
 
 def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
@@ -538,13 +550,13 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         "planning_cycle_end_date, content."
     ) in captured.out
     assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
+        "Habit action section columns: habit_action_id, status, action_date, habit_title."
         in captured.out
     )
     assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "Event section columns: event_id, event_type, start_time, end_time, title."
     ) in captured.out
+    assert "--hide-overdue-unfinished" in captured.out
 
 
 def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:

@@ -159,7 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
             examples=(
                 "lifeos init",
                 "lifeos config show",
-                "lifeos schedule show --date 2026-04-10",
+                "lifeos schedule show",
                 "lifeos task list",
                 'lifeos note add "Capture an idea"',
             ),

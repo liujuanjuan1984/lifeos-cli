@@ -439,11 +439,12 @@ def test_cli_parser_supports_note_list_relation_filters() -> None:
 
 def test_cli_parser_supports_schedule_show_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(["schedule", "show", "--date", "2026-04-10"])
+    args = parser.parse_args(["schedule", "show", "--hide-overdue-unfinished"])
 
     assert args.resource == "schedule"
     assert args.schedule_command == "show"
-    assert str(args.target_date) == "2026-04-10"
+    assert args.target_date is None
+    assert args.hide_overdue_unfinished is True
 
 
 def test_cli_parser_supports_schedule_list_command() -> None:
@@ -453,6 +454,7 @@ def test_cli_parser_supports_schedule_list_command() -> None:
     assert args.resource == "schedule"
     assert args.schedule_command == "list"
     assert args.date_values == [date(2026, 4, 10), date(2026, 4, 16)]
+    assert args.hide_overdue_unfinished is False
 
 
 def test_cli_parser_supports_people_update_clear_location_command() -> None:
