@@ -6,6 +6,7 @@ from uuid import UUID
 import pytest
 
 from lifeos_cli import cli
+from lifeos_cli.cli_support.resources.schedule import handlers as schedule_handlers
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.services import schedules
 from tests.support import make_session_scope, utc_datetime
@@ -46,7 +47,7 @@ def test_main_schedule_show_prints_grouped_sections(
                     notes=None,
                 ),
             ),
-            appointments=(
+            events=(
                 schedules.ScheduleEventItem(
                     id=UUID("33333333-3333-3333-3333-333333333333"),
                     title="Doctor appointment",
@@ -57,8 +58,6 @@ def test_main_schedule_show_prints_grouped_sections(
                     task_id=None,
                 ),
             ),
-            timeblocks=(),
-            deadlines=(),
         )
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -76,10 +75,11 @@ def test_main_schedule_show_prints_grouped_sections(
     )
     assert "habit_actions:" in captured.out
     assert "  habit_action_id\tstatus\thabit_id\thabit_title" in captured.out
-    assert "appointments:" in captured.out
-    assert "  event_id\tstatus\tstart_time\tend_time\ttask_id\ttitle" in captured.out
-    assert "timeblocks:" in captured.out
-    assert "deadlines:" in captured.out
+    assert "events:" in captured.out
+    assert "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle" in captured.out
+    assert "appointments:" not in captured.out
+    assert "timeblocks:" not in captured.out
+    assert "deadlines:" not in captured.out
     assert "Draft release checklist" in captured.out
     assert "Daily Review" in captured.out
     assert "Doctor appointment" in captured.out
@@ -101,9 +101,7 @@ def test_main_schedule_show_passes_hide_overdue_unfinished(
             local_date=target_date,
             tasks=(),
             habit_actions=(),
-            appointments=(),
-            timeblocks=(),
-            deadlines=(),
+            events=(),
         )
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -114,6 +112,36 @@ def test_main_schedule_show_passes_hide_overdue_unfinished(
 
     assert exit_code == 0
     assert "date: 2026-04-10" in captured.out
+
+
+def test_main_schedule_show_defaults_to_operational_date(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> object:
+        assert target_date == date(2026, 4, 22)
+        assert hide_overdue_unfinished is False
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            events=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+    monkeypatch.setattr(schedule_handlers, "get_operational_date", lambda: date(2026, 4, 22))
+
+    exit_code = cli.main(["schedule", "show"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "date: 2026-04-22" in captured.out
 
 
 def test_main_schedule_list_rejects_inverted_date_range(

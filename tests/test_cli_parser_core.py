@@ -439,13 +439,11 @@ def test_cli_parser_supports_note_list_relation_filters() -> None:
 
 def test_cli_parser_supports_schedule_show_command() -> None:
     parser = build_parser()
-    args = parser.parse_args(
-        ["schedule", "show", "--date", "2026-04-10", "--hide-overdue-unfinished"]
-    )
+    args = parser.parse_args(["schedule", "show", "--hide-overdue-unfinished"])
 
     assert args.resource == "schedule"
     assert args.schedule_command == "show"
-    assert str(args.target_date) == "2026-04-10"
+    assert args.target_date is None
     assert args.hide_overdue_unfinished is True
 
 

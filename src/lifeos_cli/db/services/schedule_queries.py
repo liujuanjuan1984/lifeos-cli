@@ -66,9 +66,7 @@ class ScheduleDay:
     local_date: date
     tasks: tuple[ScheduleTaskItem, ...]
     habit_actions: tuple[ScheduleHabitActionItem, ...]
-    appointments: tuple[ScheduleEventItem, ...]
-    timeblocks: tuple[ScheduleEventItem, ...]
-    deadlines: tuple[ScheduleEventItem, ...]
+    events: tuple[ScheduleEventItem, ...]
 
 
 def _iter_date_range(start_date: date, end_date: date) -> list[date]:
@@ -242,17 +240,12 @@ async def list_schedule_in_range(
             if item.start_time <= current_window_end
             and (item.end_time is None or item.end_time >= current_window_start)
         )
-        appointments = tuple(item for item in current_events if item.event_type == "appointment")
-        timeblocks = tuple(item for item in current_events if item.event_type == "timeblock")
-        deadlines = tuple(item for item in current_events if item.event_type == "deadline")
         days.append(
             ScheduleDay(
                 local_date=current_date,
                 tasks=current_tasks,
                 habit_actions=current_actions,
-                appointments=appointments,
-                timeblocks=timeblocks,
-                deadlines=deadlines,
+                events=current_events,
             )
         )
     return days

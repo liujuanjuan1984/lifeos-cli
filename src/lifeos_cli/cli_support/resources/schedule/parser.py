@@ -33,7 +33,7 @@ def _build_schedule_section_header_notes() -> tuple[str, ...]:
         _("Habit action section columns: {columns}.").format(
             columns=format_summary_column_list(SCHEDULE_HABIT_ACTION_COLUMNS)
         ),
-        _("Event section columns for appointments, timeblocks, and deadlines: {columns}.").format(
+        _("Event section columns: {columns}.").format(
             columns=format_summary_column_list(SCHEDULE_EVENT_COLUMNS)
         ),
     )
@@ -93,18 +93,16 @@ def build_schedule_parser(
                     "Events appear when their scheduled time overlaps that day."
                 )
             ),
-            examples=("lifeos schedule show --date 2026-04-10",),
+            examples=("lifeos schedule show", "lifeos schedule show --date 2026-04-10"),
             notes=(
                 _("The output groups tasks, habit actions, and event occurrences for the day."),
                 _("Task rows come from planning-cycle overlap, not from event timeblocks."),
+                _("When `--date` is omitted, `show` uses the current configured local date."),
                 _(
                     "Use `list` when you need the same schedule view across an inclusive "
                     "date range."
                 ),
-                _(
-                    "Event occurrences are split into appointment, timeblock, and deadline "
-                    "sections."
-                ),
+                _("Event rows stay under the event section and include their `event_type`."),
                 _(
                     "Overdue unfinished planning tasks and habit actions are shown by default; "
                     "use `--hide-overdue-unfinished` to hide them."
@@ -116,9 +114,8 @@ def build_schedule_parser(
     show_parser.add_argument(
         "--date",
         dest="target_date",
-        required=True,
         type=date.fromisoformat,
-        help=_("Target local date in YYYY-MM-DD format"),
+        help=_("Target local date in YYYY-MM-DD format; defaults to today when omitted"),
     )
     _add_hide_overdue_unfinished_argument(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_schedule_show_async))
@@ -137,7 +134,7 @@ def build_schedule_parser(
                 ),
                 _("Use `show` when you want the single-day entrypoint with the same sections."),
                 _("Recurring event occurrences are expanded inside the requested range."),
-                _("Event occurrences remain segmented by type inside each day block."),
+                _("Event rows stay under the event section and include their `event_type`."),
                 _(
                     "Overdue unfinished planning tasks and habit actions are shown by default; "
                     "use `--hide-overdue-unfinished` to hide them."

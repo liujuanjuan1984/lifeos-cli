@@ -144,9 +144,12 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
         in captured.out
     )
     assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "Event section columns: event_id, status, event_type, start_time, end_time, task_id, title."
     ) in captured.out
+    assert (
+        "When `--date` is omitted, `show` uses the current configured local date." in captured.out
+    )
+    assert "Event rows stay under the event section and include their `event_type`." in captured.out
     assert "--hide-overdue-unfinished" in captured.out
     assert (
         "Overdue unfinished planning tasks and habit actions are shown by default" in captured.out
@@ -546,8 +549,7 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         in captured.out
     )
     assert (
-        "Event section columns for appointments, timeblocks, and deadlines: "
-        "event_id, status, start_time, end_time, task_id, title."
+        "Event section columns: event_id, status, event_type, start_time, end_time, task_id, title."
     ) in captured.out
     assert "--hide-overdue-unfinished" in captured.out
 

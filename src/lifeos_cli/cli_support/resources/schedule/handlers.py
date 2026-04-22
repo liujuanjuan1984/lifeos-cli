@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_summary_header, format_timestamp
 from lifeos_cli.cli_support.time_args import (
@@ -22,7 +23,15 @@ SCHEDULE_TASK_COLUMNS = (
     "content",
 )
 SCHEDULE_HABIT_ACTION_COLUMNS = ("habit_action_id", "status", "habit_id", "habit_title")
-SCHEDULE_EVENT_COLUMNS = ("event_id", "status", "start_time", "end_time", "task_id", "title")
+SCHEDULE_EVENT_COLUMNS = (
+    "event_id",
+    "status",
+    "event_type",
+    "start_time",
+    "end_time",
+    "task_id",
+    "title",
+)
 
 
 def _format_schedule_task(item: schedule_services.ScheduleTaskItem) -> str:
@@ -38,23 +47,9 @@ def _format_schedule_habit_action(item: schedule_services.ScheduleHabitActionIte
 
 def _format_schedule_event(item: schedule_services.ScheduleEventItem) -> str:
     return (
-        f"  {item.id}\t{item.status}\t{format_timestamp(item.start_time)}\t"
+        f"  {item.id}\t{item.status}\t{item.event_type}\t{format_timestamp(item.start_time)}\t"
         f"{format_timestamp(item.end_time)}\t{item.task_id or '-'}\t{item.title}"
     )
-
-
-def _append_schedule_event_section(
-    lines: list[str],
-    *,
-    heading: str,
-    events: tuple[schedule_services.ScheduleEventItem, ...],
-) -> None:
-    lines.append(heading)
-    if events:
-        lines.append(f"  {format_summary_header(SCHEDULE_EVENT_COLUMNS)}")
-        lines.extend(_format_schedule_event(item) for item in events)
-    else:
-        lines.append("  -")
 
 
 def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
@@ -72,29 +67,21 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
     else:
         lines.append("  -")
 
-    _append_schedule_event_section(
-        lines,
-        heading="appointments:",
-        events=day.appointments,
-    )
-    _append_schedule_event_section(
-        lines,
-        heading="timeblocks:",
-        events=day.timeblocks,
-    )
-    _append_schedule_event_section(
-        lines,
-        heading="deadlines:",
-        events=day.deadlines,
-    )
+    lines.append("events:")
+    if day.events:
+        lines.append(f"  {format_summary_header(SCHEDULE_EVENT_COLUMNS)}")
+        lines.extend(_format_schedule_event(item) for item in day.events)
+    else:
+        lines.append("  -")
     return "\n".join(lines)
 
 
 async def handle_schedule_show_async(args: argparse.Namespace) -> int:
+    target_date = args.target_date or get_operational_date()
     async with db_session.session_scope() as session:
         day = await schedule_services.get_schedule_for_date(
             session,
-            target_date=args.target_date,
+            target_date=target_date,
             hide_overdue_unfinished=args.hide_overdue_unfinished,
         )
     print(_format_schedule_day(day))
