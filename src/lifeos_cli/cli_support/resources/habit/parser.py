@@ -18,7 +18,7 @@ from lifeos_cli.cli_support.resources.habit.parser_actions import (
     build_habit_task_associations_parser,
     build_habit_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -27,13 +27,14 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "habit",
         help_content=HelpContent(
-            summary=_("Manage recurring habits"),
+            summary=_("resources.habit.parser.manage_recurring_habits"),
             description=(
-                _("Create and maintain recurring habits with explicit cadence rules.")
+                _(
+                    "resources.habit.parser.create_and_maintain_recurring_habits_with_explicit_cadence_rules"
+                )
                 + "\n\n"
                 + _(
-                    "Habits define recurring work. Query windows materialize habit-action "
-                    "occurrences on demand, and cadence decides how progress is measured."
+                    "resources.habit.parser.habits_define_recurring_work_query_windows_materialize_habit_action_occurrences_on_demand"
                 )
             ),
             examples=(
@@ -42,23 +43,21 @@ def build_habit_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos habit batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for habits."),
+                _("resources.habit.parser.use_list_as_primary_query_entrypoint_for_habits"),
                 _(
-                    "Habit creation and timing updates no longer pre-generate full "
-                    "habit-action histories."
+                    "resources.habit.parser.habit_creation_and_timing_updates_no_longer_pre_generate_full_habit_action"
                 ),
                 _(
-                    "Cadence cycles can be daily, weekly, monthly, or yearly, while "
-                    "habit-action occurrences remain date-based."
+                    "resources.habit.parser.cadence_cycles_can_be_daily_weekly_monthly_or_yearly_while_habit_action"
                 ),
-                _("See `lifeos habit batch --help` for bulk delete operations."),
+                _("resources.habit.parser.see_lifeos_habit_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     habit_subparsers = habit_parser.add_subparsers(
         dest="habit_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_habit_add_parser(habit_subparsers)

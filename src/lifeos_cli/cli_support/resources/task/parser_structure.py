@@ -11,7 +11,7 @@ from lifeos_cli.cli_support.resources.task.handlers import (
     handle_task_reorder_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_task_move_parser(
@@ -22,8 +22,10 @@ def build_task_move_parser(
         task_subparsers,
         "move",
         help_content=HelpContent(
-            summary=_("Move a task"),
-            description=_("Move a task to a new parent and optionally a new vision."),
+            summary=_("resources.task.parser_structure.move_task"),
+            description=_(
+                "resources.task.parser_structure.move_task_to_new_parent_and_optionally_new_vision"
+            ),
             examples=(
                 "lifeos task move 11111111-1111-1111-1111-111111111111 "
                 "--new-parent-task-id 22222222-2222-2222-2222-222222222222",
@@ -36,37 +38,39 @@ def build_task_move_parser(
             ),
             notes=(
                 _(
-                    "Use `reorder` when only sibling display order changes and parentage stays "
-                    "the same."
+                    "resources.task.parser_structure.use_reorder_when_only_sibling_display_order_changes_and_parentage_stays_same"
                 ),
                 _(
-                    "Use `--old-parent-task-id` as an optimistic guard when another writer may "
-                    "have already moved the task."
+                    "resources.task.parser_structure.use_old_parent_task_id_as_optimistic_guard_when_another_writer_may"
                 ),
             ),
         ),
     )
-    move_parser.add_argument("task_id", type=UUID, help=_("Task identifier"))
+    move_parser.add_argument("task_id", type=UUID, help=_("common.messages.task_identifier"))
     move_parser.add_argument(
         "--old-parent-task-id",
         type=UUID,
-        help=_("Expected current parent task identifier"),
+        help=_("resources.task.parser_structure.expected_current_parent_task_identifier"),
     )
     move_parser.add_argument(
         "--new-parent-task-id",
         type=UUID,
-        help=_("Target parent task identifier"),
+        help=_("resources.task.parser_structure.target_parent_task_identifier"),
     )
     move_parser.add_argument(
         "--clear-parent",
         action="store_true",
-        help=_("Move the task to the root level"),
+        help=_("resources.task.parser_structure.move_task_to_root_level"),
     )
-    move_parser.add_argument("--new-vision-id", type=UUID, help=_("Target vision identifier"))
+    move_parser.add_argument(
+        "--new-vision-id",
+        type=UUID,
+        help=_("resources.task.parser_structure.target_vision_identifier"),
+    )
     move_parser.add_argument(
         "--new-display-order",
         type=int,
-        help=_("Target display order"),
+        help=_("resources.task.parser_structure.target_display_order"),
     )
     move_parser.set_defaults(handler=make_sync_handler(handle_task_move_async))
 
@@ -79,18 +83,21 @@ def build_task_reorder_parser(
         task_subparsers,
         "reorder",
         help_content=HelpContent(
-            summary=_("Reorder tasks"),
-            description=_("Update display order values for one or more tasks."),
+            summary=_("resources.task.parser_structure.reorder_tasks"),
+            description=_(
+                "resources.task.parser_structure.update_display_order_values_for_one_or_more_tasks"
+            ),
             examples=(
                 "lifeos task reorder --order 11111111-1111-1111-1111-111111111111:0 "
                 "--order 22222222-2222-2222-2222-222222222222:1",
             ),
             notes=(
                 _(
-                    "This command changes only `display_order`; it does not move tasks between "
-                    "parents."
+                    "resources.task.parser_structure.this_command_changes_only_display_order_it_does_not_move_tasks_between"
                 ),
-                _("Use `move` when parentage or vision membership also needs to change."),
+                _(
+                    "resources.task.parser_structure.use_move_when_parentage_or_vision_membership_also_needs_to_change"
+                ),
             ),
         ),
     )
@@ -98,6 +105,8 @@ def build_task_reorder_parser(
         "--order",
         action="append",
         required=True,
-        help=_("Task order in <task-id>:<display-order> format; repeat for multiple tasks"),
+        help=_(
+            "resources.task.parser_structure.task_order_in_task_id_display_order_format_repeat_for_multiple_tasks"
+        ),
     )
     reorder_parser.set_defaults(handler=make_sync_handler(handle_task_reorder_async))

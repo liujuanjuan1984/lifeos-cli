@@ -16,7 +16,7 @@ from lifeos_cli.cli_support.resources.event.parser_actions import (
     build_event_show_parser,
     build_event_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -25,11 +25,13 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
         subparsers,
         "event",
         help_content=HelpContent(
-            summary=_("Manage planned schedule events"),
+            summary=_("resources.event.parser.manage_planned_schedule_events"),
             description=(
-                _("Create and maintain planned schedule blocks.")
+                _("resources.event.parser.create_and_maintain_planned_schedule_blocks")
                 + "\n\n"
-                + _("Events represent calendar intent and time allocation, not todo semantics.")
+                + _(
+                    "resources.event.parser.events_represent_calendar_intent_and_time_allocation_not_todo_semantics"
+                )
             ),
             examples=(
                 "lifeos event add --help",
@@ -37,15 +39,19 @@ def build_event_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
                 "lifeos event batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for events."),
-                _("Events can optionally reference one area and one task."),
-                _("Event types distinguish hard appointments, flexible timeblocks, and deadlines."),
-                _("See `lifeos event batch --help` for bulk delete operations."),
+                _("resources.event.parser.use_list_as_primary_query_entrypoint_for_events"),
+                _("resources.event.parser.events_can_optionally_reference_one_area_and_one_task"),
+                _(
+                    "resources.event.parser.event_types_distinguish_hard_appointments_flexible_timeblocks_and_deadlines"
+                ),
+                _("resources.event.parser.see_lifeos_event_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     event_subparsers = event_parser.add_subparsers(
-        dest="event_command", title=_("actions"), metavar=_("action")
+        dest="event_command",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     build_event_add_parser(event_subparsers)

@@ -25,7 +25,7 @@ from lifeos_cli.cli_support.resources.habit_action.handlers import (
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_date_value
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_habit_action_parser(
@@ -36,15 +36,18 @@ def build_habit_action_parser(
         subparsers,
         "habit-action",
         help_content=HelpContent(
-            summary=_("Manage dated habit actions"),
+            summary=_("resources.habit_action.parser.manage_dated_habit_actions"),
             description=(
-                _("Inspect and update dated habit-action occurrences materialized from habits.")
-                + "\n\n"
-                + _("Habit actions are materialized on demand when queried or logged.")
+                _(
+                    "resources.habit_action.parser.inspect_and_update_dated_habit_action_occurrences_materialized_from_habits"
+                )
                 + "\n\n"
                 + _(
-                    "Cadence-based habits still log dated rows, but progress and streaks are "
-                    "evaluated per configured cycle."
+                    "resources.habit_action.parser.habit_actions_are_materialized_on_demand_when_queried_or_logged"
+                )
+                + "\n\n"
+                + _(
+                    "resources.habit_action.parser.cadence_based_habits_still_log_dated_rows_but_progress_and_streaks_are"
                 )
             ),
             examples=(
@@ -53,27 +56,35 @@ def build_habit_action_parser(
                 "lifeos habit-action log --help",
             ),
             notes=(
-                _("Use `list` for both per-habit and by-date views."),
-                _("Habit cadence decides how rows are grouped into completion cycles."),
-                _("Use `log` to materialize and update an occurrence by habit and date."),
+                _("resources.habit_action.parser.use_list_for_both_per_habit_and_by_date_views"),
+                _(
+                    "resources.habit_action.parser.habit_cadence_decides_how_rows_are_grouped_into_completion_cycles"
+                ),
+                _(
+                    "resources.habit_action.parser.use_log_to_materialize_and_update_occurrence_by_habit_and_date"
+                ),
             ),
         ),
     )
     action_subparsers = action_parser.add_subparsers(
         dest="habit_action_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     list_parser = add_documented_parser(
         action_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List habit actions"),
+            summary=_("resources.habit_action.parser.list_habit_actions"),
             description=(
-                _("List habit actions for one habit or by date filters.")
+                _(
+                    "resources.habit_action.parser.list_habit_actions_for_one_habit_or_by_date_filters"
+                )
                 + "\n\n"
-                + _("Use this command to inspect daily occurrence views and materialized records.")
+                + _(
+                    "resources.habit_action.parser.use_this_command_to_inspect_daily_occurrence_views_and_materialized_records"
+                )
             ),
             examples=(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
@@ -83,26 +94,29 @@ def build_habit_action_parser(
             ),
             notes=(
                 _(
-                    "Repeat `--date` once for one action date or twice for one inclusive date "
-                    "range."
+                    "resources.habit_action.parser.repeat_date_once_for_one_action_date_or_twice_for_one_inclusive"
                 ),
                 _(
-                    "When results exist, the list command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(HABIT_ACTION_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--habit-id", type=UUID, help=_("Filter by habit identifier"))
-    list_parser.add_argument("--status", help=_("Filter by habit-action status"))
+    list_parser.add_argument(
+        "--habit-id", type=UUID, help=_("resources.habit_action.parser.filter_by_habit_identifier")
+    )
+    list_parser.add_argument(
+        "--status", help=_("resources.habit_action.parser.filter_by_habit_action_status")
+    )
     add_date_range_arguments(
         list_parser,
         date_help=_(
-            "Repeat once for one action date or twice for one inclusive date range in "
-            "YYYY-MM-DD format"
+            "resources.habit_action.parser.repeat_once_for_one_action_date_or_twice_for_one_inclusive_date"
         ),
     )
-    list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
+    list_parser.add_argument(
+        "--count", action="store_true", help=_("common.messages.print_total_matched_count")
+    )
     add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
     list_parser.set_defaults(handler=make_sync_handler(handle_habit_action_list_async))
@@ -111,15 +125,19 @@ def build_habit_action_parser(
         action_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show a habit action"),
-            description=_("Show one habit action with its linked habit metadata."),
+            summary=_("resources.habit_action.parser.show_habit_action"),
+            description=_(
+                "resources.habit_action.parser.show_one_habit_action_with_its_linked_habit_metadata"
+            ),
             examples=(
                 "lifeos habit-action show 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("action_id", type=UUID, help=_("Habit-action identifier"))
+    show_parser.add_argument(
+        "action_id", type=UUID, help=_("resources.habit_action.parser.habit_action_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="habit actions", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_action_show_async))
 
@@ -127,11 +145,13 @@ def build_habit_action_parser(
         action_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update a habit action"),
+            summary=_("resources.habit_action.parser.update_habit_action"),
             description=(
-                _("Update one materialized habit action.")
+                _("resources.habit_action.parser.update_one_materialized_habit_action")
                 + "\n\n"
-                + _("This command only allows status and notes changes within the editable window.")
+                + _(
+                    "resources.habit_action.parser.this_command_only_allows_status_and_notes_changes_within_editable_window"
+                )
             ),
             examples=(
                 "lifeos habit-action update 11111111-1111-1111-1111-111111111111 --status done",
@@ -141,20 +161,23 @@ def build_habit_action_parser(
             ),
             notes=(
                 _(
-                    "Use `log` when you know the habit and date but have not looked up the "
-                    "action ID."
+                    "resources.habit_action.parser.use_log_when_you_know_habit_and_date_but_have_not_looked"
                 ),
-                _("Use `--clear-notes` to remove optional notes."),
+                _("resources.habit_action.parser.use_clear_notes_to_remove_optional_notes"),
             ),
         ),
     )
-    update_parser.add_argument("action_id", type=UUID, help=_("Habit-action identifier"))
-    update_parser.add_argument("--status", help=_("Updated habit-action status"))
-    update_parser.add_argument("--notes", help=_("Updated notes"))
+    update_parser.add_argument(
+        "action_id", type=UUID, help=_("resources.habit_action.parser.habit_action_identifier")
+    )
+    update_parser.add_argument(
+        "--status", help=_("resources.habit_action.parser.updated_habit_action_status")
+    )
+    update_parser.add_argument("--notes", help=_("common.messages.updated_notes"))
     update_parser.add_argument(
         "--clear-notes",
         action="store_true",
-        help=_("Clear the optional notes field"),
+        help=_("resources.habit_action.parser.clear_optional_notes_field"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_habit_action_update_async))
 
@@ -162,11 +185,15 @@ def build_habit_action_parser(
         action_subparsers,
         "log",
         help_content=HelpContent(
-            summary=_("Update a habit action by date"),
+            summary=_("resources.habit_action.parser.update_habit_action_by_date"),
             description=(
-                _("Materialize or update a habit action by habit identifier and action date.")
+                _(
+                    "resources.habit_action.parser.materialize_or_update_habit_action_by_habit_identifier_and_action_date"
+                )
                 + "\n\n"
-                + _("Use this command when checking in without first looking up the action ID.")
+                + _(
+                    "resources.habit_action.parser.use_this_command_when_checking_in_without_first_looking_up_action_id"
+                )
             ),
             examples=(
                 "lifeos habit-action log --habit-id 11111111-1111-1111-1111-111111111111 "
@@ -175,24 +202,32 @@ def build_habit_action_parser(
                 '--date 2026-04-09 --status skip --notes "Travel day"',
             ),
             notes=(
-                _("Use `update` when you already have the materialized action identifier."),
-                _("This command follows the same editable-window rules as `update`."),
+                _(
+                    "resources.habit_action.parser.use_update_when_you_already_have_materialized_action_identifier"
+                ),
+                _(
+                    "resources.habit_action.parser.this_command_follows_same_editable_window_rules_as_update"
+                ),
             ),
         ),
     )
-    log_parser.add_argument("--habit-id", required=True, type=UUID, help=_("Habit identifier"))
+    log_parser.add_argument(
+        "--habit-id", required=True, type=UUID, help=_("common.messages.habit_identifier")
+    )
     log_parser.add_argument(
         "--date",
         dest="action_date",
         required=True,
         type=parse_date_value,
-        help=_("Action date in YYYY-MM-DD format"),
+        help=_("resources.habit_action.parser.action_date_in_yyyy_mm_dd_format"),
     )
-    log_parser.add_argument("--status", help=_("Updated habit-action status"))
-    log_parser.add_argument("--notes", help=_("Updated notes"))
+    log_parser.add_argument(
+        "--status", help=_("resources.habit_action.parser.updated_habit_action_status")
+    )
+    log_parser.add_argument("--notes", help=_("common.messages.updated_notes"))
     log_parser.add_argument(
         "--clear-notes",
         action="store_true",
-        help=_("Clear the optional notes field"),
+        help=_("resources.habit_action.parser.clear_optional_notes_field"),
     )
     log_parser.set_defaults(handler=make_sync_handler(handle_habit_action_log_async))

@@ -32,7 +32,7 @@ from lifeos_cli.cli_support.resources.habit.handlers import (
     handle_habit_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 _WEEKDAY_SPLIT_PATTERN = re.compile(r"[\s,]+")
 
@@ -55,8 +55,10 @@ def build_habit_add_parser(
         habit_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create a habit"),
-            description=_("Create a recurring habit with cadence-aligned on-demand occurrences."),
+            summary=_("resources.habit.parser_actions.create_habit"),
+            description=_(
+                "resources.habit.parser_actions.create_recurring_habit_with_cadence_aligned_on_demand_occurrences"
+            ),
             examples=(
                 'lifeos habit add "Daily Exercise" --start-date 2026-04-09 --duration-days 21',
                 'lifeos habit add "Morning Review" --start-date 2026-04-09 --duration-days 100 '
@@ -68,61 +70,71 @@ def build_habit_add_parser(
                 "--cadence-frequency yearly --target-per-cycle 6",
             ),
             notes=(
-                _("Duration must be one of the supported program lengths."),
                 _(
-                    "Use `--cadence-frequency` to choose daily, weekly, monthly, or yearly "
-                    "evaluation cycles."
+                    "resources.habit.parser_actions.duration_must_be_one_of_supported_program_lengths"
                 ),
                 _(
-                    "`--weekdays` restricts on-demand habit-action occurrences "
-                    "to selected weekdays."
+                    "resources.habit.parser_actions.use_cadence_frequency_to_choose_daily_weekly_monthly_or_yearly_evaluation_cycles"
                 ),
-                _("If `--task-id` is provided, the task must already exist."),
+                _(
+                    "resources.habit.parser_actions.weekdays_restricts_on_demand_habit_action_occurrences_to_selected_weekdays"
+                ),
+                _("resources.habit.parser_actions.if_task_id_is_provided_task_must_already_exist"),
             ),
         ),
     )
-    add_parser.add_argument("title", help=_("Habit title"))
-    add_parser.add_argument("--description", help=_("Optional habit description"))
+    add_parser.add_argument("title", help=_("resources.habit.parser_actions.habit_title"))
+    add_parser.add_argument(
+        "--description", help=_("resources.habit.parser_actions.optional_habit_description")
+    )
     add_parser.add_argument(
         "--start-date",
         required=True,
         type=date.fromisoformat,
-        help=_("Habit start date in YYYY-MM-DD format"),
+        help=_("resources.habit.parser_actions.habit_start_date_in_yyyy_mm_dd_format"),
     )
     add_parser.add_argument(
         "--duration-days",
         required=True,
         type=int,
-        help=_("Habit duration in days"),
+        help=_("resources.habit.parser_actions.habit_duration_in_days"),
     )
     add_parser.add_argument(
         "--cadence-frequency",
         default="daily",
-        help=_("Habit cadence frequency: daily, weekly, monthly, or yearly"),
+        help=_(
+            "resources.habit.parser_actions.habit_cadence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     add_parser.add_argument(
         "--weekdays",
         type=_parse_habit_weekdays,
-        help=_("Allowed weekdays, for example monday,wednesday,friday"),
+        help=_(
+            "resources.habit.parser_actions.allowed_weekdays_for_example_monday_wednesday_friday"
+        ),
     )
     add_parser.add_argument(
         "--weekends-only",
         action="store_true",
-        help=_("Shortcut for `--weekdays saturday,sunday`"),
+        help=_("resources.habit.parser_actions.shortcut_for_weekdays_saturday_sunday"),
     )
     add_parser.add_argument(
         "--target-per-cycle",
         dest="target_per_cycle",
         type=int,
-        help=_("Cadence target count for one cycle. Daily habits must keep 1."),
+        help=_(
+            "resources.habit.parser_actions.cadence_target_count_for_one_cycle_daily_habits_must_keep_1"
+        ),
     )
     add_parser.add_argument(
         "--target-per-week",
         dest="target_per_cycle",
         type=int,
-        help=_("Weekly alias for `--target-per-cycle`"),
+        help=_("resources.habit.parser_actions.weekly_alias_for_target_per_cycle"),
     )
-    add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
+    add_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.optional_linked_task_identifier")
+    )
     add_parser.set_defaults(handler=make_sync_handler(handle_habit_add_async))
 
 
@@ -134,11 +146,15 @@ def build_habit_list_parser(
         habit_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List habits"),
+            summary=_("resources.habit.parser_actions.list_habits"),
             description=(
-                _("List habits with optional status, title, and activity-window filters.")
+                _(
+                    "resources.habit.parser_actions.list_habits_with_optional_status_title_and_activity_window_filters"
+                )
                 + "\n\n"
-                + _("Use this command as the primary query entrypoint for habits.")
+                + _(
+                    "resources.habit.parser_actions.use_this_command_as_primary_query_entrypoint_for_habits"
+                )
             ),
             examples=(
                 "lifeos habit list",
@@ -148,33 +164,43 @@ def build_habit_list_parser(
             ),
             notes=(
                 _(
-                    "Use `--with-stats` when the summary should include cycle progress "
-                    "and streak fields."
+                    "resources.habit.parser_actions.use_with_stats_when_summary_should_include_cycle_progress_and_streak_fields"
                 ),
-                _("Use `--active-window-only` to show habits whose duration still covers today."),
                 _(
-                    "Default list output prints a header row followed by "
-                    "tab-separated columns: {columns}."
-                ).format(columns=format_summary_column_list(HABIT_SUMMARY_COLUMNS)),
-                _("With `--with-stats`, the header changes to: {columns}.").format(
-                    columns=format_summary_column_list(HABIT_SUMMARY_WITH_STATS_COLUMNS)
+                    "resources.habit.parser_actions.use_active_window_only_to_show_habits_whose_duration_still_covers_today"
                 ),
+                _(
+                    "resources.habit.parser_actions.default_list_output_prints_header_row_followed_by_tab_separated_columns_columns"
+                ).format(columns=format_summary_column_list(HABIT_SUMMARY_COLUMNS)),
+                _(
+                    "resources.habit.parser_actions.with_with_stats_header_changes_to_columns"
+                ).format(columns=format_summary_column_list(HABIT_SUMMARY_WITH_STATS_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--status", help=_("Filter by habit status"))
-    list_parser.add_argument("--title", help=_("Filter by exact habit title"))
+    list_parser.add_argument(
+        "--status", help=_("resources.habit.parser_actions.filter_by_habit_status")
+    )
+    list_parser.add_argument(
+        "--title", help=_("resources.habit.parser_actions.filter_by_exact_habit_title")
+    )
     list_parser.add_argument(
         "--active-window-only",
         action="store_true",
-        help=_("Restrict results to habits whose duration still covers today"),
+        help=_(
+            "resources.habit.parser_actions.restrict_results_to_habits_whose_duration_still_covers_today"
+        ),
     )
     list_parser.add_argument(
         "--with-stats",
         action="store_true",
-        help=_("Include progress and streak information in each summary row"),
+        help=_(
+            "resources.habit.parser_actions.include_progress_and_streak_information_in_each_summary_row"
+        ),
     )
-    list_parser.add_argument("--count", action="store_true", help=_("Print total matched count"))
+    list_parser.add_argument(
+        "--count", action="store_true", help=_("common.messages.print_total_matched_count")
+    )
     add_include_deleted_argument(list_parser, noun="habits")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_habit_list_async))
@@ -188,15 +214,17 @@ def build_habit_show_parser(
         habit_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show a habit"),
-            description=_("Show one habit with full metadata and derived statistics."),
+            summary=_("resources.habit.parser_actions.show_habit"),
+            description=_(
+                "resources.habit.parser_actions.show_one_habit_with_full_metadata_and_derived_statistics"
+            ),
             examples=(
                 "lifeos habit show 11111111-1111-1111-1111-111111111111",
                 "lifeos habit show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    show_parser.add_argument("habit_id", type=UUID, help=_("common.messages.habit_identifier"))
     add_include_deleted_argument(show_parser, noun="habits", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_show_async))
 
@@ -209,13 +237,12 @@ def build_habit_update_parser(
         habit_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update a habit"),
+            summary=_("resources.habit.parser_actions.update_habit"),
             description=(
-                _("Update mutable habit fields.")
+                _("resources.habit.parser_actions.update_mutable_habit_fields")
                 + "\n\n"
                 + _(
-                    "Cadence and timing changes reconcile materialized habit-action records "
-                    "without regenerating full histories."
+                    "resources.habit.parser_actions.cadence_and_timing_changes_reconcile_materialized_habit_action_records_without_regenerating_full"
                 )
             ),
             examples=(
@@ -230,66 +257,85 @@ def build_habit_update_parser(
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-task",
             ),
             notes=(
-                _("Use `--clear-description` or `--clear-task` to remove optional values."),
                 _(
-                    "Use `--clear-weekdays` to remove weekday restrictions without "
-                    "resetting cadence."
+                    "resources.habit.parser_actions.use_clear_description_or_clear_task_to_remove_optional_values"
                 ),
-                _("Reactivating a habit still respects the active habit limit."),
+                _(
+                    "resources.habit.parser_actions.use_clear_weekdays_to_remove_weekday_restrictions_without_resetting_cadence"
+                ),
+                _(
+                    "resources.habit.parser_actions.reactivating_habit_still_respects_active_habit_limit"
+                ),
             ),
         ),
     )
-    update_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
-    update_parser.add_argument("--title", help=_("Updated habit title"))
-    update_parser.add_argument("--description", help=_("Updated habit description"))
+    update_parser.add_argument("habit_id", type=UUID, help=_("common.messages.habit_identifier"))
+    update_parser.add_argument(
+        "--title", help=_("resources.habit.parser_actions.updated_habit_title")
+    )
+    update_parser.add_argument(
+        "--description", help=_("resources.habit.parser_actions.updated_habit_description")
+    )
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("Clear the optional habit description"),
+        help=_("resources.habit.parser_actions.clear_optional_habit_description"),
     )
     update_parser.add_argument(
         "--start-date",
         type=date.fromisoformat,
-        help=_("Updated habit start date in YYYY-MM-DD format"),
+        help=_("resources.habit.parser_actions.updated_habit_start_date_in_yyyy_mm_dd_format"),
     )
-    update_parser.add_argument("--duration-days", type=int, help=_("Updated duration in days"))
+    update_parser.add_argument(
+        "--duration-days",
+        type=int,
+        help=_("resources.habit.parser_actions.updated_duration_in_days"),
+    )
     update_parser.add_argument(
         "--cadence-frequency",
-        help=_("Updated cadence frequency: daily, weekly, monthly, or yearly"),
+        help=_(
+            "resources.habit.parser_actions.updated_cadence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     update_parser.add_argument(
         "--weekdays",
         type=_parse_habit_weekdays,
-        help=_("Updated allowed weekdays, for example monday,wednesday,friday"),
+        help=_(
+            "resources.habit.parser_actions.updated_allowed_weekdays_for_example_monday_wednesday_friday"
+        ),
     )
     update_parser.add_argument(
         "--weekends-only",
         action="store_true",
-        help=_("Shortcut for `--weekdays saturday,sunday`"),
+        help=_("resources.habit.parser_actions.shortcut_for_weekdays_saturday_sunday"),
     )
     update_parser.add_argument(
         "--clear-weekdays",
         action="store_true",
-        help=_("Remove weekday restrictions from the habit cadence"),
+        help=_("resources.habit.parser_actions.remove_weekday_restrictions_from_habit_cadence"),
     )
     update_parser.add_argument(
         "--target-per-cycle",
         dest="target_per_cycle",
         type=int,
-        help=_("Updated cadence target count for one cycle"),
+        help=_("resources.habit.parser_actions.updated_cadence_target_count_for_one_cycle"),
     )
     update_parser.add_argument(
         "--target-per-week",
         dest="target_per_cycle",
         type=int,
-        help=_("Weekly alias for `--target-per-cycle`"),
+        help=_("resources.habit.parser_actions.weekly_alias_for_target_per_cycle"),
     )
-    update_parser.add_argument("--status", help=_("Updated habit status"))
-    update_parser.add_argument("--task-id", type=UUID, help=_("Updated linked task identifier"))
+    update_parser.add_argument(
+        "--status", help=_("resources.habit.parser_actions.updated_habit_status")
+    )
+    update_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.updated_linked_task_identifier")
+    )
     update_parser.add_argument(
         "--clear-task",
         action="store_true",
-        help=_("Remove the linked task reference"),
+        help=_("resources.habit.parser_actions.remove_linked_task_reference"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_habit_update_async))
 
@@ -302,12 +348,12 @@ def build_habit_delete_parser(
         habit_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete a habit"),
-            description=_("Delete one habit."),
+            summary=_("resources.habit.parser_actions.delete_habit"),
+            description=_("resources.habit.parser_actions.delete_one_habit"),
             examples=("lifeos habit delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    delete_parser.add_argument("habit_id", type=UUID, help=_("common.messages.habit_identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_habit_delete_async))
 
 
@@ -319,19 +365,22 @@ def build_habit_stats_parser(
         habit_subparsers,
         "stats",
         help_content=HelpContent(
-            summary=_("Show habit statistics"),
-            description=_("Show derived completion and streak statistics for one habit."),
+            summary=_("resources.habit.parser_actions.show_habit_statistics"),
+            description=_(
+                "resources.habit.parser_actions.show_derived_completion_and_streak_statistics_for_one_habit"
+            ),
             examples=("lifeos habit stats 11111111-1111-1111-1111-111111111111",),
             notes=(
                 _(
-                    "These metrics are derived from cadence settings together with materialized "
-                    "`habit-action` records."
+                    "resources.habit.parser_actions.these_metrics_are_derived_from_cadence_settings_together_with_materialized_habit_action"
                 ),
-                _("Use `show` when you also need the underlying habit fields in the same output."),
+                _(
+                    "resources.habit.parser_actions.use_show_when_you_also_need_underlying_habit_fields_in_same_output"
+                ),
             ),
         ),
     )
-    stats_parser.add_argument("habit_id", type=UUID, help=_("Habit identifier"))
+    stats_parser.add_argument("habit_id", type=UUID, help=_("common.messages.habit_identifier"))
     stats_parser.set_defaults(handler=make_sync_handler(handle_habit_stats_async))
 
 
@@ -343,14 +392,17 @@ def build_habit_task_associations_parser(
         habit_subparsers,
         "task-associations",
         help_content=HelpContent(
-            summary=_("List task-to-habit associations"),
-            description=_("Show active habits currently linked to tasks."),
+            summary=_("resources.habit.parser_actions.list_task_to_habit_associations"),
+            description=_(
+                "resources.habit.parser_actions.show_active_habits_currently_linked_to_tasks"
+            ),
             examples=("lifeos habit task-associations",),
             notes=(
-                _("Use this command to audit which active habits are still attached to tasks."),
                 _(
-                    "When results exist, the command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "resources.habit.parser_actions.use_this_command_to_audit_which_active_habits_are_still_attached_to"
+                ),
+                _(
+                    "resources.habit.parser_actions.when_results_exist_command_prints_header_row_followed_by_tab_separated_columns"
                 ).format(columns=format_summary_column_list(HABIT_TASK_ASSOCIATION_COLUMNS)),
             ),
         ),
@@ -368,26 +420,26 @@ def build_habit_batch_parser(
         habit_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run bulk habit operations"),
-            description=_("Delete multiple habits in one command."),
+            summary=_("resources.habit.parser_actions.run_bulk_habit_operations"),
+            description=_("resources.habit.parser_actions.delete_multiple_habits_in_one_command"),
             examples=(
                 "lifeos habit batch delete --help",
                 "lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="habit_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch-action"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action_hyphenated_metavar"),
     )
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple habits"),
-            description=_("Delete multiple habits in one command."),
+            summary=_("resources.habit.parser_actions.delete_multiple_habits"),
+            description=_("resources.habit.parser_actions.delete_multiple_habits_in_one_command"),
             examples=("lifeos habit batch delete --ids <habit-id-1> <habit-id-2>",),
         ),
     )

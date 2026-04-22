@@ -17,7 +17,7 @@ from lifeos_cli.cli_support.resources.data.handlers import (
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.db.services.data_ops import SUPPORTED_DATA_RESOURCES
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 DATA_RESOURCE_CHOICES = tuple(SUPPORTED_DATA_RESOURCES)
 EXPORT_TARGET_CHOICES = (*DATA_RESOURCE_CHOICES, "all")
@@ -30,14 +30,12 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "data",
         help_content=HelpContent(
-            summary=_("Run unified data import/export and batch commands"),
+            summary=_("resources.data.parser.run_unified_data_import_export_and_batch_commands"),
             description=(
-                _("Run canonical data operations across LifeOS resources.")
+                _("resources.data.parser.run_canonical_data_operations_across_lifeos_resources")
                 + "\n\n"
                 + _(
-                    "Use this namespace for machine-oriented bulk workflows such as export, "
-                    "import, "
-                    "batch update, batch delete, and full bundle backup or restore."
+                    "resources.data.parser.use_this_namespace_for_machine_oriented_bulk_workflows_such_as_export_import"
                 )
             ),
             examples=(
@@ -47,41 +45,40 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _(
-                    "This namespace uses canonical JSON/JSONL snapshot rows instead of ad-hoc "
-                    "CLI flags."
+                    "resources.data.parser.this_namespace_uses_canonical_json_jsonl_snapshot_rows_instead_of_ad_hoc"
                 ),
                 _(
-                    "Use `export` output as the round-trip contract for later `import` or "
-                    "`batch-update`."
+                    "resources.data.parser.use_export_output_as_round_trip_contract_for_later_import_or_batch"
                 ),
                 _(
-                    "Bundle import/export preserves record identifiers and relationships across "
-                    "resources."
+                    "resources.data.parser.bundle_import_export_preserves_record_identifiers_and_relationships_across_resources"
                 ),
                 _(
-                    "Use resource-specific commands for higher-level behaviors such as recurring "
-                    "event occurrence scopes."
+                    "resources.data.parser.use_resource_specific_commands_for_higher_level_behaviors_such_as_recurring_event"
                 ),
-                _("Use `--dry-run` before applying large imports or batch changes."),
+                _(
+                    "resources.data.parser.use_dry_run_before_applying_large_imports_or_batch_changes"
+                ),
             ),
         ),
     )
     data_subparsers = data_parser.add_subparsers(
-        dest="data_command", title=_("actions"), metavar=_("action")
+        dest="data_command",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     export_parser = add_documented_parser(
         data_subparsers,
         "export",
         help_content=HelpContent(
-            summary=_("Export one resource or a full bundle"),
+            summary=_("resources.data.parser.export_one_resource_or_full_bundle"),
             description=(
                 _(
-                    "Export canonical snapshot rows for one resource, or create a full bundle "
-                    "zip covering all supported resources."
+                    "resources.data.parser.export_canonical_snapshot_rows_for_one_resource_or_create_full_bundle_zip"
                 )
                 + " "
-                + _("Bundle export is implied when the target is `all`.")
+                + _("resources.data.parser.bundle_export_is_implied_when_target_is_all")
             ),
             examples=(
                 "lifeos data export task --format jsonl",
@@ -95,15 +92,15 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--format",
         choices=("jsonl", "json", "bundle"),
         default="jsonl",
-        help=_("Export format for one resource; bundle is implied for `all`"),
+        help=_("resources.data.parser.export_format_for_one_resource_bundle_is_implied_for_all"),
     )
     export_parser.add_argument(
-        "--output", help=_("Write exported data to a file instead of stdout")
+        "--output", help=_("resources.data.parser.write_exported_data_to_file_instead_of_stdout")
     )
     export_parser.add_argument(
         "--exclude-deleted",
         action="store_true",
-        help=_("Exclude deleted rows from exported snapshots"),
+        help=_("resources.data.parser.exclude_deleted_rows_from_exported_snapshots"),
     )
     export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
@@ -111,14 +108,13 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         data_subparsers,
         "import",
         help_content=HelpContent(
-            summary=_("Import one resource or a full bundle"),
+            summary=_("resources.data.parser.import_one_resource_or_full_bundle"),
             description=(
                 _(
-                    "Import canonical snapshot rows for one resource, or restore a full bundle "
-                    "zip containing multiple resources."
+                    "resources.data.parser.import_canonical_snapshot_rows_for_one_resource_or_restore_full_bundle_zip"
                 )
                 + " "
-                + _("Bundle import is implied when the target is `bundle`.")
+                + _("resources.data.parser.bundle_import_is_implied_when_target_is_bundle")
             ),
             examples=(
                 "lifeos data import timelog --file timelog.jsonl --format jsonl",
@@ -127,53 +123,65 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _(
-                    "Use `import bundle` for full backup restore. Bundle restore is atomic and "
-                    "restores base rows before relation links."
+                    "resources.data.parser.use_import_bundle_for_full_backup_restore_bundle_restore_is_atomic_and"
                 ),
-                _("Single-resource imports expect referenced foreign rows to already exist."),
-                _("Use `--dry-run` before applying a large file or a full bundle restore."),
+                _(
+                    "resources.data.parser.single_resource_imports_expect_referenced_foreign_rows_to_already_exist"
+                ),
+                _(
+                    "resources.data.parser.use_dry_run_before_applying_large_file_or_full_bundle_restore"
+                ),
             ),
         ),
     )
     import_parser.add_argument("target", choices=IMPORT_TARGET_CHOICES)
-    import_parser.add_argument("--file", help=_("Read input data from a file"))
-    import_parser.add_argument("--stdin", action="store_true", help=_("Read input data from stdin"))
+    import_parser.add_argument("--file", help=_("resources.data.parser.read_input_data_from_file"))
+    import_parser.add_argument(
+        "--stdin", action="store_true", help=_("resources.data.parser.read_input_data_from_stdin")
+    )
     import_parser.add_argument(
         "--format",
         choices=("jsonl", "json", "bundle"),
         default="jsonl",
-        help=_("Input format for one resource; bundle is implied for `import bundle`"),
+        help=_(
+            "resources.data.parser.input_format_for_one_resource_bundle_is_implied_for_import_bundle"
+        ),
     )
     import_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("Validate input without committing"),
+        help=_("resources.data.parser.validate_input_without_committing"),
     )
     import_parser.add_argument(
         "--continue-on-error",
         action="store_true",
-        help=_("Continue processing later rows after a failure"),
+        help=_("resources.data.parser.continue_processing_later_rows_after_failure"),
     )
     import_parser.add_argument(
         "--replace-existing",
         action="store_true",
-        help=_("For bundle imports, truncate supported data before restoring the bundle"),
+        help=_(
+            "resources.data.parser.for_bundle_imports_truncate_supported_data_before_restoring_bundle"
+        ),
     )
-    import_parser.add_argument("--error-file", help=_("Write row-level failures to a JSONL file"))
+    import_parser.add_argument(
+        "--error-file", help=_("resources.data.parser.write_row_level_failures_to_jsonl_file")
+    )
     import_parser.set_defaults(handler=make_sync_handler(handle_data_import_async))
 
     batch_update_parser = add_documented_parser(
         data_subparsers,
         "batch-update",
         help_content=HelpContent(
-            summary=_("Batch-update one resource from canonical patch rows"),
+            summary=_("resources.data.parser.batch_update_one_resource_from_canonical_patch_rows"),
             description=(
                 _(
-                    "Apply patch rows to one resource using the same canonical record shape "
-                    "used by data export."
+                    "resources.data.parser.apply_patch_rows_to_one_resource_using_same_canonical_record_shape_used"
                 )
                 + " "
-                + _("Omitted fields stay unchanged; explicit null clears clearable fields.")
+                + _(
+                    "resources.data.parser.omitted_fields_stay_unchanged_explicit_null_clears_clearable_fields"
+                )
             ),
             examples=(
                 "lifeos data batch-update timelog --file timelog-patch.jsonl --format jsonl",
@@ -183,34 +191,37 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _(
-                    "Batch-update operates on stored records. Use public resource commands "
-                    "when you need domain-specific verbs or scopes."
+                    "resources.data.parser.batch_update_operates_on_stored_records_use_public_resource_commands_when_you"
                 ),
-                _("Start from `data export` output when preparing machine-generated patch rows."),
+                _(
+                    "resources.data.parser.start_from_data_export_output_when_preparing_machine_generated_patch_rows"
+                ),
             ),
         ),
     )
     batch_update_parser.add_argument("target", choices=DATA_RESOURCE_CHOICES)
-    batch_update_parser.add_argument("--file", help=_("Read patch rows from a file"))
+    batch_update_parser.add_argument(
+        "--file", help=_("resources.data.parser.read_patch_rows_from_file")
+    )
     batch_update_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("Read patch rows from stdin"),
+        help=_("resources.data.parser.read_patch_rows_from_stdin"),
     )
     batch_update_parser.add_argument("--format", choices=("jsonl", "json"), default="jsonl")
     batch_update_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("Validate without committing"),
+        help=_("resources.data.parser.validate_without_committing"),
     )
     batch_update_parser.add_argument(
         "--continue-on-error",
         action="store_true",
-        help=_("Continue processing later rows after a failure"),
+        help=_("resources.data.parser.continue_processing_later_rows_after_failure"),
     )
     batch_update_parser.add_argument(
         "--error-file",
-        help=_("Write row-level failures to a JSONL file"),
+        help=_("resources.data.parser.write_row_level_failures_to_jsonl_file"),
     )
     batch_update_parser.set_defaults(handler=make_sync_handler(handle_data_batch_update_async))
 
@@ -218,11 +229,10 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         data_subparsers,
         "batch-delete",
         help_content=HelpContent(
-            summary=_("Batch-delete one resource by identifiers"),
+            summary=_("resources.data.parser.batch_delete_one_resource_by_identifiers"),
             description=(
                 _(
-                    "Delete multiple rows for one resource using repeated IDs, an IDs "
-                    "file, or JSON/JSONL input containing row IDs."
+                    "resources.data.parser.delete_multiple_rows_for_one_resource_using_repeated_ids_ids_file_or"
                 )
             ),
             examples=(
@@ -232,12 +242,10 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             notes=(
                 _(
-                    "Use this command for file-driven or machine-generated cleanup across many "
-                    "rows."
+                    "resources.data.parser.use_this_command_for_file_driven_or_machine_generated_cleanup_across_many"
                 ),
                 _(
-                    "Use resource-specific delete commands when you want narrower human-guided "
-                    "changes."
+                    "resources.data.parser.use_resource_specific_delete_commands_when_you_want_narrower_human_guided_changes"
                 ),
             ),
         ),
@@ -247,16 +255,18 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         "--id",
         dest="record_ids",
         action="append",
-        help=_("Repeat to delete one or more record identifiers"),
+        help=_("resources.data.parser.repeat_to_delete_one_or_more_record_identifiers"),
     )
-    batch_delete_parser.add_argument("--ids-file", help=_("Read one UUID per line from a file"))
     batch_delete_parser.add_argument(
-        "--file", help=_("Read identifiers or resource rows from a file")
+        "--ids-file", help=_("resources.data.parser.read_one_uuid_per_line_from_file")
+    )
+    batch_delete_parser.add_argument(
+        "--file", help=_("resources.data.parser.read_identifiers_or_resource_rows_from_file")
     )
     batch_delete_parser.add_argument(
         "--stdin",
         action="store_true",
-        help=_("Read identifiers from stdin"),
+        help=_("resources.data.parser.read_identifiers_from_stdin"),
     )
     batch_delete_parser.add_argument(
         "--format",
@@ -266,10 +276,10 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     batch_delete_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=_("Validate without committing"),
+        help=_("resources.data.parser.validate_without_committing"),
     )
     batch_delete_parser.add_argument(
         "--error-file",
-        help=_("Write row-level failures to a JSONL file"),
+        help=_("resources.data.parser.write_row_level_failures_to_jsonl_file"),
     )
     batch_delete_parser.set_defaults(handler=make_sync_handler(handle_data_batch_delete_async))

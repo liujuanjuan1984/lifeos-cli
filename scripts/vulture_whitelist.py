@@ -13,7 +13,6 @@ def _keep(*_symbols: object) -> None:
 
 _keep(
     type_annotation_map,
-    ARGPARSE_MESSAGE_IDS,
     isolated_runtime_locale,
     _use_stable_note_timezone,
     configured_time_preferences,

@@ -16,7 +16,7 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.runtime_utils import (
     make_sync_handler,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 async def run_db_ping(_: argparse.Namespace) -> int:
@@ -39,13 +39,12 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         subparsers,
         "db",
         help_content=HelpContent(
-            summary=_("Run database maintenance commands"),
+            summary=_("system.db_commands.run_database_maintenance_commands"),
             description=(
-                _("Inspect database connectivity and apply migrations.")
+                _("system.db_commands.inspect_database_connectivity_and_apply_migrations")
                 + "\n\n"
                 + _(
-                    "These commands operate on the database configured through `lifeos init`, "
-                    "the config file, or LIFEOS_* environment variables."
+                    "system.db_commands.these_commands_operate_on_database_configured_through_lifeos_init_config_file_or"
                 )
             ),
             examples=(
@@ -54,31 +53,32 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
             ),
             notes=(
                 _(
-                    "Use `ping` to validate the current connection settings without changing "
-                    "schema."
+                    "system.db_commands.use_ping_to_validate_current_connection_settings_without_changing_schema"
                 ),
                 _(
-                    "Use `upgrade` when the configured database schema needs to catch up with "
-                    "the code."
+                    "system.db_commands.use_upgrade_when_configured_database_schema_needs_to_catch_up_with_code"
                 ),
             ),
         ),
     )
     db_subparsers = db_parser.add_subparsers(
-        dest="db_command", title=_("actions"), metavar=_("action")
+        dest="db_command",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     ping_parser = add_documented_parser(
         db_subparsers,
         "ping",
         help_content=HelpContent(
-            summary=_("Check database connectivity"),
-            description=_("Open a database connection and run a minimal health check query."),
+            summary=_("system.db_commands.check_database_connectivity"),
+            description=_(
+                "system.db_commands.open_database_connection_and_run_minimal_health_check_query"
+            ),
             examples=("lifeos db ping",),
             notes=(
                 _(
-                    "Use this before `db upgrade` when you first need to confirm the target "
-                    "database."
+                    "system.db_commands.use_this_before_db_upgrade_when_you_first_need_to_confirm_target"
                 ),
             ),
         ),
@@ -89,14 +89,17 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         db_subparsers,
         "upgrade",
         help_content=HelpContent(
-            summary=_("Apply migrations"),
-            description=_("Apply Alembic migrations to the configured PostgreSQL database."),
+            summary=_("system.db_commands.apply_migrations"),
+            description=_(
+                "system.db_commands.apply_alembic_migrations_to_configured_postgresql_database"
+            ),
             examples=("lifeos db upgrade",),
             notes=(
-                _("This updates schema state in the database; it does not rewrite local config."),
                 _(
-                    "Use `db ping` first if you are unsure the current connection settings are "
-                    "correct."
+                    "system.db_commands.this_updates_schema_state_in_database_it_does_not_rewrite_local_config"
+                ),
+                _(
+                    "system.db_commands.use_db_ping_first_if_you_are_unsure_current_connection_settings_are"
                 ),
             ),
         ),

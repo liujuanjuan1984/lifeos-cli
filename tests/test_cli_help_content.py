@@ -685,6 +685,89 @@ def test_cli_timelog_add_help_describes_quick_batch_mode(capsys) -> None:
 
 
 @pytest.mark.parametrize(
+    "argv",
+    (
+        ["event", "add", "--help"],
+        ["event", "update", "--help"],
+        ["event", "delete", "--help"],
+        ["timelog", "add", "--help"],
+        ["timelog", "update", "--help"],
+    ),
+)
+def test_cli_event_timelog_help_shows_shared_timezone_note(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert "configured timezone is used before the value is converted to UTC" in captured.out
+
+
+@pytest.mark.parametrize("argv", (["event", "add", "--help"], ["timelog", "add", "--help"]))
+def test_cli_event_timelog_add_help_shows_shared_relation_note(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert (
+        "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
+        "or people in one command."
+    ) in captured.out
+
+
+@pytest.mark.parametrize("argv", (["event", "list", "--help"], ["timelog", "list", "--help"]))
+def test_cli_event_timelog_list_help_shows_shared_date_range_text(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+    normalized_output = " ".join(captured.out.split())
+
+    assert (
+        "Repeat `--date` once for one configured local day or twice for one "
+        "inclusive local-date range."
+    ) in captured.out
+    assert (
+        "Repeat once for one configured local day or twice for one inclusive "
+        "local-date range in YYYY-MM-DD format"
+    ) in normalized_output
+
+
+@pytest.mark.parametrize("argv", (["event", "update", "--help"], ["timelog", "update", "--help"]))
+def test_cli_event_timelog_update_help_shows_shared_clear_notes(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(argv)
+
+    captured = capsys.readouterr()
+
+    assert "Use `--clear-*` flags to explicitly remove optional values." in captured.out
+    assert (
+        "Do not mix a value flag with the matching clear flag in the same command." in captured.out
+    )
+
+
+@pytest.mark.parametrize(
     ("argv", "expected"),
     [
         (

@@ -17,7 +17,7 @@ from lifeos_cli.cli_support.resources.note.parser_actions import (
     build_note_show_parser,
     build_note_update_parser,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -26,26 +26,27 @@ def build_note_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "note",
         help_content=HelpContent(
-            summary=_("Capture and manage notes"),
-            description=_("Create, inspect, update, and delete note records."),
+            summary=_("resources.note.parser.capture_and_manage_notes"),
+            description=_("resources.note.parser.create_inspect_update_and_delete_note_records"),
             examples=(
                 "lifeos note add --help",
                 "lifeos note list --help",
                 "lifeos note batch --help",
             ),
             notes=(
-                _("Run `lifeos init` before using note commands for the first time."),
                 _(
-                    "See `lifeos note batch --help` for bulk `update-content` and `delete` "
-                    "workflows."
+                    "resources.note.parser.run_lifeos_init_before_using_note_commands_for_first_time"
+                ),
+                _(
+                    "resources.note.parser.see_lifeos_note_batch_help_for_bulk_update_content_and_delete_workflows"
                 ),
             ),
         ),
     )
     note_subparsers = note_parser.add_subparsers(
         dest="note_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
     build_note_add_parser(note_subparsers)
     build_note_list_parser(note_subparsers)

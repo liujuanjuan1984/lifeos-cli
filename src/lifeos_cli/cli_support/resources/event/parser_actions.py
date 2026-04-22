@@ -9,6 +9,7 @@ from lifeos_cli.cli_support.help_utils import (
     HelpContent,
     add_documented_help_parser,
     add_documented_parser,
+    help_message,
 )
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
@@ -28,7 +29,7 @@ from lifeos_cli.cli_support.resources.event.handlers import (
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value, parse_user_datetime_value
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_event_add_parser(
@@ -39,8 +40,8 @@ def build_event_add_parser(
         event_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create an event"),
-            description=_("Create a planned schedule event."),
+            summary=_("resources.event.parser_actions.create_event"),
+            description=_("resources.event.parser_actions.create_planned_schedule_event"),
             examples=(
                 'lifeos event add "Doctor appointment" --start-time 2026-04-10T09:00:00 '
                 "--end-time 2026-04-10T10:00:00",
@@ -54,69 +55,85 @@ def build_event_add_parser(
                 "--tag-id <tag-id-1> --tag-id <tag-id-2>",
             ),
             notes=(
-                _("`appointment` is the default type. Use `--type` for timeblocks and deadlines."),
                 _(
-                    "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags "
-                    "or people in one command."
+                    "resources.event.parser_actions.appointment_is_default_type_use_type_for_timeblocks_and_deadlines"
                 ),
-                _("If `--end-time` is omitted, the event is treated as open-ended."),
+                help_message("notes.relations.repeatTagOrPersonAttach"),
                 _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
+                    "resources.event.parser_actions.if_end_time_is_omitted_event_is_treated_as_open_ended"
                 ),
+                help_message("notes.datetime.configuredTimezone"),
                 _(
-                    "Use recurrence flags to create recurring daily, weekly, monthly, or yearly "
-                    "series."
+                    "resources.event.parser_actions.use_recurrence_flags_to_create_recurring_daily_weekly_monthly_or_yearly_series"
                 ),
                 _(
-                    "When an agent creates events for a human, use `--person-id` to keep "
-                    "human-only, agent-only, and shared time blocks distinct."
+                    "resources.event.parser_actions.when_agent_creates_events_for_human_use_person_id_to_keep_human"
                 ),
             ),
         ),
     )
-    add_parser.add_argument("title", help=_("Event title"))
-    add_parser.add_argument("--description", help=_("Optional event description"))
+    add_parser.add_argument("title", help=_("resources.event.parser_actions.event_title"))
     add_parser.add_argument(
-        "--start-time", required=True, type=parse_user_datetime_value, help=_("Start time")
+        "--description", help=_("resources.event.parser_actions.optional_event_description")
     )
     add_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("Optional end time")
+        "--start-time",
+        required=True,
+        type=parse_user_datetime_value,
+        help=_("common.messages.start_time"),
     )
-    add_parser.add_argument("--priority", type=int, default=0, help=_("Priority from 0 to 5"))
-    add_parser.add_argument("--status", default="planned", help=_("Event status"))
+    add_parser.add_argument(
+        "--end-time",
+        type=parse_user_datetime_value,
+        help=_("resources.event.parser_actions.optional_end_time"),
+    )
+    add_parser.add_argument(
+        "--priority",
+        type=int,
+        default=0,
+        help=_("resources.event.parser_actions.priority_from_0_to_5"),
+    )
+    add_parser.add_argument(
+        "--status", default="planned", help=_("resources.event.parser_actions.event_status")
+    )
     add_parser.add_argument(
         "--type",
         dest="event_type",
         default="appointment",
-        help=_("Event type: appointment, timeblock, or deadline"),
+        help=_("resources.event.parser_actions.event_type_appointment_timeblock_or_deadline"),
     )
     add_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help=_("Mark the event as all-day"),
+        help=_("resources.event.parser_actions.mark_event_as_all_day"),
     )
-    add_parser.add_argument("--area-id", type=UUID, help=_("Optional linked area identifier"))
-    add_parser.add_argument("--task-id", type=UUID, help=_("Optional linked task identifier"))
+    add_parser.add_argument(
+        "--area-id", type=UUID, help=_("common.messages.optional_linked_area_identifier")
+    )
+    add_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.optional_linked_task_identifier")
+    )
     add_parser.add_argument(
         "--recurrence-frequency",
-        help=_("Optional recurrence frequency: daily, weekly, monthly, or yearly"),
+        help=_(
+            "resources.event.parser_actions.optional_recurrence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     add_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help=_("Optional recurrence interval, default 1"),
+        help=_("resources.event.parser_actions.optional_recurrence_interval_default_1"),
     )
     add_parser.add_argument(
         "--recurrence-count",
         type=int,
-        help=_("Optional total occurrence count"),
+        help=_("resources.event.parser_actions.optional_total_occurrence_count"),
     )
     add_parser.add_argument(
         "--recurrence-until",
         type=parse_user_datetime_value,
-        help=_("Optional final allowed occurrence start time"),
+        help=_("resources.event.parser_actions.optional_final_allowed_occurrence_start_time"),
     )
     add_parser.add_argument(
         "--tag-id",
@@ -124,7 +141,7 @@ def build_event_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to attach one or more event tags"),
+        help=_("resources.event.parser_actions.repeat_to_attach_one_or_more_event_tags"),
     )
     add_parser.add_argument(
         "--person-id",
@@ -132,7 +149,7 @@ def build_event_add_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to attach one or more people"),
+        help=_("common.messages.repeat_to_attach_one_or_more_people"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_event_add_async))
 
@@ -145,11 +162,15 @@ def build_event_list_parser(
         event_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List events"),
+            summary=_("resources.event.parser_actions.list_events"),
             description=(
-                _("List events with optional time-window and relation filters.")
+                _(
+                    "resources.event.parser_actions.list_events_with_optional_time_window_and_relation_filters"
+                )
                 + "\n\n"
-                + _("Use this command as the primary query entrypoint for scheduled events.")
+                + _(
+                    "resources.event.parser_actions.use_this_command_as_primary_query_entrypoint_for_scheduled_events"
+                )
             ),
             examples=(
                 "lifeos event list",
@@ -161,56 +182,67 @@ def build_event_list_parser(
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
+                help_message("notes.dateRange.repeatedDate"),
                 _(
-                    "Repeat `--date` once for one configured local day or twice for one "
-                    "inclusive local-date range."
+                    "resources.event.parser_actions.when_both_start_time_and_end_time_are_given_overlapping_events_are"
                 ),
                 _(
-                    "When both `--start-time` and `--end-time` are given, overlapping "
-                    "events are returned."
-                ),
-                _("Recurring series are expanded for bounded window queries and schedule views."),
-                _("Use `--type` to narrow results to one event topology."),
-                _(
-                    "Use `--title-contains` for lightweight text filtering instead of a "
-                    "separate search command."
+                    "resources.event.parser_actions.recurring_series_are_expanded_for_bounded_window_queries_and_schedule_views"
                 ),
                 _(
-                    "When results exist, the list command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "resources.event.parser_actions.use_type_to_narrow_results_to_one_event_topology"
+                ),
+                _(
+                    "resources.event.parser_actions.use_title_contains_for_lightweight_text_filtering_instead_of_separate_search_command"
+                ),
+                _(
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(EVENT_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--title-contains", help=_("Filter by title substring"))
-    list_parser.add_argument("--status", help=_("Filter by event status"))
+    list_parser.add_argument(
+        "--title-contains", help=_("common.messages.filter_by_title_substring")
+    )
+    list_parser.add_argument(
+        "--status", help=_("resources.event.parser_actions.filter_by_event_status")
+    )
     list_parser.add_argument(
         "--type",
         dest="event_type",
-        help=_("Filter by event type: appointment, timeblock, or deadline"),
+        help=_(
+            "resources.event.parser_actions.filter_by_event_type_appointment_timeblock_or_deadline"
+        ),
     )
-    list_parser.add_argument("--area-id", type=UUID, help=_("Filter by linked area"))
-    list_parser.add_argument("--task-id", type=UUID, help=_("Filter by linked task"))
-    list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person"))
-    list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by linked tag"))
+    list_parser.add_argument(
+        "--area-id", type=UUID, help=_("common.messages.filter_by_linked_area")
+    )
+    list_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
+    )
+    list_parser.add_argument(
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
+    )
+    list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
     add_date_range_arguments(
         list_parser,
-        date_help=_(
-            "Repeat once for one configured local day or twice for one inclusive "
-            "local-date range in YYYY-MM-DD format"
-        ),
+        date_help=help_message("arguments.dateRange.repeatedDate"),
     )
     list_parser.add_argument(
         "--start-time",
         dest="window_start",
         type=parse_datetime_or_date_value,
-        help=_("Inclusive time filter start; date-only values use the configured timezone"),
+        help=_(
+            "common.messages.inclusive_time_filter_start_date_only_values_use_configured_timezone"
+        ),
     )
     list_parser.add_argument(
         "--end-time",
         dest="window_end",
         type=parse_datetime_or_date_value,
-        help=_("Inclusive time filter end; date-only values use the configured timezone"),
+        help=_(
+            "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
+        ),
     )
     add_include_deleted_argument(list_parser, noun="events")
     add_limit_offset_arguments(list_parser)
@@ -225,15 +257,17 @@ def build_event_show_parser(
         event_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show an event"),
-            description=_("Show one event with full metadata."),
+            summary=_("resources.event.parser_actions.show_event"),
+            description=_("resources.event.parser_actions.show_one_event_with_full_metadata"),
             examples=(
                 "lifeos event show 11111111-1111-1111-1111-111111111111",
                 "lifeos event show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
+    show_parser.add_argument(
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
@@ -246,8 +280,8 @@ def build_event_update_parser(
         event_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update an event"),
-            description=_("Update mutable event fields."),
+            summary=_("resources.event.parser_actions.update_event"),
+            description=_("resources.event.parser_actions.update_mutable_event_fields"),
             examples=(
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --status completed",
                 "lifeos event update 11111111-1111-1111-1111-111111111111 --type deadline",
@@ -265,81 +299,117 @@ def build_event_update_parser(
                 "--clear-people --clear-tags",
             ),
             notes=(
-                _("Use `--type` to retag an event as appointment, timeblock, or deadline."),
-                _("Use `--clear-*` flags to explicitly remove optional values."),
-                _("Do not mix a value flag with the matching clear flag in the same command."),
                 _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
+                    "resources.event.parser_actions.use_type_to_retag_event_as_appointment_timeblock_or_deadline"
                 ),
-                _("Use `--scope single|all_future|all` for recurring series updates."),
-                _("`--scope single` and `--scope all_future` require `--instance-start`."),
+                help_message("notes.clearFlags.explicitOptionalValues"),
+                help_message("notes.clearFlags.valueConflict"),
+                help_message("notes.datetime.configuredTimezone"),
+                help_message("notes.recurringScope.updates"),
+                help_message("notes.recurringScope.instanceStartRequired"),
                 _(
-                    "Use repeated `--person-id` to keep human-only, agent-only, and shared "
-                    "ownership explicit as plans change."
+                    "resources.event.parser_actions.use_repeated_person_id_to_keep_human_only_agent_only_and_shared"
                 ),
             ),
         ),
     )
-    update_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
-    update_parser.add_argument("--title", help=_("Updated event title"))
-    update_parser.add_argument("--description", help=_("Updated description"))
     update_parser.add_argument(
-        "--clear-description", action="store_true", help=_("Clear description")
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
     )
     update_parser.add_argument(
-        "--start-time", type=parse_user_datetime_value, help=_("Updated start time")
+        "--title", help=_("resources.event.parser_actions.updated_event_title")
+    )
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
+    update_parser.add_argument(
+        "--clear-description",
+        action="store_true",
+        help=_("resources.event.parser_actions.clear_description"),
     )
     update_parser.add_argument(
-        "--end-time", type=parse_user_datetime_value, help=_("Updated end time")
+        "--start-time",
+        type=parse_user_datetime_value,
+        help=_("common.messages.updated_start_time"),
     )
-    update_parser.add_argument("--clear-end-time", action="store_true", help=_("Clear end time"))
-    update_parser.add_argument("--priority", type=int, help=_("Updated priority from 0 to 5"))
-    update_parser.add_argument("--status", help=_("Updated event status"))
+    update_parser.add_argument(
+        "--end-time", type=parse_user_datetime_value, help=_("common.messages.updated_end_time")
+    )
+    update_parser.add_argument(
+        "--clear-end-time",
+        action="store_true",
+        help=_("resources.event.parser_actions.clear_end_time"),
+    )
+    update_parser.add_argument(
+        "--priority",
+        type=int,
+        help=_("resources.event.parser_actions.updated_priority_from_0_to_5"),
+    )
+    update_parser.add_argument(
+        "--status", help=_("resources.event.parser_actions.updated_event_status")
+    )
     update_parser.add_argument(
         "--type",
         dest="event_type",
-        help=_("Updated event type: appointment, timeblock, or deadline"),
+        help=_(
+            "resources.event.parser_actions.updated_event_type_appointment_timeblock_or_deadline"
+        ),
     )
     update_parser.add_argument(
         "--all-day",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help=_("Toggle all-day status"),
+        help=_("resources.event.parser_actions.toggle_all_day_status"),
     )
-    update_parser.add_argument("--area-id", type=UUID, help=_("Updated linked area identifier"))
-    update_parser.add_argument("--clear-area", action="store_true", help=_("Clear linked area"))
-    update_parser.add_argument("--task-id", type=UUID, help=_("Updated linked task identifier"))
-    update_parser.add_argument("--clear-task", action="store_true", help=_("Clear linked task"))
+    update_parser.add_argument(
+        "--area-id", type=UUID, help=_("common.messages.updated_linked_area_identifier")
+    )
+    update_parser.add_argument(
+        "--clear-area", action="store_true", help=_("common.messages.clear_linked_area")
+    )
+    update_parser.add_argument(
+        "--task-id", type=UUID, help=_("common.messages.updated_linked_task_identifier")
+    )
+    update_parser.add_argument(
+        "--clear-task", action="store_true", help=_("common.messages.clear_linked_task")
+    )
     update_parser.add_argument(
         "--recurrence-frequency",
-        help=_("Updated recurrence frequency: daily, weekly, monthly, or yearly"),
+        help=_(
+            "resources.event.parser_actions.updated_recurrence_frequency_daily_weekly_monthly_or_yearly"
+        ),
     )
     update_parser.add_argument(
         "--recurrence-interval",
         type=int,
-        help=_("Updated recurrence interval"),
+        help=_("resources.event.parser_actions.updated_recurrence_interval"),
     )
-    update_parser.add_argument("--recurrence-count", type=int, help=_("Updated recurrence count"))
+    update_parser.add_argument(
+        "--recurrence-count",
+        type=int,
+        help=_("resources.event.parser_actions.updated_recurrence_count"),
+    )
     update_parser.add_argument(
         "--recurrence-until",
         type=parse_user_datetime_value,
-        help=_("Updated recurrence until datetime"),
+        help=_("resources.event.parser_actions.updated_recurrence_until_datetime"),
     )
     update_parser.add_argument(
         "--clear-recurrence",
         action="store_true",
-        help=_("Remove recurrence from the event"),
+        help=_("resources.event.parser_actions.remove_recurrence_from_event"),
     )
     update_parser.add_argument(
         "--scope",
         default="all",
-        help=_("Update scope for recurring events: single, all_future, or all"),
+        help=_(
+            "resources.event.parser_actions.update_scope_for_recurring_events_single_all_future_or_all"
+        ),
     )
     update_parser.add_argument(
         "--instance-start",
         type=parse_user_datetime_value,
-        help=_("Instance start time for single or all_future recurring updates"),
+        help=_(
+            "resources.event.parser_actions.instance_start_time_for_single_or_all_future_recurring_updates"
+        ),
     )
     update_parser.add_argument(
         "--tag-id",
@@ -347,18 +417,22 @@ def build_event_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to replace tags with one or more identifiers"),
+        help=_("common.messages.repeat_to_replace_tags_with_one_or_more_identifiers"),
     )
-    update_parser.add_argument("--clear-tags", action="store_true", help=_("Remove all tags"))
+    update_parser.add_argument(
+        "--clear-tags", action="store_true", help=_("common.messages.remove_all_tags")
+    )
     update_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to replace people with one or more identifiers"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
-    update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
+    update_parser.add_argument(
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
+    )
     update_parser.set_defaults(handler=make_sync_handler(handle_event_update_async))
 
 
@@ -370,8 +444,8 @@ def build_event_delete_parser(
         event_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete an event"),
-            description=_("Delete one event."),
+            summary=_("resources.event.parser_actions.delete_event"),
+            description=_("resources.event.parser_actions.delete_one_event"),
             examples=(
                 "lifeos event delete 11111111-1111-1111-1111-111111111111",
                 "lifeos event delete 11111111-1111-1111-1111-111111111111 "
@@ -380,25 +454,28 @@ def build_event_delete_parser(
                 "--scope all_future --instance-start 2026-04-10T09:00:00",
             ),
             notes=(
-                _("Use `--scope single|all_future|all` for recurring series deletes."),
-                _("`--scope single` and `--scope all_future` require `--instance-start`."),
-                _(
-                    "When a datetime omits timezone information, the configured timezone is used "
-                    "before the value is converted to UTC."
-                ),
+                help_message("notes.recurringScope.deletes"),
+                help_message("notes.recurringScope.instanceStartRequired"),
+                help_message("notes.datetime.configuredTimezone"),
             ),
         ),
     )
-    delete_parser.add_argument("event_id", type=UUID, help=_("Event identifier"))
+    delete_parser.add_argument(
+        "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
+    )
     delete_parser.add_argument(
         "--scope",
         default="all",
-        help=_("Delete scope for recurring events: single, all_future, or all"),
+        help=_(
+            "resources.event.parser_actions.delete_scope_for_recurring_events_single_all_future_or_all"
+        ),
     )
     delete_parser.add_argument(
         "--instance-start",
         type=parse_user_datetime_value,
-        help=_("Instance start time for single or all_future recurring deletes"),
+        help=_(
+            "resources.event.parser_actions.instance_start_time_for_single_or_all_future_recurring_deletes"
+        ),
     )
     delete_parser.set_defaults(handler=make_sync_handler(handle_event_delete_async))
 
@@ -411,24 +488,26 @@ def build_event_batch_parser(
         event_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run batch event operations"),
-            description=_("Delete multiple events in one command."),
+            summary=_("resources.event.parser_actions.run_batch_event_operations"),
+            description=_("resources.event.parser_actions.delete_multiple_events_in_one_command"),
             examples=(
                 "lifeos event batch delete --help",
                 "lifeos event batch delete --ids <event-id-1> <event-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
-        dest="event_batch_command", title=_("batch actions"), metavar=_("batch-action")
+        dest="event_batch_command",
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action_hyphenated_metavar"),
     )
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple events"),
-            description=_("Delete multiple events by identifier."),
+            summary=_("resources.event.parser_actions.delete_multiple_events"),
+            description=_("resources.event.parser_actions.delete_multiple_events_by_identifier"),
             examples=("lifeos event batch delete --ids <event-id-1> <event-id-2>",),
         ),
     )

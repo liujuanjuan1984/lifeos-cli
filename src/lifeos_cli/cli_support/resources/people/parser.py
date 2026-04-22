@@ -26,7 +26,7 @@ from lifeos_cli.cli_support.resources.people.handlers import (
     handle_people_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_people_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -35,18 +35,18 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "people",
         help_content=HelpContent(
-            summary=_("Manage people and relationships"),
+            summary=_("resources.people.parser.manage_people_and_relationships"),
             description=(
-                _("Create and maintain people records for your social context.")
-                + "\n\n"
-                + _(
-                    "This resource is for named people, relationship context, and explicit "
-                    "execution subjects."
+                _(
+                    "resources.people.parser.create_and_maintain_people_records_for_your_social_context"
                 )
                 + "\n\n"
                 + _(
-                    "Use it for the human partner and, when useful, a named automation "
-                    "identity so work ownership stays explicit."
+                    "resources.people.parser.this_resource_is_for_named_people_relationship_context_and_explicit_execution_subjects"
+                )
+                + "\n\n"
+                + _(
+                    "resources.people.parser.use_it_for_human_partner_and_when_useful_named_automation_identity_so"
                 )
             ),
             examples=(
@@ -55,31 +55,35 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people batch --help",
             ),
             notes=(
-                _("`people` is the intentional CLI resource name for this domain."),
-                _("Use `list` as the primary query entrypoint for this resource."),
-                _("See `lifeos people batch --help` for bulk delete operations."),
                 _(
-                    "Agent callers should keep the human partner and the automation identity "
-                    "as separate records when both can own work."
+                    "resources.people.parser.people_is_intentional_cli_resource_name_for_this_domain"
+                ),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _(
+                    "resources.people.parser.see_lifeos_people_batch_help_for_bulk_delete_operations"
+                ),
+                _(
+                    "resources.people.parser.agent_callers_should_keep_human_partner_and_automation_identity_as_separate_records"
                 ),
             ),
         ),
     )
     people_subparsers = people_parser.add_subparsers(
-        dest="people_command", title=_("actions"), metavar=_("action")
+        dest="people_command",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     add_parser = add_documented_parser(
         people_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create a person"),
+            summary=_("resources.people.parser.create_person"),
             description=(
-                _("Create a new person.")
+                _("resources.people.parser.create_new_person")
                 + "\n\n"
                 + _(
-                    "Use tags, nicknames, and location to capture relationship context or an "
-                    "execution subject for task, event, or timelog ownership."
+                    "resources.people.parser.use_tags_nicknames_and_location_to_capture_relationship_context_or_execution_subject"
                 )
             ),
             examples=(
@@ -89,19 +93,29 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             ),
             notes=(
                 _(
-                    "Create separate records when the human and the agent should remain "
-                    "distinct subjects in later workflow data."
+                    "resources.people.parser.create_separate_records_when_human_and_agent_should_remain_distinct_subjects_in"
                 ),
             ),
         ),
     )
-    add_parser.add_argument("name", help=_("Person name"))
-    add_parser.add_argument("--description", help=_("Optional person description"))
-    add_parser.add_argument("--nickname", action="append", help=_("Nickname or alias, repeatable"))
-    add_parser.add_argument("--birth-date", help=_("Birth date in ISO format YYYY-MM-DD"))
-    add_parser.add_argument("--location", help=_("Location label"))
+    add_parser.add_argument("name", help=_("resources.people.parser.person_name"))
     add_parser.add_argument(
-        "--tag-id", action="append", type=UUID, help=_("Tag identifier, repeatable")
+        "--description", help=_("resources.people.parser.optional_person_description")
+    )
+    add_parser.add_argument(
+        "--nickname",
+        action="append",
+        help=_("resources.people.parser.nickname_or_alias_repeatable"),
+    )
+    add_parser.add_argument(
+        "--birth-date", help=_("resources.people.parser.birth_date_in_iso_format_yyyy_mm_dd")
+    )
+    add_parser.add_argument("--location", help=_("resources.people.parser.location_label"))
+    add_parser.add_argument(
+        "--tag-id",
+        action="append",
+        type=UUID,
+        help=_("resources.people.parser.tag_identifier_repeatable"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_people_add_async))
 
@@ -109,13 +123,12 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List people"),
+            summary=_("resources.people.parser.list_people"),
             description=(
-                _("List people with optional search or tag filters.")
+                _("resources.people.parser.list_people_with_optional_search_or_tag_filters")
                 + "\n\n"
                 + _(
-                    "Use this as the primary query entrypoint for people rather than expecting "
-                    "a separate search command."
+                    "resources.people.parser.use_this_as_primary_query_entrypoint_for_people_rather_than_expecting_separate"
                 )
             ),
             examples=(
@@ -124,16 +137,19 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people list --tag-id 11111111-1111-1111-1111-111111111111 --limit 20",
             ),
             notes=(
-                _("Search currently matches name, nicknames, and location."),
+                _("resources.people.parser.search_currently_matches_name_nicknames_and_location"),
                 _(
-                    "When results exist, the list command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(PERSON_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--search", help=_("Search by name, nickname, or location"))
-    list_parser.add_argument("--tag-id", type=UUID, help=_("Filter by tag identifier"))
+    list_parser.add_argument(
+        "--search", help=_("resources.people.parser.search_by_name_nickname_or_location")
+    )
+    list_parser.add_argument(
+        "--tag-id", type=UUID, help=_("resources.people.parser.filter_by_tag_identifier")
+    )
     add_include_deleted_argument(list_parser, noun="people")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_people_list_async))
@@ -142,15 +158,17 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show a person"),
-            description=_("Show one person with full metadata."),
+            summary=_("resources.people.parser.show_person"),
+            description=_("resources.people.parser.show_one_person_with_full_metadata"),
             examples=(
                 "lifeos people show 11111111-1111-1111-1111-111111111111",
                 "lifeos people show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
+    show_parser.add_argument(
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
+    )
     add_include_deleted_argument(show_parser, noun="people", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_people_show_async))
 
@@ -158,11 +176,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update a person"),
+            summary=_("resources.people.parser.update_person"),
             description=(
-                _("Update mutable person fields.")
+                _("resources.people.parser.update_mutable_person_fields")
                 + "\n\n"
-                + _("Only explicitly supplied flags are changed; omitted fields are preserved.")
+                + _(
+                    "resources.people.parser.only_explicitly_supplied_flags_are_changed_omitted_fields_are_preserved"
+                )
             ),
             examples=(
                 'lifeos people update 11111111-1111-1111-1111-111111111111 --location "New York"',
@@ -173,47 +193,57 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos people update 11111111-1111-1111-1111-111111111111 --clear-location",
             ),
             notes=(
-                _("Use `--clear-*` flags to remove optional values instead of replacing them."),
+                _(
+                    "resources.people.parser.use_clear_flags_to_remove_optional_values_instead_of_replacing_them"
+                ),
             ),
         ),
     )
-    update_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
-    update_parser.add_argument("--name", help=_("Updated person name"))
-    update_parser.add_argument("--description", help=_("Updated description"))
+    update_parser.add_argument(
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
+    )
+    update_parser.add_argument("--name", help=_("resources.people.parser.updated_person_name"))
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("Clear the optional person description"),
+        help=_("resources.people.parser.clear_optional_person_description"),
     )
     update_parser.add_argument(
-        "--nickname", action="append", help=_("Updated nicknames, repeatable")
+        "--nickname",
+        action="append",
+        help=_("resources.people.parser.updated_nicknames_repeatable"),
     )
     update_parser.add_argument(
         "--clear-nicknames",
         action="store_true",
-        help=_("Clear all nicknames"),
+        help=_("resources.people.parser.clear_all_nicknames"),
     )
     update_parser.add_argument(
-        "--birth-date", help=_("Updated birth date in ISO format YYYY-MM-DD")
+        "--birth-date",
+        help=_("resources.people.parser.updated_birth_date_in_iso_format_yyyy_mm_dd"),
     )
     update_parser.add_argument(
         "--clear-birth-date",
         action="store_true",
-        help=_("Clear the optional birth date"),
+        help=_("resources.people.parser.clear_optional_birth_date"),
     )
-    update_parser.add_argument("--location", help=_("Updated location"))
+    update_parser.add_argument("--location", help=_("common.messages.updated_location"))
     update_parser.add_argument(
         "--clear-location",
         action="store_true",
-        help=_("Clear the optional location"),
+        help=_("resources.people.parser.clear_optional_location"),
     )
     update_parser.add_argument(
-        "--tag-id", action="append", type=UUID, help=_("Replacement tag identifiers")
+        "--tag-id",
+        action="append",
+        type=UUID,
+        help=_("resources.people.parser.replacement_tag_identifiers"),
     )
     update_parser.add_argument(
         "--clear-tags",
         action="store_true",
-        help=_("Remove all tag associations from the person"),
+        help=_("resources.people.parser.remove_all_tag_associations_from_person"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_people_update_async))
 
@@ -221,39 +251,41 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         people_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete a person"),
-            description=_("Delete a person."),
+            summary=_("resources.people.parser.delete_person"),
+            description=_("resources.people.parser.delete_person_description"),
             examples=("lifeos people delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("person_id", type=UUID, help=_("Person identifier"))
+    delete_parser.add_argument(
+        "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
+    )
     delete_parser.set_defaults(handler=make_sync_handler(handle_people_delete_async))
 
     batch_parser = add_documented_help_parser(
         people_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run batch people operations"),
-            description=_("Delete multiple people records in one command."),
+            summary=_("resources.people.parser.run_batch_people_operations"),
+            description=_("resources.people.parser.delete_multiple_people_records_in_one_command"),
             examples=(
                 "lifeos people batch delete --help",
                 "lifeos people batch delete --ids <person-id-1> <person-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="people_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch_action"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple people"),
-            description=_("Delete multiple people by identifier."),
+            summary=_("resources.people.parser.delete_multiple_people"),
+            description=_("resources.people.parser.delete_multiple_people_by_identifier"),
             examples=("lifeos people batch delete --ids <person-id-1> <person-id-2>",),
         ),
     )

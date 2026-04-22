@@ -1,8 +1,8 @@
+import json
 from pathlib import Path
 from typing import Any, cast
 
 import yaml  # type: ignore[import-untyped]
-from babel.messages import pofile
 
 GITIGNORE_TEXT = Path(".gitignore").read_text()
 DEPENDABOT_CONFIG = yaml.safe_load(Path(".github/dependabot.yml").read_text())
@@ -28,6 +28,20 @@ def _workflow_job_steps(workflow: dict[str, Any], job_name: str) -> list[dict[st
     steps = cast(list[dict[str, Any]], jobs[job_name]["steps"])
     assert isinstance(steps, list)
     return steps
+
+
+def _flatten_json_catalog_keys(catalog: dict[str, Any]) -> dict[str, str]:
+    flattened: dict[str, str] = {}
+
+    def _visit(node: Any, prefix: tuple[str, ...]) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                _visit(value, (*prefix, str(key)))
+            return
+        flattened[".".join(prefix)] = node if isinstance(node, str) else ""
+
+    _visit(catalog, ())
+    return flattened
 
 
 DOCTOR_COMMANDS = _non_comment_shell_lines(DOCTOR_TEXT)
@@ -72,8 +86,8 @@ def test_dead_code_scan_is_part_of_the_default_validation_gate() -> None:
     assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
     assert any("bash ./scripts/integration_tests.sh" in line for line in DOCTOR_COMMANDS)
     assert (
-        'FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,pytestmark"'
-        in DEAD_CODE_CHECK_TEXT
+        'FRAMEWORK_IGNORE_NAMES="down_revision,branch_labels,depends_on,downgrade,'
+        'pytestmark"' in DEAD_CODE_CHECK_TEXT
     )
     assert '--ignore-names "${FRAMEWORK_IGNORE_NAMES}"' in DEAD_CODE_CHECK_TEXT
 
@@ -133,7 +147,6 @@ def test_gitignore_keeps_local_env_files_untracked() -> None:
 def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:
     for symbol in (
         "type_annotation_map",
-        "ARGPARSE_MESSAGE_IDS",
         "isolated_runtime_locale",
         "_use_stable_note_timezone",
         "configured_time_preferences",
@@ -141,29 +154,44 @@ def test_vulture_whitelist_keeps_intentional_framework_symbols() -> None:
         assert symbol in VULTURE_WHITELIST_TEXT
 
 
-def test_zh_hans_cli_catalog_is_complete() -> None:
-    catalog_path = Path("src/lifeos_cli/locales/zh_Hans/LC_MESSAGES/lifeos_cli.po")
-    with catalog_path.open("r", encoding="utf-8") as catalog_file:
-        catalog = pofile.read_po(catalog_file)
+def test_json_locale_catalogs_are_complete() -> None:
+    locales_dir = Path("src/lifeos_cli/locales")
+    locale_names = sorted(path.name for path in locales_dir.iterdir() if path.is_dir())
+    catalog_paths = sorted(locales_dir.glob("*/*.json"))
+    grouped_catalog_paths: dict[str, dict[str, Path]] = {}
+    for catalog_path in catalog_paths:
+        grouped_catalog_paths.setdefault(catalog_path.name, {})[catalog_path.parent.name] = (
+            catalog_path
+        )
 
-    entries = [message for message in catalog if message.id and isinstance(message.id, str)]
+    assert catalog_paths
+    assert "en" in locale_names
 
-    assert entries
-    assert all(message.string for message in entries)
-    assert all("fuzzy" not in message.flags for message in entries)
-    assert all(message.string != message.id for message in entries)
+    for catalog_name, locale_paths in grouped_catalog_paths.items():
+        assert set(locale_paths) == set(locale_names), catalog_name
+        default_catalog = json.loads(locale_paths["en"].read_text(encoding="utf-8"))
+        default_keys = _flatten_json_catalog_keys(default_catalog)
+        assert default_keys
+        assert all(default_keys.values())
+
+        for locale_name, catalog_path in locale_paths.items():
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            keys_to_values = _flatten_json_catalog_keys(catalog)
+            assert set(keys_to_values) == set(default_keys), (catalog_name, locale_name)
+            assert all(keys_to_values.values()), (catalog_name, locale_name)
 
 
-def test_zh_hans_cli_catalog_keeps_internal_entity_terms_in_english() -> None:
-    catalog_path = Path("src/lifeos_cli/locales/zh_Hans/LC_MESSAGES/lifeos_cli.po")
-    with catalog_path.open("r", encoding="utf-8") as catalog_file:
-        catalog = pofile.read_po(catalog_file)
+def test_zh_hans_json_catalogs_keep_internal_entity_terms_in_english() -> None:
+    catalog_paths = sorted(Path("src/lifeos_cli/locales/zh_Hans").glob("*.json"))
+    entries: list[tuple[str, str, str]] = []
+    for catalog_path in catalog_paths:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        entries.extend(
+            (catalog_path.name, key, value)
+            for key, value in _flatten_json_catalog_keys(catalog).items()
+            if value
+        )
 
-    entries = [
-        message
-        for message in catalog
-        if message.id and isinstance(message.id, str) and message.string
-    ]
     banned_terms = (
         "领域",
         "愿景",
@@ -179,9 +207,9 @@ def test_zh_hans_cli_catalog_keeps_internal_entity_terms_in_english() -> None:
     )
 
     offenders = [
-        (message.id, message.string)
-        for message in entries
-        if isinstance(message.string, str) and any(term in message.string for term in banned_terms)
+        (catalog_name, key, value)
+        for catalog_name, key, value in entries
+        if any(term in value for term in banned_terms)
     ]
 
     assert offenders == []

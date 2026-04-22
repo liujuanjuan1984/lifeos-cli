@@ -12,7 +12,7 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.parser_common import add_identifier_list_argument
 from lifeos_cli.cli_support.resources.task.handlers import handle_task_batch_delete_async
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_task_batch_parser(
@@ -23,27 +23,27 @@ def build_task_batch_parser(
         task_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run batch task operations"),
-            description=_("Delete multiple tasks in one command."),
+            summary=_("resources.task.parser_batch.run_batch_task_operations"),
+            description=_("resources.task.parser_batch.delete_multiple_tasks_in_one_command"),
             examples=(
                 "lifeos task batch delete --help",
                 "lifeos task batch delete --ids <task-id-1> <task-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="task_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch_action"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple tasks"),
-            description=_("Delete multiple tasks by identifier."),
+            summary=_("resources.task.parser_batch.delete_multiple_tasks"),
+            description=_("resources.task.parser_batch.delete_multiple_tasks_by_identifier"),
             examples=("lifeos task batch delete --ids <task-id-1> <task-id-2>",),
         ),
     )

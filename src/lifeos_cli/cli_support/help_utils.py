@@ -7,7 +7,8 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
+from lifeos_cli.i18n import keyed_message
 
 
 @dataclass(frozen=True)
@@ -68,13 +69,18 @@ def build_epilog(*, examples: tuple[str, ...] = (), notes: tuple[str, ...] = ())
     sections: list[str] = []
     if examples:
         example_lines = "\n".join(f"  {example}" for example in examples)
-        sections.append(f"{_('Examples')}:\n{example_lines}")
+        sections.append(f"{_('common.help.examples')}:\n{example_lines}")
     if notes:
         note_lines = "\n".join(f"  {note}" for note in notes)
-        sections.append(f"{_('Notes')}:\n{note_lines}")
+        sections.append(f"{_('common.help.notes')}:\n{note_lines}")
     if not sections:
         return None
     return "\n\n".join(sections)
+
+
+def help_message(key: str) -> str:
+    """Return one CLI help message from the keyed help catalog."""
+    return keyed_message("cli_help", key)
 
 
 def make_help_handler(parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], int]:

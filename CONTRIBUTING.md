@@ -74,7 +74,7 @@ Static-analysis governance:
 
 - Treat framework-driven symbols as intentional API surface when they are required by the toolchain.
   Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`,
-  SQLAlchemy declarative hooks, and gettext extraction constants.
+  SQLAlchemy declarative hooks, and argparse translation hooks.
 - Do not delete those symbols just to satisfy a generic dead-code scanner.
 - `scripts/dead_code_check.sh` keeps the name-based ignore list for Alembic revision metadata and
   module-level `pytestmark`; use `scripts/vulture_whitelist.py` for importable framework symbols

@@ -32,7 +32,7 @@ from lifeos_cli.cli_support.resources.vision.handlers import (
     handle_vision_with_tasks_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_vision_add_parser(
@@ -43,13 +43,12 @@ def build_vision_add_parser(
         vision_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create a vision"),
+            summary=_("resources.vision.parser_actions.create_vision"),
             description=(
-                _("Create a new vision.")
+                _("resources.vision.parser_actions.create_new_vision")
                 + "\n\n"
                 + _(
-                    "Visions usually represent medium- or long-running themes that will own "
-                    "multiple tasks."
+                    "resources.vision.parser_actions.visions_usually_represent_medium_or_long_running_themes_that_will_own_multiple"
                 )
             ),
             examples=(
@@ -64,28 +63,33 @@ def build_vision_add_parser(
             ),
             notes=(
                 _(
-                    "Repeat the same `--person-id` flag to associate multiple people in one "
-                    "command."
+                    "common.messages.repeat_same_person_id_flag_to_associate_multiple_people_in_one_command"
                 ),
             ),
         ),
     )
-    add_parser.add_argument("name", help=_("Vision name"))
-    add_parser.add_argument("--description", help=_("Optional vision description"))
-    add_parser.add_argument("--status", default="active", help=_("Vision status"))
-    add_parser.add_argument("--area-id", type=UUID, help=_("Owning area identifier"))
+    add_parser.add_argument("name", help=_("resources.vision.parser_actions.vision_name"))
+    add_parser.add_argument(
+        "--description", help=_("resources.vision.parser_actions.optional_vision_description")
+    )
+    add_parser.add_argument(
+        "--status", default="active", help=_("resources.vision.parser_actions.vision_status")
+    )
+    add_parser.add_argument(
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.owning_area_identifier")
+    )
     add_parser.add_argument(
         "--person-id",
         dest="person_ids",
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to associate one or more people"),
+        help=_("common.messages.repeat_to_associate_one_or_more_people"),
     )
     add_parser.add_argument(
         "--experience-rate-per-hour",
         type=int,
-        help=_("Optional experience rate"),
+        help=_("resources.vision.parser_actions.optional_experience_rate"),
     )
     add_parser.set_defaults(handler=make_sync_handler(handle_vision_add_async))
 
@@ -98,11 +102,15 @@ def build_vision_list_parser(
         vision_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List visions"),
+            summary=_("resources.vision.parser_actions.list_visions"),
             description=(
-                _("List visions with optional status or area filters.")
+                _(
+                    "resources.vision.parser_actions.list_visions_with_optional_status_or_area_filters"
+                )
                 + "\n\n"
-                + _("Use this as the primary query entrypoint for visions.")
+                + _(
+                    "resources.vision.parser_actions.use_this_as_primary_query_entrypoint_for_visions"
+                )
             ),
             examples=(
                 "lifeos vision list",
@@ -112,15 +120,18 @@ def build_vision_list_parser(
             ),
             notes=(
                 _(
-                    "When results exist, the list command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(VISION_SUMMARY_COLUMNS)),
             ),
         ),
     )
-    list_parser.add_argument("--status", help=_("Filter by status"))
-    list_parser.add_argument("--area-id", type=UUID, help=_("Filter by area identifier"))
-    list_parser.add_argument("--person-id", type=UUID, help=_("Filter by linked person identifier"))
+    list_parser.add_argument("--status", help=_("resources.vision.parser_actions.filter_by_status"))
+    list_parser.add_argument(
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.filter_by_area_identifier")
+    )
+    list_parser.add_argument(
+        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person_identifier")
+    )
     add_include_deleted_argument(list_parser, noun="visions")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_vision_list_async))
@@ -134,15 +145,15 @@ def build_vision_show_parser(
         vision_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show a vision"),
-            description=_("Show one vision with full metadata."),
+            summary=_("resources.vision.parser_actions.show_vision"),
+            description=_("resources.vision.parser_actions.show_one_vision_with_full_metadata"),
             examples=(
                 "lifeos vision show 11111111-1111-1111-1111-111111111111",
                 "lifeos vision show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
         ),
     )
-    show_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    show_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_vision_show_async))
 
@@ -155,11 +166,13 @@ def build_vision_update_parser(
         vision_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update a vision"),
+            summary=_("resources.vision.parser_actions.update_vision"),
             description=(
-                _("Update mutable vision fields.")
+                _("resources.vision.parser_actions.update_mutable_vision_fields")
                 + "\n\n"
-                + _("Only explicitly provided flags are changed; omitted values are preserved.")
+                + _(
+                    "common.messages.only_explicitly_provided_flags_are_changed_omitted_values_are_preserved"
+                )
             ),
             examples=(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 "
@@ -175,26 +188,36 @@ def build_vision_update_parser(
                 "lifeos vision update 11111111-1111-1111-1111-111111111111 --clear-area",
             ),
             notes=(
-                _("Valid statuses currently include `active`, `archived`, and `fruit`."),
-                _("Use `--clear-*` flags to remove optional values, including people."),
-                _("Repeat the same `--person-id` flag to replace multiple linked people."),
+                _(
+                    "resources.vision.parser_actions.valid_statuses_currently_include_active_archived_and_fruit"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_clear_flags_to_remove_optional_values_including_people"
+                ),
+                _("common.messages.repeat_same_person_id_flag_to_replace_multiple_linked_people"),
             ),
         ),
     )
-    update_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
-    update_parser.add_argument("--name", help=_("Updated vision name"))
-    update_parser.add_argument("--description", help=_("Updated vision description"))
+    update_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
+    update_parser.add_argument(
+        "--name", help=_("resources.vision.parser_actions.updated_vision_name")
+    )
+    update_parser.add_argument(
+        "--description", help=_("resources.vision.parser_actions.updated_vision_description")
+    )
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("Clear the optional vision description"),
+        help=_("resources.vision.parser_actions.clear_optional_vision_description"),
     )
-    update_parser.add_argument("--status", help=_("Updated status"))
-    update_parser.add_argument("--area-id", type=UUID, help=_("Updated area identifier"))
+    update_parser.add_argument("--status", help=_("resources.vision.parser_actions.updated_status"))
+    update_parser.add_argument(
+        "--area-id", type=UUID, help=_("resources.vision.parser_actions.updated_area_identifier")
+    )
     update_parser.add_argument(
         "--clear-area",
         action="store_true",
-        help=_("Clear the optional area reference"),
+        help=_("resources.vision.parser_actions.clear_optional_area_reference"),
     )
     update_parser.add_argument(
         "--person-id",
@@ -202,16 +225,20 @@ def build_vision_update_parser(
         type=UUID,
         action="append",
         default=None,
-        help=_("Repeat to replace people with one or more identifiers"),
+        help=_("common.messages.repeat_to_replace_people_with_one_or_more_identifiers"),
     )
-    update_parser.add_argument("--clear-people", action="store_true", help=_("Remove all people"))
     update_parser.add_argument(
-        "--experience-rate-per-hour", type=int, help=_("Updated experience rate")
+        "--clear-people", action="store_true", help=_("common.messages.remove_all_people")
+    )
+    update_parser.add_argument(
+        "--experience-rate-per-hour",
+        type=int,
+        help=_("resources.vision.parser_actions.updated_experience_rate"),
     )
     update_parser.add_argument(
         "--clear-experience-rate",
         action="store_true",
-        help=_("Clear the optional experience rate"),
+        help=_("resources.vision.parser_actions.clear_optional_experience_rate"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_vision_update_async))
 
@@ -224,12 +251,12 @@ def build_vision_delete_parser(
         vision_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete a vision"),
-            description=_("Delete a vision."),
+            summary=_("resources.vision.parser_actions.delete_vision_summary"),
+            description=_("resources.vision.parser_actions.delete_vision"),
             examples=("lifeos vision delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    delete_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     delete_parser.set_defaults(handler=make_sync_handler(handle_vision_delete_async))
 
 
@@ -241,18 +268,19 @@ def build_vision_with_tasks_parser(
         vision_subparsers,
         "with-tasks",
         help_content=HelpContent(
-            summary=_("Show a vision task tree"),
-            description=_("Show one vision with its active tasks."),
+            summary=_("resources.vision.parser_actions.show_vision_task_tree"),
+            description=_("resources.vision.parser_actions.show_one_vision_with_its_active_tasks"),
             examples=("lifeos vision with-tasks 11111111-1111-1111-1111-111111111111",),
             notes=(
                 _(
-                    "When the vision has tasks, the `tasks` section prints a header row "
-                    "followed by tab-separated columns: {columns}."
+                    "resources.vision.parser_actions.when_vision_has_tasks_tasks_section_prints_header_row_followed_by_tab"
                 ).format(columns=format_summary_column_list(VISION_WITH_TASKS_COLUMNS)),
             ),
         ),
     )
-    with_tasks_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    with_tasks_parser.add_argument(
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
+    )
     with_tasks_parser.set_defaults(handler=make_sync_handler(handle_vision_with_tasks_async))
 
 
@@ -264,16 +292,22 @@ def build_vision_stats_parser(
         vision_subparsers,
         "stats",
         help_content=HelpContent(
-            summary=_("Show vision stats"),
-            description=_("Show task counts and effort totals for one vision."),
+            summary=_("resources.vision.parser_actions.show_vision_stats"),
+            description=_(
+                "resources.vision.parser_actions.show_task_counts_and_effort_totals_for_one_vision"
+            ),
             examples=("lifeos vision stats 11111111-1111-1111-1111-111111111111",),
             notes=(
-                _("Counts and effort totals aggregate all active tasks linked to the vision."),
-                _("Use `with-tasks` when you need the row-level task list instead of totals."),
+                _(
+                    "resources.vision.parser_actions.counts_and_effort_totals_aggregate_all_active_tasks_linked_to_vision"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_with_tasks_when_you_need_row_level_task_list_instead_of"
+                ),
             ),
         ),
     )
-    stats_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    stats_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     stats_parser.set_defaults(handler=make_sync_handler(handle_vision_stats_async))
 
 
@@ -285,24 +319,32 @@ def build_vision_add_experience_parser(
         vision_subparsers,
         "add-experience",
         help_content=HelpContent(
-            summary=_("Add vision experience"),
-            description=_("Add manual experience points to an active vision."),
+            summary=_("resources.vision.parser_actions.add_vision_experience"),
+            description=_(
+                "resources.vision.parser_actions.add_manual_experience_points_to_active_vision"
+            ),
             examples=(
                 "lifeos vision add-experience 11111111-1111-1111-1111-111111111111 --points 120",
             ),
             notes=(
-                _("Use this for explicit manual credit rather than for task-effort recalculation."),
-                _("Use `sync-experience` when experience should be recomputed from task effort."),
+                _(
+                    "resources.vision.parser_actions.use_this_for_explicit_manual_credit_rather_than_for_task_effort_recalculation"
+                ),
+                _(
+                    "resources.vision.parser_actions.use_sync_experience_when_experience_should_be_recomputed_from_task_effort"
+                ),
             ),
         ),
     )
-    add_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    add_experience_parser.add_argument(
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
+    )
     add_experience_parser.add_argument(
         "--points",
         dest="experience_points",
         type=int,
         required=True,
-        help=_("Experience points to add"),
+        help=_("resources.vision.parser_actions.experience_points_to_add"),
     )
     add_experience_parser.set_defaults(
         handler=make_sync_handler(handle_vision_add_experience_async)
@@ -317,22 +359,24 @@ def build_vision_sync_experience_parser(
         vision_subparsers,
         "sync-experience",
         help_content=HelpContent(
-            summary=_("Sync vision experience"),
-            description=_("Synchronize experience points from root task actual effort totals."),
+            summary=_("resources.vision.parser_actions.sync_vision_experience"),
+            description=_(
+                "resources.vision.parser_actions.synchronize_experience_points_from_root_task_actual_effort_totals"
+            ),
             examples=("lifeos vision sync-experience 11111111-1111-1111-1111-111111111111",),
             notes=(
                 _(
-                    "Use this after task effort changes when vision experience should match "
-                    "current root-task actual effort."
+                    "resources.vision.parser_actions.use_this_after_task_effort_changes_when_vision_experience_should_match_current"
                 ),
                 _(
-                    "The effective hourly rate comes from the vision override when set, "
-                    "otherwise from preferences."
+                    "resources.vision.parser_actions.the_effective_hourly_rate_comes_from_vision_override_when_set_otherwise_from"
                 ),
             ),
         ),
     )
-    sync_experience_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    sync_experience_parser.add_argument(
+        "vision_id", type=UUID, help=_("common.messages.vision_identifier")
+    )
     sync_experience_parser.set_defaults(
         handler=make_sync_handler(handle_vision_sync_experience_async)
     )
@@ -346,19 +390,22 @@ def build_vision_harvest_parser(
         vision_subparsers,
         "harvest",
         help_content=HelpContent(
-            summary=_("Harvest a vision"),
-            description=_("Convert a mature active vision to fruit status."),
+            summary=_("resources.vision.parser_actions.harvest_vision"),
+            description=_(
+                "resources.vision.parser_actions.convert_mature_active_vision_to_fruit_status"
+            ),
             examples=("lifeos vision harvest 11111111-1111-1111-1111-111111111111",),
             notes=(
                 _(
-                    "This command succeeds only when the vision is active and already at final "
-                    "stage."
+                    "resources.vision.parser_actions.this_command_succeeds_only_when_vision_is_active_and_already_at_final"
                 ),
-                _("A successful harvest changes the vision status from `active` to `fruit`."),
+                _(
+                    "resources.vision.parser_actions.a_successful_harvest_changes_vision_status_from_active_to_fruit"
+                ),
             ),
         ),
     )
-    harvest_parser.add_argument("vision_id", type=UUID, help=_("Vision identifier"))
+    harvest_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
     harvest_parser.set_defaults(handler=make_sync_handler(handle_vision_harvest_async))
 
 
@@ -370,27 +417,27 @@ def build_vision_batch_parser(
         vision_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run batch vision operations"),
-            description=_("Delete multiple visions in one command."),
+            summary=_("resources.vision.parser_actions.run_batch_vision_operations"),
+            description=_("resources.vision.parser_actions.delete_multiple_visions_in_one_command"),
             examples=(
                 "lifeos vision batch delete --help",
                 "lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="vision_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch_action"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple visions"),
-            description=_("Delete multiple visions by identifier."),
+            summary=_("resources.vision.parser_actions.delete_multiple_visions"),
+            description=_("resources.vision.parser_actions.delete_multiple_visions_by_identifier"),
             examples=("lifeos vision batch delete --ids <vision-id-1> <vision-id-2>",),
         ),
     )

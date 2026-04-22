@@ -28,8 +28,8 @@ from lifeos_cli.cli_support.system.config_commands import build_config_parser
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
 from lifeos_cli.cli_support.system.init_commands import build_init_parser
 from lifeos_cli.config import ConfigurationError
+from lifeos_cli.i18n import cli_message as _
 from lifeos_cli.i18n import configure_argparse_translations
-from lifeos_cli.i18n import gettext_message as _
 
 CLI_BRAND_BANNER = (
     " _      ___   _____  _____   ___    ____  \n"
@@ -151,7 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
             + "\n\n"
             + f"repo: {repository_url}\n"
             + "uv tool install --upgrade lifeos-cli\n\n"
-            + _("Command grammar:")
+            + _("app.parser.command_grammar")
             + "\n"
             + "  lifeos <resource> <action> [arguments] [options]"
         ),
@@ -165,13 +165,11 @@ def build_parser() -> argparse.ArgumentParser:
             ),
             notes=(
                 _(
-                    "Use `lifeos <resource> --help` and `lifeos <resource> <action> --help` as the "
-                    "primary command reference."
+                    "app.parser.use_lifeos_resource_help_and_lifeos_resource_action_help_as_primary_command"
                 ),
-                _("Run `lifeos init` to initialize LifeOS before getting started."),
+                _("app.parser.run_lifeos_init_to_initialize_lifeos_before_getting_started"),
                 _(
-                    "Welcome bug reports and suggestions through "
-                    "https://github.com/liujuanjuan1984/lifeos-cli."
+                    "app.parser.welcome_bug_reports_and_suggestions_through_https_github_com_liujuanjuan1984_lifeos_cli"
                 ),
             ),
         ),
@@ -182,12 +180,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--version",
         action="version",
         version=f"%(prog)s {get_installed_package_version()}",
-        help=_("Show the program version and exit"),
+        help=_("app.parser.show_program_version_and_exit"),
     )
     subparsers = parser.add_subparsers(
         dest="resource",
-        title=_("resources"),
-        metavar=_("resource"),
+        title=_("app.parser.resources"),
+        metavar=_("app.parser.resource"),
         parser_class=argparse.ArgumentParser,
     )
     build_init_parser(subparsers)

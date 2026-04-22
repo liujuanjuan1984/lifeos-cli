@@ -14,7 +14,7 @@ from lifeos_cli.cli_support.system.config_handlers import (
     handle_config_set,
     handle_config_show,
 )
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_config_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -23,11 +23,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         subparsers,
         "config",
         help_content=HelpContent(
-            summary=_("Inspect runtime configuration"),
+            summary=_("system.config_commands.inspect_runtime_configuration"),
             description=(
                 _(
-                    "Inspect the effective configuration resolved from the config file and "
-                    "environment variables."
+                    "system.config_commands.inspect_effective_configuration_resolved_from_config_file_and_environment_variables"
                 )
             ),
             examples=(
@@ -36,46 +35,54 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config set preferences.timezone America/Toronto",
             ),
             notes=(
-                _("Use `show` to inspect effective values after config-file and env resolution."),
-                _("Use `set` to persist supported keys without re-running the full init flow."),
-                _("Use `set` to persist supported keys into the local config file."),
-                _("Environment variables still override config-file values at runtime."),
                 _(
-                    "Agents should inspect `Preference language` before writing human-authored "
-                    "titles, descriptions, or note content."
+                    "system.config_commands.use_show_to_inspect_effective_values_after_config_file_and_env_resolution"
+                ),
+                _(
+                    "system.config_commands.use_set_to_persist_supported_keys_without_re_running_full_init_flow"
+                ),
+                _(
+                    "system.config_commands.use_set_to_persist_supported_keys_into_local_config_file"
+                ),
+                _(
+                    "system.config_commands.environment_variables_still_override_config_file_values_at_runtime"
+                ),
+                _(
+                    "system.config_commands.agents_should_inspect_preference_language_before_writing_human_authored_titles_descriptions_or"
                 ),
             ),
         ),
     )
     config_subparsers = config_parser.add_subparsers(
         dest="config_command",
-        title=_("actions"),
-        metavar=_("action"),
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     show_parser = add_documented_parser(
         config_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show effective configuration"),
-            description=_("Print the effective config values used by the current process."),
+            summary=_("system.config_commands.show_effective_configuration"),
+            description=_(
+                "system.config_commands.print_effective_config_values_used_by_current_process"
+            ),
             examples=(
                 "lifeos config show",
                 "lifeos config show --show-secrets",
             ),
             notes=(
-                _("Database URLs hide passwords by default. Use --show-secrets when needed."),
                 _(
-                    "Preferences are resolved from the [preferences] TOML table and optional "
-                    "LIFEOS_* overrides."
+                    "system.config_commands.database_urls_hide_passwords_by_default_use_show_secrets_when_needed"
                 ),
                 _(
-                    "Use `config set` to persist one supported key after reviewing the current "
-                    "values."
+                    "system.config_commands.preferences_are_resolved_from_preferences_toml_table_and_optional_lifeos_overrides"
                 ),
                 _(
-                    "Agents should use the effective language for human-authored payload data "
-                    "unless the human explicitly overrides it."
+                    "system.config_commands.use_config_set_to_persist_one_supported_key_after_reviewing_current_values"
+                ),
+                _(
+                    "system.config_commands.agents_should_use_effective_language_for_human_authored_payload_data_unless_human"
                 ),
             ),
         ),
@@ -83,7 +90,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     show_parser.add_argument(
         "--show-secrets",
         action="store_true",
-        help=_("Print sensitive values such as database passwords in full"),
+        help=_("system.config_commands.print_sensitive_values_such_as_database_passwords_in_full"),
     )
     show_parser.set_defaults(handler=handle_config_show)
 
@@ -91,8 +98,10 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
         config_subparsers,
         "set",
         help_content=HelpContent(
-            summary=_("Persist one config value"),
-            description=_("Write one supported config key to the local config file."),
+            summary=_("system.config_commands.persist_one_config_value"),
+            description=_(
+                "system.config_commands.write_one_supported_config_key_to_local_config_file"
+            ),
             examples=(
                 "lifeos config set preferences.timezone America/Toronto",
                 "lifeos config set database.echo true",
@@ -102,22 +111,33 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config set preferences.vision_experience_rate_per_hour 120",
             ),
             notes=(
-                _("This command writes the config file, not environment variables."),
-                _("Supported keys: {keys}").format(keys=", ".join(SUPPORTED_CONFIG_KEYS)),
                 _(
-                    "Use `lifeos init` for first-time bootstrap or when changing the schema "
-                    "binding."
+                    "system.config_commands.this_command_writes_config_file_not_environment_variables"
                 ),
-                _("Use `lifeos init --schema <name>` to change the database schema binding."),
-                _("Use `config show` to inspect the effective values after environment overrides."),
+                _("system.config_commands.supported_keys_keys").format(
+                    keys=", ".join(SUPPORTED_CONFIG_KEYS)
+                ),
+                _(
+                    "system.config_commands.use_lifeos_init_for_first_time_bootstrap_or_when_changing_schema_binding"
+                ),
+                _(
+                    "system.config_commands.use_lifeos_init_schema_name_to_change_database_schema_binding"
+                ),
+                _(
+                    "system.config_commands.use_config_show_to_inspect_effective_values_after_environment_overrides"
+                ),
             ),
         ),
     )
-    set_parser.add_argument("key", help=_("Supported config key to update"))
-    set_parser.add_argument("value", help=_("New value to persist for the selected key"))
+    set_parser.add_argument("key", help=_("system.config_commands.supported_config_key_to_update"))
+    set_parser.add_argument(
+        "value", help=_("system.config_commands.new_value_to_persist_for_selected_key")
+    )
     set_parser.add_argument(
         "--show-secrets",
         action="store_true",
-        help=_("Print sensitive values such as database passwords in full after writing"),
+        help=_(
+            "system.config_commands.print_sensitive_values_such_as_database_passwords_in_full_after_writing"
+        ),
     )
     set_parser.set_defaults(handler=handle_config_set)

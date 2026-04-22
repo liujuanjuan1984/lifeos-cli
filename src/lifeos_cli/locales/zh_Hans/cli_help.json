@@ -1,0 +1,27 @@
+{
+  "arguments": {
+    "dateRange": {
+      "repeatedDate": "重复一次表示一个 configured local day，重复两次表示一个包含端点的 local-date 范围，格式为 YYYY-MM-DD"
+    }
+  },
+  "notes": {
+    "clearFlags": {
+      "explicitOptionalValues": "使用 `--clear-*` 标志来显式移除可选值。",
+      "valueConflict": "不要在同一命令中混用某个 value 标志及其对应的 clear 标志。"
+    },
+    "dateRange": {
+      "repeatedDate": "重复 `--date` 一次表示一个 configured local day，重复两次表示一个包含端点的 local-date 范围。"
+    },
+    "datetime": {
+      "configuredTimezone": "当 datetime 省略 timezone 信息时，会先使用 configured timezone 解释该值，再转换为 UTC。"
+    },
+    "recurringScope": {
+      "deletes": "使用 `--scope single|all_future|all` 删除 recurring series。",
+      "instanceStartRequired": "`--scope single` 和 `--scope all_future` 需要 `--instance-start`。",
+      "updates": "使用 `--scope single|all_future|all` 更新 recurring series。"
+    },
+    "relations": {
+      "repeatTagOrPersonAttach": "重复使用同一个 `--tag-id` 或 `--person-id` 参数，即可在一条命令中附加多个 `tag` 或 `people`。"
+    }
+  }
+}

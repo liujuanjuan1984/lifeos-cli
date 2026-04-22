@@ -26,7 +26,7 @@ from lifeos_cli.cli_support.resources.area.handlers import (
     handle_area_update_async,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
-from lifeos_cli.i18n import gettext_message as _
+from lifeos_cli.i18n import cli_message as _
 
 
 def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -35,16 +35,14 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         subparsers,
         "area",
         help_content=HelpContent(
-            summary=_("Manage life areas"),
+            summary=_("resources.area.parser.manage_life_areas"),
             description=(
                 _(
-                    "Create and maintain high-level life areas such as work, health, or "
-                    "relationships."
+                    "resources.area.parser.create_and_maintain_high_level_life_areas_such_as_work_health_or"
                 )
                 + "\n\n"
                 + _(
-                    "Areas provide one of the top-level organizing layers for the rest of the "
-                    "system."
+                    "resources.area.parser.areas_provide_one_of_top_level_organizing_layers_for_rest_of_system"
                 )
             ),
             examples=(
@@ -53,27 +51,30 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos area batch --help",
             ),
             notes=(
-                _("Use `list` as the primary query entrypoint for this resource."),
-                _("Use areas to group visions and other higher-level planning objects."),
-                _("See `lifeos area batch --help` for bulk delete operations."),
+                _("common.messages.use_list_as_primary_query_entrypoint_for_this_resource"),
+                _(
+                    "resources.area.parser.use_areas_to_group_visions_and_other_higher_level_planning_objects"
+                ),
+                _("resources.area.parser.see_lifeos_area_batch_help_for_bulk_delete_operations"),
             ),
         ),
     )
     area_subparsers = area_parser.add_subparsers(
-        dest="area_command", title=_("actions"), metavar=_("action")
+        dest="area_command",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
 
     add_parser = add_documented_parser(
         area_subparsers,
         "add",
         help_content=HelpContent(
-            summary=_("Create an area"),
+            summary=_("resources.area.parser.create_area"),
             description=(
-                _("Create a new area.")
+                _("resources.area.parser.create_new_area")
                 + "\n\n"
                 + _(
-                    "Areas usually represent stable parts of life such as health, work, family, "
-                    "or learning."
+                    "resources.area.parser.areas_usually_represent_stable_parts_of_life_such_as_health_work_family"
                 )
             ),
             examples=(
@@ -81,30 +82,41 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 'lifeos area add "Deep Work" --color "#2563EB" --icon brain --display-order 10',
                 'lifeos area add "Travel" --inactive',
             ),
-            notes=(_("Use `--inactive` when the area should exist but not appear as active yet."),),
+            notes=(
+                _(
+                    "resources.area.parser.use_inactive_when_area_should_exist_but_not_appear_as_active_yet"
+                ),
+            ),
         ),
     )
-    add_parser.add_argument("name", help=_("Area name"))
-    add_parser.add_argument("--description", help=_("Optional area description"))
-    add_parser.add_argument("--color", default="#3B82F6", help=_("Hex color code"))
-    add_parser.add_argument("--icon", help=_("Optional icon identifier"))
+    add_parser.add_argument("name", help=_("resources.area.parser.area_name"))
     add_parser.add_argument(
-        "--inactive", action="store_true", help=_("Create the area as inactive")
+        "--description", help=_("resources.area.parser.optional_area_description")
     )
-    add_parser.add_argument("--display-order", type=int, default=0, help=_("Display order"))
+    add_parser.add_argument(
+        "--color", default="#3B82F6", help=_("resources.area.parser.hex_color_code")
+    )
+    add_parser.add_argument("--icon", help=_("resources.area.parser.optional_icon_identifier"))
+    add_parser.add_argument(
+        "--inactive",
+        action="store_true",
+        help=_("resources.area.parser.create_area_as_inactive"),
+    )
+    add_parser.add_argument(
+        "--display-order", type=int, default=0, help=_("common.messages.display_order")
+    )
     add_parser.set_defaults(handler=make_sync_handler(handle_area_add_async))
 
     list_parser = add_documented_parser(
         area_subparsers,
         "list",
         help_content=HelpContent(
-            summary=_("List areas"),
+            summary=_("resources.area.parser.list_areas"),
             description=(
-                _("List areas in display order.")
+                _("resources.area.parser.list_areas_in_display_order")
                 + "\n\n"
                 + _(
-                    "Use filters and pagination flags here instead of expecting a separate "
-                    "search command."
+                    "resources.area.parser.use_filters_and_pagination_flags_here_instead_of_expecting_separate_search_command"
                 )
             ),
             examples=(
@@ -113,18 +125,19 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos area list --include-deleted --limit 20 --offset 20",
             ),
             notes=(
-                _("Deleted areas are hidden unless `--include-deleted` is set."),
+                _("resources.area.parser.deleted_areas_are_hidden_unless_include_deleted_is_set"),
                 _(
-                    "When results exist, the list command prints a header row followed by "
-                    "tab-separated columns: {columns}."
+                    "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(AREA_SUMMARY_COLUMNS)),
-                _("Use `--limit` and `--offset` together for pagination."),
+                _("resources.area.parser.use_limit_and_offset_together_for_pagination"),
             ),
         ),
     )
     add_include_deleted_argument(list_parser, noun="areas")
     list_parser.add_argument(
-        "--include-inactive", action="store_true", help=_("Include inactive areas")
+        "--include-inactive",
+        action="store_true",
+        help=_("resources.area.parser.include_inactive_areas"),
     )
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_area_list_async))
@@ -133,23 +146,22 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         area_subparsers,
         "show",
         help_content=HelpContent(
-            summary=_("Show an area"),
+            summary=_("resources.area.parser.show_area"),
             description=(
-                _("Show one area with full metadata.")
+                _("resources.area.parser.show_one_area_with_full_metadata")
                 + "\n\n"
                 + _(
-                    "Use this action when you need exact field values instead of the compact "
-                    "list view."
+                    "resources.area.parser.use_this_action_when_you_need_exact_field_values_instead_of_compact"
                 )
             ),
             examples=(
                 "lifeos area show 11111111-1111-1111-1111-111111111111",
                 "lifeos area show 11111111-1111-1111-1111-111111111111 --include-deleted",
             ),
-            notes=(_("Use `--include-deleted` to inspect a deleted area."),),
+            notes=(_("resources.area.parser.use_include_deleted_to_inspect_deleted_area"),),
         ),
     )
-    show_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
+    show_parser.add_argument("area_id", type=UUID, help=_("resources.area.parser.area_identifier"))
     add_include_deleted_argument(show_parser, noun="areas", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_area_show_async))
 
@@ -157,11 +169,13 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         area_subparsers,
         "update",
         help_content=HelpContent(
-            summary=_("Update an area"),
+            summary=_("resources.area.parser.update_area"),
             description=(
-                _("Update mutable area fields.")
+                _("resources.area.parser.update_mutable_area_fields")
                 + "\n\n"
-                + _("Only explicitly provided flags are changed; omitted fields stay as they are.")
+                + _(
+                    "resources.area.parser.only_explicitly_provided_flags_are_changed_omitted_fields_stay_as_they_are"
+                )
             ),
             examples=(
                 'lifeos area update 11111111-1111-1111-1111-111111111111 --name "Fitness"',
@@ -170,70 +184,80 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-description",
                 "lifeos area update 11111111-1111-1111-1111-111111111111 --clear-icon",
             ),
-            notes=(_("Use `--clear-description` or `--clear-icon` to remove optional values."),),
+            notes=(
+                _(
+                    "resources.area.parser.use_clear_description_or_clear_icon_to_remove_optional_values"
+                ),
+            ),
         ),
     )
-    update_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
-    update_parser.add_argument("--name", help=_("Updated area name"))
-    update_parser.add_argument("--description", help=_("Updated description"))
+    update_parser.add_argument(
+        "area_id", type=UUID, help=_("resources.area.parser.area_identifier")
+    )
+    update_parser.add_argument("--name", help=_("resources.area.parser.updated_area_name"))
+    update_parser.add_argument("--description", help=_("common.messages.updated_description"))
     update_parser.add_argument(
         "--clear-description",
         action="store_true",
-        help=_("Clear the optional area description"),
+        help=_("resources.area.parser.clear_optional_area_description"),
     )
-    update_parser.add_argument("--color", help=_("Updated hex color code"))
-    update_parser.add_argument("--icon", help=_("Updated icon identifier"))
+    update_parser.add_argument("--color", help=_("common.messages.updated_hex_color_code"))
+    update_parser.add_argument("--icon", help=_("resources.area.parser.updated_icon_identifier"))
     update_parser.add_argument(
         "--clear-icon",
         action="store_true",
-        help=_("Clear the optional icon identifier"),
+        help=_("resources.area.parser.clear_optional_icon_identifier"),
     )
     update_parser.add_argument(
         "--active",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help=_("Toggle whether the area is active"),
+        help=_("resources.area.parser.toggle_whether_area_is_active"),
     )
-    update_parser.add_argument("--display-order", type=int, help=_("Updated display order"))
+    update_parser.add_argument(
+        "--display-order", type=int, help=_("common.messages.updated_display_order")
+    )
     update_parser.set_defaults(handler=make_sync_handler(handle_area_update_async))
 
     delete_parser = add_documented_parser(
         area_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete an area"),
-            description=_("Delete an area."),
+            summary=_("resources.area.parser.delete_area"),
+            description=_("resources.area.parser.delete_area_description"),
             examples=("lifeos area delete 11111111-1111-1111-1111-111111111111",),
         ),
     )
-    delete_parser.add_argument("area_id", type=UUID, help=_("Area identifier"))
+    delete_parser.add_argument(
+        "area_id", type=UUID, help=_("resources.area.parser.area_identifier")
+    )
     delete_parser.set_defaults(handler=make_sync_handler(handle_area_delete_async))
 
     batch_parser = add_documented_help_parser(
         area_subparsers,
         "batch",
         help_content=HelpContent(
-            summary=_("Run batch area operations"),
-            description=_("Delete multiple areas in one command."),
+            summary=_("resources.area.parser.run_batch_area_operations"),
+            description=_("resources.area.parser.delete_multiple_areas_in_one_command"),
             examples=(
                 "lifeos area batch delete --help",
                 "lifeos area batch delete --ids <area-id-1> <area-id-2>",
             ),
-            notes=(_("This namespace currently exposes only the `delete` workflow."),),
+            notes=(_("common.messages.this_namespace_currently_exposes_only_delete_workflow"),),
         ),
     )
     batch_subparsers = batch_parser.add_subparsers(
         dest="area_batch_command",
-        title=_("batch actions"),
-        metavar=_("batch_action"),
+        title=_("common.messages.batch_actions"),
+        metavar=_("common.messages.batch_action"),
     )
 
     batch_delete_parser = add_documented_parser(
         batch_subparsers,
         "delete",
         help_content=HelpContent(
-            summary=_("Delete multiple areas"),
-            description=_("Delete multiple areas by identifier."),
+            summary=_("resources.area.parser.delete_multiple_areas"),
+            description=_("resources.area.parser.delete_multiple_areas_by_identifier"),
             examples=("lifeos area batch delete --ids <area-id-1> <area-id-2>",),
         ),
     )

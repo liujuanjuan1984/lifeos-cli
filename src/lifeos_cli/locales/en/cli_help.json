@@ -1,0 +1,27 @@
+{
+  "arguments": {
+    "dateRange": {
+      "repeatedDate": "Repeat once for one configured local day or twice for one inclusive local-date range in YYYY-MM-DD format"
+    }
+  },
+  "notes": {
+    "clearFlags": {
+      "explicitOptionalValues": "Use `--clear-*` flags to explicitly remove optional values.",
+      "valueConflict": "Do not mix a value flag with the matching clear flag in the same command."
+    },
+    "dateRange": {
+      "repeatedDate": "Repeat `--date` once for one configured local day or twice for one inclusive local-date range."
+    },
+    "datetime": {
+      "configuredTimezone": "When a datetime omits timezone information, the configured timezone is used before the value is converted to UTC."
+    },
+    "recurringScope": {
+      "deletes": "Use `--scope single|all_future|all` for recurring series deletes.",
+      "instanceStartRequired": "`--scope single` and `--scope all_future` require `--instance-start`.",
+      "updates": "Use `--scope single|all_future|all` for recurring series updates."
+    },
+    "relations": {
+      "repeatTagOrPersonAttach": "Repeat the same `--tag-id` or `--person-id` flag to attach multiple tags or people in one command."
+    }
+  }
+}
