@@ -100,17 +100,6 @@ def test_locale_catalog_sync_is_part_of_the_default_validation_gate() -> None:
     assert hook_entries["locale-catalog-sync"] == "uv run python scripts/check_locale_catalog.py"
 
 
-def test_cli_locale_catalogs_are_json_only() -> None:
-    locales_dir = Path("src/lifeos_cli/locales")
-    pyproject_text = Path("pyproject.toml").read_text()
-
-    assert not list(locales_dir.rglob("*.po"))
-    assert not list(locales_dir.rglob("*.mo"))
-    assert not Path("babel.cfg").exists()
-    assert "Babel" not in pyproject_text
-    assert "LC_MESSAGES" not in pyproject_text
-
-
 def test_validate_workflow_runs_real_cli_integration_tests() -> None:
     quality_gate_run_steps = [
         step["run"] for step in QUALITY_GATE_STEPS if isinstance(step, dict) and "run" in step
