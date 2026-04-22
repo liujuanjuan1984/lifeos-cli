@@ -11,7 +11,10 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_help_parser,
     add_documented_parser,
 )
-from lifeos_cli.cli_support.parser_common import add_date_range_arguments
+from lifeos_cli.cli_support.parser_common import (
+    add_date_range_arguments,
+    add_start_end_date_arguments,
+)
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     handle_timelog_stats_day_async,
     handle_timelog_stats_period_async,
@@ -96,17 +99,14 @@ def build_timelog_stats_parser(
             description=_(
                 "resources.timelog.parser_stats.show_one_local_date_range_of_timelog_stats_grouped_by_area"
             ),
-            examples=("lifeos timelog stats range --date 2026-04-01 --date 2026-04-30",),
-            notes=(
-                _("common.messages.repeat_date_once_for_one_local_date_or_twice_for_one_inclusive"),
-            ),
+            examples=("lifeos timelog stats range --start-date 2026-04-01 --end-date 2026-04-30",),
+            notes=(_("common.messages.use_start_date_end_date_for_inclusive_local_date_range"),),
         ),
     )
-    add_date_range_arguments(
+    add_start_end_date_arguments(
         stats_range_parser,
-        date_help=_(
-            "common.messages.repeat_once_for_one_local_date_or_twice_for_one_inclusive_local"
-        ),
+        start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
+        end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
     stats_range_parser.set_defaults(handler=make_sync_handler(handle_timelog_stats_range_async))
 
@@ -200,6 +200,7 @@ def build_timelog_stats_parser(
             examples=(
                 "lifeos timelog stats rebuild --date 2026-04-10",
                 "lifeos timelog stats rebuild --date 2026-01-01 --date 2026-03-31",
+                "lifeos timelog stats rebuild --start-date 2026-01-01 --end-date 2026-03-31",
                 "lifeos timelog stats rebuild --all",
             ),
             notes=(
@@ -209,17 +210,19 @@ def build_timelog_stats_parser(
                 _(
                     "resources.timelog.parser_stats.rebuild_uses_configured_timezone_and_day_starts_at_preference"
                 ),
-                _(
-                    "resources.timelog.parser_stats.repeat_date_twice_for_one_inclusive_local_date_rebuild_range"
-                ),
+                _("resources.timelog.parser_stats.repeat_date_for_rebuild_dates"),
+                _("common.messages.use_start_date_end_date_for_inclusive_local_date_range"),
             ),
         ),
     )
     add_date_range_arguments(
         stats_rebuild_parser,
-        date_help=_(
-            "resources.timelog.parser_stats.repeat_once_for_one_local_operational_date_or_twice_for_one_inclusive"
-        ),
+        date_help=_("resources.timelog.parser_stats.repeat_for_one_or_more_rebuild_dates"),
+    )
+    add_start_end_date_arguments(
+        stats_rebuild_parser,
+        start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
+        end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
     stats_rebuild_parser.add_argument(
         "--all",

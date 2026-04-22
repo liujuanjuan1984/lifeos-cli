@@ -77,7 +77,7 @@ def add_date_range_arguments(
     *,
     date_help: str,
 ) -> None:
-    """Add a shared repeated-date argument for inclusive local-date intervals."""
+    """Add a shared repeated-date argument for discrete local-date filters."""
     parser.add_argument(
         "--date",
         dest="date_values",
@@ -85,4 +85,25 @@ def add_date_range_arguments(
         default=None,
         type=parse_date_value,
         help=date_help,
+    )
+
+
+def add_start_end_date_arguments(
+    parser: argparse.ArgumentParser,
+    *,
+    start_date_help: str,
+    end_date_help: str,
+) -> None:
+    """Add shared explicit inclusive local-date range arguments."""
+    parser.add_argument(
+        "--start-date",
+        dest="start_date",
+        type=parse_date_value,
+        help=start_date_help,
+    )
+    parser.add_argument(
+        "--end-date",
+        dest="end_date",
+        type=parse_date_value,
+        help=end_date_help,
     )

@@ -1,7 +1,7 @@
 {
   "arguments": {
-    "dateRange": {
-      "repeatedDate": "重复一次表示一个 configured local day，重复两次表示一个包含端点的 local-date 范围，格式为 YYYY-MM-DD"
+    "dateSelection": {
+      "repeatedDate": "可重复传入一个或多个离散 configured local day，格式为 YYYY-MM-DD"
     }
   },
   "notes": {
@@ -9,8 +9,8 @@
       "explicitOptionalValues": "使用 `--clear-*` 标志来显式移除可选值。",
       "valueConflict": "不要在同一命令中混用某个 value 标志及其对应的 clear 标志。"
     },
-    "dateRange": {
-      "repeatedDate": "重复 `--date` 一次表示一个 configured local day，重复两次表示一个包含端点的 local-date 范围。"
+    "dateSelection": {
+      "dateOrRange": "重复 `--date` 表示一个或多个离散本地日期。使用 `--start-date/--end-date` 表示一个包含端点的本地日期范围。"
     },
     "datetime": {
       "configuredTimezone": "当 datetime 省略 timezone 信息时，会先使用 configured timezone 解释该值，再转换为 UTC。"

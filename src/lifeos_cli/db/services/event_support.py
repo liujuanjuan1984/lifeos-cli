@@ -108,6 +108,7 @@ class EventQueryFilters:
     task_id: UUID | None = None
     person_id: UUID | None = None
     tag_id: UUID | None = None
+    date_values: tuple[date, ...] = ()
     start_date: date | None = None
     end_date: date | None = None
     window_start: datetime | None = None

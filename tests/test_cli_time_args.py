@@ -5,7 +5,7 @@ from datetime import date, datetime
 from lifeos_cli.cli_support.time_args import (
     normalize_query_datetime_bound,
     parse_user_datetime_value,
-    resolve_date_interval_arguments,
+    resolve_date_selection_arguments,
     resolve_exclusive_date_or_datetime_query,
     resolve_required_date_interval_arguments,
 )
@@ -13,13 +13,65 @@ from lifeos_cli.config import clear_config_cache
 from tests.config_support import install_test_config
 
 
-def test_resolve_date_interval_arguments_treats_repeated_date_as_inclusive_range() -> None:
-    start_date, end_date = resolve_date_interval_arguments(
+def test_resolve_date_selection_arguments_treats_repeated_date_as_discrete_dates() -> None:
+    selection = resolve_date_selection_arguments(
         date_values=[date(2026, 4, 10), date(2026, 4, 11)],
     )
 
-    assert start_date == date(2026, 4, 10)
-    assert end_date == date(2026, 4, 11)
+    assert selection.date_values == (date(2026, 4, 10), date(2026, 4, 11))
+    assert selection.start_date is None
+    assert selection.end_date is None
+
+
+def test_resolve_date_selection_arguments_treats_explicit_bounds_as_inclusive_range() -> None:
+    selection = resolve_date_selection_arguments(
+        date_values=None,
+        start_date=date(2026, 4, 10),
+        end_date=date(2026, 4, 11),
+    )
+
+    assert selection.date_values == ()
+    assert selection.start_date == date(2026, 4, 10)
+    assert selection.end_date == date(2026, 4, 11)
+
+
+def test_resolve_date_selection_arguments_rejects_mixed_date_styles() -> None:
+    try:
+        resolve_date_selection_arguments(
+            date_values=[date(2026, 4, 10)],
+            start_date=date(2026, 4, 10),
+            end_date=date(2026, 4, 11),
+        )
+    except ValueError as exc:
+        assert str(exc) == "Use either --date or --start-date/--end-date, not both."
+    else:
+        raise AssertionError("expected DateArgumentError")
+
+
+def test_resolve_date_selection_arguments_rejects_incomplete_explicit_bounds() -> None:
+    try:
+        resolve_date_selection_arguments(
+            date_values=None,
+            start_date=date(2026, 4, 10),
+            end_date=None,
+        )
+    except ValueError as exc:
+        assert str(exc) == "Provide both --start-date and --end-date."
+    else:
+        raise AssertionError("expected DateArgumentError")
+
+
+def test_resolve_date_selection_arguments_rejects_inverted_explicit_bounds() -> None:
+    try:
+        resolve_date_selection_arguments(
+            date_values=None,
+            start_date=date(2026, 4, 11),
+            end_date=date(2026, 4, 10),
+        )
+    except ValueError as exc:
+        assert str(exc) == "The --end-date value must be on or after --start-date."
+    else:
+        raise AssertionError("expected DateArgumentError")
 
 
 def test_normalize_query_datetime_bound_uses_preferred_timezone_for_date_only(
@@ -62,9 +114,9 @@ def test_parse_user_datetime_value_preserves_naive_input_shape() -> None:
 
 def test_resolve_required_date_interval_arguments_rejects_empty_input() -> None:
     try:
-        resolve_required_date_interval_arguments(date_values=None)
+        resolve_required_date_interval_arguments()
     except ValueError as exc:
-        assert str(exc) == "Provide --date once or twice."
+        assert str(exc) == "Provide both --start-date and --end-date."
     else:
         raise AssertionError("expected DateArgumentError")
 
@@ -83,7 +135,7 @@ def test_resolve_exclusive_date_or_datetime_query_rejects_mixed_filters(
             window_end=None,
         )
     except ValueError as exc:
-        assert str(exc) == "Use either --date or --start-time/--end-time, not both."
+        assert str(exc) == "Use either --date, --start-date/--end-date, or --start-time/--end-time."
     else:
         raise AssertionError("expected DateArgumentError")
     finally:

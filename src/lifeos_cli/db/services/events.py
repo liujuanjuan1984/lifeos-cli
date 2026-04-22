@@ -515,6 +515,7 @@ def _normalize_event_filters(filters: EventQueryFilters) -> EventQueryFilters:
         task_id=filters.task_id,
         person_id=filters.person_id,
         tag_id=filters.tag_id,
+        date_values=filters.date_values,
         start_date=filters.start_date,
         end_date=filters.end_date,
         window_start=filters.window_start,
@@ -564,11 +565,46 @@ def _resolve_event_list_filters(filters: EventQueryFilters) -> EventQueryFilters
             task_id=normalized.task_id,
             person_id=normalized.person_id,
             tag_id=normalized.tag_id,
+            date_values=normalized.date_values,
             window_start=window_start,
             window_end=window_end,
             include_deleted=normalized.include_deleted,
         )
     return normalized
+
+
+def _event_list_item_key(item: EventOccurrence | EventView) -> tuple[UUID, datetime]:
+    instance_start = item.instance_start if isinstance(item, EventOccurrence) else item.start_time
+    return item.id, instance_start
+
+
+async def _list_events_for_discrete_dates(
+    session: AsyncSession,
+    *,
+    filters: EventQueryFilters,
+    offset: int,
+    limit: int,
+) -> list[EventOccurrence | EventView]:
+    items_by_key: dict[tuple[UUID, datetime], EventOccurrence | EventView] = {}
+    for target_date in filters.date_values:
+        window_start, window_end = get_utc_window_for_local_date_range(target_date, target_date)
+        occurrences = await list_event_occurrences(
+            session,
+            query=EventOccurrenceQuery(
+                window_start=window_start,
+                window_end=window_end,
+                filters=replace(
+                    filters,
+                    date_values=(),
+                    window_start=window_start,
+                    window_end=window_end,
+                ),
+            ),
+        )
+        for item in occurrences:
+            items_by_key.setdefault(_event_list_item_key(item), item)
+    sorted_items = sorted(items_by_key.values(), key=lambda item: (item.start_time, item.id))
+    return sorted_items[offset : offset + limit]
 
 
 async def create_event(
@@ -758,6 +794,13 @@ async def list_events(
 ) -> list[EventOccurrence | EventView]:
     """List events with optional filters."""
     resolved_filters = _resolve_event_list_filters(query.filters)
+    if resolved_filters.date_values:
+        return await _list_events_for_discrete_dates(
+            session,
+            filters=resolved_filters,
+            offset=query.offset,
+            limit=query.limit,
+        )
     window_start = resolved_filters.window_start
     window_end = resolved_filters.window_end
 

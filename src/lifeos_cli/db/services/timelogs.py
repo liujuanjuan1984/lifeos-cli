@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -365,6 +365,19 @@ def _apply_timelog_association_filters(stmt: Any, *, filters: TimelogQueryFilter
 
 
 def _apply_timelog_window_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
+    if filters.date_values:
+        date_windows = [
+            get_utc_window_for_local_date_range(target_date, target_date)
+            for target_date in filters.date_values
+        ]
+        return stmt.where(
+            or_(
+                *(
+                    and_(Timelog.end_time >= window_start, Timelog.start_time <= window_end)
+                    for window_start, window_end in date_windows
+                )
+            )
+        )
     if filters.window_start is not None:
         stmt = stmt.where(Timelog.end_time >= filters.window_start)
     if filters.window_end is not None:
@@ -373,6 +386,8 @@ def _apply_timelog_window_filters(stmt: Any, *, filters: TimelogQueryFilters) ->
 
 
 def _resolve_timelog_filters(filters: TimelogQueryFilters) -> TimelogQueryFilters:
+    if filters.date_values:
+        return filters
     if filters.start_date is not None and filters.end_date is not None:
         window_start, window_end = get_utc_window_for_local_date_range(
             filters.start_date,

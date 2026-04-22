@@ -171,16 +171,134 @@ def test_main_schedule_list_rejects_inverted_date_range(
         [
             "schedule",
             "list",
-            "--date",
+            "--start-date",
             "2026-04-11",
-            "--date",
+            "--end-date",
             "2026-04-10",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert (
-        "When --date is repeated, the second date must be on or after the first date."
-        in captured.err
+    assert "The --end-date value must be on or after --start-date." in captured.err
+
+
+def test_main_schedule_list_treats_repeated_dates_as_discrete_days(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    requested_dates: list[date] = []
+
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> schedules.ScheduleDay:
+        requested_dates.append(target_date)
+        assert hide_overdue_unfinished is False
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            events=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+
+    exit_code = cli.main(["schedule", "list", "--date", "2026-04-11", "--date", "2026-04-10"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert requested_dates == [date(2026, 4, 11), date(2026, 4, 10)]
+    assert "date: 2026-04-11" in captured.out
+    assert "date: 2026-04-10" in captured.out
+
+
+def test_main_schedule_list_accepts_explicit_date_range(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_list_schedule_in_range(
+        session: object,
+        *,
+        start_date: date,
+        end_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> tuple[schedules.ScheduleDay, ...]:
+        assert start_date == date(2026, 4, 10)
+        assert end_date == date(2026, 4, 11)
+        assert hide_overdue_unfinished is True
+        return (
+            schedules.ScheduleDay(
+                local_date=start_date,
+                tasks=(),
+                habit_actions=(),
+                events=(),
+            ),
+            schedules.ScheduleDay(
+                local_date=end_date,
+                tasks=(),
+                habit_actions=(),
+                events=(),
+            ),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "list_schedule_in_range", fake_list_schedule_in_range)
+
+    exit_code = cli.main(
+        [
+            "schedule",
+            "list",
+            "--start-date",
+            "2026-04-10",
+            "--end-date",
+            "2026-04-11",
+            "--hide-overdue-unfinished",
+        ]
     )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "date: 2026-04-10" in captured.out
+    assert "date: 2026-04-11" in captured.out
+
+
+def test_main_schedule_list_rejects_mixed_date_range_styles(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "schedule",
+            "list",
+            "--date",
+            "2026-04-10",
+            "--start-date",
+            "2026-04-10",
+            "--end-date",
+            "2026-04-11",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Use either --date or --start-date/--end-date, not both." in captured.err
+
+
+def test_main_schedule_list_rejects_incomplete_explicit_date_range(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli.main(
+        [
+            "schedule",
+            "list",
+            "--start-date",
+            "2026-04-10",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Provide both --start-date and --end-date." in captured.err

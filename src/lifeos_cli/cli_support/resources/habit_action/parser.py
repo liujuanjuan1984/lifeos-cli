@@ -15,6 +15,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
     add_include_deleted_argument,
     add_limit_offset_arguments,
+    add_start_end_date_arguments,
 )
 from lifeos_cli.cli_support.resources.habit_action.handlers import (
     HABIT_ACTION_SUMMARY_COLUMNS,
@@ -90,12 +91,12 @@ def build_habit_action_parser(
                 "lifeos habit-action list --habit-id 11111111-1111-1111-1111-111111111111",
                 "lifeos habit-action list --date 2026-04-09",
                 "lifeos habit-action list --date 2026-04-09 --date 2026-04-15",
+                "lifeos habit-action list --start-date 2026-04-09 --end-date 2026-04-15",
                 "lifeos habit-action list --date 2026-04-09 --count",
             ),
             notes=(
-                _(
-                    "resources.habit_action.parser.repeat_date_once_for_one_action_date_or_twice_for_one_inclusive"
-                ),
+                _("resources.habit_action.parser.repeat_date_for_one_or_more_action_dates"),
+                _("common.messages.use_start_date_end_date_for_inclusive_local_date_range"),
                 _(
                     "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(HABIT_ACTION_SUMMARY_COLUMNS)),
@@ -110,9 +111,12 @@ def build_habit_action_parser(
     )
     add_date_range_arguments(
         list_parser,
-        date_help=_(
-            "resources.habit_action.parser.repeat_once_for_one_action_date_or_twice_for_one_inclusive_date"
-        ),
+        date_help=_("resources.habit_action.parser.repeat_for_one_or_more_action_dates"),
+    )
+    add_start_end_date_arguments(
+        list_parser,
+        start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
+        end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
     list_parser.add_argument(
         "--count", action="store_true", help=_("common.messages.print_total_matched_count")

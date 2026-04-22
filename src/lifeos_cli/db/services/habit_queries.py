@@ -502,6 +502,7 @@ async def list_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
+    date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
     include_deleted: bool = False,
@@ -509,13 +510,21 @@ async def list_habit_actions(
     offset: int = 0,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views with optional filters."""
+    selected_dates = set(date_values)
+    action_window = (
+        (min(selected_dates), max(selected_dates))
+        if selected_dates
+        else _normalize_action_window(start_date=start_date, end_date=end_date)
+    )
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
-        action_window=_normalize_action_window(start_date=start_date, end_date=end_date),
+        action_window=action_window,
         include_deleted=include_deleted,
     )
+    if selected_dates:
+        views = [view for view in views if view.action_date in selected_dates]
     paged_views = views[offset : offset + limit]
     synthetic_views = [view for view in paged_views if view.id is None]
     if not synthetic_views or include_deleted:
@@ -582,18 +591,27 @@ async def count_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
+    date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
+    selected_dates = set(date_values)
+    action_window = (
+        (min(selected_dates), max(selected_dates))
+        if selected_dates
+        else _normalize_action_window(start_date=start_date, end_date=end_date)
+    )
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
-        action_window=_normalize_action_window(start_date=start_date, end_date=end_date),
+        action_window=action_window,
         include_deleted=include_deleted,
     )
+    if selected_dates:
+        views = [view for view in views if view.action_date in selected_dates]
     return len(views)
 
 

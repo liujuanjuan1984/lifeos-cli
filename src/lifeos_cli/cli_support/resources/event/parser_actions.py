@@ -17,6 +17,7 @@ from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_include_deleted_argument,
     add_limit_offset_arguments,
+    add_start_end_date_arguments,
 )
 from lifeos_cli.cli_support.resources.event.handlers import (
     EVENT_SUMMARY_COLUMNS,
@@ -176,13 +177,14 @@ def build_event_list_parser(
                 "lifeos event list",
                 "lifeos event list --date 2026-04-10",
                 "lifeos event list --date 2026-04-10 --date 2026-04-16",
+                "lifeos event list --start-date 2026-04-10 --end-date 2026-04-16",
                 "lifeos event list --status planned --start-time 2026-04-10T00:00:00 "
                 "--end-time 2026-04-10T23:59:59",
                 "lifeos event list --type deadline --date 2026-04-10",
                 "lifeos event list --task-id <task-id> --person-id <person-id>",
             ),
             notes=(
-                help_message("notes.dateRange.repeatedDate"),
+                help_message("notes.dateSelection.dateOrRange"),
                 _(
                     "resources.event.parser_actions.when_both_start_time_and_end_time_are_given_overlapping_events_are"
                 ),
@@ -226,7 +228,12 @@ def build_event_list_parser(
     list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
     add_date_range_arguments(
         list_parser,
-        date_help=help_message("arguments.dateRange.repeatedDate"),
+        date_help=help_message("arguments.dateSelection.repeatedDate"),
+    )
+    add_start_end_date_arguments(
+        list_parser,
+        start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
+        end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
     list_parser.add_argument(
         "--start-time",
