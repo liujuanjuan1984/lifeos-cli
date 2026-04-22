@@ -140,8 +140,8 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
         "planning_cycle_end_date, content."
     ) in captured.out
     assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
-        in captured.out
+        "Habit action section columns: habit_action_id, status, action_date, habit_id, "
+        "habit_title." in captured.out
     )
     assert (
         "Event section columns: event_id, status, event_type, start_time, end_time, task_id, title."
@@ -545,8 +545,8 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         "planning_cycle_end_date, content."
     ) in captured.out
     assert (
-        "Habit action section columns: habit_action_id, status, habit_id, habit_title."
-        in captured.out
+        "Habit action section columns: habit_action_id, status, action_date, habit_id, "
+        "habit_title." in captured.out
     )
     assert (
         "Event section columns: event_id, status, event_type, start_time, end_time, task_id, title."

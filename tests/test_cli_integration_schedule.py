@@ -98,7 +98,11 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
         "planning_cycle_end_date\tcontent" in schedule_show_result.stdout
     )
     assert "habit_actions:" in schedule_show_result.stdout
-    assert "  habit_action_id\tstatus\thabit_id\thabit_title" in schedule_show_result.stdout
+    assert (
+        "  habit_action_id\tstatus\taction_date\thabit_id\thabit_title"
+        in schedule_show_result.stdout
+    )
+    assert "2026-04-10" in schedule_show_result.stdout
     assert "events:" in schedule_show_result.stdout
     assert (
         "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle"
@@ -129,7 +133,10 @@ def test_real_cli_schedule_workflow(integration_context: IntegrationContext) -> 
         "  task_id\tstatus\tplanning_cycle_type\tplanning_cycle_start_date\t"
         "planning_cycle_end_date\tcontent" in schedule_list_result.stdout
     )
-    assert "  habit_action_id\tstatus\thabit_id\thabit_title" in schedule_list_result.stdout
+    assert (
+        "  habit_action_id\tstatus\taction_date\thabit_id\thabit_title"
+        in schedule_list_result.stdout
+    )
     assert (
         "  event_id\tstatus\tevent_type\tstart_time\tend_time\ttask_id\ttitle"
         in schedule_list_result.stdout
