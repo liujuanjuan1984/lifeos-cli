@@ -197,10 +197,11 @@ async def list_schedule_in_range(
     start_date, end_date = _normalize_schedule_range(start_date=start_date, end_date=end_date)
     dates = _iter_date_range(start_date, end_date)
     local_today = get_operational_date()
-    tasks = await _load_schedule_tasks(session, start_date=start_date, end_date=end_date)
+    query_start_date = start_date if hide_overdue_unfinished else date.min
+    tasks = await _load_schedule_tasks(session, start_date=query_start_date, end_date=end_date)
     habit_actions = await list_habit_actions_in_range(
         session,
-        start_date=start_date,
+        start_date=query_start_date,
         end_date=end_date,
         include_deleted=False,
     )
@@ -216,8 +217,22 @@ async def list_schedule_in_range(
             item
             for item in task_items
             if item.planning_cycle_start_date <= current_date <= item.planning_cycle_end_date
+            or (
+                current_date <= local_today
+                and item.planning_cycle_end_date < current_date
+                and item.status not in {"cancelled", "done"}
+            )
         )
-        current_actions = tuple(item for item in action_items if item.action_date == current_date)
+        current_actions = tuple(
+            item
+            for item in action_items
+            if item.action_date == current_date
+            or (
+                current_date <= local_today
+                and item.action_date < current_date
+                and item.status != "done"
+            )
+        )
         if hide_overdue_unfinished:
             current_tasks = tuple(
                 item

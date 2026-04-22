@@ -132,9 +132,14 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
     captured = capsys.readouterr()
 
     assert (
-        "Tasks appear when the local date falls inside their planning-cycle window." in captured.out
+        "Overdue unfinished tasks and habit actions also roll forward into non-future "
+        "schedule days." in captured.out
     )
     assert "Task rows come from planning-cycle overlap" in captured.out
+    assert (
+        "Habit action rows use `action_date`; earlier unfinished rows remain visible"
+        in captured.out
+    )
     assert (
         "Task section columns: task_id, status, planning_cycle_type, planning_cycle_start_date, "
         "planning_cycle_end_date, content."

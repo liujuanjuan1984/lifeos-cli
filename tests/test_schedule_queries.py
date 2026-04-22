@@ -36,7 +36,7 @@ def test_load_schedule_tasks_builds_overlap_query() -> None:
 
 def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> None:
     async def fake_load_tasks(session: object, *, start_date: date, end_date: date) -> list[object]:
-        assert start_date == date(2026, 4, 10)
+        assert start_date == date.min
         assert end_date == date(2026, 4, 11)
         return [
             make_record(
@@ -52,7 +52,7 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
     async def fake_list_habit_actions_in_range(
         session: object, *, start_date: date, end_date: date, include_deleted: bool
     ) -> list[object]:
-        assert start_date == date(2026, 4, 10)
+        assert start_date == date.min
         assert end_date == date(2026, 4, 11)
         assert include_deleted is False
         return [
@@ -144,6 +144,8 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
     monkeypatch,
 ) -> None:
     async def fake_load_tasks(session: object, *, start_date: date, end_date: date) -> list[object]:
+        assert start_date == date.min
+        assert end_date == date(2026, 4, 12)
         return [
             make_record(
                 id=UUID("11111111-1111-1111-1111-111111111111"),
@@ -174,6 +176,8 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
     async def fake_list_habit_actions_in_range(
         session: object, *, start_date: date, end_date: date, include_deleted: bool
     ) -> list[object]:
+        assert start_date == date.min
+        assert end_date == date(2026, 4, 12)
         assert include_deleted is False
         return [
             make_record(
@@ -240,8 +244,11 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
         "Overdue Review",
         "Completed Review",
     ]
-    assert [item.content for item in days[2].tasks] == ["Today todo"]
-    assert [item.habit_title for item in days[2].habit_actions] == ["Today Review"]
+    assert [item.content for item in days[2].tasks] == ["Overdue todo", "Today todo"]
+    assert [item.habit_title for item in days[2].habit_actions] == [
+        "Overdue Review",
+        "Today Review",
+    ]
 
 
 def test_list_schedule_in_range_can_hide_overdue_unfinished_items(monkeypatch) -> None:
@@ -311,14 +318,14 @@ def test_list_schedule_in_range_can_hide_overdue_unfinished_items(monkeypatch) -
 
 def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkeypatch) -> None:
     async def fake_load_tasks(session: object, *, start_date: date, end_date: date) -> list[object]:
-        assert start_date == date(2026, 4, 10)
+        assert start_date == date.min
         assert end_date == date(2026, 4, 11)
         return []
 
     async def fake_list_habit_actions_in_range(
         session: object, *, start_date: date, end_date: date, include_deleted: bool
     ) -> list[object]:
-        assert start_date == date(2026, 4, 10)
+        assert start_date == date.min
         assert end_date == date(2026, 4, 11)
         assert include_deleted is False
         return []

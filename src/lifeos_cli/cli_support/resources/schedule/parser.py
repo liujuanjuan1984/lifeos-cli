@@ -90,13 +90,19 @@ def build_schedule_parser(
                 + "\n\n"
                 + _(
                     "Tasks appear when the local date falls inside their planning-cycle window. "
-                    "Events appear when their scheduled time overlaps that day."
+                    "Overdue unfinished tasks and habit actions also roll forward into "
+                    "non-future schedule days. Events appear when their scheduled time overlaps "
+                    "that day."
                 )
             ),
             examples=("lifeos schedule show", "lifeos schedule show --date 2026-04-10"),
             notes=(
                 _("The output groups tasks, habit actions, and event occurrences for the day."),
                 _("Task rows come from planning-cycle overlap, not from event timeblocks."),
+                _(
+                    "Habit action rows use `action_date`; earlier unfinished rows remain visible "
+                    "until hidden with `--hide-overdue-unfinished`."
+                ),
                 _("When `--date` is omitted, `show` uses the current configured local date."),
                 _(
                     "Use `list` when you need the same schedule view across an inclusive "
