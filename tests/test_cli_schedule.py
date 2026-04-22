@@ -15,8 +15,14 @@ def test_main_schedule_show_prints_grouped_sections(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fake_get_schedule_for_date(session: object, *, target_date: date) -> object:
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> object:
         assert str(target_date) == "2026-04-10"
+        assert hide_overdue_unfinished is False
         return schedules.ScheduleDay(
             local_date=target_date,
             tasks=(
@@ -77,6 +83,37 @@ def test_main_schedule_show_prints_grouped_sections(
     assert "Draft release checklist" in captured.out
     assert "Daily Review" in captured.out
     assert "Doctor appointment" in captured.out
+
+
+def test_main_schedule_show_passes_hide_overdue_unfinished(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> object:
+        assert str(target_date) == "2026-04-10"
+        assert hide_overdue_unfinished is True
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            appointments=(),
+            timeblocks=(),
+            deadlines=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+
+    exit_code = cli.main(["schedule", "show", "--date", "2026-04-10", "--hide-overdue-unfinished"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "date: 2026-04-10" in captured.out
 
 
 def test_main_schedule_list_rejects_inverted_date_range(

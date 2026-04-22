@@ -2176,6 +2176,13 @@ msgid ""
 "sections."
 msgstr "`event` 实例会拆分到 appointment、timeblock 和 deadline 三个分区中。"
 
+#: src/lifeos_cli/cli_support/resources/schedule/parser.py:112
+#: src/lifeos_cli/cli_support/resources/schedule/parser.py:145
+msgid ""
+"Overdue unfinished planning tasks and habit actions are shown by default; "
+"use `--hide-overdue-unfinished` to hide them."
+msgstr "默认显示过时且未完成的规划 `task` 和 `habit-action`；使用 `--hide-overdue-unfinished` 可隐藏它们。"
+
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:73
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:97
 msgid "Non-empty schedule sections print a tab-separated header row before their entries."
@@ -2199,6 +2206,10 @@ msgstr "`event` 分段中 appointments、timeblocks 和 deadlines 的列为：{c
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:80
 msgid "Target local date in YYYY-MM-DD format"
 msgstr "YYYY-MM-DD 格式的目标本地日期"
+
+#: src/lifeos_cli/cli_support/resources/schedule/parser.py:45
+msgid "Hide overdue unfinished planning tasks and habit actions"
+msgstr "隐藏过时且未完成的规划 `task` 和 `habit-action`"
 
 #: src/lifeos_cli/cli_support/resources/schedule/parser.py:88
 msgid "List a schedule range"

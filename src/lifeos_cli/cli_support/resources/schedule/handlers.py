@@ -92,7 +92,11 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
 
 async def handle_schedule_show_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
-        day = await schedule_services.get_schedule_for_date(session, target_date=args.target_date)
+        day = await schedule_services.get_schedule_for_date(
+            session,
+            target_date=args.target_date,
+            hide_overdue_unfinished=args.hide_overdue_unfinished,
+        )
     print(_format_schedule_day(day))
     return 0
 
@@ -109,6 +113,7 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
             session,
             start_date=start_date,
             end_date=end_date,
+            hide_overdue_unfinished=args.hide_overdue_unfinished,
         )
     print("\n\n".join(_format_schedule_day(day) for day in days))
     return 0

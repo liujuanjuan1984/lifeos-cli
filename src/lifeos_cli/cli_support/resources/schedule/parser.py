@@ -39,6 +39,14 @@ def _build_schedule_section_header_notes() -> tuple[str, ...]:
     )
 
 
+def _add_hide_overdue_unfinished_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--hide-overdue-unfinished",
+        action="store_true",
+        help=_("Hide overdue unfinished planning tasks and habit actions"),
+    )
+
+
 def build_schedule_parser(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
@@ -97,6 +105,10 @@ def build_schedule_parser(
                     "Event occurrences are split into appointment, timeblock, and deadline "
                     "sections."
                 ),
+                _(
+                    "Overdue unfinished planning tasks and habit actions are shown by default; "
+                    "use `--hide-overdue-unfinished` to hide them."
+                ),
                 *_build_schedule_section_header_notes(),
             ),
         ),
@@ -108,6 +120,7 @@ def build_schedule_parser(
         type=date.fromisoformat,
         help=_("Target local date in YYYY-MM-DD format"),
     )
+    _add_hide_overdue_unfinished_argument(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_schedule_show_async))
 
     list_parser = add_documented_parser(
@@ -125,6 +138,10 @@ def build_schedule_parser(
                 _("Use `show` when you want the single-day entrypoint with the same sections."),
                 _("Recurring event occurrences are expanded inside the requested range."),
                 _("Event occurrences remain segmented by type inside each day block."),
+                _(
+                    "Overdue unfinished planning tasks and habit actions are shown by default; "
+                    "use `--hide-overdue-unfinished` to hide them."
+                ),
                 *_build_schedule_section_header_notes(),
             ),
         ),
@@ -136,4 +153,5 @@ def build_schedule_parser(
             "in YYYY-MM-DD format"
         ),
     )
+    _add_hide_overdue_unfinished_argument(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_schedule_list_async))

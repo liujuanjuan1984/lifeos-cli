@@ -10,6 +10,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
+    get_operational_date,
     get_utc_window_for_local_date,
     get_utc_window_for_local_date_range,
 )
@@ -175,15 +176,29 @@ def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
     )
 
 
+def _is_overdue_unfinished_task(item: ScheduleTaskItem, *, local_today: date) -> bool:
+    return item.status not in {"cancelled", "done"} and item.planning_cycle_end_date < local_today
+
+
+def _is_overdue_unfinished_habit_action(
+    item: ScheduleHabitActionItem,
+    *,
+    local_today: date,
+) -> bool:
+    return item.status != "done" and item.action_date < local_today
+
+
 async def list_schedule_in_range(
     session: AsyncSession,
     *,
     start_date: date,
     end_date: date,
+    hide_overdue_unfinished: bool = False,
 ) -> list[ScheduleDay]:
     """Return a grouped schedule view for one local-date range."""
     start_date, end_date = _normalize_schedule_range(start_date=start_date, end_date=end_date)
     dates = _iter_date_range(start_date, end_date)
+    local_today = get_operational_date()
     tasks = await _load_schedule_tasks(session, start_date=start_date, end_date=end_date)
     habit_actions = await list_habit_actions_in_range(
         session,
@@ -205,6 +220,17 @@ async def list_schedule_in_range(
             if item.planning_cycle_start_date <= current_date <= item.planning_cycle_end_date
         )
         current_actions = tuple(item for item in action_items if item.action_date == current_date)
+        if hide_overdue_unfinished:
+            current_tasks = tuple(
+                item
+                for item in current_tasks
+                if not _is_overdue_unfinished_task(item, local_today=local_today)
+            )
+            current_actions = tuple(
+                item
+                for item in current_actions
+                if not _is_overdue_unfinished_habit_action(item, local_today=local_today)
+            )
         (
             current_window_start,
             current_window_end_exclusive,
@@ -236,6 +262,14 @@ async def get_schedule_for_date(
     session: AsyncSession,
     *,
     target_date: date,
+    hide_overdue_unfinished: bool = False,
 ) -> ScheduleDay:
     """Return a grouped schedule view for one local date."""
-    return (await list_schedule_in_range(session, start_date=target_date, end_date=target_date))[0]
+    return (
+        await list_schedule_in_range(
+            session,
+            start_date=target_date,
+            end_date=target_date,
+            hide_overdue_unfinished=hide_overdue_unfinished,
+        )
+    )[0]

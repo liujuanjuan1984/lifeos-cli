@@ -147,6 +147,10 @@ def test_cli_schedule_show_help_explains_task_inclusion_rule(capsys) -> None:
         "Event section columns for appointments, timeblocks, and deadlines: "
         "event_id, status, start_time, end_time, task_id, title."
     ) in captured.out
+    assert "--hide-overdue-unfinished" in captured.out
+    assert (
+        "Overdue unfinished planning tasks and habit actions are shown by default" in captured.out
+    )
 
 
 def test_cli_habit_task_associations_help_documents_header(capsys) -> None:
@@ -545,6 +549,7 @@ def test_cli_schedule_list_help_documents_section_headers(capsys) -> None:
         "Event section columns for appointments, timeblocks, and deadlines: "
         "event_id, status, start_time, end_time, task_id, title."
     ) in captured.out
+    assert "--hide-overdue-unfinished" in captured.out
 
 
 def test_cli_people_help_describes_human_and_agent_subject_modeling(capsys) -> None:
