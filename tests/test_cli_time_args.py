@@ -23,6 +23,16 @@ def test_resolve_date_selection_arguments_treats_repeated_date_as_discrete_dates
     assert selection.end_date is None
 
 
+def test_resolve_date_selection_arguments_deduplicates_repeated_dates() -> None:
+    selection = resolve_date_selection_arguments(
+        date_values=[date(2026, 4, 10), date(2026, 4, 10), date(2026, 4, 11)],
+    )
+
+    assert selection.date_values == (date(2026, 4, 10), date(2026, 4, 11))
+    assert selection.start_date is None
+    assert selection.end_date is None
+
+
 def test_resolve_date_selection_arguments_treats_explicit_bounds_as_inclusive_range() -> None:
     selection = resolve_date_selection_arguments(
         date_values=None,

@@ -558,7 +558,7 @@ async def rebuild_timelog_stats_groupby_area(
             return ()
         local_dates = iter_date_range(*date_range)
     elif date_values:
-        local_dates = tuple(dict.fromkeys(date_values))
+        local_dates = tuple(sorted(set(date_values)))
     elif start_date is not None or end_date is not None:
         if start_date is None or end_date is None:
             raise TimelogStatsValidationError(

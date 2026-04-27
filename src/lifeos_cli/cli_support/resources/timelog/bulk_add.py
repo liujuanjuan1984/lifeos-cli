@@ -40,32 +40,26 @@ class _ParsedLine:
     start_token: str | None = None
 
 
-def _normalize_line(line: str) -> str:
-    return line.replace("\r", "").replace("\t", " ").replace("\u00a0", " ").strip()
-
-
-def _normalize_spacing_and_symbols(line: str) -> str:
-    return _FULL_WIDTH_SPACE.sub(" ", line).replace("\u00a0", " ").replace("\t", " ").strip()
-
-
 def _normalize_for_matching(line: str) -> str:
     return (
         _FULL_WIDTH_HYPHEN.sub(
-            "-", _FULL_WIDTH_COLON.sub(":", _normalize_spacing_and_symbols(line))
+            "-",
+            _FULL_WIDTH_COLON.sub(
+                ":",
+                _FULL_WIDTH_SPACE.sub(" ", line).replace("\u00a0", " ").replace("\t", " ").strip(),
+            ),
         )
         .replace("  ", " ")
         .strip()
     )
 
 
-def _sanitize_time_token(token: str) -> str:
-    return "".join(character for character in token if character.isdigit() or character == ":")
-
-
 def _parse_time_token(token: str | None, *, field_name: str, line_number: int) -> int:
     if token is None:
         raise ConfigurationError(f"Line {line_number}: missing {field_name} time.")
-    normalized = _sanitize_time_token(token)
+    normalized = "".join(
+        character for character in token if character.isdigit() or character == ":"
+    )
     if not normalized:
         raise ConfigurationError(f"Line {line_number}: invalid {field_name} time {token!r}.")
     if ":" in normalized:
@@ -141,7 +135,7 @@ def parse_bulk_timelog_text(
     normalized_first_start_time = to_storage_timezone(first_start_time)
     initial_cursor = to_preferred_timezone(normalized_first_start_time)
     lines = [
-        (line_number, _normalize_line(line))
+        (line_number, line.replace("\r", "").replace("\t", " ").replace("\u00a0", " ").strip())
         for line_number, line in enumerate(raw_text.splitlines(), start=1)
     ]
     active_lines = [(line_number, line) for line_number, line in lines if line]

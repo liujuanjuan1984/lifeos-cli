@@ -133,15 +133,6 @@ class _TimelogDependencyChange:
     current: _TimelogDependencySnapshot
 
 
-def _empty_timelog_dependency_snapshot() -> _TimelogDependencySnapshot:
-    return _TimelogDependencySnapshot(
-        task_id=None,
-        start_time=None,
-        end_time=None,
-        area_id=None,
-    )
-
-
 async def _recompute_timelog_dependents(
     session: AsyncSession,
     *,
@@ -387,7 +378,10 @@ def _apply_timelog_window_filters(stmt: Any, *, filters: TimelogQueryFilters) ->
 
 def _resolve_timelog_filters(filters: TimelogQueryFilters) -> TimelogQueryFilters:
     if filters.date_values:
-        return filters
+        return replace(
+            filters,
+            date_values=tuple(deduplicate_preserving_order(filters.date_values)),
+        )
     if filters.start_date is not None and filters.end_date is not None:
         window_start, window_end = get_utc_window_for_local_date_range(
             filters.start_date,
@@ -444,7 +438,12 @@ async def create_timelog(
     await _flush_and_recompute_timelog_dependents(
         session,
         change=_TimelogDependencyChange(
-            previous=_empty_timelog_dependency_snapshot(),
+            previous=_TimelogDependencySnapshot(
+                task_id=None,
+                start_time=None,
+                end_time=None,
+                area_id=None,
+            ),
             current=_capture_timelog_dependency_snapshot(timelog),
         ),
     )
@@ -614,7 +613,12 @@ async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
                 end_time=old_end_time,
                 area_id=old_area_id,
             ),
-            current=_empty_timelog_dependency_snapshot(),
+            current=_TimelogDependencySnapshot(
+                task_id=None,
+                start_time=None,
+                end_time=None,
+                area_id=None,
+            ),
         ),
     )
 

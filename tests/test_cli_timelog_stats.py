@@ -95,5 +95,71 @@ def test_main_timelog_stats_rebuild_reports_discrete_date_scope(
 
     assert exit_code == 0
     assert "Rebuilt timelog stats grouped by area for 2 dates." in captured.out
+    assert "dates: 2026-04-01, 2026-04-03" in captured.out
+    assert "start_date:" not in captured.out
+    assert "end_date:" not in captured.out
+
+
+def test_main_timelog_stats_rebuild_normalizes_discrete_date_boundaries(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_rebuild(session: object, **kwargs: object) -> tuple[date, ...]:
+        assert kwargs["date_values"] == (date(2026, 4, 3), date(2026, 4, 1))
+        return (date(2026, 4, 3), date(2026, 4, 1))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelog_stats, "rebuild_timelog_stats_groupby_area", fake_rebuild)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "stats",
+            "rebuild",
+            "--date",
+            "2026-04-03",
+            "--date",
+            "2026-04-01",
+            "--date",
+            "2026-04-03",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Rebuilt timelog stats grouped by area for 2 dates." in captured.out
+    assert "dates: 2026-04-03, 2026-04-01" in captured.out
+    assert "start_date:" not in captured.out
+    assert "end_date:" not in captured.out
+
+
+def test_main_timelog_stats_rebuild_range_reports_explicit_boundaries(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def fake_rebuild(session: object, **kwargs: object) -> tuple[date, ...]:
+        assert kwargs["date_values"] == ()
+        assert kwargs["start_date"] == date(2026, 4, 1)
+        assert kwargs["end_date"] == date(2026, 4, 3)
+        return (date(2026, 4, 1), date(2026, 4, 2), date(2026, 4, 3))
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelog_stats, "rebuild_timelog_stats_groupby_area", fake_rebuild)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "stats",
+            "rebuild",
+            "--start-date",
+            "2026-04-01",
+            "--end-date",
+            "2026-04-03",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Rebuilt timelog stats grouped by area for 3 dates." in captured.out
     assert "start_date: 2026-04-01" in captured.out
     assert "end_date: 2026-04-03" in captured.out

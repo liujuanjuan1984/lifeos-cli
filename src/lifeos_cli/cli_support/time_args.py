@@ -76,7 +76,7 @@ def resolve_date_selection_arguments(
     explicit_inverted_message: str = "The --end-date value must be on or after --start-date.",
 ) -> ResolvedDateSelection:
     """Resolve repeated discrete dates or one explicit inclusive date range."""
-    selected_dates = tuple(date_values or ())
+    selected_dates = tuple(dict.fromkeys(date_values or ()))
     if selected_dates and (start_date is not None or end_date is not None):
         raise DateArgumentError(conflict_message)
     if start_date is not None or end_date is not None:
