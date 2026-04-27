@@ -10,7 +10,7 @@ def write_test_config(
     *,
     include_database: bool = False,
     database_url: str = "postgresql+psycopg://localhost:5432/lifeos_test",
-    database_schema: str = "lifeos_test",
+    database_schema: str | None = "lifeos_test",
     database_echo: bool = False,
     include_preferences: bool = False,
     timezone: str = "America/Toronto",
@@ -21,15 +21,10 @@ def write_test_config(
 ) -> Path:
     lines: list[str] = []
     if include_database:
-        lines.extend(
-            (
-                "[database]",
-                f'url = "{database_url}"',
-                f'schema = "{database_schema}"',
-                f"echo = {'true' if database_echo else 'false'}",
-                "",
-            )
-        )
+        lines.extend(("[database]", f'url = "{database_url}"'))
+        if database_schema is not None:
+            lines.append(f'schema = "{database_schema}"')
+        lines.extend((f"echo = {'true' if database_echo else 'false'}", ""))
     if include_preferences:
         lines.extend(
             (
@@ -53,7 +48,7 @@ def install_test_config(
     tmp_path: Path,
     include_database: bool = False,
     database_url: str = "postgresql+psycopg://localhost:5432/lifeos_test",
-    database_schema: str = "lifeos_test",
+    database_schema: str | None = "lifeos_test",
     database_echo: bool = False,
     include_preferences: bool = False,
     timezone: str = "America/Toronto",

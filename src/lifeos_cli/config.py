@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
 
 try:
@@ -27,6 +27,13 @@ DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
 DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
 MAX_VISION_EXPERIENCE_RATE_PER_HOUR = 3600
+SUPPORTED_DATABASE_DRIVERS = frozenset(
+    {
+        "postgresql+psycopg",
+        "sqlite+aiosqlite",
+    }
+)
+SCHEMA_CAPABLE_DATABASE_DRIVERS = frozenset({"postgresql+psycopg"})
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LANGUAGE_TAG_PATTERN = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 _DAY_STARTS_AT_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
@@ -37,8 +44,7 @@ class ConfigurationError(RuntimeError):
     """Raised when runtime configuration is missing or invalid."""
 
 
-def validate_database_url(database_url: str) -> str:
-    """Validate a PostgreSQL SQLAlchemy URL and return the normalized value."""
+def _parse_database_url(database_url: str) -> tuple[str, URL]:
     normalized = database_url.strip()
     if not normalized:
         raise ConfigurationError("Database URL is required.")
@@ -46,11 +52,53 @@ def validate_database_url(database_url: str) -> str:
         parsed = make_url(normalized)
     except ArgumentError as exc:
         raise ConfigurationError(f"Database URL is invalid: {exc}") from exc
-    if parsed.drivername != "postgresql+psycopg":
+    return normalized, parsed
+
+
+def _supported_database_driver_examples() -> str:
+    return ", ".join(f"`{driver}://`" for driver in sorted(SUPPORTED_DATABASE_DRIVERS))
+
+
+def database_drivername(database_url: str) -> str:
+    """Return the SQLAlchemy drivername for one validated database URL."""
+    _, parsed = _parse_database_url(database_url)
+    return parsed.drivername
+
+
+def database_url_supports_schema(database_url: str) -> bool:
+    """Return whether one database URL supports schema binding."""
+    return database_drivername(database_url) in SCHEMA_CAPABLE_DATABASE_DRIVERS
+
+
+def normalize_database_schema(
+    *,
+    database_url: str | None,
+    configured_schema: str | None,
+    explicit: bool = False,
+) -> str | None:
+    """Normalize one schema value against the target database URL."""
+    if database_url is None:
+        return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
+    if database_url_supports_schema(database_url):
+        return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
+    if explicit and configured_schema is not None:
         raise ConfigurationError(
-            "Database URL must use the `postgresql+psycopg://` SQLAlchemy driver."
+            "Database schema is only supported for `postgresql+psycopg://` URLs."
         )
-    if parsed.database is None or not parsed.database.strip():
+    return None
+
+
+def validate_database_url(database_url: str) -> str:
+    """Validate one supported SQLAlchemy database URL and return the normalized value."""
+    normalized, parsed = _parse_database_url(database_url)
+    if parsed.drivername not in SUPPORTED_DATABASE_DRIVERS:
+        raise ConfigurationError(
+            "Database URL must use one of the supported SQLAlchemy drivers: "
+            f"{_supported_database_driver_examples()}."
+        )
+    if parsed.drivername == "postgresql+psycopg" and (
+        parsed.database is None or not parsed.database.strip()
+    ):
         raise ConfigurationError("Database URL must include a PostgreSQL database name.")
     return normalized
 
@@ -197,12 +245,9 @@ def _render_database_table(settings: DatabaseSettings) -> str:
     lines = ["[database]"]
     if settings.database_url is not None:
         lines.append(f"url = {_serialize_toml_string(settings.database_url)}")
-    lines.extend(
-        (
-            f"schema = {_serialize_toml_string(settings.database_schema)}",
-            f"echo = {'true' if settings.database_echo else 'false'}",
-        )
-    )
+    if settings.database_schema is not None:
+        lines.append(f"schema = {_serialize_toml_string(settings.database_schema)}")
+    lines.append(f"echo = {'true' if settings.database_echo else 'false'}")
     return "\n".join(lines)
 
 
@@ -290,7 +335,7 @@ class DatabaseSettings:
     """Database settings loaded from config files and environment variables."""
 
     database_url: str | None
-    database_schema: str
+    database_schema: str | None
     database_echo: bool
     config_file: Path
 
@@ -336,7 +381,11 @@ class DatabaseSettings:
         else:
             database_echo = False
 
-        database_schema = validate_database_schema_name(database_schema)
+        database_schema = normalize_database_schema(
+            database_url=database_url,
+            configured_schema=database_schema,
+            explicit=False,
+        )
         return cls(
             database_url=database_url,
             database_schema=database_schema,
@@ -362,6 +411,28 @@ class DatabaseSettings:
         except ArgumentError:
             return self.database_url
         return parsed.render_as_string(hide_password=not show_secrets)
+
+    @property
+    def database_drivername(self) -> str | None:
+        """Return the configured SQLAlchemy drivername when available."""
+        if self.database_url is None:
+            return None
+        return database_drivername(self.database_url)
+
+    @property
+    def database_backend(self) -> str | None:
+        """Return the configured database backend name when available."""
+        drivername = self.database_drivername
+        if drivername is None:
+            return None
+        return drivername.split("+", maxsplit=1)[0]
+
+    @property
+    def supports_database_schema(self) -> bool:
+        """Return whether the configured backend supports schema binding."""
+        if self.database_url is None:
+            return self.database_schema is not None
+        return database_url_supports_schema(self.database_url)
 
 
 @dataclass(frozen=True)

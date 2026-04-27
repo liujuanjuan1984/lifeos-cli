@@ -114,6 +114,51 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
     clear_config_cache()
 
 
+def test_main_init_sqlite_does_not_prompt_for_schema_or_write_schema(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    prompts: list[str] = []
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(
+        config_handlers,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
+    monkeypatch.setattr(config_handlers.sys.stdin, "isatty", lambda: True)
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        if prompt.startswith("Preferred language tag for human-authored payloads"):
+            return ""
+        if prompt.startswith("Enable SQL echo logging"):
+            return ""
+        raise AssertionError(f"unexpected prompt: {prompt}")
+
+    monkeypatch.setattr(builtins, "input", fake_input)
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--database-url",
+            "sqlite+aiosqlite:///lifeos.db",
+            "--skip-ping",
+            "--skip-migrate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Database URL: sqlite+aiosqlite:///lifeos.db" in captured.out
+    assert "Database schema:" not in captured.out
+    assert all(not prompt.startswith("Database schema") for prompt in prompts)
+    assert "schema =" not in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
 def test_main_init_reprompts_invalid_schema_in_interactive_mode(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

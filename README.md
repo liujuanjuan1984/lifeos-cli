@@ -42,7 +42,10 @@ Install or upgrade from PyPI:
 uv tool install --upgrade lifeos-cli
 ```
 
-`lifeos-cli` uses PostgreSQL by default.
+`lifeos-cli` supports both SQLite and PostgreSQL.
+
+- SQLite is the low-friction option for local, single-user setups.
+- PostgreSQL remains the schema-capable backend for managed deployments.
 
 Initialize your local setup:
 

@@ -1016,7 +1016,7 @@ def test_cli_batch_action_ids_help_matches_action_semantics(
         (
             ["config", "set", "--help"],
             "lifeos config set database.url "
-            "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
+            "sqlite+aiosqlite:///~/.local/share/lifeos/lifeos.db "
             "--show-secrets",
         ),
         (

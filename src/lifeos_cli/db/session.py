@@ -1,4 +1,4 @@
-"""Async engine and session helpers for PostgreSQL-backed storage."""
+"""Async engine and session helpers for configured database storage."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -16,16 +17,37 @@ from sqlalchemy.ext.asyncio import (
 from lifeos_cli.config import get_database_settings
 
 
+def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
+    """Enable SQLite foreign-key enforcement on each new DBAPI connection."""
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
+
+
+def configure_async_engine(engine: AsyncEngine) -> AsyncEngine:
+    """Apply backend-specific engine configuration."""
+    if engine.sync_engine.url.get_backend_name() != "sqlite":
+        return engine
+
+    event.listen(engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
+    return engine
+
+
 @lru_cache(maxsize=1)
 def get_async_engine() -> AsyncEngine:
     """Return the process-wide SQLAlchemy async engine."""
     settings = get_database_settings()
-    return create_async_engine(
+    engine = create_async_engine(
         settings.require_database_url(),
         echo=settings.database_echo,
         future=True,
         pool_pre_ping=True,
     )
+    if settings.database_schema is not None:
+        engine = engine.execution_options(schema_translate_map={None: settings.database_schema})
+    return configure_async_engine(engine)
 
 
 @lru_cache(maxsize=1)

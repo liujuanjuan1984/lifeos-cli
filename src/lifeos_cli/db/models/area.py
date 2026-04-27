@@ -18,6 +18,7 @@ class Area(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
             "name",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("ix_areas_display_order", "display_order"),
     )

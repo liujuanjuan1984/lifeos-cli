@@ -9,10 +9,6 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, MetaData, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from lifeos_cli.config import get_database_settings
-
-DATABASE_SCHEMA = get_database_settings().database_schema
-
 NAMING_CONVENTION: dict[str, str] = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -30,7 +26,7 @@ def utc_now() -> datetime:
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
 
-    metadata = MetaData(schema=DATABASE_SCHEMA, naming_convention=NAMING_CONVENTION)
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
     type_annotation_map: dict[Any, Any] = {
         UUID: Uuid,
     }

@@ -7,6 +7,7 @@ from lifeos_cli.application.configuration import (
     InitializationRequest,
     build_database_settings,
     build_preferences_settings,
+    set_runtime_config_value,
 )
 from lifeos_cli.config import (
     ConfigurationError,
@@ -230,12 +231,120 @@ def test_preferences_settings_rejects_invalid_vision_experience_rate(tmp_path: P
 
 
 def test_validate_database_url_requires_postgresql_psycopg_driver() -> None:
+    assert validate_database_url("sqlite+aiosqlite:///lifeos.db") == "sqlite+aiosqlite:///lifeos.db"
+
     try:
-        validate_database_url("sqlite:///lifeos.db")
+        validate_database_url("mysql+asyncmy://localhost/lifeos")
     except ConfigurationError as exc:
+        assert "sqlite+aiosqlite://" in str(exc)
         assert "postgresql+psycopg://" in str(exc)
     else:
-        raise AssertionError("invalid driver should fail validation")
+        raise AssertionError("unsupported driver should fail validation")
+
+
+def test_database_settings_omit_schema_for_sqlite_url(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    settings = DatabaseSettings.from_env(
+        {
+            "LIFEOS_CONFIG_FILE": str(config_path),
+            "LIFEOS_DATABASE_URL": "sqlite+aiosqlite:///lifeos.db",
+            "LIFEOS_DATABASE_SCHEMA": "lifeos_dev",
+        }
+    )
+
+    assert settings.database_url == "sqlite+aiosqlite:///lifeos.db"
+    assert settings.database_schema is None
+
+
+def test_build_database_settings_skip_schema_for_sqlite_prompts(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    captured_defaults: list[str | None] = []
+
+    def prompt_database_schema(default: str | None) -> str:
+        captured_defaults.append(default)
+        return "ignored"
+
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone=None,
+        language=None,
+        day_starts_at=None,
+        week_starts_on=None,
+        vision_experience_rate_per_hour=None,
+        non_interactive=False,
+        is_interactive=True,
+        prompts=InitializationPrompts(
+            prompt_database_url=lambda default: "sqlite+aiosqlite:///lifeos.db",
+            prompt_database_schema=prompt_database_schema,
+            prompt_language=lambda default: "zh-Hans",
+            prompt_database_echo=lambda default: False,
+        ),
+    )
+
+    settings = build_database_settings(request)
+
+    assert settings.database_url == "sqlite+aiosqlite:///lifeos.db"
+    assert settings.database_schema is None
+    assert captured_defaults == []
+
+
+def test_build_database_settings_rejects_explicit_sqlite_schema(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url="sqlite+aiosqlite:///lifeos.db",
+        schema="lifeos_dev",
+        echo=None,
+        timezone=None,
+        language=None,
+        day_starts_at=None,
+        week_starts_on=None,
+        vision_experience_rate_per_hour=None,
+        non_interactive=True,
+        is_interactive=False,
+        prompts=None,
+    )
+
+    try:
+        build_database_settings(request)
+    except ConfigurationError as exc:
+        assert "only supported for `postgresql+psycopg://`" in str(exc)
+    else:
+        raise AssertionError("sqlite schema should fail validation")
+
+
+def test_write_database_settings_omit_schema_for_sqlite(tmp_path: Path) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    database_settings = DatabaseSettings(
+        database_url="sqlite+aiosqlite:///lifeos.db",
+        database_schema=None,
+        database_echo=False,
+        config_file=config_path,
+    )
+    preferences_settings = PreferencesSettings(
+        timezone="America/Toronto",
+        language="zh-Hans",
+        day_starts_at="04:00",
+        week_starts_on="sunday",
+        vision_experience_rate_per_hour=90,
+        config_file=config_path,
+    )
+
+    written_path = write_database_settings(database_settings, preferences=preferences_settings)
+
+    assert written_path == config_path
+    content = config_path.read_text(encoding="utf-8")
+    assert 'url = "sqlite+aiosqlite:///lifeos.db"' in content
+    assert "schema =" not in content
 
 
 def test_require_database_url_raises_helpful_error(tmp_path: Path) -> None:
@@ -420,6 +529,45 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
         'url = "postgresql+psycopg://old-user:<old-password>@localhost:5432/old_lifeos"'
         not in content
     )
+
+
+def test_set_runtime_config_value_clears_schema_when_switching_to_sqlite(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "postgresql+psycopg://localhost/lifeos"',
+                'schema = "lifeos_dev"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    result = set_runtime_config_value(
+        key="database.url",
+        value="sqlite+aiosqlite:///tmp/lifeos.db",
+    )
+
+    assert result.database_settings.database_url == "sqlite+aiosqlite:///tmp/lifeos.db"
+    assert result.database_settings.database_schema is None
+    content = config_path.read_text(encoding="utf-8")
+    assert 'url = "sqlite+aiosqlite:///tmp/lifeos.db"' in content
+    assert "schema =" not in content
 
 
 def test_build_database_settings_uses_injected_prompts(

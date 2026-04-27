@@ -40,7 +40,10 @@ English: [README.md](README.md)
 uv tool install --upgrade lifeos-cli
 ```
 
-`lifeos-cli` 默认使用 PostgreSQL。
+`lifeos-cli` 当前正式支持 SQLite 和 PostgreSQL。
+
+- SQLite 适合本地、单用户、低门槛使用场景。
+- PostgreSQL 仍然是支持 schema 的部署型后端。
 
 初始化本地环境：
 

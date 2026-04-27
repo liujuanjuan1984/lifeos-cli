@@ -20,6 +20,7 @@ class Tag(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
             "category",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("ix_tags_name_entity_type_category", "name", "entity_type", "category"),
     )

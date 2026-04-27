@@ -1218,13 +1218,22 @@ def read_bundle(path: Path) -> BundlePayload:
 
 async def truncate_supported_data(session: AsyncSession) -> None:
     """Remove all supported data rows before importing a replacement bundle."""
+    settings = get_database_settings()
     table_names = [
-        f'"{table.schema}"."{table.name}"' if table.schema else f'"{table.name}"'
+        (
+            f'"{settings.database_schema}"."{table.name}"'
+            if settings.database_schema is not None
+            else f'"{table.name}"'
+        )
         for table in Base.metadata.sorted_tables
     ]
     if not table_names:
         return
-    await session.execute(text(f"TRUNCATE TABLE {', '.join(table_names)} CASCADE"))
+    if settings.database_backend == "postgresql":
+        await session.execute(text(f"TRUNCATE TABLE {', '.join(table_names)} CASCADE"))
+        return
+    for table in reversed(Base.metadata.sorted_tables):
+        await session.execute(delete(table))
 
 
 async def import_bundle(
