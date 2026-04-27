@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -761,6 +761,26 @@ def test_list_events_with_one_sided_window_uses_overlap_query(
     statement_sql = str(session.statements[0])
     assert "end_time IS NULL OR" in statement_sql
     assert "end_time >=" in statement_sql
+
+
+def test_normalize_event_filters_deduplicates_discrete_dates() -> None:
+    filters = events._normalize_event_filters(
+        events.EventQueryFilters(
+            date_values=(date(2026, 4, 10), date(2026, 4, 10), date(2026, 4, 12))
+        )
+    )
+
+    assert filters.date_values == (date(2026, 4, 10), date(2026, 4, 12))
+
+
+def test_resolve_timelog_filters_deduplicates_discrete_dates() -> None:
+    filters = timelogs._resolve_timelog_filters(
+        timelogs.TimelogQueryFilters(
+            date_values=(date(2026, 4, 10), date(2026, 4, 10), date(2026, 4, 12))
+        )
+    )
+
+    assert filters.date_values == (date(2026, 4, 10), date(2026, 4, 12))
 
 
 def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -600,6 +600,15 @@ async def handle_timelog_stats_rebuild_async(args: argparse.Namespace) -> int:
         print("No linked-area timelogs found for the selected rebuild scope.")
         return 0
     print(f"Rebuilt timelog stats grouped by area for {len(rebuilt_dates)} dates.")
-    print(f"start_date: {rebuilt_dates[0].isoformat()}")
-    print(f"end_date: {rebuilt_dates[-1].isoformat()}")
+    if date_selection.date_values:
+        label = "date" if len(date_selection.date_values) == 1 else "dates"
+        selected_dates = ", ".join(
+            target_date.isoformat() for target_date in date_selection.date_values
+        )
+        print(f"{label}: {selected_dates}")
+    else:
+        rebuilt_start_date = min(rebuilt_dates)
+        rebuilt_end_date = max(rebuilt_dates)
+        print(f"start_date: {rebuilt_start_date.isoformat()}")
+        print(f"end_date: {rebuilt_end_date.isoformat()}")
     return 0

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterator
 from datetime import date, datetime, timezone
+from typing import Any, cast
 
 import pytest
 
@@ -66,3 +68,38 @@ def test_get_year_bounds_returns_full_calendar_year() -> None:
 
     assert start_date == date(2026, 1, 1)
     assert end_date == date(2026, 12, 31)
+
+
+def test_rebuild_timelog_stats_groupby_area_sorts_and_deduplicates_discrete_dates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_daily_dates: list[tuple[date, ...]] = []
+    captured_aggregated_dates: list[tuple[date, ...]] = []
+
+    async def fake_recompute_daily(_: object, *, local_dates: tuple[date, ...]) -> None:
+        captured_daily_dates.append(local_dates)
+
+    async def fake_recompute_aggregated(_: object, *, local_dates: tuple[date, ...]) -> None:
+        captured_aggregated_dates.append(local_dates)
+
+    monkeypatch.setattr(
+        timelog_stats,
+        "recompute_daily_timelog_stats_groupby_area_for_dates",
+        fake_recompute_daily,
+    )
+    monkeypatch.setattr(
+        timelog_stats,
+        "recompute_aggregated_timelog_stats_groupby_area_for_dates",
+        fake_recompute_aggregated,
+    )
+
+    rebuilt_dates = asyncio.run(
+        timelog_stats.rebuild_timelog_stats_groupby_area(
+            cast(Any, object()),
+            date_values=(date(2026, 4, 3), date(2026, 4, 1), date(2026, 4, 3)),
+        )
+    )
+
+    assert rebuilt_dates == (date(2026, 4, 1), date(2026, 4, 3))
+    assert captured_daily_dates == [(date(2026, 4, 1), date(2026, 4, 3))]
+    assert captured_aggregated_dates == [(date(2026, 4, 1), date(2026, 4, 3))]

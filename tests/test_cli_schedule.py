@@ -216,6 +216,38 @@ def test_main_schedule_list_treats_repeated_dates_as_discrete_days(
     assert "date: 2026-04-10" in captured.out
 
 
+def test_main_schedule_list_deduplicates_repeated_dates(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    requested_dates: list[date] = []
+
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> schedules.ScheduleDay:
+        requested_dates.append(target_date)
+        assert hide_overdue_unfinished is False
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            events=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+
+    exit_code = cli.main(["schedule", "list", "--date", "2026-04-10", "--date", "2026-04-10"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert requested_dates == [date(2026, 4, 10)]
+    assert captured.out.count("date: 2026-04-10") == 1
+
+
 def test_main_schedule_list_accepts_explicit_date_range(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

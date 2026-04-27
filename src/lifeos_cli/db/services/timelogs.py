@@ -387,7 +387,10 @@ def _apply_timelog_window_filters(stmt: Any, *, filters: TimelogQueryFilters) ->
 
 def _resolve_timelog_filters(filters: TimelogQueryFilters) -> TimelogQueryFilters:
     if filters.date_values:
-        return filters
+        return replace(
+            filters,
+            date_values=tuple(deduplicate_preserving_order(filters.date_values)),
+        )
     if filters.start_date is not None and filters.end_date is not None:
         window_start, window_end = get_utc_window_for_local_date_range(
             filters.start_date,

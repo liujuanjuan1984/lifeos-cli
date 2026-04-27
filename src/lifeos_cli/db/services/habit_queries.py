@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +14,7 @@ from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.habit_support import (
     HabitActionLike,
     HabitActionNotFoundError,
@@ -68,6 +69,11 @@ def _normalize_action_window(
 
 def _habit_end_expr() -> Any:
     return Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+
+
+def _normalize_target_dates(target_dates: tuple[date, ...] | list[date]) -> tuple[date, ...]:
+    """Return requested local dates in first-seen order without duplicates."""
+    return tuple(deduplicate_preserving_order(target_dates))
 
 
 def _build_habit_action_view(
@@ -152,6 +158,7 @@ async def _load_materialized_actions_for_habits(
     habit_ids: list[UUID],
     start_date: date | None,
     end_date: date | None,
+    target_dates: tuple[date, ...] = (),
     include_deleted: bool,
 ) -> list[HabitAction]:
     if not habit_ids:
@@ -159,9 +166,11 @@ async def _load_materialized_actions_for_habits(
     stmt = select(HabitAction).where(HabitAction.habit_id.in_(habit_ids))
     if not include_deleted:
         stmt = stmt.where(HabitAction.deleted_at.is_(None))
-    if start_date is not None:
+    if target_dates:
+        stmt = stmt.where(HabitAction.action_date.in_(target_dates))
+    elif start_date is not None:
         stmt = stmt.where(HabitAction.action_date >= start_date)
-    if end_date is not None:
+    if not target_dates and end_date is not None:
         stmt = stmt.where(HabitAction.action_date <= end_date)
     stmt = stmt.order_by(
         HabitAction.action_date.asc(),
@@ -177,6 +186,7 @@ async def _load_candidate_habits(
     habit_id: UUID | None,
     include_deleted: bool,
     action_window: tuple[date, date] | None,
+    target_dates: tuple[date, ...] = (),
 ) -> list[Habit]:
     if habit_id is not None:
         habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
@@ -187,19 +197,28 @@ async def _load_candidate_habits(
     stmt = select(Habit).options(selectinload(Habit.task))
     if not include_deleted:
         stmt = stmt.where(Habit.deleted_at.is_(None))
-    if action_window is not None:
+    if target_dates:
+        habit_end_expr = _habit_end_expr()
+        stmt = stmt.where(
+            or_(
+                *(
+                    and_(Habit.start_date <= target_date, habit_end_expr >= target_date)
+                    for target_date in target_dates
+                )
+            )
+        )
+    elif action_window is not None:
         start_date, end_date = action_window
         stmt = stmt.where(Habit.start_date <= end_date, _habit_end_expr() >= start_date)
     stmt = stmt.order_by(Habit.created_at.desc(), Habit.id.desc())
     return list((await session.execute(stmt)).scalars())
 
 
-def _build_habit_occurrence_views(
+def _build_habit_action_views_for_occurrence_dates(
     *,
     habit: Habit,
     materialized_actions: list[HabitAction],
-    start_date: date,
-    end_date: date,
+    occurrence_dates: list[date],
     include_deleted: bool,
 ) -> list[HabitActionView]:
     active_actions_by_date = {
@@ -208,11 +227,7 @@ def _build_habit_occurrence_views(
     deleted_actions = [action for action in materialized_actions if action.deleted_at is not None]
     views: list[HabitActionView] = []
 
-    for action_date in _iter_habit_window_dates(
-        habit=habit,
-        start_date=start_date,
-        end_date=end_date,
-    ):
+    for action_date in occurrence_dates:
         materialized = active_actions_by_date.get(action_date)
         if materialized is None:
             views.append(
@@ -244,6 +259,7 @@ def _build_habit_occurrence_views(
         )
 
     if include_deleted:
+        occurrence_date_set = set(occurrence_dates)
         views.extend(
             _build_habit_action_view(
                 action_id=action.id,
@@ -257,9 +273,54 @@ def _build_habit_occurrence_views(
                 deleted_at=action.deleted_at,
             )
             for action in deleted_actions
-            if start_date <= action.action_date <= end_date
+            if action.action_date in occurrence_date_set
         )
     return views
+
+
+def _build_habit_occurrence_views(
+    *,
+    habit: Habit,
+    materialized_actions: list[HabitAction],
+    start_date: date,
+    end_date: date,
+    include_deleted: bool,
+) -> list[HabitActionView]:
+    return _build_habit_action_views_for_occurrence_dates(
+        habit=habit,
+        materialized_actions=materialized_actions,
+        occurrence_dates=_iter_habit_window_dates(
+            habit=habit,
+            start_date=start_date,
+            end_date=end_date,
+        ),
+        include_deleted=include_deleted,
+    )
+
+
+def _build_habit_occurrence_views_for_dates(
+    *,
+    habit: Habit,
+    materialized_actions: list[HabitAction],
+    target_dates: tuple[date, ...],
+    include_deleted: bool,
+) -> list[HabitActionView]:
+    occurrence_dates = [
+        target_date
+        for target_date in target_dates
+        if habit_occurs_on_date(
+            start_date=habit.start_date,
+            end_date=habit.end_date,
+            cadence_weekdays=habit.cadence_weekdays,
+            target_date=target_date,
+        )
+    ]
+    return _build_habit_action_views_for_occurrence_dates(
+        habit=habit,
+        materialized_actions=materialized_actions,
+        occurrence_dates=occurrence_dates,
+        include_deleted=include_deleted,
+    )
 
 
 def _filter_habit_action_views(
@@ -292,19 +353,25 @@ async def _build_habit_action_views(
     habit_id: UUID | None,
     status: str | None,
     action_window: tuple[date, date] | None,
+    target_dates: tuple[date, ...] = (),
     include_deleted: bool,
 ) -> list[HabitActionView]:
+    normalized_target_dates = _normalize_target_dates(target_dates)
     habits = await _load_candidate_habits(
         session,
         habit_id=habit_id,
         include_deleted=include_deleted,
         action_window=action_window,
+        target_dates=normalized_target_dates,
     )
     if not habits:
         return []
 
     habit_ids = [habit.id for habit in habits]
-    if action_window is None:
+    if normalized_target_dates:
+        range_start = None
+        range_end = None
+    elif action_window is None:
         range_start = min(habit.start_date for habit in habits)
         range_end = max(habit.end_date for habit in habits)
     else:
@@ -315,6 +382,7 @@ async def _build_habit_action_views(
         habit_ids=habit_ids,
         start_date=range_start,
         end_date=range_end,
+        target_dates=normalized_target_dates,
         include_deleted=include_deleted,
     )
     actions_by_habit: dict[UUID, list[HabitAction]] = {habit_id: [] for habit_id in habit_ids}
@@ -323,6 +391,18 @@ async def _build_habit_action_views(
 
     views: list[HabitActionView] = []
     for habit in habits:
+        if normalized_target_dates:
+            views.extend(
+                _build_habit_occurrence_views_for_dates(
+                    habit=habit,
+                    materialized_actions=actions_by_habit.get(habit.id, []),
+                    target_dates=normalized_target_dates,
+                    include_deleted=include_deleted,
+                )
+            )
+            continue
+        assert range_start is not None
+        assert range_end is not None
         habit_start = range_start if action_window is None else action_window[0]
         habit_end = range_end if action_window is None else action_window[1]
         views.extend(
@@ -510,21 +590,18 @@ async def list_habit_actions(
     offset: int = 0,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views with optional filters."""
-    selected_dates = set(date_values)
+    target_dates = _normalize_target_dates(date_values)
     action_window = (
-        (min(selected_dates), max(selected_dates))
-        if selected_dates
-        else _normalize_action_window(start_date=start_date, end_date=end_date)
+        None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
         action_window=action_window,
+        target_dates=target_dates,
         include_deleted=include_deleted,
     )
-    if selected_dates:
-        views = [view for view in views if view.action_date in selected_dates]
     paged_views = views[offset : offset + limit]
     synthetic_views = [view for view in paged_views if view.id is None]
     if not synthetic_views or include_deleted:
@@ -597,21 +674,18 @@ async def count_habit_actions(
     include_deleted: bool = False,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
-    selected_dates = set(date_values)
+    target_dates = _normalize_target_dates(date_values)
     action_window = (
-        (min(selected_dates), max(selected_dates))
-        if selected_dates
-        else _normalize_action_window(start_date=start_date, end_date=end_date)
+        None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
         action_window=action_window,
+        target_dates=target_dates,
         include_deleted=include_deleted,
     )
-    if selected_dates:
-        views = [view for view in views if view.action_date in selected_dates]
     return len(views)
 
 
