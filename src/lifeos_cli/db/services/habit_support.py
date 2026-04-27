@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
@@ -28,6 +28,7 @@ from lifeos_cli.db.services.recurrence_core import (
     normalize_recurrence_frequency,
     normalize_weekday_names,
 )
+from lifeos_cli.db.sql_expressions import add_days_to_date
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.habit import Habit
@@ -449,7 +450,7 @@ async def ensure_active_capacity(
     from lifeos_cli.db.models.habit import Habit
 
     local_today = get_operational_date()
-    end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+    end_expr = add_days_to_date(Habit.start_date, Habit.duration_days - 1)
     filters = [
         Habit.deleted_at.is_(None),
         Habit.status == "active",
@@ -474,7 +475,7 @@ async def refresh_habit_expiration(
     from lifeos_cli.db.models.habit import Habit
 
     local_today = get_operational_date()
-    end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+    end_expr = add_days_to_date(Habit.start_date, Habit.duration_days - 1)
     filters = [
         Habit.deleted_at.is_(None),
         Habit.status == "active",

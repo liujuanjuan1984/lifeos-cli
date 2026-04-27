@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,6 +27,7 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_status,
 )
 from lifeos_cli.db.services.read_models import HabitActionView
+from lifeos_cli.db.sql_expressions import add_days_to_date
 
 
 def _apply_habit_filters(
@@ -47,7 +48,7 @@ def _apply_habit_filters(
             stmt = stmt.where(Habit.title == normalized_title)
     if active_window_only:
         local_today = get_operational_date()
-        end_expr = Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+        end_expr = _habit_end_expr()
         stmt = stmt.where(Habit.start_date <= local_today)
         stmt = stmt.where(end_expr >= local_today)
     return stmt
@@ -68,7 +69,7 @@ def _normalize_action_window(
 
 
 def _habit_end_expr() -> Any:
-    return Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
+    return add_days_to_date(Habit.start_date, Habit.duration_days - 1)
 
 
 def _build_habit_action_view(
