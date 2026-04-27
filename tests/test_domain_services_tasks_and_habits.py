@@ -1116,3 +1116,104 @@ def test_list_habit_actions_materializes_listed_occurrences(
     assert len(views) == 1
     assert views[0].id == action_id
     assert views[0].habit_title == "Daily Exercise"
+
+
+def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    selected_dates = (date(2026, 4, 1), date(2026, 4, 30))
+    habit = SimpleNamespace(
+        id=habit_id,
+        title="Daily Exercise",
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 30),
+        cadence_weekdays=None,
+    )
+
+    async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
+        assert kwargs["action_window"] is None
+        assert kwargs["target_dates"] == selected_dates
+        return [habit]
+
+    async def fake_load_materialized_actions(*args: object, **kwargs: object) -> list[object]:
+        assert kwargs["start_date"] is None
+        assert kwargs["end_date"] is None
+        assert kwargs["target_dates"] == selected_dates
+        return []
+
+    monkeypatch.setattr(habit_queries, "_load_candidate_habits", fake_load_candidate_habits)
+    monkeypatch.setattr(
+        habit_queries,
+        "_load_materialized_actions_for_habits",
+        fake_load_materialized_actions,
+    )
+
+    views = asyncio.run(
+        habit_queries._build_habit_action_views(
+            cast(Any, object()),
+            habit_id=None,
+            status=None,
+            action_window=None,
+            target_dates=selected_dates,
+            include_deleted=False,
+        )
+    )
+
+    assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
+
+
+def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_calls: list[dict[str, object]] = []
+    action_dates = (date(2026, 4, 3), date(2026, 4, 1))
+
+    async def fake_build_views(*args: object, **kwargs: object) -> list[object]:
+        captured_calls.append(kwargs)
+        return [
+            SimpleNamespace(
+                id=UUID("88888888-8888-8888-8888-888888888888"),
+                habit_id=UUID("77777777-7777-7777-7777-777777777777"),
+                habit_title="Daily Exercise",
+                action_date=action_dates[0],
+                status="pending",
+                notes=None,
+                created_at=None,
+                updated_at=None,
+                deleted_at=None,
+            ),
+            SimpleNamespace(
+                id=UUID("99999999-9999-9999-9999-999999999999"),
+                habit_id=UUID("77777777-7777-7777-7777-777777777777"),
+                habit_title="Daily Exercise",
+                action_date=action_dates[1],
+                status="pending",
+                notes=None,
+                created_at=None,
+                updated_at=None,
+                deleted_at=None,
+            ),
+        ]
+
+    monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
+
+    views = asyncio.run(
+        habits.list_habit_actions(
+            cast(Any, object()),
+            date_values=(date(2026, 4, 3), date(2026, 4, 1), date(2026, 4, 3)),
+        )
+    )
+    count = asyncio.run(
+        habits.count_habit_actions(
+            cast(Any, object()),
+            date_values=(date(2026, 4, 3), date(2026, 4, 1), date(2026, 4, 3)),
+        )
+    )
+
+    assert [view.action_date for view in views] == [date(2026, 4, 3), date(2026, 4, 1)]
+    assert count == 2
+    assert captured_calls[0]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
+    assert captured_calls[0]["action_window"] is None
+    assert captured_calls[1]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
+    assert captured_calls[1]["action_window"] is None

@@ -515,7 +515,7 @@ def _normalize_event_filters(filters: EventQueryFilters) -> EventQueryFilters:
         task_id=filters.task_id,
         person_id=filters.person_id,
         tag_id=filters.tag_id,
-        date_values=filters.date_values,
+        date_values=tuple(deduplicate_preserving_order(filters.date_values)),
         start_date=filters.start_date,
         end_date=filters.end_date,
         window_start=filters.window_start,

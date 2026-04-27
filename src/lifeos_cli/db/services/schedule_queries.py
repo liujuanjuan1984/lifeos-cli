@@ -18,7 +18,6 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.event_support import EventOccurrenceQuery
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
 from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
-from lifeos_cli.db.services.read_models import HabitActionView
 
 
 @dataclass(frozen=True)
@@ -151,29 +150,6 @@ def _map_task_item(task: Task) -> ScheduleTaskItem:
     )
 
 
-def _map_habit_action_item(action: HabitActionView) -> ScheduleHabitActionItem:
-    return ScheduleHabitActionItem(
-        id=action.id,
-        habit_id=action.habit_id,
-        habit_title=action.habit_title,
-        action_date=action.action_date,
-        status=action.status,
-        notes=action.notes,
-    )
-
-
-def _map_event_item(event: EventOccurrence) -> ScheduleEventItem:
-    return ScheduleEventItem(
-        id=event.id,
-        title=event.title,
-        status=event.status,
-        event_type=event.event_type,
-        start_time=event.start_time,
-        end_time=event.end_time,
-        task_id=event.task_id,
-    )
-
-
 def _is_overdue_unfinished_task(item: ScheduleTaskItem, *, local_today: date) -> bool:
     return item.status not in {"cancelled", "done"} and item.planning_cycle_end_date < local_today
 
@@ -208,8 +184,29 @@ async def list_schedule_in_range(
     events = await _load_schedule_events(session, start_date=start_date, end_date=end_date)
 
     task_items = [_map_task_item(task) for task in tasks]
-    action_items = [_map_habit_action_item(action) for action in habit_actions]
-    event_items = [_map_event_item(event) for event in events]
+    action_items = [
+        ScheduleHabitActionItem(
+            id=action.id,
+            habit_id=action.habit_id,
+            habit_title=action.habit_title,
+            action_date=action.action_date,
+            status=action.status,
+            notes=action.notes,
+        )
+        for action in habit_actions
+    ]
+    event_items = [
+        ScheduleEventItem(
+            id=event.id,
+            title=event.title,
+            status=event.status,
+            event_type=event.event_type,
+            start_time=event.start_time,
+            end_time=event.end_time,
+            task_id=event.task_id,
+        )
+        for event in events
+    ]
 
     days: list[ScheduleDay] = []
     for current_date in dates:
