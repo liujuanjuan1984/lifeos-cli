@@ -34,6 +34,8 @@ class ResolvedDateTimeQuery:
     end_date: date | None
     window_start: datetime | None
     window_end: datetime | None
+
+
 def parse_date_value(value: str) -> date:
     """Parse one ISO local date value."""
     try:

@@ -20,14 +20,9 @@ LOCALES_DIR = Path(__file__).with_name("locales")
 DEFAULT_LOCALE = "en"
 
 
-def _normalize_locale_tag(locale_tag: str) -> str:
-    """Convert a BCP-47-like tag into the locale directory naming convention."""
-    return locale_tag.strip().replace("-", "_")
-
-
 def _locale_candidates(locale_tag: str) -> list[str]:
     """Return locale lookup candidates from most specific to least specific."""
-    normalized = _normalize_locale_tag(locale_tag)
+    normalized = locale_tag.strip().replace("-", "_")
     parts = [part for part in normalized.split("_") if part]
     if not parts:
         return [DEFAULT_LOCALE]

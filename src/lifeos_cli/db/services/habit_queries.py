@@ -273,26 +273,6 @@ def _build_habit_action_views_for_occurrence_dates(
     return views
 
 
-def _build_habit_occurrence_views(
-    *,
-    habit: Habit,
-    materialized_actions: list[HabitAction],
-    start_date: date,
-    end_date: date,
-    include_deleted: bool,
-) -> list[HabitActionView]:
-    return _build_habit_action_views_for_occurrence_dates(
-        habit=habit,
-        materialized_actions=materialized_actions,
-        occurrence_dates=_iter_habit_window_dates(
-            habit=habit,
-            start_date=start_date,
-            end_date=end_date,
-        ),
-        include_deleted=include_deleted,
-    )
-
-
 def _build_habit_occurrence_views_for_dates(
     *,
     habit: Habit,
@@ -401,11 +381,14 @@ async def _build_habit_action_views(
         habit_start = range_start if action_window is None else action_window[0]
         habit_end = range_end if action_window is None else action_window[1]
         views.extend(
-            _build_habit_occurrence_views(
+            _build_habit_action_views_for_occurrence_dates(
                 habit=habit,
                 materialized_actions=actions_by_habit.get(habit.id, []),
-                start_date=habit_start,
-                end_date=habit_end,
+                occurrence_dates=_iter_habit_window_dates(
+                    habit=habit,
+                    start_date=habit_start,
+                    end_date=habit_end,
+                ),
                 include_deleted=include_deleted,
             )
         )
