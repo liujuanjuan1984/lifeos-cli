@@ -273,55 +273,6 @@ def _build_habit_action_views_for_occurrence_dates(
     return views
 
 
-def _build_habit_occurrence_views_for_dates(
-    *,
-    habit: Habit,
-    materialized_actions: list[HabitAction],
-    target_dates: tuple[date, ...],
-    include_deleted: bool,
-) -> list[HabitActionView]:
-    occurrence_dates = [
-        target_date
-        for target_date in target_dates
-        if habit_occurs_on_date(
-            start_date=habit.start_date,
-            end_date=habit.end_date,
-            cadence_weekdays=habit.cadence_weekdays,
-            target_date=target_date,
-        )
-    ]
-    return _build_habit_action_views_for_occurrence_dates(
-        habit=habit,
-        materialized_actions=materialized_actions,
-        occurrence_dates=occurrence_dates,
-        include_deleted=include_deleted,
-    )
-
-
-def _filter_habit_action_views(
-    views: list[HabitActionView],
-    *,
-    status: str | None,
-) -> list[HabitActionView]:
-    if status is None:
-        return views
-    normalized_status = validate_habit_action_status(status)
-    return [view for view in views if view.status == normalized_status]
-
-
-def _sort_habit_action_views(views: list[HabitActionView]) -> list[HabitActionView]:
-    return sorted(
-        views,
-        key=lambda view: (
-            view.action_date,
-            view.habit_title,
-            view.habit_id,
-            view.id is None,
-            str(view.id or view.habit_id),
-        ),
-    )
-
-
 async def _build_habit_action_views(
     session: AsyncSession,
     *,
@@ -367,11 +318,21 @@ async def _build_habit_action_views(
     views: list[HabitActionView] = []
     for habit in habits:
         if normalized_target_dates:
+            occurrence_dates = [
+                target_date
+                for target_date in normalized_target_dates
+                if habit_occurs_on_date(
+                    start_date=habit.start_date,
+                    end_date=habit.end_date,
+                    cadence_weekdays=habit.cadence_weekdays,
+                    target_date=target_date,
+                )
+            ]
             views.extend(
-                _build_habit_occurrence_views_for_dates(
+                _build_habit_action_views_for_occurrence_dates(
                     habit=habit,
                     materialized_actions=actions_by_habit.get(habit.id, []),
-                    target_dates=normalized_target_dates,
+                    occurrence_dates=occurrence_dates,
                     include_deleted=include_deleted,
                 )
             )
@@ -392,7 +353,19 @@ async def _build_habit_action_views(
                 include_deleted=include_deleted,
             )
         )
-    return _sort_habit_action_views(_filter_habit_action_views(views, status=status))
+    if status is not None:
+        normalized_status = validate_habit_action_status(status)
+        views = [view for view in views if view.status == normalized_status]
+    return sorted(
+        views,
+        key=lambda view: (
+            view.action_date,
+            view.habit_title,
+            view.habit_id,
+            view.id is None,
+            str(view.id or view.habit_id),
+        ),
+    )
 
 
 async def get_habit(
