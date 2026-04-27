@@ -71,11 +71,6 @@ def _habit_end_expr() -> Any:
     return Habit.start_date + (Habit.duration_days - 1) * text("INTERVAL '1 day'")
 
 
-def _normalize_target_dates(target_dates: tuple[date, ...] | list[date]) -> tuple[date, ...]:
-    """Return requested local dates in first-seen order without duplicates."""
-    return tuple(deduplicate_preserving_order(target_dates))
-
-
 def _build_habit_action_view(
     *,
     action_id: UUID | None,
@@ -356,7 +351,7 @@ async def _build_habit_action_views(
     target_dates: tuple[date, ...] = (),
     include_deleted: bool,
 ) -> list[HabitActionView]:
-    normalized_target_dates = _normalize_target_dates(target_dates)
+    normalized_target_dates = tuple(deduplicate_preserving_order(target_dates))
     habits = await _load_candidate_habits(
         session,
         habit_id=habit_id,
@@ -590,7 +585,7 @@ async def list_habit_actions(
     offset: int = 0,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views with optional filters."""
-    target_dates = _normalize_target_dates(date_values)
+    target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
@@ -674,7 +669,7 @@ async def count_habit_actions(
     include_deleted: bool = False,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
-    target_dates = _normalize_target_dates(date_values)
+    target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
