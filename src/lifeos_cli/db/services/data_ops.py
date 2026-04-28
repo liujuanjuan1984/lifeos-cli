@@ -1229,7 +1229,8 @@ async def truncate_supported_data(session: AsyncSession) -> None:
     ]
     if not table_names:
         return
-    if settings.database_backend == "postgresql":
+    policy = settings.backend_policy
+    if policy is not None and policy.replace_existing_strategy == "truncate_cascade":
         await session.execute(text(f"TRUNCATE TABLE {', '.join(table_names)} CASCADE"))
         return
     for table in reversed(Base.metadata.sorted_tables):

@@ -127,7 +127,8 @@ def test_integration_tests_require_an_explicit_test_database_url() -> None:
     assert 'source "${SCRIPT_DIR}/load_local_env.sh"' in script_text
     assert 'load_local_env "${REPO_ROOT}/.env"' in script_text
     support_text = Path("tests/cli_integration_support.py").read_text()
-    assert 'INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
+    assert "normalize_integration_database_url" in support_text
+    assert 'database_name = f"{database_name}_test"' in support_text
     assert "DatabaseSettings.from_env" not in support_text
     assert 'schema = f"lifeos_test_{uuid4().hex[:12]}"' in Path("tests/conftest.py").read_text()
 

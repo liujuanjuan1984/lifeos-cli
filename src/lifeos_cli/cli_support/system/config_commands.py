@@ -106,7 +106,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config set preferences.timezone America/Toronto",
                 "lifeos config set database.echo true",
                 "lifeos config set database.url "
-                "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
+                "sqlite+aiosqlite:///$HOME/.lifeos/work.db "
                 "--show-secrets",
                 "lifeos config set preferences.vision_experience_rate_per_hour 120",
             ),

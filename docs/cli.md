@@ -2,11 +2,9 @@
 
 This document is a secondary overview of the current `lifeos` CLI.
 
-Command-specific facts such as arguments, examples, constraints, and command notes must live in
-`lifeos --help`, `lifeos <resource> --help`, and `lifeos <resource> <action> --help`.
+Command-specific facts such as arguments, examples, constraints, and command notes must live in `lifeos --help`, `lifeos <resource> --help`, and `lifeos <resource> <action> --help`.
 
-Use this document for cross-command guidance only. Do not treat it as the source of truth for
-resource-level command details.
+Use this document for cross-command guidance only. Do not treat it as the source of truth for resource-level command details.
 
 ## Command Grammar
 
@@ -97,8 +95,7 @@ The current command tree is organized around a few stable families:
 - scheduling and tracking resources such as `event`, `schedule`, `timelog`, `habit`, and `habit-action`
 - system and portability commands such as `init`, `config`, `db`, and `data`
 
-Use `lifeos <resource> --help` to enter one family and then follow the resource-level help into the
-action or namespace you need.
+Use `lifeos <resource> --help` to enter one family and then follow the resource-level help into the action or namespace you need.
 
 ## Safety Model
 
@@ -121,5 +118,4 @@ If the caller is an agent or another automation layer:
 - use `Preference language` as the payload language for titles, descriptions, and note content unless the human explicitly asks for another language
 - keep flows identifier-driven after discovery
 - decide whether the record belongs to the human, the agent, or both before writing data
-- prefer resource help and action help over repository docs whenever an operation depends on exact
-  flags, scope rules, or examples
+- prefer resource help and action help over repository docs whenever an operation depends on exact flags, scope rules, or examples

@@ -15,8 +15,8 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
-    database_drivername,
-    database_url_supports_schema,
+    database_policy,
+    default_sqlite_database_url,
     detect_default_language,
     detect_default_timezone,
     ensure_database_driver_available,
@@ -93,13 +93,13 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             database_echo=False,
             config_file=config_path,
         )
-    database_url = request.database_url or current.database_url
+    database_url = request.database_url or current.database_url or default_sqlite_database_url()
     database_echo = current.database_echo if request.echo is None else request.echo
     if database_url is not None:
         database_url = validate_database_url(database_url)
         ensure_database_driver_available(database_url)
     supports_database_schema = (
-        database_url_supports_schema(database_url) if database_url is not None else True
+        database_policy(database_url).supports_schema if database_url is not None else True
     )
     database_schema = (
         request.schema
@@ -117,18 +117,13 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
         if request.database_url is None:
             database_url = request.prompts.prompt_database_url(database_url)
             ensure_database_driver_available(database_url)
-            supports_database_schema = database_url_supports_schema(database_url)
+            supports_database_schema = database_policy(database_url).supports_schema
             if not supports_database_schema:
                 database_schema = None
         if request.schema is None and supports_database_schema:
             database_schema = request.prompts.prompt_database_schema(database_schema)
         if request.echo is None:
             database_echo = request.prompts.prompt_database_echo(database_echo)
-
-    if database_url is None:
-        raise ConfigurationError(
-            "Database URL is required. Provide --database-url or run `lifeos init` interactively."
-        )
 
     return DatabaseSettings(
         database_url=database_url,
@@ -220,7 +215,7 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
         validated_database_url = validate_database_url(value)
         ensure_database_driver_available(validated_database_url)
         current_backend = database_settings.database_backend
-        next_backend = database_drivername(validated_database_url).split("+", maxsplit=1)[0]
+        next_backend = database_policy(validated_database_url).backend_name
         if current_backend is not None and current_backend != next_backend:
             raise ConfigurationError(
                 "Switching between PostgreSQL and SQLite with `config set database.url` is not "

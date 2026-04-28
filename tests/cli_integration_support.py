@@ -21,9 +21,30 @@ _ID_PATTERN = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
     re.IGNORECASE,
 )
+_TEST_DATABASE_MARKER = "test"
 
 
-INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
+def normalize_integration_database_url(database_url: str) -> str:
+    """Normalize one integration database URL so it clearly targets a test database."""
+    parsed = make_url(database_url.strip())
+    if parsed.drivername != "postgresql+psycopg":
+        raise RuntimeError(
+            "LIFEOS_TEST_DATABASE_URL must use the `postgresql+psycopg://` SQLAlchemy driver"
+        )
+    database_name = parsed.database
+    if database_name is None or not database_name.strip():
+        raise RuntimeError("LIFEOS_TEST_DATABASE_URL must include a PostgreSQL database name")
+    if _TEST_DATABASE_MARKER not in database_name.casefold():
+        database_name = f"{database_name}_test"
+    return parsed.set(database=database_name).render_as_string(hide_password=False)
+
+
+_RAW_INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
+INTEGRATION_DATABASE_URL = (
+    normalize_integration_database_url(_RAW_INTEGRATION_DATABASE_URL)
+    if _RAW_INTEGRATION_DATABASE_URL is not None
+    else None
+)
 
 INTEGRATION_PYTESTMARK = [
     pytest.mark.integration,

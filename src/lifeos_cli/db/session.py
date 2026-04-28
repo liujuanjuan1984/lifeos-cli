@@ -20,6 +20,7 @@ from lifeos_cli.config import (
     ensure_database_url_storage_ready,
     get_database_settings,
 )
+from lifeos_cli.db.backend_policy import backend_policy_for_drivername
 
 _CACHED_ENGINE: AsyncEngine | None = None
 
@@ -35,7 +36,8 @@ def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
 
 def configure_async_engine(engine: AsyncEngine) -> AsyncEngine:
     """Apply backend-specific engine configuration."""
-    if engine.sync_engine.url.get_backend_name() != "sqlite":
+    policy = backend_policy_for_drivername(engine.sync_engine.url.drivername)
+    if not policy.enable_foreign_keys_on_connect:
         return engine
 
     event.listen(engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
