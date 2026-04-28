@@ -865,7 +865,7 @@
       "use_upgrade_when_configured_database_schema_needs_to_catch_up_with_code": "Use `upgrade` when the configured database schema needs to catch up with the code."
     },
     "init_commands": {
-      "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.config/lifeos/config.toml。",
+      "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.lifeos/config.toml。",
       "create_or_update_local_lifeos_config_file_and_verify_that_database_is": "Create or update the local LifeOS config file and verify that the database is reachable.",
       "database_credentials_may_be_stored_in_plain_text_in_config_file": "数据库凭据可以以纯文本形式存储在配置文件中。",
       "default_iana_timezone_for_local_day_boundaries_and_time_based_summaries": "当地日期边界和基于时间的摘要的默认 IANA 时区",

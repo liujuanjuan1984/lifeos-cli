@@ -27,8 +27,7 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             examples=(
                 "lifeos init",
-                "lifeos init --database-url "
-                "sqlite+aiosqlite:///$HOME/.local/share/lifeos/lifeos.db",
+                "lifeos init --database-url sqlite+aiosqlite:///$HOME/.lifeos/lifeos.db",
                 "lifeos init --non-interactive --database-url "
                 "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
                 "--schema lifeos --timezone America/Toronto --language zh-Hans --skip-migrate",

@@ -28,7 +28,7 @@ from lifeos_cli.db.services.recurrence_core import (
     normalize_recurrence_frequency,
     normalize_weekday_names,
 )
-from lifeos_cli.db.sql_expressions import add_days_to_date
+from lifeos_cli.db.sql_expressions import AddDaysToDate
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.habit import Habit
@@ -450,7 +450,7 @@ async def ensure_active_capacity(
     from lifeos_cli.db.models.habit import Habit
 
     local_today = get_operational_date()
-    end_expr = add_days_to_date(Habit.start_date, Habit.duration_days - 1)
+    end_expr = AddDaysToDate(Habit.start_date, Habit.duration_days - 1)
     filters = [
         Habit.deleted_at.is_(None),
         Habit.status == "active",
@@ -475,7 +475,7 @@ async def refresh_habit_expiration(
     from lifeos_cli.db.models.habit import Habit
 
     local_today = get_operational_date()
-    end_expr = add_days_to_date(Habit.start_date, Habit.duration_days - 1)
+    end_expr = AddDaysToDate(Habit.start_date, Habit.duration_days - 1)
     filters = [
         Habit.deleted_at.is_(None),
         Habit.status == "active",

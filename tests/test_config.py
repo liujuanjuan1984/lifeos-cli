@@ -10,11 +10,13 @@ from lifeos_cli.application.configuration import (
     set_runtime_config_value,
 )
 from lifeos_cli.config import (
+    DEFAULT_CONFIG_PATH,
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
     detect_default_language,
     parse_boolean_value,
+    resolve_config_path,
     validate_database_schema_name,
     validate_database_url,
     validate_day_starts_at,
@@ -243,11 +245,16 @@ def test_validate_database_url_requires_postgresql_psycopg_driver() -> None:
 
 
 def test_validate_database_url_expands_sqlite_home_directory() -> None:
-    expected_path = Path("~/.local/share/lifeos/lifeos.db").expanduser()
+    expected_path = Path("~/.lifeos/lifeos.db").expanduser()
 
-    assert validate_database_url("sqlite+aiosqlite:///~/.local/share/lifeos/lifeos.db") == (
+    assert validate_database_url("sqlite+aiosqlite:///~/.lifeos/lifeos.db") == (
         f"sqlite+aiosqlite:///{expected_path}"
     )
+
+
+def test_resolve_config_path_defaults_to_lifeos_home_directory() -> None:
+    assert resolve_config_path({"LIFEOS_CONFIG_FILE": ""}) == DEFAULT_CONFIG_PATH
+    assert DEFAULT_CONFIG_PATH == Path.home() / ".lifeos" / "config.toml"
 
 
 def test_database_settings_omit_schema_for_sqlite_url(tmp_path: Path) -> None:

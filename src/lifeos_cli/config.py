@@ -21,7 +21,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
     import tomli as tomllib
 
 DEFAULT_DATABASE_SCHEMA = "lifeos"
-DEFAULT_CONFIG_PATH = Path.home() / ".config" / "lifeos" / "config.toml"
+DEFAULT_CONFIG_PATH = Path.home() / ".lifeos" / "config.toml"
 DEFAULT_LANGUAGE = "en"
 DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"

@@ -27,7 +27,7 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_status,
 )
 from lifeos_cli.db.services.read_models import HabitActionView
-from lifeos_cli.db.sql_expressions import add_days_to_date
+from lifeos_cli.db.sql_expressions import AddDaysToDate
 
 
 def _apply_habit_filters(
@@ -69,7 +69,7 @@ def _normalize_action_window(
 
 
 def _habit_end_expr() -> Any:
-    return add_days_to_date(Habit.start_date, Habit.duration_days - 1)
+    return AddDaysToDate(Habit.start_date, Habit.duration_days - 1)
 
 
 def _build_habit_action_view(
