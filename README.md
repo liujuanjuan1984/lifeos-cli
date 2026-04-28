@@ -42,6 +42,12 @@ Install or upgrade from PyPI:
 uv tool install --upgrade lifeos-cli
 ```
 
+Install PostgreSQL support only when you need it:
+
+```bash
+uv tool install --upgrade "lifeos-cli[postgres]"
+```
+
 `lifeos-cli` supports both SQLite and PostgreSQL.
 
 - SQLite is the low-friction option for local, single-user setups.

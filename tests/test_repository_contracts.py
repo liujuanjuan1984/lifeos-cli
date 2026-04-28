@@ -66,7 +66,7 @@ def test_dependency_scripts_keep_separate_scopes() -> None:
     assert "clean_build_artifacts()" in DOCTOR_TEXT
     assert "rm -rf build dist src/*.egg-info" in DOCTOR_TEXT
     assert "[doctor] clean build artifacts after validation" in DOCTOR_TEXT
-    assert any("uv sync --all-extras --frozen" in line for line in DOCTOR_COMMANDS)
+    assert any("uv sync --extra dev --frozen" in line for line in DOCTOR_COMMANDS)
     assert any('uv run pytest -m "not integration"' in line for line in DOCTOR_COMMANDS)
     assert not any("uv pip list --outdated" in line for line in DOCTOR_COMMANDS)
     assert any("uv run pip-audit" in line for line in DOCTOR_COMMANDS)
@@ -122,6 +122,7 @@ def test_integration_tests_require_an_explicit_test_database_url() -> None:
     assert "LIFEOS_RUN_INTEGRATION" not in script_text
     assert "LIFEOS_TEST_DATABASE_URL:-" in script_text
     assert "exit 3" in script_text
+    assert "uv sync --extra dev --extra postgres --frozen" in script_text
     assert "uv run pytest -m integration tests/test_cli_integration_*.py" in script_text
     assert 'source "${SCRIPT_DIR}/load_local_env.sh"' in script_text
     assert 'load_local_env "${REPO_ROOT}/.env"' in script_text
