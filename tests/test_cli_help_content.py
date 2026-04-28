@@ -53,7 +53,7 @@ def test_cli_init_help_avoids_hard_wrapped_description_fragments(capsys) -> None
         in captured.out
     )
     assert "--database-url DATABASE_URL           " in captured.out
-    assert "defaults to SQLite at ~/.lifeos/lifeos.db" in captured.out
+    assert "When no database URL is configured yet" in captured.out
     assert (
         "Create or update the local LifeOS config file and verify that the database\nis reachable."
         not in captured.out

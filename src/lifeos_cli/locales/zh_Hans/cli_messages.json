@@ -867,7 +867,7 @@
     "init_commands": {
       "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.lifeos/config.toml。",
       "create_or_update_local_lifeos_config_file_and_verify_that_database_is": "Create or update the local LifeOS config file and verify that the database is reachable.",
-      "database_url_defaults_to_local_sqlite_file_when_omitted": "未提供 --database-url 时，`init` 默认使用 ~/.lifeos/lifeos.db 这个 SQLite 文件。",
+      "database_url_defaults_to_local_sqlite_file_when_omitted": "当前还没有配置数据库 URL 时，`init` 默认使用 ~/.lifeos/lifeos.db 这个 SQLite 文件。",
       "database_credentials_may_be_stored_in_plain_text_in_config_file": "数据库凭据可以以纯文本形式存储在配置文件中。",
       "default_iana_timezone_for_local_day_boundaries_and_time_based_summaries": "当地日期边界和基于时间的摘要的默认 IANA 时区",
       "default_vision_experience_points_gained_per_hour_of_actual_effort": "默认 `vision` 每小时实际努力获得的经验值",

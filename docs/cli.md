@@ -59,7 +59,7 @@ Initialize local configuration:
 lifeos init
 ```
 
-When `--database-url` is omitted, `lifeos init` defaults to a local SQLite database file at
+When no database URL is configured yet, `lifeos init` defaults to a local SQLite database file at
 `~/.lifeos/lifeos.db`.
 
 Inspect the effective runtime configuration:

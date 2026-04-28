@@ -57,7 +57,7 @@ uv tool install --upgrade "lifeos-cli[postgres]"
 lifeos init
 ```
 
-如果没有显式提供 `--database-url`，`lifeos init` 默认会使用位于 `~/.lifeos/lifeos.db` 的本地 SQLite 数据库。
+如果当前还没有配置数据库 URL，`lifeos init` 默认会使用位于 `~/.lifeos/lifeos.db` 的本地 SQLite 数据库。
 
 这一步既可以由人类自己执行，也可以交给能执行终端命令的 agent 来代为完成。
 
