@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from lifeos_cli.db import session as db_session
 
@@ -20,3 +22,40 @@ def test_clear_session_cache_disposes_cached_engine(
 
     dispose.assert_awaited_once()
     assert db_session._CACHED_ENGINE is None
+
+
+def test_configure_async_engine_enables_sqlite_foreign_keys_only_for_sqlite(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    listened: list[tuple[object, str, object]] = []
+
+    def fake_listen(target: object, event_name: str, listener: object) -> None:
+        listened.append((target, event_name, listener))
+
+    monkeypatch.setattr(db_session.event, "listen", fake_listen)
+
+    sqlite_engine = cast(
+        AsyncEngine,
+        SimpleNamespace(
+            sync_engine=SimpleNamespace(
+                url=SimpleNamespace(drivername="sqlite+aiosqlite"),
+            )
+        ),
+    )
+    postgres_engine = cast(
+        AsyncEngine,
+        SimpleNamespace(
+            sync_engine=SimpleNamespace(
+                url=SimpleNamespace(drivername="postgresql+psycopg"),
+            )
+        ),
+    )
+
+    assert db_session.configure_async_engine(sqlite_engine) is sqlite_engine
+    assert listened == [
+        (sqlite_engine.sync_engine, "connect", db_session._enable_sqlite_foreign_keys)
+    ]
+
+    listened.clear()
+    assert db_session.configure_async_engine(postgres_engine) is postgres_engine
+    assert listened == []

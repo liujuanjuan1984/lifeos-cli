@@ -16,6 +16,13 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
 
+from lifeos_cli.db.backend_policy import (
+    SUPPORTED_DATABASE_DRIVERS,
+    DatabaseBackendPolicy,
+    backend_policy_for_drivername,
+    supported_database_driver_examples,
+)
+
 try:
     import tomllib  # type: ignore[import-not-found]
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
@@ -29,13 +36,6 @@ DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
 DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
 MAX_VISION_EXPERIENCE_RATE_PER_HOUR = 3600
-SUPPORTED_DATABASE_DRIVERS = frozenset(
-    {
-        "postgresql+psycopg",
-        "sqlite+aiosqlite",
-    }
-)
-SCHEMA_CAPABLE_DATABASE_DRIVERS = frozenset({"postgresql+psycopg"})
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LANGUAGE_TAG_PATTERN = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 _DAY_STARTS_AT_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
@@ -57,38 +57,38 @@ def _parse_database_url(database_url: str) -> tuple[str, URL]:
     return normalized, parsed
 
 
-def _supported_database_driver_examples() -> str:
-    return ", ".join(f"`{driver}://`" for driver in sorted(SUPPORTED_DATABASE_DRIVERS))
-
-
 def database_drivername(database_url: str) -> str:
     """Return the SQLAlchemy drivername for one validated database URL."""
     _, parsed = _parse_database_url(database_url)
     return parsed.drivername
 
 
+def database_backend_policy(database_url: str) -> DatabaseBackendPolicy:
+    """Return the backend policy for one validated database URL."""
+    return backend_policy_for_drivername(database_drivername(database_url))
+
+
 def database_url_supports_schema(database_url: str) -> bool:
     """Return whether one database URL supports schema binding."""
-    return database_drivername(database_url) in SCHEMA_CAPABLE_DATABASE_DRIVERS
+    return database_backend_policy(database_url).supports_schema
 
 
 def ensure_database_driver_available(database_url: str) -> None:
     """Ensure the configured SQLAlchemy driver dependencies are installed."""
-    drivername = database_drivername(database_url)
-    if drivername != "postgresql+psycopg":
+    policy = database_backend_policy(database_url)
+    if policy.required_driver_module is None:
         return
     try:
-        import_module("psycopg")
+        import_module(policy.required_driver_module)
     except ModuleNotFoundError as exc:
         raise ConfigurationError(
-            "PostgreSQL support is not installed. Install the `postgres` extra, for example: "
-            'uv tool install --upgrade "lifeos-cli[postgres]".'
+            policy.missing_driver_message or "Database driver is missing."
         ) from exc
 
 
 def _sqlite_database_file_path(parsed: URL) -> Path | None:
     """Return the on-disk SQLite database path when one file is configured."""
-    if parsed.drivername != "sqlite+aiosqlite":
+    if not backend_policy_for_drivername(parsed.drivername).supports_local_file_storage:
         return None
     database_name = parsed.database
     if database_name is None or database_name in {"", ":memory:"}:
@@ -139,13 +139,14 @@ def validate_database_url(database_url: str) -> str:
     if parsed.drivername not in SUPPORTED_DATABASE_DRIVERS:
         raise ConfigurationError(
             "Database URL must use one of the supported SQLAlchemy drivers: "
-            f"{_supported_database_driver_examples()}."
+            f"{supported_database_driver_examples()}."
         )
-    if parsed.drivername == "postgresql+psycopg" and (
+    policy = backend_policy_for_drivername(parsed.drivername)
+    if policy.backend_name == "postgresql" and (
         parsed.database is None or not parsed.database.strip()
     ):
         raise ConfigurationError("Database URL must include a PostgreSQL database name.")
-    if parsed.drivername == "sqlite+aiosqlite":
+    if policy.supports_local_file_storage:
         return _normalize_sqlite_database_url(parsed)
     return normalized
 
@@ -477,12 +478,20 @@ class DatabaseSettings:
         return database_drivername(self.database_url)
 
     @property
-    def database_backend(self) -> str | None:
-        """Return the configured database backend name when available."""
+    def backend_policy(self) -> DatabaseBackendPolicy | None:
+        """Return the backend policy for the configured database URL when available."""
         drivername = self.database_drivername
         if drivername is None:
             return None
-        return drivername.split("+", maxsplit=1)[0]
+        return backend_policy_for_drivername(drivername)
+
+    @property
+    def database_backend(self) -> str | None:
+        """Return the configured database backend name when available."""
+        policy = self.backend_policy
+        if policy is None:
+            return None
+        return policy.backend_name
 
 
 @dataclass(frozen=True)

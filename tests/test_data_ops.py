@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -10,6 +11,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.backend_policy import backend_policy_for_drivername
 from lifeos_cli.db.services import data_ops
 
 
@@ -17,6 +19,14 @@ class FakeBatchSession:
     @asynccontextmanager
     async def begin_nested(self):
         yield self
+
+
+class RecordingSession:
+    def __init__(self) -> None:
+        self.statements: list[object] = []
+
+    async def execute(self, statement: object) -> None:
+        self.statements.append(statement)
 
 
 def test_batch_update_resource_parses_typed_timelog_fields(
@@ -206,6 +216,40 @@ def test_import_bundle_applies_base_rows_before_relations(
     assert call_order[0] == ("truncate", "-")
     assert max(base_positions) < min(sync_positions)
     assert call_order[-1] == ("hooks", "people,tag")
+
+
+def test_truncate_supported_data_uses_backend_replace_strategy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    postgres_session = RecordingSession()
+    sqlite_session = RecordingSession()
+
+    monkeypatch.setattr(
+        data_ops,
+        "get_database_settings",
+        lambda: SimpleNamespace(
+            database_schema="lifeos",
+            backend_policy=backend_policy_for_drivername("postgresql+psycopg"),
+        ),
+    )
+    asyncio.run(data_ops.truncate_supported_data(cast(AsyncSession, postgres_session)))
+
+    assert len(postgres_session.statements) == 1
+    assert "TRUNCATE TABLE" in str(postgres_session.statements[0])
+    assert "CASCADE" in str(postgres_session.statements[0])
+
+    monkeypatch.setattr(
+        data_ops,
+        "get_database_settings",
+        lambda: SimpleNamespace(
+            database_schema=None,
+            backend_policy=backend_policy_for_drivername("sqlite+aiosqlite"),
+        ),
+    )
+    asyncio.run(data_ops.truncate_supported_data(cast(AsyncSession, sqlite_session)))
+
+    assert len(sqlite_session.statements) > 1
+    assert all(str(statement).startswith("DELETE FROM ") for statement in sqlite_session.statements)
 
 
 def test_read_bundle_rejects_missing_manifest(tmp_path: Path) -> None:

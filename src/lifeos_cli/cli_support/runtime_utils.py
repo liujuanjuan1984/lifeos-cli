@@ -93,29 +93,9 @@ def print_database_runtime_error(exc: BaseException) -> int:
     guidance = None
     if isinstance(exc, OperationalError):
         details = str(exc).lower()
-        backend = settings.database_backend
-        if "no password supplied" in details or "password authentication failed" in details:
-            guidance = (
-                "Authentication failed. Check the username/password in the database URL, "
-                "or update them with `lifeos init`."
-            )
-        elif backend == "postgresql" and "does not exist" in details:
-            guidance = (
-                "The configured PostgreSQL database does not exist yet. Create it first, "
-                "then run `lifeos db upgrade`."
-            )
-        elif backend == "postgresql" and (
-            "connection refused" in details or "could not connect" in details
-        ):
-            guidance = (
-                "PostgreSQL is not reachable. Ensure the server is installed, running, "
-                "and listening on the configured host/port."
-            )
-        elif backend == "sqlite" and "unable to open database file" in details:
-            guidance = (
-                "SQLite could not open the configured database file. Ensure the parent "
-                "directory exists and is writable."
-            )
+        policy = settings.backend_policy
+        if policy is not None:
+            guidance = policy.runtime_error_guidance(details)
     if guidance is not None:
         print(guidance, file=sys.stderr)
     print("Run `lifeos init` to create or update local configuration.", file=sys.stderr)
