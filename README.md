@@ -10,13 +10,11 @@
 |_____||___| |_|    |_____| \___/  |____/
 ```
 
-`lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions,
-plans, execution, reflection, and reality.
+`lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions, plans, execution, reflection, and reality.
 
 ## Why It Exists
 
-Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in
-another, notes somewhere else, and actual time spent disappears into scattered logs.
+Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in another, notes somewhere else, and actual time spent disappears into scattered logs.
 
 That makes it unnecessarily hard to answer practical questions such as:
 
@@ -31,8 +29,7 @@ It gives structure to both sides of life:
 - intention: visions, tasks, habits, and planned events
 - reality: notes, timelogs, completed habit actions, and relationship records
 
-The goal is not just storage, but one CLI interface for self-management, reflection, and
-automation.
+The goal is not just storage, but one CLI interface for self-management, reflection, and automation.
 
 ## Getting Started
 
@@ -59,8 +56,7 @@ Initialize your local setup:
 lifeos init
 ```
 
-For local-first use, `lifeos init` can bootstrap SQLite without requiring a separate database
-service. Use `lifeos init --help` for backend-specific defaults and examples.
+For local-first use, `lifeos init` can bootstrap SQLite without requiring a separate database service. Use `lifeos init --help` for backend-specific defaults and examples.
 
 You can run that step yourself, or ask an agent that can run terminal commands to do it for you.
 
@@ -91,9 +87,7 @@ For complete CLI usage, workflows, and output conventions, see [docs/cli.md](doc
 
 ## Agent Use (Recommended)
 
-Any agent runtime that can execute terminal commands and inspect command output can operate the
-same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or
-your own setup.
+Any agent runtime that can execute terminal commands and inspect command output can operate the same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or your own setup.
 
 - stable grammar: `lifeos <resource> <action> [arguments] [options]`
 - help-first command model, with `--help` as the primary command reference
@@ -117,13 +111,10 @@ The current system already covers the core building blocks of a practical LifeOS
 
 Cross-cutting capabilities:
 
-- a `schedule` read model that aggregates tasks, habit actions, and planned events into day and
-  range views
-- recurring event expansion and recurring habit cadence support, including on-demand habit-action
-  materialization
+- a `schedule` read model that aggregates tasks, habit actions, and planned events into day and range views
+- recurring event expansion and recurring habit cadence support, including on-demand habit-action materialization
 - generic note associations across tasks, visions, events, people, timelogs, and tags
-- persisted runtime configuration for database access plus preferences such as timezone, language,
-  day boundary, week boundary, and vision experience defaults
+- persisted runtime configuration for database access plus preferences such as timezone, language, day boundary, week boundary, and vision experience defaults
 - localized CLI help and stable summary-table output for direct human use and agent consumption
 
 ## Project Policies

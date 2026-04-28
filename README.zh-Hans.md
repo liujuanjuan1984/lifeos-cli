@@ -14,8 +14,7 @@ English: [README.md](README.md)
 
 ## 为什么做它
 
-大多数个人系统会把生活拆散到多个互不相通的工具里。任务在一个地方，日程在另一个地方，笔记在别处，
-实际投入的时间又散落在各种零碎记录里。
+大多数个人系统会把生活拆散到多个互不相通的工具里。任务在一个地方，日程在另一个地方，笔记在别处，实际投入的时间又散落在各种零碎记录里。
 
 这会让一些本来很实际的问题变得很难回答：
 
@@ -88,9 +87,7 @@ lifeos timelog list --date 2026-04-13
 
 ## Agent 使用（推荐）
 
-任意能够执行终端命令并读取命令输出的 agent runtime 都可以操作同一套 CLI。
-这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，
-以及你自己的自定义 agent runtime。
+任意能够执行终端命令并读取命令输出的 agent runtime 都可以操作同一套 CLI。这包括但不限于 Codex、OpenCode、Swival、Claude Code、Cursor、Gemini CLI、OpenClaw，以及你自己的自定义 agent runtime。
 
 - 稳定的命令语法：`lifeos <resource> <action> [arguments] [options]`
 - 以 `--help` 作为主命令参考的 help-first 模型

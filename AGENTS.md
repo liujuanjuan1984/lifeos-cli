@@ -19,11 +19,8 @@ The following rules apply to coding agent collaboration in this repository. Thes
 
 - Use Simplified Chinese for issues, PR descriptions, comments, and review notes.
 - Use English for code, comments, commit messages, and canonical repository documents.
-- Localized Markdown companions are allowed when they are explicitly scoped, linked from the
-  canonical English document, and kept aligned with it.
-- Keep the root `README.md` in English as the canonical repository entrypoint. Localized companions
-  such as `README.zh-Hans.md` must link back to `README.md`, and `README.md` should link to the
-  available localized companion documents.
+- Localized Markdown companions are allowed when they are explicitly scoped, linked from the canonical English document, and kept aligned with it.
+- Keep the root `README.md` in English as the canonical repository entrypoint. Localized companions such as `README.zh-Hans.md` must link back to `README.md`, and `README.md` should link to the available localized companion documents.
 - For multi-line PR bodies or comments, write to a temporary file first and pass it through `gh`.
 
 ## 4. Validation and Release Safety
@@ -32,9 +29,7 @@ The following rules apply to coding agent collaboration in this repository. Thes
   ```bash
   bash ./scripts/doctor.sh
   ```
-- Treat the dead-code scan as part of the primary validation gate. Do not delete framework-driven
-  symbols only to satisfy generic static analysis; update `scripts/vulture_whitelist.py` when a
-  tool-required symbol must remain intentionally reachable.
+- Treat the dead-code scan as part of the primary validation gate. Do not delete framework-driven symbols only to satisfy generic static analysis; update `scripts/vulture_whitelist.py` when a tool-required symbol must remain intentionally reachable.
 - If changes affect compatibility claims, packaging metadata, or CI, validate the impacted Python versions explicitly.
 - Keep release-related changes aligned with:
   - [pyproject.toml](pyproject.toml)
@@ -46,8 +41,7 @@ The following rules apply to coding agent collaboration in this repository. Thes
 
 - Never commit secrets, tokens, private keys, or `.env` contents.
 - Ensure logs and examples do not expose credentials or sensitive local paths unintentionally.
-- Update [SECURITY.md](SECURITY.md), [README.md](README.md), localized README companions, and
-  release-related docs when changing publishing, dependency, or security-sensitive behavior.
+- Update [SECURITY.md](SECURITY.md), [README.md](README.md), localized README companions, and release-related docs when changing publishing, dependency, or security-sensitive behavior.
 
 ## 6. CLI Help and Tests
 

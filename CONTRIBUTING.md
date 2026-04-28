@@ -31,12 +31,7 @@ Run the default validation baseline before opening a PR:
 bash ./scripts/doctor.sh
 ```
 
-The default validation baseline includes dead-code scanning through `vulture`.
-It validates locked dependency resolution, runs lint plus the default non-integration test suite,
-exports runtime requirements for `pip-audit`, builds package artifacts, and then calls
-`bash ./scripts/integration_tests.sh` as the explicit PostgreSQL-backed integration entrypoint.
-When `LIFEOS_TEST_DATABASE_URL` is unset, the integration script reports an explicit skip and
-`doctor.sh` finishes with a warning that PostgreSQL CLI coverage did not run.
+The default validation baseline includes dead-code scanning through `vulture`. It validates locked dependency resolution, runs lint plus the default non-integration test suite, exports runtime requirements for `pip-audit`, builds package artifacts, and then calls `bash ./scripts/integration_tests.sh` as the explicit PostgreSQL-backed integration entrypoint. When `LIFEOS_TEST_DATABASE_URL` is unset, the integration script reports an explicit skip and `doctor.sh` finishes with a warning that PostgreSQL CLI coverage did not run.
 
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
@@ -54,13 +49,9 @@ LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432
 bash ./scripts/integration_tests.sh
 ```
 
-Integration tests normalize `LIFEOS_TEST_DATABASE_URL` to a database name that contains `test`.
-If you point the variable at `.../lifeos`, the test support layer rewrites it to `.../lifeos_test`
-before any CLI setup or cleanup runs.
+Integration tests normalize `LIFEOS_TEST_DATABASE_URL` to a database name that contains `test`. If you point the variable at `.../lifeos`, the test support layer rewrites it to `.../lifeos_test` before any CLI setup or cleanup runs.
 
-For local convenience, `scripts/doctor.sh` and `scripts/integration_tests.sh` also load a
-project-root `.env` file when present. Keep `.env` untracked and use it only for machine-local
-development settings such as `LIFEOS_TEST_DATABASE_URL`.
+For local convenience, `scripts/doctor.sh` and `scripts/integration_tests.sh` also load a project-root `.env` file when present. Keep `.env` untracked and use it only for machine-local development settings such as `LIFEOS_TEST_DATABASE_URL`.
 
 If you change dependency or release workflows, also run:
 
@@ -71,27 +62,20 @@ bash ./scripts/dependency_health.sh
 Dependency maintenance policy:
 
 - `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
-- `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated
-  packages and dependency-related health checks.
+- `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dependency-related health checks.
 
 Static-analysis governance:
 
-- Treat framework-driven symbols as intentional API surface when they are required by the toolchain.
-  Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`,
-  SQLAlchemy declarative hooks, and argparse translation hooks.
+- Treat framework-driven symbols as intentional API surface when they are required by the toolchain. Examples in this repository include Alembic revision metadata, pytest fixtures and `pytestmark`, SQLAlchemy declarative hooks, and argparse translation hooks.
 - Do not delete those symbols just to satisfy a generic dead-code scanner.
-- `scripts/dead_code_check.sh` keeps the name-based ignore list for Alembic revision metadata and
-  module-level `pytestmark`; use `scripts/vulture_whitelist.py` for importable framework symbols
-  that must stay intentionally reachable.
+- `scripts/dead_code_check.sh` keeps the name-based ignore list for Alembic revision metadata and module-level `pytestmark`; use `scripts/vulture_whitelist.py` for importable framework symbols that must stay intentionally reachable.
 - Keep intentional false positives documented in `scripts/vulture_whitelist.py`.
-- If you add a new framework-driven symbol that `vulture` cannot resolve, update the whitelist in
-  the same change.
+- If you add a new framework-driven symbol that `vulture` cannot resolve, update the whitelist in the same change.
 
 ## Change Expectations
 
 - Keep code, comments, commit messages, and canonical repository docs in English.
-- Localized Markdown companions are allowed when the English source stays canonical, the documents
-  are cross-linked, and the localized copy is updated together with the source.
+- Localized Markdown companions are allowed when the English source stays canonical, the documents are cross-linked, and the localized copy is updated together with the source.
 - Keep issue and PR collaboration in Simplified Chinese for this repository.
 - Prefer explicit, additive changes over hidden behavioral shifts.
 - Keep Python compatibility declarations, CI matrices, and packaging metadata consistent with each other.
@@ -118,10 +102,8 @@ Update docs together with code whenever you change:
 Documentation language policy:
 
 - Keep `README.md` as the canonical English entry document.
-- Localized entry documents such as `README.zh-Hans.md` are allowed when they clearly link to the
-  canonical English version and the English version links back to them.
-- Avoid duplicating command-level facts in repository docs across languages. CLI help remains the
-  primary command reference.
+- Localized entry documents such as `README.zh-Hans.md` are allowed when they clearly link to the canonical English version and the English version links back to them.
+- Avoid duplicating command-level facts in repository docs across languages. CLI help remains the primary command reference.
 
 For CLI-facing changes:
 
