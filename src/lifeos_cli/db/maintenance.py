@@ -9,7 +9,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
 
-from lifeos_cli.config import get_database_settings
+from lifeos_cli.config import ensure_database_url_storage_ready, get_database_settings
 from lifeos_cli.db.session import get_async_engine
 
 
@@ -32,9 +32,11 @@ def build_alembic_config(*, sqlalchemy_url: str, stack: ExitStack) -> Config:
 def upgrade_database(revision: str = "head") -> None:
     """Apply Alembic migrations to the configured database."""
     settings = get_database_settings()
+    database_url = settings.require_database_url()
+    ensure_database_url_storage_ready(database_url)
     with ExitStack() as stack:
         alembic_config = build_alembic_config(
-            sqlalchemy_url=settings.require_database_url(),
+            sqlalchemy_url=database_url,
             stack=stack,
         )
         command.upgrade(alembic_config, revision)

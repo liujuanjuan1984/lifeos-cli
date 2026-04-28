@@ -42,7 +42,6 @@ def test_cli_sqlite_workflow_supports_upgrade_and_core_queries(
 ) -> None:
     config_path = tmp_path / "lifeos-config.toml"
     database_path = tmp_path / "sqlite" / "lifeos.db"
-    database_path.parent.mkdir(parents=True, exist_ok=True)
     database_url = f"sqlite+aiosqlite:///{database_path}"
 
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))

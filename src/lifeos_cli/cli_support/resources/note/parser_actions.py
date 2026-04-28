@@ -202,7 +202,7 @@ def build_note_search_parser(
                 _("resources.note.parser_actions.search_notes_by_keyword_tokens")
                 + "\n\n"
                 + _(
-                    "resources.note.parser_actions.search_uses_postgresql_backed_ilike_token_matching_each_token_is_checked_against"
+                    "resources.note.parser_actions.search_uses_case_insensitive_token_matching_each_token_is_checked_against_note_content"
                 )
             ),
             examples=(

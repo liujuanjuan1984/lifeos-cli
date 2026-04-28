@@ -66,16 +66,18 @@ def test_upgrade_database_uses_packaged_alembic_config(
     assert Path(script_location_text).joinpath("env.py").is_file()
 
 
-def test_upgrade_database_supports_sqlite_file(tmp_path: Path) -> None:
-    database_path = tmp_path / "lifeos.db"
+def test_upgrade_database_supports_sqlite_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database_path = tmp_path / "missing-dir" / "lifeos.db"
     sqlalchemy_url = f"sqlite+aiosqlite:///{database_path}"
-
-    with ExitStack() as stack:
-        config = maintenance.build_alembic_config(
-            sqlalchemy_url=sqlalchemy_url,
-            stack=stack,
-        )
-        maintenance.command.upgrade(config, "head")
+    monkeypatch.setattr(
+        maintenance,
+        "get_database_settings",
+        lambda: SimpleNamespace(require_database_url=lambda: sqlalchemy_url),
+    )
+    maintenance.upgrade_database("head")
 
     with sqlite3.connect(database_path) as connection:
         table_names = {

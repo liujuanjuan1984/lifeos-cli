@@ -15,6 +15,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    database_drivername,
     database_url_supports_schema,
     detect_default_language,
     detect_default_timezone,
@@ -214,6 +215,14 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
 
     if normalized_key == "database.url":
         validated_database_url = validate_database_url(value)
+        current_backend = database_settings.database_backend
+        next_backend = database_drivername(validated_database_url).split("+", maxsplit=1)[0]
+        if current_backend is not None and current_backend != next_backend:
+            raise ConfigurationError(
+                "Switching between PostgreSQL and SQLite with `config set database.url` is not "
+                "supported. Re-run `lifeos init --database-url ...` and provide `--schema` "
+                "when targeting PostgreSQL."
+            )
         database_settings = replace(
             database_settings,
             database_url=validated_database_url,

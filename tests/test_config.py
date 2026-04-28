@@ -242,6 +242,14 @@ def test_validate_database_url_requires_postgresql_psycopg_driver() -> None:
         raise AssertionError("unsupported driver should fail validation")
 
 
+def test_validate_database_url_expands_sqlite_home_directory() -> None:
+    expected_path = Path("~/.local/share/lifeos/lifeos.db").expanduser()
+
+    assert validate_database_url("sqlite+aiosqlite:///~/.local/share/lifeos/lifeos.db") == (
+        f"sqlite+aiosqlite:///{expected_path}"
+    )
+
+
 def test_database_settings_omit_schema_for_sqlite_url(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     settings = DatabaseSettings.from_env(
@@ -531,7 +539,7 @@ def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Pa
     )
 
 
-def test_set_runtime_config_value_clears_schema_when_switching_to_sqlite(
+def test_set_runtime_config_value_rejects_backend_switch_between_postgresql_and_sqlite(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -558,15 +566,57 @@ def test_set_runtime_config_value_clears_schema_when_switching_to_sqlite(
         encoding="utf-8",
     )
 
-    result = set_runtime_config_value(
-        key="database.url",
-        value="sqlite+aiosqlite:///tmp/lifeos.db",
+    try:
+        set_runtime_config_value(
+            key="database.url",
+            value="sqlite+aiosqlite:///tmp/lifeos.db",
+        )
+    except ConfigurationError as exc:
+        assert "Switching between PostgreSQL and SQLite" in str(exc)
+        assert "lifeos init --database-url" in str(exc)
+    else:
+        raise AssertionError("cross-backend config set should fail")
+
+    content = config_path.read_text(encoding="utf-8")
+    assert 'url = "postgresql+psycopg://localhost/lifeos"' in content
+    assert 'schema = "lifeos_dev"' in content
+
+
+def test_set_runtime_config_value_updates_sqlite_url_within_same_backend(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'url = "sqlite+aiosqlite:///tmp/old-lifeos.db"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+            )
+        ),
+        encoding="utf-8",
     )
 
-    assert result.database_settings.database_url == "sqlite+aiosqlite:///tmp/lifeos.db"
+    result = set_runtime_config_value(
+        key="database.url",
+        value="sqlite+aiosqlite:///tmp/new-lifeos.db",
+    )
+
+    assert result.database_settings.database_url == "sqlite+aiosqlite:///tmp/new-lifeos.db"
     assert result.database_settings.database_schema is None
     content = config_path.read_text(encoding="utf-8")
-    assert 'url = "sqlite+aiosqlite:///tmp/lifeos.db"' in content
+    assert 'url = "sqlite+aiosqlite:///tmp/new-lifeos.db"' in content
     assert "schema =" not in content
 
 

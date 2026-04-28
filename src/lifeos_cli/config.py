@@ -70,6 +70,35 @@ def database_url_supports_schema(database_url: str) -> bool:
     return database_drivername(database_url) in SCHEMA_CAPABLE_DATABASE_DRIVERS
 
 
+def _sqlite_database_file_path(parsed: URL) -> Path | None:
+    """Return the on-disk SQLite database path when one file is configured."""
+    if parsed.drivername != "sqlite+aiosqlite":
+        return None
+    database_name = parsed.database
+    if database_name is None or database_name in {"", ":memory:"}:
+        return None
+    if database_name.startswith("file:") or parsed.query.get("uri") in {"1", "true"}:
+        return None
+    return Path(database_name).expanduser()
+
+
+def _normalize_sqlite_database_url(parsed: URL) -> str:
+    """Render one SQLite URL with a normalized filesystem path when applicable."""
+    database_path = _sqlite_database_file_path(parsed)
+    if database_path is None:
+        return parsed.render_as_string(hide_password=False)
+    return parsed.set(database=str(database_path)).render_as_string(hide_password=False)
+
+
+def ensure_database_url_storage_ready(database_url: str) -> None:
+    """Create local storage prerequisites for file-backed database URLs."""
+    _, parsed = _parse_database_url(database_url)
+    database_path = _sqlite_database_file_path(parsed)
+    if database_path is None:
+        return
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+
+
 def normalize_database_schema(
     *,
     database_url: str | None,
@@ -100,6 +129,8 @@ def validate_database_url(database_url: str) -> str:
         parsed.database is None or not parsed.database.strip()
     ):
         raise ConfigurationError("Database URL must include a PostgreSQL database name.")
+    if parsed.drivername == "sqlite+aiosqlite":
+        return _normalize_sqlite_database_url(parsed)
     return normalized
 
 
@@ -426,13 +457,6 @@ class DatabaseSettings:
         if drivername is None:
             return None
         return drivername.split("+", maxsplit=1)[0]
-
-    @property
-    def supports_database_schema(self) -> bool:
-        """Return whether the configured backend supports schema binding."""
-        if self.database_url is None:
-            return self.database_schema is not None
-        return database_url_supports_schema(self.database_url)
 
 
 @dataclass(frozen=True)

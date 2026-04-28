@@ -27,7 +27,8 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
             examples=(
                 "lifeos init",
-                "lifeos init --database-url sqlite+aiosqlite:///~/.local/share/lifeos/lifeos.db",
+                "lifeos init --database-url "
+                "sqlite+aiosqlite:///$HOME/.local/share/lifeos/lifeos.db",
                 "lifeos init --non-interactive --database-url "
                 "postgresql+psycopg://<db-user>:<db-password>@localhost:5432/lifeos "
                 "--schema lifeos --timezone America/Toronto --language zh-Hans --skip-migrate",
@@ -59,12 +60,12 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     )
     init_parser.add_argument(
         "--database-url",
-        help=_("system.init_commands.postgresql_connection_url_to_persist_in_config_file"),
+        help=_("system.init_commands.database_connection_url_to_persist_in_config_file"),
     )
     init_parser.add_argument(
         "--schema",
         default=None,
-        help=_("system.init_commands.postgresql_schema_name_to_use_for_application_tables"),
+        help=_("system.init_commands.optional_schema_name_for_schema_capable_backends"),
     )
     init_parser.add_argument(
         "--echo",
