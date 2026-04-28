@@ -81,6 +81,40 @@ def test_main_init_non_interactive_writes_config(
     clear_config_cache()
 
 
+def test_main_init_non_interactive_defaults_to_sqlite_when_database_url_is_omitted(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    database_path = config_path.parent / "lifeos.db"
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(
+        config_handlers,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--non-interactive",
+            "--skip-ping",
+            "--skip-migrate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Database URL: sqlite+aiosqlite:///{database_path}" in captured.out
+    assert "Database schema:" not in captured.out
+    content = config_path.read_text(encoding="utf-8")
+    assert f'url = "sqlite+aiosqlite:///{database_path}"' in content
+    assert "schema =" not in content
+    clear_config_cache()
+
+
 def test_main_init_does_not_prompt_for_explicit_database_url(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -171,6 +205,46 @@ def test_main_init_sqlite_does_not_prompt_for_schema_or_write_schema(
     assert "Database schema:" not in captured.out
     assert all(not prompt.startswith("Database schema") for prompt in prompts)
     assert "schema =" not in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
+def test_main_init_interactive_accepts_default_sqlite_database_url(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    database_path = config_path.parent / "lifeos.db"
+    prompts: list[str] = []
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(
+        config_handlers,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
+    monkeypatch.setattr(config_handlers.sys.stdin, "isatty", lambda: True)
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return ""
+
+    monkeypatch.setattr(builtins, "input", fake_input)
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--skip-ping",
+            "--skip-migrate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert prompts[0] == f"Database URL [sqlite+aiosqlite:///{database_path}]: "
+    assert "Database schema:" not in captured.out
+    assert all(not prompt.startswith("Database schema") for prompt in prompts)
+    assert f'url = "sqlite+aiosqlite:///{database_path}"' in config_path.read_text(encoding="utf-8")
     clear_config_cache()
 
 

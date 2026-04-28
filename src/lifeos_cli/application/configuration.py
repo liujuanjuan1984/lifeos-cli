@@ -17,6 +17,7 @@ from lifeos_cli.config import (
     PreferencesSettings,
     database_drivername,
     database_url_supports_schema,
+    default_sqlite_database_url,
     detect_default_language,
     detect_default_timezone,
     ensure_database_driver_available,
@@ -93,7 +94,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             database_echo=False,
             config_file=config_path,
         )
-    database_url = request.database_url or current.database_url
+    database_url = request.database_url or current.database_url or default_sqlite_database_url()
     database_echo = current.database_echo if request.echo is None else request.echo
     if database_url is not None:
         database_url = validate_database_url(database_url)
@@ -124,11 +125,6 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             database_schema = request.prompts.prompt_database_schema(database_schema)
         if request.echo is None:
             database_echo = request.prompts.prompt_database_echo(database_echo)
-
-    if database_url is None:
-        raise ConfigurationError(
-            "Database URL is required. Provide --database-url or run `lifeos init` interactively."
-        )
 
     return DatabaseSettings(
         database_url=database_url,

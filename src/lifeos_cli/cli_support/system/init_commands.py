@@ -36,6 +36,7 @@ def build_init_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                 _(
                     "system.init_commands.configuration_is_written_to_config_lifeos_config_toml_by_default"
                 ),
+                _("system.init_commands.database_url_defaults_to_local_sqlite_file_when_omitted"),
                 _(
                     "system.init_commands.environment_variables_still_override_config_file_values_at_runtime"
                 ),

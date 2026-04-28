@@ -23,6 +23,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
 
 DEFAULT_DATABASE_SCHEMA = "lifeos"
 DEFAULT_CONFIG_PATH = Path.home() / ".lifeos" / "config.toml"
+DEFAULT_SQLITE_DATABASE_FILENAME = "lifeos.db"
 DEFAULT_LANGUAGE = "en"
 DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
@@ -349,6 +350,16 @@ def resolve_config_path(env: Mapping[str, str] | None = None) -> Path:
     if configured_path:
         return Path(configured_path).expanduser()
     return DEFAULT_CONFIG_PATH
+
+
+def default_sqlite_database_path(env: Mapping[str, str] | None = None) -> Path:
+    """Return the default file-backed SQLite database path."""
+    return resolve_config_path(env).parent / DEFAULT_SQLITE_DATABASE_FILENAME
+
+
+def default_sqlite_database_url(env: Mapping[str, str] | None = None) -> str:
+    """Return the normalized default SQLite database URL."""
+    return validate_database_url(f"sqlite+aiosqlite:///{default_sqlite_database_path(env)}")
 
 
 def load_config_file(config_path: Path) -> dict[str, Any]:

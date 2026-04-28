@@ -14,6 +14,8 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    default_sqlite_database_path,
+    default_sqlite_database_url,
     detect_default_language,
     ensure_database_driver_available,
     parse_boolean_value,
@@ -258,6 +260,23 @@ def test_resolve_config_path_defaults_to_lifeos_home_directory() -> None:
     assert DEFAULT_CONFIG_PATH == Path.home() / ".lifeos" / "config.toml"
 
 
+def test_default_sqlite_database_path_follows_config_directory(tmp_path: Path) -> None:
+    config_path = tmp_path / "nested" / "config.toml"
+
+    assert default_sqlite_database_path({"LIFEOS_CONFIG_FILE": str(config_path)}) == (
+        config_path.parent / "lifeos.db"
+    )
+
+
+def test_default_sqlite_database_url_uses_default_file_name(tmp_path: Path) -> None:
+    config_path = tmp_path / "nested" / "config.toml"
+    expected_path = config_path.parent / "lifeos.db"
+
+    assert default_sqlite_database_url({"LIFEOS_CONFIG_FILE": str(config_path)}) == (
+        f"sqlite+aiosqlite:///{expected_path}"
+    )
+
+
 def test_ensure_database_driver_available_requires_postgres_extra(
     monkeypatch,
 ) -> None:
@@ -326,6 +345,33 @@ def test_build_database_settings_skip_schema_for_sqlite_prompts(
     assert settings.database_url == "sqlite+aiosqlite:///lifeos.db"
     assert settings.database_schema is None
     assert captured_defaults == []
+
+
+def test_build_database_settings_defaults_to_sqlite_when_database_url_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone=None,
+        language=None,
+        day_starts_at=None,
+        week_starts_on=None,
+        vision_experience_rate_per_hour=None,
+        non_interactive=True,
+        is_interactive=False,
+        prompts=None,
+    )
+
+    settings = build_database_settings(request)
+
+    assert settings.database_url == f"sqlite+aiosqlite:///{config_path.parent / 'lifeos.db'}"
+    assert settings.database_schema is None
+    assert settings.database_echo is False
 
 
 def test_build_database_settings_rejects_explicit_sqlite_schema(

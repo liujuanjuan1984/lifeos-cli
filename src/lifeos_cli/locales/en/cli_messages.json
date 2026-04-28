@@ -867,6 +867,7 @@
     "init_commands": {
       "configuration_is_written_to_config_lifeos_config_toml_by_default": "Configuration is written to ~/.lifeos/config.toml by default.",
       "create_or_update_local_lifeos_config_file_and_verify_that_database_is": "Create or update the local LifeOS config file and verify that the database is reachable.",
+      "database_url_defaults_to_local_sqlite_file_when_omitted": "When --database-url is omitted, `init` defaults to SQLite at ~/.lifeos/lifeos.db.",
       "database_credentials_may_be_stored_in_plain_text_in_config_file": "Database credentials may be stored in plain text in the config file.",
       "default_iana_timezone_for_local_day_boundaries_and_time_based_summaries": "Default IANA timezone for local day boundaries and time-based summaries",
       "default_vision_experience_points_gained_per_hour_of_actual_effort": "Default vision experience points gained per hour of actual effort",
