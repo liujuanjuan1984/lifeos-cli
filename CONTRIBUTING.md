@@ -54,6 +54,10 @@ LIFEOS_TEST_DATABASE_URL=postgresql+psycopg://postgres:<password>@127.0.0.1:5432
 bash ./scripts/integration_tests.sh
 ```
 
+Integration tests normalize `LIFEOS_TEST_DATABASE_URL` to a database name that contains `test`.
+If you point the variable at `.../lifeos`, the test support layer rewrites it to `.../lifeos_test`
+before any CLI setup or cleanup runs.
+
 For local convenience, `scripts/doctor.sh` and `scripts/integration_tests.sh` also load a
 project-root `.env` file when present. Keep `.env` untracked and use it only for machine-local
 development settings such as `LIFEOS_TEST_DATABASE_URL`.

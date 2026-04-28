@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-
 ReplaceExistingStrategy = Literal["truncate_cascade", "delete_sorted_tables"]
 
 

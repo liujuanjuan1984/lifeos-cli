@@ -10,9 +10,7 @@ from lifeos_cli.db.backend_policy import (
 
 
 def test_backend_policy_declares_supported_driver_examples() -> None:
-    assert SUPPORTED_DATABASE_DRIVERS == frozenset(
-        {"postgresql+psycopg", "sqlite+aiosqlite"}
-    )
+    assert SUPPORTED_DATABASE_DRIVERS == frozenset({"postgresql+psycopg", "sqlite+aiosqlite"})
     assert supported_database_driver_examples() == (
         "`postgresql+psycopg://`, `sqlite+aiosqlite://`"
     )
