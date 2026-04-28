@@ -12,7 +12,7 @@ clean_build_artifacts() {
 }
 
 echo "[doctor] sync dependencies"
-uv sync --all-extras --frozen
+uv sync --extra dev --frozen
 
 echo "[doctor] run lint"
 uv run pre-commit run --all-files

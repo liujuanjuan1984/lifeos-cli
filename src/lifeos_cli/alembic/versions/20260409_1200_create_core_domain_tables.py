@@ -11,9 +11,15 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
+
+
+def _qualified_column(schema_name: str | None, table_name: str, column_name: str) -> str:
+    if schema_name is None:
+        return f"{table_name}.{column_name}"
+    return f"{schema_name}.{table_name}.{column_name}"
 
 
 def upgrade() -> None:
@@ -41,6 +47,7 @@ def upgrade() -> None:
         unique=True,
         schema=schema_name,
         postgresql_where=sa.text("deleted_at IS NULL"),
+        sqlite_where=sa.text("deleted_at IS NULL"),
     )
     op.create_index(
         op.f("ix_areas_display_order"),
@@ -71,6 +78,7 @@ def upgrade() -> None:
         unique=True,
         schema=schema_name,
         postgresql_where=sa.text("deleted_at IS NULL"),
+        sqlite_where=sa.text("deleted_at IS NULL"),
     )
     op.create_index(
         "ix_tags_name_entity_type_category",
@@ -118,7 +126,7 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["area_id"],
-            [f"{schema_name}.areas.id"],
+            [_qualified_column(schema_name, "areas", "id")],
             name=op.f("fk_visions_area_id_areas"),
             ondelete="SET NULL",
         ),
@@ -168,13 +176,13 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["parent_task_id"],
-            [f"{schema_name}.tasks.id"],
+            [_qualified_column(schema_name, "tasks", "id")],
             name=op.f("fk_tasks_parent_task_id_tasks"),
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["vision_id"],
-            [f"{schema_name}.visions.id"],
+            [_qualified_column(schema_name, "visions", "id")],
             name=op.f("fk_tasks_vision_id_visions"),
             ondelete="CASCADE",
         ),
@@ -227,7 +235,7 @@ def upgrade() -> None:
         sa.Column("tag_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["tag_id"],
-            [f"{schema_name}.tags.id"],
+            [_qualified_column(schema_name, "tags", "id")],
             name=op.f("fk_tag_associations_tag_id_tags"),
             ondelete="CASCADE",
         ),

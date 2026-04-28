@@ -11,9 +11,15 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
+
+
+def _qualified_column(schema_name: str | None, table_name: str, column_name: str) -> str:
+    if schema_name is None:
+        return f"{table_name}.{column_name}"
+    return f"{schema_name}.{table_name}.{column_name}"
 
 
 def upgrade() -> None:
@@ -31,7 +37,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
             ["area_id"],
-            [f"{schema_name}.areas.id"],
+            [_qualified_column(schema_name, "areas", "id")],
             name=op.f("fk_daily_timelog_stats_groupby_area_area_id_areas"),
             ondelete="CASCADE",
         ),
@@ -80,7 +86,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
             ["area_id"],
-            [f"{schema_name}.areas.id"],
+            [_qualified_column(schema_name, "areas", "id")],
             name=op.f("fk_aggregated_timelog_stats_groupby_area_area_id_areas"),
             ondelete="CASCADE",
         ),

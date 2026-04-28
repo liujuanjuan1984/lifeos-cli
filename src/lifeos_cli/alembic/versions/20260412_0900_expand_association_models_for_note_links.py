@@ -10,64 +10,50 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
 
 
 def upgrade() -> None:
     schema_name = _schema_name()
 
-    op.drop_constraint(
-        "ck_associations_source_model_valid",
-        "associations",
-        schema=schema_name,
-        type_="check",
-    )
-    op.drop_constraint(
-        "ck_associations_target_model_valid",
-        "associations",
-        schema=schema_name,
-        type_="check",
-    )
-    op.create_check_constraint(
-        "ck_associations_source_model_valid",
-        "associations",
-        "source_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
-        schema=schema_name,
-    )
-    op.create_check_constraint(
-        "ck_associations_target_model_valid",
-        "associations",
-        "target_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
-        schema=schema_name,
-    )
+    with op.batch_alter_table("associations", schema=schema_name) as batch_op:
+        batch_op.drop_constraint(
+            "ck_associations_source_model_valid",
+            type_="check",
+        )
+        batch_op.drop_constraint(
+            "ck_associations_target_model_valid",
+            type_="check",
+        )
+        batch_op.create_check_constraint(
+            "ck_associations_source_model_valid",
+            "source_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
+        )
+        batch_op.create_check_constraint(
+            "ck_associations_target_model_valid",
+            "target_model IN ('event', 'note', 'person', 'task', 'timelog', 'vision')",
+        )
 
 
 def downgrade() -> None:
     schema_name = _schema_name()
 
-    op.drop_constraint(
-        "ck_associations_source_model_valid",
-        "associations",
-        schema=schema_name,
-        type_="check",
-    )
-    op.drop_constraint(
-        "ck_associations_target_model_valid",
-        "associations",
-        schema=schema_name,
-        type_="check",
-    )
-    op.create_check_constraint(
-        "ck_associations_source_model_valid",
-        "associations",
-        "source_model IN ('note', 'person', 'task', 'timelog')",
-        schema=schema_name,
-    )
-    op.create_check_constraint(
-        "ck_associations_target_model_valid",
-        "associations",
-        "target_model IN ('note', 'person', 'task', 'timelog')",
-        schema=schema_name,
-    )
+    with op.batch_alter_table("associations", schema=schema_name) as batch_op:
+        batch_op.drop_constraint(
+            "ck_associations_source_model_valid",
+            type_="check",
+        )
+        batch_op.drop_constraint(
+            "ck_associations_target_model_valid",
+            type_="check",
+        )
+        batch_op.create_check_constraint(
+            "ck_associations_source_model_valid",
+            "source_model IN ('note', 'person', 'task', 'timelog')",
+        )
+        batch_op.create_check_constraint(
+            "ck_associations_target_model_valid",
+            "target_model IN ('note', 'person', 'task', 'timelog')",
+        )

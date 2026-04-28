@@ -90,9 +90,7 @@ def build_db_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
         "upgrade",
         help_content=HelpContent(
             summary=_("system.db_commands.apply_migrations"),
-            description=_(
-                "system.db_commands.apply_alembic_migrations_to_configured_postgresql_database"
-            ),
+            description=_("system.db_commands.apply_alembic_migrations_to_configured_database"),
             examples=("lifeos db upgrade",),
             notes=(
                 _(

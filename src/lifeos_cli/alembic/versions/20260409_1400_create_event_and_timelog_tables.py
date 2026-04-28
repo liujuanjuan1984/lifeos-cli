@@ -11,9 +11,15 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
+
+
+def _qualified_column(schema_name: str | None, table_name: str, column_name: str) -> str:
+    if schema_name is None:
+        return f"{table_name}.{column_name}"
+    return f"{schema_name}.{table_name}.{column_name}"
 
 
 def upgrade() -> None:
@@ -26,7 +32,7 @@ def upgrade() -> None:
         sa.Column("person_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["person_id"],
-            [f"{schema_name}.people.id"],
+            [_qualified_column(schema_name, "people", "id")],
             name=op.f("fk_person_associations_person_id_people"),
             ondelete="CASCADE",
         ),
@@ -70,13 +76,13 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["area_id"],
-            [f"{schema_name}.areas.id"],
+            [_qualified_column(schema_name, "areas", "id")],
             name=op.f("fk_events_area_id_areas"),
             ondelete="SET NULL",
         ),
         sa.ForeignKeyConstraint(
             ["task_id"],
-            [f"{schema_name}.tasks.id"],
+            [_qualified_column(schema_name, "tasks", "id")],
             name=op.f("fk_events_task_id_tasks"),
             ondelete="SET NULL",
         ),
@@ -135,13 +141,13 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["area_id"],
-            [f"{schema_name}.areas.id"],
+            [_qualified_column(schema_name, "areas", "id")],
             name=op.f("fk_timelogs_area_id_areas"),
             ondelete="SET NULL",
         ),
         sa.ForeignKeyConstraint(
             ["task_id"],
-            [f"{schema_name}.tasks.id"],
+            [_qualified_column(schema_name, "tasks", "id")],
             name=op.f("fk_timelogs_task_id_tasks"),
             ondelete="SET NULL",
         ),

@@ -11,53 +11,45 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
 
 
 def upgrade() -> None:
     schema_name = _schema_name()
 
-    op.add_column(
-        "events",
-        sa.Column(
+    with op.batch_alter_table("events", schema=schema_name) as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "event_type",
+                sa.String(length=20),
+                nullable=False,
+                server_default="appointment",
+            )
+        )
+        batch_op.create_index(
+            "ix_events_event_type",
+            ["event_type"],
+            unique=False,
+        )
+        batch_op.create_check_constraint(
+            "ck_events_event_type_valid",
+            "event_type IN ('appointment', 'timeblock', 'deadline')",
+        )
+        batch_op.alter_column(
             "event_type",
-            sa.String(length=20),
-            nullable=False,
-            server_default="appointment",
-        ),
-        schema=schema_name,
-    )
-    op.create_index(
-        "ix_events_event_type",
-        "events",
-        ["event_type"],
-        unique=False,
-        schema=schema_name,
-    )
-    op.create_check_constraint(
-        "ck_events_event_type_valid",
-        "events",
-        "event_type IN ('appointment', 'timeblock', 'deadline')",
-        schema=schema_name,
-    )
-    op.alter_column(
-        "events",
-        "event_type",
-        server_default=None,
-        schema=schema_name,
-    )
+            server_default=None,
+        )
 
 
 def downgrade() -> None:
     schema_name = _schema_name()
 
-    op.drop_constraint(
-        "ck_events_event_type_valid",
-        "events",
-        schema=schema_name,
-        type_="check",
-    )
-    op.drop_index("ix_events_event_type", table_name="events", schema=schema_name)
-    op.drop_column("events", "event_type", schema=schema_name)
+    with op.batch_alter_table("events", schema=schema_name) as batch_op:
+        batch_op.drop_constraint(
+            "ck_events_event_type_valid",
+            type_="check",
+        )
+        batch_op.drop_index("ix_events_event_type")
+        batch_op.drop_column("event_type")

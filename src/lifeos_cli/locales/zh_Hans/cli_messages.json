@@ -400,7 +400,7 @@
         "search_notes": "搜索 `note`",
         "search_notes_by_keyword_tokens": "通过关键字标记搜索 `note`。",
         "search_query_string": "搜索查询字符串",
-        "search_uses_postgresql_backed_ilike_token_matching_each_token_is_checked_against": "搜索使用 PostgreSQL 支持的 ILIKE token 匹配。每个 token 都会检查 `note` 内容，只要任一 token 命中，该 `note` 就会保留在结果中。",
+        "search_uses_case_insensitive_token_matching_each_token_is_checked_against_note_content": "搜索使用不区分大小写的 token 匹配。每个 token 都会检查 `note` 内容，只要任一 token 命中，该 `note` 就会保留在结果中。",
         "show_full_note_content": "显示完整 `note` 内容",
         "show_single_note_with_full_metadata_and_original_content_body": "显示包含完整元数据和原始内容正文的单个 `note`。",
         "text_to_find_in_each_target_note": "在每个目标 `note` 中查找的文本",
@@ -851,7 +851,7 @@
       "enable_sql_echo_logging": "启用 SQL 回显日志记录"
     },
     "db_commands": {
-      "apply_alembic_migrations_to_configured_postgresql_database": "将 Alembic 迁移应用到配置的 PostgreSQL 数据库。",
+      "apply_alembic_migrations_to_configured_database": "将 Alembic 迁移应用到当前配置的数据库。",
       "apply_migrations": "应用迁移",
       "check_database_connectivity": "检查数据库连通性",
       "inspect_database_connectivity_and_apply_migrations": "检查数据库连接并应用迁移。",
@@ -865,7 +865,7 @@
       "use_upgrade_when_configured_database_schema_needs_to_catch_up_with_code": "Use `upgrade` when the configured database schema needs to catch up with the code."
     },
     "init_commands": {
-      "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.config/lifeos/config.toml。",
+      "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.lifeos/config.toml。",
       "create_or_update_local_lifeos_config_file_and_verify_that_database_is": "Create or update the local LifeOS config file and verify that the database is reachable.",
       "database_credentials_may_be_stored_in_plain_text_in_config_file": "数据库凭据可以以纯文本形式存储在配置文件中。",
       "default_iana_timezone_for_local_day_boundaries_and_time_based_summaries": "当地日期边界和基于时间的摘要的默认 IANA 时区",
@@ -878,8 +878,8 @@
       "initialize_local_configuration": "初始化本地配置",
       "interactive_init_confirms_language_preference_because_agents_should_use_it_for_human": "交互式 `init` 会确认语言偏好，因为代理应将其用于面向人类的 payload 数据。",
       "local_day_boundary_in_hh_mm_used_for_future_time_based_grouping": "HH:MM 中的当地日边界，用于未来基于时间的分组逻辑",
-      "postgresql_connection_url_to_persist_in_config_file": "要保留在配置文件中的 PostgreSQL 连接 URL",
-      "postgresql_schema_name_to_use_for_application_tables": "用于应用程序表的 PostgreSQL 模式名称",
+      "database_connection_url_to_persist_in_config_file": "要写入配置文件的 SQLAlchemy 数据库 URL",
+      "optional_schema_name_for_schema_capable_backends": "供 PostgreSQL 等支持 schema 的后端使用的可选 schema 名称",
       "preference_values_are_also_stored_in_config_file_under_preferences": "首选项值也存储在配置文件中的 [preferences] 下。",
       "preferred_first_day_of_week_monday_or_sunday": "首选一周的第一天：星期一或星期日",
       "preferred_language_tag_for_example_en_en_ca_or_zh_hans": "首选语言 `tag`，例如 en、en-CA 或 zh-Hans",

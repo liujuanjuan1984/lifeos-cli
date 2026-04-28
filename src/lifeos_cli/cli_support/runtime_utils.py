@@ -60,7 +60,6 @@ def format_config_summary(
     lines = [
         f"Config file: {database_settings.config_file}",
         f"Database URL: {database_settings.render_database_url(show_secrets=show_secrets)}",
-        f"Database schema: {database_settings.database_schema}",
         f"Database echo: {'true' if database_settings.database_echo else 'false'}",
         f"Preference timezone: {preferences_settings.timezone}",
         f"Preference language: {preferences_settings.language}",
@@ -72,6 +71,8 @@ def format_config_summary(
         "Agent payload rule: use the preference language for human-authored titles, "
         "descriptions, and note content unless the human explicitly asks for another language.",
     ]
+    if database_settings.database_schema is not None:
+        lines.insert(2, f"Database schema: {database_settings.database_schema}")
     return "\n".join(lines)
 
 
@@ -87,24 +88,33 @@ def print_database_runtime_error(exc: BaseException) -> int:
         f"Configured database URL: {settings.render_database_url(show_secrets=False)}",
         file=sys.stderr,
     )
-    print(f"Configured schema: {settings.database_schema}", file=sys.stderr)
+    if settings.database_schema is not None:
+        print(f"Configured schema: {settings.database_schema}", file=sys.stderr)
     guidance = None
     if isinstance(exc, OperationalError):
         details = str(exc).lower()
+        backend = settings.database_backend
         if "no password supplied" in details or "password authentication failed" in details:
             guidance = (
                 "Authentication failed. Check the username/password in the database URL, "
                 "or update them with `lifeos init`."
             )
-        elif "does not exist" in details:
+        elif backend == "postgresql" and "does not exist" in details:
             guidance = (
                 "The configured PostgreSQL database does not exist yet. Create it first, "
                 "then run `lifeos db upgrade`."
             )
-        elif "connection refused" in details or "could not connect" in details:
+        elif backend == "postgresql" and (
+            "connection refused" in details or "could not connect" in details
+        ):
             guidance = (
                 "PostgreSQL is not reachable. Ensure the server is installed, running, "
                 "and listening on the configured host/port."
+            )
+        elif backend == "sqlite" and "unable to open database file" in details:
+            guidance = (
+                "SQLite could not open the configured database file. Ensure the parent "
+                "directory exists and is writable."
             )
     if guidance is not None:
         print(guidance, file=sys.stderr)

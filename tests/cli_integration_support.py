@@ -6,10 +6,15 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import psycopg
 import pytest
-from psycopg import sql
 from sqlalchemy.engine import make_url
+
+try:
+    import psycopg  # type: ignore[import-not-found]
+    from psycopg import sql
+except ImportError:  # pragma: no cover - exercised only without postgres extra
+    psycopg = None
+    sql = None
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _ID_PATTERN = re.compile(
@@ -23,8 +28,11 @@ INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
 INTEGRATION_PYTESTMARK = [
     pytest.mark.integration,
     pytest.mark.skipif(
-        INTEGRATION_DATABASE_URL is None,
-        reason="provide LIFEOS_TEST_DATABASE_URL to run real CLI integration tests",
+        INTEGRATION_DATABASE_URL is None or psycopg is None or sql is None,
+        reason=(
+            "install the postgres extra and provide LIFEOS_TEST_DATABASE_URL "
+            "to run real CLI integration tests"
+        ),
     ),
 ]
 
@@ -83,6 +91,8 @@ def extract_created_id(output: str) -> str:
 
 
 def _drop_schema(database_url: str, schema_name: str) -> None:
+    if psycopg is None or sql is None:
+        raise RuntimeError("psycopg is required for PostgreSQL integration test cleanup")
     parsed = make_url(database_url)
     with psycopg.connect(
         dbname=parsed.database,

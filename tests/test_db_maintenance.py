@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
@@ -52,6 +53,7 @@ def test_upgrade_database_uses_packaged_alembic_config(
             require_database_url=lambda: "postgresql+psycopg://localhost/lifeos_test"
         ),
     )
+    monkeypatch.setattr(maintenance, "ensure_database_driver_available", lambda database_url: None)
     monkeypatch.setattr(maintenance.command, "upgrade", fake_upgrade)
 
     maintenance.upgrade_database("head")
@@ -63,3 +65,28 @@ def test_upgrade_database_uses_packaged_alembic_config(
     script_location_text = config.get_main_option("script_location")
     assert script_location_text is not None
     assert Path(script_location_text).joinpath("env.py").is_file()
+
+
+def test_upgrade_database_supports_sqlite_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database_path = tmp_path / "missing-dir" / "lifeos.db"
+    sqlalchemy_url = f"sqlite+aiosqlite:///{database_path}"
+    monkeypatch.setattr(
+        maintenance,
+        "get_database_settings",
+        lambda: SimpleNamespace(require_database_url=lambda: sqlalchemy_url),
+    )
+    maintenance.upgrade_database("head")
+
+    with sqlite3.connect(database_path) as connection:
+        table_names = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        }
+
+    assert "alembic_version" in table_names
+    assert "notes" in table_names
+    assert "events" in table_names
+    assert "associations" in table_names

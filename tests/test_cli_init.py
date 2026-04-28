@@ -6,12 +6,27 @@ from pathlib import Path
 import pytest
 
 from lifeos_cli import cli
+from lifeos_cli.application import configuration as application_configuration
 from lifeos_cli.cli_support.system import config_handlers
-from lifeos_cli.config import clear_config_cache
+from lifeos_cli.config import ConfigurationError, clear_config_cache
 
 
 def _noop_database_subcommand(*, subcommand: str) -> None:
     del subcommand
+
+
+@pytest.fixture(autouse=True)
+def _allow_postgres_url_logic_tests_without_driver(
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    if request.node.name == "test_main_init_reports_missing_postgres_extra":
+        return
+    monkeypatch.setattr(
+        application_configuration,
+        "ensure_database_driver_available",
+        lambda database_url: None,
+    )
 
 
 def test_main_init_non_interactive_writes_config(
@@ -111,6 +126,89 @@ def test_main_init_does_not_prompt_for_explicit_database_url(
         prompt.startswith("Preferred language tag for human-authored payloads")
         for prompt in prompts
     )
+    clear_config_cache()
+
+
+def test_main_init_sqlite_does_not_prompt_for_schema_or_write_schema(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    prompts: list[str] = []
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    monkeypatch.setattr(
+        config_handlers,
+        "run_configured_database_subcommand_in_subprocess",
+        _noop_database_subcommand,
+    )
+    monkeypatch.setattr(config_handlers.sys.stdin, "isatty", lambda: True)
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        if prompt.startswith("Preferred language tag for human-authored payloads"):
+            return ""
+        if prompt.startswith("Enable SQL echo logging"):
+            return ""
+        raise AssertionError(f"unexpected prompt: {prompt}")
+
+    monkeypatch.setattr(builtins, "input", fake_input)
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--database-url",
+            "sqlite+aiosqlite:///lifeos.db",
+            "--skip-ping",
+            "--skip-migrate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Database URL: sqlite+aiosqlite:///lifeos.db" in captured.out
+    assert "Database schema:" not in captured.out
+    assert all(not prompt.startswith("Database schema") for prompt in prompts)
+    assert "schema =" not in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
+def test_main_init_reports_missing_postgres_extra(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    def raise_missing_postgres_extra(database_url: str) -> None:
+        del database_url
+        raise ConfigurationError(
+            "PostgreSQL support is not installed. Install the `postgres` extra, for example: "
+            'uv tool install --upgrade "lifeos-cli[postgres]".'
+        )
+
+    monkeypatch.setattr(
+        application_configuration,
+        "ensure_database_driver_available",
+        raise_missing_postgres_extra,
+    )
+
+    exit_code = cli.main(
+        [
+            "init",
+            "--non-interactive",
+            "--database-url",
+            "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "lifeos-cli[postgres]" in captured.err
+    assert not config_path.exists()
     clear_config_cache()
 
 

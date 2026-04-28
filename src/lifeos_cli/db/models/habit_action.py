@@ -26,6 +26,7 @@ class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
             "action_date",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
     )
 

@@ -15,11 +15,14 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    database_drivername,
+    database_url_supports_schema,
     detect_default_language,
     detect_default_timezone,
+    ensure_database_driver_available,
+    normalize_database_schema,
     parse_boolean_value,
     resolve_config_path,
-    validate_database_schema_name,
     validate_database_url,
     validate_day_starts_at,
     validate_language,
@@ -91,8 +94,20 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             config_file=config_path,
         )
     database_url = request.database_url or current.database_url
-    database_schema = request.schema or current.database_schema
     database_echo = current.database_echo if request.echo is None else request.echo
+    if database_url is not None:
+        database_url = validate_database_url(database_url)
+        ensure_database_driver_available(database_url)
+    supports_database_schema = (
+        database_url_supports_schema(database_url) if database_url is not None else True
+    )
+    database_schema = (
+        request.schema
+        if request.schema is not None
+        else current.database_schema
+        if supports_database_schema
+        else None
+    )
 
     if not request.non_interactive and request.is_interactive:
         if request.prompts is None:
@@ -101,7 +116,11 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             )
         if request.database_url is None:
             database_url = request.prompts.prompt_database_url(database_url)
-        if request.schema is None:
+            ensure_database_driver_available(database_url)
+            supports_database_schema = database_url_supports_schema(database_url)
+            if not supports_database_schema:
+                database_schema = None
+        if request.schema is None and supports_database_schema:
             database_schema = request.prompts.prompt_database_schema(database_schema)
         if request.echo is None:
             database_echo = request.prompts.prompt_database_echo(database_echo)
@@ -112,8 +131,12 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
         )
 
     return DatabaseSettings(
-        database_url=validate_database_url(database_url),
-        database_schema=validate_database_schema_name(database_schema),
+        database_url=database_url,
+        database_schema=normalize_database_schema(
+            database_url=database_url,
+            configured_schema=database_schema,
+            explicit=request.schema is not None,
+        ),
         database_echo=database_echo,
         config_file=config_path,
     )
@@ -194,9 +217,24 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
     preferences_settings = PreferencesSettings.from_env(include_overrides=False)
 
     if normalized_key == "database.url":
+        validated_database_url = validate_database_url(value)
+        ensure_database_driver_available(validated_database_url)
+        current_backend = database_settings.database_backend
+        next_backend = database_drivername(validated_database_url).split("+", maxsplit=1)[0]
+        if current_backend is not None and current_backend != next_backend:
+            raise ConfigurationError(
+                "Switching between PostgreSQL and SQLite with `config set database.url` is not "
+                "supported. Re-run `lifeos init --database-url ...` and provide `--schema` "
+                "when targeting PostgreSQL."
+            )
         database_settings = replace(
             database_settings,
-            database_url=validate_database_url(value),
+            database_url=validated_database_url,
+            database_schema=normalize_database_schema(
+                database_url=validated_database_url,
+                configured_schema=database_settings.database_schema,
+                explicit=False,
+            ),
         )
     elif normalized_key == "database.echo":
         database_settings = replace(

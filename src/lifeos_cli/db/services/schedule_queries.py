@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import (
@@ -18,6 +18,7 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.event_support import EventOccurrenceQuery
 from lifeos_cli.db.services.events import EventOccurrence, list_event_occurrences
 from lifeos_cli.db.services.habit_actions import list_habit_actions_in_range
+from lifeos_cli.db.sql_expressions import AddDaysToDate
 
 
 @dataclass(frozen=True)
@@ -101,8 +102,7 @@ async def _load_schedule_tasks(
             Task.planning_cycle_days.is_not(None),
             Task.planning_cycle_type.is_not(None),
             Task.planning_cycle_start_date <= end_date,
-            Task.planning_cycle_start_date
-            + (Task.planning_cycle_days - 1) * text("INTERVAL '1 day'")
+            AddDaysToDate(Task.planning_cycle_start_date, Task.planning_cycle_days - 1)
             >= start_date,
         )
         .order_by(Task.planning_cycle_start_date.asc(), Task.display_order.asc(), Task.id.asc())

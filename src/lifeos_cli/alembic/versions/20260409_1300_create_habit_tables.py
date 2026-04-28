@@ -11,9 +11,15 @@ branch_labels = None
 depends_on = None
 
 
-def _schema_name() -> str:
+def _schema_name() -> str | None:
     context = op.get_context()
-    return context.version_table_schema or "lifeos"
+    return context.version_table_schema
+
+
+def _qualified_column(schema_name: str | None, table_name: str, column_name: str) -> str:
+    if schema_name is None:
+        return f"{table_name}.{column_name}"
+    return f"{schema_name}.{table_name}.{column_name}"
 
 
 def upgrade() -> None:
@@ -33,7 +39,7 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["task_id"],
-            [f"{schema_name}.tasks.id"],
+            [_qualified_column(schema_name, "tasks", "id")],
             name=op.f("fk_habits_task_id_tasks"),
             ondelete="SET NULL",
         ),
@@ -75,7 +81,7 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["habit_id"],
-            [f"{schema_name}.habits.id"],
+            [_qualified_column(schema_name, "habits", "id")],
             name=op.f("fk_habit_actions_habit_id_habits"),
             ondelete="CASCADE",
         ),
@@ -110,6 +116,7 @@ def upgrade() -> None:
         unique=True,
         schema=schema_name,
         postgresql_where=sa.text("deleted_at IS NULL"),
+        sqlite_where=sa.text("deleted_at IS NULL"),
     )
 
 
