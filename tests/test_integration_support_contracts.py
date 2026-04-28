@@ -10,9 +10,11 @@ _NORMALIZED_TEST_URL = "postgresql+psycopg://u:p@db/lifeos_test"  # pragma: allo
 
 def test_integration_support_uses_only_explicit_test_database_url() -> None:
     support_text = Path("tests/cli_integration_support.py").read_text(encoding="utf-8")
+    env_assignment = '_RAW_INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")'
 
-    assert 'database_url = os.environ.get("LIFEOS_TEST_DATABASE_URL")' in support_text
+    assert env_assignment in support_text
     assert "normalize_integration_database_url" in support_text
+    assert "get_integration_database_url_from_env" not in support_text
     assert "DatabaseSettings.from_env" not in support_text
     assert "runtime config" not in support_text
 

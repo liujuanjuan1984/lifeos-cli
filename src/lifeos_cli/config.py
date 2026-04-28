@@ -57,25 +57,15 @@ def _parse_database_url(database_url: str) -> tuple[str, URL]:
     return normalized, parsed
 
 
-def database_drivername(database_url: str) -> str:
-    """Return the SQLAlchemy drivername for one validated database URL."""
-    _, parsed = _parse_database_url(database_url)
-    return parsed.drivername
-
-
-def database_backend_policy(database_url: str) -> DatabaseBackendPolicy:
+def backend_policy_for_database_url(database_url: str) -> DatabaseBackendPolicy:
     """Return the backend policy for one validated database URL."""
-    return backend_policy_for_drivername(database_drivername(database_url))
-
-
-def database_url_supports_schema(database_url: str) -> bool:
-    """Return whether one database URL supports schema binding."""
-    return database_backend_policy(database_url).supports_schema
+    _, parsed = _parse_database_url(database_url)
+    return backend_policy_for_drivername(parsed.drivername)
 
 
 def ensure_database_driver_available(database_url: str) -> None:
     """Ensure the configured SQLAlchemy driver dependencies are installed."""
-    policy = database_backend_policy(database_url)
+    policy = backend_policy_for_database_url(database_url)
     if policy.required_driver_module is None:
         return
     try:
@@ -124,7 +114,7 @@ def normalize_database_schema(
     """Normalize one schema value against the target database URL."""
     if database_url is None:
         return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
-    if database_url_supports_schema(database_url):
+    if backend_policy_for_database_url(database_url).supports_schema:
         return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
     if explicit and configured_schema is not None:
         raise ConfigurationError(
@@ -353,14 +343,10 @@ def resolve_config_path(env: Mapping[str, str] | None = None) -> Path:
     return DEFAULT_CONFIG_PATH
 
 
-def default_sqlite_database_path(env: Mapping[str, str] | None = None) -> Path:
-    """Return the default file-backed SQLite database path."""
-    return resolve_config_path(env).parent / DEFAULT_SQLITE_DATABASE_FILENAME
-
-
 def default_sqlite_database_url(env: Mapping[str, str] | None = None) -> str:
     """Return the normalized default SQLite database URL."""
-    return validate_database_url(f"sqlite+aiosqlite:///{default_sqlite_database_path(env)}")
+    database_path = resolve_config_path(env).parent / DEFAULT_SQLITE_DATABASE_FILENAME
+    return validate_database_url(f"sqlite+aiosqlite:///{database_path}")
 
 
 def load_config_file(config_path: Path) -> dict[str, Any]:
@@ -471,19 +457,11 @@ class DatabaseSettings:
         return parsed.render_as_string(hide_password=not show_secrets)
 
     @property
-    def database_drivername(self) -> str | None:
-        """Return the configured SQLAlchemy drivername when available."""
-        if self.database_url is None:
-            return None
-        return database_drivername(self.database_url)
-
-    @property
     def backend_policy(self) -> DatabaseBackendPolicy | None:
         """Return the backend policy for the configured database URL when available."""
-        drivername = self.database_drivername
-        if drivername is None:
+        if self.database_url is None:
             return None
-        return backend_policy_for_drivername(drivername)
+        return backend_policy_for_database_url(self.database_url)
 
     @property
     def database_backend(self) -> str | None:

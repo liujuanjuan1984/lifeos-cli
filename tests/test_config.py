@@ -14,7 +14,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
-    default_sqlite_database_path,
+    backend_policy_for_database_url,
     default_sqlite_database_url,
     detect_default_language,
     ensure_database_driver_available,
@@ -260,14 +260,6 @@ def test_resolve_config_path_defaults_to_lifeos_home_directory() -> None:
     assert DEFAULT_CONFIG_PATH == Path.home() / ".lifeos" / "config.toml"
 
 
-def test_default_sqlite_database_path_follows_config_directory(tmp_path: Path) -> None:
-    config_path = tmp_path / "nested" / "config.toml"
-
-    assert default_sqlite_database_path({"LIFEOS_CONFIG_FILE": str(config_path)}) == (
-        config_path.parent / "lifeos.db"
-    )
-
-
 def test_default_sqlite_database_url_uses_default_file_name(tmp_path: Path) -> None:
     config_path = tmp_path / "nested" / "config.toml"
     expected_path = config_path.parent / "lifeos.db"
@@ -275,6 +267,13 @@ def test_default_sqlite_database_url_uses_default_file_name(tmp_path: Path) -> N
     assert default_sqlite_database_url({"LIFEOS_CONFIG_FILE": str(config_path)}) == (
         f"sqlite+aiosqlite:///{expected_path}"
     )
+
+
+def test_backend_policy_for_database_url_uses_database_drivername() -> None:
+    policy = backend_policy_for_database_url("sqlite+aiosqlite:///tmp/lifeos.db")
+
+    assert policy.backend_name == "sqlite"
+    assert policy.supports_schema is False
 
 
 def test_ensure_database_driver_available_requires_postgres_extra(

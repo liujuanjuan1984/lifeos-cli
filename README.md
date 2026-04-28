@@ -59,8 +59,8 @@ Initialize your local setup:
 lifeos init
 ```
 
-When no database URL is configured yet, `lifeos init` defaults to a local SQLite database at
-`~/.lifeos/lifeos.db`.
+For local-first use, `lifeos init` can bootstrap SQLite without requiring a separate database
+service. Use `lifeos init --help` for backend-specific defaults and examples.
 
 You can run that step yourself, or ask an agent that can run terminal commands to do it for you.
 

@@ -15,8 +15,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
-    database_backend_policy,
-    database_url_supports_schema,
+    backend_policy_for_database_url,
     default_sqlite_database_url,
     detect_default_language,
     detect_default_timezone,
@@ -100,7 +99,9 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
         database_url = validate_database_url(database_url)
         ensure_database_driver_available(database_url)
     supports_database_schema = (
-        database_url_supports_schema(database_url) if database_url is not None else True
+        backend_policy_for_database_url(database_url).supports_schema
+        if database_url is not None
+        else True
     )
     database_schema = (
         request.schema
@@ -118,7 +119,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
         if request.database_url is None:
             database_url = request.prompts.prompt_database_url(database_url)
             ensure_database_driver_available(database_url)
-            supports_database_schema = database_url_supports_schema(database_url)
+            supports_database_schema = backend_policy_for_database_url(database_url).supports_schema
             if not supports_database_schema:
                 database_schema = None
         if request.schema is None and supports_database_schema:
@@ -216,7 +217,7 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
         validated_database_url = validate_database_url(value)
         ensure_database_driver_available(validated_database_url)
         current_backend = database_settings.database_backend
-        next_backend = database_backend_policy(validated_database_url).backend_name
+        next_backend = backend_policy_for_database_url(validated_database_url).backend_name
         if current_backend is not None and current_backend != next_backend:
             raise ConfigurationError(
                 "Switching between PostgreSQL and SQLite with `config set database.url` is not "

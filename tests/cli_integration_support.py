@@ -39,15 +39,12 @@ def normalize_integration_database_url(database_url: str) -> str:
     return parsed.set(database=database_name).render_as_string(hide_password=False)
 
 
-def get_integration_database_url_from_env() -> str | None:
-    """Return the normalized integration database URL from the explicit test-only env var."""
-    database_url = os.environ.get("LIFEOS_TEST_DATABASE_URL")
-    if database_url is None:
-        return None
-    return normalize_integration_database_url(database_url)
-
-
-INTEGRATION_DATABASE_URL = get_integration_database_url_from_env()
+_RAW_INTEGRATION_DATABASE_URL = os.environ.get("LIFEOS_TEST_DATABASE_URL")
+INTEGRATION_DATABASE_URL = (
+    normalize_integration_database_url(_RAW_INTEGRATION_DATABASE_URL)
+    if _RAW_INTEGRATION_DATABASE_URL is not None
+    else None
+)
 
 INTEGRATION_PYTESTMARK = [
     pytest.mark.integration,
