@@ -53,6 +53,7 @@ def test_upgrade_database_uses_packaged_alembic_config(
             require_database_url=lambda: "postgresql+psycopg://localhost/lifeos_test"
         ),
     )
+    monkeypatch.setattr(maintenance, "ensure_database_driver_available", lambda database_url: None)
     monkeypatch.setattr(maintenance.command, "upgrade", fake_upgrade)
 
     maintenance.upgrade_database("head")

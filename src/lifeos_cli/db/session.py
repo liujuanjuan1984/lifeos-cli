@@ -14,7 +14,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from lifeos_cli.config import ensure_database_url_storage_ready, get_database_settings
+from lifeos_cli.config import (
+    ensure_database_driver_available,
+    ensure_database_url_storage_ready,
+    get_database_settings,
+)
 
 
 def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
@@ -40,6 +44,7 @@ def get_async_engine() -> AsyncEngine:
     """Return the process-wide SQLAlchemy async engine."""
     settings = get_database_settings()
     database_url = settings.require_database_url()
+    ensure_database_driver_available(database_url)
     ensure_database_url_storage_ready(database_url)
     engine = create_async_engine(
         database_url,

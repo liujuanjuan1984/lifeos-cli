@@ -15,6 +15,7 @@ from lifeos_cli.config import (
     DatabaseSettings,
     PreferencesSettings,
     detect_default_language,
+    ensure_database_driver_available,
     parse_boolean_value,
     resolve_config_path,
     validate_database_schema_name,
@@ -255,6 +256,24 @@ def test_validate_database_url_expands_sqlite_home_directory() -> None:
 def test_resolve_config_path_defaults_to_lifeos_home_directory() -> None:
     assert resolve_config_path({"LIFEOS_CONFIG_FILE": ""}) == DEFAULT_CONFIG_PATH
     assert DEFAULT_CONFIG_PATH == Path.home() / ".lifeos" / "config.toml"
+
+
+def test_ensure_database_driver_available_requires_postgres_extra(
+    monkeypatch,
+) -> None:
+    def missing_driver(module_name: str):
+        if module_name == "psycopg":
+            raise ModuleNotFoundError("No module named 'psycopg'")
+        raise AssertionError(f"unexpected module import: {module_name}")
+
+    monkeypatch.setattr("lifeos_cli.config.import_module", missing_driver)
+
+    try:
+        ensure_database_driver_available("postgresql+psycopg://localhost/lifeos")
+    except ConfigurationError as exc:
+        assert "lifeos-cli[postgres]" in str(exc)
+    else:
+        raise AssertionError("missing postgres extra should fail driver preflight")
 
 
 def test_database_settings_omit_schema_for_sqlite_url(tmp_path: Path) -> None:
@@ -652,6 +671,10 @@ def test_build_database_settings_uses_injected_prompts(
             prompt_language=lambda default: "zh-Hans",
             prompt_database_echo=lambda default: True,
         ),
+    )
+    monkeypatch.setattr(
+        "lifeos_cli.application.configuration.ensure_database_driver_available",
+        lambda database_url: None,
     )
 
     settings = build_database_settings(request)

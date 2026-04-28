@@ -20,4 +20,5 @@ _keep(
     _compile_add_days_default,
     _compile_add_days_sqlite,
     _clear_sqlite_runtime,
+    _allow_postgres_url_logic_tests_without_driver,
 )

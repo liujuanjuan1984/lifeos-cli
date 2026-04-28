@@ -19,6 +19,7 @@ from lifeos_cli.config import (
     database_url_supports_schema,
     detect_default_language,
     detect_default_timezone,
+    ensure_database_driver_available,
     normalize_database_schema,
     parse_boolean_value,
     resolve_config_path,
@@ -96,6 +97,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
     database_echo = current.database_echo if request.echo is None else request.echo
     if database_url is not None:
         database_url = validate_database_url(database_url)
+        ensure_database_driver_available(database_url)
     supports_database_schema = (
         database_url_supports_schema(database_url) if database_url is not None else True
     )
@@ -114,6 +116,7 @@ def build_database_settings(request: InitializationRequest) -> DatabaseSettings:
             )
         if request.database_url is None:
             database_url = request.prompts.prompt_database_url(database_url)
+            ensure_database_driver_available(database_url)
             supports_database_schema = database_url_supports_schema(database_url)
             if not supports_database_schema:
                 database_schema = None
@@ -215,6 +218,7 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
 
     if normalized_key == "database.url":
         validated_database_url = validate_database_url(value)
+        ensure_database_driver_available(validated_database_url)
         current_backend = database_settings.database_backend
         next_backend = database_drivername(validated_database_url).split("+", maxsplit=1)[0]
         if current_backend is not None and current_backend != next_backend:

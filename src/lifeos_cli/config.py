@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -68,6 +69,20 @@ def database_drivername(database_url: str) -> str:
 def database_url_supports_schema(database_url: str) -> bool:
     """Return whether one database URL supports schema binding."""
     return database_drivername(database_url) in SCHEMA_CAPABLE_DATABASE_DRIVERS
+
+
+def ensure_database_driver_available(database_url: str) -> None:
+    """Ensure the configured SQLAlchemy driver dependencies are installed."""
+    drivername = database_drivername(database_url)
+    if drivername != "postgresql+psycopg":
+        return
+    try:
+        import_module("psycopg")
+    except ModuleNotFoundError as exc:
+        raise ConfigurationError(
+            "PostgreSQL support is not installed. Install the `postgres` extra, for example: "
+            'uv tool install --upgrade "lifeos-cli[postgres]".'
+        ) from exc
 
 
 def _sqlite_database_file_path(parsed: URL) -> Path | None:
