@@ -57,7 +57,7 @@ def _parse_database_url(database_url: str) -> tuple[str, URL]:
     return normalized, parsed
 
 
-def backend_policy_for_database_url(database_url: str) -> DatabaseBackendPolicy:
+def database_policy(database_url: str) -> DatabaseBackendPolicy:
     """Return the backend policy for one validated database URL."""
     _, parsed = _parse_database_url(database_url)
     return backend_policy_for_drivername(parsed.drivername)
@@ -65,7 +65,7 @@ def backend_policy_for_database_url(database_url: str) -> DatabaseBackendPolicy:
 
 def ensure_database_driver_available(database_url: str) -> None:
     """Ensure the configured SQLAlchemy driver dependencies are installed."""
-    policy = backend_policy_for_database_url(database_url)
+    policy = database_policy(database_url)
     if policy.required_driver_module is None:
         return
     try:
@@ -114,7 +114,7 @@ def normalize_database_schema(
     """Normalize one schema value against the target database URL."""
     if database_url is None:
         return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
-    if backend_policy_for_database_url(database_url).supports_schema:
+    if database_policy(database_url).supports_schema:
         return validate_database_schema_name(configured_schema or DEFAULT_DATABASE_SCHEMA)
     if explicit and configured_schema is not None:
         raise ConfigurationError(
@@ -461,7 +461,7 @@ class DatabaseSettings:
         """Return the backend policy for the configured database URL when available."""
         if self.database_url is None:
             return None
-        return backend_policy_for_database_url(self.database_url)
+        return database_policy(self.database_url)
 
     @property
     def database_backend(self) -> str | None:

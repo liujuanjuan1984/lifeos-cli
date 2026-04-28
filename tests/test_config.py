@@ -14,7 +14,7 @@ from lifeos_cli.config import (
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
-    backend_policy_for_database_url,
+    database_policy,
     default_sqlite_database_url,
     detect_default_language,
     ensure_database_driver_available,
@@ -269,8 +269,8 @@ def test_default_sqlite_database_url_uses_default_file_name(tmp_path: Path) -> N
     )
 
 
-def test_backend_policy_for_database_url_uses_database_drivername() -> None:
-    policy = backend_policy_for_database_url("sqlite+aiosqlite:///tmp/lifeos.db")
+def test_database_policy_uses_database_drivername() -> None:
+    policy = database_policy("sqlite+aiosqlite:///tmp/lifeos.db")
 
     assert policy.backend_name == "sqlite"
     assert policy.supports_schema is False
