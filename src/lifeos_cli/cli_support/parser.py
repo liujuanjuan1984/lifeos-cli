@@ -5,8 +5,11 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from functools import partial
 from importlib.metadata import PackageNotFoundError, metadata
+from typing import cast
 
+from pyfiglet import figlet_format
 from sqlalchemy.exc import SQLAlchemyError
 
 from lifeos_cli.application.package_metadata import get_installed_package_version
@@ -31,13 +34,8 @@ from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import cli_message as _
 from lifeos_cli.i18n import configure_argparse_translations
 
-CLI_BRAND_BANNER = (
-    " _      ___   _____  _____   ___    ____  \n"
-    "| |    |_ _| |  ___|| ____| / _ \\  / ___| \n"
-    "| |     | |  | |_   |  _|  | | | | \\___ \\ \n"
-    "| |___  | |  |  _|  | |___ | |_| |  ___) |\n"
-    "|_____||___| |_|    |_____| \\___/  |____/ "
-)
+CLI_BRAND_TEXT = "LifeOS"
+CLI_BRAND_FONT = "ansi_shadow"
 PROJECT_REPOSITORY_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli"
 PROJECT_ISSUES_URL_FALLBACK = "https://github.com/liujuanjuan1984/lifeos-cli/issues"
 HELP_FLAGS = frozenset({"-h", "--help"})
@@ -140,14 +138,30 @@ def get_project_urls() -> tuple[str, str]:
     return repository_url, issues_url
 
 
+def build_cli_brand_banner() -> str:
+    """Render the CLI brand banner with the canonical shadow font."""
+    return cast(str, figlet_format(CLI_BRAND_TEXT, font=CLI_BRAND_FONT)).rstrip("\n")
+
+
+def get_cli_brand_banner_width() -> int:
+    """Return the widest banner line length for help formatter sizing."""
+    banner = build_cli_brand_banner()
+    return max((len(line) for line in banner.splitlines()), default=0)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
     configure_argparse_translations()
     repository_url, _issues_url = get_project_urls()
+    brand_banner = build_cli_brand_banner()
+    formatter_class = partial(
+        CompactSubcommandHelpFormatter,
+        width=max(100, get_cli_brand_banner_width() + 2),
+    )
     parser = TopLevelArgumentParser(
         prog="lifeos",
         description=(
-            CLI_BRAND_BANNER
+            brand_banner
             + "\n\n"
             + f"repo: {repository_url}\n"
             + "uv tool install --upgrade lifeos-cli\n\n"
@@ -173,7 +187,7 @@ def build_parser() -> argparse.ArgumentParser:
                 ),
             ),
         ),
-        formatter_class=CompactSubcommandHelpFormatter,
+        formatter_class=formatter_class,
     )
     parser.add_argument(
         "-v",

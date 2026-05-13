@@ -53,8 +53,8 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
 
     captured = capsys.readouterr()
 
-    assert " _      ___   _____  _____   ___    ____  " in captured.out
-    assert "|_____||___| |_|    |_____| \\___/  |____/ " in captured.out
+    assert "██╗     ██╗███████╗███████╗ ██████╗ ███████╗" in captured.out
+    assert "╚══════╝╚═╝╚═╝     ╚══════╝ ╚═════╝ ╚══════╝" in captured.out
     assert "usage:" not in captured.out and "用法：" not in captured.out
     assert "显示此帮助信息并退出" in captured.out or "-h, --help" in captured.out
     assert "资源:\n  资源" not in captured.out

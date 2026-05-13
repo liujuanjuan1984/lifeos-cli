@@ -11,6 +11,8 @@ The following rules apply to coding agent collaboration in this repository. Thes
 
 - Follow the Git, Issue, and PR workflow defined in [CONTRIBUTING.md](CONTRIBUTING.md).
 - Use `gh` CLI for all issue and PR operations. Do not edit through the web UI.
+- Never use the Codex GitHub connector or any connector-backed GitHub mutation workflow. At any time, issue and PR operations must go through `gh` CLI only.
+- If GitHub permissions, authentication, policy, or environment constraints block a required `gh` operation, stop and ask the human collaborator to perform or authorize the needed step. Do not switch to the Codex GitHub connector as a fallback.
 - Create a new tracking issue for any development task that does not already have one.
 - Link the relevant issue in the PR description with `Closes #xx` or `Related #xx` as appropriate.
 - Keep issue and PR status synchronized when work scope changes.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from lifeos_cli.cli import build_parser
+from lifeos_cli.cli_support.parser import build_cli_brand_banner, get_cli_brand_banner_width
 
 
 def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
@@ -13,8 +14,8 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
 
     captured = capsys.readouterr()
 
-    assert " _      ___   _____  _____   ___    ____  " in captured.out
-    assert "| |___  | |  |  _|  | |___ | |_| |  ___) |" in captured.out
+    assert "██╗     ██╗███████╗███████╗ ██████╗ ███████╗" in captured.out
+    assert "███████╗██║██║     ███████╗╚██████╔╝███████║" in captured.out
     assert "usage:" not in captured.out
     assert "Run LifeOS resource commands from the terminal." not in captured.out
     assert "repo: https://github.com/liujuanjuan1984/lifeos-cli" in captured.out
@@ -38,6 +39,15 @@ def test_cli_top_level_help_describes_command_grammar(capsys) -> None:
     )
     assert "\n  lifeos <resource> <action> [arguments] [options]" in captured.out
     assert 'lifeos note add "Capture an idea"' in captured.out
+
+
+def test_cli_brand_banner_uses_ansi_shadow_font() -> None:
+    banner = build_cli_brand_banner()
+    banner_lines = banner.splitlines()
+
+    assert "██╗     ██╗███████╗███████╗ ██████╗ ███████╗" in banner
+    assert banner_lines[-2] == "╚══════╝╚═╝╚═╝     ╚══════╝ ╚═════╝ ╚══════╝"
+    assert get_cli_brand_banner_width() == 44
 
 
 def test_cli_init_help_avoids_hard_wrapped_description_fragments(capsys) -> None:
