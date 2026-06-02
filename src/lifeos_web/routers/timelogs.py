@@ -1,0 +1,302 @@
+"""Timelog endpoints for the local Web UI."""
+
+from __future__ import annotations
+
+import math
+from datetime import date
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.services import timelogs as timelog_services
+from lifeos_cli.db.services.timelog_support import (
+    TimelogBatchUpdateInput,
+    TimelogCreateInput,
+    TimelogListInput,
+    TimelogQueryFilters,
+    TimelogUpdateInput,
+)
+from lifeos_web.deps import get_db_session
+from lifeos_web.schemas import (
+    ListResponse,
+    Pagination,
+    TimelogBatchUpdate,
+    TimelogCreate,
+    TimelogUpdate,
+)
+from lifeos_web.serialization import to_jsonable
+
+router = APIRouter(prefix="/timelogs", tags=["timelogs"])
+SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def _timelog_payload(timelog: object) -> dict[str, object]:
+    """Expose LifeOS area fields with frontend actual-event dimension names."""
+    payload = to_jsonable(timelog)
+    if not isinstance(payload, dict):
+        raise TypeError("Timelog serialization did not produce a dictionary.")
+    area_id = payload.get("area_id")
+    payload["dimension_id"] = area_id
+    if area_id is not None:
+        payload["dimension_summary"] = {
+            "id": area_id,
+            "name": None,
+            "color": None,
+        }
+    return payload
+
+
+async def _batch_add_timelog_people(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+    person_ids: list[UUID],
+) -> dict[str, object]:
+    unique_timelog_ids = list(dict.fromkeys(timelog_ids))
+    rows = await session.execute(
+        select(
+            person_associations.c.entity_id,
+            person_associations.c.person_id,
+        ).where(
+            person_associations.c.entity_type == "timelog",
+            person_associations.c.entity_id.in_(unique_timelog_ids),
+        )
+    )
+    people_by_timelog: dict[UUID, list[UUID]] = {
+        timelog_id: [] for timelog_id in unique_timelog_ids
+    }
+    for timelog_id, person_id in rows.all():
+        people_by_timelog.setdefault(timelog_id, []).append(person_id)
+
+    updated_count = 0
+    unchanged_ids: list[UUID] = []
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+    for timelog_id in unique_timelog_ids:
+        merged_person_ids = list(
+            dict.fromkeys([*people_by_timelog.get(timelog_id, []), *person_ids])
+        )
+        if merged_person_ids == people_by_timelog.get(timelog_id, []):
+            unchanged_ids.append(timelog_id)
+            continue
+        try:
+            await timelog_services.update_timelog(
+                session,
+                timelog_id=timelog_id,
+                changes=TimelogUpdateInput(person_ids=merged_person_ids),
+            )
+            updated_count += 1
+        except (LookupError, ValueError) as exc:
+            failed_ids.append(timelog_id)
+            errors.append(str(exc))
+
+    return {
+        "updated_count": updated_count,
+        "unchanged_ids": [str(timelog_id) for timelog_id in unchanged_ids],
+        "failed_ids": [str(timelog_id) for timelog_id in failed_ids],
+        "errors": errors,
+    }
+
+
+@router.get("/", response_model=ListResponse)
+async def list_timelogs(
+    session: SessionDep,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=500),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    query: str | None = None,
+    tracking_method: str | None = None,
+    dimension_id: UUID | None = None,
+    dimension_name: str | None = None,
+    task_id: UUID | None = None,
+) -> ListResponse:
+    """List timelogs for the local Web UI."""
+    filters = TimelogQueryFilters(
+        start_date=start_date,
+        end_date=end_date,
+        query=query,
+        tracking_method=tracking_method,
+        area_id=dimension_id,
+        area_name=dimension_name,
+        task_id=task_id,
+    )
+    total_count = await timelog_services.count_timelogs(session, filters=filters)
+    rows = await timelog_services.list_timelogs(
+        session,
+        query=TimelogListInput(
+            filters=filters,
+            limit=size,
+            offset=(page - 1) * size,
+        ),
+    )
+    items = [_timelog_payload(row) for row in rows]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(
+            page=page,
+            size=size,
+            total=total_count,
+            pages=math.ceil(total_count / size) if size else 0,
+        ),
+        meta={
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
+            "query": query,
+            "tracking_method": tracking_method,
+            "dimension_id": str(dimension_id) if dimension_id else None,
+            "dimension_name": dimension_name,
+            "task_id": str(task_id) if task_id else None,
+            "limit": size,
+            "returned_count": len(items),
+            "total_count": total_count,
+            "truncated": len(items) < total_count,
+        },
+    )
+
+
+@router.post("/")
+async def create_timelog(
+    payload: TimelogCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create a timelog."""
+    try:
+        timelog = await timelog_services.create_timelog(
+            session,
+            payload=TimelogCreateInput(
+                title=payload.title,
+                start_time=payload.start_time,
+                end_time=payload.end_time,
+                tracking_method=payload.tracking_method,
+                location=payload.location,
+                energy_level=payload.energy_level,
+                notes=payload.notes,
+                area_id=payload.area_id,
+                task_id=payload.task_id,
+                person_ids=payload.person_ids,
+            ),
+        )
+    except (LookupError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _timelog_payload(timelog)
+
+
+@router.post("/batch-update")
+async def batch_update_timelogs(
+    payload: TimelogBatchUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Batch-update timelogs through LifeOS native batch semantics."""
+    title: str | None = None
+    find_title_text: str | None = None
+    replace_title_text = ""
+    changes = TimelogUpdateInput()
+
+    if payload.update_type == "title":
+        if payload.title is None:
+            raise HTTPException(status_code=400, detail="Title update payload is required")
+        if payload.title.mode == "find_replace":
+            find_title_text = payload.title.find
+            replace_title_text = payload.title.value
+        else:
+            title = payload.title.value
+    elif payload.update_type == "task":
+        if payload.task is None:
+            raise HTTPException(status_code=400, detail="Task update payload is required")
+        changes = TimelogUpdateInput(
+            task_id=payload.task.task_id,
+            clear_task=payload.task.mode == "clear" or payload.task.task_id is None,
+        )
+    elif payload.update_type == "dimension":
+        if payload.dimension is None:
+            raise HTTPException(status_code=400, detail="Dimension update payload is required")
+        changes = TimelogUpdateInput(
+            area_id=payload.dimension.dimension_id,
+            clear_area=payload.dimension.dimension_id is None,
+        )
+    elif payload.update_type == "persons":
+        if payload.persons is None:
+            raise HTTPException(status_code=400, detail="Person update payload is required")
+        if payload.persons.mode == "add":
+            return await _batch_add_timelog_people(
+                session,
+                timelog_ids=payload.event_ids,
+                person_ids=payload.persons.person_ids,
+            )
+        changes = TimelogUpdateInput(
+            person_ids=payload.persons.person_ids,
+            clear_people=payload.persons.mode == "clear",
+        )
+    else:
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported update type: {payload.update_type}"
+        )
+
+    try:
+        result = await timelog_services.batch_update_timelogs(
+            session,
+            timelog_ids=payload.event_ids,
+            changes=TimelogBatchUpdateInput(
+                title=title,
+                find_title_text=find_title_text,
+                replace_title_text=replace_title_text,
+                changes=changes,
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "updated_count": result.updated_count,
+        "unchanged_ids": [str(timelog_id) for timelog_id in result.unchanged_ids],
+        "failed_ids": [str(timelog_id) for timelog_id in result.failed_ids],
+        "errors": list(result.errors),
+    }
+
+
+@router.patch("/{timelog_id}")
+async def update_timelog(
+    timelog_id: UUID,
+    payload: TimelogUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a timelog."""
+    try:
+        timelog = await timelog_services.update_timelog(
+            session,
+            timelog_id=timelog_id,
+            changes=TimelogUpdateInput(
+                title=payload.title,
+                start_time=payload.start_time,
+                end_time=payload.end_time,
+                tracking_method=payload.tracking_method,
+                location=payload.location,
+                energy_level=payload.energy_level,
+                notes=payload.notes,
+                area_id=payload.area_id,
+                task_id=payload.task_id,
+                person_ids=payload.person_ids,
+                clear_people="person_ids" in payload.model_fields_set and payload.person_ids == [],
+            ),
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _timelog_payload(timelog)
+
+
+@router.delete("/{timelog_id}", status_code=204)
+async def delete_timelog(
+    timelog_id: UUID,
+    session: SessionDep,
+) -> None:
+    """Soft-delete a timelog."""
+    try:
+        await timelog_services.delete_timelog(session, timelog_id=timelog_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

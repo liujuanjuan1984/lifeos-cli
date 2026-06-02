@@ -46,6 +46,13 @@ Install PostgreSQL support only when you need it:
 uv tool install --upgrade "lifeos-cli[postgres]"
 ```
 
+Install the optional local Web interface when you want a browser UI backed by the same
+configured LifeOS database:
+
+```bash
+uv tool install --upgrade "lifeos-cli[web]"
+```
+
 `lifeos-cli` supports both SQLite and PostgreSQL.
 
 - SQLite is the low-friction option for local, single-user setups.
@@ -65,6 +72,27 @@ See the available command surface:
 
 ```bash
 lifeos --help
+```
+
+Start the local Web API and UI server:
+
+```bash
+lifeos web serve
+```
+
+If your configured database URL uses PostgreSQL, install or run with both optional extras:
+
+```bash
+uv run --extra web --extra postgres lifeos web serve
+```
+
+During frontend development, run the Vite app in `web/` and proxy API requests to the
+local Web API:
+
+```bash
+cd web
+npm install
+npm run dev
 ```
 
 Inspect and adjust runtime preferences:

@@ -14,6 +14,7 @@ dist/
 venv/
 env/
 ENV/
+node_modules/
 
 # Testing / coverage
 .pytest_cache/
@@ -25,6 +26,7 @@ htmlcov/
 .mypy_cache/
 .pyre/
 .ruff_cache/
+*.tsbuildinfo
 
 # Jupyter
 .ipynb_checkpoints/

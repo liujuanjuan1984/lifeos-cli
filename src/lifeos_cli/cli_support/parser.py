@@ -30,6 +30,7 @@ from lifeos_cli.cli_support.runtime_utils import print_database_runtime_error
 from lifeos_cli.cli_support.system.config_commands import build_config_parser
 from lifeos_cli.cli_support.system.db_commands import build_db_parser
 from lifeos_cli.cli_support.system.init_commands import build_init_parser
+from lifeos_cli.cli_support.system.web_commands import build_web_parser
 from lifeos_cli.config import ConfigurationError
 from lifeos_cli.i18n import cli_message as _
 from lifeos_cli.i18n import configure_argparse_translations
@@ -205,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_init_parser(subparsers)
     build_config_parser(subparsers)
     build_db_parser(subparsers)
+    build_web_parser(subparsers)
     build_data_parser(subparsers)
     build_area_parser(subparsers)
     build_event_parser(subparsers)

@@ -4,14 +4,18 @@ import os
 import re
 import subprocess
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy.engine import make_url
 
+psycopg: Any
+sql: Any
 try:
-    import psycopg  # type: ignore[import-not-found]
-    from psycopg import sql
+    psycopg = import_module("psycopg")
+    sql = import_module("psycopg.sql")
 except ImportError:  # pragma: no cover - exercised only without postgres extra
     psycopg = None
     sql = None

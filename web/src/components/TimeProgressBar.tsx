@@ -1,0 +1,249 @@
+import React, { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import type { Dimension } from "@/services/api/dimensions";
+import type { ProcessedEntry } from "@/utils/datetime";
+import { statsApi } from "@/services/api/stats";
+import { formatDuration } from "@/utils/datetime";
+import { useDimensionOrderReadOnly } from "@/hooks/queries/useDimensionOrderReadOnly";
+import Card from "@/layouts/Card";
+import type { UUID } from "@/types/primitive";
+
+interface TimeProgressBarProps {
+  entries: ProcessedEntry[];
+  dimensions: Dimension[];
+  // Optional: when provided, fetch server-side day breakdown for this local date
+  localDateISO?: string; // YYYY-MM-DD (client local)
+  timezone?: string;
+  isLoading?: boolean;
+  className?: string;
+}
+
+interface DimensionTimeData {
+  dimensionId: UUID;
+  dimensionName: string;
+  dimensionColor: string;
+  totalMinutes: number;
+  percentage: number;
+}
+
+/**
+ * TimeProgressBar - Displays 24-hour time allocation by dimension
+ *
+ * This component creates a horizontal progress bar showing how time is distributed
+ * across different dimensions throughout the day, sorted by duration.
+ */
+const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
+  entries,
+  dimensions,
+  localDateISO,
+  timezone,
+  isLoading = false,
+  className,
+}) => {
+  const { t } = useTranslation();
+  // Optional server minutes per dimension for local day
+  const [serverMinutes, setServerMinutes] = useState<Record<
+    number,
+    number
+  > | null>(null);
+
+  // Read-only dimension order via TanStack Query cache
+  const { order: dimensionOrder } = useDimensionOrderReadOnly();
+
+  useEffect(() => {
+    const shouldFetch = Boolean(localDateISO);
+    if (!shouldFetch) {
+      setServerMinutes(null);
+      return;
+    }
+    statsApi
+      .getLocalDayBreakdown(localDateISO!, timezone)
+      .then((response) => {
+        const rows = response.items ?? [];
+        const map: Record<UUID, number> = {};
+        rows.forEach((r) => (map[r.dimension_id] = r.minutes));
+        setServerMinutes(map);
+      })
+      .catch(() => setServerMinutes(null));
+  }, [localDateISO, timezone]);
+  // Calculate time allocation by dimension
+  const calculateTimeAllocation = useMemo((): DimensionTimeData[] => {
+    const dimensionTimeMap = new Map<UUID, number>();
+
+    // Initialize all dimensions with 0 minutes
+    dimensions.forEach((dim) => {
+      dimensionTimeMap.set(dim.id, 0);
+    });
+
+    // Add unknown dimension for placeholders and gaps
+    dimensionTimeMap.set("-1", 0);
+
+    if (serverMinutes) {
+      // Use backend totals (per local day)
+      Object.entries(serverMinutes).forEach(([dimIdStr, minutes]) => {
+        const dimId = dimIdStr as UUID;
+        dimensionTimeMap.set(dimId, minutes as number);
+      });
+    } else {
+      // Fallback to client-side calculation from entries
+      entries.forEach((entry) => {
+        if (entry.start_time && entry.end_time) {
+          const startTime = new Date(entry.start_time);
+          const endTime = new Date(entry.end_time);
+          const durationMs = endTime.getTime() - startTime.getTime();
+          const durationMinutes = Math.round(durationMs / (1000 * 60));
+
+          if (entry.isPlaceholder) {
+            const currentMinutes = dimensionTimeMap.get("-1") || 0;
+            dimensionTimeMap.set("-1", currentMinutes + durationMinutes);
+          } else {
+            const dimensionId = entry.dimension_id || "-1";
+            const currentMinutes =
+              dimensionTimeMap.get(dimensionId as UUID) || 0;
+            dimensionTimeMap.set(
+              dimensionId as UUID,
+              currentMinutes + durationMinutes,
+            );
+          }
+        }
+      });
+    }
+
+    // Calculate total time (should be 24 hours = 1440 minutes)
+    const totalMinutes = 1440; // Fixed 24 hours
+
+    // Convert to array and calculate percentages
+    const dimensionTimeData: DimensionTimeData[] = Array.from(
+      dimensionTimeMap.entries(),
+    )
+      .map(([dimensionId, minutesForDim]) => {
+        if (dimensionId === "-1") {
+          // Unknown dimension (placeholders and gaps)
+          return {
+            dimensionId: dimensionId as UUID,
+            dimensionName: t("timeLog.progressBar.unknownUnfilled"),
+            dimensionColor: "#9CA3AF", // Gray color for unknown
+            totalMinutes: minutesForDim,
+            percentage: 0,
+          };
+        } else {
+          const dimension = dimensions.find((d) => d.id === dimensionId);
+          return {
+            dimensionId: dimensionId as UUID,
+            dimensionName:
+              dimension?.name || t("timeLog.progressBar.unknownDimension"),
+            dimensionColor: dimension?.color || "#9CA3AF",
+            totalMinutes: minutesForDim,
+            percentage: 0,
+          };
+        }
+      })
+      .filter((item) => item.totalMinutes > 0) // Only show dimensions with time
+      .sort((a, b) => {
+        // Sort by backend order first, then by duration descending
+        const aOrder = dimensionOrder.indexOf(a.dimensionId);
+        const bOrder = dimensionOrder.indexOf(b.dimensionId);
+
+        // If both dimensions are in the order, sort by order
+        if (aOrder !== -1 && bOrder !== -1) {
+          return aOrder - bOrder;
+        }
+
+        // If only one is in the order, prioritize the one in order
+        if (aOrder !== -1) return -1;
+        if (bOrder !== -1) return 1;
+
+        // If neither is in the order, sort by duration descending
+        return b.totalMinutes - a.totalMinutes;
+      });
+
+    // Recalculate percentages based on 24 hours (1440 minutes)
+    dimensionTimeData.forEach((item) => {
+      item.percentage = (item.totalMinutes / totalMinutes) * 100;
+    });
+
+    return dimensionTimeData;
+  }, [entries, dimensions, serverMinutes, dimensionOrder, t]);
+
+  const timeAllocation = calculateTimeAllocation;
+
+  const cardClassName = [isLoading ? "min-h-[160px]" : "", "h-auto", className]
+    .filter(Boolean)
+    .join(" ");
+
+  if (isLoading) {
+    return (
+      <Card className={cardClassName}>
+        <div className="flex flex-col gap-4 animate-pulse">
+          <div className="flex flex-wrap gap-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-base-300" />
+                <div className="h-4 w-20 bg-base-300 rounded" />
+                <div className="h-4 w-14 bg-base-300 rounded" />
+                <div className="h-4 w-16 bg-base-300 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="flex h-6 bg-base-200 rounded-lg overflow-hidden mt-3">
+            <div className="flex-1 h-full bg-base-300" />
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Always show the progress bar, even if no time is recorded
+  // If no time is recorded, show 100% unknown
+  if (timeAllocation.length === 0) {
+    timeAllocation.push({
+      dimensionId: "-1",
+      dimensionName: t("timeLog.progressBar.unknownUnfilled"),
+      dimensionColor: "#9CA3AF",
+      totalMinutes: 1440, // 24 hours
+      percentage: 100,
+    });
+  }
+
+  return (
+    <Card className={cardClassName}>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-3">
+        {timeAllocation.map((item: DimensionTimeData) => (
+          <div key={item.dimensionId} className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: item.dimensionColor }}
+            ></div>
+            <span className="text-sm font-medium">{item.dimensionName}</span>
+            <span className="text-sm">{formatDuration(item.totalMinutes)}</span>
+            <span className="text-sm">({item.percentage.toFixed(1)}%)</span>
+          </div>
+        ))}
+      </div>
+      {/* Progress Bar */}
+      <div className="flex h-6 bg-base-200 rounded-lg overflow-hidden mt-3">
+        {timeAllocation.map((item: DimensionTimeData) => (
+          <div
+            key={item.dimensionId}
+            className="flex items-center justify-center text-sm text-base-content font-medium"
+            style={{
+              width: `${item.percentage}%`,
+              backgroundColor: item.dimensionColor,
+              minWidth: item.percentage > 5 ? "auto" : "20px",
+            }}
+            title={`${item.dimensionName}: ${formatDuration(item.totalMinutes)} (${item.percentage.toFixed(1)}%)`}
+          >
+            {item.percentage > 8 && (
+              <span className="truncate px-1">
+                {formatDuration(item.totalMinutes)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+};
+
+export default TimeProgressBar;

@@ -1,0 +1,2801 @@
+{
+  "common": {
+    "save": "保存",
+    "saveChanges": "保存修改",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "copy": "复制",
+    "add": "添加",
+    "rename": "重命名",
+    "replace": "替换",
+    "refresh": "刷新",
+    "clear": "清空",
+    "findReplace": "查找替换",
+    "error": "错误",
+    "success": "成功",
+    "info": "信息",
+    "warning": "提醒",
+    "logout": "退出登录",
+    "user": "用户",
+    "login": "登录",
+    "register": "注册",
+    "openNavigationMenu": "打开导航菜单",
+    "requestFailed": "请求失败",
+    "operationFailed": "操作失败",
+    "submit": "提交",
+    "expand": "展开",
+    "collapse": "收起",
+    "close": "关闭",
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "creating": "新建中...",
+    "submitting": "提交中...",
+    "testing": "检测中...",
+    "deleting": "删除中...",
+    "actions": "操作",
+    "all": "全部",
+    "none": "无",
+    "noDimension": "无维度",
+    "please_select": "请选择……",
+    "no_options": "暂无选项",
+    "create_new": "新建",
+    "reset": "重置",
+    "preview": "预览",
+    "placeholder": "占位",
+    "default": "默认",
+    "no_data": "暂无数据",
+    "create_with_name": "创建 {{name}}",
+    "selected": "已选择",
+    "date": "日期",
+    "time": "时间",
+    "notice": "提示",
+    "required": "为必填项"
+  },
+  "target": {
+    "dimension": "维度",
+    "priority": "优先级",
+    "tag": "标签",
+    "year": "年份",
+    "month": "月份",
+    "week": "周",
+    "day": "日",
+    "frequency": "频率",
+    "interval": "间隔",
+    "type": "类型",
+    "tags": {
+      "label": "标签 (可选)"
+    },
+    "persons": {
+      "label": "相关人员 (可选)"
+    },
+    "tasks": {
+      "label": "相关任务 (可选)"
+    }
+  },
+  "status": {
+    "active": "活跃",
+    "completed": "已完成",
+    "archived": "归档",
+    "fruit": "收获",
+    "paused": "暂停",
+    "expired": "已过期",
+    "deleted": "已删除",
+    "todo": "待办",
+    "in_progress": "进行中",
+    "done": "已完成",
+    "cancelled": "已取消",
+    "inProgress": "进行中",
+    "pending": "待办",
+    "skip": "跳过",
+    "miss": "错过",
+    "doing": "进行中",
+    "failed": "失败",
+    "pass": "跳过",
+    "inbox": "收集箱"
+  },
+  "priority": {
+    "0": "无优先级",
+    "1": "普通",
+    "2": "重要",
+    "3": "紧急",
+    "4": "非常紧急",
+    "5": "最高优先级"
+  },
+  "theme": {
+    "system": "跟随系统",
+    "fresh": "清新绿",
+    "cupcake": "纸杯蛋糕",
+    "bumblebee": "大黄蜂",
+    "emerald": "翡翠绿",
+    "corporate": "商务风格",
+    "synthwave": "赛博朋克",
+    "retro": "复古风格",
+    "cyberpunk": "网络朋克",
+    "valentine": "情人节",
+    "halloween": "万圣节",
+    "garden": "花园",
+    "forest": "自然绿色",
+    "aqua": "水蓝色",
+    "lofi": "低保真",
+    "pastel": "粉彩",
+    "fantasy": "奇幻",
+    "wireframe": "线框",
+    "luxury": "奢华风格",
+    "dracula": "德古拉",
+    "cmyk": "CMYK",
+    "autumn": "秋季",
+    "business": "商务",
+    "acid": "酸性",
+    "lemonade": "柠檬水",
+    "night": "夜晚",
+    "coffee": "咖啡色调",
+    "winter": "冬季"
+  },
+  "weekdays": {
+    "monday": "周一",
+    "tuesday": "周二",
+    "wednesday": "周三",
+    "thursday": "周四",
+    "friday": "周五",
+    "saturday": "周六",
+    "sunday": "周日"
+  },
+  "calendarSystems": {
+    "gregorian": "公历",
+    "mayan_13_moon": "玛雅13月亮历"
+  },
+  "person": {
+    "selectPersonPlaceholder": "请添加相关人..."
+  },
+  "task": {
+    "selectTaskPlaceholder": "请选择任务..."
+  },
+  "batchEdit": {
+    "title": "批量编辑",
+    "modalTitle": "批量编辑 ({{count}} 条记录)",
+    "description": "选择编辑类型和操作模式，批量更新选中的记录",
+    "warning": {
+      "largeBatch": "选择的记录数量较多 ({{count}} 条)，系统将自动分批处理，每批最多 {{batchSize}} 条记录"
+    },
+    "editType": {
+      "label": "编辑类型",
+      "persons": "相关人员",
+      "title": "行为描述",
+      "task": "相关任务"
+    },
+    "modes": {
+      "label": "操作模式"
+    },
+    "errors": {
+      "title": "批量编辑失败",
+      "noEntriesSelected": "请先选择要编辑的时间日志",
+      "noPersonsSelected": "请选择相关人员",
+      "noTitleValue": "请输入标题内容",
+      "noFindText": "请输入要查找的文本",
+      "noTaskSelected": "请选择相关任务",
+      "noDimensionSelected": "请选择维度",
+      "noRecordsUpdated": "没有记录被更新",
+      "batchFailed": "第 {{batch}} 批处理失败: {{error}}",
+      "details": "批量编辑错误详情:"
+    },
+    "success": {
+      "title": "批量编辑完成",
+      "message": "成功更新 {{updated}} 条记录",
+      "messageWithFailed": "成功更新 {{updated}} 条记录，其中 {{failed}} 条失败",
+      "failedIds": "失败的记录ID: {{ids}}",
+      "failedIdsMore": "失败的记录ID: {{ids}}...等 {{total}} 条"
+    },
+    "progress": {
+      "batchProcessing": "正在处理第 {{current}}/{{total}} 批 ({{count}} 条记录)"
+    },
+    "persons": {
+      "replaceDescription": "将替换所有现有相关人员",
+      "addDescription": "将添加到现有相关人员中"
+    },
+    "subtitle": {
+      "findTextLabel": "查找文本",
+      "findTextPlaceholder": "输入要查找的文本...",
+      "newTitleLabel": "新标题",
+      "replaceWithLabel": "替换为",
+      "newTitlePlaceholder": "输入新的标题...",
+      "replaceWithPlaceholder": "输入替换后的文本..."
+    },
+    "task": {
+      "description": "输入要关联的任务ID，将替换所有选中记录的关联任务",
+      "clearDescription": "将清空所有选中记录的关联任务"
+    },
+    "dimension": {
+      "description": "将替换所有选中记录的维度"
+    },
+    "confirmEditing": "编辑中..."
+  },
+  "eventModal": {
+    "title": {
+      "create": "创建计划日程"
+    },
+    "fields": {
+      "title": "标题",
+      "titlePlaceholder": "输入日程标题",
+      "allDay": "全天事件",
+      "startTime": "开始时间",
+      "endTime": "结束时间"
+    },
+    "errors": {
+      "titleRequired": "请输入日程标题",
+      "startTimeRequired": "请选择开始时间",
+      "saveFailed": "保存失败",
+      "saveTitle": "保存日程失败",
+      "saveMessage": "操作失败：{{error}}",
+      "deleteFailed": "删除失败",
+      "deleteTitle": "删除日程失败"
+    },
+    "success": {
+      "createTitle": "日程创建成功！",
+      "createMessage": "新日程\"{{title}}\"已成功创建",
+      "updateTitle": "日程更新成功！",
+      "updateMessage": "日程\"{{title}}\"已成功更新",
+      "deleteTitle": "日程删除成功",
+      "deleteMessage": "{{type}}\"{{title}}\"已成功删除"
+    },
+    "deleteTypes": {
+      "single": "单个日程",
+      "allFuture": "今天及以后的日程",
+      "all": "所有相关日程"
+    },
+    "deleteConfirm": {
+      "title": "删除循环日程",
+      "description": "\"{{title}}\" 是一个循环日程。请选择删除方式：",
+      "options": {
+        "single": {
+          "title": "仅删除今天这个实例",
+          "description": "保留循环规则，其他实例不受影响"
+        },
+        "allFuture": {
+          "title": "删除今天及以后的所有实例",
+          "description": "保留循环规则，但停止生成新的实例"
+        },
+        "all": {
+          "title": "删除所有相关实例和循环规则",
+          "description": "完全删除此循环日程，无法恢复"
+        }
+      }
+    },
+    "editScope": {
+      "title": "应用范围",
+      "fallbackDate": "该实例",
+      "options": {
+        "single": {
+          "title": "仅修改当天实例",
+          "description": "只影响所选这一天，循环规则与其他日期保持不变"
+        },
+        "allFuture": {
+          "title": "修改当天及以后的所有实例",
+          "description": "在该日期之前的历史记录保持原样，之后全部采用新设置"
+        },
+        "all": {
+          "title": "修改整个系列",
+          "description": "历史与未来所有实例都会立即更新"
+        }
+      },
+      "notice": {
+        "single": "仅影响 {{date}} 这一条，其他实例保持原值。",
+        "all_future": "从 {{date}} 开始的实例都会采用新设置，以前的记录不会改变。",
+        "all": "整个系列（包含历史）都会同步更新。"
+      }
+    }
+  },
+  "tagManager": {
+    "title": "标签管理",
+    "titleWithScope": "{{scope}} 标签管理",
+    "createButton": "新建标签",
+    "createNewTag": "新建标签",
+    "noTags": "暂无标签",
+    "empty": {
+      "createFirstTagHint": "创建第一个标签以开始使用。"
+    },
+    "fields": {
+      "name": "标签名称",
+      "namePlaceholder": "例如：重要、工作、个人...",
+      "type": "标签类型",
+      "category": "分类",
+      "description": "描述（可选）",
+      "descriptionPlaceholder": "标签的用途说明..."
+    },
+    "filters": {
+      "category": "分类",
+      "allCategories": "全部分类"
+    },
+    "categoryManager": {
+      "title": "分类管理",
+      "description": "新增分类并在不同分类之间切换查看标签。",
+      "addButton": "新增分类",
+      "newLabel": "分类名称",
+      "placeholder": "例如：工作、健康、旅行...",
+      "createButton": "添加",
+      "emptyError": "请输入分类名称",
+      "successTitle": "分类创建成功",
+      "successMessage": "分类“{{name}}”已可使用",
+      "errorTitle": "创建分类失败",
+      "renameButton": "重命名分类",
+      "batchEditButton": "批量编辑",
+      "bulkSelectAll": "全选",
+      "bulkInvertSelection": "反选",
+      "cancelBulkEdit": "取消",
+      "bulkSelectionCount": "已选 {{selected}} / {{total}}",
+      "bulkTargetCategoryPlaceholder": "目标分类",
+      "bulkMoveButton": "移动到分类",
+      "bulkUpdateConfirmTitle": "移动标签分类",
+      "bulkUpdateConfirmMessage": "确定将 {{count}} 个标签移动到 {{target}}？",
+      "bulkUpdateSuccessTitle": "标签已移动",
+      "bulkUpdateSuccessMessage": "已将 {{count}} 个标签移动到 {{target}}",
+      "bulkUpdatePartialErrorTitle": "部分标签移动失败",
+      "bulkUpdatePartialErrorMessage": "成功 {{success}} 个，失败 {{failed}} 个",
+      "addTagButton": "新增标签",
+      "renameSuccessTitle": "分类重命名成功",
+      "renameSuccessMessage": "分类已重命名为“{{name}}”",
+      "renameErrorTitle": "分类重命名失败"
+    },
+    "categories": {
+      "general": "通用",
+      "location": "地点",
+      "relation": "关系",
+      "profession": "职业",
+      "team": "团队",
+      "topic": "主题"
+    },
+    "actions": {
+      "creating": "创建中..."
+    },
+    "success": {
+      "createTitle": "标签创建成功！",
+      "createMessage": "标签\"{{name}}\"已成功创建",
+      "updateTitle": "标签更新成功！",
+      "updateMessage": "标签\"{{name}}\"已成功更新",
+      "deleteTitle": "标签删除成功！",
+      "deleteMessage": "标签已成功删除"
+    },
+    "errors": {
+      "createTitle": "创建标签失败",
+      "updateTitle": "更新标签失败",
+      "deleteTitle": "删除标签失败"
+    },
+    "confirmDelete": {
+      "title": "确认删除标签",
+      "message": "您确定要删除标签 \"{{name}}\" 吗？此操作不可逆。"
+    },
+    "entityTypes": {
+      "person": "人员",
+      "note": "笔记",
+      "task": "任务",
+      "vision": "愿景",
+      "general": "通用"
+    },
+    "ui": {
+      "tagCount": "{{count}} 个标签",
+      "tagNamePlaceholder": "标签名称"
+    }
+  },
+  "filterStatus": {
+    "filtering": "正在过滤:",
+    "tagFilter": "标签 #{{name}}",
+    "personFilter": "人员 @{{name}}",
+    "keywordFilter": "关键词 \"{{keyword}}\"",
+    "notesCount": "{{count}} 条笔记",
+    "readyToSearch": "准备搜索",
+    "exportText": "导出文本",
+    "clearFilters": "清除过滤",
+    "exportError": "导出失败",
+    "exportErrorMessage": "导出过程中发生错误"
+  },
+  "notes": {
+    "loadMore": "加载更多笔记",
+    "noNotes": "还没有笔记",
+    "noNotesWithFilter": "没有标签为 #{{tagName}} 的笔记",
+    "noNotesWithPerson": "没有关联 @{{personName}} 的笔记",
+    "noNotesDescription": "开始记录你的第一个想法吧！",
+    "noNotesWithFilterDescription": "尝试选择其他过滤条件或清除过滤",
+    "totalNotes": "共 {{count}} 条笔记",
+    "taggedWith": "标签: #{{tagName}}",
+    "associatedWith": "人员: @{{personName}}",
+    "copySuccess": "复制成功",
+    "copyError": "复制失败",
+    "copySuccessMessage": "笔记内容已复制到剪贴板",
+    "copyErrorMessage": "无法复制笔记内容，请手动选择文本复制",
+    "copyTooltip": "复制",
+    "timelogChipDefault": "时间记录",
+    "timelogChipTooltip": "关联的时间记录 {{label}}",
+    "tooltip": {
+      "person": {
+        "title": "人物：{{name}}",
+        "nickname": "昵称",
+        "location": "所在地",
+        "tags": "关联标签",
+        "noTags": "暂无标签"
+      },
+      "tag": {
+        "title": "标签：#{{name}}",
+        "entityType": "实体类型",
+        "description": "描述",
+        "noDescription": "暂无描述",
+        "color": "颜色",
+        "createdAt": "创建于",
+        "updatedAt": "更新于",
+        "unknown": "未知"
+      }
+    },
+    "tagManager": "标签管理",
+    "noteTagManager": "笔记标签管理",
+    "loadingNotes": "加载笔记中...",
+    "loadingAdvanced": "执行高级搜索...",
+    "collapseDisplayHint": "预览 {{count}} 行",
+    "queryMode": {
+      "standard": "快速笔记",
+      "advanced": "高级搜索",
+      "import": "批量导入"
+    },
+    "bulkImport": {
+      "sectionTitle": "批量创建笔记",
+      "sectionDescription": "在输入框中粘贴多条内容，使用连续 3 行以上的空行来区分不同笔记。",
+      "limitNotice": "系统会自动分批提交，每批最多 {{limit}} 条。",
+      "inputLabel": "批量输入内容",
+      "separatorHint": "仅包含空格或 Tab 的空行不会作为分隔符。",
+      "placeholder": "第一条笔记...\n\n\n\n第二条笔记...",
+      "instructions": "输入修改后需要重新点击“预览”才能刷新拆分结果。",
+      "previewButton": "预览",
+      "submitButton": "提交",
+      "previewStale": "内容已修改，请重新点击预览。",
+      "previewEmptyTitle": "没有可拆分的内容",
+      "previewEmptyDescription": "请按照规则输入笔记并点击预览。",
+      "previewRequiredTitle": "请先预览",
+      "previewRequiredDescription": "提交前需要使用预览来确认拆分结果。",
+      "previewTitle": "已拆分 {{count}} 条笔记",
+      "previewItemLabel": "第 {{index}} 条笔记",
+      "status": {
+        "idle": "待提交",
+        "pending": "提交中",
+        "success": "已创建",
+        "error": "提交失败"
+      },
+      "editLabel": "编辑",
+      "saveLabel": "保存",
+      "cancelLabel": "取消",
+      "removeLabel": "移除",
+      "editEmptyTitle": "内容不能为空",
+      "editEmptyDescription": "请至少输入一个字符。",
+      "toast": {
+        "success": "成功创建 {{count}} 条笔记",
+        "partialTitle": "部分笔记提交失败",
+        "partialDescription": "已创建 {{created}} 条，{{failed}} 条待处理",
+        "error": "批量创建失败"
+      },
+      "banner": {
+        "message": "批量导入模式已开启",
+        "hint": "此模式下不会自动刷新，请在编辑后重新点击预览。"
+      },
+      "exit": "退出批量导入"
+    },
+    "selectForBatch": "选择用于批量操作",
+    "advancedSearch": {
+      "title": "笔记高级搜索",
+      "banner": {
+        "message": "高级搜索模式已开启",
+        "hint": "你可以在下方调整过滤条件，点击退出按钮返回快速笔记"
+      },
+      "exit": "退出高级搜索",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "sortOrder": "排序方式",
+      "sortNewest": "按创建时间降序",
+      "sortOldest": "按创建时间升序",
+      "tagFilter": "标签筛选",
+      "tagModeAny": "包含任意所选标签",
+      "tagModeAll": "同时包含所有所选标签",
+      "tagModeNone": "无标签",
+      "personFilter": "人物筛选",
+      "personModeAny": "包含任意所选人物",
+      "personModeAll": "同时包含所有所选人物",
+      "personModeNone": "无人关联",
+      "taskFilter": "任务筛选",
+      "taskModeAny": "任意任务",
+      "taskModeNone": "无任务",
+      "taskModeHas": "有任务",
+      "taskModeSpecific": "指定任务",
+      "selectTaskPlaceholder": "请选择任务...",
+      "keyword": "关键词",
+      "keywordDescription": "在笔记内容中搜索，支持空格分隔多个关键词",
+      "keywordPlaceholder": "输入关键词...",
+      "search": "搜索",
+      "reset": "重置",
+      "copyResults": "复制结果",
+      "enableBatch": "开启批量操作",
+      "selectAll": "全选",
+      "selectInverse": "反选",
+      "batchEdit": "批量编辑",
+      "batchDelete": "批量删除",
+      "totalResults": "共 {{count}} 条结果",
+      "selectedCount": "已选 {{count}} 条",
+      "paginationSummary": "当前显示第 {{start}}-{{end}} 条，共 {{total}} 条",
+      "previousPage": "上一页",
+      "nextPage": "下一页",
+      "pageIndicator": "第 {{page}} / {{total}} 页",
+      "errorTitle": "高级搜索出错",
+      "taskRequired": "请选择具体任务后再执行搜索",
+      "copyNoResultsTitle": "暂无可复制内容",
+      "copyNoResultsMessage": "请先执行搜索以生成可复制的内容",
+      "summary": {
+        "dateRange": "时间范围：{{start}} 至 {{end}}",
+        "dateFrom": "起始日期：{{start}}",
+        "dateTo": "结束日期：{{end}}",
+        "tagAny": "标签（任意匹配）：{{names}}",
+        "tagAnyEmpty": "标签：任意（未选择具体标签）",
+        "tagAll": "标签（必须同时包含）：{{names}}",
+        "tagNone": "标签：仅限无标签笔记",
+        "personAny": "人物（任意匹配）：{{names}}",
+        "personAnyEmpty": "人物：任意（未选择具体人物）",
+        "personAll": "人物（必须同时包含）：{{names}}",
+        "personNone": "人物：无关联人物",
+        "taskAny": "任务筛选：不限任务",
+        "taskNone": "任务筛选：仅限无任务笔记",
+        "taskHas": "任务筛选：必须有关联任务",
+        "taskSpecific": "任务筛选：{{task}}",
+        "taskUnknown": "未知任务",
+        "keyword": "关键词：{{keyword}}"
+      }
+    },
+    "batchEdit": {
+      "title": "批量编辑笔记",
+      "modalTitle": "批量编辑（{{count}} 条笔记）",
+      "description": "选择操作模式以更新所选笔记",
+      "noSelection": "请先选择需要操作的笔记",
+      "invalidMode": "不支持的批量模式",
+      "tagsRequired": "请选择要应用的标签",
+      "personsRequired": "请选择要应用的人物",
+      "taskRequired": "请选择任务",
+      "findTextRequired": "请输入要查找的文本",
+      "mode": {
+        "tags": "标签",
+        "persons": "人物",
+        "task": "任务",
+        "content": "文本"
+      },
+      "tagMode": {
+        "add": "追加标签",
+        "replace": "替换标签"
+      },
+      "personMode": {
+        "add": "追加人物",
+        "replace": "替换人物"
+      },
+      "taskMode": {
+        "replace": "关联任务",
+        "clear": "清除任务"
+      },
+      "findText": "查找文本",
+      "replaceText": "替换为",
+      "caseSensitiveOn": "区分大小写",
+      "caseSensitiveOff": "不区分大小写",
+      "apply": "应用",
+      "successTitle": "批量编辑完成",
+      "successMessage": "已更新 {{updated}} 条笔记（失败 {{failed}} 条）",
+      "partialTitle": "部分笔记更新失败",
+      "partialMessage": "请检查失败的笔记 ID",
+      "errorTitle": "批量编辑失败"
+    },
+    "batchDelete": {
+      "confirmTitle": "批量删除笔记",
+      "confirmMessage": "确认删除所选的 {{count}} 条笔记？",
+      "confirmButton": "删除笔记",
+      "successTitle": "批量删除完成",
+      "successMessage": "已删除 {{deleted}} 条笔记（失败 {{failed}} 条）",
+      "partialTitle": "部分笔记删除失败",
+      "partialMessage": "请检查失败原因",
+      "errorTitle": "批量删除失败"
+    },
+    "messages": {
+      "createTagFailed": "创建标签失败: {{error}}",
+      "searchFailedTitle": "高级搜索失败",
+      "searchFailed": "无法完成高级搜索",
+      "searchCompletedTitle": "搜索完成",
+      "searchFoundRecords": "找到 {{count}} 条匹配笔记",
+      "searchFoundNone": "未找到匹配笔记"
+    }
+  },
+  "settings": {
+    "appearance": {
+      "title": "外观",
+      "description": "选择应用主题（可跟随系统）。",
+      "theme": {
+        "label": "选择主题",
+        "placeholder": "请选择主题...",
+        "description": "选择应用主题。选择\"跟随系统\"将根据系统设置自动切换浅色/深色模式。"
+      }
+    },
+    "navigation": {
+      "title": "导航栏",
+      "description": "定制你的导航栏，打造一个更符合你心流的个人工作空间。",
+      "visibleModules": {
+        "label": "显示的模块",
+        "description": "选择要在侧边导航栏中展示的模块。"
+      }
+    },
+    "calendar": {
+      "title": "日历",
+      "description": "选择偏好的日历体系与每周结构。",
+      "system": {
+        "label": "日历体系",
+        "description": "默认公历。选择玛雅13月亮历时，每月固定28天，07-26为新年。"
+      },
+      "firstDay": {
+        "label": "每周第一天",
+        "description": "默认周一。选择玛雅13月亮历时，该设置将固定为新年起点周，不可更改。"
+      }
+    },
+    "planningSettings": {
+      "taskPlanning": {
+        "label": "默认规划",
+        "description": "选择默认规划后，任何地方创建任务时都会自动套用（可在表单中修改）。"
+      },
+      "timeLogTaskPlanning": {
+        "label": "自动设置任务规划",
+        "description": "连接你的行动与计划。当时间日志关联任务时，自动将其规划到今天。"
+      },
+      "habitActionsInPlanning": {
+        "label": "显示习惯动作",
+        "description": "让日常仪式成为你每日计划的一部分，选择是否在此显示习惯动作。"
+      }
+    },
+    "dimensionOrder": {
+      "title": "维度排序",
+      "description": "自定义维度的呈现顺序，让你能优先关注最重要的生命领域。"
+    },
+    "defaultInboxVision": {
+      "label": "选择默认愿景",
+      "description": "为碎片化的想法和任务提供一个默认归宿，确保所有意图都能被捕获。",
+      "noDefault": "无默认愿景"
+    },
+    "language": {
+      "title": "语言",
+      "description": "选择应用界面语言。",
+      "label": "选择语言",
+      "placeholder": "请选择语言...",
+      "updated": "语言已更新",
+      "timezone": {
+        "label": "首选时区",
+        "description": "选择用于统计和展示的时区"
+      }
+    },
+    "noGroupSelected": "未选择设置分组",
+    "planning": {
+      "title": "规划设置",
+      "description": "管理任务规划相关设置"
+    },
+    "visions": {
+      "title": "愿景经验",
+      "description": "配置实际投入时间如何转换为愿景经验值。",
+      "experienceRate": {
+        "label": "每小时经验值",
+        "description": "设置每小时投入可获得的经验值（1-3600）。可在愿景编辑中为单个愿景设置独立倍率。",
+        "applyAll": "保存并应用到所有愿景"
+      },
+      "experienceTable": {
+        "label": "愿景倍率列表",
+        "description": "集中查看并调整各愿景的经验倍率。",
+        "hint": "此处的修改仅更新选定的愿景。允许范围：1–{{max}} 点/小时。",
+        "empty": "暂无愿景，请先创建愿景后再进行调整。",
+        "visionColumn": "愿景",
+        "statusColumn": "状态",
+        "rateColumn": "经验倍率",
+        "rateUnit": "点/小时",
+        "save": "保存修改",
+        "saving": "保存中…",
+        "footerHint": "当前默认偏好：{{defaultRate}} 点/小时",
+        "invalidRate": "经验倍率必须是介于 {{min}} 与 {{max}} 的整数。",
+        "rateInputLabel": "{{name}} 的经验倍率",
+        "toastSuccess": "愿景经验倍率已更新。",
+        "toastError": "愿景经验倍率更新失败。"
+      }
+    },
+    "data": {
+      "title": "数据设置",
+      "description": "管理数据相关设置"
+    },
+    "notes": {
+      "title": "笔记",
+      "description": "控制笔记卡片在展开前的预览样式。",
+      "minCollapsedLines": {
+        "label": "折叠时保留的行数",
+        "description": "选择折叠状态下仍然可见的笔记行数。"
+      },
+      "exportPlanning": {
+        "taskNotes": {
+          "label": "导出时包含任务相关笔记",
+          "description": "导出规划时，附加与当期任务相关的所有笔记。"
+        },
+        "cycleNotes": {
+          "label": "导出时包含当前周期笔记",
+          "description": "导出规划时，附加当前规划周期内创建的笔记（按日历体系计算）。"
+        }
+      }
+    },
+    "autoSaveHint": "修改后将自动保存",
+    "dimensionSorter": {
+      "loading": "加载维度中...",
+      "error": "加载维度失败：{{message}}",
+      "empty": "暂无维度数据",
+      "groupLabel": "维度排序",
+      "instructions": "从左到右排列，可使用 ↑↓ 按钮调整顺序。",
+      "clearAll": "重置",
+      "clearAllAria": "重置维度排序",
+      "listLabel": "维度列表",
+      "itemLabel": "维度 {{name}}，位置 {{position}}",
+      "moveUp": "将 {{name}} 上移",
+      "moveDown": "将 {{name}} 下移"
+    },
+    "finance": {
+      "title": "财务",
+      "description": "配置账户树、资产报表与换算时使用的默认项。",
+      "primaryCurrency": {
+        "label": "默认本位币",
+        "description": "选择在资产合并和汇率换算时使用的基准币种。",
+        "placeholder": "请选择币种..."
+      },
+      "currencyOptions": {
+        "USD": "USD — 美元",
+        "EUR": "EUR — 欧元",
+        "GBP": "GBP — 英镑",
+        "CNY": "CNY — 人民币",
+        "JPY": "JPY — 日元",
+        "AUD": "AUD — 澳大利亚元",
+        "CAD": "CAD — 加拿大元",
+        "CHF": "CHF — 瑞士法郎",
+        "HKD": "HKD — 港币",
+        "SGD": "SGD — 新加坡元",
+        "INR": "INR — 印度卢比",
+        "SEK": "SEK — 瑞典克朗",
+        "NZD": "NZD — 新西兰元",
+        "BTC": "BTC — 比特币",
+        "ETH": "ETH — 以太坊",
+        "USDT": "USDT — 泰达币"
+      }
+    },
+    "llm": {
+      "title": "AI 接入",
+      "description": "管理自带 LLM API Token，全部加密保存，仅显示尾号。",
+      "credentials": {
+        "label": "自带 Token",
+        "description": "Token 经过加密存储，保存后仅显示最后四位。",
+        "empty": "尚未配置 Token，可在下方添加。",
+        "defaultBadge": "默认",
+        "tokenPreview": "尾号 {{last4}}",
+        "updatedAt": "更新时间 {{value}}",
+        "addNew": "添加 Token",
+        "saveButton": "保存 Token"
+      },
+      "providers": {
+        "openai": "OpenAI",
+        "azure-openai": "Azure OpenAI",
+        "custom": "自定义"
+      },
+      "actions": {
+        "makeDefault": "设为默认",
+        "testConnection": "检测可用性"
+      },
+      "form": {
+        "provider": "服务商",
+        "displayName": "显示名称",
+        "displayNamePlaceholder": "例如：团队额度",
+        "apiKey": "API Token",
+        "apiBase": "API Base URL",
+        "modelOverride": "偏好模型（可选）",
+        "makeDefault": "保存后设为默认"
+      },
+      "errors": {
+        "missingKey": "请填写 API Token。",
+        "genericError": "加载 Token 失败。"
+      },
+      "confirmDelete": "确定删除 Token「{{name}}」吗？",
+      "toasts": {
+        "saveSuccess": "Token 保存成功。",
+        "updateSuccess": "Token 更新成功。",
+        "defaultSuccess": "默认 Token 已更新。",
+        "deleteSuccess": "Token 已删除。",
+        "testSuccess": "连接成功。",
+        "testFail": "连接失败。"
+      }
+    },
+    "accountSecurity": {
+      "title": "账号安全",
+      "description": "管理密码及其他敏感安全设置。",
+      "changePasswordLabel": "更新密码",
+      "changePasswordHint": "修改密码后系统会自动登出，需要重新登录。",
+      "changePasswordDescription": "更新密码以保护账号安全。"
+    },
+    "saveSuccess": "所有设置已保存",
+    "partialSuccess": "已保存 {{successful}} 项设置，{{failed}} 项失败",
+    "saveFailed": "设置保存失败",
+    "theme": {
+      "updated": "主题已更新"
+    },
+    "visibleModules": {
+      "updated": "导航模块已更新"
+    },
+    "export": {
+      "preparing": "正在准备导出...",
+      "success": "已导出文件",
+      "full": {
+        "title": "全量导出",
+        "description": "导出当前账户所有金融相关数据（账户、现金流、交易）。",
+        "button": "导出全部数据"
+      }
+    },
+    "autoSavePending": "有待保存的修改",
+    "autoSaveIdle": "所有更改已保存"
+  },
+  "visions": {
+    "emptyState": {
+      "title": "还没有愿景",
+      "description": "开始创建您的第一个愿景吧"
+    },
+    "vision": {
+      "description": "描述",
+      "stage": "阶段",
+      "experience": "经验",
+      "totalEffort": "总投入",
+      "createdAt": "创建于",
+      "noTasks": "还没有任务",
+      "actions": {
+        "createRootTask": "创建根任务",
+        "bulkCreateTasks": "批量创建任务"
+      }
+    },
+    "task": {
+      "createFirstTask": "开始创建您的第一个任务吧"
+    },
+    "filters": {
+      "dimensionNone": "无维度"
+    },
+    "modal": {
+      "createVision": "创建愿景",
+      "editVision": "编辑愿景",
+      "deleteVision": "删除愿景",
+      "harvestVision": "收获愿景",
+      "deleteTask": "删除任务"
+    },
+    "messages": {
+      "visionCreated": "愿景创建成功！",
+      "visionUpdated": "愿景更新成功！",
+      "copySuccess": "复制成功",
+      "copySuccessDetail": "愿景任务树详情已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "recomputeSuccess": "时间投入重新计算完成",
+      "recomputeFailed": "时间投入重新计算失败",
+      "saveFailed": "保存愿景失败"
+    },
+    "form": {
+      "name": "愿景名称",
+      "nameRequired": "愿景名称不能为空",
+      "namePlaceholder": "例如：完成 v1.0 原型、学会弹吉他、健康生活方式",
+      "description": "愿景描述",
+      "descriptionPlaceholder": "描述这个愿景的意义和重要性...",
+      "status": "愿景状态",
+      "experienceRate": "每小时经验值",
+      "experienceRatePlaceholder": "留空则继承默认值",
+      "experienceRateDescription": "为当前愿景设置独立的经验倍率（1-3600 的整数）。",
+      "experienceRateInvalid": "经验倍率须在 1 到 3600 之间。"
+    },
+    "confirm": {
+      "deleteVision": "确定要删除愿景 \"{{name}}\" 吗？这将同时删除所有相关数据。",
+      "harvestVision": "确定要收获愿景 \"{{name}}\" 吗？收获后将转化为成就果实。",
+      "deleteTask": "确定要删除任务 \"{{content}}\" 吗？"
+    }
+  },
+  "planning": {
+    "presets": {
+      "none": "无规划",
+      "today": "今天",
+      "tomorrow": "明天",
+      "this_week": "本周",
+      "this_month": "本月"
+    },
+    "viewType": {
+      "label": "视图",
+      "year": "年",
+      "month": "月",
+      "sevenYear": "7年"
+    },
+    "periodNavigation": {
+      "previous": "前一",
+      "next": "后一",
+      "current": "当前",
+      "goToCurrent": "回到当前",
+      "pickDateButton": "选择日期",
+      "pickDateLabel": "选择日期",
+      "pickDatePlaceholder": "YYYY-MM-DD"
+    },
+    "emptyState": {
+      "title": "暂无规划任务",
+      "description": "将任务放入时间坐标，你的计划将在这里清晰呈现。"
+    },
+    "taskList": {
+      "title": "任务列表",
+      "emptyMessage": {
+        "noTasks": "此时间段内没有规划任务",
+        "noTasksWithStatus": "此时间段内没有状态为\"{{status}}\"的任务",
+        "noTasksWithVision": "此时间段内没有愿景\"{{vision}}\"的任务",
+        "noTasksWithStatusAndVision": "此时间段内没有状态为\"{{status}}\"且属于愿景\"{{vision}}\"的任务"
+      }
+    },
+    "filters": {
+      "vision": {
+        "label": "愿景",
+        "none": "无愿景",
+        "unknown": "愿景（已不可用）"
+      }
+    },
+    "habitActions": {
+      "title": "习惯动作"
+    },
+    "taskActions": {
+      "createTask": "创建新任务到 {{period}}",
+      "addTask": "关联任务到 {{period}}",
+      "export": "导出当前周期规划数据",
+      "carryForward": "顺延 ({{count}})",
+      "carryForwardTooltip": "将未完成任务顺延到下个周期"
+    },
+    "createTask": {
+      "visionPlaceholder": "选择愿景...",
+      "contentPlaceholder": "输入任务标题...",
+      "submitText": "创建任务"
+    },
+    "addTask": {
+      "submitText": "关联任务",
+      "addingText": "添加中..."
+    },
+    "carryForward": {
+      "title": "确认顺延任务",
+      "message": "确定要将以下 {{count}} 个未完成任务顺延到下个周期吗？",
+      "submitText": "确认顺延",
+      "carryingText": "顺延中...",
+      "noTasksMessage": "当前周期没有需要顺延的任务"
+    },
+    "messages": {
+      "taskAdded": "任务添加成功",
+      "taskAddedToPeriod": "任务已添加到 {{period}} 规划中",
+      "taskNotFound": "任务不存在",
+      "taskNotFoundMessage": "所选任务不存在或已被删除",
+      "addFailed": "添加失败",
+      "addFailedMessage": "将任务添加到规划时遇到问题，请稍后重试",
+      "createFailed": "创建失败",
+      "createFailedMessage": "创建任务时遇到问题，请稍后重试",
+      "createFailedNoContent": "请输入任务标题",
+      "createFailedNoVision": "请选择愿景或设置默认收件箱愿景",
+      "carryForwardSuccess": "顺延成功",
+      "carryForwardSuccessMessage": "已将 {{count}} 个任务顺延到下个周期",
+      "carryForwardPartialFailed": "部分任务顺延失败",
+      "carryForwardPartialFailedMessage": "{{count}} 个任务顺延失败，请稍后重试",
+      "carryForwardFailed": "顺延失败",
+      "carryForwardFailedMessage": "顺延任务时遇到问题，请稍后重试",
+      "exportSuccess": "导出成功",
+      "exportSuccessMessage": "规划数据已复制到剪贴板",
+      "exportFailedMessage": "导出规划数据时遇到问题，请稍后重试",
+      "habitActionUpdateFailed": "更新失败",
+      "habitActionUpdateFailedMessage": "更新习惯状态时遇到问题，请稍后重试"
+    }
+  },
+  "taskForm": {
+    "modalTitle": {
+      "edit": "编辑任务",
+      "createSub": "创建子任务",
+      "bulkCreate": "批量创建任务"
+    },
+    "fields": {
+      "vision": "所属愿景",
+      "parent": "父任务",
+      "content": "任务内容"
+    },
+    "placeholders": {
+      "parentNoneRoot": "无父任务（根任务）",
+      "selectVisionFirst": "请先选择愿景",
+      "content": "描述需要完成的任务...",
+      "bulkContent": "每行输入一条任务..."
+    },
+    "validation": {
+      "contentRequired": "任务内容不能为空"
+    },
+    "tips": {
+      "visionChangeAllowed": "提示：选择任务所属的愿景。变更愿景时，父任务将自动重置。",
+      "visionChangeRootOnly": "提示：只有根任务（没有父任务的任务）才能更换愿景。",
+      "visionLocked": "当前模式下愿景已锁定。",
+      "parentReady": "提示：任务层级最多支持5层（根任务为第1层）。编辑时可选择已完成的任务作为父任务。",
+      "parentSelectVisionFirst": "提示：请先选择愿景，然后才能选择父任务。父任务必须在同一愿景内。",
+      "parentDoneAutoUpdate": "选择已完成的任务作为父任务时，系统会自动将其状态更新为\"进行中\"，因为添加子任务意味着父任务还没有真正完成。",
+      "bulkContentDescription": "批量模式：当前字段及属性会应用到每一行任务。",
+      "bulkContentHelper": "每行等于一条新任务，空行会被自动忽略。"
+    },
+    "planning": {
+      "title": "规划周期设置",
+      "description": "被规划的任务将展示在规划页；选择周期后，开始日期将为该周期的第一天。",
+      "startLabels": {
+        "year": "开始年份",
+        "month": "开始月份",
+        "week": "开始周起始日",
+        "day": "开始日期"
+      }
+    },
+    "messages": {
+      "updateSuccessTitle": "任务更新成功！",
+      "updateSuccessMessage": "任务\"{{content}}\"已成功更新",
+      "createSuccessTitle": "任务创建成功！",
+      "createSuccessMessage": "新任务\"{{content}}\"已添加到您的愿景中",
+      "saveFailedTitle": "保存任务失败",
+      "bulkCreateSuccessTitle": "批量创建完成！",
+      "bulkCreateSuccessMessage": "共创建 {{successCount}} 条任务。",
+      "bulkCreatePartialTitle": "部分任务创建失败",
+      "bulkCreatePartialMessage": "成功 {{successCount}} 条，失败 {{failureCount}} 条。失败内容已为你保留，可调整后继续提交。",
+      "bulkCreateFailedTitle": "批量创建失败",
+      "bulkCreateFailedMessage": "没有任何任务被创建，请检查输入后再试一次。",
+      "bulkCreateFailedInline": "批量创建失败：{{detail}}",
+      "bulkCreatePartialInline": "部分创建失败：{{detail}}"
+    }
+  },
+  "timeLog": {
+    "toolbar": {
+      "returnToSingle": "返回单日",
+      "advancedFeatures": "高级功能",
+      "exportDaily": "导出当日",
+      "exportDailyTooltip": "一键导出当天所有时间日志",
+      "bulkImport": "批量导入"
+    },
+    "advancedSearch": {
+      "title": "高级查询",
+      "endDate": "结束日期",
+      "startDateRequired": "开始日期 *",
+      "keyword": "关键词",
+      "keywordPlaceholder": "搜索标题或备注",
+      "keywordDescription": "支持多个关键词，用空格分隔，任一关键词匹配即可",
+      "search": "查询",
+      "reset": "重置",
+      "export": "导出",
+      "enableBatchOperations": "启用批量操作",
+      "selectAll": "全选",
+      "selectInverse": "反选",
+      "selectedRecords": "已选择 {{count}} 条记录",
+      "canBatchOperations": "可进行批量编辑和删除操作"
+    },
+    "table": {
+      "selectAllRecords": "全选所有记录",
+      "date": "日期",
+      "timeRange": "时间段",
+      "duration": "时长",
+      "description": "行为描述",
+      "relatedPerson": "相关人",
+      "sortAscTooltip": "切换为最新在上",
+      "sortDescTooltip": "切换为最新在下",
+      "noTimeLogs": "暂无时间日志",
+      "noRecordsInFilter": "当前筛选条件下暂无记录",
+      "clearFilter": "清除筛选"
+    },
+    "progressBar": {
+      "title": "时间开销分布",
+      "unknownUnfilled": "未知/未填写",
+      "unknownDimension": "未知维度"
+    },
+    "modal": {
+      "addTimeLog": "添加时间日志",
+      "editTimeLog": "编辑时间日志",
+      "activity": "活动",
+      "activityPlaceholder": "记录你的足迹：这段时间投入在何处？",
+      "endTimeRequired": "结束时间 *",
+      "notes": "备注",
+      "activityRequired": "请输入活动标题"
+    },
+    "pagination": {
+      "showing": "显示第 {{start}} - {{end}} 条， 共 {{total}} 条记录",
+      "previousPage": "上一页",
+      "nextPage": "下一页",
+      "page": "第 {{page}} 页，共 {{totalPages}} 页",
+      "jumpTo": "跳转到:",
+      "pageSuffix": "页"
+    },
+    "tooltip": {
+      "timeRange": "时间段",
+      "duration": "持续时长",
+      "dimension": "所属维度",
+      "vision": "关联愿景",
+      "task": "关联任务",
+      "status": "任务状态"
+    },
+    "searchResults": {
+      "title": "高级查询结果：",
+      "from": "从 {{startDate}}",
+      "to": "到 {{endDate}}",
+      "dimension": "维度：{{dimension}}",
+      "keyword": "关键词：{{keyword}}",
+      "task": "任务：{{task}}",
+      "noTask": "无任务",
+      "unknownTask": "未知任务",
+      "foundRecords": "共找到 {{count}} 条记录"
+    },
+    "messages": {
+      "loadingTimeLogs": "加载时间日志中...",
+      "queryConditionsReset": "查询条件已重置",
+      "queryCompleted": "查询完成",
+      "foundRecords": "找到 {{count}} 条记录",
+      "noMatchingRecords": "未找到匹配的记录",
+      "queryFailed": "查询失败",
+      "loadingAdvancedQueryFailed": "加载高级查询结果失败",
+      "exporting": "正在导出数据...",
+      "exportCompleted": "导出完成",
+      "exportedRecords": "成功导出 {{count}} 条记录",
+      "exportFailed": "导出失败",
+      "exportError": "导出数据时发生错误",
+      "noDataToExport": "暂无数据可导出",
+      "searchTruncatedTitle": "仅展示前 {{limit}} 条记录",
+      "searchTruncatedDescription": "当前查询命中数据量超过上限，仅返回前 {{limit}} 条。请继续增加筛选条件，或改用导出功能获取完整数据。",
+      "exportTruncatedTitle": "导出达到 {{limit}} 条上限",
+      "exportTruncatedDescription": "该查询共匹配 {{total}} 条记录，但导出上限为 {{limit}} 条，本次仅导出前 {{limit}} 条。请增加筛选条件后再次导出以获取剩余数据。",
+      "timeLogCreated": "时间日志创建成功！",
+      "timeLogUpdated": "时间日志更新成功！",
+      "timeLogCreatedWithTask": "\"{{title}}\" 已创建，已自动将关联任务设置为今日规划",
+      "timeLogUpdatedWithTask": "\"{{title}}\" 已更新，已自动将关联任务设置为今日规划",
+      "timeLogCreatedWithoutTask": "\"{{title}}\" 已创建",
+      "timeLogUpdatedWithoutTask": "\"{{title}}\" 已更新",
+      "saveTimeLogFailed": "保存时间日志失败",
+      "deleteConfirmation": "确定要删除这条时间日志吗？",
+      "batchDeleteConfirmation": "确定要删除选中的 {{count}} 条时间日志吗？",
+      "timeLogCreateSuccess": "时间日志创建成功！",
+      "timeLogCreateSuccessMessage": "\"{{title}}\" 已成功记录",
+      "timeLogCreateFailed": "时间日志创建失败",
+      "timeLogCreateFailedMessage": "请检查输入信息后重试",
+      "timeLogUpdateSuccess": "时间日志更新成功！",
+      "timeLogUpdateSuccessMessage": "\"{{title}}\" 已成功更新",
+      "timeLogUpdateFailed": "时间日志更新失败",
+      "timeLogUpdateFailedMessage": "请检查输入信息后重试",
+      "timeLogDeleteSuccess": "时间日志删除成功！",
+      "timeLogDeleteFailed": "时间日志删除失败",
+      "timeLogDeleteFailedMessage": "请稍后重试",
+      "timeLogBatchDeletePartialFailed": "批量删除部分失败",
+      "timeLogBatchDeletePartialFailedMessage": "成功删除 {{deletedCount}} 条记录，{{failedCount}} 条删除失败：{{errors}}",
+      "timeLogBatchDeleteSuccess": "批量删除成功！",
+      "timeLogBatchDeleteSuccessMessage": "已成功删除 {{deletedCount}} 条记录",
+      "timeLogBatchDeleteFailed": "批量删除失败",
+      "timeLogBatchDeleteFailedMessage": "请稍后重试",
+      "timeLogBatchCreatePartialFailed": "批量创建部分失败",
+      "timeLogBatchCreatePartialFailedMessage": "成功创建 {{createdCount}} 条记录，{{failedCount}} 条创建失败：{{errors}}",
+      "timeLogBatchCreateSuccess": "批量创建成功！",
+      "timeLogBatchCreateSuccessMessage": "已成功创建 {{createdCount}} 条记录",
+      "timeLogBatchCreateFailed": "批量创建失败",
+      "timeLogBatchCreateFailedMessage": "请检查输入信息后重试",
+      "timeLogBatchUpdatePartialFailed": "批量更新部分失败",
+      "timeLogBatchUpdatePartialFailedMessage": "成功更新 {{updatedCount}} 条记录，{{failedCount}} 条更新失败：{{errors}}",
+      "timeLogBatchUpdateSuccess": "批量更新成功！",
+      "timeLogBatchUpdateSuccessMessage": "已成功更新 {{updatedCount}} 条记录",
+      "timeLogBatchUpdateFailed": "批量更新失败",
+      "timeLogBatchUpdateFailedMessage": "请稍后重试"
+    },
+    "actions": {
+      "manageDimensions": "管理维度"
+    },
+    "bulkImport": {
+      "modalTitle": "批量导入时间记录",
+      "startDateLabel": "起始日期",
+      "firstStartLabel": "首条记录开始于",
+      "inputLabel": "粘贴原始文本",
+      "inputPlaceholder": "示例：\n0730 早间复盘\n20:00-20:30 阅读",
+      "parseButton": "解析",
+      "reparseButton": "重新解析",
+      "parseEmptyTitle": "没有可解析的内容",
+      "parseEmptyMessage": "请先粘贴至少一行文本，再点击解析。",
+      "manualEdited": "已手动修改",
+      "manualEditsReset": "存在手动修改的行，重新解析会覆盖这些修改，是否继续？",
+      "summary": "有效 {{valid}} 条 / 共 {{total}} 条",
+      "submit": "开始导入",
+      "previewTitle": "预览（{{count}} 条）",
+      "emptyPreview": "粘贴文本并点击解析即可看到预览。",
+      "tip": "单次最多导入 {{max}} 行，超过部分会被忽略。",
+      "examples": {
+        "title": "支持的格式",
+        "endOnly": "仅结束时间 + 描述：\"0730 深度工作\"（开始时间自动延续上一条）",
+        "range": "时间段 + 描述：\"20：00-20：30 阅读\"（支持全角符号）"
+      },
+      "table": {
+        "line": "行号",
+        "startDate": "开始日期",
+        "startTime": "开始时间",
+        "endDate": "结束日期",
+        "endTime": "结束时间",
+        "description": "任务描述",
+        "status": "状态",
+        "actions": "操作"
+      },
+      "status": {
+        "valid": "可导入",
+        "error": "{{count}} 个错误"
+      },
+      "warnings": {
+        "autoShiftStart": "开始时间早于上一条，已自动顺延一天。",
+        "autoCrossMidnightEnd": "结束时间早于上一条，已自动跨日。",
+        "autoCrossMidnightRange": "结束时间早于开始时间，已自动跨日。"
+      },
+      "errors": {
+        "lineUnrecognized": "无法识别该行，请检查时间格式。",
+        "missingDescription": "缺少任务描述。",
+        "startMissing": "时间段格式必须填写开始时间。",
+        "startInvalid": "开始时间格式无效。",
+        "endInvalid": "结束时间格式无效。",
+        "timeParseFailure": "无法解析提供的时间。",
+        "crossDayLimit": "最多跨越 {{maxDays}} 天，请拆分后再试。",
+        "durationInvalid": "结束时间必须晚于开始时间。",
+        "tooManyLines": "仅处理前 {{limit}} 行，其余 {{dropped}} 行已忽略。"
+      },
+      "editorTitle": "编辑第 {{line}} 行",
+      "editorSubtitle": "可在导入前微调开始/结束时间与描述。",
+      "errorListTitle": "待修正的问题",
+      "warningListTitle": "自动调整提醒",
+      "errorListItem": "第 {{line}} 行 · {{message}}",
+      "warningListItem": "第 {{line}} 行 · {{message}}"
+    }
+  },
+  "insights": {
+    "viewType": {
+      "label": "视图："
+    },
+    "viewMode": {
+      "minutes": "分钟数",
+      "percent": "占比"
+    },
+    "granularity": {
+      "label": "粒度"
+    },
+    "dateRange": {
+      "startDateTitle": "开始日期（本地）",
+      "endDateTitle": "结束日期（本地）"
+    },
+    "refreshStats": "刷新统计",
+    "loadingStats": "正在加载统计数据...",
+    "noStats": "暂无统计数据",
+    "noStatsDescription": "开始记录你的时间日志，你的第一份数据洞察报告将在这里生成。",
+    "statsTitle": "日志统计",
+    "dimensionTooltip": {
+      "title": "{{name}}",
+      "total": "总计：{{duration}}",
+      "averagePerTotalDays": "按总天数平均（{{days}} 天）：{{duration}}",
+      "averagePerActiveDays": "按活跃天数平均（{{days}} 天）：{{duration}}",
+      "max": "最高：{{duration}}{{range}}",
+      "min": "最低：{{duration}}{{range}}",
+      "lastActive": "最近活跃：{{date}}",
+      "rangeSuffix": "（{{range}}）"
+    }
+  },
+  "foodDiary": {
+    "foodLibrary": "食物库",
+    "deleteSuccessMessage": "记录已成功删除",
+    "deleteFailedMessage": "删除失败，请稍后重试",
+    "foodSelected": "食物已选择",
+    "foodSelectedMessage": "已选择 {{foodName}}，请选择要添加到的餐次"
+  },
+  "quickFoodEntry": {
+    "title": "快速添加饮食记录",
+    "hint": "提示：按 Tab 键切换字段，按 Enter 保存，按 Esc 取消",
+    "mealType": {
+      "label": "餐次 *",
+      "placeholder": "选择餐次",
+      "breakfast": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "snack": "加餐"
+    },
+    "foodName": {
+      "label": "食物名称 *",
+      "placeholder": "输入食物名称..."
+    },
+    "portionSize": {
+      "label": "分量 (g) *"
+    },
+    "notes": {
+      "placeholder": "添加备注..."
+    },
+    "validation": {
+      "foodNameRequired": "请输入食物名称",
+      "portionSizeRequired": "请输入有效的食物分量"
+    },
+    "messages": {
+      "saveSuccess": "饮食记录保存成功！",
+      "saveSuccessMessage": "\"{{foodName}}\" 已保存",
+      "saveFailed": "保存饮食记录失败"
+    }
+  },
+  "quickTimeEntry": {
+    "title": "快速添加",
+    "templates": {
+      "manage": "管理常用项",
+      "manageTitle": "Open quick templates manager",
+      "noTemplates": "暂无模板，可点击右侧\"管理常用项\"进行添加。"
+    },
+    "activity": {
+      "label": "行为描述 *",
+      "placeholder": "刚才做了什么？请输入..."
+    },
+    "validation": {
+      "titleRequired": "做了什么事情？",
+      "startTimeRequired": "请输入开始时间",
+      "endTimeRequired": "请输入结束时间"
+    },
+    "messages": {
+      "saveSuccessWithTask": "时间日志保存成功！",
+      "saveSuccessWithTaskMessage": "\"{{title}}\" 已保存，已自动将关联任务设置为今日规划"
+    }
+  },
+  "treeCanvas": {
+    "instructions": {
+      "dragRotate": "拖拽旋转视角",
+      "scrollZoom": "滚轮缩放",
+      "rightClickPan": "右键平移"
+    },
+    "tooltip": {
+      "vision": "愿景：{{name}}",
+      "growthStage": "成长阶段: {{stage}}/10",
+      "experience": "经验: {{experience}}",
+      "experienceRate": "经验倍率: {{rate}} 点/小时",
+      "actualTime": "实际投入: {{time}}h",
+      "createdAt": "创建: {{date}}",
+      "tasks": "任务: {{count}}"
+    }
+  },
+  "habits": {
+    "createNew": "创建新习惯",
+    "errors": {
+      "loadFailed": "加载习惯失败",
+      "deleteFailed": "删除习惯失败"
+    },
+    "confirmDelete": {
+      "title": "确认删除习惯",
+      "message": "确认删除习惯「{{name}}」吗？此操作不可逆。"
+    },
+    "messages": {
+      "deleteSuccess": "习惯删除成功",
+      "deleteSuccessMessage": "习惯「{{name}}」已成功删除"
+    },
+    "stats": {
+      "totalActions": "总行动",
+      "completionRate": "完成率",
+      "currentStreak": "当前连续天数",
+      "longestStreak": "最长连续天数"
+    },
+    "emptyState": {
+      "title": "还没有习惯",
+      "description": "开始创建您的第一个习惯吧"
+    },
+    "habit": {
+      "startDate": "开始日期",
+      "duration": "持续天数",
+      "status": "状态"
+    },
+    "actionList": {
+      "monthView": "月视图",
+      "fiveDayView": "5天视图",
+      "previousMonth": "上个月",
+      "nextMonth": "下个月",
+      "previousFiveDays": "前5天",
+      "nextFiveDays": "后5天",
+      "weekdays": {
+        "sunday": "日",
+        "monday": "一",
+        "tuesday": "二",
+        "wednesday": "三",
+        "thursday": "四",
+        "friday": "五",
+        "saturday": "六"
+      },
+      "notesLabel": "习惯打卡记录",
+      "notRecorded": "未记录",
+      "notStarted": "未开始",
+      "editNotes": "编辑备注",
+      "notesPlaceholder": "输入备注内容..."
+    }
+  },
+  "createNoteModal": {
+    "title": "创建笔记",
+    "editTitle": "编辑笔记",
+    "intelligentTitle": "智能创建笔记",
+    "intelligentDescription": "内容提交后，由 Agent 自动提炼并关联人物、任务与标签。",
+    "contentPlaceholder": "写下你的想法... (Ctrl/Cmd + Enter 快速保存)",
+    "relatedTaskLocked": "关联任务（已锁定）",
+    "relatedTaskOptional": "选择关联任务（可选）",
+    "submitText": "创建笔记",
+    "updateText": "更新笔记",
+    "intelligentSubmitText": "智能创建",
+    "timelogHeader": {
+      "label": "关联的时间记录",
+      "fallbackTitle": "时间记录",
+      "range": "{{start}} - {{end}}"
+    },
+    "messages": {
+      "tagCreated": "标签创建成功",
+      "tagCreatedMessage": "标签 \"{{tagName}}\" 已创建",
+      "tagCreateFailed": "标签创建失败",
+      "tagCreateFailedMessage": "创建标签时遇到问题，请稍后重试",
+      "noteCreateSuccess": "笔记创建成功",
+      "noteCreateSuccessMessage": "笔记已成功保存",
+      "noteCreateFailed": "笔记创建失败",
+      "noteCreateFailedMessage": "保存笔记时遇到问题，请稍后重试",
+      "noteUpdateSuccess": "笔记更新成功",
+      "noteUpdateSuccessMessage": "笔记已成功更新",
+      "noteUpdateFailed": "笔记更新失败",
+      "noteUpdateFailedMessage": "更新笔记时遇到问题，请稍后重试"
+    }
+  },
+  "noteInputForm": {
+    "submitLabel": "记录",
+    "resetLabel": "清空"
+  },
+  "notesSidebar": {
+    "searchContent": "搜索内容",
+    "searchPlaceholder": "输入关键词，空格分隔多个",
+    "search": "搜索",
+    "relatedPersons": "关联人员",
+    "noRelatedPersons": "暂无关联人员",
+    "filterPerson": "点击过滤人员 @{{name}}",
+    "filterUntagged": "点击筛选无标签笔记",
+    "untagged": "无标签",
+    "pinned": "置顶",
+    "noTags": "暂无标签",
+    "filterTag": "点击过滤标签 #{{name}}"
+  },
+  "foodLibrarySidebar": {
+    "title": "食物库",
+    "searchPlaceholder": "搜索食物...",
+    "showCommonOnly": "仅显示常用食物",
+    "noFoodFound": "没有找到食物",
+    "adjustSearchConditions": "请调整搜索条件",
+    "clickToAddFood": "点击上方按钮添加食物",
+    "addFood": "添加食物",
+    "caloriesPer100g": "卡/100g",
+    "common": "常用"
+  },
+  "nutritionSummarySidebar": {
+    "noNutritionData": "暂无营养数据",
+    "todayNutritionIntake": "今日营养摄入",
+    "entryCount": "{{count}} 项记录",
+    "calories": "卡路里",
+    "caloriesUnit": "卡",
+    "protein": "蛋白质",
+    "proteinUnit": "g",
+    "carbs": "碳水",
+    "fat": "脂肪",
+    "fiber": "纤维",
+    "sugar": "糖分"
+  },
+  "persons": {
+    "addContact": "新增联系人",
+    "timeline": {
+      "title": "{{name}} 的活动时间线",
+      "activityCount": "（{{count}} 项活动）",
+      "loadingActivities": "加载活动数据中...",
+      "previousPage": "上一页",
+      "nextPage": "下一页",
+      "pageIndicator": "第 {{page}} / {{total}} 页",
+      "noActivities": "暂无活动记录",
+      "noActivitiesDescription": "每一次互动都值得被记录。将联系人关联到你的活动中，共同的故事线将在这里展开。"
+    },
+    "activityTypes": {
+      "vision": "愿景管理",
+      "actual_event": "时间跟踪",
+      "note": "快速笔记",
+      "task": "任务",
+      "planned_event": "日程安排"
+    },
+    "activityStatus": {
+      "planned": "已计划"
+    }
+  },
+  "finance": {
+    "newBalanceSnapshot": "新建资产快照",
+    "snapshotCreated": "快照已保存",
+    "snapshotFailed": "保存财务快照失败",
+    "noAccounts": "请先创建账户后再记录快照。",
+    "noBalanceEntered": "请至少填写一个账户余额。",
+    "snapshotHint": "留空代表跳过该账户。",
+    "snapshotInlineHint": "可直接在此内联录入余额，保存后立即生效。",
+    "loadMoreSnapshots": "加载更多快照",
+    "missingRates": "请填写以下货币的汇率：{{currencies}}",
+    "emptyAccounts": "暂无账户，请先创建账户后开始记录财务数据。",
+    "collapse": "折叠",
+    "expand": "展开",
+    "deltaPositive": "+{{value}} {{currency}}",
+    "deltaNegative": "-{{value}} {{currency}}",
+    "noSnapshots": "尚未创建任何快照。完成首次资产更新后，这里会呈现历史时间线。",
+    "accountTreeTitle": "账户结构",
+    "accountTreeHint": "支持多级嵌套，可通过账户的时间线按钮查看历史余额。",
+    "createAccountButton": "新建账户",
+    "manageAccounts": "管理账户",
+    "accountsButton": "账户",
+    "accountTreeLabel": "账户树",
+    "cashflowTreeLabel": "来源树",
+    "manageTrees": "管理树",
+    "manageAccountTrees": "管理账户树",
+    "manageCashflowTrees": "管理来源树",
+    "treeNamePlaceholder": "输入树名称",
+    "setAsDefault": "设为默认",
+    "defaultTree": "默认",
+    "noTrees": "暂无可用树",
+    "deleteTreeConfirm": "确认删除该树？",
+    "treeCreateSuccess": "树已创建",
+    "treeCreateFailed": "创建树失败",
+    "treeUpdateSuccess": "树已更新",
+    "treeUpdateFailed": "更新树失败",
+    "treeDeleteSuccess": "树已删除",
+    "treeDeleteFailed": "删除树失败",
+    "accountTreeCreateSuccess": "账户树创建成功",
+    "accountTreeCreateFailed": "账户树创建失败",
+    "accountTreeUpdateSuccess": "账户树已更新",
+    "accountTreeUpdateFailed": "账户树更新失败",
+    "accountTreeDeleteSuccess": "账户树已删除",
+    "accountTreeDeleteFailed": "账户树删除失败",
+    "cashflowTreeCreateSuccess": "来源树创建成功",
+    "cashflowTreeCreateFailed": "来源树创建失败",
+    "cashflowTreeUpdateSuccess": "来源树已更新",
+    "cashflowTreeUpdateFailed": "来源树更新失败",
+    "cashflowTreeDeleteSuccess": "来源树已删除",
+    "cashflowTreeDeleteFailed": "来源树删除失败",
+    "selectTree": "选择树",
+    "tagToolbar": {
+      "title": "财务标签",
+      "empty": "关注一个财务标签以固定在此处。",
+      "followTag": "关注标签"
+    },
+    "tagSelector": {
+      "title": "管理财务标签",
+      "description": "选择或创建要固定在财务页的标签，这些标签会用来呈现相关笔记。",
+      "createSuccess": "标签“{{name}}”已创建",
+      "createFailed": "创建标签失败",
+      "saveFailedTitle": "保存标签失败",
+      "saveFailedMessage": "请稍后再试。",
+      "loadFailedTitle": "加载财务标签失败"
+    },
+    "tagNotes": {
+      "title": "{{tag}} 的笔记",
+      "titlePlaceholder": "笔记",
+      "emptyTitle": "暂无相关笔记",
+      "emptyDescription": "创建一条笔记，用这个标签记录财务相关内容。",
+      "createNote": "新建笔记",
+      "noTag": "财务标签"
+    },
+    "selectSnapshot": "选择快照",
+    "viewAccountTimeline": "查看账户时间线",
+    "accountTimelineTitle": "{{name}} 的账户时间线",
+    "accountTimelineTitleFallback": "账户时间线",
+    "accountTimelineColumnTimestamp": "快照时间",
+    "accountTimelineColumnConverted": "折算金额",
+    "accountTimelineColumnRaw": "原币金额",
+    "accountTimelineEmpty": "暂无该账户的历史余额记录。",
+    "accountTimelineLoadFailed": "加载账户时间线失败，请稍后重试。",
+    "createAccountTitle": "创建财务账户",
+    "createAccountSubtitle": "通过树状结构组织资产与负债，可选择父级账户。",
+    "accountNameLabel": "账户名称",
+    "accountNamePlaceholder": "例如：应急资金",
+    "accountParentLabel": "父级账户",
+    "accountCurrencyLabel": "币种",
+    "accountInterestLabel": "利率（可选）",
+    "accountInterestPlaceholder": "例如：0.015 或 1.5 表示 1.5%",
+    "createAccountSuccess": "账户创建成功",
+    "createAccountFailed": "创建账户失败",
+    "accountInterestInvalid": "请输入有效的百分比数值",
+    "snapshotDetailPlaceholder": "从时间线中选择一个快照。",
+    "metricAssets": "总资产",
+    "metricLiabilities": "总负债",
+    "metricNetWorth": "净资产",
+    "newSnapshotTitle": "记录最新快照",
+    "newSnapshotTableTitle": "录入账户余额",
+    "saveSnapshot": "保存快照",
+    "tableAccount": "账户",
+    "tableOriginalCurrency": "原币种",
+    "tableOriginalAmount": "原币金额",
+    "tableConvertedAmount": "折算金额（{{currency}}）",
+    "tableNote": "备注",
+    "balancePlaceholder": "请输入数值",
+    "autoAggregatedPlaceholder": "已由子账户自动汇总",
+    "invalidAmountFormat": "以下账户的金额格式无效：{{names}}",
+    "notePlaceholder": "可选",
+    "exchangeRateTitle": "汇率（换算至 {{currency}}）",
+    "exchangeRatePlaceholder": "折算为 {{currency}} 的数值",
+    "snapshotNoteLabel": "快照备注",
+    "snapshotNotePlaceholder": "记录此次更新的背景信息（可选）",
+    "snapshotTimeLabel": "快照时间",
+    "snapshotTimeHelper": "该时间用于页面展示与排序，请填写快照实际发生的时间。",
+    "snapshotTimeRequired": "请填写有效的快照时间。",
+    "snapshotTimeFutureError": "快照时间不能晚于当前时间。",
+    "tableOriginal": "原币余额",
+    "tableConverted": "折算余额",
+    "exchangeRateList": "使用的汇率",
+    "balanceSheetTab": "资产负债表",
+    "cashflowTab": "现金流",
+    "tradingTab": "交易计划",
+    "cashflowSources": "收入/支出来源",
+    "manageSources": "管理来源",
+    "sourcesButton": "来源",
+    "cashflowIncome": "收入",
+    "cashflowExpense": "支出",
+    "sourceList": "来源清单",
+    "cashflowSourceHint": "来源支持层级结构，父来源金额等于子来源之和。",
+    "cashflowSourceDefaultCurrency": "默认币种",
+    "newSourceName": "来源名称",
+    "newSourcePlaceholder": "例如：工资",
+    "parentSource": "上级来源",
+    "rootSource": "顶层",
+    "enableRollupSource": "设为汇总节点",
+    "rollupLabel": "汇总",
+    "rollupLabelShort": "汇总",
+    "rollupLockedHint": "已存在子来源，金额自动汇总。",
+    "rollupHint": "汇总节点的金额由其子来源累计。",
+    "aggregatedAmountLabel": "汇总金额：{{amount}}",
+    "childCountLabel": "{{count}} 个子来源",
+    "income": "收入",
+    "expense": "支出",
+    "creating": "新增中…",
+    "addSource": "新增来源",
+    "addChildSource": "新增子来源",
+    "addCashflowSource": "新增来源",
+    "editCashflowSource": "编辑来源",
+    "newCashflowSnapshot": "记录现金流快照",
+    "addCashflowSnapshot": "新建现金流快照",
+    "cashflowSnapshotInlineHint": "在此直接录入来源金额，保存后立即生效。",
+    "editCashflowSnapshotTitle": "编辑现金流快照",
+    "periodStart": "开始日期",
+    "periodEnd": "结束日期",
+    "periodMonth": "快照月份",
+    "cashflowNote": "备注",
+    "cashflowNotePlaceholder": "可选，记录本期重点",
+    "cashflowEntryNotePlaceholder": "来源备注（可选）",
+    "cashflowAmountUnit": "金额（单位 {{currency}}）",
+    "cashflowDefaultCurrency": "本币",
+    "cashflowPeriodRequired": "请填写有效的快照月份",
+    "noCashflowSnapshots": "尚未记录现金流快照。",
+    "selectCashflowSnapshot": "请选择一条记录进行查看。",
+    "snapshotPosition": "第 {{index}} / {{total}} 条快照",
+    "snapshotOptionWithNet": "{{month}} · 净现金流 {{value}} {{currency}}",
+    "snapshotOptionValue": "{{month}} · {{value}} {{currency}}",
+    "cashflowSource": "来源",
+    "cashflowCurrency": "币种",
+    "cashflowAmount": "金额",
+    "trading": {
+      "sections": {
+        "summary": "{{plan}} 的计划概览",
+        "instruments": "标的列表",
+        "entries": "交易流水"
+      },
+      "actions": {
+        "createPlan": "新建计划",
+        "editPlan": "编辑计划",
+        "archivePlan": "归档计划",
+        "addInstrument": "新增标的",
+        "addExchangeRate": "新增汇率",
+        "importCsv": "批量导入",
+        "exportCsv": "导出 CSV",
+        "exportJson": "导出 JSON"
+      },
+      "labels": {
+        "noPeriod": "未设置周期",
+        "targetRoi": "目标收益",
+        "allInstruments": "全部标的"
+      },
+      "selector": {
+        "placeholder": "选择计划",
+        "showArchived": "显示归档",
+        "hideArchived": "隐藏归档"
+      },
+      "statusDraft": "草稿",
+      "statusActive": "执行中",
+      "statusArchived": "已归档",
+      "status": {
+        "draft": "草稿",
+        "active": "执行中",
+        "archived": "已归档"
+      },
+      "fields": {
+        "name": "计划名称",
+        "periodStart": "开始时间",
+        "periodEnd": "结束时间",
+        "targetRoi": "目标 ROI",
+        "targetRoiHelper": "可输入 12 或 0.12，系统会自动换算。",
+        "status": "计划状态",
+        "note": "备注",
+        "symbol": "交易对",
+        "exchange": "交易所",
+        "strategyTag": "策略标签"
+      },
+      "modals": {
+        "createPlan": "创建交易计划",
+        "editPlan": "编辑交易计划",
+        "copyLabel": "复制既有计划",
+        "copyDescription": "选择一个计划以快速复制周期和备注。",
+        "copyPlaceholder": "选择计划…",
+        "copySuffix": "副本",
+        "createInstrument": "新增标的",
+        "editInstrument": "编辑标的"
+      },
+      "summary": {
+        "totalInvestment": "累计投入",
+        "realized": "已实现盈亏",
+        "unrealized": "浮动盈亏",
+        "netValue": "净值",
+        "roi": "ROI",
+        "empty": "暂无统计数据"
+      },
+      "instrument": {
+        "symbol": "标的",
+        "exchange": "交易所",
+        "position": "净持仓",
+        "baseSymbol": "基础资产",
+        "quoteSymbol": "计价资产",
+        "positionBase": "基础资产净持仓",
+        "positionQuote": "计价资产净持仓",
+        "avgCost": "平均成本",
+        "marketValue": "市值",
+        "marketValueBase": "基础资产市值",
+        "marketValueQuote": "计价资产市值",
+        "rateHint": "折算：1 {{asset}} ≈ {{rate}}",
+        "roi": "收益率",
+        "emptyTitle": "还没有标的",
+        "emptyDescription": "先创建标的，再录入交易流水。",
+        "deleteTitle": "删除标的"
+      },
+      "entries": {
+        "emptyTitle": "暂无流水",
+        "emptyDescription": "录入交易后，这里会展示时间线。",
+        "deleteTitle": "删除流水",
+        "direction": {
+          "buy": "买入",
+          "sell": "卖出",
+          "transfer": "划转"
+        },
+        "source": {
+          "manual": "手动",
+          "import": "导入"
+        },
+        "actions": {
+          "add": "新增流水",
+          "edit": "编辑流水"
+        },
+        "modal": {
+          "create": "新增交易流水",
+          "edit": "编辑交易流水"
+        },
+        "table": {
+          "tradeTime": "时间",
+          "symbol": "标的",
+          "baseSymbol": "基础资产",
+          "baseAmount": "基础资产净变化",
+          "baseDelta": "基础资产净变化",
+          "quoteSymbol": "计价资产",
+          "quoteAmount": "计价资产净变化",
+          "quoteDelta": "计价资产净变化",
+          "direction": "方向",
+          "price": "价格",
+          "fee": "手续费",
+          "source": "来源"
+        },
+        "form": {
+          "instrument": "选择标的",
+          "tradeTime": "成交时间",
+          "baseDeltaSymbol": "{{symbol}} 数量",
+          "quoteDeltaSymbol": "{{symbol}} 资金流",
+          "submit": "记录流水",
+          "disabled": "请选择计划与标的后再录入"
+        },
+        "quickAdd": {
+          "submit": "快速添加"
+        }
+      },
+      "filters": {
+        "instrument": "标的筛选",
+        "direction": "方向",
+        "source": "来源",
+        "dateFrom": "起始日期",
+        "dateTo": "结束日期",
+        "reset": "重置条件"
+      },
+      "errors": {
+        "nameRequired": "请填写计划名称",
+        "invalidPeriod": "结束时间需晚于开始时间",
+        "saveFailed": "保存失败，请稍后重试",
+        "symbolRequired": "请填写交易对",
+        "instrumentRequired": "请选择标的",
+        "tradeTimeRequired": "请填写成交时间",
+        "rateFailed": "拉取汇率失败"
+      },
+      "toasts": {
+        "planCreated": "计划已创建",
+        "planUpdated": "计划已更新",
+        "planArchived": "计划已归档",
+        "instrumentCreated": "标的已创建",
+        "instrumentUpdated": "标的已更新",
+        "instrumentDeleted": "标的已删除",
+        "entryCreated": "流水已记录",
+        "entryUpdated": "流水已更新",
+        "entryDeleted": "流水已删除"
+      },
+      "import": {
+        "title": "批量导入流水",
+        "description": "下载模板并填写后上传，系统会先展示预览，可继续修正。",
+        "downloadTemplate": "下载模板",
+        "selectFile": "选择 CSV",
+        "noRows": "尚未选择文件",
+        "removeRow": "删除",
+        "submit": "批量写入",
+        "success": "导入成功",
+        "failed": "导入失败",
+        "emptyFile": "文件内容为空",
+        "emptyRows": "没有可提交的记录",
+        "fixErrors": "请先修正所有错误行",
+        "errors": {
+          "instrument": "标的不存在",
+          "time": "时间无效",
+          "amount": "数量或金额不能为空"
+        }
+      },
+      "exchangeRates": {
+        "manage": "计划汇率",
+        "modalTitle": "为计划新增汇率",
+        "modalDescription": "为当前计划绑定 base/quote 汇率，用于数值折算。",
+        "fields": {
+          "base": "基础资产",
+          "quote": "报价资产",
+          "rate": "汇率",
+          "capturedAt": "记录时间",
+          "source": "来源"
+        },
+        "errors": {
+          "planRequired": "请先选择计划",
+          "rateRequired": "请填写资产与汇率"
+        },
+        "toasts": {
+          "created": "汇率已保存"
+        },
+        "planRatesTitle": "当前估值汇率",
+        "planRatesSubtitle": "展示本计划计算净值时实际使用的汇率，可在此直接覆盖。",
+        "modeSnapshot": "快照口径",
+        "modeSource": "实时口径",
+        "modeSnapshotHint": "快照口径会锁定汇率用于历史展示，切换实时口径仅作参考。",
+        "modeSourceHint": "实时口径基于最新汇率计算，仅用于展示，不回写历史数据。",
+        "snapshotLockedAt": "快照锁定：{{time}}",
+        "planRatesEmpty": "当前没有需要折算的币种，新增交易或录入汇率后会出现在这里。",
+        "lastUpdated": "最近更新：{{time}}",
+        "derived": "由反向汇率推导",
+        "override": "更新汇率",
+        "scope": {
+          "plan": "计划自定义",
+          "user": "个人默认",
+          "global": "系统默认",
+          "synthetic": "自动"
+        }
+      },
+      "charts": {
+        "net": "净值曲线",
+        "position": "持仓构成",
+        "pnl": "盈亏柱状",
+        "placeholder": "开发中",
+        "positionDescription": "展示各标的在当前净值中的占比。",
+        "positionEmpty": "暂无持仓，新增标的后即可查看。",
+        "positionNoValuation": "暂无可用估值，请录入交易或更新汇率后再试。"
+      },
+      "emptyState": {
+        "title": "还没有交易计划",
+        "description": "创建第一个计划以开始记录标的与流水。"
+      }
+    },
+    "emptyCashflowSources": "暂无来源",
+    "noCashflowEntries": "暂无任何收支条目",
+    "rollupAutoPlaceholder": "自动",
+    "cashflowSignHint": "正数代表流入，负数代表流出；汇总节点金额自动计算。",
+    "inflowLabel": "流入",
+    "outflowLabel": "流出",
+    "autoGenerated": "自动",
+    "kindRegular": "常规",
+    "editAccountTitle": "编辑账户",
+    "editAccountSubtitle": "在此更新账户信息，子账户保持原有数据。",
+    "addChildAccount": "新增子账户",
+    "billingLabel": "账期",
+    "manualEntry": "手动",
+    "viewBilling": "查看账单",
+    "deleteAccountTitle": "删除账户",
+    "deleteAccountWarning": "确认删除“{{name}}”？这会同时软删除该账户及其全部子账户。",
+    "deleteAccountConfirm": "确认删除“{{name}}”？这会同时软删除该账户及其全部子账户。",
+    "editSnapshotTitle": "编辑资产负债表快照",
+    "previousSnapshot": "上一条快照",
+    "nextSnapshot": "下一条快照",
+    "billingSectionTitle": "账期来源",
+    "applyBillingCycles": "生成账期条目",
+    "autoBillingHint": "自动生成：{{names}}",
+    "manageBilling": "管理 {{name}}",
+    "noBillingChanges": "暂无可保存的更改",
+    "billingSaved": "账期条目已保存",
+    "manualBillingQuickFill": "快速填充",
+    "manualBillingQuickFillFor": "{{name}} 的快速填充",
+    "manualBillingOnly": "仅支持手工账期来源。",
+    "addOlderBillingMonths": "加载较早的月份",
+    "noBillingCycles": "该月份没有匹配的账期",
+    "billingCycleRange": "{{start}} → {{end}}",
+    "amount": "金额",
+    "note": "备注",
+    "billingHistory": "账期记录",
+    "billingHistoryFor": "{{name}} 的账期记录",
+    "postedMonth": "归属月份：{{month}}",
+    "postedMonthHeader": "归属月份",
+    "postedMonthShort": "归属月份：{{month}}",
+    "billingCycle": "账期",
+    "optional": "可选",
+    "billingCycleType": "账期类型",
+    "cycleDay": "按日",
+    "cycleWeek": "按周",
+    "cycleMonth": "按月",
+    "cycleYear": "按年",
+    "billingInterval": "周期间隔",
+    "billingAnchorDate": "锚点日期",
+    "billingAnchorDay": "出账日 (1-28)",
+    "billingAnchorMonthlyLabel": "每月{{day}}日",
+    "billingAnchorYearlyLabel": "每年{{month}}月{{day}}日",
+    "billingAnchorWeeklyLabel": "每周{{weekday}}",
+    "billingAnchorDailyLabel": "按日结算",
+    "billingAnchorDateLabel": "{{date}}",
+    "billingPostTo": "归属自然月",
+    "postToEnd": "按结束日",
+    "postToStart": "按开始日",
+    "manualBillingInput": "需手动填写每期金额",
+    "defaultAmount": "默认金额",
+    "billingDefaultAmountLabel": "{{amount}}",
+    "inlineSeparator": "，",
+    "optionalDefaultAmount": "可选：仅作参考",
+    "requiredDefaultAmount": "必填：用于自动生成账期金额",
+    "defaultNote": "默认备注",
+    "addSourceSuccess": "来源已创建",
+    "addSourceFailed": "创建来源失败",
+    "updateSourceSuccess": "来源已更新",
+    "updateSnapshotSuccess": "快照已更新",
+    "deleteSnapshotWarning": "确认删除 {{timestamp}} 的快照？",
+    "deleteSnapshotSuccess": "快照已删除",
+    "billingApplied": "已生成账期条目",
+    "periodRange": "周期：{{start}} 至 {{end}}",
+    "cashflowNet": "净现金流",
+    "updateAccountSuccess": "账户已更新",
+    "updateAccountFailed": "更新账户失败",
+    "deleteAccountSuccess": "账户已删除",
+    "deleteAccountFailed": "删除账户失败",
+    "updateSnapshotFailed": "更新快照失败",
+    "deleteSnapshotFailed": "删除快照失败",
+    "actions": {
+      "exportAccounts": "导出账户",
+      "exportCashflow": "导出现金流"
+    }
+  },
+  "modules": {
+    "agent": {
+      "displayName": "AI 助手",
+      "navLabel": "AI 助手",
+      "description": "与你的个人智能助手对话，获得建议和帮助。"
+    },
+    "visions": {
+      "displayName": "愿景",
+      "navLabel": "愿景",
+      "description": "将宏大愿景解构为可执行的任务树，为实现理想规划清晰的路径。"
+    },
+    "tree": {
+      "displayName": "果园",
+      "navLabel": "果园",
+      "description": "每棵树代表一个活跃的愿景，你的真实时间投入将持续滋养它的成长。"
+    },
+    "habits": {
+      "displayName": "习惯养成",
+      "navLabel": "习惯养成",
+      "description": "设计并培育那些塑造理想自我的日常仪式。"
+    },
+    "planning": {
+      "displayName": "任务规划",
+      "navLabel": "任务规划",
+      "description": "以日、周、月等视图规划愿景的实现，聚焦当下任务并捕获相关想法。"
+    },
+    "timelog": {
+      "displayName": "时间日志",
+      "navLabel": "时间日志",
+      "description": "诚实地记录时间投入，看见真实的精力流向与行为模式。"
+    },
+    "insights": {
+      "displayName": "数据洞察",
+      "navLabel": "数据洞察",
+      "description": "洞察始于数据。通过可视化时间日志，助你审视真实的精力投向。"
+    },
+    "calendar": {
+      "displayName": "行程表",
+      "navLabel": "行程表",
+      "description": "在此查看您的行程表与实际足迹（如果您记录了时间日志）。",
+      "taskIndicator": "任务",
+      "view": {
+        "label": "视图：",
+        "week": "周",
+        "day": "日",
+        "weekTitle": "周视图",
+        "dayTitle": "日视图"
+      },
+      "toggle": {
+        "planned_label": "计划 (罗盘)",
+        "actual_label": "实际 (足迹)",
+        "planned": {
+          "title": {
+            "show": "显示计划日程",
+            "hide": "隐藏计划日程"
+          }
+        },
+        "actual": {
+          "title": {
+            "show": "显示实际日程",
+            "hide": "隐藏实际日程"
+          }
+        }
+      },
+      "loading": "正在加载日历数据...",
+      "hint": {
+        "title": "提示：",
+        "actualEnabled": "已启用实际足迹显示，可选择特定维度进行筛选，或保持\"全部\"以查看所有维度的实际活动。"
+      },
+      "fc": {
+        "today": "今天",
+        "week": "周",
+        "day": "日",
+        "allDay": "全天",
+        "noEvents": "暂无日程",
+        "more": "更多"
+      }
+    },
+    "notes": {
+      "displayName": "随手记",
+      "navLabel": "随手记",
+      "description": "捕获转瞬即逝的思绪与灵感，构建你的个人知识库。"
+    },
+    "sage-maxims": {
+      "displayName": "箴言",
+      "navLabel": "箴言",
+      "description": "收集并分享高认知的智慧箴言。"
+    },
+    "persons": {
+      "displayName": "关系",
+      "navLabel": "关系",
+      "description": "有意识地滋养对你重要的人际关系网络。"
+    },
+    "finance": {
+      "displayName": "财务",
+      "navLabel": "财务",
+      "description": "追踪资产、负债与余额快照，让财务目标与现实保持一致。"
+    },
+    "food-diary": {
+      "displayName": "饮食",
+      "navLabel": "饮食",
+      "description": "记录身体的燃料来源，理解饮食与精力、情绪的关联。"
+    },
+    "settings": {
+      "displayName": "设置",
+      "navLabel": "设置",
+      "description": "管理您的个人偏好和系统设置。"
+    },
+    "invitations": {
+      "displayName": "邀请码",
+      "navLabel": "邀请码",
+      "description": "邀请特定邮箱注册内测账号。"
+    }
+  },
+  "dimensionManager": {
+    "title": "生命维度管理",
+    "addNewDimension": "添加新维度",
+    "editDimension": "编辑维度",
+    "dimensionName": "维度名称",
+    "dimensionNamePlaceholder": "例如：工作、健康、家庭",
+    "descriptionPlaceholder": "描述这个生命维度...",
+    "color": "颜色",
+    "icon": "图标",
+    "iconPlaceholder": "选择图标...",
+    "enableDimension": "启用此维度",
+    "loadingDimensions": "加载维度数据中...",
+    "dimensionUpdated": "维度更新成功！",
+    "dimensionCreated": "维度创建成功！",
+    "dimensionDeleted": "维度删除成功",
+    "dimensionUpdateSuccess": "维度信息已成功更新",
+    "dimensionCreateSuccess": "新的生命维度已添加到您的生命之树",
+    "dimensionDeleteSuccess": "维度已从您的生命之树中移除",
+    "saveError": "保存维度时出错",
+    "deleteError": "删除维度失败",
+    "operationFailed": "操作失败：",
+    "retryLater": "请稍后重试",
+    "deleteConfirmTitle": "删除确认",
+    "deleteConfirmMessage": "确定要删除维度 \"{{name}}\" 吗？这将同时删除所有相关数据。",
+    "toggleActive": "停用",
+    "toggleInactive": "启用",
+    "iconLabel": "图标:",
+    "icons": {
+      "work": "工作",
+      "health": "健康",
+      "family": "家庭",
+      "learning": "学习",
+      "creativity": "创造",
+      "social": "社交",
+      "finance": "财务",
+      "hobby": "爱好",
+      "travel": "旅行",
+      "spirituality": "心灵"
+    }
+  },
+  "register": {
+    "betaNotice": {
+      "title": "内测期间注册说明",
+      "description": "内测期间，仅支持邀请注册。请通过邀请链接注册，系统将自动填入邀请码和邮箱。"
+    }
+  },
+  "auth": {
+    "email": "邮箱",
+    "name": "姓名",
+    "password": "密码",
+    "emailPlaceholder": "you@example.com",
+    "namePlaceholder": "例如 Alice",
+    "passwordPlaceholder": "请输入密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "passwordRequirements": {
+      "title": "密码要求：",
+      "minLength": "至少8位字符",
+      "uppercase": "包含大写字母",
+      "lowercase": "包含小写字母",
+      "digit": "包含数字",
+      "special": "包含特殊字符"
+    },
+    "loginFailed": "登录失败",
+    "registerFailed": "注册失败",
+    "haveAccount": "已有账号？",
+    "noAccount": "还没有账号？",
+    "goToLogin": "去登录",
+    "goToRegister": "去注册",
+    "changePassword": "修改密码",
+    "passwordMismatch": "两次输入的新密码不一致",
+    "changeSuccess": "密码已更新，请重新登录。",
+    "changeFailed": "修改密码失败"
+  },
+  "calendar": {
+    "saveFailed": "保存失败，请稍后重试"
+  },
+  "personDetail": {
+    "nicknames": "昵称",
+    "primaryNickname": "主要昵称",
+    "birthDate": "生日",
+    "location": "地址",
+    "relationshipTags": "关系标签",
+    "anniversaries": "纪念日",
+    "addAnniversary": "新增纪念日",
+    "noAnniversary": "暂无纪念日",
+    "anniversaryNamePlaceholder": "纪念日名称，例如“第一次见面”",
+    "anniversaryValidation": "请填写纪念日名称与日期"
+  },
+  "personForm": {
+    "editContact": "编辑联系人",
+    "addContact": "添加联系人",
+    "namePlaceholder": "请输入姓名",
+    "nicknamePlaceholder": "添加昵称",
+    "nicknameHelper": "添加昵称以更好地记住这个人",
+    "locationPlaceholder": "请输入地址",
+    "locationTagsLabel": "地点标签",
+    "updateSuccess": "联系人更新成功！",
+    "updateSuccessMessage": "联系人\"{{name}}\"已成功更新",
+    "createSuccess": "联系人创建成功！",
+    "createSuccessMessage": "新联系人\"{{name}}\"已成功添加到通讯录",
+    "saveError": "保存联系人失败"
+  },
+  "personManager": {
+    "list": "列表 ({{count}})",
+    "socialTagManager": "社交标签管理",
+    "tagFiltersTitle": "标签筛选",
+    "searchPlaceholder": "搜索姓名或昵称...",
+    "noContacts": "暂无联系人记录",
+    "timeline": "时间线",
+    "viewTimeline": "查看时间线",
+    "deleteConfirmMessage": "确定要删除联系人 \"{{name}}\" 吗？"
+  },
+  "nutrition": {
+    "dailyIntake": "今日营养摄入",
+    "entryCount": "{{count}} 项饮食记录",
+    "labels": {
+      "calories": "总卡路里"
+    }
+  },
+  "foodList": {
+    "deleteTitle": "删除食物",
+    "deleteMessage": "确定要删除 \"{{foodName}}\" 吗？删除后相关的饮食记录将无法显示营养信息。"
+  },
+  "mealSections": {
+    "title": "饮食记录",
+    "mealTypes": {
+      "breakfast": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "snack": "加餐"
+    },
+    "tableHeaders": {
+      "mealType": "餐次",
+      "foodName": "食物名称",
+      "portion": "克数",
+      "time": "时间"
+    },
+    "calories": "{{calories}}卡",
+    "noEntries": "暂无饮食记录",
+    "addEntryHint": "点击上方按钮添加记录",
+    "deleteTitle": "删除饮食记录",
+    "deleteMessage": "确定要删除 \"{{foodName}}\" 的记录吗？"
+  },
+  "habitForm": {
+    "editTitle": "编辑习惯",
+    "fields": {
+      "title": "习惯标题",
+      "titlePlaceholder": "例如：每日运动30分钟",
+      "descriptionPlaceholder": "描述这个习惯的意义和目标...",
+      "startDateHint": "请选择习惯的开始日期",
+      "duration": "持续天数",
+      "status": "习惯状态"
+    },
+    "durationOptions": {
+      "7": "7天",
+      "14": "14天",
+      "21": "21天",
+      "100": "100天",
+      "365": "365天",
+      "1000": "1000天"
+    },
+    "validation": {
+      "titleRequired": "请输入习惯标题",
+      "startDateRequired": "请选择开始日期"
+    },
+    "messages": {
+      "createSuccess": "习惯创建成功",
+      "updateSuccess": "习惯更新成功",
+      "createFailed": "创建习惯失败",
+      "updateFailed": "更新习惯失败",
+      "creating": "创建中...",
+      "updating": "更新中..."
+    }
+  },
+  "apiErrors": {
+    "notLoggedIn": "用户未登录，请求已取消",
+    "400": "请求参数错误",
+    "409": "资源冲突，请检查输入信息",
+    "proxyResponseTitle": "代理或网关异常",
+    "proxyHtmlResponse": "安全代理或网关返回了 HTML 错误页，请稍后重试；如频繁出现请联系管理员。",
+    "invalidResponseFormat": "服务返回了无法识别的响应格式，请稍后重试。",
+    "emptyResponse": "服务返回了空响应，请稍后重试。",
+    "Email already registered": "该邮箱已注册"
+  },
+  "taskNotes": {
+    "title": "笔记",
+    "taskLabel": "任务：",
+    "emptyState": {
+      "title": "暂无笔记",
+      "description": "在笔记页面创建笔记并关联到此任务即可显示"
+    }
+  },
+  "timelogNotes": {
+    "title": "时间日志笔记",
+    "emptyState": {
+      "title": "暂无笔记",
+      "description": "通过时间日志入口创建的笔记会显示在这里，用它记录更多感受、思考或后续事项。"
+    }
+  },
+  "taskActualEvents": {
+    "title": "日志",
+    "taskLabel": "任务：",
+    "totalTime": "总计",
+    "recordsCount": "{{count}} 条记录",
+    "duration": "进行中",
+    "minutes": "分钟",
+    "hours": "小时",
+    "untitled": "未命名事件",
+    "unknownDimension": "未分配维度",
+    "emptyState": {
+      "title": "暂无日志",
+      "description": "在时间日志页面记录时间时关联此任务即可显示"
+    },
+    "columns": {
+      "timeRange": "时间段",
+      "duration": "时长",
+      "date": "日期",
+      "description": "行为描述",
+      "dimension": "维度"
+    }
+  },
+  "taskSelector": {
+    "placeholder": "选择任务...",
+    "searchHint": "输入任务名称来搜索",
+    "noResults": "没有找到匹配的任务",
+    "specialOptions": {
+      "allTasks": "全部任务"
+    }
+  },
+  "errorBoundary": {
+    "title": "应用出现错误",
+    "message": "请刷新页面重试。如果问题持续存在，请联系维护者。",
+    "refresh": "刷新"
+  },
+  "quickTemplatesManager": {
+    "title": "常用模板管理",
+    "noTemplates": "暂无模板，您可以在下方新增。",
+    "minutes": "分钟",
+    "editTemplate": "编辑模板",
+    "addTemplate": "新增模板",
+    "activityDescription": "行为描述",
+    "activityPlaceholder": "例如：睡觉",
+    "durationOptional": "时长（分钟，可选）",
+    "durationPlaceholder": "例如：5",
+    "validation": {
+      "titleRequired": "请填写模板名称",
+      "durationInvalid": "时长需在 1 到 1440 分钟之间"
+    },
+    "messages": {
+      "createSuccess": "模板创建成功",
+      "updateSuccess": "模板更新成功",
+      "deleteSuccess": "模板已删除",
+      "actionFailed": "模板操作失败"
+    }
+  },
+  "foodForm": {
+    "validationFailed": "表单验证失败",
+    "updateSuccess": "食物更新成功！",
+    "updateSuccessMessage": "食物\"{{name}}\"已成功更新",
+    "createSuccess": "食物创建成功！",
+    "createSuccessMessage": "新食物\"{{name}}\"已成功添加到数据库",
+    "saveFailed": "保存食物失败",
+    "editFood": "编辑食物",
+    "editFoodForm": "编辑食物表单",
+    "addFoodForm": "添加食物表单",
+    "namePlaceholder": "例如：苹果、鸡胸肉",
+    "markAsCommon": "标记为常用食物",
+    "nutritionInfo": "营养信息 (每100克)",
+    "caloriesUnit": "卡路里",
+    "grams": "克"
+  },
+  "entryRow": {
+    "selectRecord": "选择记录 {{id}}",
+    "quickAddAriaLabel": "快速添加时间记录"
+  },
+  "agent": {
+    "welcomeTitle": "欢迎使用 AI 助手",
+    "welcomeSubtitle": "开始对话，我会尽力帮助你！",
+    "thinking": "AI 正在思考...",
+    "inputPlaceholder": "输入消息...",
+    "sendMessageAriaLabel": "发送消息",
+    "quota": {
+      "exceededTitle": "使用次数限制",
+      "exceededMessage": "今日 Tokens {{used}}/{{limit}} 用量 超出，将在 {{hours}} 小时 {{minutes}} 分钟后恢复使用。"
+    },
+    "errors": {
+      "authExpired": "认证已过期，请重新登录",
+      "serviceUnavailable": "AI 服务暂时不可用，请稍后重试",
+      "requestFailed": "请求失败，请重试",
+      "networkError": "网络错误，请重试",
+      "permissionDenied": "权限不足，无法访问此服务",
+      "rateLimited": "今日 Token 用量已达上限，请稍后再试或联系管理员",
+      "streamTimeout": "响应超时，已终止本次请求，请稍后重试",
+      "sessionRequired": "请先选择或创建一个会话，再发送消息"
+    },
+    "messageStatus": {
+      "pending": "发送中…",
+      "failed": "发送失败",
+      "failedWithReason": "发送失败：{{reason}}",
+      "retry": "重试"
+    },
+    "identity": {
+      "user": "你",
+      "ai": "AI"
+    },
+    "controls": {
+      "title": "Agent 控制",
+      "moveAgent": "移动 Agent",
+      "moveAgentEditMode": "鼠标左键拖拽；右键松开自动保存",
+      "showFloatingAgent": "显示悬浮 Agent",
+      "hideFloatingAgent": "隐藏悬浮 Agent"
+    },
+    "smartNote": {
+      "bubbleTitle": "智能创建进度",
+      "notePreviewFallback": "新的智能笔记",
+      "jobQueuedTitle": "已提交智能创建",
+      "jobQueuedDescription": "「{{preview}}」已进入队列，稍等片刻",
+      "jobProcessingTitle": "AI 正在加工",
+      "jobProcessingDescription": "我会为「{{preview}}」自动补齐关联信息",
+      "jobSuccessTitle": "智能创建完成",
+      "jobSuccessDescription": "「{{preview}}」已整理完毕，可在笔记列表查看",
+      "jobFailureTitle": "智能创建失败",
+      "jobFailureDescription": "「{{preview}}」解析失败，请稍后重试",
+      "jobFailureDescriptionWithReason": "「{{preview}}」失败：{{reason}}",
+      "jobTimeoutTitle": "处理超时",
+      "jobTimeoutDescription": "暂未拿到结果，可稍后在笔记中查看「{{preview}}」",
+      "instantSuccessTitle": "笔记已创建",
+      "instantSuccessDescription": "「{{preview}}」已保存，可随时继续补充"
+    },
+    "quickActions": {
+      "title": "快速操作",
+      "todaySchedule": "我今天有哪些安排？",
+      "yesterdaySummary": "总结一下我的昨天"
+    },
+    "summary": {
+      "placeholder": "敬请期待..."
+    },
+    "context": {
+      "sectionTitle": "会话上下文",
+      "inlineTrigger": "添加上下文",
+      "modalTitle": "管理上下文",
+      "tabExisting": "已有上下文",
+      "tabCreate": "新建上下文",
+      "errorNoSession": "请先选择或创建一个会话",
+      "previewError": "预览上下文盒失败",
+      "addSuccess": "已加入\"{{name}}\"到当前会话",
+      "addError": "添加上下文盒失败",
+      "deleteSuccess": "已删除上下文盒\"{{name}}\"",
+      "deleteError": "删除上下文盒失败",
+      "deleteTitle": "删除上下文盒",
+      "deleteMessage": "确认删除上下文盒\"{{name}}\"？删除后将无法恢复。",
+      "deleteConfirm": "删除",
+      "previewRequired": "请先预览并确认要创建的上下文数据",
+      "createSuccess": "已创建并加入上下文盒\"{{name}}\"",
+      "createError": "创建上下文盒失败",
+      "loadingContext": "正在加载会话上下文…",
+      "noContextBoxes": "当前会话尚未关联任何上下文卡盒。",
+      "createOrSelectSession": "创建或选择会话后可查看上下文卡盒。",
+      "modules": {
+        "chat": "聊天",
+        "unknown": "未分类",
+        "actual_event": "时间日志",
+        "notes": "笔记",
+        "planning_tasks": "规划任务",
+        "vision_progress": "愿景进度"
+      },
+      "search": {
+        "contextBox": "搜索上下文盒",
+        "placeholder": "输入名称或模块关键词"
+      },
+      "availableContextBoxes": "可用上下文盒",
+      "noMatchingContextBoxes": "没有匹配的上下文盒。",
+      "previewContent": "预览内容",
+      "selectContextBoxToPreview": "选择一个上下文盒查看内容示例。",
+      "previewResults": "预览结果",
+      "previewMatchCount": "共 {{count}} 条匹配记录",
+      "previewInstructions": "配置筛选条件并点击\"预览数据\"以查看业务结果。",
+      "create": {
+        "module": "模块",
+        "contextName": "上下文名称（可选）",
+        "contextNamePlaceholder": "为上下文盒命名",
+        "startDate": "开始日期",
+        "endDate": "结束日期",
+        "dimension": "维度（可选）",
+        "keyword": "关键词（可选）",
+        "keywordPlaceholder": "用于筛选文本内容",
+        "relatedTags": "关联标签（可选）",
+        "relatedPersons": "关联人物（可选）",
+        "planningCycle": "规划周期",
+        "cycleOptions": {
+          "day": "按日",
+          "week": "按周",
+          "month": "按月",
+          "year": "按年"
+        },
+        "taskStatus": "任务状态",
+        "statusOptions": {
+          "all": "全部任务",
+          "active": "活跃中",
+          "completed": "已完成 / 取消"
+        },
+        "selectVision": "选择愿景"
+      },
+      "buttons": {
+        "previewData": "预览数据",
+        "searching": "检索中…",
+        "addToSession": "加入会话",
+        "creating": "创建中…",
+        "createAndAdd": "创建并加入当前会话"
+      },
+      "status": {
+        "added": "已加入",
+        "adding": "添加中…"
+      },
+      "createInstructions": "预览确认后再创建上下文盒。如需修改筛选条件，请重新预览。",
+      "previewFoundRecords": "已检索到 {{count}} 条记录，确认后将生成上下文盒。",
+      "errors": {
+        "selectStartDate": "请先选择开始日期",
+        "selectVision": "请先选择愿景",
+        "selectPlanningStartDate": "请选择规划周期的起始日期",
+        "selectAtLeastOneVision": "请至少选择一个愿景",
+        "previewFailed": "预览失败，请稍后再试"
+      }
+    },
+    "toolRun": {
+      "unknownTool": "未识别的工具",
+      "started": "正在调用工具 {{tool}}…",
+      "finished": "工具 {{tool}} 已完成。",
+      "finishedWithResult": "工具 {{tool}} 已完成：\n{{result}}",
+      "failed": "工具 {{tool}} 执行失败：{{reason}}",
+      "progressPercent": "{{value}}%",
+      "progressLabel": "执行中",
+      "duration": "耗时 {{value}}",
+      "startedAt": "开始于 {{time}}",
+      "finishedAt": "结束于 {{time}}",
+      "argumentsLabel": "参数",
+      "argumentsTitle": "调用参数",
+      "resultTitle": "输出结果",
+      "progressTitle": "进度详情",
+      "viewDetails": "查看详情",
+      "detailsTitle": "{{tool}} 运行详情",
+      "argumentsMore": "等 {{count}} 项",
+      "noOutput": "暂无输出信息"
+    },
+    "tokenUsage": {
+      "title": "上下文令牌使用",
+      "progress": "{{used}} / {{budget}} 个 tokens",
+      "progressWithoutBudget": "已使用 {{used}} 个 tokens",
+      "totalLabel": "累计",
+      "deltaLabel": "本次回复",
+      "tokensUnit": "{{count}} 个 tokens",
+      "budgetLabel": "上下文预算：{{count}} 个 tokens",
+      "windowLabel": "模型窗口：{{count}} 个 tokens",
+      "totalCost": "累计费用：${{value}}",
+      "deltaCost": "本次费用：${{value}}",
+      "badgeLabel": "令牌：{{count}}",
+      "badgeLabelFormatted": "令牌：{{value}}",
+      "tooltip": {
+        "tokens": "已用令牌：{{used}}",
+        "window": "模型窗口：{{count}}",
+        "budget": "上下文预算：{{count}}",
+        "cost": "成本预估：${{value}}"
+      }
+    },
+    "sessions": {
+      "recentTitle": "最近会话",
+      "historyButton": "会话历史",
+      "historyModalTitle": "会话历史",
+      "newSession": "新建会话",
+      "newSessionLabel": "新的会话",
+      "startFirstSession": "开始新会话",
+      "welcomeTitle": "开始你的第一个会话",
+      "welcomeDescription": "还没有任何会话，点击下方按钮开始与 AI 助手对话",
+      "sessionLabel": "会话 {{index}} · {{date}}",
+      "empty": "暂无最近会话",
+      "messageCount": "共 {{count}} 条消息",
+      "delete": "删除会话",
+      "markAllRead": "全部已读",
+      "unreadStatus": "（{{count}}条未读）",
+      "tabs": {
+        "chat": "对话",
+        "system": "系统通知"
+      }
+    },
+    "inputPlaceholderWithAgent": "与{{agent}}对话……",
+    "notifications": {
+      "readonlyMode": "系统通知仅供查看。",
+      "readonlyDescription": "系统通知用于汇总后台作业、定时提醒等系统级事件。",
+      "readonlyInput": "通知无法在此回复，如需继续对话请切换回聊天标签。",
+      "titleFallback": "系统通知",
+      "severity": {
+        "info": "提示",
+        "warning": "警告",
+        "critical": "严重"
+      }
+    },
+    "selectLabel": "助手选择",
+    "noAgentsAvailable": "暂无可用助手"
+  },
+  "checkboxGroup": {
+    "selectAll": "全选",
+    "clearAll": "清空"
+  },
+  "cardbox": {
+    "filters": {
+      "date": "日期",
+      "startDate": "起始",
+      "endDate": "结束",
+      "dimension": "维度",
+      "keyword": "关键词",
+      "descriptionKeyword": "描述关键词",
+      "trackingMethod": "记录方式",
+      "tag": "标签",
+      "person": "人物",
+      "cycle": "周期",
+      "status": "状态",
+      "visionCount": "愿景数量",
+      "taskStatus": "任务状态",
+      "limit": "条数上限"
+    },
+    "labels": {
+      "time": "时间",
+      "duration": "时长",
+      "hour": "小时",
+      "minute": "分钟",
+      "trackingMethod": "记录方式",
+      "participants": "参与者",
+      "task": "任务",
+      "notes": "备注",
+      "tags": "标签",
+      "relatedTask": "关联任务",
+      "description": "描述",
+      "coreParticipants": "核心参与者",
+      "createdTime": "创建时间",
+      "noContent": "（无内容）",
+      "relatedPersons": "关联人物",
+      "cards": "张卡片",
+      "cardCount": "卡片数量",
+      "lastUpdated": "最近更新",
+      "filters": "筛选"
+    },
+    "status": {
+      "inProgress": "进行中",
+      "noTitleEvent": "无标题事件",
+      "noContent": "暂无内容",
+      "structuredDataPrompt": "该卡片包含结构化数据，请在上下文盒详情中查看完整内容。",
+      "noMatchingRecords": "未找到匹配的时序记录。",
+      "noMatchingNotes": "未找到匹配的笔记。",
+      "noMatchingTasks": "未找到符合条件的规划任务。",
+      "noMatchingVisions": "未找到匹配的愿景。",
+      "minutes": "分钟",
+      "unknownDimension": "未分配维度",
+      "statusFilter": "状态",
+      "priorityFilter": "优先级",
+      "planningCycleFilter": "规划周期",
+      "startDateFormat": "开始日期",
+      "totalEffortMinutes": "累计投入",
+      "stageFilter": "阶段",
+      "visionTaskList": "任务列表（共 {{count}} 项）：",
+      "statusPriority": "状态 · 优先级",
+      "noContentInBox": "该上下文盒暂无内容。",
+      "matchingRecords": "条匹配记录"
+    }
+  },
+  "tree": {
+    "stage": {
+      "0": "种子",
+      "1": "萌芽",
+      "2": "幼苗",
+      "3": "树苗",
+      "4": "幼树",
+      "5": "成长",
+      "6": "花期",
+      "7": "结果",
+      "8": "丰收",
+      "9": "繁盛",
+      "10": "传承"
+    }
+  },
+  "draggableTaskList": {
+    "expandButton": {
+      "expand": "展开任务",
+      "collapse": "收起任务",
+      "noSubtasks": "无子任务"
+    },
+    "vision": {
+      "label": "愿景"
+    },
+    "meta": {
+      "totalEffort": "总投入（含子任务）",
+      "plannedActions": "您已规划了该任务的行动"
+    },
+    "planningCycle": {
+      "day": "日",
+      "week": "周",
+      "month": "月",
+      "year": "年",
+      "from": "{{date}}起",
+      "within": "内"
+    },
+    "actions": {
+      "more": "更多操作"
+    },
+    "tooltip": {
+      "title": "{{name}}",
+      "vision": "所属愿景：{{vision}}",
+      "parent": "父任务：{{parent}}",
+      "priority": "优先级：{{priority}}",
+      "status": "状态：{{status}}",
+      "planningCycle": "规划周期：{{planning}}",
+      "planningCycleValueWithDate": "{{period}} · {{date}}",
+      "totalEffort": "总投入（含子任务）：{{duration}}",
+      "selfEffort": "当前任务投入：{{duration}}",
+      "createdAt": "创建时间：{{date}}",
+      "updatedAt": "更新时间：{{date}}",
+      "none": "—"
+    },
+    "habit": {
+      "start": "开始",
+      "duration": "持续",
+      "days": "天",
+      "status": "状态"
+    },
+    "empty": {
+      "title": "还没有任务",
+      "description": "开始创建您的第一个任务吧"
+    }
+  },
+  "sageMaxims": {
+    "createTitle": "提交新的智慧箴言",
+    "createPlaceholder": "写下你想分享的智慧短句（最多 280 字符）",
+    "submit": "发布箴言",
+    "lengthHint": "最多 280 字符",
+    "empty": "目前还没有智慧箴言，率先分享你的洞见吧！",
+    "sort": {
+      "label": "排序",
+      "random": "随机",
+      "latest": "最新",
+      "top": "热门"
+    },
+    "refresh": "刷新列表",
+    "submitSuccess": "箴言已发布",
+    "reactionError": "反馈动作失败，请稍后重试",
+    "createdBy": "{{name}} 发布于 {{date}}",
+    "likeCountLabel": "点赞 {{count}} 次",
+    "dislikeCountLabel": "点踩 {{count}} 次"
+  },
+  "invitations": {
+    "title": "邀请码",
+    "subtitle": "邀请特定邮箱注册内测账号。",
+    "status": {
+      "pending": "待使用",
+      "registered": "已注册",
+      "revoked": "已作废",
+      "expired": "已过期"
+    },
+    "invitedMe": {
+      "title": "谁邀请了我",
+      "empty": "暂无邀请记录。",
+      "fallbackName": "未知邀请人"
+    },
+    "generator": {
+      "title": "生成邀请码",
+      "description": "每个邀请码与受邀邮箱绑定，请私聊发给受邀人。",
+      "unavailable": "邀请功能暂未开放",
+      "unavailableDescription": "当前仅管理员可以创建邀请码。"
+    },
+    "form": {
+      "emailLabel": "受邀邮箱",
+      "emailPlaceholder": "name@example.com",
+      "inviteCodeLabel": "邀请码（可选）",
+      "inviteCodePlaceholder": "请输入邀请码（如有）",
+      "memoLabel": "备注（可选）",
+      "memoPlaceholder": "例如：李梅梅",
+      "submit": "生成邀请码"
+    },
+    "list": {
+      "title": "我邀请了谁",
+      "empty": "暂未创建任何邀请码。",
+      "email": "目标邮箱",
+      "code": "邀请码",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "link": "注册链接（请复制给受邀对象）",
+      "copyLink": "复制链接",
+      "memo": "备注",
+      "actions": "操作",
+      "revoke": "取消邀请",
+      "restore": "启用"
+    },
+    "toast": {
+      "createSuccess": "邀请码已生成",
+      "createFailed": "邀请码生成失败",
+      "revokeSuccess": "邀请码已作废",
+      "revokeFailed": "邀请码作废失败",
+      "restoreSuccess": "邀请码已启用",
+      "restoreFailed": "邀请码启用失败",
+      "copySuccess": "注册链接已复制",
+      "copyFailed": "复制链接失败"
+    },
+    "validation": {
+      "emailRequired": "请输入受邀邮箱"
+    },
+    "register": {
+      "verifying": "正在验证邀请码...",
+      "invalid": "邀请码无效或已被使用，请联系邀请人。",
+      "valid": "邀请码验证成功",
+      "invitee": "绑定邮箱：{{email}}",
+      "inviterWithEmail": "邀请人：{{name}}（{{email}}）",
+      "inviterName": "邀请人：{{name}}"
+    }
+  }
+}

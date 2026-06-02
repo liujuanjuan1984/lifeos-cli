@@ -1,0 +1,230 @@
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import Card from "@/layouts/Card";
+import EnumSelect from "@/components/selects/EnumSelect";
+import ActionButton, {
+  ExpandButton,
+  EditButton,
+  ActionButtonGroup,
+} from "@/components/ActionButton";
+import {
+  HABIT_ACTION_STATUS_OPTIONS,
+  HABIT_ACTION_STATUS_CONFIG,
+} from "@/utils/constants";
+import type { HabitActionWithHabit } from "@/services/api/habits";
+import type { UUID } from "@/types/primitive";
+import { Icon } from "@/components/icons";
+import type { IconName } from "@/components/icons";
+import ModalBase from "@/layouts/ModalBase";
+import { FormField, TextArea } from "@/components/forms";
+import { parseDateStringToLocalDate, startOfLocalDay } from "@/utils/datetime";
+
+interface HabitActionsCardProps {
+  habitActions: HabitActionWithHabit[];
+  onStatusChange: (actionId: UUID, habitId: UUID, status: string) => void;
+  onNotesChange: (actionId: UUID, habitId: UUID, notes: string) => void;
+}
+
+const getHabitActionStatusStyling = (status: string) => {
+  // Map status to icon names
+  const statusIconMap: Record<string, IconName> = {
+    pending: "timer",
+    done: "check",
+    skip: "forward",
+    miss: "x-mark",
+  };
+
+  const config =
+    HABIT_ACTION_STATUS_CONFIG[
+      status as keyof typeof HABIT_ACTION_STATUS_CONFIG
+    ] || HABIT_ACTION_STATUS_CONFIG.pending;
+
+  return {
+    iconName: statusIconMap[status] || "timer",
+    color: `text-${config.color}`,
+    bgColor: config.bgColor,
+    hoverColor: config.bgColor.replace("/15", "/25"),
+  };
+};
+
+export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
+  habitActions,
+  onStatusChange,
+  onNotesChange,
+}) => {
+  const { t } = useTranslation();
+  const [editingAction, setEditingAction] =
+    useState<HabitActionWithHabit | null>(null);
+  const [editingNotes, setEditingNotes] = useState("");
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+
+  // 计算天数信息
+  const calculateDayInfo = (action: HabitActionWithHabit) => {
+    const habitStartDate = startOfLocalDay(
+      parseDateStringToLocalDate(action.habit.start_date),
+    );
+    const actionDate = startOfLocalDay(
+      parseDateStringToLocalDate(action.action_date),
+    );
+
+    const timeDiff = actionDate.getTime() - habitStartDate.getTime();
+    const dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const dayNumber = Math.max(1, dayDiff + 1);
+    const totalDays = action.habit.duration_days;
+
+    if (Number.isNaN(dayNumber)) {
+      return `--/${totalDays}`;
+    }
+
+    return `${dayNumber}/${totalDays}`;
+  };
+
+  // 处理编辑备注
+  const handleEditNotes = (action: HabitActionWithHabit) => {
+    setEditingAction(action);
+    setEditingNotes(action.notes || "");
+    setShowNotesDialog(true);
+  };
+
+  // 保存备注
+  const handleSaveNotes = () => {
+    if (editingAction) {
+      onNotesChange(editingAction.id, editingAction.habit_id, editingNotes);
+      setShowNotesDialog(false);
+      setEditingAction(null);
+      setEditingNotes("");
+    }
+  };
+
+  return (
+    <Card
+      title={t("planning.habitActions.title")}
+      size="md"
+      elevation="moderate"
+      className="mb-4"
+    >
+      <div className="space-y-0">
+        {habitActions.map((action) => {
+          const statusStyling = getHabitActionStatusStyling(action.status);
+          const dayInfo = calculateDayInfo(action);
+
+          return (
+            <div
+              key={action.id}
+              className="w-full flex items-start group border-b border-base-200/50 last:border-b-0"
+            >
+              <div className="mr-2 mt-3">
+                <ExpandButton
+                  isExpanded={false}
+                  onClick={() => {}}
+                  disabled
+                  className="cursor-default opacity-50"
+                />
+              </div>
+
+              <div className="flex-1 w-full min-w-0">
+                <div
+                  className={`w-full px-4 py-3 transition-all duration-200 ease-in-out hover:bg-base-200 hover:shadow-md group-hover:bg-base-200/80 ${statusStyling.bgColor}`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <span className={`text-lg ${statusStyling.color}`}>
+                        <Icon
+                          name={statusStyling.iconName}
+                          size={18}
+                          aria-hidden
+                        />
+                      </span>
+
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="text-base-content/70 min-w-[40px]">
+                          {dayInfo}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h5 className="font-medium text-base-content text-base min-w-0 truncate">
+                              {action.habit.title}
+                            </h5>
+                            {action.habit.description && (
+                              <span className="text-base text-base-content/70 min-w-0 truncate">
+                                {action.habit.description}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 如果有备注，显示简短预览 */}
+                          {action.notes && (
+                            <div className="text-sm text-base-content/60 mt-1 truncate">
+                              {action.notes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 ml-3 flex-shrink-0">
+                      <EditButton onClick={() => handleEditNotes(action)} />
+
+                      <div className="min-w-[90px]">
+                        <EnumSelect
+                          value={action.status}
+                          onChange={(value) =>
+                            onStatusChange(
+                              action.id,
+                              action.habit_id,
+                              value as string,
+                            )
+                          }
+                          options={HABIT_ACTION_STATUS_OPTIONS}
+                          idPrefix={`habit-action-status-${action.id}`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 备注编辑模态框 */}
+      <ModalBase
+        isOpen={showNotesDialog}
+        onClose={() => setShowNotesDialog(false)}
+        title={t("habits.actionList.editNotes")}
+        size="md"
+        footer={
+          <ActionButtonGroup splitOpposite>
+            <ActionButton
+              label={t("common.cancel")}
+              color="neutral"
+              variant="ghost"
+              onClick={() => setShowNotesDialog(false)}
+            />
+            <ActionButton
+              label={t("common.save")}
+              color="primary"
+              variant="solid"
+              onClick={handleSaveNotes}
+            />
+          </ActionButtonGroup>
+        }
+      >
+        <FormField
+          label={t("habits.actionList.notesLabel")}
+          htmlFor="habit-notes-textarea"
+        >
+          <TextArea
+            id="habit-notes-textarea"
+            value={editingNotes}
+            onChange={(e) => setEditingNotes(e.target.value)}
+            placeholder={t("habits.actionList.notesPlaceholder")}
+            rows={4}
+          />
+        </FormField>
+      </ModalBase>
+    </Card>
+  );
+};

@@ -1,0 +1,236 @@
+"""Pydantic schemas for the local LifeOS Web API."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+
+class Pagination(BaseModel):
+    """Frontend-compatible pagination metadata."""
+
+    page: int
+    size: int
+    total: int
+    pages: int
+
+
+class ListResponse(BaseModel):
+    """Frontend-compatible list envelope."""
+
+    items: list[dict[str, Any]]
+    pagination: Pagination
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class TaskCreate(BaseModel):
+    """Payload for creating a task from the Web planning UI."""
+
+    vision_id: UUID
+    parent_task_id: UUID | None = None
+    content: str
+    priority: int = 0
+    display_order: int = 0
+    estimated_effort: int | None = None
+    planning_cycle_type: str | None = None
+    planning_cycle_days: int | None = None
+    planning_cycle_start_date: date | None = None
+
+
+class TaskUpdate(BaseModel):
+    """Payload for updating a task from the Web planning UI."""
+
+    content: str | None = None
+    status: str | None = None
+    priority: int | None = None
+    display_order: int | None = None
+    estimated_effort: int | None = None
+    parent_task_id: UUID | None = None
+    planning_cycle_type: str | None = None
+    planning_cycle_days: int | None = None
+    planning_cycle_start_date: date | None = None
+
+
+class TaskStatusUpdate(BaseModel):
+    """Payload for updating just a task status."""
+
+    status: str
+
+
+class NoteCreate(BaseModel):
+    """Payload for creating a note from the Web UI."""
+
+    content: str
+
+
+class NoteUpdate(BaseModel):
+    """Payload for updating a note from the Web UI."""
+
+    content: str
+
+
+class VisionCreate(BaseModel):
+    """Payload for creating a vision from the Web UI."""
+
+    name: str
+    description: str | None = None
+    status: str = "active"
+    experience_rate_per_hour: int | None = None
+
+
+class VisionUpdate(BaseModel):
+    """Payload for updating a vision from the Web UI."""
+
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+    experience_rate_per_hour: int | None = None
+
+
+class HabitCreate(BaseModel):
+    """Payload for creating a habit from the Web UI."""
+
+    title: str
+    description: str | None = None
+    start_date: date
+    duration_days: int = Field(..., ge=1)
+    cadence_frequency: str | None = None
+    cadence_weekdays: list[str] | None = None
+    target_per_cycle: int | None = None
+    task_id: UUID | None = None
+
+
+class HabitUpdate(BaseModel):
+    """Payload for updating a habit from the Web UI."""
+
+    title: str | None = None
+    description: str | None = None
+    start_date: date | None = None
+    duration_days: int | None = Field(None, ge=1)
+    cadence_frequency: str | None = None
+    cadence_weekdays: list[str] | None = None
+    target_per_cycle: int | None = None
+    status: str | None = None
+    task_id: UUID | None = None
+
+
+class HabitActionUpdate(BaseModel):
+    """Payload for updating a habit action."""
+
+    status: str | None = None
+    notes: str | None = None
+
+
+class TimelogCreate(BaseModel):
+    """Payload for creating a timelog from the Web UI."""
+
+    title: str
+    start_time: datetime
+    end_time: datetime
+    tracking_method: str = "manual"
+    location: str | None = None
+    energy_level: int | None = Field(None, ge=1, le=5)
+    notes: str | None = None
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    person_ids: list[UUID] | None = None
+
+
+class TimelogUpdate(BaseModel):
+    """Payload for updating a timelog from the Web UI."""
+
+    title: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    tracking_method: str | None = None
+    location: str | None = None
+    energy_level: int | None = Field(None, ge=1, le=5)
+    notes: str | None = None
+    area_id: UUID | None = None
+    task_id: UUID | None = None
+    person_ids: list[UUID] | None = None
+
+
+class TimelogBatchTitleUpdate(BaseModel):
+    """Title update payload for timelog batch edits."""
+
+    mode: str = "replace"
+    value: str
+    find: str | None = None
+
+
+class TimelogBatchTaskUpdate(BaseModel):
+    """Task update payload for timelog batch edits."""
+
+    mode: str = "replace"
+    task_id: UUID | None = None
+
+
+class TimelogBatchDimensionUpdate(BaseModel):
+    """Area update payload for timelog batch edits."""
+
+    dimension_id: UUID | None = None
+
+
+class TimelogBatchPeopleUpdate(BaseModel):
+    """Person association update payload for timelog batch edits."""
+
+    mode: str = "replace"
+    person_ids: list[UUID] = Field(default_factory=list)
+
+
+class TimelogBatchUpdate(BaseModel):
+    """Payload for updating multiple timelogs from the Web UI."""
+
+    event_ids: list[UUID]
+    update_type: str
+    title: TimelogBatchTitleUpdate | None = None
+    task: TimelogBatchTaskUpdate | None = None
+    dimension: TimelogBatchDimensionUpdate | None = None
+    persons: TimelogBatchPeopleUpdate | None = None
+
+
+class PlannedEventCreate(BaseModel):
+    """Frontend-compatible planned event creation payload backed by LifeOS events."""
+
+    title: str
+    start_time: datetime
+    end_time: datetime | None = None
+    priority: int = 0
+    dimension_id: UUID | None = None
+    task_id: UUID | None = None
+    is_all_day: bool = False
+    is_recurring: bool = False
+    recurrence_pattern: dict[str, Any] | None = None
+    rrule_string: str | None = None
+    status: str = "planned"
+    tags: list[str] | None = None
+    person_ids: list[UUID] | None = None
+
+
+class PlannedEventUpdate(BaseModel):
+    """Frontend-compatible planned event update payload backed by LifeOS events."""
+
+    title: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    priority: int | None = None
+    dimension_id: UUID | None = None
+    task_id: UUID | None = None
+    is_all_day: bool | None = None
+    is_recurring: bool | None = None
+    recurrence_pattern: dict[str, Any] | None = None
+    rrule_string: str | None = None
+    status: str | None = None
+    tags: list[str] | None = None
+    person_ids: list[UUID] | None = None
+
+
+class HealthResponse(BaseModel):
+    """LifeOS Web UI health payload."""
+
+    status: str
+    timestamp: datetime

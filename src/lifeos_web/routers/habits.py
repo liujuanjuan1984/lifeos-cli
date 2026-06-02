@@ -1,0 +1,313 @@
+"""Habit action endpoints used by the local planning UI."""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from lifeos_cli.db.models.habit import Habit
+from lifeos_cli.db.models.habit_action import HabitAction
+from lifeos_cli.db.services import habit_actions as habit_action_services
+from lifeos_cli.db.services import habits as habit_services
+from lifeos_web.deps import get_db_session
+from lifeos_web.schemas import HabitActionUpdate, HabitCreate, HabitUpdate, ListResponse, Pagination
+from lifeos_web.serialization import to_jsonable
+
+router = APIRouter(prefix="/habits", tags=["habits"])
+SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def _habit_model_payload(habit: Habit) -> dict[str, object]:
+    """Serialize a Habit SQLAlchemy model for the local Web API."""
+    return {
+        "id": str(habit.id),
+        "title": habit.title,
+        "description": habit.description,
+        "start_date": habit.start_date.isoformat(),
+        "duration_days": habit.duration_days,
+        "cadence_frequency": habit.cadence_frequency,
+        "cadence_weekdays": habit.cadence_weekdays,
+        "target_per_cycle": habit.target_per_cycle,
+        "status": habit.status,
+        "task_id": str(habit.task_id) if habit.task_id else None,
+        "created_at": habit.created_at.isoformat(),
+        "updated_at": habit.updated_at.isoformat(),
+        "deleted_at": habit.deleted_at.isoformat() if habit.deleted_at else None,
+    }
+
+
+async def _habit_payload(session: AsyncSession, habit_id: UUID) -> dict[str, object]:
+    habit = await habit_services.get_habit(session, habit_id=habit_id)
+    if habit is None:
+        raise HTTPException(status_code=404, detail=f"Habit {habit_id} was not found")
+    return _habit_model_payload(habit)
+
+
+async def _action_with_habit(
+    session: AsyncSession,
+    action: object,
+) -> dict[str, object]:
+    if isinstance(action, HabitAction):
+        payload: dict[str, object] = {
+            "id": str(action.id),
+            "habit_id": str(action.habit_id),
+            "action_date": action.action_date.isoformat(),
+            "status": action.status,
+            "notes": action.notes,
+            "created_at": action.created_at.isoformat(),
+            "updated_at": action.updated_at.isoformat(),
+            "deleted_at": action.deleted_at.isoformat() if action.deleted_at else None,
+        }
+    else:
+        jsonable = to_jsonable(action)
+        assert isinstance(jsonable, dict)
+        payload = jsonable
+    payload["habit"] = await _habit_payload(session, UUID(str(payload["habit_id"])))
+    return payload
+
+
+def _zero_stats(habit_id: UUID) -> dict[str, object]:
+    return {
+        "habit_id": str(habit_id),
+        "total_actions": 0,
+        "completed_actions": 0,
+        "missed_actions": 0,
+        "skipped_actions": 0,
+        "progress_percentage": 0,
+        "current_streak": 0,
+        "longest_streak": 0,
+    }
+
+
+@router.get("/", response_model=ListResponse)
+async def list_habits(
+    session: SessionDep,
+    page: int = 1,
+    size: int = 100,
+    status_filter: str | None = None,
+) -> ListResponse:
+    """List habits for the local Web UI."""
+    rows = await habit_services.list_habits(
+        session,
+        status=status_filter,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    items = [_habit_model_payload(row) for row in rows]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=page, size=size, total=len(items), pages=1 if items else 0),
+        meta={"status_filter": status_filter},
+    )
+
+
+@router.get("/overviews", response_model=ListResponse)
+async def list_habit_overviews(
+    session: SessionDep,
+    page: int = 1,
+    size: int = 100,
+    status_filter: str | None = None,
+) -> ListResponse:
+    """List habits with frontend-compatible zeroed stats."""
+    habits = await habit_services.list_habits(
+        session,
+        status=status_filter,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    items = [
+        {
+            "habit": _habit_model_payload(habit),
+            "stats": _zero_stats(habit.id),
+        }
+        for habit in habits
+    ]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=page, size=size, total=len(items), pages=1 if items else 0),
+        meta={"status_filter": status_filter},
+    )
+
+
+@router.get("/habit-task-associations/")
+async def get_habit_task_associations(session: SessionDep) -> dict[str, object]:
+    """Return habits grouped by associated task for frontend planning components."""
+    habits = await habit_services.list_habits(session, limit=500, offset=0)
+    associations: dict[str, list[dict[str, object]]] = {}
+    for habit in habits:
+        if habit.task_id is None:
+            continue
+        task_id = str(habit.task_id)
+        associations.setdefault(task_id, []).append(_habit_model_payload(habit))
+    return {"associations": associations}
+
+
+@router.get("/{habit_id}/overview")
+async def get_habit_overview(habit_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one habit overview with frontend-compatible stats."""
+    habit = await _habit_payload(session, habit_id)
+    return {"habit": habit, "stats": _zero_stats(habit_id)}
+
+
+@router.post("/")
+async def create_habit(
+    payload: HabitCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create a habit."""
+    try:
+        habit = await habit_services.create_habit(
+            session,
+            title=payload.title,
+            description=payload.description,
+            start_date=payload.start_date,
+            duration_days=payload.duration_days,
+            cadence_frequency=payload.cadence_frequency,
+            cadence_weekdays=payload.cadence_weekdays,
+            target_per_cycle=payload.target_per_cycle,
+            task_id=payload.task_id,
+        )
+    except (LookupError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _habit_model_payload(habit)
+
+
+@router.patch("/{habit_id}")
+async def update_habit(
+    habit_id: UUID,
+    payload: HabitUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a habit."""
+    try:
+        habit = await habit_services.update_habit(
+            session,
+            habit_id=habit_id,
+            title=payload.title,
+            description=payload.description,
+            start_date=payload.start_date,
+            duration_days=payload.duration_days,
+            cadence_frequency=payload.cadence_frequency,
+            cadence_weekdays=payload.cadence_weekdays,
+            target_per_cycle=payload.target_per_cycle,
+            status=payload.status,
+            task_id=payload.task_id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _habit_model_payload(habit)
+
+
+@router.delete("/{habit_id}", status_code=204)
+async def delete_habit(
+    habit_id: UUID,
+    session: SessionDep,
+) -> None:
+    """Soft-delete a habit."""
+    try:
+        await habit_services.delete_habit(session, habit_id=habit_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/actions/by-date/{action_date}")
+async def list_actions_by_date(
+    action_date: date,
+    session: SessionDep,
+) -> ListResponse:
+    """List materialized habit actions for one local date."""
+    actions = await habit_action_services.list_habit_actions(
+        session,
+        date_values=(action_date,),
+        limit=500,
+    )
+    items = [await _action_with_habit(session, action) for action in actions]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=1, size=500, total=len(items), pages=1 if items else 0),
+        meta={"action_date": action_date.isoformat()},
+    )
+
+
+@router.get("/{habit_id}/actions")
+async def list_actions_for_habit(
+    habit_id: UUID,
+    session: SessionDep,
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+    size: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> ListResponse:
+    """List materialized/scheduled actions for one habit."""
+    try:
+        actions = await habit_action_services.list_habit_actions(
+            session,
+            habit_id=habit_id,
+            start_date=start_date,
+            end_date=end_date,
+            limit=size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    items = [await _action_with_habit(session, action) for action in actions]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=1, size=size, total=len(items), pages=1 if items else 0),
+        meta={
+            "status_filter": None,
+            "center_date": None,
+            "days_before": None,
+            "days_after": None,
+        },
+    )
+
+
+@router.patch("/{habit_id}/actions/{action_id}")
+async def update_action(
+    habit_id: UUID,
+    action_id: UUID,
+    payload: HabitActionUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update one habit action."""
+    del habit_id
+    try:
+        action = await habit_action_services.update_habit_action(
+            session,
+            action_id=action_id,
+            status=payload.status,
+            notes=payload.notes,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return await _action_with_habit(session, action)
+
+
+@router.patch("/{habit_id}/actions/by-date/{action_date}")
+async def update_action_by_date(
+    habit_id: UUID,
+    action_date: date,
+    payload: HabitActionUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update one habit action by habit/date, materializing it when needed."""
+    try:
+        action = await habit_action_services.update_habit_action_by_date(
+            session,
+            habit_id=habit_id,
+            action_date=action_date,
+            status=payload.status,
+            notes=payload.notes,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return await _action_with_habit(session, action)

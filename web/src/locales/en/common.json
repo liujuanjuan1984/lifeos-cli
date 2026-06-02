@@ -1,0 +1,2801 @@
+{
+  "common": {
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "copy": "Copy",
+    "add": "Add",
+    "rename": "Rename",
+    "replace": "Replace",
+    "refresh": "Refresh",
+    "clear": "Clear",
+    "findReplace": "Find & Replace",
+    "error": "Error",
+    "success": "Success",
+    "info": "Info",
+    "warning": "Warning",
+    "logout": "Logout",
+    "user": "User",
+    "login": "Login",
+    "register": "Register",
+    "openNavigationMenu": "Open Navigation Menu",
+    "requestFailed": "Request failed",
+    "operationFailed": "Operation failed",
+    "submit": "Submit",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "close": "Close",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "submitting": "Submitting...",
+    "testing": "Testing...",
+    "deleting": "Deleting...",
+    "actions": "Actions",
+    "all": "All",
+    "none": "None",
+    "noDimension": "No Dimension",
+    "please_select": "Please select...",
+    "no_options": "No options",
+    "create_new": "Create New",
+    "reset": "Reset",
+    "preview": "Preview",
+    "placeholder": "Placeholder",
+    "default": "Default",
+    "no_data": "No data",
+    "create_with_name": "Create {{name}}",
+    "selected": "Selected",
+    "date": "Date",
+    "time": "Time",
+    "notice": "Notice",
+    "required": " is required"
+  },
+  "register": {
+    "betaNotice": {
+      "title": "Beta Registration Notice",
+      "description": "During beta testing, registration is by invitation only. Please register through an invitation link, and the system will automatically fill in the invitation code and email."
+    }
+  },
+  "target": {
+    "dimension": "Dimension",
+    "priority": "Priority",
+    "tag": "Tag",
+    "year": "Year",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "frequency": "Frequency",
+    "interval": "Interval",
+    "type": "Type",
+    "tags": {
+      "label": "Tags"
+    },
+    "persons": {
+      "label": "Persons"
+    },
+    "tasks": {
+      "label": "Tasks"
+    }
+  },
+  "status": {
+    "active": "Active",
+    "completed": "Completed",
+    "archived": "Archived",
+    "fruit": "Fruit",
+    "paused": "Paused",
+    "expired": "Expired",
+    "deleted": "Deleted",
+    "todo": "Todo",
+    "in_progress": "In Progress",
+    "done": "Done",
+    "cancelled": "Cancelled",
+    "inProgress": "In Progress",
+    "pending": "Pending",
+    "skip": "Skip",
+    "miss": "Miss",
+    "inbox": "Inbox",
+    "doing": "Doing",
+    "failed": "Failed",
+    "pass": "Skip"
+  },
+  "priority": {
+    "0": "No Priority",
+    "1": "Normal",
+    "2": "Important",
+    "3": "Urgent",
+    "4": "Very Urgent",
+    "5": "Highest Priority"
+  },
+  "theme": {
+    "system": "Follow System",
+    "fresh": "Fresh Green",
+    "cupcake": "Cupcake",
+    "bumblebee": "Bumblebee",
+    "emerald": "Emerald",
+    "corporate": "Corporate",
+    "synthwave": "Synthwave",
+    "retro": "Retro",
+    "cyberpunk": "Cyberpunk",
+    "valentine": "Valentine",
+    "halloween": "Halloween",
+    "garden": "Garden",
+    "forest": "Forest Green",
+    "aqua": "Aqua Blue",
+    "lofi": "Lo-fi",
+    "pastel": "Pastel",
+    "fantasy": "Fantasy",
+    "wireframe": "Wireframe",
+    "luxury": "Luxury",
+    "dracula": "Dracula",
+    "cmyk": "CMYK",
+    "autumn": "Autumn",
+    "business": "Business",
+    "acid": "Acid",
+    "lemonade": "Lemonade",
+    "night": "Night",
+    "coffee": "Coffee",
+    "winter": "Winter"
+  },
+  "weekdays": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "calendarSystems": {
+    "gregorian": "Gregorian",
+    "mayan_13_moon": "Mayan 13 Moon"
+  },
+  "person": {
+    "selectPersonPlaceholder": "Please add a related person..."
+  },
+  "task": {
+    "selectTaskPlaceholder": "Please select a task..."
+  },
+  "batchEdit": {
+    "title": "Batch Edit",
+    "modalTitle": "Batch Edit ({{count}} records)",
+    "description": "Select edit type and operation mode to batch update selected records",
+    "warning": {
+      "largeBatch": "Large number of selected records ({{count}}), system will process in batches, max {{batchSize}} records per batch"
+    },
+    "editType": {
+      "label": "Edit Type",
+      "persons": "Related Persons",
+      "title": "Action Description",
+      "task": "Related Task"
+    },
+    "modes": {
+      "label": "Operation Mode"
+    },
+    "errors": {
+      "title": "Batch Edit Failed",
+      "noEntriesSelected": "Please select time logs to edit first",
+      "noPersonsSelected": "Please select related persons",
+      "noTitleValue": "Please enter title content",
+      "noFindText": "Please enter text to find",
+      "noTaskSelected": "Please select related task",
+      "noDimensionSelected": "Please select dimension",
+      "noRecordsUpdated": "No records were updated",
+      "batchFailed": "Batch {{batch}} processing failed: {{error}}",
+      "details": "Batch edit error details:"
+    },
+    "success": {
+      "title": "Batch Edit Complete",
+      "message": "Successfully updated {{updated}} records",
+      "messageWithFailed": "Successfully updated {{updated}} records, {{failed}} failed",
+      "failedIds": "Failed record IDs: {{ids}}",
+      "failedIdsMore": "Failed record IDs: {{ids}}...and {{total}} more"
+    },
+    "progress": {
+      "batchProcessing": "Processing batch {{current}}/{{total}} ({{count}} records)"
+    },
+    "persons": {
+      "replaceDescription": "Will replace all existing related persons",
+      "addDescription": "Will add to existing related persons"
+    },
+    "subtitle": {
+      "findTextLabel": "Find Text",
+      "findTextPlaceholder": "Enter text to find...",
+      "newTitleLabel": "New Title",
+      "replaceWithLabel": "Replace With",
+      "newTitlePlaceholder": "Enter new title...",
+      "replaceWithPlaceholder": "Enter replacement text..."
+    },
+    "task": {
+      "description": "Enter task ID to associate, will replace all selected records' related tasks",
+      "clearDescription": "Will clear all selected records' related tasks"
+    },
+    "dimension": {
+      "description": "Will replace all selected records' dimensions"
+    },
+    "confirmEditing": "Editing..."
+  },
+  "eventModal": {
+    "title": {
+      "create": "Create Planned Event"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter event title",
+      "allDay": "All Day Event",
+      "startTime": "Start Time",
+      "endTime": "End Time"
+    },
+    "errors": {
+      "titleRequired": "Please enter event title",
+      "startTimeRequired": "Please select start time",
+      "saveFailed": "Save failed",
+      "saveTitle": "Save Event Failed",
+      "saveMessage": "Operation failed: {{error}}",
+      "deleteFailed": "Delete failed",
+      "deleteTitle": "Delete Event Failed"
+    },
+    "success": {
+      "createTitle": "Event Created Successfully!",
+      "createMessage": "New event \"{{title}}\" has been created successfully",
+      "updateTitle": "Event Updated Successfully!",
+      "updateMessage": "Event \"{{title}}\" has been updated successfully",
+      "deleteTitle": "Event Deleted Successfully",
+      "deleteMessage": "{{type}} \"{{title}}\" has been deleted successfully"
+    },
+    "deleteTypes": {
+      "single": "Single Event",
+      "allFuture": "Today and Future Events",
+      "all": "All Related Events"
+    },
+    "deleteConfirm": {
+      "title": "Delete Recurring Event",
+      "description": "\"{{title}}\" is a recurring event. Please select deletion method:",
+      "options": {
+        "single": {
+          "title": "Delete only today's instance",
+          "description": "Keep recurrence rule, other instances unaffected"
+        },
+        "allFuture": {
+          "title": "Delete today and all future instances",
+          "description": "Keep recurrence rule but stop generating new instances"
+        },
+        "all": {
+          "title": "Delete all related instances and recurrence rule",
+          "description": "Completely delete this recurring event, cannot be recovered"
+        }
+      }
+    },
+    "editScope": {
+      "title": "Apply changes to",
+      "fallbackDate": "this occurrence",
+      "options": {
+        "single": {
+          "title": "Only this occurrence",
+          "description": "Update just the selected day; the recurrence rule stays the same."
+        },
+        "allFuture": {
+          "title": "This and future occurrences",
+          "description": "Keep history intact but apply the new settings from this date forward."
+        },
+        "all": {
+          "title": "Entire series",
+          "description": "Update every instance, including past ones."
+        }
+      },
+      "notice": {
+        "single": "Only {{date}} will change; other days stay untouched.",
+        "all_future": "Occurrences on and after {{date}} will adopt the new settings.",
+        "all": "Every instance in the series (past and future) will be updated."
+      }
+    }
+  },
+  "tagManager": {
+    "title": "Tag Management",
+    "titleWithScope": "Tag Management ({{scope}})",
+    "createButton": "Create Tag",
+    "createNewTag": "Create New Tag",
+    "noTags": "No tags available",
+    "empty": {
+      "createFirstTagHint": "Create your first tag to get started."
+    },
+    "fields": {
+      "name": "Tag Name",
+      "namePlaceholder": "e.g., important, work, personal...",
+      "type": "Tag Type",
+      "category": "Category",
+      "description": "Description (Optional)",
+      "descriptionPlaceholder": "Description of the tag's purpose..."
+    },
+    "filters": {
+      "category": "Category",
+      "allCategories": "All categories"
+    },
+    "categoryManager": {
+      "title": "Categories",
+      "description": "Create and switch between tag categories.",
+      "addButton": "New category",
+      "newLabel": "Category name",
+      "placeholder": "e.g., Work, Health, Travel...",
+      "createButton": "Add",
+      "emptyError": "Category name required",
+      "successTitle": "Category created",
+      "successMessage": "Category \"{{name}}\" is ready to use",
+      "errorTitle": "Create category failed",
+      "renameButton": "Rename category",
+      "batchEditButton": "Batch Edit",
+      "bulkSelectAll": "Select all",
+      "bulkInvertSelection": "Invert",
+      "cancelBulkEdit": "Cancel",
+      "bulkSelectionCount": "{{selected}} / {{total}} selected",
+      "bulkTargetCategoryPlaceholder": "Target category",
+      "bulkMoveButton": "Move to category",
+      "bulkUpdateConfirmTitle": "Move tags",
+      "bulkUpdateConfirmMessage": "Move {{count}} selected tags to {{target}}?",
+      "bulkUpdateSuccessTitle": "Tags moved",
+      "bulkUpdateSuccessMessage": "{{count}} tags moved to {{target}}",
+      "bulkUpdatePartialErrorTitle": "Some tags failed",
+      "bulkUpdatePartialErrorMessage": "Success: {{success}}, Failed: {{failed}}",
+      "addTagButton": "Add tag",
+      "renameSuccessTitle": "Category renamed",
+      "renameSuccessMessage": "Category renamed to \"{{name}}\"",
+      "renameErrorTitle": "Rename category failed"
+    },
+    "categories": {
+      "general": "General",
+      "location": "Location",
+      "relation": "Relation",
+      "profession": "Profession",
+      "team": "Team",
+      "topic": "Topic"
+    },
+    "actions": {
+      "creating": "Creating..."
+    },
+    "success": {
+      "createTitle": "Tag Created Successfully!",
+      "createMessage": "Tag \"{{name}}\" has been created successfully",
+      "updateTitle": "Tag Updated Successfully!",
+      "updateMessage": "Tag \"{{name}}\" has been updated successfully",
+      "deleteTitle": "Tag Deleted Successfully!",
+      "deleteMessage": "Tag has been deleted successfully"
+    },
+    "errors": {
+      "createTitle": "Create Tag Failed",
+      "updateTitle": "Update Tag Failed",
+      "deleteTitle": "Delete Tag Failed"
+    },
+    "confirmDelete": {
+      "title": "Confirm Delete Tag",
+      "message": "Are you sure you want to delete tag \"{{name}}\"? This action cannot be undone."
+    },
+    "entityTypes": {
+      "person": "Person",
+      "note": "Note",
+      "task": "Task",
+      "vision": "Vision",
+      "general": "General"
+    },
+    "ui": {
+      "tagCount": "{{count}} tags",
+      "tagNamePlaceholder": "Tag name"
+    }
+  },
+  "filterStatus": {
+    "filtering": "Filtering:",
+    "tagFilter": "Tag #{{name}}",
+    "personFilter": "Person @{{name}}",
+    "keywordFilter": "Keyword \"{{keyword}}\"",
+    "notesCount": "{{count}} notes",
+    "readyToSearch": "Ready to search",
+    "exportText": "Export Text",
+    "clearFilters": "Clear Filters",
+    "exportError": "Export Failed",
+    "exportErrorMessage": "An error occurred during export"
+  },
+  "notes": {
+    "loadMore": "Load More Notes",
+    "noNotes": "No notes yet",
+    "noNotesWithFilter": "No notes with tag #{{tagName}}",
+    "noNotesWithPerson": "No notes associated with @{{personName}}",
+    "noNotesDescription": "Start recording your first thoughts!",
+    "noNotesWithFilterDescription": "Try selecting other filter conditions or clear filters",
+    "totalNotes": "{{count}} notes total",
+    "taggedWith": "Tag: #{{tagName}}",
+    "associatedWith": "Person: @{{personName}}",
+    "copySuccess": "Copy Success",
+    "copyError": "Copy Failed",
+    "copySuccessMessage": "Note content copied to clipboard",
+    "copyErrorMessage": "Unable to copy note content, please manually select and copy text",
+    "copyTooltip": "Copy",
+    "timelogChipDefault": "Timelog",
+    "timelogChipTooltip": "Linked timelog {{label}}",
+    "tooltip": {
+      "person": {
+        "title": "Person: {{name}}",
+        "nickname": "Nickname",
+        "location": "Location",
+        "tags": "Tags",
+        "noTags": "No tags"
+      },
+      "tag": {
+        "title": "#{{name}}",
+        "entityType": "Entity type",
+        "description": "Description",
+        "noDescription": "No description",
+        "color": "Color",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "unknown": "Unknown"
+      }
+    },
+    "tagManager": "Tag Manager",
+    "noteTagManager": "Note Tags",
+    "loadingNotes": "Loading notes...",
+    "loadingAdvanced": "Running advanced search...",
+    "collapseDisplayHint": "Showing {{count}} lines",
+    "queryMode": {
+      "standard": "Quick Notes",
+      "advanced": "Advanced Search",
+      "import": "Bulk Import"
+    },
+    "bulkImport": {
+      "sectionTitle": "Bulk Create Notes",
+      "sectionDescription": "Paste multiple notes into the box and separate each note with at least three consecutive blank lines.",
+      "limitNotice": "Notes are sent in batches of up to {{limit}} per request.",
+      "inputLabel": "Bulk note input",
+      "separatorHint": "Blank lines containing spaces or tabs do not count as separators.",
+      "placeholder": "First note...\n\n\n\nSecond note...",
+      "instructions": "Click Preview to refresh the split result after editing the text.",
+      "previewButton": "Preview",
+      "submitButton": "Submit",
+      "previewStale": "Content changed. Please preview again.",
+      "previewEmptyTitle": "Nothing to split",
+      "previewEmptyDescription": "Enter content that follows the separator rule and click Preview.",
+      "previewRequiredTitle": "Preview required",
+      "previewRequiredDescription": "Please run a preview before submitting.",
+      "previewTitle": "{{count}} notes ready",
+      "previewItemLabel": "Note #{{index}}",
+      "status": {
+        "idle": "Pending",
+        "pending": "Submitting",
+        "success": "Created",
+        "error": "Failed"
+      },
+      "editLabel": "Edit",
+      "saveLabel": "Save",
+      "cancelLabel": "Cancel",
+      "removeLabel": "Remove",
+      "editEmptyTitle": "Content required",
+      "editEmptyDescription": "Please enter at least one character.",
+      "toast": {
+        "success": "Created {{count}} notes",
+        "partialTitle": "Some notes failed",
+        "partialDescription": "{{created}} created, {{failed}} need attention",
+        "error": "Bulk creation failed"
+      },
+      "banner": {
+        "message": "Bulk import mode is active",
+        "hint": "Preview is not updated automatically. Click Preview after edits."
+      },
+      "exit": "Exit Bulk Import"
+    },
+    "selectForBatch": "Select for batch operations",
+    "advancedSearch": {
+      "title": "Advanced Note Search",
+      "banner": {
+        "message": "Advanced search mode is active",
+        "hint": "Adjust filters below and use Exit to return to quick notes"
+      },
+      "exit": "Exit Advanced Search",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "sortOrder": "Sort Order",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
+      "tagFilter": "Tag Filter",
+      "tagModeAny": "Contains any selected tags",
+      "tagModeAll": "Contains all selected tags",
+      "tagModeNone": "Without tags",
+      "personFilter": "Person Filter",
+      "personModeAny": "Contains any selected persons",
+      "personModeAll": "Contains all selected persons",
+      "personModeNone": "Without persons",
+      "taskFilter": "Task Filter",
+      "taskModeAny": "Any task",
+      "taskModeNone": "Without task",
+      "taskModeHas": "Has task",
+      "taskModeSpecific": "Specific task",
+      "selectTaskPlaceholder": "Select a task...",
+      "keyword": "Keyword",
+      "keywordDescription": "Search note content, supports multiple keywords separated by spaces",
+      "keywordPlaceholder": "Enter keyword...",
+      "search": "Search",
+      "reset": "Reset",
+      "copyResults": "Copy results",
+      "enableBatch": "Enable batch actions",
+      "selectAll": "Select all",
+      "selectInverse": "Invert selection",
+      "batchEdit": "Batch edit",
+      "batchDelete": "Batch delete",
+      "totalResults": "Total {{count}} notes",
+      "selectedCount": "{{count}} selected",
+      "paginationSummary": "Showing {{start}}-{{end}} of {{total}} results",
+      "previousPage": "Previous",
+      "nextPage": "Next",
+      "pageIndicator": "Page {{page}} / {{total}}",
+      "errorTitle": "Advanced search error",
+      "taskRequired": "Please choose a task before running the search.",
+      "copyNoResultsTitle": "Nothing to copy",
+      "copyNoResultsMessage": "Run a search first to generate results for copying.",
+      "summary": {
+        "dateRange": "Date range: {{start}} – {{end}}",
+        "dateFrom": "Start date: {{start}}",
+        "dateTo": "End date: {{end}}",
+        "tagAny": "Tags (any match): {{names}}",
+        "tagAnyEmpty": "Tags: any (no specific tag selected)",
+        "tagAll": "Tags (must include all): {{names}}",
+        "tagNone": "Tags: notes without tags",
+        "personAny": "Persons (any match): {{names}}",
+        "personAnyEmpty": "Persons: any (no specific person selected)",
+        "personAll": "Persons (must include all): {{names}}",
+        "personNone": "Persons: no persons attached",
+        "taskAny": "Task filter: any task",
+        "taskNone": "Task filter: without task",
+        "taskHas": "Task filter: has task",
+        "taskSpecific": "Task filter: task {{task}}",
+        "taskUnknown": "unknown task",
+        "keyword": "Keyword: {{keyword}}"
+      }
+    },
+    "batchEdit": {
+      "title": "Batch Edit Notes",
+      "modalTitle": "Batch edit ({{count}} notes)",
+      "description": "Choose operation mode to update selected notes",
+      "noSelection": "Please select notes first",
+      "invalidMode": "Unsupported batch mode",
+      "tagsRequired": "Please select tags to apply",
+      "personsRequired": "Please select persons to apply",
+      "taskRequired": "Please select a task",
+      "findTextRequired": "Please enter text to find",
+      "mode": {
+        "tags": "Tags",
+        "persons": "Persons",
+        "task": "Task",
+        "content": "Content"
+      },
+      "tagMode": {
+        "add": "Add tags",
+        "replace": "Replace tags"
+      },
+      "personMode": {
+        "add": "Add persons",
+        "replace": "Replace persons"
+      },
+      "taskMode": {
+        "replace": "Replace task",
+        "clear": "Clear task"
+      },
+      "findText": "Find Text",
+      "replaceText": "Replace With",
+      "caseSensitiveOn": "Case sensitive",
+      "caseSensitiveOff": "Case insensitive",
+      "apply": "Apply",
+      "successTitle": "Batch edit completed",
+      "successMessage": "Updated {{updated}} notes ({{failed}} failed)",
+      "partialTitle": "Some notes could not be updated",
+      "partialMessage": "Please review the failed note IDs",
+      "errorTitle": "Batch edit failed"
+    },
+    "batchDelete": {
+      "confirmTitle": "Delete notes",
+      "confirmMessage": "Delete the selected {{count}} notes?",
+      "confirmButton": "Delete notes",
+      "successTitle": "Notes deleted",
+      "successMessage": "Deleted {{deleted}} notes ({{failed}} failed)",
+      "partialTitle": "Some notes could not be deleted",
+      "partialMessage": "Please review the error details",
+      "errorTitle": "Failed to delete notes"
+    },
+    "messages": {
+      "createTagFailed": "Failed to create tag: {{error}}",
+      "searchFailedTitle": "Advanced search failed",
+      "searchFailed": "Unable to complete advanced search",
+      "searchCompletedTitle": "Search completed",
+      "searchFoundRecords": "Found {{count}} matching notes",
+      "searchFoundNone": "No matching notes found"
+    }
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose application theme (can follow system).",
+      "theme": {
+        "label": "Select Theme",
+        "placeholder": "Please select a theme...",
+        "description": "Choose application theme. Selecting 'Follow System' will automatically switch between light/dark mode based on system settings."
+      }
+    },
+    "navigation": {
+      "title": "Navigation",
+      "description": "Customize your navigation bar to create a personal workspace that better fits your flow.",
+      "visibleModules": {
+        "label": "Visible Modules",
+        "description": "Choose which modules appear in the side navigation bar."
+      }
+    },
+    "calendar": {
+      "title": "Calendar",
+      "description": "Choose your preferred calendar system and weekly structure.",
+      "system": {
+        "label": "Calendar System",
+        "description": "Default Gregorian calendar. When Mayan 13 Moon calendar is selected, each month has 28 days, with July 26th as New Year."
+      },
+      "firstDay": {
+        "label": "First Day of Week",
+        "description": "Default Monday. When Mayan 13 Moon calendar is selected, this setting will be fixed to New Year start week and cannot be changed."
+      }
+    },
+    "planningSettings": {
+      "taskPlanning": {
+        "label": "Default Planning",
+        "description": "After selecting default planning, it will be automatically applied when creating tasks anywhere (can be modified in forms)."
+      },
+      "timeLogTaskPlanning": {
+        "label": "Auto-set Task Planning",
+        "description": "Connect your actions with your plans. When a time log is linked to a task, it will be automatically scheduled for today."
+      },
+      "habitActionsInPlanning": {
+        "label": "Show Habit Actions",
+        "description": "Make daily rituals a part of your daily plan. Choose whether to display habit actions here."
+      }
+    },
+    "dimensionOrder": {
+      "title": "Dimension Order",
+      "description": "Customize the display order of your dimensions, allowing you to prioritize the most important areas of your life."
+    },
+    "defaultInboxVision": {
+      "label": "Select Default Vision",
+      "description": "Provide a default destination for fragmented ideas and tasks, ensuring every intention is captured.",
+      "noDefault": "No Default Vision"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose application interface language.",
+      "label": "Select Language",
+      "placeholder": "Please select a language...",
+      "updated": "Language updated",
+      "timezone": {
+        "label": "Preferred Timezone",
+        "description": "Select the timezone used for statistics and display"
+      }
+    },
+    "noGroupSelected": "No settings group selected",
+    "planning": {
+      "title": "Planning Settings",
+      "description": "Manage task planning related settings"
+    },
+    "visions": {
+      "title": "Vision Experience",
+      "description": "Configure how invested time converts into vision experience points.",
+      "experienceRate": {
+        "label": "Experience per Hour",
+        "description": "Set experience points gained for every hour of effort (1-3600). Per-vision overrides can be set when editing a vision.",
+        "applyAll": "Save and apply to all visions"
+      },
+      "experienceTable": {
+        "label": "Vision Overrides",
+        "description": "Review all visions and adjust their experience rates in one place.",
+        "hint": "Edits here update the selected visions only. Allowed range: 1–{{max}} XP/h.",
+        "empty": "No visions available yet. Create a vision to customize its experience rate.",
+        "visionColumn": "Vision",
+        "statusColumn": "Status",
+        "rateColumn": "Experience Rate",
+        "rateUnit": "XP/h",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "footerHint": "Default preference: {{defaultRate}} XP/h",
+        "invalidRate": "Experience rate must be an integer between {{min}} and {{max}}.",
+        "rateInputLabel": "{{name}} experience rate",
+        "toastSuccess": "Vision experience rates updated.",
+        "toastError": "Failed to update vision experience rates."
+      }
+    },
+    "data": {
+      "title": "Data Settings",
+      "description": "Manage data related settings"
+    },
+    "notes": {
+      "title": "Notes",
+      "description": "Control how note cards preview content before expanding.",
+      "minCollapsedLines": {
+        "label": "Preview lines before expanding",
+        "description": "Select how many lines remain visible when a note card is collapsed."
+      },
+      "exportPlanning": {
+        "taskNotes": {
+          "label": "Include task-related notes in planning export",
+          "description": "When exporting planning, attach all notes linked to tasks in the current period."
+        },
+        "cycleNotes": {
+          "label": "Include notes created in the current cycle",
+          "description": "When exporting planning, also attach notes created within the current planning cycle (based on your calendar system)."
+        }
+      }
+    },
+    "autoSaveHint": "Changes are saved automatically.",
+    "dimensionSorter": {
+      "loading": "Loading dimensions...",
+      "error": "Failed to load dimensions: {{message}}",
+      "empty": "No dimensions available",
+      "groupLabel": "Dimension order",
+      "instructions": "Arrange left to right using the ↑↓ buttons.",
+      "clearAll": "Reset",
+      "clearAllAria": "Reset dimension order",
+      "listLabel": "Dimension list",
+      "itemLabel": "Dimension {{name}}, position {{position}}",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down"
+    },
+    "finance": {
+      "title": "Finance",
+      "description": "Configure finance defaults for account trees, balances, and conversion dialogs.",
+      "primaryCurrency": {
+        "label": "Primary Currency",
+        "description": "Select the base currency used when aggregating balances and building exchange tables.",
+        "placeholder": "Select a currency..."
+      },
+      "currencyOptions": {
+        "USD": "USD — United States Dollar",
+        "EUR": "EUR — Euro",
+        "GBP": "GBP — British Pound",
+        "CNY": "CNY — Chinese Yuan",
+        "JPY": "JPY — Japanese Yen",
+        "AUD": "AUD — Australian Dollar",
+        "CAD": "CAD — Canadian Dollar",
+        "CHF": "CHF — Swiss Franc",
+        "HKD": "HKD — Hong Kong Dollar",
+        "SGD": "SGD — Singapore Dollar",
+        "INR": "INR — Indian Rupee",
+        "SEK": "SEK — Swedish Krona",
+        "NZD": "NZD — New Zealand Dollar",
+        "BTC": "BTC — Bitcoin",
+        "ETH": "ETH — Ethereum",
+        "USDT": "USDT — Tether (USDt)"
+      }
+    },
+    "llm": {
+      "title": "AI Access",
+      "description": "Manage encrypted BYOT (Bring Your Own Token) credentials for LiteLLM.",
+      "credentials": {
+        "label": "Bring Your Own Token",
+        "description": "Tokens are encrypted and only the last four characters are shown after saving.",
+        "empty": "No custom tokens yet. Add your first token below.",
+        "defaultBadge": "Default",
+        "tokenPreview": "Ends with {{last4}}",
+        "updatedAt": "Updated {{value}}",
+        "addNew": "Add New Token",
+        "saveButton": "Save Token"
+      },
+      "providers": {
+        "openai": "OpenAI",
+        "azure-openai": "Azure OpenAI",
+        "custom": "Custom Provider"
+      },
+      "actions": {
+        "makeDefault": "Make Default",
+        "testConnection": "Test Connection"
+      },
+      "form": {
+        "provider": "Provider",
+        "displayName": "Display name",
+        "displayNamePlaceholder": "e.g., Product team budget",
+        "apiKey": "API key",
+        "apiBase": "API base URL",
+        "modelOverride": "Preferred model (optional)",
+        "makeDefault": "Set as default when saving"
+      },
+      "errors": {
+        "missingKey": "Please enter an API key.",
+        "genericError": "Failed to load LLM credentials."
+      },
+      "confirmDelete": "Delete token \"{{name}}\"?",
+      "toasts": {
+        "saveSuccess": "Token saved.",
+        "updateSuccess": "Token updated.",
+        "defaultSuccess": "Default token updated.",
+        "deleteSuccess": "Token deleted.",
+        "testSuccess": "Connection successful.",
+        "testFail": "Connection failed."
+      }
+    },
+    "accountSecurity": {
+      "title": "Account Security",
+      "description": "Manage password and other sensitive security settings.",
+      "changePasswordLabel": "Update Password",
+      "changePasswordHint": "After changing the password you will be signed out and must log in again.",
+      "changePasswordDescription": "Update your password to keep your account secure."
+    },
+    "saveSuccess": "All settings saved successfully",
+    "partialSuccess": "Saved {{successful}} settings, {{failed}} failed",
+    "saveFailed": "Settings save failed",
+    "theme": {
+      "updated": "Theme updated"
+    },
+    "visibleModules": {
+      "updated": "Navigation modules updated"
+    },
+    "export": {
+      "preparing": "Preparing export...",
+      "success": "File exported",
+      "full": {
+        "title": "Full Export",
+        "description": "Export all financial data for the current account (accounts, cashflow, transactions).",
+        "button": "Export All Data"
+      }
+    },
+    "autoSavePending": "Changes pending save",
+    "autoSaveIdle": "All changes saved"
+  },
+  "visions": {
+    "emptyState": {
+      "title": "No visions yet",
+      "description": "Start by creating your first vision"
+    },
+    "vision": {
+      "description": "Description",
+      "stage": "Stage",
+      "experience": "Experience",
+      "totalEffort": "Total Effort",
+      "createdAt": "Created",
+      "noTasks": "No tasks yet",
+      "actions": {
+        "createRootTask": "Create Root Task",
+        "bulkCreateTasks": "Batch Create Tasks"
+      }
+    },
+    "task": {
+      "createFirstTask": "Start by creating your first task"
+    },
+    "filters": {
+      "dimensionNone": "No dimension"
+    },
+    "modal": {
+      "createVision": "Create Vision",
+      "editVision": "Edit Vision",
+      "deleteVision": "Delete Vision",
+      "harvestVision": "Harvest Vision",
+      "deleteTask": "Delete Task"
+    },
+    "messages": {
+      "visionCreated": "Vision created successfully!",
+      "visionUpdated": "Vision updated successfully!",
+      "copySuccess": "Copy successful",
+      "copySuccessDetail": "Vision task tree details have been copied to clipboard",
+      "copyFailed": "Copy failed",
+      "recomputeSuccess": "Time effort recomputation completed",
+      "recomputeFailed": "Time effort recomputation failed",
+      "saveFailed": "Failed to save vision"
+    },
+    "form": {
+      "name": "Vision Name",
+      "nameRequired": "Vision name cannot be empty",
+      "namePlaceholder": "e.g., Complete v1.0 prototype, Learn guitar, Healthy lifestyle",
+      "description": "Vision Description",
+      "descriptionPlaceholder": "Describe the meaning and importance of this vision...",
+      "status": "Vision Status",
+      "experienceRate": "Experience per Hour",
+      "experienceRatePlaceholder": "Leave blank to inherit user default",
+      "experienceRateDescription": "Optional override for this vision. Accepts integers between 1 and 3600.",
+      "experienceRateInvalid": "Experience rate must be between 1 and 3600."
+    },
+    "confirm": {
+      "deleteVision": "Are you sure you want to delete vision \"{{name}}\"? This will also delete all related data.",
+      "harvestVision": "Are you sure you want to harvest vision \"{{name}}\"? It will be converted to achievement fruit.",
+      "deleteTask": "Are you sure you want to delete task \"{{content}}\"?"
+    }
+  },
+  "planning": {
+    "presets": {
+      "none": "No Planning",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "this_week": "This Week",
+      "this_month": "This Month"
+    },
+    "viewType": {
+      "label": "View",
+      "year": "Year",
+      "month": "Month",
+      "sevenYear": "7 Years"
+    },
+    "periodNavigation": {
+      "previous": "Previous",
+      "next": "Next",
+      "current": "Current",
+      "goToCurrent": "Go to Current",
+      "pickDateButton": "Pick date",
+      "pickDateLabel": "Select date",
+      "pickDatePlaceholder": "YYYY-MM-DD"
+    },
+    "emptyState": {
+      "title": "No Planned Tasks",
+      "description": "Place your tasks on a timeline, and your plan will be clearly presented here."
+    },
+    "taskList": {
+      "title": "Task List",
+      "emptyMessage": {
+        "noTasks": "No planning tasks in this time period",
+        "noTasksWithStatus": "No tasks with status \"{{status}}\" in this time period",
+        "noTasksWithVision": "No tasks in vision \"{{vision}}\" in this time period",
+        "noTasksWithStatusAndVision": "No tasks with status \"{{status}}\" in vision \"{{vision}}\" in this time period"
+      }
+    },
+    "filters": {
+      "vision": {
+        "label": "Vision",
+        "none": "No Vision",
+        "unknown": "Vision (unavailable)"
+      }
+    },
+    "habitActions": {
+      "title": "Habit Actions"
+    },
+    "taskActions": {
+      "createTask": "Create New Task to {{period}}",
+      "addTask": "Add Task to {{period}}",
+      "export": "Export Current Period Planning Data",
+      "carryForward": "Carry Forward ({{count}})",
+      "carryForwardTooltip": "Carry forward unfinished tasks to next period"
+    },
+    "createTask": {
+      "visionPlaceholder": "Select vision...",
+      "contentPlaceholder": "Enter task title...",
+      "submitText": "Create Task"
+    },
+    "addTask": {
+      "submitText": "Add Task",
+      "addingText": "Adding..."
+    },
+    "carryForward": {
+      "title": "Confirm Carry Forward Tasks",
+      "message": "Are you sure you want to carry forward {{count}} unfinished tasks to the next period?",
+      "submitText": "Confirm Carry Forward",
+      "carryingText": "Carrying Forward...",
+      "noTasksMessage": "No tasks need to be carried forward in current period"
+    },
+    "messages": {
+      "taskAdded": "Task Added Successfully",
+      "taskAddedToPeriod": "Task has been added to {{period}} planning",
+      "taskNotFound": "Task Not Found",
+      "taskNotFoundMessage": "Selected task does not exist or has been deleted",
+      "addFailed": "Add Failed",
+      "addFailedMessage": "Failed to add task to planning, please try again later",
+      "createFailed": "Create Failed",
+      "createFailedMessage": "Failed to create task, please try again later",
+      "createFailedNoContent": "Please enter task title",
+      "createFailedNoVision": "Please select a vision or set default inbox vision",
+      "carryForwardSuccess": "Carry Forward Success",
+      "carryForwardSuccessMessage": "{{count}} tasks have been carried forward to next period",
+      "carryForwardPartialFailed": "Some Tasks Carry Forward Failed",
+      "carryForwardPartialFailedMessage": "{{count}} tasks failed to carry forward, please try again later",
+      "carryForwardFailed": "Carry Forward Failed",
+      "carryForwardFailedMessage": "Failed to carry forward tasks, please try again later",
+      "exportSuccess": "Export Success",
+      "exportSuccessMessage": "Planning data has been copied to clipboard",
+      "exportFailedMessage": "Failed to export planning data, please try again later",
+      "habitActionUpdateFailed": "Update Failed",
+      "habitActionUpdateFailedMessage": "Failed to update habit status, please try again later"
+    }
+  },
+  "taskForm": {
+    "modalTitle": {
+      "edit": "Edit Task",
+      "createSub": "Create Subtask",
+      "bulkCreate": "Batch Create Tasks"
+    },
+    "fields": {
+      "vision": "Vision",
+      "parent": "Parent Task",
+      "content": "Task Content"
+    },
+    "placeholders": {
+      "parentNoneRoot": "No parent (root task)",
+      "selectVisionFirst": "Please select a vision first",
+      "content": "Describe what needs to be done...",
+      "bulkContent": "Enter one task per line..."
+    },
+    "validation": {
+      "contentRequired": "Task content cannot be empty"
+    },
+    "tips": {
+      "visionChangeAllowed": "Tip: Select the vision for this task. Changing vision will reset the parent task.",
+      "visionChangeRootOnly": "Tip: Only root tasks (no parent) can change vision.",
+      "visionLocked": "Vision is locked in this mode.",
+      "parentReady": "Tip: Maximum depth is 5 levels (root is level 1). When editing, completed tasks can be selected as parent.",
+      "parentSelectVisionFirst": "Tip: Please select a vision first. Parent task must be in the same vision.",
+      "parentDoneAutoUpdate": "When selecting a completed task as parent, the system will automatically set it to 'In Progress', because adding a subtask means the parent is not truly done.",
+      "bulkContentDescription": "Batch mode: the same vision + attributes apply to every line.",
+      "bulkContentHelper": "Each line becomes an individual task; blank lines are ignored."
+    },
+    "planning": {
+      "title": "Planning Settings",
+      "description": "Planned tasks will appear on the planning page; after choosing a period, the start date will be the first day of that period.",
+      "startLabels": {
+        "year": "Start Year",
+        "month": "Start Month",
+        "week": "Start Week",
+        "day": "Start Date"
+      }
+    },
+    "messages": {
+      "updateSuccessTitle": "Task Updated Successfully!",
+      "updateSuccessMessage": "Task \"{{content}}\" has been updated",
+      "createSuccessTitle": "Task Created Successfully!",
+      "createSuccessMessage": "New task \"{{content}}\" has been added to your vision",
+      "saveFailedTitle": "Save Task Failed",
+      "bulkCreateSuccessTitle": "Tasks Created!",
+      "bulkCreateSuccessMessage": "{{successCount}} tasks have been created.",
+      "bulkCreatePartialTitle": "Some Tasks Failed",
+      "bulkCreatePartialMessage": "{{successCount}} created, {{failureCount}} failed. Failed lines have been kept for you to adjust.",
+      "bulkCreateFailedTitle": "Batch Creation Failed",
+      "bulkCreateFailedMessage": "Unable to create any tasks. Please review the details and retry.",
+      "bulkCreateFailedInline": "Batch creation failed: {{detail}}",
+      "bulkCreatePartialInline": "Created with warnings: {{detail}}"
+    }
+  },
+  "timeLog": {
+    "toolbar": {
+      "returnToSingle": "Return to Single Day",
+      "advancedFeatures": "Advanced Features",
+      "exportDaily": "Export Daily",
+      "exportDailyTooltip": "One-click export all timelogs for the day",
+      "bulkImport": "Batch Import"
+    },
+    "advancedSearch": {
+      "title": "Advanced Search",
+      "endDate": "End Date",
+      "startDateRequired": "Start Date *",
+      "keyword": "Keyword",
+      "keywordPlaceholder": "Search title or notes",
+      "keywordDescription": "Support multiple keywords separated by spaces, any keyword match is sufficient",
+      "search": "Search",
+      "reset": "Reset",
+      "export": "Export",
+      "enableBatchOperations": "Enable Batch Operations",
+      "selectAll": "Select All",
+      "selectInverse": "Select Inverse",
+      "selectedRecords": "{{count}} records selected",
+      "canBatchOperations": "Can perform batch edit and delete operations"
+    },
+    "table": {
+      "selectAllRecords": "Select all records",
+      "date": "Date",
+      "timeRange": "Time Range",
+      "duration": "Duration",
+      "description": "Description",
+      "relatedPerson": "Related Person",
+      "sortAscTooltip": "Switch to newest on top",
+      "sortDescTooltip": "Switch to newest at bottom",
+      "noTimeLogs": "No time logs",
+      "noRecordsInFilter": "No records under current filter conditions",
+      "clearFilter": "Clear Filter"
+    },
+    "progressBar": {
+      "title": "Time Allocation Distribution",
+      "unknownUnfilled": "Unknown/Unfilled",
+      "unknownDimension": "Unknown Dimension"
+    },
+    "modal": {
+      "addTimeLog": "Add Time Log",
+      "editTimeLog": "Edit Time Log",
+      "activity": "Activity",
+      "activityPlaceholder": "Log your footprint: Where was this time invested?",
+      "endTimeRequired": "End Time *",
+      "notes": "Notes",
+      "activityRequired": "Please enter activity title"
+    },
+    "pagination": {
+      "showing": "Showing {{start}} - {{end}} of {{total}} records",
+      "previousPage": "Previous",
+      "nextPage": "Next",
+      "page": "Page {{page}} of {{totalPages}}",
+      "jumpTo": "Jump to:",
+      "pageSuffix": "page"
+    },
+    "tooltip": {
+      "timeRange": "Time Range",
+      "duration": "Duration",
+      "dimension": "Dimension",
+      "vision": "Vision",
+      "task": "Task",
+      "status": "Task Status"
+    },
+    "searchResults": {
+      "title": "Advanced Search Results:",
+      "from": "From {{startDate}}",
+      "to": "to {{endDate}}",
+      "dimension": "Dimension: {{dimension}}",
+      "keyword": "Keyword: {{keyword}}",
+      "task": "Task: {{task}}",
+      "noTask": "No Task",
+      "unknownTask": "Unknown Task",
+      "foundRecords": "Found {{count}} records"
+    },
+    "messages": {
+      "loadingTimeLogs": "Loading time logs...",
+      "queryConditionsReset": "Query conditions have been reset",
+      "queryCompleted": "Query completed",
+      "foundRecords": "Found {{count}} records",
+      "noMatchingRecords": "No matching records found",
+      "queryFailed": "Query failed",
+      "loadingAdvancedQueryFailed": "Failed to load advanced query results",
+      "exporting": "Exporting data...",
+      "exportCompleted": "Export completed",
+      "exportedRecords": "Successfully exported {{count}} records",
+      "exportFailed": "Export failed",
+      "exportError": "Error occurred while exporting data",
+      "noDataToExport": "No data available to export",
+      "searchTruncatedTitle": "Showing first {{limit}} records",
+      "searchTruncatedDescription": "This query matches more data than the limit, so only the first {{limit}} rows are returned. Please add more filters or export the data if you need everything.",
+      "exportTruncatedTitle": "Export truncated at {{limit}} records",
+      "exportTruncatedDescription": "This export hit the {{limit}} record cap and only includes the first {{limit}} results (about {{total}} matches). Refine your filters and export again to retrieve the rest.",
+      "timeLogCreated": "Time log created successfully!",
+      "timeLogUpdated": "Time log updated successfully!",
+      "timeLogCreatedWithTask": "\"{{title}}\" has been created, automatically set related task to today's planning",
+      "timeLogUpdatedWithTask": "\"{{title}}\" has been updated, automatically set related task to today's planning",
+      "timeLogCreatedWithoutTask": "\"{{title}}\" has been created",
+      "timeLogUpdatedWithoutTask": "\"{{title}}\" has been updated",
+      "saveTimeLogFailed": "Failed to save time log",
+      "deleteConfirmation": "Are you sure you want to delete this time log?",
+      "batchDeleteConfirmation": "Are you sure you want to delete the selected {{count}} time logs?",
+      "timeLogCreateSuccess": "Time log created successfully!",
+      "timeLogCreateSuccessMessage": "\"{{title}}\" has been successfully recorded",
+      "timeLogCreateFailed": "Time log creation failed",
+      "timeLogCreateFailedMessage": "Please check input information and try again",
+      "timeLogUpdateSuccess": "Time log updated successfully!",
+      "timeLogUpdateSuccessMessage": "\"{{title}}\" has been successfully updated",
+      "timeLogUpdateFailed": "Time log update failed",
+      "timeLogUpdateFailedMessage": "Please check input information and try again",
+      "timeLogDeleteSuccess": "Time log deleted successfully!",
+      "timeLogDeleteFailed": "Time log deletion failed",
+      "timeLogDeleteFailedMessage": "Please try again later",
+      "timeLogBatchDeletePartialFailed": "Batch deletion partially failed",
+      "timeLogBatchDeletePartialFailedMessage": "Successfully deleted {{deletedCount}} records, {{failedCount}} deletions failed: {{errors}}",
+      "timeLogBatchDeleteSuccess": "Batch deletion successful!",
+      "timeLogBatchDeleteSuccessMessage": "Successfully deleted {{deletedCount}} records",
+      "timeLogBatchDeleteFailed": "Batch deletion failed",
+      "timeLogBatchDeleteFailedMessage": "Please try again later",
+      "timeLogBatchCreatePartialFailed": "Batch creation partially failed",
+      "timeLogBatchCreatePartialFailedMessage": "Successfully created {{createdCount}} records, {{failedCount}} creations failed: {{errors}}",
+      "timeLogBatchCreateSuccess": "Batch creation successful!",
+      "timeLogBatchCreateSuccessMessage": "Successfully created {{createdCount}} records",
+      "timeLogBatchCreateFailed": "Batch creation failed",
+      "timeLogBatchCreateFailedMessage": "Please check input information and try again",
+      "timeLogBatchUpdatePartialFailed": "Batch update partially failed",
+      "timeLogBatchUpdatePartialFailedMessage": "Successfully updated {{updatedCount}} records, {{failedCount}} updates failed: {{errors}}",
+      "timeLogBatchUpdateSuccess": "Batch update successful!",
+      "timeLogBatchUpdateSuccessMessage": "Successfully updated {{updatedCount}} records",
+      "timeLogBatchUpdateFailed": "Batch update failed",
+      "timeLogBatchUpdateFailedMessage": "Please try again later"
+    },
+    "actions": {
+      "manageDimensions": "Manage Dimensions"
+    },
+    "bulkImport": {
+      "modalTitle": "Batch Import Timelogs",
+      "startDateLabel": "Start date",
+      "firstStartLabel": "First entry starts at",
+      "inputLabel": "Paste text",
+      "inputPlaceholder": "Example:\n0730 Morning review\n08:30-09:10 Team stand-up",
+      "parseButton": "Parse",
+      "reparseButton": "Re-parse",
+      "parseEmptyTitle": "Nothing to parse",
+      "parseEmptyMessage": "Please paste at least one line of text before parsing.",
+      "manualEdited": "Edited manually",
+      "manualEditsReset": "You have manually edited rows. Re-parsing will discard those edits. Continue?",
+      "summary": "{{valid}} valid / {{total}} total",
+      "submit": "Import",
+      "previewTitle": "Preview ({{count}})",
+      "emptyPreview": "Paste data and click Parse to see the preview.",
+      "tip": "Supports up to {{max}} rows per import. Extra lines will be ignored.",
+      "examples": {
+        "title": "Supported formats",
+        "endOnly": "End time + description (start inferred): \"0730 Deep work\"",
+        "range": "Time range + description: \"20:00-20:30 Reading\" (full-width punctuation supported)"
+      },
+      "table": {
+        "line": "Line",
+        "startDate": "Start date",
+        "startTime": "Start time",
+        "endDate": "End date",
+        "endTime": "End time",
+        "description": "Description",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "valid": "Ready",
+        "error": "{{count}} error(s)"
+      },
+      "warnings": {
+        "autoShiftStart": "Start time earlier than previous entry, auto-shifted to next day.",
+        "autoCrossMidnightEnd": "End time earlier than current entry, auto-crossed midnight.",
+        "autoCrossMidnightRange": "End time earlier than start time, auto-crossed midnight."
+      },
+      "errors": {
+        "lineUnrecognized": "Cannot interpret this line. Please check the time format.",
+        "missingDescription": "Description is required.",
+        "startMissing": "Start time is required for range format.",
+        "startInvalid": "Start time format is invalid.",
+        "endInvalid": "End time format is invalid.",
+        "timeParseFailure": "Unable to parse the provided time.",
+        "crossDayLimit": "Entries can span at most {{maxDays}} consecutive day(s).",
+        "durationInvalid": "End time must be later than start time.",
+        "tooManyLines": "Only {{limit}} lines are processed. {{dropped}} extra line(s) were ignored."
+      },
+      "editorTitle": "Edit line {{line}}",
+      "editorSubtitle": "Adjust start/end time and description before importing.",
+      "errorListTitle": "Issues detected",
+      "warningListTitle": "Auto adjustments",
+      "errorListItem": "Line {{line}} · {{message}}",
+      "warningListItem": "Line {{line}} · {{message}}"
+    }
+  },
+  "insights": {
+    "viewType": {
+      "label": "View:"
+    },
+    "viewMode": {
+      "minutes": "Minutes",
+      "percent": "Percentage"
+    },
+    "granularity": {
+      "label": "Granularity"
+    },
+    "dateRange": {
+      "startDateTitle": "Start Date (Local)",
+      "endDateTitle": "End Date (Local)"
+    },
+    "refreshStats": "Refresh Stats",
+    "loadingStats": "Loading statistics...",
+    "noStats": "No statistics available",
+    "noStatsDescription": "Start tracking your time, and your first data insight report will be generated here.",
+    "statsTitle": "Log Statistics",
+    "dimensionTooltip": {
+      "title": "{{name}}",
+      "total": "Total: {{duration}}",
+      "averagePerTotalDays": "Average per total days ({{days}} d): {{duration}}",
+      "averagePerActiveDays": "Average per active days ({{days}} d): {{duration}}",
+      "max": "Max: {{duration}}{{range}}",
+      "min": "Min: {{duration}}{{range}}",
+      "lastActive": "Last active: {{date}}",
+      "rangeSuffix": " ({{range}})"
+    }
+  },
+  "foodDiary": {
+    "foodLibrary": "Food Library",
+    "deleteSuccessMessage": "Entry has been successfully deleted",
+    "deleteFailedMessage": "Delete failed, please try again later",
+    "foodSelected": "Food Selected",
+    "foodSelectedMessage": "Selected {{foodName}}, please choose which meal to add to"
+  },
+  "quickFoodEntry": {
+    "title": "Quick Add Food Entry",
+    "hint": "Tip: Press Tab to switch fields, Enter to save, Esc to cancel",
+    "mealType": {
+      "label": "Meal Type *",
+      "placeholder": "Select meal type",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "foodName": {
+      "label": "Food Name *",
+      "placeholder": "Enter food name..."
+    },
+    "portionSize": {
+      "label": "Portion Size (g) *"
+    },
+    "notes": {
+      "placeholder": "Add notes..."
+    },
+    "validation": {
+      "foodNameRequired": "Please enter food name",
+      "portionSizeRequired": "Please enter valid portion size"
+    },
+    "messages": {
+      "saveSuccess": "Food entry saved successfully!",
+      "saveSuccessMessage": "\"{{foodName}}\" has been saved",
+      "saveFailed": "Failed to save food entry"
+    }
+  },
+  "quickTimeEntry": {
+    "title": "Quick Add",
+    "templates": {
+      "manage": "Manage Templates",
+      "manageTitle": "Open quick templates manager",
+      "noTemplates": "No templates yet, click 'Manage Templates' on the right to add."
+    },
+    "activity": {
+      "label": "Activity Description *",
+      "placeholder": "What did you do? Please enter..."
+    },
+    "validation": {
+      "titleRequired": "What did you do?",
+      "startTimeRequired": "Please enter start time",
+      "endTimeRequired": "Please enter end time"
+    },
+    "messages": {
+      "saveSuccessWithTask": "Time log saved successfully!",
+      "saveSuccessWithTaskMessage": "\"{{title}}\" has been saved, automatically set related task to today's planning"
+    }
+  },
+  "treeCanvas": {
+    "instructions": {
+      "dragRotate": "Drag to rotate view",
+      "scrollZoom": "Scroll to zoom",
+      "rightClickPan": "Right-click to pan"
+    },
+    "tooltip": {
+      "vision": "Vision: {{name}}",
+      "growthStage": "Growth Stage: {{stage}}/10",
+      "experience": "Experience: {{experience}}",
+      "experienceRate": "Experience Rate: {{rate}} XP/h",
+      "actualTime": "Actual Time: {{time}}h",
+      "createdAt": "Created: {{date}}",
+      "tasks": "Tasks: {{count}}"
+    }
+  },
+  "habits": {
+    "createNew": "Create New Habit",
+    "errors": {
+      "loadFailed": "Failed to load habits",
+      "deleteFailed": "Failed to delete habit"
+    },
+    "confirmDelete": {
+      "title": "Delete Habit",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+    },
+    "messages": {
+      "deleteSuccess": "Habit deleted",
+      "deleteSuccessMessage": "\"{{name}}\" has been deleted."
+    },
+    "stats": {
+      "totalActions": "Total Actions",
+      "completionRate": "Completion Rate",
+      "currentStreak": "Current Streak",
+      "longestStreak": "Longest Streak"
+    },
+    "emptyState": {
+      "title": "No habits yet",
+      "description": "Start by creating your first habit"
+    },
+    "habit": {
+      "startDate": "Start Date",
+      "duration": "Duration (Days)",
+      "status": "Status"
+    },
+    "actionList": {
+      "monthView": "Month View",
+      "fiveDayView": "5-Day View",
+      "previousMonth": "Previous Month",
+      "nextMonth": "Next Month",
+      "previousFiveDays": "Previous 5 Days",
+      "nextFiveDays": "Next 5 Days",
+      "weekdays": {
+        "sunday": "Sun",
+        "monday": "Mon",
+        "tuesday": "Tue",
+        "wednesday": "Wed",
+        "thursday": "Thu",
+        "friday": "Fri",
+        "saturday": "Sat"
+      },
+      "notesLabel": "Habit Actions Record",
+      "notRecorded": "Not Recorded",
+      "notStarted": "Not Started",
+      "editNotes": "Edit Notes",
+      "notesPlaceholder": "Enter notes content..."
+    }
+  },
+  "createNoteModal": {
+    "title": "Create Note",
+    "editTitle": "Edit Note",
+    "intelligentTitle": "Intelligent Note",
+    "intelligentDescription": "Hand it to the agent so it can refine and link people, tasks, and tags automatically.",
+    "contentPlaceholder": "Write your thoughts... (Ctrl/Cmd + Enter to save quickly)",
+    "relatedTaskLocked": "Related Task (Locked)",
+    "relatedTaskOptional": "Select related task (optional)",
+    "submitText": "Create Note",
+    "updateText": "Update Note",
+    "intelligentSubmitText": "Create with AI",
+    "timelogHeader": {
+      "label": "Linked timelog",
+      "fallbackTitle": "Timelog",
+      "range": "{{start}} - {{end}}"
+    },
+    "messages": {
+      "tagCreated": "Tag Created Successfully",
+      "tagCreatedMessage": "Tag \"{{tagName}}\" has been created",
+      "tagCreateFailed": "Failed to Create Tag",
+      "tagCreateFailedMessage": "Failed to create tag, please try again later",
+      "noteCreateSuccess": "Note Created Successfully",
+      "noteCreateSuccessMessage": "Note has been saved successfully",
+      "noteCreateFailed": "Failed to Create Note",
+      "noteCreateFailedMessage": "Failed to save note, please try again later",
+      "noteUpdateSuccess": "Note Updated Successfully",
+      "noteUpdateSuccessMessage": "Note has been updated successfully",
+      "noteUpdateFailed": "Failed to Update Note",
+      "noteUpdateFailedMessage": "Failed to update note, please try again later"
+    }
+  },
+  "noteInputForm": {
+    "submitLabel": "Record",
+    "resetLabel": "Clear"
+  },
+  "notesSidebar": {
+    "searchContent": "Search Content",
+    "searchPlaceholder": "Enter keywords, separate multiple with spaces",
+    "search": "Search",
+    "relatedPersons": "Related Persons",
+    "noRelatedPersons": "No related persons",
+    "filterPerson": "Click to filter person @{{name}}",
+    "filterUntagged": "Click to filter untagged notes",
+    "untagged": "Untagged",
+    "pinned": "Pinned",
+    "noTags": "No tags",
+    "filterTag": "Click to filter tag #{{name}}"
+  },
+  "foodLibrarySidebar": {
+    "title": "Food Library",
+    "searchPlaceholder": "Search foods...",
+    "showCommonOnly": "Show common foods only",
+    "noFoodFound": "No foods found",
+    "adjustSearchConditions": "Please adjust search conditions",
+    "clickToAddFood": "Click the button above to add food",
+    "addFood": "Add Food",
+    "caloriesPer100g": "cal/100g",
+    "common": "Common"
+  },
+  "nutritionSummarySidebar": {
+    "noNutritionData": "No nutrition data",
+    "todayNutritionIntake": "Today's Nutrition Intake",
+    "entryCount": "{{count}} entries",
+    "calories": "Calories",
+    "caloriesUnit": "cal",
+    "protein": "Protein",
+    "proteinUnit": "g",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "fiber": "Fiber",
+    "sugar": "Sugar"
+  },
+  "persons": {
+    "addContact": "Add Contact",
+    "timeline": {
+      "title": "{{name}}'s Activity Timeline",
+      "activityCount": "({{count}} activities)",
+      "loadingActivities": "Loading activity data...",
+      "previousPage": "Previous Page",
+      "nextPage": "Next Page",
+      "pageIndicator": "Page {{page}} / {{total}}",
+      "noActivities": "No activity records yet",
+      "noActivitiesDescription": "Every interaction is worth noting. Link your contacts to activities, and your shared story will unfold here."
+    },
+    "activityTypes": {
+      "vision": "Vision Management",
+      "actual_event": "TimeLog",
+      "note": "Notes",
+      "task": "Tasks",
+      "planned_event": "Calendar"
+    },
+    "activityStatus": {
+      "planned": "Planned"
+    }
+  },
+  "finance": {
+    "newBalanceSnapshot": "Create New Balance Snapshot",
+    "snapshotCreated": "Finance snapshot saved",
+    "snapshotFailed": "Unable to save finance snapshot",
+    "noAccounts": "Please create accounts before recording snapshots.",
+    "noBalanceEntered": "Please enter at least one account balance.",
+    "snapshotHint": "Leave fields blank to skip accounts.",
+    "snapshotInlineHint": "Update balances inline and save to apply immediately.",
+    "loadMoreSnapshots": "Load more snapshots",
+    "missingRates": "Please provide exchange rates for: {{currencies}}",
+    "emptyAccounts": "No accounts yet. Create an account to begin tracking financial data.",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "deltaPositive": "+{{value}} {{currency}}",
+    "deltaNegative": "-{{value}} {{currency}}",
+    "noSnapshots": "No snapshots recorded yet. Once you submit the first update, historical entries will appear here.",
+    "accountTreeTitle": "Account Structure",
+    "accountTreeHint": "Supports multi-level nesting. Use the timeline button on each account to review historical balances.",
+    "createAccountButton": "New Account",
+    "manageAccounts": "Manage accounts",
+    "accountsButton": "Accounts",
+    "accountTreeLabel": "Account tree",
+    "cashflowTreeLabel": "Cashflow tree",
+    "manageTrees": "Manage trees",
+    "manageAccountTrees": "Manage account trees",
+    "manageCashflowTrees": "Manage cashflow trees",
+    "treeNamePlaceholder": "Enter a tree name",
+    "setAsDefault": "Set as default",
+    "defaultTree": "Default",
+    "noTrees": "No trees yet",
+    "deleteTreeConfirm": "Delete this tree?",
+    "treeCreateSuccess": "Tree created",
+    "treeCreateFailed": "Failed to create tree",
+    "treeUpdateSuccess": "Tree updated",
+    "treeUpdateFailed": "Failed to update tree",
+    "treeDeleteSuccess": "Tree deleted",
+    "treeDeleteFailed": "Failed to delete tree",
+    "accountTreeCreateSuccess": "Account tree created",
+    "accountTreeCreateFailed": "Failed to create account tree",
+    "accountTreeUpdateSuccess": "Account tree updated",
+    "accountTreeUpdateFailed": "Failed to update account tree",
+    "accountTreeDeleteSuccess": "Account tree deleted",
+    "accountTreeDeleteFailed": "Failed to delete account tree",
+    "cashflowTreeCreateSuccess": "Cashflow tree created",
+    "cashflowTreeCreateFailed": "Failed to create cashflow tree",
+    "cashflowTreeUpdateSuccess": "Cashflow tree updated",
+    "cashflowTreeUpdateFailed": "Failed to update cashflow tree",
+    "cashflowTreeDeleteSuccess": "Cashflow tree deleted",
+    "cashflowTreeDeleteFailed": "Failed to delete cashflow tree",
+    "selectTree": "Select tree",
+    "tagToolbar": {
+      "title": "Finance tags",
+      "empty": "Follow a finance tag to pin it here.",
+      "followTag": "Follow tag"
+    },
+    "tagSelector": {
+      "title": "Manage finance tags",
+      "description": "Select or create tags to pin on the finance dashboard. These tags will surface related notes.",
+      "createSuccess": "Tag \"{{name}}\" created",
+      "createFailed": "Failed to create tag",
+      "saveFailedTitle": "Unable to save tags",
+      "saveFailedMessage": "Please try again later.",
+      "loadFailedTitle": "Unable to load finance tags"
+    },
+    "tagNotes": {
+      "title": "Notes for {{tag}}",
+      "titlePlaceholder": "Notes",
+      "emptyTitle": "No notes for this tag yet",
+      "emptyDescription": "Create a note to start tracking finance context under this tag.",
+      "createNote": "New note",
+      "noTag": "Finance tag"
+    },
+    "selectSnapshot": "Select snapshot",
+    "viewAccountTimeline": "View account timeline",
+    "accountTimelineTitle": "{{name}} timeline",
+    "accountTimelineTitleFallback": "Account timeline",
+    "accountTimelineColumnTimestamp": "Snapshot time",
+    "accountTimelineColumnConverted": "Converted amount",
+    "accountTimelineColumnRaw": "Original amount",
+    "accountTimelineEmpty": "No historical balances recorded for this account.",
+    "accountTimelineLoadFailed": "Failed to load account timeline. Please try again later.",
+    "createAccountTitle": "Create Finance Account",
+    "createAccountSubtitle": "Organize your assets and liabilities by grouping accounts in the tree.",
+    "accountNameLabel": "Account name",
+    "accountNamePlaceholder": "e.g. Emergency Fund",
+    "accountParentLabel": "Parent account",
+    "accountCurrencyLabel": "Currency",
+    "accountInterestLabel": "Interest rate (optional)",
+    "accountInterestPlaceholder": "e.g. 0.015 or 1.5 for 1.5%",
+    "createAccountSuccess": "Account created successfully",
+    "createAccountFailed": "Unable to create account",
+    "accountInterestInvalid": "Enter a valid percentage value",
+    "snapshotDetailPlaceholder": "Select a snapshot from the timeline.",
+    "metricAssets": "Total Assets",
+    "metricLiabilities": "Total Liabilities",
+    "metricNetWorth": "Net Worth",
+    "newSnapshotTitle": "Record New Snapshot",
+    "newSnapshotTableTitle": "Record Account Balances",
+    "saveSnapshot": "Save Snapshot",
+    "tableAccount": "Account",
+    "tableOriginalCurrency": "Original Currency",
+    "tableOriginalAmount": "Original Amount",
+    "tableConvertedAmount": "Converted Amount ({{currency}})",
+    "tableNote": "Note",
+    "balancePlaceholder": "Enter amount",
+    "autoAggregatedPlaceholder": "Auto-summed from sub-accounts",
+    "invalidAmountFormat": "Invalid amount format for: {{names}}",
+    "notePlaceholder": "Optional",
+    "exchangeRateTitle": "Exchange Rates (to {{currency}})",
+    "exchangeRatePlaceholder": "Value in {{currency}}",
+    "snapshotNoteLabel": "Snapshot Note",
+    "snapshotNotePlaceholder": "Optional context for this update",
+    "snapshotTimeLabel": "Snapshot time",
+    "snapshotTimeHelper": "This timestamp controls ordering and display; use the actual time when the snapshot occurred.",
+    "snapshotTimeRequired": "Please enter a valid snapshot time.",
+    "snapshotTimeFutureError": "Snapshot time cannot be in the future.",
+    "tableOriginal": "Original Balance",
+    "tableConverted": "Converted Balance",
+    "exchangeRateList": "Exchange Rates",
+    "balanceSheetTab": "Balance Sheet",
+    "cashflowTab": "Cashflow",
+    "tradingTab": "Trading Plans",
+    "cashflowSources": "Income & Expense Sources",
+    "manageSources": "Manage sources",
+    "sourcesButton": "Sources",
+    "cashflowIncome": "Income",
+    "cashflowExpense": "Expense",
+    "sourceList": "Sources",
+    "cashflowSourceHint": "Sources support hierarchical grouping; parent totals are the sum of their children.",
+    "cashflowSourceDefaultCurrency": "Default currency",
+    "newSourceName": "Source Name",
+    "newSourcePlaceholder": "Example: Salary",
+    "parentSource": "Parent source",
+    "rootSource": "Top level",
+    "enableRollupSource": "Aggregate node",
+    "rollupLabel": "Aggregate",
+    "rollupLabelShort": "Aggregate",
+    "rollupLockedHint": "Child sources detected; amount is aggregated automatically.",
+    "rollupHint": "Aggregate sources derive their amount from child sources.",
+    "aggregatedAmountLabel": "Calculated: {{amount}}",
+    "childCountLabel": "{{count}} child sources",
+    "income": "Income",
+    "expense": "Expense",
+    "creating": "Creating…",
+    "addSource": "Add Source",
+    "addChildSource": "Add child source",
+    "addCashflowSource": "Add source",
+    "editCashflowSource": "Edit source",
+    "newCashflowSnapshot": "Record Cashflow Snapshot",
+    "addCashflowSnapshot": "New cashflow snapshot",
+    "editCashflowSnapshotTitle": "Edit cashflow snapshot",
+    "cashflowSnapshotInlineHint": "Fill in income and expense totals here; changes take effect once saved.",
+    "periodStart": "Start Date",
+    "periodEnd": "End Date",
+    "periodMonth": "Snapshot month",
+    "cashflowNote": "Notes",
+    "cashflowNotePlaceholder": "Optional context or highlights",
+    "cashflowEntryNotePlaceholder": "Source note (optional)",
+    "cashflowAmountUnit": "Amount ({{currency}})",
+    "cashflowDefaultCurrency": "Local currency",
+    "cashflowPeriodRequired": "Please provide a valid snapshot month",
+    "noCashflowSnapshots": "No cashflow snapshots yet.",
+    "selectCashflowSnapshot": "Select a record to view details.",
+    "snapshotPosition": "Snapshot {{index}} of {{total}}",
+    "snapshotOptionWithNet": "{{month}} · Net cash flow {{value}} {{currency}}",
+    "snapshotOptionValue": "{{month}} · {{value}} {{currency}}",
+    "cashflowSource": "Source",
+    "cashflowCurrency": "Currency",
+    "cashflowAmount": "Amount",
+    "trading": {
+      "sections": {
+        "summary": "Plan Overview · {{plan}}",
+        "instruments": "Instruments",
+        "entries": "Trade Log"
+      },
+      "actions": {
+        "createPlan": "New Plan",
+        "editPlan": "Edit Plan",
+        "archivePlan": "Archive Plan",
+        "addInstrument": "Add Instrument",
+        "addExchangeRate": "Add FX Rate",
+        "importCsv": "Bulk Import",
+        "exportCsv": "Export CSV",
+        "exportJson": "Export JSON"
+      },
+      "labels": {
+        "noPeriod": "No period",
+        "targetRoi": "Target ROI",
+        "allInstruments": "All instruments"
+      },
+      "selector": {
+        "placeholder": "Select plan",
+        "showArchived": "Show archived",
+        "hideArchived": "Hide archived"
+      },
+      "statusDraft": "Draft",
+      "statusActive": "Active",
+      "statusArchived": "Archived",
+      "status": {
+        "draft": "Draft",
+        "active": "Active",
+        "archived": "Archived"
+      },
+      "fields": {
+        "name": "Plan Name",
+        "periodStart": "Start Time",
+        "periodEnd": "End Time",
+        "targetRoi": "Target ROI",
+        "targetRoiHelper": "Enter 12 or 0.12 and we'll normalize for you.",
+        "status": "Status",
+        "note": "Notes",
+        "symbol": "Trading Pair",
+        "exchange": "Exchange",
+        "strategyTag": "Strategy Tag"
+      },
+      "modals": {
+        "createPlan": "Create Trading Plan",
+        "editPlan": "Edit Trading Plan",
+        "copyLabel": "Copy from existing",
+        "copyDescription": "Clone period, ROI and note from another plan.",
+        "copyPlaceholder": "Pick a plan…",
+        "copySuffix": "Copy",
+        "createInstrument": "Add Instrument",
+        "editInstrument": "Edit Instrument"
+      },
+      "summary": {
+        "totalInvestment": "Total Investment",
+        "realized": "Realized PnL",
+        "unrealized": "Unrealized PnL",
+        "netValue": "Net Value",
+        "roi": "ROI",
+        "empty": "No summary data yet"
+      },
+      "instrument": {
+        "symbol": "Instrument",
+        "exchange": "Exchange",
+        "position": "Net Position",
+        "baseSymbol": "Base asset",
+        "quoteSymbol": "Quote asset",
+        "positionBase": "Base net position",
+        "positionQuote": "Quote net position",
+        "avgCost": "Avg Cost",
+        "marketValue": "Market Value",
+        "marketValueBase": "Base market value",
+        "marketValueQuote": "Quote balance value",
+        "rateHint": "Rate · 1 {{asset}} ≈ {{rate}}",
+        "roi": "Return",
+        "emptyTitle": "No instruments",
+        "emptyDescription": "Add at least one instrument to start tracking trades.",
+        "deleteTitle": "Delete Instrument"
+      },
+      "entries": {
+        "emptyTitle": "No trades yet",
+        "emptyDescription": "Once you log trades they will appear here.",
+        "deleteTitle": "Delete Trade",
+        "direction": {
+          "buy": "Buy",
+          "sell": "Sell",
+          "transfer": "Transfer"
+        },
+        "source": {
+          "manual": "Manual",
+          "import": "Import"
+        },
+        "actions": {
+          "add": "Log trade",
+          "edit": "Edit trade"
+        },
+        "modal": {
+          "create": "Log trade",
+          "edit": "Edit trade"
+        },
+        "table": {
+          "tradeTime": "Timestamp",
+          "symbol": "Instrument",
+          "baseSymbol": "Base asset",
+          "baseAmount": "Base delta",
+          "baseDelta": "Base delta",
+          "quoteSymbol": "Quote asset",
+          "quoteAmount": "Quote delta",
+          "quoteDelta": "Quote delta",
+          "direction": "Side",
+          "price": "Price",
+          "fee": "Fee",
+          "source": "Source"
+        },
+        "form": {
+          "instrument": "Instrument",
+          "tradeTime": "Trade Time",
+          "baseDeltaSymbol": "{{symbol}} amount",
+          "quoteDeltaSymbol": "{{symbol}} cashflow",
+          "submit": "Add trade",
+          "disabled": "Select a plan and instrument first"
+        },
+        "quickAdd": {
+          "submit": "Quick add"
+        }
+      },
+      "filters": {
+        "instrument": "Instrument",
+        "direction": "Direction",
+        "source": "Source",
+        "dateFrom": "From",
+        "dateTo": "To",
+        "reset": "Reset"
+      },
+      "errors": {
+        "nameRequired": "Name is required",
+        "invalidPeriod": "End time must be after start time",
+        "saveFailed": "Save failed, try again",
+        "symbolRequired": "Symbol is required",
+        "instrumentRequired": "Pick an instrument",
+        "tradeTimeRequired": "Trade time is required",
+        "rateFailed": "Unable to fetch latest rate"
+      },
+      "toasts": {
+        "planCreated": "Plan created",
+        "planUpdated": "Plan updated",
+        "planArchived": "Plan archived",
+        "instrumentCreated": "Instrument added",
+        "instrumentUpdated": "Instrument updated",
+        "instrumentDeleted": "Instrument removed",
+        "entryCreated": "Trade logged",
+        "entryUpdated": "Trade updated",
+        "entryDeleted": "Trade deleted"
+      },
+      "import": {
+        "title": "Bulk import trades",
+        "description": "Download the template, fill it out and upload to preview before committing.",
+        "downloadTemplate": "Download template",
+        "selectFile": "Select CSV",
+        "noRows": "No file selected",
+        "removeRow": "Remove",
+        "submit": "Import trades",
+        "success": "Import completed",
+        "failed": "Import failed",
+        "emptyFile": "File is empty",
+        "emptyRows": "Nothing to import",
+        "fixErrors": "Please fix all invalid rows",
+        "errors": {
+          "instrument": "Instrument not found",
+          "time": "Invalid time",
+          "amount": "Amount required"
+        }
+      },
+      "exchangeRates": {
+        "manage": "Plan FX",
+        "modalTitle": "Add Plan Exchange Rate",
+        "modalDescription": "Bind a base/quote rate to this plan so summaries can convert values.",
+        "fields": {
+          "base": "Base Asset",
+          "quote": "Quote Asset",
+          "rate": "Rate",
+          "capturedAt": "Captured At",
+          "source": "Source"
+        },
+        "errors": {
+          "planRequired": "Select a plan first",
+          "rateRequired": "Provide base, quote and rate"
+        },
+        "toasts": {
+          "created": "Exchange rate saved"
+        },
+        "planRatesTitle": "Exchange rates in use",
+        "planRatesSubtitle": "These are the pairs currently used to value this plan; override any of them below.",
+        "modeSnapshot": "Snapshot",
+        "modeSource": "Live",
+        "modeSnapshotHint": "Snapshot mode locks rates for historical views. Switch to live for reference only.",
+        "modeSourceHint": "Live mode recalculates with current rates for display only.",
+        "snapshotLockedAt": "Snapshot locked: {{time}}",
+        "planRatesEmpty": "No conversions are needed right now. Add trades or capture a rate to see it here.",
+        "lastUpdated": "Last updated: {{time}}",
+        "derived": "Derived from inverse pair",
+        "override": "Update rate",
+        "scope": {
+          "plan": "Plan override",
+          "user": "My default",
+          "global": "Global default",
+          "synthetic": "Auto"
+        }
+      },
+      "charts": {
+        "net": "Net value",
+        "position": "Positions",
+        "pnl": "PnL bars",
+        "placeholder": "Coming soon",
+        "positionDescription": "Shows how each instrument contributes to the current net value.",
+        "positionEmpty": "Add holdings to see the allocation.",
+        "positionNoValuation": "No valuation data yet. Refresh exchange rates or add trades to update."
+      },
+      "emptyState": {
+        "title": "No trading plans yet",
+        "description": "Create a plan to start organizing instruments and trades."
+      }
+    },
+    "emptyCashflowSources": "No sources yet",
+    "noCashflowEntries": "No cashflow entries recorded",
+    "rollupAutoPlaceholder": "Auto",
+    "cashflowSignHint": "Use positive numbers for inflows, negative numbers for outflows; aggregate sources are read-only.",
+    "inflowLabel": "Inflow",
+    "outflowLabel": "Outflow",
+    "autoGenerated": "Auto",
+    "kindRegular": "Standard",
+    "editAccountTitle": "Edit Account",
+    "editAccountSubtitle": "Update account details below; child accounts retain their balances.",
+    "addChildAccount": "Add child account",
+    "billingLabel": "Billing",
+    "manualEntry": "Manual",
+    "viewBilling": "View billing",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountWarning": "Delete “{{name}}”? This will soft-delete the account and all of its child accounts.",
+    "deleteAccountConfirm": "Delete “{{name}}”? This will soft-delete the account and all of its child accounts.",
+    "editSnapshotTitle": "Edit balance snapshot",
+    "previousSnapshot": "Previous snapshot",
+    "nextSnapshot": "Next snapshot",
+    "billingSectionTitle": "Billing sources",
+    "applyBillingCycles": "Generate billing entries",
+    "autoBillingHint": "Auto generated: {{names}}",
+    "manageBilling": "Manage {{name}}",
+    "noBillingChanges": "No changes to save",
+    "billingSaved": "Billing entries saved",
+    "manualBillingQuickFill": "Quick fill",
+    "manualBillingQuickFillFor": "Quick fill for {{name}}",
+    "manualBillingOnly": "Only manual billing sources support this feature.",
+    "addOlderBillingMonths": "Load older months",
+    "noBillingCycles": "No billing cycles for this month",
+    "billingCycleRange": "{{start}} → {{end}}",
+    "amount": "Amount",
+    "note": "Note",
+    "billingHistory": "Billing history",
+    "billingHistoryFor": "{{name}} billing history",
+    "postedMonth": "Posted month: {{month}}",
+    "postedMonthHeader": "Posted month",
+    "postedMonthShort": "Month: {{month}}",
+    "billingCycle": "Billing cycle",
+    "optional": "Optional",
+    "billingCycleType": "Cycle type",
+    "cycleDay": "Daily",
+    "cycleWeek": "Weekly",
+    "cycleMonth": "Monthly",
+    "cycleYear": "Yearly",
+    "billingInterval": "Interval",
+    "billingAnchorDate": "Anchor date",
+    "billingAnchorDay": "Billing day (1-28)",
+    "billingAnchorMonthlyLabel": "Every month day {{day}}",
+    "billingAnchorYearlyLabel": "Every year {{month}}/{{day}}",
+    "billingAnchorWeeklyLabel": "Every {{weekday}}",
+    "billingAnchorDailyLabel": "Daily",
+    "billingAnchorDateLabel": "{{date}}",
+    "billingPostTo": "Post to month",
+    "postToEnd": "End date",
+    "postToStart": "Start date",
+    "manualBillingInput": "Manual entry required",
+    "defaultAmount": "Default amount",
+    "billingDefaultAmountLabel": "{{amount}}",
+    "inlineSeparator": ", ",
+    "optionalDefaultAmount": "Optional: used as a suggestion",
+    "requiredDefaultAmount": "Required: used for auto-generated billing amounts",
+    "defaultNote": "Default note",
+    "addSourceSuccess": "Source created",
+    "addSourceFailed": "Failed to create source",
+    "updateSourceSuccess": "Source updated",
+    "updateSnapshotSuccess": "Snapshot updated",
+    "deleteSnapshotWarning": "Delete the snapshot for {{timestamp}}?",
+    "deleteSnapshotSuccess": "Snapshot deleted",
+    "billingApplied": "Billing entries generated",
+    "periodRange": "Period: {{start}} – {{end}}",
+    "cashflowNet": "Net cashflow",
+    "updateAccountSuccess": "Account updated",
+    "updateAccountFailed": "Failed to update account",
+    "deleteAccountSuccess": "Account deleted",
+    "deleteAccountFailed": "Failed to delete account",
+    "updateSnapshotFailed": "Failed to update snapshot",
+    "deleteSnapshotFailed": "Failed to delete snapshot",
+    "actions": {
+      "exportAccounts": "Export Accounts",
+      "exportCashflow": "Export Cashflow"
+    }
+  },
+  "modules": {
+    "agent": {
+      "displayName": "AI Assistant",
+      "navLabel": "AI Assistant",
+      "description": "Chat with your personal AI assistant to get advice and help."
+    },
+    "visions": {
+      "displayName": "Vision",
+      "navLabel": "Vision",
+      "description": "Deconstruct long-range vision into actionable task trees."
+    },
+    "tree": {
+      "displayName": "Orchard",
+      "navLabel": "Orchard",
+      "description": "Each tree is a living vision, nurtured by the real time you invest in its growth."
+    },
+    "habits": {
+      "displayName": "Habit",
+      "navLabel": "Habit",
+      "description": "Design and track repeatable actions that shape your day."
+    },
+    "planning": {
+      "displayName": "Planning",
+      "navLabel": "Planning",
+      "description": "Place tasks on a day, week, month, or year planning cycle."
+    },
+    "timelog": {
+      "displayName": "Timelog",
+      "navLabel": "Timelog",
+      "description": "Record actual time and review how effort was spent."
+    },
+    "insights": {
+      "displayName": "Stats",
+      "navLabel": "Stats",
+      "description": "Review precomputed and live summaries from timelog data."
+    },
+    "calendar": {
+      "displayName": "Schedule",
+      "navLabel": "Schedule",
+      "description": "View planned events and actual timelog footprints.",
+      "taskIndicator": "Task",
+      "view": {
+        "label": "View:",
+        "week": "Week",
+        "day": "Day",
+        "weekTitle": "Week View",
+        "dayTitle": "Day View"
+      },
+      "toggle": {
+        "planned_label": "Planned",
+        "actual_label": "Actual",
+        "planned": {
+          "title": {
+            "show": "Show planned events",
+            "hide": "Hide planned events"
+          }
+        },
+        "actual": {
+          "title": {
+            "show": "Show actual events",
+            "hide": "Hide actual events"
+          }
+        }
+      },
+      "loading": "Loading calendar data...",
+      "hint": {
+        "title": "Tip:",
+        "actualEnabled": "Actual footprints enabled. Filter by a specific dimension, or keep 'All' to view all dimensions."
+      },
+      "fc": {
+        "today": "Today",
+        "week": "Week",
+        "day": "Day",
+        "allDay": "All-day",
+        "noEvents": "No events",
+        "more": "More"
+      }
+    },
+    "notes": {
+      "displayName": "Note",
+      "navLabel": "Note",
+      "description": "Capture low-friction notes and link them to LifeOS entities."
+    },
+    "sage-maxims": {
+      "displayName": "Sage Maxims",
+      "navLabel": "Sage Maxims",
+      "description": "Collect and share distilled truths from the community."
+    },
+    "persons": {
+      "displayName": "People",
+      "navLabel": "People",
+      "description": "Manage people and their linked LifeOS activity."
+    },
+    "finance": {
+      "displayName": "Finance",
+      "navLabel": "Finance",
+      "description": "Track assets, liabilities, and balance snapshots to keep your financial intentions aligned with reality."
+    },
+    "food-diary": {
+      "displayName": "Food Diary",
+      "navLabel": "Food Diary",
+      "description": "Log your body's fuel source to understand the link between diet, energy, and mood."
+    },
+    "settings": {
+      "displayName": "Config",
+      "navLabel": "Config",
+      "description": "Manage LifeOS Web UI preferences and local settings."
+    },
+    "invitations": {
+      "displayName": "Invitation",
+      "navLabel": "Invitation",
+      "description": "Invite specific email addresses to register for beta access."
+    }
+  },
+  "dimensionManager": {
+    "title": "Life Dimension Management",
+    "addNewDimension": "Add New Dimension",
+    "editDimension": "Edit Dimension",
+    "dimensionName": "Dimension Name",
+    "dimensionNamePlaceholder": "e.g., Work, Health, Family",
+    "descriptionPlaceholder": "Describe this life dimension...",
+    "color": "Color",
+    "icon": "Icon",
+    "iconPlaceholder": "Select icon...",
+    "enableDimension": "Enable this dimension",
+    "loadingDimensions": "Loading dimension data...",
+    "dimensionUpdated": "Dimension updated successfully!",
+    "dimensionCreated": "Dimension created successfully!",
+    "dimensionDeleted": "Dimension deleted successfully",
+    "dimensionUpdateSuccess": "Dimension information has been successfully updated",
+    "dimensionCreateSuccess": "New life dimension has been added to your life tree",
+    "dimensionDeleteSuccess": "Dimension has been removed from your life tree",
+    "saveError": "Error saving dimension",
+    "deleteError": "Failed to delete dimension",
+    "operationFailed": "Operation failed:",
+    "retryLater": "Please try again later",
+    "deleteConfirmTitle": "Delete Confirmation",
+    "deleteConfirmMessage": "Are you sure you want to delete dimension \"{{name}}\"? This will also delete all related data.",
+    "toggleActive": "Deactivate",
+    "toggleInactive": "Activate",
+    "iconLabel": "Icon:",
+    "icons": {
+      "work": "Work",
+      "health": "Health",
+      "family": "Family",
+      "learning": "Learning",
+      "creativity": "Creativity",
+      "social": "Social",
+      "finance": "Finance",
+      "hobby": "Hobby",
+      "travel": "Travel",
+      "spirituality": "Spirituality"
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "name": "Name",
+    "password": "Password",
+    "emailPlaceholder": "you@example.com",
+    "namePlaceholder": "e.g. Alice",
+    "passwordPlaceholder": "Enter password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "passwordRequirements": {
+      "title": "Password Requirements:",
+      "minLength": "At least 8 characters",
+      "uppercase": "Contains uppercase letter",
+      "lowercase": "Contains lowercase letter",
+      "digit": "Contains number",
+      "special": "Contains special character"
+    },
+    "loginFailed": "Login failed",
+    "registerFailed": "Registration failed",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account yet?",
+    "goToLogin": "Go to Login",
+    "goToRegister": "Go to Register",
+    "changePassword": "Change Password",
+    "passwordMismatch": "New password and confirmation do not match",
+    "changeSuccess": "Password updated. Please log in again.",
+    "changeFailed": "Failed to update password"
+  },
+  "calendar": {
+    "saveFailed": "Save failed, please try again later"
+  },
+  "personDetail": {
+    "nicknames": "Nicknames",
+    "primaryNickname": "Primary Nickname",
+    "birthDate": "Birth Date",
+    "location": "Location",
+    "relationshipTags": "Relationship Tags",
+    "anniversaries": "Anniversaries",
+    "addAnniversary": "Add Anniversary",
+    "noAnniversary": "No anniversaries yet",
+    "anniversaryNamePlaceholder": "Anniversary name e.g. First Met",
+    "anniversaryValidation": "Please enter anniversary name and date"
+  },
+  "personForm": {
+    "editContact": "Edit Contact",
+    "addContact": "Add Contact",
+    "namePlaceholder": "Enter name",
+    "nicknamePlaceholder": "Add nickname",
+    "nicknameHelper": "Add nicknames to better remember this person",
+    "locationPlaceholder": "Enter location",
+    "locationTagsLabel": "Location Tags",
+    "updateSuccess": "Contact updated successfully!",
+    "updateSuccessMessage": "Contact \"{{name}}\" has been updated",
+    "createSuccess": "Contact created successfully!",
+    "createSuccessMessage": "New contact \"{{name}}\" has been added to contacts",
+    "saveError": "Failed to save contact"
+  },
+  "personManager": {
+    "list": "List ({{count}})",
+    "socialTagManager": "Social Tags",
+    "tagFiltersTitle": "Tag Filters",
+    "searchPlaceholder": "Search name or nickname...",
+    "noContacts": "No contacts found",
+    "timeline": "Timeline",
+    "viewTimeline": "View Timeline",
+    "deleteConfirmMessage": "Are you sure you want to delete contact \"{{name}}\"?"
+  },
+  "nutrition": {
+    "dailyIntake": "Daily Nutrition Intake",
+    "entryCount": "{{count}} food entries",
+    "labels": {
+      "calories": "Total Calories"
+    }
+  },
+  "foodList": {
+    "deleteTitle": "Delete Food",
+    "deleteMessage": "Are you sure you want to delete \"{{foodName}}\"? Related food entries will not display nutrition information."
+  },
+  "mealSections": {
+    "title": "Food Entries",
+    "mealTypes": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "tableHeaders": {
+      "mealType": "Meal Type",
+      "foodName": "Food Name",
+      "portion": "Portion",
+      "time": "Time"
+    },
+    "calories": "{{calories}}cal",
+    "noEntries": "No food entries",
+    "addEntryHint": "Click buttons above to add entries",
+    "deleteTitle": "Delete Food Entry",
+    "deleteMessage": "Are you sure you want to delete \"{{foodName}}\" entry?"
+  },
+  "habitForm": {
+    "editTitle": "Edit Habit",
+    "fields": {
+      "title": "Habit Title",
+      "titlePlaceholder": "e.g., Exercise 30 minutes daily",
+      "descriptionPlaceholder": "Describe the purpose and goals of this habit...",
+      "startDateHint": "Please select the start date for this habit",
+      "duration": "Duration (Days)",
+      "status": "Habit Status"
+    },
+    "durationOptions": {
+      "7": "7 days",
+      "14": "14 days",
+      "21": "21 days",
+      "100": "100 days",
+      "365": "365 days",
+      "1000": "1000 days"
+    },
+    "validation": {
+      "titleRequired": "Please enter habit title",
+      "startDateRequired": "Please select start date"
+    },
+    "messages": {
+      "createSuccess": "Habit created successfully",
+      "updateSuccess": "Habit updated successfully",
+      "createFailed": "Failed to create habit",
+      "updateFailed": "Failed to update habit",
+      "creating": "Creating...",
+      "updating": "Updating..."
+    }
+  },
+  "apiErrors": {
+    "notLoggedIn": "User not logged in, request cancelled",
+    "400": "Bad request",
+    "409": "Resource conflict, please check your input",
+    "proxyResponseTitle": "Proxy or gateway error",
+    "proxyHtmlResponse": "A security proxy or gateway returned an HTML error page. Please try again later or contact an administrator if this keeps happening.",
+    "invalidResponseFormat": "The service returned a response format that could not be parsed. Please try again later.",
+    "emptyResponse": "The service returned an empty response. Please try again later.",
+    "Email already registered": "Email already registered"
+  },
+  "taskNotes": {
+    "title": "Notes",
+    "taskLabel": "Task: ",
+    "emptyState": {
+      "title": "No Notes",
+      "description": "Create notes in the notes page and associate them with this task to display here"
+    }
+  },
+  "timelogNotes": {
+    "title": "Timelog Notes",
+    "emptyState": {
+      "title": "No Notes",
+      "description": "Notes linked from this time entry will appear here. Capture extra context, reflections, or follow-up items."
+    }
+  },
+  "taskActualEvents": {
+    "title": "Logs",
+    "taskLabel": "Task:",
+    "totalTime": "Total",
+    "recordsCount": "{{count}} records",
+    "duration": "In progress",
+    "minutes": "minutes",
+    "hours": "hours",
+    "untitled": "Untitled event",
+    "unknownDimension": "Unassigned dimension",
+    "emptyState": {
+      "title": "No Logs",
+      "description": "Link timelog entries to this task to review them here."
+    },
+    "columns": {
+      "timeRange": "Time Range",
+      "duration": "Duration",
+      "date": "Date",
+      "description": "Description",
+      "dimension": "Dimension"
+    }
+  },
+  "taskSelector": {
+    "placeholder": "Select task...",
+    "searchHint": "Enter task name to search",
+    "noResults": "No matching tasks found",
+    "specialOptions": {
+      "allTasks": "All tasks"
+    }
+  },
+  "errorBoundary": {
+    "title": "Application Error",
+    "message": "Please refresh the page and try again. If the problem persists, please contact the maintainer.",
+    "refresh": "Refresh"
+  },
+  "quickTemplatesManager": {
+    "title": "Quick Templates Manager",
+    "noTemplates": "No templates yet, you can add new ones below.",
+    "minutes": "minutes",
+    "editTemplate": "Edit Template",
+    "addTemplate": "Add Template",
+    "activityDescription": "Activity Description",
+    "activityPlaceholder": "e.g., sleep",
+    "durationOptional": "Duration (minutes, optional)",
+    "durationPlaceholder": "e.g., 5",
+    "validation": {
+      "titleRequired": "Please provide a template title.",
+      "durationInvalid": "Duration must be between 1 and 1440 minutes."
+    },
+    "messages": {
+      "createSuccess": "Template created successfully",
+      "updateSuccess": "Template updated successfully",
+      "deleteSuccess": "Template deleted",
+      "actionFailed": "Failed to process template request"
+    }
+  },
+  "foodForm": {
+    "validationFailed": "Form validation failed",
+    "updateSuccess": "Food updated successfully!",
+    "updateSuccessMessage": "Food \"{{name}}\" has been updated successfully",
+    "createSuccess": "Food created successfully!",
+    "createSuccessMessage": "New food \"{{name}}\" has been added to database",
+    "saveFailed": "Failed to save food",
+    "editFood": "Edit Food",
+    "editFoodForm": "Edit Food Form",
+    "addFoodForm": "Add Food Form",
+    "namePlaceholder": "e.g., apple, chicken breast",
+    "markAsCommon": "Mark as common food",
+    "nutritionInfo": "Nutrition Information (per 100g)",
+    "caloriesUnit": "calories",
+    "grams": "g"
+  },
+  "entryRow": {
+    "selectRecord": "Select record {{id}}",
+    "quickAddAriaLabel": "Quick add time entry"
+  },
+  "agent": {
+    "welcomeTitle": "Welcome to AI Assistant",
+    "welcomeSubtitle": "Start a conversation and I'll do my best to help!",
+    "thinking": "AI is thinking...",
+    "inputPlaceholder": "Type a message...",
+    "sendMessageAriaLabel": "Send message",
+    "quota": {
+      "exceededTitle": "Usage Limit",
+      "exceededMessage": "Daily AI token usage {{used}}/{{limit}}.  Resets in {{hours}}h {{minutes}}m."
+    },
+    "errors": {
+      "rateLimited": "Daily AI token limit reached, please try again later",
+      "authExpired": "Login expired, please sign in again",
+      "serviceUnavailable": "Service temporarily unavailable, please try again later",
+      "networkError": "Network connection error, please check your network settings",
+      "permissionDenied": "Insufficient permissions to perform this operation",
+      "requestFailed": "Request failed",
+      "streamTimeout": "No response detected, request timed out. Please try again.",
+      "sessionRequired": "Please create or select a session before sending messages."
+    },
+    "messageStatus": {
+      "pending": "Sending…",
+      "failed": "Failed to send",
+      "failedWithReason": "Failed: {{reason}}",
+      "retry": "Retry"
+    },
+    "identity": {
+      "user": "You",
+      "ai": "AI"
+    },
+    "controls": {
+      "title": "Agent Controls",
+      "moveAgent": "Move Agent",
+      "moveAgentEditMode": "Left-click drag; Right-click to auto-save",
+      "showFloatingAgent": "Show Floating Agent",
+      "hideFloatingAgent": "Hide Floating Agent"
+    },
+    "smartNote": {
+      "bubbleTitle": "Intelligent Note Status",
+      "notePreviewFallback": "New intelligent note",
+      "jobQueuedTitle": "Task queued",
+      "jobQueuedDescription": "\"{{preview}}\" is waiting for the agent",
+      "jobProcessingTitle": "AI is processing",
+      "jobProcessingDescription": "Working on \"{{preview}}\" to auto-link context",
+      "jobSuccessTitle": "Intelligent note ready",
+      "jobSuccessDescription": "\"{{preview}}\" is updated, check it in Notes",
+      "jobFailureTitle": "Intelligent note failed",
+      "jobFailureDescription": "Couldn't process \"{{preview}}\", please retry",
+      "jobFailureDescriptionWithReason": "\"{{preview}}\" failed: {{reason}}",
+      "jobTimeoutTitle": "Processing timed out",
+      "jobTimeoutDescription": "No result yet. Check \"{{preview}}\" in Notes later",
+      "instantSuccessTitle": "Note created",
+      "instantSuccessDescription": "\"{{preview}}\" is saved and ready to edit"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "todaySchedule": "What are my arrangements for today?",
+      "yesterdaySummary": "Summarize my yesterday"
+    },
+    "summary": {
+      "placeholder": "Coming soon..."
+    },
+    "context": {
+      "modules": {
+        "chat": "Chat",
+        "unknown": "Unknown",
+        "actual_event": "Time Log",
+        "notes": "Notes",
+        "planning_tasks": "Planning Tasks",
+        "vision_progress": "Vision Progress"
+      },
+      "sectionTitle": "Session Context",
+      "inlineTrigger": "Add Context",
+      "modalTitle": "Manage Context",
+      "tabExisting": "Existing Context",
+      "tabCreate": "New Context",
+      "errorNoSession": "Please select or create a session first",
+      "previewError": "Failed to preview CardBox",
+      "addSuccess": "Added \"{{name}}\" to this session",
+      "addError": "Failed to add CardBox",
+      "deleteSuccess": "Deleted CardBox \"{{name}}\"",
+      "deleteError": "Failed to delete CardBox",
+      "deleteTitle": "Delete CardBox",
+      "deleteMessage": "Delete CardBox \"{{name}}\"? This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "previewRequired": "Preview and confirm the context data before creating",
+      "createSuccess": "Created CardBox \"{{name}}\" and added to this session",
+      "createError": "Failed to create CardBox",
+      "loadingContext": "Loading session context...",
+      "noContextBoxes": "No context boxes associated with the current session yet.",
+      "createOrSelectSession": "Create or select a session to view context boxes.",
+      "search": {
+        "contextBox": "Search Context Box",
+        "placeholder": "Enter name or module keywords"
+      },
+      "availableContextBoxes": "Available Context Boxes",
+      "noMatchingContextBoxes": "No matching context boxes found.",
+      "previewContent": "Preview Content",
+      "selectContextBoxToPreview": "Select a context box to preview content examples.",
+      "previewResults": "Preview Results",
+      "previewMatchCount": "Found {{count}} matching records",
+      "previewInstructions": "Configure filter conditions and click \"Preview Data\" to view business results.",
+      "create": {
+        "module": "Module",
+        "contextName": "Context Name (Optional)",
+        "contextNamePlaceholder": "Name the context box",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "dimension": "Dimension (Optional)",
+        "keyword": "Keyword (Optional)",
+        "keywordPlaceholder": "Filter text content",
+        "relatedTags": "Related Tags (Optional)",
+        "relatedPersons": "Related Persons (Optional)",
+        "planningCycle": "Planning Cycle",
+        "cycleOptions": {
+          "day": "By Day",
+          "week": "By Week",
+          "month": "By Month",
+          "year": "By Year"
+        },
+        "taskStatus": "Task Status",
+        "statusOptions": {
+          "all": "All Tasks",
+          "active": "Active",
+          "completed": "Completed / Cancelled"
+        },
+        "selectVision": "Select Vision"
+      },
+      "buttons": {
+        "previewData": "Preview Data",
+        "searching": "Searching...",
+        "addToSession": "Add to Session",
+        "creating": "Creating...",
+        "createAndAdd": "Create and Add to Current Session"
+      },
+      "status": {
+        "added": "Added",
+        "adding": "Adding..."
+      },
+      "createInstructions": "Preview and confirm before creating context box. To modify filter conditions, please preview again.",
+      "previewFoundRecords": "Found {{count}} records, context box will be created after confirmation.",
+      "errors": {
+        "selectStartDate": "Please select start date first",
+        "selectVision": "Please select vision first",
+        "selectPlanningStartDate": "Please select planning cycle start date",
+        "selectAtLeastOneVision": "Please select at least one vision",
+        "previewFailed": "Preview failed, please try again later"
+      }
+    },
+    "toolRun": {
+      "unknownTool": "Unknown tool",
+      "started": "Invoking tool {{tool}}…",
+      "finished": "Tool {{tool}} completed.",
+      "finishedWithResult": "Tool {{tool}} completed:\n{{result}}",
+      "failed": "Tool {{tool}} failed: {{reason}}",
+      "progressPercent": "{{value}}%",
+      "progressLabel": "In progress",
+      "duration": "Duration {{value}}",
+      "startedAt": "Started at {{time}}",
+      "finishedAt": "Finished at {{time}}",
+      "argumentsLabel": "Arguments",
+      "argumentsTitle": "Request payload",
+      "resultTitle": "Tool output",
+      "progressTitle": "Progress",
+      "viewDetails": "View details",
+      "detailsTitle": "{{tool}} details",
+      "argumentsMore": "+{{count}} more",
+      "noOutput": "No output available"
+    },
+    "tokenUsage": {
+      "title": "Token usage",
+      "progress": "{{used}} / {{budget}} tokens",
+      "progressWithoutBudget": "{{used}} tokens used",
+      "totalLabel": "Total",
+      "deltaLabel": "Last response",
+      "tokensUnit": "{{count}} tokens",
+      "budgetLabel": "Context budget: {{count}} tokens",
+      "windowLabel": "Model window: {{count}} tokens",
+      "totalCost": "Total cost: ${{value}}",
+      "deltaCost": "Response cost: ${{value}}",
+      "badgeLabel": "Tokens: {{count}}",
+      "badgeLabelFormatted": "Tokens: {{value}}",
+      "tooltip": {
+        "tokens": "Tokens used: {{used}}",
+        "window": "Model window: {{count}}",
+        "budget": "Context budget: {{count}}",
+        "cost": "Estimated cost: ${{value}}"
+      }
+    },
+    "sessions": {
+      "recentTitle": "Recent Sessions",
+      "historyButton": "History",
+      "historyModalTitle": "Session History",
+      "newSession": "Start New Session",
+      "newSessionLabel": "New Session",
+      "startFirstSession": "Start Your First Session",
+      "welcomeTitle": "Start Your First Conversation",
+      "welcomeDescription": "No sessions yet. Click the button below to start chatting with your AI assistant",
+      "sessionLabel": "Session {{index}} · {{date}}",
+      "empty": "No recent sessions",
+      "messageCount": "{{count}} messages",
+      "delete": "Delete session",
+      "markAllRead": "Mark all read",
+      "unreadStatus": "({{count}} unread)",
+      "tabs": {
+        "chat": "Chat",
+        "system": "System alerts"
+      }
+    },
+    "inputPlaceholderWithAgent": "Message {{agent}}...",
+    "notifications": {
+      "readonlyMode": "System notifications are read-only.",
+      "readonlyDescription": "System notifications summarise background jobs, scheduled reminders, and other alerts.",
+      "readonlyInput": "Notifications cannot be replied to here. Switch back to chat to continue the conversation.",
+      "titleFallback": "System notification",
+      "severity": {
+        "info": "Info",
+        "warning": "Warning",
+        "critical": "Critical"
+      }
+    },
+    "selectLabel": "Assistant",
+    "noAgentsAvailable": "No assistant available yet"
+  },
+  "checkboxGroup": {
+    "selectAll": "Select All",
+    "clearAll": "Clear All"
+  },
+  "cardbox": {
+    "filters": {
+      "date": "Date",
+      "startDate": "Start",
+      "endDate": "End",
+      "dimension": "Dimension",
+      "keyword": "Keyword",
+      "descriptionKeyword": "Description Keyword",
+      "trackingMethod": "Tracking Method",
+      "tag": "Tag",
+      "person": "Person",
+      "cycle": "Cycle",
+      "status": "Status",
+      "visionCount": "Vision Count",
+      "taskStatus": "Task Status",
+      "limit": "Result Limit"
+    },
+    "labels": {
+      "time": "Time",
+      "duration": "Duration",
+      "hour": "h",
+      "minute": "min",
+      "trackingMethod": "Tracking Method",
+      "participants": "Participants",
+      "task": "Task",
+      "notes": "Notes",
+      "tags": "Tags",
+      "relatedTask": "Related Task",
+      "description": "Description",
+      "coreParticipants": "Core Participants",
+      "createdTime": "Created Time",
+      "noContent": "(No content)",
+      "relatedPersons": "Related Persons",
+      "cards": "cards",
+      "cardCount": "Card Count",
+      "lastUpdated": "Last Updated",
+      "filters": "Filters"
+    },
+    "status": {
+      "inProgress": "In Progress",
+      "noTitleEvent": "Untitled Event",
+      "noContent": "No Content",
+      "structuredDataPrompt": "This card contains structured data, please view the full content in the context box details.",
+      "noMatchingRecords": "No matching records found.",
+      "noMatchingNotes": "No matching notes found.",
+      "noMatchingTasks": "No planning tasks found matching the criteria.",
+      "noMatchingVisions": "No matching visions found.",
+      "minutes": "minutes",
+      "unknownDimension": "Unassigned Dimension",
+      "statusFilter": "Status",
+      "priorityFilter": "Priority",
+      "planningCycleFilter": "Planning Cycle",
+      "startDateFormat": "Start Date",
+      "totalEffortMinutes": "Total Effort",
+      "stageFilter": "Stage",
+      "visionTaskList": "Task List ({{count}} items):",
+      "statusPriority": "Status · Priority",
+      "noContentInBox": "This context box has no content yet.",
+      "matchingRecords": "matching records"
+    }
+  },
+  "tree": {
+    "stage": {
+      "0": "Seed",
+      "1": "Sprout",
+      "2": "Seedling",
+      "3": "Sapling",
+      "4": "Young Tree",
+      "5": "Growing Tree",
+      "6": "Blooming Tree",
+      "7": "Fruit-Bearing",
+      "8": "Harvest",
+      "9": "Prosperity",
+      "10": "Legacy"
+    }
+  },
+  "draggableTaskList": {
+    "expandButton": {
+      "expand": "Expand Task",
+      "collapse": "Collapse Task",
+      "noSubtasks": "No Subtasks"
+    },
+    "vision": {
+      "label": "Vision"
+    },
+    "meta": {
+      "totalEffort": "Total effort (includes subtasks)",
+      "plannedActions": "You have planned actions for this task"
+    },
+    "planningCycle": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "from": "From {{date}}",
+      "within": " within"
+    },
+    "actions": {
+      "more": "More Actions"
+    },
+    "tooltip": {
+      "title": "{{name}}",
+      "vision": "Vision: {{vision}}",
+      "parent": "Parent Task: {{parent}}",
+      "priority": "Priority: {{priority}}",
+      "status": "Status: {{status}}",
+      "planningCycle": "Planning Cycle: {{planning}}",
+      "planningCycleValueWithDate": "{{period}} · {{date}}",
+      "totalEffort": "Total effort (includes subtasks): {{duration}}",
+      "selfEffort": "Task-only effort: {{duration}}",
+      "createdAt": "Created at: {{date}}",
+      "updatedAt": "Updated at: {{date}}",
+      "none": "—"
+    },
+    "habit": {
+      "start": "Start",
+      "duration": "Duration",
+      "days": "days",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "No Tasks Yet",
+      "description": "Start creating your first task"
+    }
+  },
+  "sageMaxims": {
+    "createTitle": "Share a new maxim",
+    "createPlaceholder": "Write the concise piece of wisdom you want to share (280 characters max)",
+    "submit": "Publish Maxim",
+    "lengthHint": "Up to 280 characters",
+    "empty": "No maxims yet. Be the first to contribute your insight!",
+    "sort": {
+      "label": "Sort",
+      "random": "Random",
+      "latest": "Latest",
+      "top": "Top"
+    },
+    "refresh": "Refresh",
+    "submitSuccess": "Maxim published",
+    "reactionError": "We could not record your feedback. Please try again.",
+    "createdBy": "Shared by {{name}} on {{date}}",
+    "likeCountLabel": "{{count}} likes",
+    "dislikeCountLabel": "{{count}} dislikes"
+  },
+  "invitations": {
+    "title": "Invitation",
+    "subtitle": "Invite specific email addresses to register for beta access.",
+    "status": {
+      "pending": "Pending",
+      "registered": "Registered",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "invitedMe": {
+      "title": "Who invited me",
+      "empty": "No invitation records yet.",
+      "fallbackName": "Unknown inviter"
+    },
+    "generator": {
+      "title": "Generate invitation",
+      "description": "Each invitation code is bound to the invitee's email, please send it privately.",
+      "unavailable": "Invitations are not open",
+      "unavailableDescription": "Only admins can create invitations right now."
+    },
+    "form": {
+      "emailLabel": "Invitee email",
+      "emailPlaceholder": "name@example.com",
+      "inviteCodeLabel": "Invitation code (optional)",
+      "inviteCodePlaceholder": "Enter invitation code (if any)",
+      "memoLabel": "Memo (optional)",
+      "memoPlaceholder": "e.g. Jennifer Smith",
+      "submit": "Generate invitation"
+    },
+    "list": {
+      "title": "Who have I invited",
+      "empty": "No invitations created yet.",
+      "email": "Target email",
+      "code": "Invitation code",
+      "status": "Status",
+      "createdAt": "Created at",
+      "link": "Registration link (copy for invitee)",
+      "copyLink": "Copy link",
+      "memo": "Memo",
+      "actions": "Actions",
+      "revoke": "Cancel invitation",
+      "restore": "Restore"
+    },
+    "toast": {
+      "createSuccess": "Invitation generated",
+      "createFailed": "Failed to generate invitation",
+      "revokeSuccess": "Invitation revoked",
+      "revokeFailed": "Failed to revoke invitation",
+      "restoreSuccess": "Invitation restored",
+      "restoreFailed": "Failed to restore invitation",
+      "copySuccess": "Signup link copied",
+      "copyFailed": "Failed to copy link"
+    },
+    "validation": {
+      "emailRequired": "Please enter the invitee's email"
+    },
+    "register": {
+      "verifying": "Verifying invitation...",
+      "invalid": "This invitation is invalid or already used. Please contact the inviter.",
+      "valid": "Invitation verified",
+      "invitee": "Bound email: {{email}}",
+      "inviterWithEmail": "Invited by {{name}} ({{email}})",
+      "inviterName": "Invited by {{name}}"
+    }
+  }
+}

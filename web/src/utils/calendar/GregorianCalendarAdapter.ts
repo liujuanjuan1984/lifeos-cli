@@ -1,0 +1,663 @@
+import type {
+  CalendarAdapter,
+  ExtendedPlanningViewType,
+  PlanningGroup,
+  PlanningViewType,
+} from "./CalendarAdapter";
+import type { TaskWithSubtasks } from "@/services/api";
+import {
+  getDaysInWeek,
+  getCurrentWeekRange,
+  getCurrentMonthRangeLocal,
+  shiftMonthRange,
+} from "@/utils/datetime";
+
+/**
+ * Gregorian calendar adapter implementation
+ * Handles all calendar operations for the standard Gregorian calendar
+ */
+export class GregorianCalendarAdapter implements CalendarAdapter {
+  private firstDayOfWeek: number;
+
+  constructor(firstDayOfWeek: number = 1) {
+    this.firstDayOfWeek = firstDayOfWeek;
+  }
+
+  getYearStart(date: Date): Date {
+    return new Date(date.getFullYear(), 0, 1);
+  }
+
+  getWeekStart(date: Date): Date {
+    return this.getFirstDayOfWeek(date, this.firstDayOfWeek);
+  }
+
+  getNextPeriod(currentDate: Date, cycleType: ExtendedPlanningViewType): Date {
+    const nextDate = new Date(currentDate);
+
+    switch (cycleType) {
+      case "year":
+        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
+        return this.normalizePeriodDate(nextDate);
+      case "sevenYear":
+        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 7);
+        return this.normalizePeriodDate(nextDate);
+      case "month":
+        nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+        return this.normalizePeriodDate(nextDate);
+      case "week":
+        nextDate.setUTCDate(nextDate.getUTCDate() + 7);
+        return this.normalizePeriodDate(nextDate);
+      case "day":
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+        return this.normalizePeriodDate(nextDate);
+      default:
+        return this.normalizePeriodDate(nextDate);
+    }
+  }
+
+  getPreviousPeriod(
+    currentDate: Date,
+    cycleType: ExtendedPlanningViewType,
+  ): Date {
+    const prevDate = new Date(currentDate);
+
+    switch (cycleType) {
+      case "year":
+        prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 1);
+        return this.normalizePeriodDate(prevDate);
+      case "sevenYear":
+        prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 7);
+        return this.normalizePeriodDate(prevDate);
+      case "month":
+        prevDate.setUTCMonth(prevDate.getUTCMonth() - 1);
+        return this.normalizePeriodDate(prevDate);
+      case "week":
+        prevDate.setUTCDate(prevDate.getUTCDate() - 7);
+        return this.normalizePeriodDate(prevDate);
+      case "day":
+        prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+        return this.normalizePeriodDate(prevDate);
+      default:
+        return this.normalizePeriodDate(prevDate);
+    }
+  }
+
+  getPlanningCycleDays(cycleType: ExtendedPlanningViewType): number {
+    switch (cycleType) {
+      case "year":
+        return 365;
+      case "sevenYear":
+        return 365 * 7;
+      case "month":
+        return 30; // Default month length
+      case "week":
+        return 7;
+      case "day":
+        return 1;
+      default:
+        return 1;
+    }
+  }
+
+  private normalizePeriodDate(date: Date): Date {
+    date.setUTCHours(12, 0, 0, 0);
+    return date;
+  }
+
+  buildPlanningGroups(
+    viewType: PlanningViewType,
+    date: Date,
+    tasks: TaskWithSubtasks[],
+    firstDayOfWeek: number = this.firstDayOfWeek,
+  ): PlanningGroup[] {
+    const groups: PlanningGroup[] = [];
+
+    if (viewType === "year") {
+      return this.buildYearGroups(date, tasks, firstDayOfWeek);
+    } else if (viewType === "month") {
+      return this.buildMonthGroups(date, tasks, firstDayOfWeek);
+    } else if (viewType === "week") {
+      return this.buildWeekGroups(date, tasks, firstDayOfWeek);
+    } else if (viewType === "day") {
+      return this.buildDayGroups(date, tasks);
+    }
+
+    return groups;
+  }
+
+  private buildYearGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+    _firstDayOfWeek: number,
+  ): PlanningGroup[] {
+    const year = date.getFullYear();
+    const yearTasks = this.getTasksByPlanningType(tasks, "year");
+    const monthTasks = this.getTasksByPlanningType(tasks, "month");
+
+    // Filter year tasks for current year
+    const yearTasksInCurrentYear = yearTasks.filter((task) => {
+      if (!task.planning_cycle_start_date) return false;
+      const [taskYear] = task.planning_cycle_start_date.split("-");
+      return parseInt(taskYear) === year;
+    });
+
+    const yearGroup: PlanningGroup = {
+      id: `year-${year}`,
+      label: `${year}年`,
+      date: new Date(year, 0, 1),
+      tasks: yearTasksInCurrentYear,
+      children: [],
+    };
+
+    // Add 12 months
+    for (let month = 0; month < 12; month++) {
+      const monthDate = new Date(year, month, 1);
+      const monthTasksInYear = monthTasks.filter((task) => {
+        if (!task.planning_cycle_start_date) return false;
+        const [taskYear, taskMonth] = task.planning_cycle_start_date.split("-");
+        return parseInt(taskYear) === year && parseInt(taskMonth) === month + 1;
+      });
+
+      yearGroup.children!.push({
+        id: `month-${year}-${month}`,
+        label: `${month + 1}月`,
+        date: monthDate,
+        tasks: monthTasksInYear,
+        children: [],
+      });
+    }
+
+    return [yearGroup];
+  }
+
+  private buildMonthGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+    firstDayOfWeek: number,
+  ): PlanningGroup[] {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const monthTasks = this.getTasksByPlanningType(tasks, "month");
+    const weekTasks = this.getTasksByPlanningType(tasks, "week");
+
+    const monthTasksInCurrentMonth = monthTasks.filter((task) => {
+      if (!task.planning_cycle_start_date) return false;
+      const [taskYear, taskMonth] = task.planning_cycle_start_date.split("-");
+      return parseInt(taskYear) === year && parseInt(taskMonth) === month + 1;
+    });
+
+    const monthGroup: PlanningGroup = {
+      id: `month-${year}-${month}`,
+      label: `${year}年${month + 1}月`,
+      date: new Date(year, month, 1),
+      tasks: monthTasksInCurrentMonth,
+      children: [],
+    };
+
+    const weeksInMonth = this.getWeeksInMonth(year, month, firstDayOfWeek);
+
+    weeksInMonth.forEach((week) => {
+      const weekTasksInMonth = weekTasks.filter((task) => {
+        if (!task.planning_cycle_start_date) return false;
+        const taskDate = new Date(task.planning_cycle_start_date);
+        const taskDateNormalized = new Date(
+          taskDate.getFullYear(),
+          taskDate.getMonth(),
+          taskDate.getDate(),
+        );
+        const weekStartNormalized = new Date(
+          week.start.getFullYear(),
+          week.start.getMonth(),
+          week.start.getDate(),
+        );
+        const weekEndNormalized = new Date(
+          week.end.getFullYear(),
+          week.end.getMonth(),
+          week.end.getDate(),
+        );
+        return (
+          taskDateNormalized >= weekStartNormalized &&
+          taskDateNormalized <= weekEndNormalized
+        );
+      });
+
+      monthGroup.children!.push({
+        id: `week-${year}-${month}-${week.weekIndex}`,
+        label: `第${week.weekIndex + 1}周`,
+        date: week.start,
+        tasks: weekTasksInMonth,
+        children: [],
+      });
+    });
+
+    return [monthGroup];
+  }
+
+  private buildWeekGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+    _firstDayOfWeek: number,
+  ): PlanningGroup[] {
+    const weekStart = this.getWeekStart(date);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekTasks = this.getTasksByPlanningType(tasks, "week");
+    const dayTasks = this.getTasksByPlanningType(tasks, "day");
+
+    const weekTasksInWeek = weekTasks.filter((task) => {
+      if (!task.planning_cycle_start_date) return false;
+      const taskDate = this.parsePlanningDate(task.planning_cycle_start_date);
+      const taskDateNormalized = new Date(
+        taskDate.getFullYear(),
+        taskDate.getMonth(),
+        taskDate.getDate(),
+      );
+      const weekStartNormalized = new Date(
+        weekStart.getFullYear(),
+        weekStart.getMonth(),
+        weekStart.getDate(),
+      );
+      const weekEndNormalized = new Date(
+        weekEnd.getFullYear(),
+        weekEnd.getMonth(),
+        weekEnd.getDate(),
+      );
+      return (
+        taskDateNormalized >= weekStartNormalized &&
+        taskDateNormalized <= weekEndNormalized
+      );
+    });
+
+    const weekGroup: PlanningGroup = {
+      id: `week-${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`,
+      label: `第${Math.ceil(weekStart.getDate() / 7)}周`,
+      date: weekStart,
+      tasks: weekTasksInWeek,
+      children: [],
+    };
+
+    const daysInWeekArr = getDaysInWeek(weekStart);
+    daysInWeekArr.forEach((dayDate, index) => {
+      const dayTasksInWeek = dayTasks.filter((task) => {
+        if (!task.planning_cycle_start_date) return false;
+        const taskDate = this.parsePlanningDate(task.planning_cycle_start_date);
+        return taskDate.toDateString() === dayDate.toDateString();
+      });
+      weekGroup.children!.push({
+        id: `day-${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}-${index}`,
+        label: `${dayDate.getMonth() + 1}月${dayDate.getDate()}日`,
+        date: dayDate,
+        tasks: dayTasksInWeek,
+        children: [],
+      });
+    });
+
+    return [weekGroup];
+  }
+
+  private buildDayGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+  ): PlanningGroup[] {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const dayTasks = this.getTasksByPlanningType(tasks, "day");
+
+    const dayGroup: PlanningGroup = {
+      id: `day-${year}-${month}-${day}`,
+      label: `${year}年${month + 1}月${day}日`,
+      date: date,
+      tasks: dayTasks.filter((task) => {
+        if (!task.planning_cycle_start_date) return false;
+        const taskDate = this.parsePlanningDate(task.planning_cycle_start_date);
+        return taskDate.toDateString() === date.toDateString();
+      }),
+      children: [],
+    };
+
+    return [dayGroup];
+  }
+
+  private getTasksByPlanningType(
+    tasks: TaskWithSubtasks[],
+    type: PlanningViewType,
+  ): TaskWithSubtasks[] {
+    return tasks.filter((task) => task.planning_cycle_type === type);
+  }
+
+  shiftWeekRange(
+    startDate: string,
+    endDate: string,
+    deltaWeeks: number,
+  ): { start: string; end: string } {
+    const start = new Date(startDate + "T00:00:00");
+    const end = new Date(endDate + "T00:00:00");
+
+    start.setDate(start.getDate() + 7 * deltaWeeks);
+    end.setDate(end.getDate() + 7 * deltaWeeks);
+
+    return {
+      start: start.toLocaleDateString("en-CA"),
+      end: end.toLocaleDateString("en-CA"),
+    };
+  }
+
+  /**
+   * Get month information for a given date (unified interface)
+   * @param date - The date to get month info for
+   * @returns Object containing month index and whether it's a valid month
+   */
+  getMonthInfo(date: Date): {
+    monthIndex: number | null;
+    isValidMonth: boolean;
+    monthStart: Date | null;
+  } {
+    const monthIndex = date.getMonth() + 1; // Convert to 1-based
+    const yearStart = this.getYearStart(date);
+    const monthStart = new Date(yearStart);
+    monthStart.setMonth(monthIndex - 1);
+
+    return {
+      monthIndex,
+      isValidMonth: true,
+      monthStart,
+    };
+  }
+
+  /**
+   * Get the start date of a specific month (unified interface)
+   * @param yearStart - The start of the year
+   * @param monthIndex - The month index (1-based)
+   * @returns Date object representing the start of the specified month
+   */
+  getMonthStart(yearStart: Date, monthIndex: number): Date {
+    return new Date(yearStart.getFullYear(), monthIndex - 1, 1);
+  }
+
+  /**
+   * Get all available months for selection (unified interface)
+   * @returns Array of month objects with index and display name
+   */
+  getMonthOptions(
+    _baseDate?: Date,
+    monthNames?: string[],
+  ): Array<{ index: number; name: string }> {
+    // Use provided month names or default to English month names
+    const defaultMonthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const namesToUse = monthNames || defaultMonthNames;
+
+    return Array.from({ length: 12 }, (_, i) => ({
+      index: i + 1,
+      name: namesToUse[i] || `Month ${i + 1}`, // Fallback if month name not provided
+    }));
+  }
+
+  // Mayan calendar specific methods - not applicable for Gregorian calendar
+  getMayanMonthInfo(_date: Date): {
+    moonIndex: number | null;
+    isMayanMonth: boolean;
+    monthStart: Date | null;
+  } {
+    return {
+      moonIndex: null,
+      isMayanMonth: false,
+      monthStart: null,
+    };
+  }
+
+  getMayanMonthStart(_yearStart: Date, _moonIndex: number): Date {
+    return new Date(); // Fallback for non-Mayan calendars
+  }
+
+  getMayanMonthOptions(): Array<{ index: number; name: string }> {
+    return []; // Empty array for non-Mayan calendars
+  }
+
+  private parsePlanningDate(dateValue: string): Date {
+    if (!dateValue) {
+      return new Date(NaN);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+      return new Date(`${dateValue}T00:00:00`);
+    }
+
+    return new Date(dateValue);
+  }
+
+  /**
+   * Get the first day of the week containing the given date
+   * @param date - The date to find the first day for
+   * @param firstDayOfWeek - First day of week (1=Monday, 2=Tuesday, ..., 7=Sunday)
+   * @returns Date object representing first day of that week
+   */
+  private getFirstDayOfWeek(date: Date, firstDayOfWeek: number = 1): Date {
+    const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+
+    // Convert firstDayOfWeek to JavaScript day format (0=Sunday, 1=Monday, etc.)
+    const jsFirstDay = firstDayOfWeek === 7 ? 0 : firstDayOfWeek;
+
+    // Calculate days to first day of week
+    const daysToFirstDay = (dayOfWeek - jsFirstDay + 7) % 7;
+
+    const firstDay = new Date(date);
+    firstDay.setDate(date.getDate() - daysToFirstDay);
+    return firstDay;
+  }
+
+  /**
+   * Get all weeks in a month with customizable first day of week
+   * @param year - The year
+   * @param month - The month (0-based)
+   * @param firstDayOfWeek - First day of week (1=Monday, 2=Tuesday, ..., 7=Sunday)
+   * @returns Array of week objects with start and end dates
+   */
+  private getWeeksInMonth(
+    year: number,
+    month: number,
+    firstDayOfWeek: number = 1,
+  ): Array<{
+    start: Date;
+    end: Date;
+    weekIndex: number;
+  }> {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const firstWeekStart = this.getFirstDayOfWeek(firstDay, firstDayOfWeek);
+
+    const weeks = [];
+    const currentWeek = new Date(firstWeekStart);
+    let weekIndex = 0;
+
+    while (currentWeek <= lastDay) {
+      const weekEnd = new Date(currentWeek);
+      weekEnd.setDate(currentWeek.getDate() + 6);
+
+      weeks.push({
+        start: new Date(currentWeek),
+        end: weekEnd,
+        weekIndex,
+      });
+
+      currentWeek.setDate(currentWeek.getDate() + 7);
+      weekIndex++;
+    }
+
+    return weeks;
+  }
+
+  /**
+   * Get the current week range based on Gregorian calendar
+   */
+  getCurrentWeekRange(): { start: string; end: string } {
+    return getCurrentWeekRange(
+      this.getWeekStart(new Date()).getDay() === 0 ? 7 : 1,
+    );
+  }
+
+  /**
+   * Get the current month range based on Gregorian calendar
+   */
+  getCurrentMonthRange(): { start: string; end: string } {
+    return getCurrentMonthRangeLocal();
+  }
+
+  /**
+   * Shift month range by specified number of months for Gregorian calendar
+   */
+  shiftMonthRange(
+    startDate: string,
+    deltaMonths: number,
+  ): { start: string; end: string } {
+    return shiftMonthRange(startDate, deltaMonths);
+  }
+
+  getPeriodRange(
+    viewType: ExtendedPlanningViewType,
+    date: Date,
+  ): { start: string; end: string } {
+    switch (viewType) {
+      case "year": {
+        const yearStart = this.getYearStart(date);
+        const yearEnd = new Date(yearStart.getFullYear() + 1, 0, 1);
+        return {
+          start: yearStart.toLocaleDateString("en-CA"),
+          end: new Date(
+            yearEnd.getTime() - 24 * 60 * 60 * 1000,
+          ).toLocaleDateString("en-CA"),
+        };
+      }
+      case "sevenYear": {
+        const endYear = date.getFullYear();
+        const startYear = endYear - 6;
+        const startDate = new Date(startYear, 0, 1);
+        const endDateExclusive = new Date(endYear + 1, 0, 1);
+        return {
+          start: startDate.toLocaleDateString("en-CA"),
+          end: new Date(
+            endDateExclusive.getTime() - 24 * 60 * 60 * 1000,
+          ).toLocaleDateString("en-CA"),
+        };
+      }
+      case "month": {
+        // current month relative to provided date
+        const y = date.getFullYear();
+        const m = date.getMonth();
+        const s = new Date(y, m, 1);
+        const e = new Date(y, m + 1, 0);
+        return {
+          start: s.toLocaleDateString("en-CA"),
+          end: e.toLocaleDateString("en-CA"),
+        };
+      }
+      case "week": {
+        const weekStart = this.getWeekStart(date);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        return {
+          start: weekStart.toLocaleDateString("en-CA"),
+          end: weekEnd.toLocaleDateString("en-CA"),
+        };
+      }
+      case "day": {
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const iso = d.toLocaleDateString("en-CA");
+        return { start: iso, end: iso };
+      }
+      default: {
+        const week = this.getCurrentWeekRange();
+        return week;
+      }
+    }
+  }
+
+  shiftPeriodRange(
+    viewType: ExtendedPlanningViewType,
+    startDate: string,
+    endDate: string,
+    step: number,
+  ): { start: string; end: string } {
+    switch (viewType) {
+      case "year": {
+        const s = new Date(startDate + "T00:00:00");
+        const e = new Date(endDate + "T00:00:00");
+        s.setFullYear(s.getFullYear() + step);
+        e.setFullYear(e.getFullYear() + step);
+        return {
+          start: s.toLocaleDateString("en-CA"),
+          end: e.toLocaleDateString("en-CA"),
+        };
+      }
+      case "sevenYear": {
+        const s = new Date(startDate + "T00:00:00");
+        const e = new Date(endDate + "T00:00:00");
+        s.setFullYear(s.getFullYear() + 7 * step);
+        e.setFullYear(e.getFullYear() + 7 * step);
+        return {
+          start: s.toLocaleDateString("en-CA"),
+          end: e.toLocaleDateString("en-CA"),
+        };
+      }
+      case "month": {
+        return this.shiftMonthRange(startDate, step);
+      }
+      case "week": {
+        return this.shiftWeekRange(startDate, endDate, step);
+      }
+      case "day": {
+        const s = new Date(startDate + "T00:00:00");
+        const e = new Date(endDate + "T00:00:00");
+        s.setDate(s.getDate() + step);
+        e.setDate(e.getDate() + step);
+        return {
+          start: s.toLocaleDateString("en-CA"),
+          end: e.toLocaleDateString("en-CA"),
+        };
+      }
+      default:
+        return { start: startDate, end: endDate };
+    }
+  }
+
+  enumerateDates(startDate: string, endDate: string): string[] {
+    const res: string[] = [];
+    if (!startDate || !endDate) return res;
+    const s = new Date(startDate + "T00:00:00");
+    const e = new Date(endDate + "T00:00:00");
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      res.push(d.toLocaleDateString("en-CA"));
+    }
+    return res;
+  }
+
+  getDisplayYear(storedDate: string): number {
+    if (!storedDate) return new Date().getFullYear();
+
+    // Parse the YYYY-MM-DD format directly to avoid timezone issues
+    const match = storedDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return new Date().getFullYear();
+
+    const year = parseInt(match[1]);
+    return year;
+  }
+
+  getDateForYearSelection(year: number): Date {
+    // Create date at noon UTC to avoid timezone issues
+    return new Date(Date.UTC(year, 0, 1, 12, 0, 0)); // January 1, noon UTC of the selected year
+  }
+}
