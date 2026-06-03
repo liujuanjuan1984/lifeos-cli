@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from lifeos_cli.cli import build_parser
+from tests.config_support import install_test_config
 
 
 def test_web_command_is_registered() -> None:
@@ -51,3 +54,64 @@ def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.Mo
     server.preflight_database_runtime()
 
     assert checked_urls == ["postgresql+psycopg://localhost/lifeos"]
+
+
+def test_web_timezone_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        timezone="UTC",
+    )
+
+    initial = asyncio.run(get_preference("system.timezone"))
+    assert initial["value"] == "UTC"
+
+    updated = asyncio.run(
+        set_preference(
+            "system.timezone",
+            PreferenceUpdate(value="America/Toronto", module="system"),
+        )
+    )
+    assert updated["value"] == "America/Toronto"
+
+    reloaded = asyncio.run(get_preference("system.timezone"))
+    assert reloaded["value"] == "America/Toronto"
+
+    assert 'timezone = "America/Toronto"' in config_path.read_text(encoding="utf-8")
+
+
+def test_web_vision_experience_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        vision_experience_rate_per_hour=60,
+    )
+
+    updated = asyncio.run(
+        set_preference(
+            "visions.experience_rate_per_hour",
+            PreferenceUpdate(value=120, module="visions"),
+        )
+    )
+    assert updated["value"] == 120
+
+    reloaded = asyncio.run(get_preference("visions.experience_rate_per_hour"))
+    assert reloaded["value"] == 120
+
+    assert "vision_experience_rate_per_hour = 120" in config_path.read_text(encoding="utf-8")

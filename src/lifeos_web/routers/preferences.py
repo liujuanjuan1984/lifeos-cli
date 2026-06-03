@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from lifeos_cli.config import get_preferences_settings
+from lifeos_cli.application.configuration import set_runtime_config_value
+from lifeos_cli.config import ConfigurationError, get_preferences_settings
 
 router = APIRouter(prefix="/preferences", tags=["preferences"])
 
@@ -54,9 +55,12 @@ _THEMES = [
     "winter",
 ]
 
-_preferences = get_preferences_settings()
+_CONFIG_KEY_MAP = {
+    "system.timezone": "preferences.timezone",
+    "visions.experience_rate_per_hour": "preferences.vision_experience_rate_per_hour",
+}
 
-_DEFAULTS: dict[str, Any] = {
+_STATIC_DEFAULTS: dict[str, Any] = {
     "appearance.theme": "system",
     "calendar.first_day_of_week": 1,
     "calendar.system": "gregorian",
@@ -66,10 +70,8 @@ _DEFAULTS: dict[str, Any] = {
     "notes.export_planning.include_cycle_notes": False,
     "notes.export_planning.include_task_notes": True,
     "planning.show_habit_actions": True,
-    "system.timezone": _preferences.timezone,
     "tasks.default_planning_preset": "none",
     "timeLog.auto_set_task_planning": False,
-    "visions.experience_rate_per_hour": _preferences.vision_experience_rate_per_hour,
 }
 
 _META: dict[str, dict[str, Any]] = {
@@ -95,7 +97,7 @@ _META: dict[str, dict[str, Any]] = {
     },
 }
 
-_VALUES: dict[str, Any] = dict(_DEFAULTS)
+_VALUES: dict[str, Any] = dict(_STATIC_DEFAULTS)
 
 
 class PreferenceUpdate(BaseModel):
@@ -105,10 +107,28 @@ class PreferenceUpdate(BaseModel):
     module: str | None = None
 
 
+def _config_preference_value(key: str) -> Any:
+    preferences = get_preferences_settings()
+    if key == "system.timezone":
+        return preferences.timezone
+    if key == "visions.experience_rate_per_hour":
+        return preferences.vision_experience_rate_per_hour
+    return None
+
+
+def _default_value(key: str) -> Any:
+    if key in _CONFIG_KEY_MAP:
+        return _config_preference_value(key)
+    return _STATIC_DEFAULTS.get(key)
+
+
 def _preference_response(key: str) -> dict[str, Any]:
-    value = _VALUES.get(key, _DEFAULTS.get(key))
+    if key in _CONFIG_KEY_MAP:
+        value = _config_preference_value(key)
+    else:
+        value = _VALUES.get(key, _STATIC_DEFAULTS.get(key))
     meta = {
-        "default_value": _DEFAULTS.get(key),
+        "default_value": _default_value(key),
         "module": key.split(".", 1)[0],
     }
     meta.update(_META.get(key, {}))
@@ -123,7 +143,18 @@ async def get_preference(key: str) -> dict[str, Any]:
 
 @router.put("/{key}")
 async def set_preference(key: str, payload: PreferenceUpdate) -> dict[str, Any]:
-    """Persist local Web preference values for the current server process."""
+    """Persist local Web preference values."""
+    config_key = _CONFIG_KEY_MAP.get(key)
+    if config_key is not None:
+        try:
+            set_runtime_config_value(key=config_key, value=str(payload.value))
+        except ConfigurationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        response = _preference_response(key)
+        if payload.module:
+            response["meta"]["module"] = payload.module
+        return response
+
     _VALUES[key] = payload.value
     response = _preference_response(key)
     if payload.module:
