@@ -114,7 +114,7 @@ const TimeEntryModal = ({
           dimension_id: entry.dimension_id,
           notes: entry.notes || "",
           energy_level: entry.energy_level || 3,
-          task_id: entry.task?.id || null, // 确保 task_id 符合数据协议
+          task_id: entry.task?.id ?? entry.task_id ?? null,
           person_ids: entry.persons?.map((person) => person.id) || [],
           tracking_method: "manual",
         });

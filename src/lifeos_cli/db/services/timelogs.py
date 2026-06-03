@@ -89,6 +89,13 @@ async def _build_timelog_views(
 
 
 async def _build_timelog_view(session: AsyncSession, timelog: Timelog) -> TimelogView:
+    refreshed = await _get_timelog_model(
+        session,
+        timelog_id=timelog.id,
+        include_deleted=True,
+    )
+    if refreshed is not None:
+        timelog = refreshed
     views = await _build_timelog_views(session, [timelog])
     return views[0]
 

@@ -34,6 +34,7 @@ export interface ActualEvent {
   start_time: string;
   end_time: string;
   dimension_id: UUID | null;
+  task_id?: UUID | null;
   dimension_summary?: DimensionSummary | null;
   tracking_method: string;
   location?: string | null;

@@ -2,14 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import UUID
 
 import pytest
 
 from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
-from lifeos_cli.db.services.timelog_support import TimelogListInput, TimelogQueryFilters
+from lifeos_cli.db.services.read_models import TaskSummaryView, TimelogView
+from lifeos_cli.db.services.timelog_support import (
+    TimelogBatchUpdateInput,
+    TimelogListInput,
+    TimelogQueryFilters,
+)
 from tests.config_support import install_test_config
 
 
@@ -103,6 +110,98 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
     assert count_filters.without_area is True
     assert list_query.filters.without_area is True
     assert response.meta["without_dimension"] is True
+
+
+def test_web_timelog_payload_exposes_linked_task_summary() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.timelogs import _timelog_payload
+
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    payload = _timelog_payload(
+        TimelogView(
+            id=UUID("11111111-1111-1111-1111-111111111111"),
+            title="Focused work",
+            tracking_method="manual",
+            start_time=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            end_time=datetime(2026, 6, 1, 14, 0, tzinfo=timezone.utc),
+            location=None,
+            energy_level=None,
+            notes=None,
+            area_id=None,
+            task_id=task_id,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            linked_notes_count=0,
+            task=TaskSummaryView(
+                id=task_id,
+                vision_id=UUID("33333333-3333-3333-3333-333333333333"),
+                parent_task_id=None,
+                content="Ship web timelog task linkage",
+                status="in_progress",
+            ),
+        )
+    )
+
+    assert payload["task_id"] == str(task_id)
+    assert payload["task"] == {
+        "id": str(task_id),
+        "vision_id": "33333333-3333-3333-3333-333333333333",
+        "parent_task_id": None,
+        "content": "Ship web timelog task linkage",
+        "status": "in_progress",
+    }
+
+
+def test_web_timelog_batch_task_replace_maps_to_lifeos_task_update(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+    from lifeos_web.schemas import TimelogBatchTaskUpdate, TimelogBatchUpdate
+
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    timelog_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured: dict[str, TimelogBatchUpdateInput] = {}
+
+    async def fake_batch_update_timelogs(
+        _session: object,
+        *,
+        timelog_ids: list[UUID],
+        changes: TimelogBatchUpdateInput,
+    ) -> object:
+        assert timelog_ids == [timelog_id]
+        captured["changes"] = changes
+        return SimpleNamespace(
+            updated_count=1,
+            unchanged_ids=(),
+            failed_ids=(),
+            errors=(),
+        )
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "batch_update_timelogs",
+        fake_batch_update_timelogs,
+    )
+
+    response = asyncio.run(
+        timelogs.batch_update_timelogs(
+            TimelogBatchUpdate(
+                event_ids=[timelog_id],
+                update_type="task",
+                task=TimelogBatchTaskUpdate(mode="replace", task_id=task_id),
+            ),
+            object(),
+        )
+    )
+
+    changes = captured["changes"].changes
+    assert changes.task_id == task_id
+    assert changes.clear_task is False
+    assert response["updated_count"] == 1
 
 
 def test_web_timezone_preference_persists_to_cli_config(

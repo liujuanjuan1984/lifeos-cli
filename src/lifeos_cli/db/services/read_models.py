@@ -206,6 +206,7 @@ class TimelogView:
     updated_at: datetime
     deleted_at: datetime | None
     linked_notes_count: int
+    task: TaskSummaryView | None = None
     tags: tuple[TagSummaryView, ...] = field(default_factory=tuple)
     people: tuple[PersonSummaryView, ...] = field(default_factory=tuple)
 
@@ -399,6 +400,7 @@ def build_timelog_view(
         updated_at=timelog.updated_at,
         deleted_at=timelog.deleted_at,
         linked_notes_count=linked_notes_count,
+        task=build_task_summary(timelog.task) if timelog.task else None,
         tags=tuple(build_tag_summary(tag) for tag in tags),
         people=tuple(build_person_summary(person) for person in people),
     )
