@@ -20,10 +20,6 @@ const AppearanceIcon = createIcon("sparkles");
 
 const NavigationIcon = createIcon("map");
 
-const CalendarIcon = createIcon("calendar");
-
-const PlanningIcon = createIcon("clipboard");
-
 const DataIcon = createIcon("chart");
 
 const LanguageIcon = createIcon("language");
@@ -104,79 +100,6 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
               value: module.key,
               label: module.navLabel,
             }),
-          ),
-        },
-      ],
-    },
-    {
-      id: "calendar",
-      title: t("settings.calendar.title"),
-      description: t("settings.calendar.description"),
-      icon: <CalendarIcon />,
-      items: [
-        {
-          key: "calendarSystem",
-          type: "select",
-          label: t("settings.calendar.system.label"),
-          description: t("settings.calendar.system.description"),
-          options: [
-            { value: "gregorian", label: t("calendarSystems.gregorian") },
-            {
-              value: "mayan_13_moon",
-              label: t("calendarSystems.mayan_13_moon"),
-            },
-          ],
-        },
-        {
-          key: "firstDayOfWeek",
-          type: "select",
-          label: t("settings.calendar.firstDay.label"),
-          description: t("settings.calendar.firstDay.description"),
-          options: [
-            { value: "1", label: t("weekdays.monday") },
-            { value: "2", label: t("weekdays.tuesday") },
-            { value: "3", label: t("weekdays.wednesday") },
-            { value: "4", label: t("weekdays.thursday") },
-            { value: "5", label: t("weekdays.friday") },
-            { value: "6", label: t("weekdays.saturday") },
-            { value: "7", label: t("weekdays.sunday") },
-          ],
-          dependencies: ["calendarSystem"],
-        },
-      ],
-    },
-    {
-      id: "planning",
-      title: t("settings.planning.title"),
-      description: t("settings.planning.description"),
-      icon: <PlanningIcon />,
-      items: [
-        {
-          key: "taskPlanningPreset",
-          type: "select",
-          label: t("settings.planningSettings.taskPlanning.label"),
-          description: t("settings.planningSettings.taskPlanning.description"),
-          options: [
-            { value: "none", label: t("planning.presets.none") },
-            { value: "today", label: t("planning.presets.today") },
-            { value: "this_week", label: t("planning.presets.this_week") },
-            { value: "this_month", label: t("planning.presets.this_month") },
-          ],
-        },
-        {
-          key: "timeLogTaskPlanning",
-          type: "checkbox",
-          label: t("settings.planningSettings.timeLogTaskPlanning.label"),
-          description: t(
-            "settings.planningSettings.timeLogTaskPlanning.description",
-          ),
-        },
-        {
-          key: "habitActionsInPlanning",
-          type: "checkbox",
-          label: t("settings.planningSettings.habitActionsInPlanning.label"),
-          description: t(
-            "settings.planningSettings.habitActionsInPlanning.description",
           ),
         },
       ],

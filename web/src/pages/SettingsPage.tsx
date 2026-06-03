@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppTheme } from "@/theme";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
-import type { CalendarSystem } from "@/utils/calendar";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { dimensionsApi } from "@/services/api/dimensions";
 import {
@@ -30,51 +29,7 @@ function SettingsPage() {
 
   // Initialize preference hooks directly
   const themeSettings = useTheme();
-  const calendarSystemSettings = usePreferenceWithBootstrap<CalendarSystem>({
-    key: "calendar.system",
-    defaultValue: "gregorian",
-    module: "calendar",
-    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
-  });
-
-  const firstDaySettings = usePreferenceWithBootstrap<number>({
-    key: "calendar.first_day_of_week",
-    defaultValue: 1,
-    module: "calendar",
-    validator: (value) => {
-      // Convert string to number if needed (API returns strings)
-      const numericValue =
-        typeof value === "string" ? parseInt(value, 10) : value;
-      return (
-        Number.isFinite(numericValue) && numericValue >= 1 && numericValue <= 7
-      );
-    },
-  });
-
   const visibleModulesSettings = useVisibleModules();
-  const taskPlanningPresetSettings = usePreferenceWithBootstrap<
-    "none" | "today" | "this_week" | "this_month"
-  >({
-    key: "tasks.default_planning_preset",
-    defaultValue: "none",
-    module: "tasks",
-    validator: (value) =>
-      ["none", "today", "this_week", "this_month"].includes(value),
-  });
-
-  const timeLogTaskPlanningSettings = usePreferenceWithBootstrap<boolean>({
-    key: "timeLog.auto_set_task_planning",
-    defaultValue: false,
-    module: "timeLog",
-    validator: (value) => typeof value === "boolean",
-  });
-
-  const habitActionsInPlanningSettings = usePreferenceWithBootstrap<boolean>({
-    key: "planning.show_habit_actions",
-    defaultValue: false,
-    module: "planning",
-    validator: (value) => typeof value === "boolean",
-  });
 
   const visionExperienceSettings = usePreferenceWithBootstrap<number>({
     key: "visions.experience_rate_per_hour",
@@ -204,21 +159,6 @@ function SettingsPage() {
   // Dimension manager modal state
   const [showDimensionManager, setShowDimensionManager] = useState(false);
 
-  // Handle calendar system dependency
-  const handleCalendarSystemChange = useCallback(
-    (value: CalendarSystem) => {
-      calendarSystemSettings.updateValue(value);
-      if (value === "mayan_13_moon") {
-        const currentYear = new Date().getFullYear();
-        const july26 = new Date(currentYear, 6, 26);
-        const jsWeekday = july26.getDay();
-        const mondayBased = ((jsWeekday + 6) % 7) + 1;
-        firstDaySettings.updateValue(mondayBased);
-      }
-    },
-    [calendarSystemSettings, firstDaySettings],
-  );
-
   // Create preferences map for easy access
   const preferences = useMemo(
     () => ({
@@ -233,20 +173,6 @@ function SettingsPage() {
         updateValue: (value: unknown) =>
           themeSettings.updateValue(value as AppTheme),
       },
-      "calendar.calendarSystem": {
-        ...calendarSystemSettings,
-        saveValue: async (value: unknown) =>
-          await calendarSystemSettings.saveValue(value as CalendarSystem),
-        updateValue: (value: unknown) =>
-          handleCalendarSystemChange(value as CalendarSystem),
-      },
-      "calendar.firstDayOfWeek": {
-        ...firstDaySettings,
-        saveValue: async (value: unknown) =>
-          await firstDaySettings.saveValue(value as number),
-        updateValue: (value: unknown) =>
-          firstDaySettings.updateValue(value as number),
-      },
       "navigation.visibleModules": {
         value: visibleModulesSettings.visibleKeys,
         loading: visibleModulesSettings.loading,
@@ -258,31 +184,6 @@ function SettingsPage() {
         updateValue: (value: unknown) => {
           visibleModulesSettings.updateVisibleKeys(value as string[]);
         },
-      },
-      "planning.taskPlanningPreset": {
-        ...taskPlanningPresetSettings,
-        saveValue: async (value: unknown) =>
-          await taskPlanningPresetSettings.saveValue(
-            value as "none" | "today" | "this_week" | "this_month",
-          ),
-        updateValue: (value: unknown) =>
-          taskPlanningPresetSettings.updateValue(
-            value as "none" | "today" | "this_week" | "this_month",
-          ),
-      },
-      "planning.timeLogTaskPlanning": {
-        ...timeLogTaskPlanningSettings,
-        saveValue: async (value: unknown) =>
-          await timeLogTaskPlanningSettings.saveValue(value as boolean),
-        updateValue: (value: unknown) =>
-          timeLogTaskPlanningSettings.updateValue(value as boolean),
-      },
-      "planning.habitActionsInPlanning": {
-        ...habitActionsInPlanningSettings,
-        saveValue: async (value: unknown) =>
-          await habitActionsInPlanningSettings.saveValue(value as boolean),
-        updateValue: (value: unknown) =>
-          habitActionsInPlanningSettings.updateValue(value as boolean),
       },
       "visions.experienceRatePerHour": {
         ...visionExperiencePreference,
@@ -337,7 +238,8 @@ function SettingsPage() {
             );
           }
           await dimensionsApi.setOrder(incoming);
-          return await dimensionOrderSettings.saveValue(incoming);
+          dimensionOrderSettings.updateValue(incoming);
+          return true;
         },
         updateValue: (value: unknown) => {
           dimensionOrderSettings.updateValue(value as UUID[]);
@@ -380,13 +282,8 @@ function SettingsPage() {
     }),
     [
       themeSettings,
-      calendarSystemSettings,
-      firstDaySettings,
       visibleModulesSettings,
-      taskPlanningPresetSettings,
-      timeLogTaskPlanningSettings,
       visionExperiencePreference,
-      habitActionsInPlanningSettings,
       noteCollapseSettings,
       planningExportTaskNotesPreference,
       planningExportCycleNotesPreference,
@@ -399,7 +296,6 @@ function SettingsPage() {
       visionRatesSaving,
       visionRatesError,
       visionsError,
-      handleCalendarSystemChange,
     ],
   );
 

@@ -85,20 +85,6 @@ export default function DimensionSorter({
     .map((id) => dimensions.find((d) => d.id === id))
     .filter((d): d is Dimension => d !== undefined);
 
-  // Backfill initial order once: when dimensions loaded and no saved order
-  useEffect(() => {
-    if (dimensionsLoading || error) return;
-    if (completeOrder.length === 0) return;
-
-    const needsSync =
-      dimensionOrder.length !== completeOrder.length ||
-      dimensionOrder.some((id, index) => id !== completeOrder[index]);
-
-    if (needsSync) {
-      onOrderChange(completeOrder);
-    }
-  }, [dimensionsLoading, error, dimensionOrder, completeOrder, onOrderChange]);
-
   if (dimensionsLoading) {
     return (
       <div className="flex items-center justify-center p-4">

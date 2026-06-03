@@ -15,6 +15,21 @@ interface SettingItemProps {
   disabled?: boolean;
 }
 
+function areSettingValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return (
+      left.length === right.length &&
+      left.every((item, index) => Object.is(item, right[index]))
+    );
+  }
+
+  return false;
+}
+
 const SettingItem: React.FC<SettingItemProps> = ({
   config,
   preference,
@@ -30,7 +45,7 @@ const SettingItem: React.FC<SettingItemProps> = ({
         return false;
       }
 
-      if (Object.is(nextValue, value)) {
+      if (areSettingValuesEqual(nextValue, value)) {
         return true;
       }
 
