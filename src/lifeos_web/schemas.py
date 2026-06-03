@@ -64,12 +64,40 @@ class NoteCreate(BaseModel):
     """Payload for creating a note from the Web UI."""
 
     content: str
+    person_ids: list[UUID] | None = None
+    tag_ids: list[UUID] | None = None
+    task_id: UUID | None = None
+    actual_event_ids: list[UUID] | None = None
 
 
 class NoteUpdate(BaseModel):
     """Payload for updating a note from the Web UI."""
 
-    content: str
+    content: str | None = None
+    person_ids: list[UUID] | None = None
+    tag_ids: list[UUID] | None = None
+    task_id: UUID | None = None
+    actual_event_ids: list[UUID] | None = None
+
+
+class TagCreate(BaseModel):
+    """Payload for creating a tag from the Web UI."""
+
+    name: str
+    entity_type: str = "note"
+    category: str = "general"
+    description: str | None = None
+    color: str | None = None
+
+
+class TagUpdate(BaseModel):
+    """Payload for updating a tag from the Web UI."""
+
+    name: str | None = None
+    entity_type: str | None = None
+    category: str | None = None
+    description: str | None = None
+    color: str | None = None
 
 
 class VisionCreate(BaseModel):

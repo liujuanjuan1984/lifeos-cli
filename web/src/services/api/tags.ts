@@ -1,5 +1,7 @@
 import type { UUID } from "@/types/primitive";
 import type { ListResponse } from "@/types/pagination";
+import { http } from "./client";
+import { ENDPOINTS } from "./endpoints";
 
 export interface Tag {
   id: UUID;
@@ -75,26 +77,18 @@ const unsupported = () =>
   Promise.reject(new Error("Tags are not supported by LifeOS Web UI yet."));
 
 export const tagsApi = {
-  getAll: async (params?: {
+  getAll: (params?: {
     entity_type?: string;
     category?: string;
     page?: number;
     size?: number;
-  }): Promise<TagListResponse> => ({
-    items: [],
-    pagination: {
-      page: params?.page ?? 1,
-      size: params?.size ?? 100,
-      total: 0,
-      pages: 0,
-    },
-    meta: {
-      entity_type: params?.entity_type ?? null,
-      category: params?.category ?? null,
-    },
-  }),
-  getEntityTypes: async (): Promise<string[]> => [],
-  getCategories: async (_entityType: string): Promise<TagCategoryOption[]> => [],
+  }): Promise<TagListResponse> => http.get<TagListResponse>(ENDPOINTS.TAGS.BASE, params),
+  getEntityTypes: (): Promise<string[]> =>
+    http.get<string[]>(ENDPOINTS.TAGS.ENTITY_TYPES),
+  getCategories: (entityType: string): Promise<TagCategoryOption[]> =>
+    http.get<TagCategoryOption[]>(ENDPOINTS.TAGS.CATEGORIES, {
+      entity_type: entityType,
+    }),
   createCategory: (
     _payload: TagCategoryCreate,
     _entityType: string,
@@ -104,13 +98,15 @@ export const tagsApi = {
     _payload: TagCategoryUpdate,
     _entityType: string,
   ): Promise<TagCategoryOption> => unsupported(),
-  create: (_tag: TagCreate): Promise<Tag> => unsupported(),
-  getById: (_id: UUID): Promise<Tag> => unsupported(),
-  update: (_id: UUID, _tag: TagUpdate): Promise<Tag> => unsupported(),
+  create: (tag: TagCreate): Promise<Tag> =>
+    http.post<Tag>(ENDPOINTS.TAGS.BASE, tag),
+  getById: (id: UUID): Promise<Tag> => http.get<Tag>(ENDPOINTS.TAGS.BY_ID(id)),
+  update: (id: UUID, tag: TagUpdate): Promise<Tag> =>
+    http.patch<Tag>(ENDPOINTS.TAGS.BY_ID(id), tag),
   bulkUpdateCategories: (
     _payload: TagBulkUpdateRequest,
   ): Promise<TagBulkUpdateResponse> => unsupported(),
-  delete: (_id: UUID): Promise<void> => unsupported(),
+  delete: (id: UUID): Promise<void> => http.delete<void>(ENDPOINTS.TAGS.BY_ID(id)),
   getUsage: (id: UUID): Promise<TagUsageStats> =>
     Promise.resolve({
       tag_id: id,

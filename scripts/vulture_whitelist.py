@@ -59,6 +59,8 @@ _keep(
     update_action_by_date,
     get_preference,
     set_preference,
+    list_tag_entity_types,
+    list_tag_categories,
     update_task_status,
     pagination,
     timestamp,

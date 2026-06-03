@@ -20,6 +20,7 @@ from lifeos_web.routers import (
     planned_events,
     preferences,
     stats,
+    tags,
     tasks,
     timelogs,
     visions,
@@ -66,6 +67,7 @@ def create_app(*, static_dir: Path | None = None) -> FastAPI:
     app.include_router(dimensions.router, prefix=API_PREFIX)
     app.include_router(planned_events.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
+    app.include_router(tags.router, prefix=API_PREFIX)
     app.include_router(preferences.router, prefix=API_PREFIX)
 
     resolved_static_dir = static_dir or Path(__file__).with_name("static")

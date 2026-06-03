@@ -57,7 +57,14 @@ async def create_note(
 ) -> dict[str, object]:
     """Create a note."""
     try:
-        note = await note_services.create_note(session, content=payload.content)
+        note = await note_services.create_note(
+            session,
+            content=payload.content,
+            tag_ids=payload.tag_ids,
+            person_ids=payload.person_ids,
+            task_ids=[payload.task_id] if payload.task_id is not None else None,
+            timelog_ids=payload.actual_event_ids,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return to_jsonable(note)
@@ -71,10 +78,19 @@ async def update_note(
 ) -> dict[str, object]:
     """Update a note."""
     try:
+        fields = payload.model_fields_set
         note = await note_services.update_note(
             session,
             note_id=note_id,
             content=payload.content,
+            tag_ids=payload.tag_ids,
+            clear_tags="tag_ids" in fields and payload.tag_ids == [],
+            person_ids=payload.person_ids,
+            clear_people="person_ids" in fields and payload.person_ids == [],
+            task_ids=[payload.task_id] if payload.task_id is not None else None,
+            clear_tasks="task_id" in fields and payload.task_id is None,
+            timelog_ids=payload.actual_event_ids,
+            clear_timelogs=("actual_event_ids" in fields and payload.actual_event_ids == []),
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
