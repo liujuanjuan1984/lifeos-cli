@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from lifeos_cli.application.configuration import set_runtime_config_value
-from lifeos_cli.config import ConfigurationError, get_preferences_settings
+from lifeos_cli.config import (
+    ConfigurationError,
+    PreferencesSettings,
+    clear_config_cache,
+    get_preferences_settings,
+)
 
 router = APIRouter(prefix="/preferences", tags=["preferences"])
 
@@ -60,6 +66,11 @@ _CONFIG_KEY_MAP = {
     "visions.experience_rate_per_hour": "preferences.vision_experience_rate_per_hour",
 }
 
+_CONFIG_ENV_KEY_MAP = {
+    "system.timezone": "LIFEOS_TIMEZONE",
+    "visions.experience_rate_per_hour": "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR",
+}
+
 _STATIC_DEFAULTS: dict[str, Any] = {
     "appearance.theme": "system",
     "calendar.first_day_of_week": 1,
@@ -107,12 +118,40 @@ class PreferenceUpdate(BaseModel):
     module: str | None = None
 
 
-def _config_preference_value(key: str) -> Any:
-    preferences = get_preferences_settings()
+def _extract_config_preference_value(preferences: PreferencesSettings, key: str) -> Any:
     if key == "system.timezone":
         return preferences.timezone
     if key == "visions.experience_rate_per_hour":
         return preferences.vision_experience_rate_per_hour
+    return None
+
+
+def _sync_effective_config_preference_to_file(key: str) -> Any:
+    """Keep config-backed Web preferences aligned with CLI's effective runtime value."""
+    config_key = _CONFIG_KEY_MAP[key]
+    effective_value = _extract_config_preference_value(get_preferences_settings(), key)
+    file_value = _extract_config_preference_value(
+        PreferencesSettings.from_env(include_overrides=False),
+        key,
+    )
+    if effective_value != file_value:
+        set_runtime_config_value(key=config_key, value=str(effective_value))
+        effective_value = _extract_config_preference_value(get_preferences_settings(), key)
+    return effective_value
+
+
+def _set_process_config_override(key: str, value: Any) -> None:
+    env_key = _CONFIG_ENV_KEY_MAP.get(key)
+    if env_key is None:
+        return
+    if env_key in os.environ:
+        os.environ[env_key] = str(value)
+    clear_config_cache()
+
+
+def _config_preference_value(key: str) -> Any:
+    if key in _CONFIG_KEY_MAP:
+        return _sync_effective_config_preference_to_file(key)
     return None
 
 
@@ -150,6 +189,7 @@ async def set_preference(key: str, payload: PreferenceUpdate) -> dict[str, Any]:
             set_runtime_config_value(key=config_key, value=str(payload.value))
         except ConfigurationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _set_process_config_override(key, payload.value)
         response = _preference_response(key)
         if payload.module:
             response["meta"]["module"] = payload.module

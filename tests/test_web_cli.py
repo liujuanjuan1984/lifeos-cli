@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from lifeos_cli.cli import build_parser
+from lifeos_cli.config import clear_config_cache
 from tests.config_support import install_test_config
 
 
@@ -70,6 +72,8 @@ def test_web_timezone_preference_persists_to_cli_config(
         include_preferences=True,
         timezone="UTC",
     )
+    monkeypatch.delenv("LIFEOS_TIMEZONE", raising=False)
+    clear_config_cache()
 
     initial = asyncio.run(get_preference("system.timezone"))
     assert initial["value"] == "UTC"
@@ -84,7 +88,62 @@ def test_web_timezone_preference_persists_to_cli_config(
 
     reloaded = asyncio.run(get_preference("system.timezone"))
     assert reloaded["value"] == "America/Toronto"
+    assert "LIFEOS_TIMEZONE" not in os.environ
 
+    assert 'timezone = "America/Toronto"' in config_path.read_text(encoding="utf-8")
+
+
+def test_web_timezone_preference_converges_env_override_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import get_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        timezone="UTC",
+    )
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/New_York")
+    clear_config_cache()
+
+    current = asyncio.run(get_preference("system.timezone"))
+
+    assert current["value"] == "America/New_York"
+    assert 'timezone = "America/New_York"' in config_path.read_text(encoding="utf-8")
+
+
+def test_web_timezone_preference_updates_process_env_override(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        timezone="UTC",
+    )
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "America/New_York")
+    clear_config_cache()
+
+    updated = asyncio.run(
+        set_preference(
+            "system.timezone",
+            PreferenceUpdate(value="America/Toronto", module="system"),
+        )
+    )
+    reloaded = asyncio.run(get_preference("system.timezone"))
+
+    assert updated["value"] == "America/Toronto"
+    assert reloaded["value"] == "America/Toronto"
+    assert os.environ["LIFEOS_TIMEZONE"] == "America/Toronto"
     assert 'timezone = "America/Toronto"' in config_path.read_text(encoding="utf-8")
 
 
