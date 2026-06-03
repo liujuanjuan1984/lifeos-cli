@@ -1,10 +1,15 @@
 import React, { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import ModalBase from "@/layouts/ModalBase";
 import ActionButton, { ActionButtonGroup } from "./ActionButton";
 import PersonSelector from "./selects/PersonSelector";
 import DimensionSelect from "./selects/DimensionSelect";
 import { actualEventsApi } from "@/services/api/actualEvents";
+import {
+  invalidateActualEventLists,
+  invalidateActualEventsAdvancedSearch,
+} from "@/services/api/cacheInvalidation/actualEvents";
 import { useToast } from "@/contexts/ToastContext";
 import TaskSelector from "./selects/TaskSelector";
 import { ALL_TASK_STATUSES } from "@/utils/constants";
@@ -15,7 +20,7 @@ interface BatchEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedEntryIds: Set<UUID>;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 type EditMode = "persons" | "title" | "task" | "dimension";
@@ -27,6 +32,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState<EditMode>("persons");
   const [loading, setLoading] = useState(false);
   const [personMode, setPersonMode] = useState<"add" | "replace" | "clear">(
@@ -245,7 +251,11 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
           console.warn(t("batchEdit.errors.details"), allErrors);
         }
 
-        onSuccess();
+        await Promise.all([
+          invalidateActualEventLists(queryClient),
+          invalidateActualEventsAdvancedSearch(queryClient),
+        ]);
+        await onSuccess();
         onClose();
       } else {
         showError(t("batchEdit.title"), t("batchEdit.errors.noRecordsUpdated"));
@@ -271,6 +281,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
     selectedDimensionId,
     onSuccess,
     onClose,
+    queryClient,
     showSuccess,
     showError,
     showInfo,

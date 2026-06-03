@@ -84,6 +84,7 @@ export interface ActualEventAdvancedSearchRequest {
   start_date: string;
   end_date?: string;
   dimension_id?: UUID | null;
+  without_dimension?: boolean;
   dimension_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
@@ -94,6 +95,7 @@ export interface ActualEventAdvancedSearchMetadata {
   end_date?: string | null;
   tracking_method?: string | null;
   dimension_id?: UUID | null;
+  without_dimension?: boolean | null;
   dimension_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
@@ -204,13 +206,18 @@ export const actualEventsApi = {
     }),
 
   advancedSearch: async (params: ActualEventAdvancedSearchRequest) => {
+    const withoutDimension =
+      params.without_dimension ?? params.dimension_id === null;
     const response = await http.get<ActualEventAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
         start_date: datePart(params.start_date),
         end_date: params.end_date ? datePart(params.end_date) : undefined,
         query: params.description_keyword ?? undefined,
-        dimension_id: params.dimension_id ?? undefined,
+        dimension_id: withoutDimension
+          ? undefined
+          : (params.dimension_id ?? undefined),
+        without_dimension: withoutDimension || undefined,
         dimension_name: params.dimension_name ?? undefined,
         task_id: params.task_id ?? undefined,
         size: 500,
@@ -228,6 +235,8 @@ export const actualEventsApi = {
           (params.end_date ? datePart(params.end_date) : null),
         dimension_id:
           response.meta?.dimension_id ?? params.dimension_id ?? null,
+        without_dimension:
+          response.meta?.without_dimension ?? withoutDimension,
         dimension_name:
           response.meta?.dimension_name ?? params.dimension_name ?? null,
         description_keyword:

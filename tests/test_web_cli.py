@@ -9,6 +9,7 @@ import pytest
 
 from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
+from lifeos_cli.db.services.timelog_support import TimelogListInput, TimelogQueryFilters
 from tests.config_support import install_test_config
 
 
@@ -56,6 +57,52 @@ def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.Mo
     server.preflight_database_runtime()
 
     assert checked_urls == ["postgresql+psycopg://localhost/lifeos"]
+
+
+def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    captured: dict[str, TimelogListInput | TimelogQueryFilters] = {}
+
+    async def fake_count_timelogs(_session: object, *, filters: TimelogQueryFilters) -> int:
+        captured["count_filters"] = filters
+        return 0
+
+    async def fake_list_timelogs(_session: object, *, query: TimelogListInput) -> list[object]:
+        captured["list_query"] = query
+        return []
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "count_timelogs",
+        fake_count_timelogs,
+    )
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "list_timelogs",
+        fake_list_timelogs,
+    )
+
+    response = asyncio.run(
+        timelogs.list_timelogs(
+            object(),
+            page=1,
+            size=50,
+            without_dimension=True,
+        )
+    )
+
+    count_filters = captured["count_filters"]
+    list_query = captured["list_query"]
+    assert isinstance(count_filters, TimelogQueryFilters)
+    assert isinstance(list_query, TimelogListInput)
+    assert count_filters.without_area is True
+    assert list_query.filters.without_area is True
+    assert response.meta["without_dimension"] is True
 
 
 def test_web_timezone_preference_persists_to_cli_config(

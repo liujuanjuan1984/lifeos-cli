@@ -331,6 +331,7 @@ export const actualEventsKeys = {
     start_date: string;
     end_date?: string;
     dimension_id?: UUID | null;
+    without_dimension?: boolean;
     dimension_name?: string | null;
     description_keyword?: string | null;
     task_id?: UUID | null;

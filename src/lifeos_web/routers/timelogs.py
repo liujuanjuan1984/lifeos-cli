@@ -113,6 +113,7 @@ async def list_timelogs(
     tracking_method: str | None = None,
     dimension_id: UUID | None = None,
     dimension_name: str | None = None,
+    without_dimension: bool = False,
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
@@ -123,6 +124,7 @@ async def list_timelogs(
         tracking_method=tracking_method,
         area_id=dimension_id,
         area_name=dimension_name,
+        without_area=without_dimension,
         task_id=task_id,
     )
     total_count = await timelog_services.count_timelogs(session, filters=filters)
@@ -150,6 +152,7 @@ async def list_timelogs(
             "tracking_method": tracking_method,
             "dimension_id": str(dimension_id) if dimension_id else None,
             "dimension_name": dimension_name,
+            "without_dimension": without_dimension,
             "task_id": str(task_id) if task_id else None,
             "limit": size,
             "returned_count": len(items),
