@@ -1,11 +1,12 @@
 # LifeOS Web UI
 
-This frontend is ported from the reference web frontend and adapted to the
-local LifeOS Web API.
+This frontend is ported from the reference web frontend and adapted to the local
+LifeOS Web API.
 
-The intent is to preserve the source frontend page structure, density, layout, and
-interaction behavior, then subtract or disable modules that do not have a
-corresponding LifeOS backend surface yet.
+The intent is to preserve the source frontend page structure, density, layout,
+and interaction behavior while keeping the implementation aligned with the
+current local LifeOS API. The frontend lives as a first-party repository
+workspace; it is not Python package payload.
 
 ## Run With Built Assets
 
@@ -58,6 +59,8 @@ Default navigation keeps LifeOS-backed surfaces visible:
 - People
 - Config
 
-Unsupported modules such as finance, food diary, cloud auth, invitations,
-agent sessions, and sage maxims are hidden or backed by explicit empty-data
-adapters until LifeOS exposes matching Web API capabilities.
+Unsupported modules such as finance, food diary, cloud auth, invitations, agent
+sessions, cardbox, notifications, export APIs, and sage maxims are not present in
+this frontend until LifeOS exposes matching Web API capabilities. New Web
+features should land with the corresponding `src/lifeos_web` API surface and
+tests.

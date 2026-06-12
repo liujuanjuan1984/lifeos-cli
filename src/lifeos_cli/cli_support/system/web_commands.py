@@ -31,7 +31,7 @@ def build_web_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         subparsers,
         "web",
         help_content=HelpContent(
-            summary="Run the optional local Web interface.",
+            summary="Run the optional local Web API.",
             description=(
                 "Run the local LifeOS Web service against the database configured by "
                 "`lifeos init` and `lifeos config`."
@@ -53,11 +53,16 @@ def build_web_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         web_subparsers,
         "serve",
         help_content=HelpContent(
-            summary="Serve the local Web API and built frontend assets.",
+            summary="Serve the local Web API, optionally with built frontend assets.",
             description="Start a FastAPI server bound to localhost by default.",
-            examples=("lifeos web serve", "lifeos web serve --host 127.0.0.1 --port 8765"),
+            examples=(
+                "lifeos web serve",
+                "lifeos web serve --host 127.0.0.1 --port 8765",
+                "lifeos web serve --static-dir web/dist",
+            ),
             notes=(
                 "Use `web/` with Vite during frontend development. "
+                "Pass `--static-dir web/dist` to serve a built checkout UI. "
                 "With uv and a PostgreSQL database, run with `--extra web --extra postgres`.",
             ),
         ),
@@ -67,6 +72,6 @@ def build_web_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     serve_parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload.")
     serve_parser.add_argument(
         "--static-dir",
-        help="Serve a custom built frontend directory instead of bundled static assets.",
+        help="Serve a built frontend directory such as web/dist.",
     )
     serve_parser.set_defaults(handler=run_web_serve)

@@ -46,8 +46,8 @@ Install PostgreSQL support only when you need it:
 uv tool install --upgrade "lifeos-cli[postgres]"
 ```
 
-Install the optional local Web interface when you want a browser UI backed by the same
-configured LifeOS database:
+Install the optional local Web API dependencies when you want browser or HTTP access
+backed by the same configured LifeOS database:
 
 ```bash
 uv tool install --upgrade "lifeos-cli[web]"
@@ -74,10 +74,18 @@ See the available command surface:
 lifeos --help
 ```
 
-Start the local Web API and UI server:
+Start the local Web API server:
 
 ```bash
 lifeos web serve
+```
+
+`lifeos web serve` does not install, build, or bundle the frontend workspace from
+PyPI. To serve a built checkout UI from the same process, build `web/` and pass
+its output directory explicitly:
+
+```bash
+lifeos web serve --static-dir web/dist
 ```
 
 If your configured database URL uses PostgreSQL, install or run with both optional extras:
@@ -86,8 +94,8 @@ If your configured database URL uses PostgreSQL, install or run with both option
 uv run --extra web --extra postgres lifeos web serve
 ```
 
-During frontend development, run the Vite app in `web/` and proxy API requests to the
-local Web API:
+During frontend development, run the Vite app in `web/` and proxy API requests to
+the local Web API:
 
 ```bash
 cd web
