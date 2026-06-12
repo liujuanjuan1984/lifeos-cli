@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import tasks as task_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, TaskCreate, TaskStatusUpdate, TaskUpdate
-from lifeos_web.serialization import to_jsonable
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -121,7 +121,7 @@ async def get_task(task_id: UUID, session: SessionDep) -> dict[str, object]:
     task = await task_services.get_task(session, task_id=task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} was not found")
-    return to_jsonable(task)
+    return to_jsonable_dict(task)
 
 
 @router.post("/")
@@ -145,7 +145,7 @@ async def create_task(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(task)
+    return to_jsonable_dict(task)
 
 
 @router.put("/{task_id}")
@@ -190,7 +190,7 @@ async def update_task(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(task)
+    return to_jsonable_dict(task)
 
 
 @router.delete("/{task_id}", status_code=204)
@@ -219,7 +219,7 @@ async def update_task_status(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(task)
+    return to_jsonable_dict(task)
 
 
 @router.get("/vision/{vision_id}/hierarchy")
@@ -251,7 +251,7 @@ async def get_task_stats(task_id: UUID, session: SessionDep) -> dict[str, object
         stats = await task_services.get_task_stats(session, task_id=task_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return to_jsonable(stats)
+    return to_jsonable_dict(stats)
 
 
 @router.post("/reorder", status_code=204)
@@ -296,6 +296,6 @@ async def move_task(
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
-        **to_jsonable(await task_services.get_task(session, task_id=result.task.id)),
+        **to_jsonable_dict(await task_services.get_task(session, task_id=result.task.id)),
         "updated_descendants": [to_jsonable(task) for task in result.updated_descendants],
     }

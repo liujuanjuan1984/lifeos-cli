@@ -13,7 +13,7 @@ from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.tags import VALID_TAG_ENTITY_TYPES
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, TagCreate, TagUpdate
-from lifeos_web.serialization import to_jsonable
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -79,7 +79,7 @@ async def create_tag(payload: TagCreate, session: SessionDep) -> dict[str, objec
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(tag)
+    return to_jsonable_dict(tag)
 
 
 @router.get("/{tag_id}")
@@ -88,7 +88,7 @@ async def get_tag(tag_id: UUID, session: SessionDep) -> dict[str, object]:
     tag = await tag_services.get_tag(session, tag_id=tag_id)
     if tag is None:
         raise HTTPException(status_code=404, detail=f"Tag {tag_id} was not found")
-    return to_jsonable(tag)
+    return to_jsonable_dict(tag)
 
 
 @router.patch("/{tag_id}")
@@ -115,7 +115,7 @@ async def update_tag(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(tag)
+    return to_jsonable_dict(tag)
 
 
 @router.delete("/{tag_id}", status_code=204)

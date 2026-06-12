@@ -153,7 +153,7 @@ async def _load_activity_items(
     if activity_filter in (None, "vision"):
         vision_ids = entity_ids.get("vision", [])
         if vision_ids:
-            rows = await session.execute(
+            vision_rows = await session.execute(
                 select(Vision).where(Vision.id.in_(vision_ids), Vision.deleted_at.is_(None))
             )
             items.extend(
@@ -165,13 +165,13 @@ async def _load_activity_items(
                     activity_date=vision.updated_at,
                     status=vision.status,
                 )
-                for vision in rows.scalars()
+                for vision in vision_rows.scalars()
             )
 
     if activity_filter in (None, "task"):
         task_ids = entity_ids.get("task", [])
         if task_ids:
-            rows = await session.execute(
+            task_rows = await session.execute(
                 select(Task).where(Task.id.in_(task_ids), Task.deleted_at.is_(None))
             )
             items.extend(
@@ -183,13 +183,13 @@ async def _load_activity_items(
                     activity_date=task.updated_at,
                     status=task.status,
                 )
-                for task in rows.scalars()
+                for task in task_rows.scalars()
             )
 
     if activity_filter in (None, "planned_event"):
         event_ids = entity_ids.get("event", [])
         if event_ids:
-            rows = await session.execute(
+            event_rows = await session.execute(
                 select(Event).where(Event.id.in_(event_ids), Event.deleted_at.is_(None))
             )
             items.extend(
@@ -201,13 +201,13 @@ async def _load_activity_items(
                     activity_date=event.start_time,
                     status=event.status,
                 )
-                for event in rows.scalars()
+                for event in event_rows.scalars()
             )
 
     if activity_filter in (None, "actual_event"):
         timelog_ids = entity_ids.get("timelog", [])
         if timelog_ids:
-            rows = await session.execute(
+            timelog_rows = await session.execute(
                 select(Timelog).where(Timelog.id.in_(timelog_ids), Timelog.deleted_at.is_(None))
             )
             items.extend(
@@ -219,13 +219,13 @@ async def _load_activity_items(
                     activity_date=timelog.start_time,
                     status=timelog.tracking_method,
                 )
-                for timelog in rows.scalars()
+                for timelog in timelog_rows.scalars()
             )
 
     if activity_filter in (None, "note"):
         note_ids = await _load_person_note_ids(session, person_id=person_id)
         if note_ids:
-            rows = await session.execute(
+            note_rows = await session.execute(
                 select(Note).where(Note.id.in_(note_ids), Note.deleted_at.is_(None))
             )
             items.extend(
@@ -236,7 +236,7 @@ async def _load_activity_items(
                     description=note.content,
                     activity_date=note.updated_at,
                 )
-                for note in rows.scalars()
+                for note in note_rows.scalars()
             )
 
     return sorted(items, key=lambda item: str(item["date"]), reverse=True)

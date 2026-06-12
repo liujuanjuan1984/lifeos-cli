@@ -54,6 +54,12 @@ def _parse_rrule(rrule_string: str | None) -> dict[str, object]:
     return values
 
 
+def _optional_int(value: object | None) -> int | None:
+    if value is None:
+        return None
+    return int(str(value))
+
+
 def _tag_names(event: EventView | EventOccurrence) -> list[str]:
     if not isinstance(event, EventView):
         return []
@@ -72,26 +78,29 @@ def _planned_event_payload(
     master_event: EventView | None = None,
 ) -> dict[str, object]:
     is_occurrence = isinstance(event, EventOccurrence)
-    source = master_event if is_occurrence and master_event is not None else event
-    recurrence_frequency = (
-        None if isinstance(source, EventOccurrence) else source.recurrence_frequency
-    )
-    recurrence_pattern = (
-        None
-        if recurrence_frequency is None
-        else {
+    source = master_event if is_occurrence else event
+    source_event = source if isinstance(source, EventView) else None
+    recurrence_frequency = source_event.recurrence_frequency if source_event else None
+    recurrence_pattern = None
+    if recurrence_frequency is not None and source_event is not None:
+        recurrence_pattern = {
             "frequency": recurrence_frequency,
-            "interval": source.recurrence_interval,
-            "count": source.recurrence_count,
-            "until": source.recurrence_until.isoformat() if source.recurrence_until else None,
+            "interval": source_event.recurrence_interval,
+            "count": source_event.recurrence_count,
+            "until": (
+                source_event.recurrence_until.isoformat() if source_event.recurrence_until else None
+            ),
         }
-    )
-    master_id = source.id if is_occurrence else event.recurrence_parent_event_id or event.id
-    created_at = "" if is_occurrence else event.created_at.isoformat()
-    updated_at = "" if is_occurrence else event.updated_at.isoformat()
-    area_id = None if isinstance(source, EventOccurrence) else source.area_id
-    priority = 0 if isinstance(source, EventOccurrence) else source.priority
-    is_all_day = False if isinstance(source, EventOccurrence) else source.is_all_day
+    if is_occurrence:
+        master_id = source_event.id if source_event else event.id
+    else:
+        assert isinstance(event, EventView)
+        master_id = event.recurrence_parent_event_id or event.id
+    created_at = event.created_at.isoformat() if isinstance(event, EventView) else ""
+    updated_at = event.updated_at.isoformat() if isinstance(event, EventView) else ""
+    area_id = source_event.area_id if source_event else None
+    priority = source_event.priority if source_event else 0
+    is_all_day = source_event.is_all_day if source_event else False
     rrule_string = f"FREQ={recurrence_frequency.upper()}" if recurrence_frequency else None
     return {
         "id": str(event.id),
@@ -106,14 +115,14 @@ def _planned_event_payload(
         "recurrence_pattern": recurrence_pattern,
         "rrule_string": rrule_string,
         "status": event.status,
-        "tags": _tag_names(source),
+        "tags": _tag_names(source_event) if source_event else [],
         "extra_data": {"event_type": event.event_type},
         "created_at": created_at,
         "updated_at": updated_at,
         "is_instance": is_occurrence and recurrence_frequency is not None,
         "master_event_id": str(master_id) if master_id else None,
         "instance_id": str(event.id) if is_occurrence else None,
-        "persons": _people(source),
+        "persons": _people(source_event) if source_event else [],
     }
 
 
@@ -134,8 +143,10 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
         task_id=payload.task_id,
         person_ids=payload.person_ids,
         recurrence_frequency=str(recurrence.get("frequency")) if has_recurrence_frequency else None,
-        recurrence_interval=int(recurrence["interval"]) if has_recurrence_interval else None,
-        recurrence_count=int(recurrence["count"]) if has_recurrence_count else None,
+        recurrence_interval=(
+            _optional_int(recurrence.get("interval")) if has_recurrence_interval else None
+        ),
+        recurrence_count=(_optional_int(recurrence.get("count")) if has_recurrence_count else None),
         recurrence_until=(
             datetime.fromisoformat(str(recurrence["until"]))
             if payload.is_recurring and recurrence.get("until")
@@ -169,12 +180,12 @@ def _update_input(payload: PlannedEventUpdate) -> EventUpdateInput:
             else None
         ),
         recurrence_interval=(
-            int(recurrence["interval"])
+            _optional_int(recurrence.get("interval"))
             if payload.is_recurring is not False and recurrence.get("interval") is not None
             else None
         ),
         recurrence_count=(
-            int(recurrence["count"])
+            _optional_int(recurrence.get("count"))
             if payload.is_recurring is not False and recurrence.get("count") is not None
             else None
         ),

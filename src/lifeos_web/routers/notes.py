@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import notes as note_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, NoteCreate, NoteUpdate, Pagination
-from lifeos_web.serialization import to_jsonable
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -67,7 +67,7 @@ async def create_note(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(note)
+    return to_jsonable_dict(note)
 
 
 @router.patch("/{note_id}")
@@ -96,7 +96,7 @@ async def update_note(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(note)
+    return to_jsonable_dict(note)
 
 
 @router.delete("/{note_id}", status_code=204)

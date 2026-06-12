@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, VisionCreate, VisionUpdate
-from lifeos_web.serialization import to_jsonable
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/visions", tags=["visions"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -51,7 +51,7 @@ async def get_vision(vision_id: UUID, session: SessionDep) -> dict[str, object]:
     vision = await vision_services.get_vision(session, vision_id=vision_id)
     if vision is None:
         raise HTTPException(status_code=404, detail=f"Vision {vision_id} was not found")
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
 
 
 @router.post("/")
@@ -70,7 +70,7 @@ async def create_vision(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
 
 
 @router.put("/{vision_id}")
@@ -110,7 +110,7 @@ async def update_vision(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
 
 
 @router.delete("/{vision_id}", status_code=204)
@@ -132,7 +132,7 @@ async def get_vision_with_tasks(vision_id: UUID, session: SessionDep) -> dict[st
         vision = await vision_services.get_vision_with_tasks(session, vision_id=vision_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
 
 
 @router.get("/{vision_id}/stats")
@@ -142,7 +142,7 @@ async def get_vision_stats(vision_id: UUID, session: SessionDep) -> dict[str, ob
         stats = await vision_services.get_vision_stats(session, vision_id=vision_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return to_jsonable(stats)
+    return to_jsonable_dict(stats)
 
 
 @router.post("/{vision_id}/add-experience")
@@ -160,7 +160,7 @@ async def add_experience(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
 
 
 @router.post("/{vision_id}/harvest")
@@ -170,4 +170,4 @@ async def harvest_vision(vision_id: UUID, session: SessionDep) -> dict[str, obje
         vision = await vision_services.harvest_vision(session, vision_id=vision_id)
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable(vision)
+    return to_jsonable_dict(vision)
