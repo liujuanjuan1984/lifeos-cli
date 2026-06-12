@@ -17,14 +17,14 @@ export interface Note {
   ingest_job?: NoteIngestJobSummary | null;
 }
 
-export interface NoteVisionSummary {
+interface NoteVisionSummary {
   id: UUID;
   name: string;
   status?: string | null;
   dimension_id?: UUID | null;
 }
 
-export interface TaskParentSummary {
+interface TaskParentSummary {
   id: UUID;
   content: string;
   status?: string | null;
@@ -67,13 +67,13 @@ export interface NoteIngestJobSummary {
   updated_at: string;
 }
 
-export interface NoteTimelogDimensionSummary {
+interface NoteTimelogDimensionSummary {
   id: UUID;
   name?: string | null;
   color?: string | null;
 }
 
-export interface NoteTimelogTaskSummary {
+interface NoteTimelogTaskSummary {
   id: UUID;
   content: string;
   status?: string | null;
@@ -137,22 +137,22 @@ export interface NoteAdvancedSearchPayload {
   sort_order?: "asc" | "desc";
 }
 
-export interface NoteBatchTagUpdatePayload {
+interface NoteBatchTagUpdatePayload {
   mode: "add" | "replace";
   tag_ids: UUID[];
 }
 
-export interface NoteBatchPersonUpdatePayload {
+interface NoteBatchPersonUpdatePayload {
   mode: "add" | "replace";
   person_ids: UUID[];
 }
 
-export interface NoteBatchTaskUpdatePayload {
+interface NoteBatchTaskUpdatePayload {
   mode: "replace" | "clear";
   task_id?: UUID | null;
 }
 
-export interface NoteBatchContentUpdatePayload {
+interface NoteBatchContentUpdatePayload {
   find_text: string;
   replace_text: string;
   case_sensitive?: boolean;
@@ -183,7 +183,7 @@ export interface NoteBatchDeleteResult {
   errors: string[];
 }
 
-export interface NoteBulkCreateItemPayload {
+interface NoteBulkCreateItemPayload {
   content: string;
 }
 
@@ -195,20 +195,20 @@ export interface NoteBulkCreateRequestPayload {
   actual_event_ids?: UUID[];
 }
 
-export interface NoteBulkCreateFailedItem {
+interface NoteBulkCreateFailedItem {
   index: number;
   content_preview: string;
   error: string;
 }
 
-export interface NoteBulkCreateResponsePayload {
+interface NoteBulkCreateResponsePayload {
   created_notes: Note[];
   failed_items: NoteBulkCreateFailedItem[];
   created_count: number;
   failed_count: number;
 }
 
-export interface NoteListMeta {
+interface NoteListMeta {
   tag_id?: UUID | null;
   person_id?: UUID | null;
   task_id?: UUID | null;

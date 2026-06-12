@@ -4,10 +4,7 @@ export type {
   PlanningViewType,
   ExtendedPlanningViewType,
 } from "./CalendarAdapter";
-export {
-  CalendarAdapterFactory,
-  type CalendarSystem,
-} from "./CalendarAdapterFactory";
+export { CalendarAdapterFactory } from "./CalendarAdapterFactory";
 
 // Export concrete adapters for tests and advanced callers.
 export { GregorianCalendarAdapter } from "./GregorianCalendarAdapter";

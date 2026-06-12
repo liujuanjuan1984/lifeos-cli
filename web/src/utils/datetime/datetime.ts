@@ -55,16 +55,6 @@ export function formatDate(dateString: string, timezone?: string): string {
   return dt.toFormat("yyyy-LL-dd");
 }
 
-export function formatMonthInTimezone(
-  dateString: string,
-  timezone?: string,
-): string {
-  if (!dateString) return "";
-  const dt = parseInputToDateTime(dateString, timezone);
-  if (!dt) return "";
-  return dt.toFormat("yyyy-LL");
-}
-
 export function formatDateInTimezone(date: Date, timezone?: string): string {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   const tz = resolveTimezoneInput(timezone);
@@ -465,24 +455,7 @@ export function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function shiftDateString(dateString: string, deltaDays: number): string {
-  if (!DATE_ONLY_RE.test(dateString)) return "";
-  const [yearStr, monthStr, dayStr] = dateString.split("-");
-  const year = parseInt(yearStr, 10);
-  const month = parseInt(monthStr, 10);
-  const day = parseInt(dayStr, 10);
-  if (
-    !Number.isFinite(year) ||
-    !Number.isFinite(month) ||
-    !Number.isFinite(day)
-  ) {
-    return "";
-  }
-  const shifted = new Date(Date.UTC(year, month - 1, day + deltaDays));
-  return shifted.toISOString().slice(0, 10);
-}
-
-export function parseDateOnlyToLocalDate(dateString: string): Date | null {
+function parseDateOnlyToLocalDate(dateString: string): Date | null {
   if (!DATE_ONLY_RE.test(dateString)) return null;
   const [yearStr, monthStr, dayStr] = dateString.split("-");
   const year = parseInt(yearStr, 10);

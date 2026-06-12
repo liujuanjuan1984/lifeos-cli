@@ -19,7 +19,7 @@ export interface ActualEventTemplate {
   updated_at: string;
 }
 
-export interface ActualEventTemplatesListMeta {
+interface ActualEventTemplatesListMeta {
   order_by?: "position" | "usage" | "recent" | null;
 }
 

@@ -9,7 +9,7 @@ export type ChipTone =
   | "warning"
   | "neutral";
 
-export type ChipSize = "sm" | "md" | "lg";
+type ChipSize = "sm" | "md" | "lg";
 
 interface ChipProps {
   children: React.ReactNode;

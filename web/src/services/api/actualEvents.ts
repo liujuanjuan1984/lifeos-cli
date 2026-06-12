@@ -7,13 +7,13 @@ import type { ListResponse } from "@/types/pagination";
 import type { NoteSummary } from "./notes";
 
 // Types local to actual events
-export interface DimensionSummary {
+interface DimensionSummary {
   id: UUID;
   name: string;
   color?: string | null;
 }
 
-export interface VisionSummary {
+interface VisionSummary {
   id: UUID;
   name: string;
   status?: string | null;
@@ -69,7 +69,7 @@ export interface ActualEventCreate {
 
 export type ActualEventUpdate = Partial<ActualEventCreate>;
 
-export interface EnergyInjectionResult {
+interface EnergyInjectionResult {
   vision_id: UUID;
   experience_gained: number;
   stage_evolved: boolean;

@@ -18,7 +18,7 @@ export interface AggregatedDimensionRow {
   minutes: number;
 }
 
-export interface DailyDimensionStatsMeta {
+interface DailyDimensionStatsMeta {
   start?: string | null;
   end?: string | null;
   timezone?: string | null;
@@ -30,7 +30,7 @@ export type DailyDimensionListResponse = ListResponse<
   DailyDimensionStatsMeta
 >;
 
-export interface AggregatedDimensionStatsMeta {
+interface AggregatedDimensionStatsMeta {
   granularity?: AggregationGranularity | null;
   start?: string | null;
   end?: string | null;
@@ -45,12 +45,12 @@ export type AggregatedDimensionListResponse = ListResponse<
   AggregatedDimensionStatsMeta
 >;
 
-export interface DayBreakdownRow {
+interface DayBreakdownRow {
   dimension_id: UUID;
   minutes: number;
 }
 
-export interface DayBreakdownMeta {
+interface DayBreakdownMeta {
   day?: string | null;
   timezone?: string | null;
 }

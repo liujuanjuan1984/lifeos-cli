@@ -1,5 +1,3 @@
-import { preferencesApi } from "@/services/api/preferences";
-
 const FALLBACK_TIMEZONES = [
   "UTC",
   "America/Los_Angeles",
@@ -109,14 +107,6 @@ export function zonedDateTimeToUtc(
   return new Date(utcReference.getTime() - offset);
 }
 
-export function detectTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
-}
-
 function isValidTimezone(value?: string | null): boolean {
   if (!value || !value.trim()) {
     return false;
@@ -158,34 +148,4 @@ export function getAvailableTimezones(): string[] {
     /* ignore */
   }
   return FALLBACK_TIMEZONES;
-}
-
-export async function syncTimezonePreference(options?: {
-  force?: boolean;
-}): Promise<void> {
-  const timezone = detectTimezone();
-  const force = options?.force ?? false;
-
-  try {
-    const res = await preferencesApi.getWithMeta<string>("system.timezone");
-    const current = res.value;
-    if (
-      !force &&
-      current &&
-      typeof current === "string" &&
-      current.length > 0
-    ) {
-      setPreferredTimezone(current);
-      return;
-    }
-  } catch {
-    // If fetching preference fails, proceed to attempt setting it
-  }
-
-  try {
-    await preferencesApi.set<string>("system.timezone", timezone, "system");
-    setPreferredTimezone(timezone);
-  } catch {
-    // Swallow errors to avoid blocking login flows
-  }
 }

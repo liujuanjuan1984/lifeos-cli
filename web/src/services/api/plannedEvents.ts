@@ -27,7 +27,7 @@ export interface PlannedEvent {
   persons?: PersonSummary[];
 }
 
-export interface PlannedEventListMeta {
+interface PlannedEventListMeta {
   start?: string | null;
   end?: string | null;
   status?: string | null;

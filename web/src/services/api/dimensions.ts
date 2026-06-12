@@ -32,7 +32,7 @@ export interface DimensionUpdate {
   is_active?: boolean;
 }
 
-export interface DimensionListMeta {
+interface DimensionListMeta {
   include_inactive?: boolean | null;
 }
 

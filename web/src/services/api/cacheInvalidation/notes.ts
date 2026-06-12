@@ -1,7 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import type { UUID } from "@/types/primitive";
-import { notesKeys } from "@/services/api/queryKeys";
 import {
   isNotesListQuery,
   isNotesAdvancedSearchQuery,
@@ -22,10 +20,4 @@ export const invalidateNotesAdvancedSearch = (queryClient: QueryClient) =>
 export const invalidateNotesStats = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
     predicate: (query) => isNotesStatsQuery(query as QueryLike),
-  });
-
-export const invalidateNoteDetail = (queryClient: QueryClient, noteId: UUID) =>
-  queryClient.invalidateQueries({
-    queryKey: notesKeys.detail(noteId),
-    exact: true,
   });

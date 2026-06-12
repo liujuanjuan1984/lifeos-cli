@@ -24,7 +24,7 @@ export interface AnniversaryUpdate {
   date?: string;
 }
 
-export interface AnniversaryListMeta {
+interface AnniversaryListMeta {
   person_id?: UUID | null;
 }
 
@@ -65,7 +65,7 @@ export interface PersonUpdate {
   tag_ids?: UUID[];
 }
 
-export interface PersonListMeta {
+interface PersonListMeta {
   search?: string | null;
   tag_filter?: string | null;
   tag_id?: UUID | null;
@@ -82,7 +82,7 @@ export interface PersonActivityItem {
 
 export type PersonActivityType = PersonActivityItem["type"];
 
-export interface PersonActivitiesMeta {
+interface PersonActivitiesMeta {
   person_id: UUID;
   person_name: string;
   activity_type?: PersonActivityType | null;

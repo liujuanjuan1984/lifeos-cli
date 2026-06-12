@@ -59,7 +59,7 @@ export interface VisionExperienceRateUpdatePayload {
   experience_rate_per_hour: number | null;
 }
 
-export interface VisionListMeta {
+interface VisionListMeta {
   status_filter?: string | null;
 }
 

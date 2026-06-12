@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  ApiError,
-  ensureFreshAccessToken,
-  http,
-  refreshAccessTokenOnStartup,
-} from "@/services/api/client";
+import { ApiError, http } from "@/services/api/client";
 
 const localUrl = (path: string) => new URL(path, "http://localhost").toString();
 
@@ -65,14 +60,6 @@ describe("local web http client", () => {
       message: "Bad request",
       status: 400,
     });
-  });
-
-  it("does not perform auth bootstrap in local web mode", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch");
-
-    await expect(refreshAccessTokenOnStartup()).resolves.toBeUndefined();
-    await expect(ensureFreshAccessToken()).resolves.toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("emits ApiError instances for HTTP failures", async () => {

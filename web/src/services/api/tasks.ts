@@ -81,7 +81,7 @@ export interface TaskStatsResponse {
   total_actual_effort?: number | null;
 }
 
-export interface TaskListMeta {
+interface TaskListMeta {
   vision_id?: UUID | null;
   status_filter?: string | null;
   status_in?: string | null;

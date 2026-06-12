@@ -99,35 +99,6 @@ export const renderWithProviders = (
   } satisfies RenderWithProvidersResult & typeof renderResult;
 };
 
-interface RouterMockOptions {
-  navigateMock?: typeof routerState.navigateMock;
-  search?: Record<string, unknown>;
-  location?: { pathname: string; search: string };
-}
-
-interface RouterMockResult {
-  navigateMock: typeof routerState.navigateMock;
-  navigateComponentSpy: typeof routerState.navigateComponentSpy;
-  setSearch: (nextSearch: Record<string, unknown>) => void;
-}
-
-export const setupRouterMock = (
-  options: RouterMockOptions = {},
-): RouterMockResult => {
-  routerState.navigateMock = options.navigateMock ?? vi.fn();
-  routerState.navigateComponentSpy = vi.fn();
-  routerState.searchRef.current = options.search ?? {};
-  routerState.locationRef = options.location ?? { pathname: "/", search: "" };
-
-  return {
-    navigateMock: routerState.navigateMock,
-    navigateComponentSpy: routerState.navigateComponentSpy,
-    setSearch: (nextSearch: Record<string, unknown>) => {
-      routerState.searchRef.current = nextSearch;
-    },
-  };
-};
-
 export const setupTranslationMock = (
   options?: TranslationMockOptions,
 ): TranslationMockResult => baseSetupTranslationMock(options);

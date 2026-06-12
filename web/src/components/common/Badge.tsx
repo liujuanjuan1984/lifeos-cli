@@ -12,7 +12,7 @@ export type BadgeTone =
   | "ghost";
 
 export type BadgeVariant = "solid" | "outline";
-export type BadgeSize = "xs" | "sm" | "md" | "lg";
+type BadgeSize = "xs" | "sm" | "md" | "lg";
 
 interface BadgeProps {
   children: React.ReactNode;

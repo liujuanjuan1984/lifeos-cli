@@ -64,25 +64,25 @@ export interface HabitStats {
   longest_streak: number;
 }
 
-export interface HabitOverview {
+interface HabitOverview {
   habit: Habit;
   stats: HabitStats;
 }
 
 export type HabitOverviewResponse = HabitOverview;
 
-export interface HabitListMeta {
+interface HabitListMeta {
   status_filter?: string | null;
 }
 
-export interface HabitActionListMeta {
+interface HabitActionListMeta {
   status_filter?: string | null;
   center_date?: string | null;
   days_before?: number | null;
   days_after?: number | null;
 }
 
-export interface HabitActionByDateListMeta {
+interface HabitActionByDateListMeta {
   action_date?: string | null;
 }
 

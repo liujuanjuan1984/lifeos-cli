@@ -16,7 +16,7 @@ export interface CopyResult {
  * @param text - The text to copy to clipboard
  * @returns Promise<CopyResult> - Result object with success status and message
  */
-export async function copyToClipboard(text: string): Promise<CopyResult> {
+async function copyToClipboard(text: string): Promise<CopyResult> {
   try {
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {

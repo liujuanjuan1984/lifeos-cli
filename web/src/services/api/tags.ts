@@ -66,7 +66,7 @@ export interface TagBulkUpdateResponse {
   updated_tags: Tag[];
 }
 
-export interface TagListMeta {
+interface TagListMeta {
   entity_type?: string | null;
   category?: string | null;
 }

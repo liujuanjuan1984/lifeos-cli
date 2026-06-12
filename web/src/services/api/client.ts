@@ -14,24 +14,8 @@ export class ApiError extends Error {
   }
 }
 
-export class AuthExpiredError extends ApiError {
-  constructor(message = "LifeOS Web UI does not use authentication.") {
-    super(message, 401);
-    this.name = "AuthExpiredError";
-  }
-}
-
-export class AuthRecoverableError extends ApiError {
-  code = "auth_recovering";
-
-  constructor(message = "LifeOS Web UI does not use authentication.") {
-    super(message, 503);
-    this.name = "AuthRecoverableError";
-  }
-}
-
-export type PrimitiveQueryValue = string | number | boolean;
-export type QueryParamValue =
+type PrimitiveQueryValue = string | number | boolean;
+type QueryParamValue =
   | PrimitiveQueryValue
   | PrimitiveQueryValue[]
   | undefined;
@@ -127,13 +111,3 @@ export const http = {
   delete: <T>(pathname: string, params?: QueryParams) =>
     request<T>("DELETE", pathname, { query: params }),
 };
-
-export const __resetApiClientAuthStateForTests = () => undefined;
-export const computeProactiveRefreshLeadMs = (_ttlSeconds?: number | null) => 30_000;
-export const hasExceededAuthRecoveryLimits = (_options?: unknown) => false;
-export const handleAuthExpiredOnce = (_options?: unknown) => undefined;
-export const refreshAccessTokenOnStartup = async () => undefined;
-export const ensureFreshAccessToken = async (_options?: unknown) => null;
-export const resolveAccessTokenForPath = async (_path?: string) => null;
-
-export { API_BASE_URL };

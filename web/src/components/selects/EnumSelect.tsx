@@ -6,7 +6,7 @@ import AsyncEntitySelect, {
 } from "./AsyncEntitySelect";
 import type { SelectorValue } from "./selectorTypes";
 
-export interface EnumOption {
+interface EnumOption {
   value: string; // UI normalized value as string
   label: string;
   disabled?: boolean;
