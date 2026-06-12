@@ -19,8 +19,6 @@
     "warning": "Warning",
     "logout": "Logout",
     "user": "User",
-    "login": "Login",
-    "register": "Register",
     "openNavigationMenu": "Open Navigation Menu",
     "requestFailed": "Request failed",
     "operationFailed": "Operation failed",
@@ -52,12 +50,6 @@
     "time": "Time",
     "notice": "Notice",
     "required": " is required"
-  },
-  "register": {
-    "betaNotice": {
-      "title": "Beta Registration Notice",
-      "description": "During beta testing, registration is by invitation only. Please register through an invitation link, and the system will automatically fill in the invitation code and email."
-    }
   },
   "target": {
     "dimension": "Dimension",
@@ -713,16 +705,6 @@
       "minCollapsedLines": {
         "label": "Preview lines before expanding",
         "description": "Select how many lines remain visible when a note card is collapsed."
-      },
-      "exportPlanning": {
-        "taskNotes": {
-          "label": "Include task-related notes in planning export",
-          "description": "When exporting planning, attach all notes linked to tasks in the current period."
-        },
-        "cycleNotes": {
-          "label": "Include notes created in the current cycle",
-          "description": "When exporting planning, also attach notes created within the current planning cycle (based on your calendar system)."
-        }
       }
     },
     "autoSaveHint": "Changes are saved automatically.",
@@ -738,33 +720,6 @@
       "itemLabel": "Dimension {{name}}, position {{position}}",
       "moveUp": "Move {{name}} up",
       "moveDown": "Move {{name}} down"
-    },
-    "finance": {
-      "title": "Finance",
-      "description": "Configure finance defaults for account trees, balances, and conversion dialogs.",
-      "primaryCurrency": {
-        "label": "Primary Currency",
-        "description": "Select the base currency used when aggregating balances and building exchange tables.",
-        "placeholder": "Select a currency..."
-      },
-      "currencyOptions": {
-        "USD": "USD — United States Dollar",
-        "EUR": "EUR — Euro",
-        "GBP": "GBP — British Pound",
-        "CNY": "CNY — Chinese Yuan",
-        "JPY": "JPY — Japanese Yen",
-        "AUD": "AUD — Australian Dollar",
-        "CAD": "CAD — Canadian Dollar",
-        "CHF": "CHF — Swiss Franc",
-        "HKD": "HKD — Hong Kong Dollar",
-        "SGD": "SGD — Singapore Dollar",
-        "INR": "INR — Indian Rupee",
-        "SEK": "SEK — Swedish Krona",
-        "NZD": "NZD — New Zealand Dollar",
-        "BTC": "BTC — Bitcoin",
-        "ETH": "ETH — Ethereum",
-        "USDT": "USDT — Tether (USDt)"
-      }
     },
     "llm": {
       "title": "AI Access",
@@ -1275,44 +1230,6 @@
       "rangeSuffix": " ({{range}})"
     }
   },
-  "foodDiary": {
-    "foodLibrary": "Food Library",
-    "deleteSuccessMessage": "Entry has been successfully deleted",
-    "deleteFailedMessage": "Delete failed, please try again later",
-    "foodSelected": "Food Selected",
-    "foodSelectedMessage": "Selected {{foodName}}, please choose which meal to add to"
-  },
-  "quickFoodEntry": {
-    "title": "Quick Add Food Entry",
-    "hint": "Tip: Press Tab to switch fields, Enter to save, Esc to cancel",
-    "mealType": {
-      "label": "Meal Type *",
-      "placeholder": "Select meal type",
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
-    },
-    "foodName": {
-      "label": "Food Name *",
-      "placeholder": "Enter food name..."
-    },
-    "portionSize": {
-      "label": "Portion Size (g) *"
-    },
-    "notes": {
-      "placeholder": "Add notes..."
-    },
-    "validation": {
-      "foodNameRequired": "Please enter food name",
-      "portionSizeRequired": "Please enter valid portion size"
-    },
-    "messages": {
-      "saveSuccess": "Food entry saved successfully!",
-      "saveSuccessMessage": "\"{{foodName}}\" has been saved",
-      "saveFailed": "Failed to save food entry"
-    }
-  },
   "quickTimeEntry": {
     "title": "Quick Add",
     "templates": {
@@ -1405,14 +1322,11 @@
   "createNoteModal": {
     "title": "Create Note",
     "editTitle": "Edit Note",
-    "intelligentTitle": "Intelligent Note",
-    "intelligentDescription": "Hand it to the agent so it can refine and link people, tasks, and tags automatically.",
     "contentPlaceholder": "Write your thoughts... (Ctrl/Cmd + Enter to save quickly)",
     "relatedTaskLocked": "Related Task (Locked)",
     "relatedTaskOptional": "Select related task (optional)",
     "submitText": "Create Note",
     "updateText": "Update Note",
-    "intelligentSubmitText": "Create with AI",
     "timelogHeader": {
       "label": "Linked timelog",
       "fallbackTitle": "Timelog",
@@ -1450,30 +1364,6 @@
     "noTags": "No tags",
     "filterTag": "Click to filter tag #{{name}}"
   },
-  "foodLibrarySidebar": {
-    "title": "Food Library",
-    "searchPlaceholder": "Search foods...",
-    "showCommonOnly": "Show common foods only",
-    "noFoodFound": "No foods found",
-    "adjustSearchConditions": "Please adjust search conditions",
-    "clickToAddFood": "Click the button above to add food",
-    "addFood": "Add Food",
-    "caloriesPer100g": "cal/100g",
-    "common": "Common"
-  },
-  "nutritionSummarySidebar": {
-    "noNutritionData": "No nutrition data",
-    "todayNutritionIntake": "Today's Nutrition Intake",
-    "entryCount": "{{count}} entries",
-    "calories": "Calories",
-    "caloriesUnit": "cal",
-    "protein": "Protein",
-    "proteinUnit": "g",
-    "carbs": "Carbs",
-    "fat": "Fat",
-    "fiber": "Fiber",
-    "sugar": "Sugar"
-  },
   "persons": {
     "addContact": "Add Contact",
     "timeline": {
@@ -1497,491 +1387,7 @@
       "planned": "Planned"
     }
   },
-  "finance": {
-    "newBalanceSnapshot": "Create New Balance Snapshot",
-    "snapshotCreated": "Finance snapshot saved",
-    "snapshotFailed": "Unable to save finance snapshot",
-    "noAccounts": "Please create accounts before recording snapshots.",
-    "noBalanceEntered": "Please enter at least one account balance.",
-    "snapshotHint": "Leave fields blank to skip accounts.",
-    "snapshotInlineHint": "Update balances inline and save to apply immediately.",
-    "loadMoreSnapshots": "Load more snapshots",
-    "missingRates": "Please provide exchange rates for: {{currencies}}",
-    "emptyAccounts": "No accounts yet. Create an account to begin tracking financial data.",
-    "collapse": "Collapse",
-    "expand": "Expand",
-    "deltaPositive": "+{{value}} {{currency}}",
-    "deltaNegative": "-{{value}} {{currency}}",
-    "noSnapshots": "No snapshots recorded yet. Once you submit the first update, historical entries will appear here.",
-    "accountTreeTitle": "Account Structure",
-    "accountTreeHint": "Supports multi-level nesting. Use the timeline button on each account to review historical balances.",
-    "createAccountButton": "New Account",
-    "manageAccounts": "Manage accounts",
-    "accountsButton": "Accounts",
-    "accountTreeLabel": "Account tree",
-    "cashflowTreeLabel": "Cashflow tree",
-    "manageTrees": "Manage trees",
-    "manageAccountTrees": "Manage account trees",
-    "manageCashflowTrees": "Manage cashflow trees",
-    "treeNamePlaceholder": "Enter a tree name",
-    "setAsDefault": "Set as default",
-    "defaultTree": "Default",
-    "noTrees": "No trees yet",
-    "deleteTreeConfirm": "Delete this tree?",
-    "treeCreateSuccess": "Tree created",
-    "treeCreateFailed": "Failed to create tree",
-    "treeUpdateSuccess": "Tree updated",
-    "treeUpdateFailed": "Failed to update tree",
-    "treeDeleteSuccess": "Tree deleted",
-    "treeDeleteFailed": "Failed to delete tree",
-    "accountTreeCreateSuccess": "Account tree created",
-    "accountTreeCreateFailed": "Failed to create account tree",
-    "accountTreeUpdateSuccess": "Account tree updated",
-    "accountTreeUpdateFailed": "Failed to update account tree",
-    "accountTreeDeleteSuccess": "Account tree deleted",
-    "accountTreeDeleteFailed": "Failed to delete account tree",
-    "cashflowTreeCreateSuccess": "Cashflow tree created",
-    "cashflowTreeCreateFailed": "Failed to create cashflow tree",
-    "cashflowTreeUpdateSuccess": "Cashflow tree updated",
-    "cashflowTreeUpdateFailed": "Failed to update cashflow tree",
-    "cashflowTreeDeleteSuccess": "Cashflow tree deleted",
-    "cashflowTreeDeleteFailed": "Failed to delete cashflow tree",
-    "selectTree": "Select tree",
-    "tagToolbar": {
-      "title": "Finance tags",
-      "empty": "Follow a finance tag to pin it here.",
-      "followTag": "Follow tag"
-    },
-    "tagSelector": {
-      "title": "Manage finance tags",
-      "description": "Select or create tags to pin on the finance dashboard. These tags will surface related notes.",
-      "createSuccess": "Tag \"{{name}}\" created",
-      "createFailed": "Failed to create tag",
-      "saveFailedTitle": "Unable to save tags",
-      "saveFailedMessage": "Please try again later.",
-      "loadFailedTitle": "Unable to load finance tags"
-    },
-    "tagNotes": {
-      "title": "Notes for {{tag}}",
-      "titlePlaceholder": "Notes",
-      "emptyTitle": "No notes for this tag yet",
-      "emptyDescription": "Create a note to start tracking finance context under this tag.",
-      "createNote": "New note",
-      "noTag": "Finance tag"
-    },
-    "selectSnapshot": "Select snapshot",
-    "viewAccountTimeline": "View account timeline",
-    "accountTimelineTitle": "{{name}} timeline",
-    "accountTimelineTitleFallback": "Account timeline",
-    "accountTimelineColumnTimestamp": "Snapshot time",
-    "accountTimelineColumnConverted": "Converted amount",
-    "accountTimelineColumnRaw": "Original amount",
-    "accountTimelineEmpty": "No historical balances recorded for this account.",
-    "accountTimelineLoadFailed": "Failed to load account timeline. Please try again later.",
-    "createAccountTitle": "Create Finance Account",
-    "createAccountSubtitle": "Organize your assets and liabilities by grouping accounts in the tree.",
-    "accountNameLabel": "Account name",
-    "accountNamePlaceholder": "e.g. Emergency Fund",
-    "accountParentLabel": "Parent account",
-    "accountCurrencyLabel": "Currency",
-    "accountInterestLabel": "Interest rate (optional)",
-    "accountInterestPlaceholder": "e.g. 0.015 or 1.5 for 1.5%",
-    "createAccountSuccess": "Account created successfully",
-    "createAccountFailed": "Unable to create account",
-    "accountInterestInvalid": "Enter a valid percentage value",
-    "snapshotDetailPlaceholder": "Select a snapshot from the timeline.",
-    "metricAssets": "Total Assets",
-    "metricLiabilities": "Total Liabilities",
-    "metricNetWorth": "Net Worth",
-    "newSnapshotTitle": "Record New Snapshot",
-    "newSnapshotTableTitle": "Record Account Balances",
-    "saveSnapshot": "Save Snapshot",
-    "tableAccount": "Account",
-    "tableOriginalCurrency": "Original Currency",
-    "tableOriginalAmount": "Original Amount",
-    "tableConvertedAmount": "Converted Amount ({{currency}})",
-    "tableNote": "Note",
-    "balancePlaceholder": "Enter amount",
-    "autoAggregatedPlaceholder": "Auto-summed from sub-accounts",
-    "invalidAmountFormat": "Invalid amount format for: {{names}}",
-    "notePlaceholder": "Optional",
-    "exchangeRateTitle": "Exchange Rates (to {{currency}})",
-    "exchangeRatePlaceholder": "Value in {{currency}}",
-    "snapshotNoteLabel": "Snapshot Note",
-    "snapshotNotePlaceholder": "Optional context for this update",
-    "snapshotTimeLabel": "Snapshot time",
-    "snapshotTimeHelper": "This timestamp controls ordering and display; use the actual time when the snapshot occurred.",
-    "snapshotTimeRequired": "Please enter a valid snapshot time.",
-    "snapshotTimeFutureError": "Snapshot time cannot be in the future.",
-    "tableOriginal": "Original Balance",
-    "tableConverted": "Converted Balance",
-    "exchangeRateList": "Exchange Rates",
-    "balanceSheetTab": "Balance Sheet",
-    "cashflowTab": "Cashflow",
-    "tradingTab": "Trading Plans",
-    "cashflowSources": "Income & Expense Sources",
-    "manageSources": "Manage sources",
-    "sourcesButton": "Sources",
-    "cashflowIncome": "Income",
-    "cashflowExpense": "Expense",
-    "sourceList": "Sources",
-    "cashflowSourceHint": "Sources support hierarchical grouping; parent totals are the sum of their children.",
-    "cashflowSourceDefaultCurrency": "Default currency",
-    "newSourceName": "Source Name",
-    "newSourcePlaceholder": "Example: Salary",
-    "parentSource": "Parent source",
-    "rootSource": "Top level",
-    "enableRollupSource": "Aggregate node",
-    "rollupLabel": "Aggregate",
-    "rollupLabelShort": "Aggregate",
-    "rollupLockedHint": "Child sources detected; amount is aggregated automatically.",
-    "rollupHint": "Aggregate sources derive their amount from child sources.",
-    "aggregatedAmountLabel": "Calculated: {{amount}}",
-    "childCountLabel": "{{count}} child sources",
-    "income": "Income",
-    "expense": "Expense",
-    "creating": "Creating…",
-    "addSource": "Add Source",
-    "addChildSource": "Add child source",
-    "addCashflowSource": "Add source",
-    "editCashflowSource": "Edit source",
-    "newCashflowSnapshot": "Record Cashflow Snapshot",
-    "addCashflowSnapshot": "New cashflow snapshot",
-    "editCashflowSnapshotTitle": "Edit cashflow snapshot",
-    "cashflowSnapshotInlineHint": "Fill in income and expense totals here; changes take effect once saved.",
-    "periodStart": "Start Date",
-    "periodEnd": "End Date",
-    "periodMonth": "Snapshot month",
-    "cashflowNote": "Notes",
-    "cashflowNotePlaceholder": "Optional context or highlights",
-    "cashflowEntryNotePlaceholder": "Source note (optional)",
-    "cashflowAmountUnit": "Amount ({{currency}})",
-    "cashflowDefaultCurrency": "Local currency",
-    "cashflowPeriodRequired": "Please provide a valid snapshot month",
-    "noCashflowSnapshots": "No cashflow snapshots yet.",
-    "selectCashflowSnapshot": "Select a record to view details.",
-    "snapshotPosition": "Snapshot {{index}} of {{total}}",
-    "snapshotOptionWithNet": "{{month}} · Net cash flow {{value}} {{currency}}",
-    "snapshotOptionValue": "{{month}} · {{value}} {{currency}}",
-    "cashflowSource": "Source",
-    "cashflowCurrency": "Currency",
-    "cashflowAmount": "Amount",
-    "trading": {
-      "sections": {
-        "summary": "Plan Overview · {{plan}}",
-        "instruments": "Instruments",
-        "entries": "Trade Log"
-      },
-      "actions": {
-        "createPlan": "New Plan",
-        "editPlan": "Edit Plan",
-        "archivePlan": "Archive Plan",
-        "addInstrument": "Add Instrument",
-        "addExchangeRate": "Add FX Rate",
-        "importCsv": "Bulk Import",
-        "exportCsv": "Export CSV",
-        "exportJson": "Export JSON"
-      },
-      "labels": {
-        "noPeriod": "No period",
-        "targetRoi": "Target ROI",
-        "allInstruments": "All instruments"
-      },
-      "selector": {
-        "placeholder": "Select plan",
-        "showArchived": "Show archived",
-        "hideArchived": "Hide archived"
-      },
-      "statusDraft": "Draft",
-      "statusActive": "Active",
-      "statusArchived": "Archived",
-      "status": {
-        "draft": "Draft",
-        "active": "Active",
-        "archived": "Archived"
-      },
-      "fields": {
-        "name": "Plan Name",
-        "periodStart": "Start Time",
-        "periodEnd": "End Time",
-        "targetRoi": "Target ROI",
-        "targetRoiHelper": "Enter 12 or 0.12 and we'll normalize for you.",
-        "status": "Status",
-        "note": "Notes",
-        "symbol": "Trading Pair",
-        "exchange": "Exchange",
-        "strategyTag": "Strategy Tag"
-      },
-      "modals": {
-        "createPlan": "Create Trading Plan",
-        "editPlan": "Edit Trading Plan",
-        "copyLabel": "Copy from existing",
-        "copyDescription": "Clone period, ROI and note from another plan.",
-        "copyPlaceholder": "Pick a plan…",
-        "copySuffix": "Copy",
-        "createInstrument": "Add Instrument",
-        "editInstrument": "Edit Instrument"
-      },
-      "summary": {
-        "totalInvestment": "Total Investment",
-        "realized": "Realized PnL",
-        "unrealized": "Unrealized PnL",
-        "netValue": "Net Value",
-        "roi": "ROI",
-        "empty": "No summary data yet"
-      },
-      "instrument": {
-        "symbol": "Instrument",
-        "exchange": "Exchange",
-        "position": "Net Position",
-        "baseSymbol": "Base asset",
-        "quoteSymbol": "Quote asset",
-        "positionBase": "Base net position",
-        "positionQuote": "Quote net position",
-        "avgCost": "Avg Cost",
-        "marketValue": "Market Value",
-        "marketValueBase": "Base market value",
-        "marketValueQuote": "Quote balance value",
-        "rateHint": "Rate · 1 {{asset}} ≈ {{rate}}",
-        "roi": "Return",
-        "emptyTitle": "No instruments",
-        "emptyDescription": "Add at least one instrument to start tracking trades.",
-        "deleteTitle": "Delete Instrument"
-      },
-      "entries": {
-        "emptyTitle": "No trades yet",
-        "emptyDescription": "Once you log trades they will appear here.",
-        "deleteTitle": "Delete Trade",
-        "direction": {
-          "buy": "Buy",
-          "sell": "Sell",
-          "transfer": "Transfer"
-        },
-        "source": {
-          "manual": "Manual",
-          "import": "Import"
-        },
-        "actions": {
-          "add": "Log trade",
-          "edit": "Edit trade"
-        },
-        "modal": {
-          "create": "Log trade",
-          "edit": "Edit trade"
-        },
-        "table": {
-          "tradeTime": "Timestamp",
-          "symbol": "Instrument",
-          "baseSymbol": "Base asset",
-          "baseAmount": "Base delta",
-          "baseDelta": "Base delta",
-          "quoteSymbol": "Quote asset",
-          "quoteAmount": "Quote delta",
-          "quoteDelta": "Quote delta",
-          "direction": "Side",
-          "price": "Price",
-          "fee": "Fee",
-          "source": "Source"
-        },
-        "form": {
-          "instrument": "Instrument",
-          "tradeTime": "Trade Time",
-          "baseDeltaSymbol": "{{symbol}} amount",
-          "quoteDeltaSymbol": "{{symbol}} cashflow",
-          "submit": "Add trade",
-          "disabled": "Select a plan and instrument first"
-        },
-        "quickAdd": {
-          "submit": "Quick add"
-        }
-      },
-      "filters": {
-        "instrument": "Instrument",
-        "direction": "Direction",
-        "source": "Source",
-        "dateFrom": "From",
-        "dateTo": "To",
-        "reset": "Reset"
-      },
-      "errors": {
-        "nameRequired": "Name is required",
-        "invalidPeriod": "End time must be after start time",
-        "saveFailed": "Save failed, try again",
-        "symbolRequired": "Symbol is required",
-        "instrumentRequired": "Pick an instrument",
-        "tradeTimeRequired": "Trade time is required",
-        "rateFailed": "Unable to fetch latest rate"
-      },
-      "toasts": {
-        "planCreated": "Plan created",
-        "planUpdated": "Plan updated",
-        "planArchived": "Plan archived",
-        "instrumentCreated": "Instrument added",
-        "instrumentUpdated": "Instrument updated",
-        "instrumentDeleted": "Instrument removed",
-        "entryCreated": "Trade logged",
-        "entryUpdated": "Trade updated",
-        "entryDeleted": "Trade deleted"
-      },
-      "import": {
-        "title": "Bulk import trades",
-        "description": "Download the template, fill it out and upload to preview before committing.",
-        "downloadTemplate": "Download template",
-        "selectFile": "Select CSV",
-        "noRows": "No file selected",
-        "removeRow": "Remove",
-        "submit": "Import trades",
-        "success": "Import completed",
-        "failed": "Import failed",
-        "emptyFile": "File is empty",
-        "emptyRows": "Nothing to import",
-        "fixErrors": "Please fix all invalid rows",
-        "errors": {
-          "instrument": "Instrument not found",
-          "time": "Invalid time",
-          "amount": "Amount required"
-        }
-      },
-      "exchangeRates": {
-        "manage": "Plan FX",
-        "modalTitle": "Add Plan Exchange Rate",
-        "modalDescription": "Bind a base/quote rate to this plan so summaries can convert values.",
-        "fields": {
-          "base": "Base Asset",
-          "quote": "Quote Asset",
-          "rate": "Rate",
-          "capturedAt": "Captured At",
-          "source": "Source"
-        },
-        "errors": {
-          "planRequired": "Select a plan first",
-          "rateRequired": "Provide base, quote and rate"
-        },
-        "toasts": {
-          "created": "Exchange rate saved"
-        },
-        "planRatesTitle": "Exchange rates in use",
-        "planRatesSubtitle": "These are the pairs currently used to value this plan; override any of them below.",
-        "modeSnapshot": "Snapshot",
-        "modeSource": "Live",
-        "modeSnapshotHint": "Snapshot mode locks rates for historical views. Switch to live for reference only.",
-        "modeSourceHint": "Live mode recalculates with current rates for display only.",
-        "snapshotLockedAt": "Snapshot locked: {{time}}",
-        "planRatesEmpty": "No conversions are needed right now. Add trades or capture a rate to see it here.",
-        "lastUpdated": "Last updated: {{time}}",
-        "derived": "Derived from inverse pair",
-        "override": "Update rate",
-        "scope": {
-          "plan": "Plan override",
-          "user": "My default",
-          "global": "Global default",
-          "synthetic": "Auto"
-        }
-      },
-      "charts": {
-        "net": "Net value",
-        "position": "Positions",
-        "pnl": "PnL bars",
-        "placeholder": "Coming soon",
-        "positionDescription": "Shows how each instrument contributes to the current net value.",
-        "positionEmpty": "Add holdings to see the allocation.",
-        "positionNoValuation": "No valuation data yet. Refresh exchange rates or add trades to update."
-      },
-      "emptyState": {
-        "title": "No trading plans yet",
-        "description": "Create a plan to start organizing instruments and trades."
-      }
-    },
-    "emptyCashflowSources": "No sources yet",
-    "noCashflowEntries": "No cashflow entries recorded",
-    "rollupAutoPlaceholder": "Auto",
-    "cashflowSignHint": "Use positive numbers for inflows, negative numbers for outflows; aggregate sources are read-only.",
-    "inflowLabel": "Inflow",
-    "outflowLabel": "Outflow",
-    "autoGenerated": "Auto",
-    "kindRegular": "Standard",
-    "editAccountTitle": "Edit Account",
-    "editAccountSubtitle": "Update account details below; child accounts retain their balances.",
-    "addChildAccount": "Add child account",
-    "billingLabel": "Billing",
-    "manualEntry": "Manual",
-    "viewBilling": "View billing",
-    "deleteAccountTitle": "Delete Account",
-    "deleteAccountWarning": "Delete “{{name}}”? This will soft-delete the account and all of its child accounts.",
-    "deleteAccountConfirm": "Delete “{{name}}”? This will soft-delete the account and all of its child accounts.",
-    "editSnapshotTitle": "Edit balance snapshot",
-    "previousSnapshot": "Previous snapshot",
-    "nextSnapshot": "Next snapshot",
-    "billingSectionTitle": "Billing sources",
-    "applyBillingCycles": "Generate billing entries",
-    "autoBillingHint": "Auto generated: {{names}}",
-    "manageBilling": "Manage {{name}}",
-    "noBillingChanges": "No changes to save",
-    "billingSaved": "Billing entries saved",
-    "manualBillingQuickFill": "Quick fill",
-    "manualBillingQuickFillFor": "Quick fill for {{name}}",
-    "manualBillingOnly": "Only manual billing sources support this feature.",
-    "addOlderBillingMonths": "Load older months",
-    "noBillingCycles": "No billing cycles for this month",
-    "billingCycleRange": "{{start}} → {{end}}",
-    "amount": "Amount",
-    "note": "Note",
-    "billingHistory": "Billing history",
-    "billingHistoryFor": "{{name}} billing history",
-    "postedMonth": "Posted month: {{month}}",
-    "postedMonthHeader": "Posted month",
-    "postedMonthShort": "Month: {{month}}",
-    "billingCycle": "Billing cycle",
-    "optional": "Optional",
-    "billingCycleType": "Cycle type",
-    "cycleDay": "Daily",
-    "cycleWeek": "Weekly",
-    "cycleMonth": "Monthly",
-    "cycleYear": "Yearly",
-    "billingInterval": "Interval",
-    "billingAnchorDate": "Anchor date",
-    "billingAnchorDay": "Billing day (1-28)",
-    "billingAnchorMonthlyLabel": "Every month day {{day}}",
-    "billingAnchorYearlyLabel": "Every year {{month}}/{{day}}",
-    "billingAnchorWeeklyLabel": "Every {{weekday}}",
-    "billingAnchorDailyLabel": "Daily",
-    "billingAnchorDateLabel": "{{date}}",
-    "billingPostTo": "Post to month",
-    "postToEnd": "End date",
-    "postToStart": "Start date",
-    "manualBillingInput": "Manual entry required",
-    "defaultAmount": "Default amount",
-    "billingDefaultAmountLabel": "{{amount}}",
-    "inlineSeparator": ", ",
-    "optionalDefaultAmount": "Optional: used as a suggestion",
-    "requiredDefaultAmount": "Required: used for auto-generated billing amounts",
-    "defaultNote": "Default note",
-    "addSourceSuccess": "Source created",
-    "addSourceFailed": "Failed to create source",
-    "updateSourceSuccess": "Source updated",
-    "updateSnapshotSuccess": "Snapshot updated",
-    "deleteSnapshotWarning": "Delete the snapshot for {{timestamp}}?",
-    "deleteSnapshotSuccess": "Snapshot deleted",
-    "billingApplied": "Billing entries generated",
-    "periodRange": "Period: {{start}} – {{end}}",
-    "cashflowNet": "Net cashflow",
-    "updateAccountSuccess": "Account updated",
-    "updateAccountFailed": "Failed to update account",
-    "deleteAccountSuccess": "Account deleted",
-    "deleteAccountFailed": "Failed to delete account",
-    "updateSnapshotFailed": "Failed to update snapshot",
-    "deleteSnapshotFailed": "Failed to delete snapshot",
-    "actions": {
-      "exportAccounts": "Export Accounts",
-      "exportCashflow": "Export Cashflow"
-    }
-  },
   "modules": {
-    "agent": {
-      "displayName": "AI Assistant",
-      "navLabel": "AI Assistant",
-      "description": "Chat with your personal AI assistant to get advice and help."
-    },
     "visions": {
       "displayName": "Vision",
       "navLabel": "Vision",
@@ -2059,20 +1465,10 @@
       "navLabel": "Note",
       "description": "Capture low-friction notes and link them to LifeOS entities."
     },
-    "sage-maxims": {
-      "displayName": "Sage Maxims",
-      "navLabel": "Sage Maxims",
-      "description": "Collect and share distilled truths from the community."
-    },
     "persons": {
       "displayName": "People",
       "navLabel": "People",
       "description": "Manage people and their linked LifeOS activity."
-    },
-    "finance": {
-      "displayName": "Finance",
-      "navLabel": "Finance",
-      "description": "Track assets, liabilities, and balance snapshots to keep your financial intentions aligned with reality."
     },
     "food-diary": {
       "displayName": "Food Diary",
@@ -2083,11 +1479,6 @@
       "displayName": "Config",
       "navLabel": "Config",
       "description": "Manage LifeOS Web UI preferences and local settings."
-    },
-    "invitations": {
-      "displayName": "Invitation",
-      "navLabel": "Invitation",
-      "description": "Invite specific email addresses to register for beta access."
     }
   },
   "dimensionManager": {
@@ -2130,35 +1521,6 @@
       "spirituality": "Spirituality"
     }
   },
-  "auth": {
-    "email": "Email",
-    "name": "Name",
-    "password": "Password",
-    "emailPlaceholder": "you@example.com",
-    "namePlaceholder": "e.g. Alice",
-    "passwordPlaceholder": "Enter password",
-    "currentPassword": "Current Password",
-    "newPassword": "New Password",
-    "confirmPassword": "Confirm New Password",
-    "passwordRequirements": {
-      "title": "Password Requirements:",
-      "minLength": "At least 8 characters",
-      "uppercase": "Contains uppercase letter",
-      "lowercase": "Contains lowercase letter",
-      "digit": "Contains number",
-      "special": "Contains special character"
-    },
-    "loginFailed": "Login failed",
-    "registerFailed": "Registration failed",
-    "haveAccount": "Already have an account?",
-    "noAccount": "Don't have an account yet?",
-    "goToLogin": "Go to Login",
-    "goToRegister": "Go to Register",
-    "changePassword": "Change Password",
-    "passwordMismatch": "New password and confirmation do not match",
-    "changeSuccess": "Password updated. Please log in again.",
-    "changeFailed": "Failed to update password"
-  },
   "calendar": {
     "saveFailed": "Save failed, please try again later"
   },
@@ -2198,37 +1560,6 @@
     "viewTimeline": "View Timeline",
     "deleteConfirmMessage": "Are you sure you want to delete contact \"{{name}}\"?"
   },
-  "nutrition": {
-    "dailyIntake": "Daily Nutrition Intake",
-    "entryCount": "{{count}} food entries",
-    "labels": {
-      "calories": "Total Calories"
-    }
-  },
-  "foodList": {
-    "deleteTitle": "Delete Food",
-    "deleteMessage": "Are you sure you want to delete \"{{foodName}}\"? Related food entries will not display nutrition information."
-  },
-  "mealSections": {
-    "title": "Food Entries",
-    "mealTypes": {
-      "breakfast": "Breakfast",
-      "lunch": "Lunch",
-      "dinner": "Dinner",
-      "snack": "Snack"
-    },
-    "tableHeaders": {
-      "mealType": "Meal Type",
-      "foodName": "Food Name",
-      "portion": "Portion",
-      "time": "Time"
-    },
-    "calories": "{{calories}}cal",
-    "noEntries": "No food entries",
-    "addEntryHint": "Click buttons above to add entries",
-    "deleteTitle": "Delete Food Entry",
-    "deleteMessage": "Are you sure you want to delete \"{{foodName}}\" entry?"
-  },
   "habitForm": {
     "editTitle": "Edit Habit",
     "fields": {
@@ -2261,9 +1592,9 @@
     }
   },
   "apiErrors": {
-    "notLoggedIn": "User not logged in, request cancelled",
     "400": "Bad request",
     "409": "Resource conflict, please check your input",
+    "notLoggedIn": "User not logged in, request cancelled",
     "proxyResponseTitle": "Proxy or gateway error",
     "proxyHtmlResponse": "A security proxy or gateway returned an HTML error page. Please try again later or contact an administrator if this keeps happening.",
     "invalidResponseFormat": "The service returned a response format that could not be parsed. Please try again later.",
@@ -2341,314 +1672,13 @@
       "actionFailed": "Failed to process template request"
     }
   },
-  "foodForm": {
-    "validationFailed": "Form validation failed",
-    "updateSuccess": "Food updated successfully!",
-    "updateSuccessMessage": "Food \"{{name}}\" has been updated successfully",
-    "createSuccess": "Food created successfully!",
-    "createSuccessMessage": "New food \"{{name}}\" has been added to database",
-    "saveFailed": "Failed to save food",
-    "editFood": "Edit Food",
-    "editFoodForm": "Edit Food Form",
-    "addFoodForm": "Add Food Form",
-    "namePlaceholder": "e.g., apple, chicken breast",
-    "markAsCommon": "Mark as common food",
-    "nutritionInfo": "Nutrition Information (per 100g)",
-    "caloriesUnit": "calories",
-    "grams": "g"
-  },
   "entryRow": {
     "selectRecord": "Select record {{id}}",
     "quickAddAriaLabel": "Quick add time entry"
   },
-  "agent": {
-    "welcomeTitle": "Welcome to AI Assistant",
-    "welcomeSubtitle": "Start a conversation and I'll do my best to help!",
-    "thinking": "AI is thinking...",
-    "inputPlaceholder": "Type a message...",
-    "sendMessageAriaLabel": "Send message",
-    "quota": {
-      "exceededTitle": "Usage Limit",
-      "exceededMessage": "Daily AI token usage {{used}}/{{limit}}.  Resets in {{hours}}h {{minutes}}m."
-    },
-    "errors": {
-      "rateLimited": "Daily AI token limit reached, please try again later",
-      "authExpired": "Login expired, please sign in again",
-      "serviceUnavailable": "Service temporarily unavailable, please try again later",
-      "networkError": "Network connection error, please check your network settings",
-      "permissionDenied": "Insufficient permissions to perform this operation",
-      "requestFailed": "Request failed",
-      "streamTimeout": "No response detected, request timed out. Please try again.",
-      "sessionRequired": "Please create or select a session before sending messages."
-    },
-    "messageStatus": {
-      "pending": "Sending…",
-      "failed": "Failed to send",
-      "failedWithReason": "Failed: {{reason}}",
-      "retry": "Retry"
-    },
-    "identity": {
-      "user": "You",
-      "ai": "AI"
-    },
-    "controls": {
-      "title": "Agent Controls",
-      "moveAgent": "Move Agent",
-      "moveAgentEditMode": "Left-click drag; Right-click to auto-save",
-      "showFloatingAgent": "Show Floating Agent",
-      "hideFloatingAgent": "Hide Floating Agent"
-    },
-    "smartNote": {
-      "bubbleTitle": "Intelligent Note Status",
-      "notePreviewFallback": "New intelligent note",
-      "jobQueuedTitle": "Task queued",
-      "jobQueuedDescription": "\"{{preview}}\" is waiting for the agent",
-      "jobProcessingTitle": "AI is processing",
-      "jobProcessingDescription": "Working on \"{{preview}}\" to auto-link context",
-      "jobSuccessTitle": "Intelligent note ready",
-      "jobSuccessDescription": "\"{{preview}}\" is updated, check it in Notes",
-      "jobFailureTitle": "Intelligent note failed",
-      "jobFailureDescription": "Couldn't process \"{{preview}}\", please retry",
-      "jobFailureDescriptionWithReason": "\"{{preview}}\" failed: {{reason}}",
-      "jobTimeoutTitle": "Processing timed out",
-      "jobTimeoutDescription": "No result yet. Check \"{{preview}}\" in Notes later",
-      "instantSuccessTitle": "Note created",
-      "instantSuccessDescription": "\"{{preview}}\" is saved and ready to edit"
-    },
-    "quickActions": {
-      "title": "Quick Actions",
-      "todaySchedule": "What are my arrangements for today?",
-      "yesterdaySummary": "Summarize my yesterday"
-    },
-    "summary": {
-      "placeholder": "Coming soon..."
-    },
-    "context": {
-      "modules": {
-        "chat": "Chat",
-        "unknown": "Unknown",
-        "actual_event": "Time Log",
-        "notes": "Notes",
-        "planning_tasks": "Planning Tasks",
-        "vision_progress": "Vision Progress"
-      },
-      "sectionTitle": "Session Context",
-      "inlineTrigger": "Add Context",
-      "modalTitle": "Manage Context",
-      "tabExisting": "Existing Context",
-      "tabCreate": "New Context",
-      "errorNoSession": "Please select or create a session first",
-      "previewError": "Failed to preview CardBox",
-      "addSuccess": "Added \"{{name}}\" to this session",
-      "addError": "Failed to add CardBox",
-      "deleteSuccess": "Deleted CardBox \"{{name}}\"",
-      "deleteError": "Failed to delete CardBox",
-      "deleteTitle": "Delete CardBox",
-      "deleteMessage": "Delete CardBox \"{{name}}\"? This action cannot be undone.",
-      "deleteConfirm": "Delete",
-      "previewRequired": "Preview and confirm the context data before creating",
-      "createSuccess": "Created CardBox \"{{name}}\" and added to this session",
-      "createError": "Failed to create CardBox",
-      "loadingContext": "Loading session context...",
-      "noContextBoxes": "No context boxes associated with the current session yet.",
-      "createOrSelectSession": "Create or select a session to view context boxes.",
-      "search": {
-        "contextBox": "Search Context Box",
-        "placeholder": "Enter name or module keywords"
-      },
-      "availableContextBoxes": "Available Context Boxes",
-      "noMatchingContextBoxes": "No matching context boxes found.",
-      "previewContent": "Preview Content",
-      "selectContextBoxToPreview": "Select a context box to preview content examples.",
-      "previewResults": "Preview Results",
-      "previewMatchCount": "Found {{count}} matching records",
-      "previewInstructions": "Configure filter conditions and click \"Preview Data\" to view business results.",
-      "create": {
-        "module": "Module",
-        "contextName": "Context Name (Optional)",
-        "contextNamePlaceholder": "Name the context box",
-        "startDate": "Start Date",
-        "endDate": "End Date",
-        "dimension": "Dimension (Optional)",
-        "keyword": "Keyword (Optional)",
-        "keywordPlaceholder": "Filter text content",
-        "relatedTags": "Related Tags (Optional)",
-        "relatedPersons": "Related Persons (Optional)",
-        "planningCycle": "Planning Cycle",
-        "cycleOptions": {
-          "day": "By Day",
-          "week": "By Week",
-          "month": "By Month",
-          "year": "By Year"
-        },
-        "taskStatus": "Task Status",
-        "statusOptions": {
-          "all": "All Tasks",
-          "active": "Active",
-          "completed": "Completed / Cancelled"
-        },
-        "selectVision": "Select Vision"
-      },
-      "buttons": {
-        "previewData": "Preview Data",
-        "searching": "Searching...",
-        "addToSession": "Add to Session",
-        "creating": "Creating...",
-        "createAndAdd": "Create and Add to Current Session"
-      },
-      "status": {
-        "added": "Added",
-        "adding": "Adding..."
-      },
-      "createInstructions": "Preview and confirm before creating context box. To modify filter conditions, please preview again.",
-      "previewFoundRecords": "Found {{count}} records, context box will be created after confirmation.",
-      "errors": {
-        "selectStartDate": "Please select start date first",
-        "selectVision": "Please select vision first",
-        "selectPlanningStartDate": "Please select planning cycle start date",
-        "selectAtLeastOneVision": "Please select at least one vision",
-        "previewFailed": "Preview failed, please try again later"
-      }
-    },
-    "toolRun": {
-      "unknownTool": "Unknown tool",
-      "started": "Invoking tool {{tool}}…",
-      "finished": "Tool {{tool}} completed.",
-      "finishedWithResult": "Tool {{tool}} completed:\n{{result}}",
-      "failed": "Tool {{tool}} failed: {{reason}}",
-      "progressPercent": "{{value}}%",
-      "progressLabel": "In progress",
-      "duration": "Duration {{value}}",
-      "startedAt": "Started at {{time}}",
-      "finishedAt": "Finished at {{time}}",
-      "argumentsLabel": "Arguments",
-      "argumentsTitle": "Request payload",
-      "resultTitle": "Tool output",
-      "progressTitle": "Progress",
-      "viewDetails": "View details",
-      "detailsTitle": "{{tool}} details",
-      "argumentsMore": "+{{count}} more",
-      "noOutput": "No output available"
-    },
-    "tokenUsage": {
-      "title": "Token usage",
-      "progress": "{{used}} / {{budget}} tokens",
-      "progressWithoutBudget": "{{used}} tokens used",
-      "totalLabel": "Total",
-      "deltaLabel": "Last response",
-      "tokensUnit": "{{count}} tokens",
-      "budgetLabel": "Context budget: {{count}} tokens",
-      "windowLabel": "Model window: {{count}} tokens",
-      "totalCost": "Total cost: ${{value}}",
-      "deltaCost": "Response cost: ${{value}}",
-      "badgeLabel": "Tokens: {{count}}",
-      "badgeLabelFormatted": "Tokens: {{value}}",
-      "tooltip": {
-        "tokens": "Tokens used: {{used}}",
-        "window": "Model window: {{count}}",
-        "budget": "Context budget: {{count}}",
-        "cost": "Estimated cost: ${{value}}"
-      }
-    },
-    "sessions": {
-      "recentTitle": "Recent Sessions",
-      "historyButton": "History",
-      "historyModalTitle": "Session History",
-      "newSession": "Start New Session",
-      "newSessionLabel": "New Session",
-      "startFirstSession": "Start Your First Session",
-      "welcomeTitle": "Start Your First Conversation",
-      "welcomeDescription": "No sessions yet. Click the button below to start chatting with your AI assistant",
-      "sessionLabel": "Session {{index}} · {{date}}",
-      "empty": "No recent sessions",
-      "messageCount": "{{count}} messages",
-      "delete": "Delete session",
-      "markAllRead": "Mark all read",
-      "unreadStatus": "({{count}} unread)",
-      "tabs": {
-        "chat": "Chat",
-        "system": "System alerts"
-      }
-    },
-    "inputPlaceholderWithAgent": "Message {{agent}}...",
-    "notifications": {
-      "readonlyMode": "System notifications are read-only.",
-      "readonlyDescription": "System notifications summarise background jobs, scheduled reminders, and other alerts.",
-      "readonlyInput": "Notifications cannot be replied to here. Switch back to chat to continue the conversation.",
-      "titleFallback": "System notification",
-      "severity": {
-        "info": "Info",
-        "warning": "Warning",
-        "critical": "Critical"
-      }
-    },
-    "selectLabel": "Assistant",
-    "noAgentsAvailable": "No assistant available yet"
-  },
   "checkboxGroup": {
     "selectAll": "Select All",
     "clearAll": "Clear All"
-  },
-  "cardbox": {
-    "filters": {
-      "date": "Date",
-      "startDate": "Start",
-      "endDate": "End",
-      "dimension": "Dimension",
-      "keyword": "Keyword",
-      "descriptionKeyword": "Description Keyword",
-      "trackingMethod": "Tracking Method",
-      "tag": "Tag",
-      "person": "Person",
-      "cycle": "Cycle",
-      "status": "Status",
-      "visionCount": "Vision Count",
-      "taskStatus": "Task Status",
-      "limit": "Result Limit"
-    },
-    "labels": {
-      "time": "Time",
-      "duration": "Duration",
-      "hour": "h",
-      "minute": "min",
-      "trackingMethod": "Tracking Method",
-      "participants": "Participants",
-      "task": "Task",
-      "notes": "Notes",
-      "tags": "Tags",
-      "relatedTask": "Related Task",
-      "description": "Description",
-      "coreParticipants": "Core Participants",
-      "createdTime": "Created Time",
-      "noContent": "(No content)",
-      "relatedPersons": "Related Persons",
-      "cards": "cards",
-      "cardCount": "Card Count",
-      "lastUpdated": "Last Updated",
-      "filters": "Filters"
-    },
-    "status": {
-      "inProgress": "In Progress",
-      "noTitleEvent": "Untitled Event",
-      "noContent": "No Content",
-      "structuredDataPrompt": "This card contains structured data, please view the full content in the context box details.",
-      "noMatchingRecords": "No matching records found.",
-      "noMatchingNotes": "No matching notes found.",
-      "noMatchingTasks": "No planning tasks found matching the criteria.",
-      "noMatchingVisions": "No matching visions found.",
-      "minutes": "minutes",
-      "unknownDimension": "Unassigned Dimension",
-      "statusFilter": "Status",
-      "priorityFilter": "Priority",
-      "planningCycleFilter": "Planning Cycle",
-      "startDateFormat": "Start Date",
-      "totalEffortMinutes": "Total Effort",
-      "stageFilter": "Stage",
-      "visionTaskList": "Task List ({{count}} items):",
-      "statusPriority": "Status · Priority",
-      "noContentInBox": "This context box has no content yet.",
-      "matchingRecords": "matching records"
-    }
   },
   "tree": {
     "stage": {
@@ -2712,90 +1742,6 @@
     "empty": {
       "title": "No Tasks Yet",
       "description": "Start creating your first task"
-    }
-  },
-  "sageMaxims": {
-    "createTitle": "Share a new maxim",
-    "createPlaceholder": "Write the concise piece of wisdom you want to share (280 characters max)",
-    "submit": "Publish Maxim",
-    "lengthHint": "Up to 280 characters",
-    "empty": "No maxims yet. Be the first to contribute your insight!",
-    "sort": {
-      "label": "Sort",
-      "random": "Random",
-      "latest": "Latest",
-      "top": "Top"
-    },
-    "refresh": "Refresh",
-    "submitSuccess": "Maxim published",
-    "reactionError": "We could not record your feedback. Please try again.",
-    "createdBy": "Shared by {{name}} on {{date}}",
-    "likeCountLabel": "{{count}} likes",
-    "dislikeCountLabel": "{{count}} dislikes"
-  },
-  "invitations": {
-    "title": "Invitation",
-    "subtitle": "Invite specific email addresses to register for beta access.",
-    "status": {
-      "pending": "Pending",
-      "registered": "Registered",
-      "revoked": "Revoked",
-      "expired": "Expired"
-    },
-    "invitedMe": {
-      "title": "Who invited me",
-      "empty": "No invitation records yet.",
-      "fallbackName": "Unknown inviter"
-    },
-    "generator": {
-      "title": "Generate invitation",
-      "description": "Each invitation code is bound to the invitee's email, please send it privately.",
-      "unavailable": "Invitations are not open",
-      "unavailableDescription": "Only admins can create invitations right now."
-    },
-    "form": {
-      "emailLabel": "Invitee email",
-      "emailPlaceholder": "name@example.com",
-      "inviteCodeLabel": "Invitation code (optional)",
-      "inviteCodePlaceholder": "Enter invitation code (if any)",
-      "memoLabel": "Memo (optional)",
-      "memoPlaceholder": "e.g. Jennifer Smith",
-      "submit": "Generate invitation"
-    },
-    "list": {
-      "title": "Who have I invited",
-      "empty": "No invitations created yet.",
-      "email": "Target email",
-      "code": "Invitation code",
-      "status": "Status",
-      "createdAt": "Created at",
-      "link": "Registration link (copy for invitee)",
-      "copyLink": "Copy link",
-      "memo": "Memo",
-      "actions": "Actions",
-      "revoke": "Cancel invitation",
-      "restore": "Restore"
-    },
-    "toast": {
-      "createSuccess": "Invitation generated",
-      "createFailed": "Failed to generate invitation",
-      "revokeSuccess": "Invitation revoked",
-      "revokeFailed": "Failed to revoke invitation",
-      "restoreSuccess": "Invitation restored",
-      "restoreFailed": "Failed to restore invitation",
-      "copySuccess": "Signup link copied",
-      "copyFailed": "Failed to copy link"
-    },
-    "validation": {
-      "emailRequired": "Please enter the invitee's email"
-    },
-    "register": {
-      "verifying": "Verifying invitation...",
-      "invalid": "This invitation is invalid or already used. Please contact the inviter.",
-      "valid": "Invitation verified",
-      "invitee": "Bound email: {{email}}",
-      "inviterWithEmail": "Invited by {{name}} ({{email}})",
-      "inviterName": "Invited by {{name}}"
     }
   }
 }

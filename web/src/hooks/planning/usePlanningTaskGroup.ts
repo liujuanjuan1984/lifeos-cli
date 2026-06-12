@@ -16,8 +16,6 @@ import { usePersistentState } from "@/hooks/usePersistentState";
 import type { CalendarAdapter, PlanningGroup } from "@/utils/calendar";
 import { formatDateInTimezone, formatDuration } from "@/utils/datetime";
 import { ACTIVE_TASK_STATUSES, TASK_STATUS_LABELS } from "@/utils/constants";
-import { usePlanningExport } from "@/hooks/useExport";
-import { type ExtendedPlanningExportParams } from "@/services/api/export";
 
 import type { UUID } from "@/types/primitive";
 import {
@@ -64,7 +62,6 @@ export interface PlanningTaskGroupHandlers {
   handleCarryForwardClick: () => void;
   handleCarryForwardTasks: () => Promise<void>;
   handleCancelCarryForward: () => void;
-  handleExportClick: () => Promise<void>;
   handleHabitActionStatusUpdate: (
     actionId: UUID,
     habitId: UUID,
@@ -99,7 +96,6 @@ interface PlanningTaskGroupHookResult {
   selectedTaskId: UUID | null;
   showCarryForwardConfirm: boolean;
   isCarryingForward: boolean;
-  isExporting: boolean;
   carryForwardableTasks: TaskWithSubtasks[];
   periodRangeLabel?: string;
   canCreateTask: boolean;
@@ -121,7 +117,6 @@ export function usePlanningTaskGroup(
 
   const { t } = useTranslation();
   const toast = useToast();
-  const { exportData: exportPlanningData } = usePlanningExport();
   const queryClient = useQueryClient();
   const { getDefaultCycleSettings, adapter } = usePlanningCycle();
   const { defaultInboxVision } = useDefaultInboxVision();
@@ -137,20 +132,6 @@ export function usePlanningTaskGroup(
       return false;
     },
   });
-  // Export是否包含笔记的偏好在后端读取；前端仅用于展示/编辑，不参与请求参数
-  usePreferenceWithBootstrap<boolean>({
-    key: "notes.export_planning.include_task_notes",
-    defaultValue: true,
-    module: "notes",
-    validator: (value) => typeof value === "boolean",
-  });
-  usePreferenceWithBootstrap<boolean>({
-    key: "notes.export_planning.include_cycle_notes",
-    defaultValue: false,
-    module: "notes",
-    validator: (value) => typeof value === "boolean",
-  });
-
   const planningTaskFilterStatus = useMemo(() => ACTIVE_TASK_STATUSES, []);
 
   const [showTaskSelector, setShowTaskSelector] = useState(false);
@@ -164,8 +145,6 @@ export function usePlanningTaskGroup(
 
   const [isCarryingForward, setIsCarryingForward] = useState(false);
   const [showCarryForwardConfirm, setShowCarryForwardConfirm] = useState(false);
-
-  const [isExporting, setIsExporting] = useState(false);
 
   const { getExpandedTasksForDraggable, toggleTaskExpansion } =
     useTaskExpansionState({
@@ -812,44 +791,6 @@ export function usePlanningTaskGroup(
     setShowCarryForwardConfirm(false);
   }, []);
 
-  const handleExportClick = useCallback(async () => {
-    if (!planningCycleType) return;
-
-    try {
-      setIsExporting(true);
-
-      const exportParams: ExtendedPlanningExportParams = {
-        view_type: planningCycleType,
-        selected_date: group.date,
-      };
-
-      await exportPlanningData(exportParams, {
-        showToasts: false, // 禁用导出hook的默认toast
-        estimateModule: "planning",
-        onSuccess: (_result) => {
-          toast.showSuccess(
-            t("planning.messages.exportSuccess"),
-            t("planning.messages.exportSuccessMessage"),
-          );
-        },
-        onError: (error) => {
-          toast.showError(
-            t("filterStatus.exportError"),
-            error.message || t("planning.messages.exportFailedMessage"),
-          );
-        },
-      });
-    } catch (error) {
-      console.error("Failed to export planning data:", error);
-      toast.showError(
-        t("filterStatus.exportError"),
-        t("planning.messages.exportFailedMessage"),
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  }, [planningCycleType, group.date, exportPlanningData, toast, t]);
-
   const handleHabitActionStatusUpdate = useCallback(
     async (actionId: UUID, habitId: UUID, newStatus: string) => {
       try {
@@ -905,7 +846,6 @@ export function usePlanningTaskGroup(
     handleCarryForwardClick,
     handleCarryForwardTasks,
     handleCancelCarryForward,
-    handleExportClick,
     handleHabitActionStatusUpdate,
     handleHabitActionNotesUpdate,
   };
@@ -931,7 +871,6 @@ export function usePlanningTaskGroup(
     selectedTaskId,
     showCarryForwardConfirm,
     isCarryingForward,
-    isExporting,
     carryForwardableTasks,
     periodRangeLabel,
     canCreateTask,

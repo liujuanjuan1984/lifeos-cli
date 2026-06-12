@@ -49,8 +49,6 @@ interface CreateNoteModalProps {
   onNoteCreated?: (note?: Note) => void;
   mode?: "create" | "edit";
   existingNote?: Note;
-  variant?: "standard" | "intelligent";
-  createStrategy?: "default" | "autoIngest";
 }
 
 export default function CreateNoteModal({
@@ -68,8 +66,6 @@ export default function CreateNoteModal({
   onNoteCreated,
   mode = "create",
   existingNote,
-  variant = "standard",
-  createStrategy = "default",
 }: CreateNoteModalProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -203,7 +199,6 @@ export default function CreateNoteModal({
     useCreateNoteModalController({
       mode,
       existingNote,
-      createStrategy,
       onCompleted: handleClose,
       onNoteCreated,
     });
@@ -293,21 +288,13 @@ export default function CreateNoteModal({
   );
 
   const isLoading = isSubmitting;
-  const isIntelligentVariant = variant === "intelligent";
-  const modalTitle = isIntelligentVariant
-    ? t("createNoteModal.intelligentTitle")
-    : mode === "edit"
-      ? t("createNoteModal.editTitle")
-      : t("createNoteModal.title");
-  const modalDescription = isIntelligentVariant
-    ? t("createNoteModal.intelligentDescription")
-    : null;
+  const modalTitle =
+    mode === "edit" ? t("createNoteModal.editTitle") : t("createNoteModal.title");
+  const modalDescription = null;
   const submitText =
     mode === "edit"
       ? t("createNoteModal.updateText")
-      : isIntelligentVariant
-        ? t("createNoteModal.intelligentSubmitText")
-        : t("createNoteModal.submitText");
+      : t("createNoteModal.submitText");
   const modalSize = mode === "edit" ? "xl" : "2xl";
 
   const timelogPreview = useMemo<TimelogPreview | null>(() => {
@@ -432,55 +419,53 @@ export default function CreateNoteModal({
           />
         </FormField>
 
-        {!isIntelligentVariant ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 人员选择器 */}
-            <div>
-              <PersonSelector
-                selectedPersonIds={selectedPersonIds}
-                onSelectionChange={setSelectedPersonIds}
-                placeholder={t("common.none")}
-                multiple={true}
-                disabled={isPersonSelectionLocked}
-                idPrefix="create-note-person"
-              />
-            </div>
-
-            {/* 标签选择器 */}
-            <div>
-              <TagSelector
-                availableTags={availableNoteTags}
-                selectedTagIds={selectedTagIds}
-                onTagsChange={handleTagsChange}
-                onCreateTag={handleCreateTag}
-                lockedTagIds={lockedTagIds}
-                disabled={false}
-                idPrefix="create-note-tag"
-              />
-            </div>
-
-            {/* 任务选择：支持锁定或自由选择 */}
-            <div>
-              <TaskSelector
-                value={selectedTaskId ?? null}
-                onChange={(id) => {
-                  if (isTaskSelectionLocked) return;
-                  setSelectedTaskId(id || null);
-                }}
-                placeholder={
-                  isTaskSelectionLocked
-                    ? t("createNoteModal.relatedTaskLocked")
-                    : t("createNoteModal.relatedTaskOptional")
-                }
-                disabled={isTaskSelectionLocked}
-                filterStatus={taskFilterStatus}
-                deferRemoteLoad={true}
-                overrideOptions={lockedTaskOverrideOptions}
-                idPrefix="create-note-task"
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* 人员选择器 */}
+          <div>
+            <PersonSelector
+              selectedPersonIds={selectedPersonIds}
+              onSelectionChange={setSelectedPersonIds}
+              placeholder={t("common.none")}
+              multiple={true}
+              disabled={isPersonSelectionLocked}
+              idPrefix="create-note-person"
+            />
           </div>
-        ) : null}
+
+          {/* 标签选择器 */}
+          <div>
+            <TagSelector
+              availableTags={availableNoteTags}
+              selectedTagIds={selectedTagIds}
+              onTagsChange={handleTagsChange}
+              onCreateTag={handleCreateTag}
+              lockedTagIds={lockedTagIds}
+              disabled={false}
+              idPrefix="create-note-tag"
+            />
+          </div>
+
+          {/* 任务选择：支持锁定或自由选择 */}
+          <div>
+            <TaskSelector
+              value={selectedTaskId ?? null}
+              onChange={(id) => {
+                if (isTaskSelectionLocked) return;
+                setSelectedTaskId(id || null);
+              }}
+              placeholder={
+                isTaskSelectionLocked
+                  ? t("createNoteModal.relatedTaskLocked")
+                  : t("createNoteModal.relatedTaskOptional")
+              }
+              disabled={isTaskSelectionLocked}
+              filterStatus={taskFilterStatus}
+              deferRemoteLoad={true}
+              overrideOptions={lockedTaskOverrideOptions}
+              idPrefix="create-note-task"
+            />
+          </div>
+        </div>
       </form>
     </ModalBase>
   );

@@ -10,7 +10,6 @@ interface TimeLogToolbarProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   onQueryModeChange: (mode: QueryMode) => void;
-  onExportDaily?: () => void;
 }
 
 const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
@@ -18,7 +17,6 @@ const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
   selectedDate,
   onDateChange,
   onQueryModeChange,
-  onExportDaily,
 }) => {
   const { t } = useTranslation();
   const goToPreviousDay = () => {
@@ -46,7 +44,7 @@ const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
       padding="md"
       layout="three-column"
     >
-      {/* 左列：导出按钮（仅单日模式） */}
+      {/* 左列：导入与返回按钮 */}
       <div className="flex justify-start gap-2 flex-wrap">
         {!isImportMode && (
           <ActionButton
@@ -67,17 +65,6 @@ const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
             variant="outline"
             ariaLabel={t("timeLog.toolbar.returnToSingle")}
             onClick={() => onQueryModeChange("single")}
-            className="font-normal text-base"
-          />
-        )}
-        {queryMode === "single" && onExportDaily && (
-          <ActionButton
-            label={t("timeLog.toolbar.exportDaily")}
-            iconName="clipboard"
-            color="success"
-            variant="outline"
-            ariaLabel="Export daily timelogs"
-            onClick={onExportDaily}
             className="font-normal text-base"
           />
         )}

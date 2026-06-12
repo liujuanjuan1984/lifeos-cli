@@ -30,7 +30,6 @@ vi.mock("@/hooks/planning/usePlanningTaskGroup", () => ({
       canAddTask: true,
       isCreatingTask: false,
       isAddingTask: false,
-      isExporting: false,
       isCarryingForward: false,
       carryForwardCount: 0,
       showCreateTask: false,

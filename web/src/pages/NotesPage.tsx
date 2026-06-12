@@ -13,7 +13,6 @@ import { useTagSelectorSource } from "@/hooks/selectors/useTagSelectorSource";
 import TagManager from "@/components/TagManagerModal";
 
 import { useToast } from "@/contexts/ToastContext";
-import { useNotesExport } from "@/hooks/useExport";
 // Inline editing is replaced by CreateNoteModal
 
 // Note components
@@ -29,7 +28,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import type { UUID } from "@/types/primitive";
 import CreateNoteModal from "@/components/CreateNoteModal";
 import { type Note as ApiNote } from "@/services/api/notes";
-import { createDateBoundaries, formatDate } from "@/utils/datetime";
+import { createDateBoundaries } from "@/utils/datetime";
 import {
   useNotesPageData,
   NOTES_ADVANCED_PAGE_SIZE,
@@ -77,7 +76,6 @@ function NotesPage() {
     advancedFormState,
     advancedNotes,
     canCopyAdvancedResults,
-    personLookup,
   } = useNotesPageData({ queryMode });
   const [showBatchEditModal, setShowBatchEditModal] = useState(false);
   const {
@@ -128,9 +126,6 @@ function NotesPage() {
     clearAllFilters,
     setSearchKeyword,
   } = noteFilters;
-
-  // Export functionality
-  const { exportData: exportNotesData } = useNotesExport();
 
   // Create person lookup map for efficient access
   const handleAdvancedParamsChange = useCallback(
@@ -307,159 +302,6 @@ function NotesPage() {
     createTag: createNoteTag,
   } = useTagSelectorSource({ entityType: "note" });
 
-  // Advanced search export functionality using new backend API
-  const handleAdvancedCopyResults = useCallback(async () => {
-    if (!notesAdvancedSearch.data.length) {
-      showInfo(
-        t("notes.advancedSearch.copyNoResultsTitle"),
-        t("notes.advancedSearch.copyNoResultsMessage"),
-      );
-      return;
-    }
-
-    // Prepare tags for export
-    const selectedTagsForExport = advancedSearchParams.tag_ids
-      .map((id) => availableNoteTags.find((tag) => tag.id === id))
-      .filter((tag): tag is Tag => Boolean(tag))
-      .map((tag) => ({ id: tag.id, name: tag.name }));
-
-    // Prepare persons for export
-    const selectedPersonsForExport = advancedSearchParams.person_ids
-      .map((id) => personLookup.get(id))
-      .filter((person): person is PersonSummary => Boolean(person))
-      .map((person) => ({ id: person.id, display_name: person.display_name }));
-
-    const filterSummary: string[] = [];
-
-    const formatDateLabel = (iso: string | null) =>
-      iso ? formatDate(iso, activeTimezone) : "";
-
-    if (advancedSearchParams.start_date && advancedSearchParams.end_date) {
-      filterSummary.push(
-        t("notes.advancedSearch.summary.dateRange", {
-          start: formatDateLabel(advancedSearchParams.start_date),
-          end: formatDateLabel(advancedSearchParams.end_date),
-        }),
-      );
-    } else if (advancedSearchParams.start_date) {
-      filterSummary.push(
-        t("notes.advancedSearch.summary.dateFrom", {
-          start: formatDateLabel(advancedSearchParams.start_date),
-        }),
-      );
-    } else if (advancedSearchParams.end_date) {
-      filterSummary.push(
-        t("notes.advancedSearch.summary.dateTo", {
-          end: formatDateLabel(advancedSearchParams.end_date),
-        }),
-      );
-    }
-
-    if (advancedSearchParams.tag_mode === "none") {
-      filterSummary.push(t("notes.advancedSearch.summary.tagNone"));
-    } else if (selectedTagsForExport.length > 0) {
-      const tagNames = selectedTagsForExport
-        .map((tag) => `#${tag.name}`)
-        .join(", ");
-      if (advancedSearchParams.tag_mode === "all") {
-        filterSummary.push(
-          t("notes.advancedSearch.summary.tagAll", { names: tagNames }),
-        );
-      } else {
-        filterSummary.push(
-          t("notes.advancedSearch.summary.tagAny", { names: tagNames }),
-        );
-      }
-    } else {
-      filterSummary.push(t("notes.advancedSearch.summary.tagAnyEmpty"));
-    }
-
-    if (advancedSearchParams.person_mode === "none") {
-      filterSummary.push(t("notes.advancedSearch.summary.personNone"));
-    } else if (selectedPersonsForExport.length > 0) {
-      const personNames = selectedPersonsForExport
-        .map((person) => `@${person.display_name}`)
-        .join(", ");
-      if (advancedSearchParams.person_mode === "all") {
-        filterSummary.push(
-          t("notes.advancedSearch.summary.personAll", { names: personNames }),
-        );
-      } else {
-        filterSummary.push(
-          t("notes.advancedSearch.summary.personAny", { names: personNames }),
-        );
-      }
-    } else {
-      filterSummary.push(t("notes.advancedSearch.summary.personAnyEmpty"));
-    }
-
-    const taskSummary = (() => {
-      switch (advancedSearchParams.task_filter) {
-        case "none":
-          return t("notes.advancedSearch.summary.taskNone");
-        case "has":
-          return t("notes.advancedSearch.summary.taskHas");
-        case "any":
-          return t("notes.advancedSearch.summary.taskAny");
-        case "specific": {
-          const taskName =
-            (advancedSearchParams.task_id
-              ? tasksForAdvancedSearch.find(
-                  (task) => task.id === advancedSearchParams.task_id,
-                )?.name
-              : null) ||
-            notesAdvancedSearch.data.find(
-              (note) => note.task?.id === advancedSearchParams.task_id,
-            )?.task?.content;
-          return t("notes.advancedSearch.summary.taskSpecific", {
-            task:
-              taskName ||
-              advancedSearchParams.task_id ||
-              t("notes.advancedSearch.summary.taskUnknown"),
-          });
-        }
-        default:
-          return null;
-      }
-    })();
-
-    if (taskSummary) {
-      filterSummary.push(taskSummary);
-    }
-
-    if (advancedSearchParams.keyword && advancedSearchParams.keyword.trim()) {
-      filterSummary.push(
-        t("notes.advancedSearch.summary.keyword", {
-          keyword: advancedSearchParams.keyword.trim(),
-        }),
-      );
-    }
-
-    // Use the new export API
-    await exportNotesData(
-      {
-        selected_filter_tags: selectedTagsForExport,
-        selected_filter_persons: selectedPersonsForExport,
-        search_keyword: advancedSearchParams.keyword ?? "",
-        filter_summary: filterSummary,
-        locale: "zh-CN",
-      },
-      {
-        showToasts: true,
-      },
-    );
-  }, [
-    notesAdvancedSearch.data,
-    advancedSearchParams,
-    availableNoteTags,
-    personLookup,
-    tasksForAdvancedSearch,
-    showInfo,
-    t,
-    activeTimezone,
-    exportNotesData,
-  ]);
-
   // Tag management modal state
   const [showTagManager, setShowTagManager] = useState(false);
   // Page header via context
@@ -621,7 +463,6 @@ function NotesPage() {
             onParamsChange={handleAdvancedParamsChange}
             onSearch={loadAdvancedSearchResults}
             onReset={handleAdvancedReset}
-            onCopyResults={handleAdvancedCopyResults}
             availableTags={availableNoteTags}
             onCreateTag={handleCreateNoteTag}
             availableTasks={tasksForAdvancedSearch}

@@ -23,12 +23,10 @@ interface TaskGroupHeaderProps {
   canAddTask: boolean;
   isCreatingTask: boolean;
   isAddingTask: boolean;
-  isExporting: boolean;
   isCarryingForward: boolean;
   carryForwardCount: number;
   onCreateTaskClick: () => void;
   onAddTaskClick: () => void;
-  onExportClick: () => void;
   onCarryForwardClick: () => void;
 }
 
@@ -54,12 +52,10 @@ export const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
   canAddTask,
   isCreatingTask,
   isAddingTask,
-  isExporting,
   isCarryingForward,
   carryForwardCount,
   onCreateTaskClick,
   onAddTaskClick,
-  onExportClick,
   onCarryForwardClick,
 }) => {
   const { t } = useTranslation();
@@ -157,26 +153,6 @@ export const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
               ariaLabel={t("planning.taskActions.addTask", {
                 period: groupLabel,
               })}
-            />
-          )}
-
-          {canAddTask && (
-            <ActionButton
-              label={t("planning.taskActions.export")}
-              icon={
-                isExporting ? (
-                  <LoadingDot className="border-secondary" />
-                ) : (
-                  <Icon name="clipboard" size={16} aria-hidden />
-                )
-              }
-              color="primary"
-              variant="ghost"
-              size="sm"
-              onClick={onExportClick}
-              disabled={isExporting}
-              iconOnly
-              ariaLabel={t("planning.taskActions.export")}
             />
           )}
 

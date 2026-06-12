@@ -26,7 +26,6 @@ const PlanningTaskList: React.FC<PlanningTaskListProps> = (props) => {
     canAddTask,
     isCreatingTask,
     isAddingTask,
-    isExporting,
     isCarryingForward,
     carryForwardCount,
     showCreateTask,
@@ -68,7 +67,6 @@ const PlanningTaskList: React.FC<PlanningTaskListProps> = (props) => {
       canAddTask={canAddTask}
       isCreatingTask={isCreatingTask}
       isAddingTask={isAddingTask}
-      isExporting={isExporting}
       isCarryingForward={isCarryingForward}
       carryForwardCount={carryForwardCount}
       showCreateTask={showCreateTask}

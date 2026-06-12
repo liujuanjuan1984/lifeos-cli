@@ -35,7 +35,7 @@ interface NotesAdvancedSearchPanelProps {
   onSearch: () => void;
   onReset: () => void;
   onExport?: () => void;
-  onCopyResults: () => void;
+  onCopyResults?: () => void;
   availableTags: Tag[];
   onCreateTag: (tagName: string) => Promise<Tag>;
   availableTasks: { id: UUID; name: string }[];
@@ -524,14 +524,16 @@ const NotesAdvancedSearchPanel = ({
               onReset();
             }}
           />
-          <ActionButton
-            label={t("notes.advancedSearch.copyResults")}
-            iconName="clipboard"
-            color="primary"
-            variant="outline"
-            onClick={onCopyResults}
-            disabled={!canCopyResults || isLoading}
-          />
+          {onCopyResults && (
+            <ActionButton
+              label={t("notes.advancedSearch.copyResults")}
+              iconName="clipboard"
+              color="primary"
+              variant="outline"
+              onClick={onCopyResults}
+              disabled={!canCopyResults || isLoading}
+            />
+          )}
           {onExport && (
             <ActionButton
               label={t("notes.advancedSearch.export")}

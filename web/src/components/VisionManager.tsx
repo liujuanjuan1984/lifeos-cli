@@ -23,8 +23,6 @@ import ActionButton, { EditButton, ActionButtonGroup } from "./ActionButton";
 import ExpandableCard from "./ExpandableCard";
 import DimensionBadge from "./DimensionBadge";
 import { Icon } from "./icons";
-import { useVisionExport } from "@/hooks/useExport";
-import { type VisionExportParams } from "@/services/api/export";
 import type { Vision, TaskWithSubtasks } from "@/services/api";
 import { visionsApi } from "@/services/api";
 import { formatDuration, formatDate } from "@/utils/datetime";
@@ -130,7 +128,6 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
 
     // Toast notifications
     const toast = useToast();
-    const { exportData: exportVisionData } = useVisionExport();
 
     // 扁平化任务树的辅助函数
     const getFlattenedTasks = useCallback((tasks: TaskWithSubtasks[]) => {
@@ -254,42 +251,6 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
         }
       },
       [requestDeleteVision],
-    );
-
-    const handleCopyVision = useCallback(
-      async (vision: Vision) => {
-        try {
-          const exportParams: VisionExportParams = {
-            vision_id: vision.id,
-            include_subtasks: true,
-            include_notes: true,
-            include_time_records: true,
-          };
-
-          await exportVisionData(exportParams, {
-            showToasts: false, // 禁用导出hook的默认toast
-            onSuccess: () => {
-              toast.showSuccess(
-                t("visions.messages.copySuccess"),
-                t("visions.messages.copySuccessDetail"),
-              );
-            },
-            onError: (error) => {
-              toast.showError(
-                t("visions.messages.copyFailed"),
-                error.message || t("common.operationFailed"),
-              );
-            },
-          });
-        } catch (error) {
-          logger.error("Failed to copy vision content:", error);
-          toast.showError(
-            t("visions.messages.copyFailed"),
-            t("common.operationFailed"),
-          );
-        }
-      },
-      [exportVisionData, toast, t],
     );
 
     // 重新计算愿景时间投入
@@ -578,17 +539,6 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
                     onClick={(e) => {
                       e.stopPropagation();
                       handleBulkCreateTasks(vision);
-                    }}
-                  />
-                  {/* 复制 */}
-                  <ActionButton
-                    label=""
-                    iconName="clipboard"
-                    color="neutral"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopyVision(vision);
                     }}
                   />
                   {/* 重新计算 */}

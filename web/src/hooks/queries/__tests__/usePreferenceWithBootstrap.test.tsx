@@ -15,10 +15,6 @@ vi.mock("@/services/api/preferences", () => ({
   },
 }));
 
-vi.mock("@/services/auth", () => ({
-  getUser: vi.fn(() => ({ id: "user-1" })),
-}));
-
 const loggerWarnMock = vi.fn();
 
 vi.mock("@/utils/core", async (importOriginal) => {

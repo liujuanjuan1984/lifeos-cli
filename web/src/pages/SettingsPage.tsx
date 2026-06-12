@@ -66,21 +66,6 @@ function SettingsPage() {
     validator: (value) => typeof value === "string" && value.length > 0,
   });
   const noteCollapseSettings = useNoteCollapsePreference();
-  const planningExportTaskNotesPreference = usePreferenceWithBootstrap<boolean>(
-    {
-      key: "notes.export_planning.include_task_notes",
-      defaultValue: true,
-      module: "notes",
-      validator: (value) => typeof value === "boolean",
-    },
-  );
-  const planningExportCycleNotesPreference =
-    usePreferenceWithBootstrap<boolean>({
-      key: "notes.export_planning.include_cycle_notes",
-      defaultValue: false,
-      module: "notes",
-      validator: (value) => typeof value === "boolean",
-    });
   const {
     visions,
     loading: visionsLoading,
@@ -208,20 +193,6 @@ function SettingsPage() {
         updateValue: (value: unknown) =>
           noteCollapseSettings.updateValue(coerceNoteCollapseValue(value)),
       },
-      "notes.exportPlanningTaskNotes": {
-        ...planningExportTaskNotesPreference,
-        saveValue: async (value: unknown) =>
-          await planningExportTaskNotesPreference.saveValue(value as boolean),
-        updateValue: (value: unknown) =>
-          planningExportTaskNotesPreference.updateValue(value as boolean),
-      },
-      "notes.exportPlanningCycleNotes": {
-        ...planningExportCycleNotesPreference,
-        saveValue: async (value: unknown) =>
-          await planningExportCycleNotesPreference.saveValue(value as boolean),
-        updateValue: (value: unknown) =>
-          planningExportCycleNotesPreference.updateValue(value as boolean),
-      },
       "data.dimensionOrder": {
         value: dimensionOrderSettings.value,
         loading: dimensionOrderSettings.loading,
@@ -285,8 +256,6 @@ function SettingsPage() {
       visibleModulesSettings,
       visionExperiencePreference,
       noteCollapseSettings,
-      planningExportTaskNotesPreference,
-      planningExportCycleNotesPreference,
       dimensionOrderSettings,
       defaultInboxVisionSettings,
       languageSettings,

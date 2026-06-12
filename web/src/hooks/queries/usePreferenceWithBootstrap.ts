@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { preferencesApi } from "@/services/api/preferences";
 import { preferencesKeys, dimensionsKeys } from "@/services/api/queryKeys";
-import { getUser } from "@/services/auth";
 import { logger } from "@/utils/core";
 import { setPreferredTimezone } from "@/utils/datetime";
 
@@ -44,8 +43,7 @@ export function usePreferenceWithBootstrap<T>({
   validator,
 }: PreferenceWithBootstrapOptions<T>): PreferenceWithBootstrapReturn<T> {
   const queryClient = useQueryClient();
-  const user = getUser();
-  const shouldFetchPreferences = user !== null;
+  const shouldFetchPreferences = true;
 
   const defaultValueRef = useRef(defaultValue);
   defaultValueRef.current = defaultValue;

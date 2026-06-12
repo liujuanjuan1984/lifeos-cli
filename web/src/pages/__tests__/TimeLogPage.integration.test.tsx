@@ -269,11 +269,6 @@ vi.mock("@/hooks/queries/useTasks", () => ({
   useAllTasks: vi.fn(() => ({ data: [] })),
 }));
 
-const exportDataMock = vi.fn();
-vi.mock("@/hooks/useExport", () => ({
-  useTimelogExport: () => ({ exportData: exportDataMock }),
-}));
-
 vi.mock("@/utils/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/utils/core")>();
   return {
@@ -327,7 +322,6 @@ describe("TimeLogPage", () => {
     advancedSearchMock.metadata = null;
     advancedSearchMock.clearSearch.mockClear();
     advancedSearchMock.search.mockClear();
-    exportDataMock.mockReset();
     useTimeLogUIStateMock.mockImplementation(() => buildUiState());
     useTimeLogDataMock.mockImplementation(() => buildDataReturn());
   });
@@ -350,81 +344,6 @@ describe("TimeLogPage", () => {
     renderWithProviders(<TimeLogPage />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("boom");
-  });
-
-  it("switches to advanced mode and triggers export", async () => {
-    const user = userEvent.setup();
-
-    advancedSearchMock.data = [
-      createActualEvent({
-        id: "entry-1" as ActualEvent["id"],
-        start_time: "2025-01-01T00:00:00Z",
-        end_time: "2025-01-01T01:00:00Z",
-        title: "work",
-      }),
-    ];
-    advancedSearchMock.totalCount = 1;
-    exportDataMock.mockImplementation(async (_params, options) => {
-      options?.onSuccess?.({
-        success: true,
-        export_text: "mock",
-        filename: "export.txt",
-      });
-    });
-
-    renderWithProviders(<TimeLogPage />);
-
-    await user.click(screen.getByText("switch-advanced"));
-
-    await waitFor(() =>
-      expect(advancedSearchMock.clearSearch).toHaveBeenCalled(),
-    );
-
-    const exportButton = await screen.findByText("advanced-export");
-    await user.click(exportButton);
-
-    await waitFor(() => expect(exportDataMock).toHaveBeenCalled());
-    expect(useToastMock.showSuccess).toHaveBeenCalled();
-    expect(useToastMock.showWarning).not.toHaveBeenCalled();
-  });
-
-  it("shows warning toast when export metadata is truncated", async () => {
-    const user = userEvent.setup();
-
-    advancedSearchMock.data = [
-      createActualEvent({
-        id: "entry-2" as ActualEvent["id"],
-        start_time: "2025-01-02T00:00:00Z",
-        end_time: "2025-01-02T01:00:00Z",
-        title: "work",
-      }),
-    ];
-    advancedSearchMock.totalCount = 1500;
-    exportDataMock.mockImplementation(async (_params, options) => {
-      options?.onSuccess?.({
-        success: true,
-        export_text: "mock",
-        filename: "export.txt",
-        metadata: {
-          limit: 1000,
-          total_count: 1500,
-          returned_count: 1000,
-          truncated: true,
-        },
-      });
-    });
-
-    renderWithProviders(<TimeLogPage />);
-
-    await user.click(screen.getByText("switch-advanced"));
-    const exportButton = await screen.findByText("advanced-export");
-    await user.click(exportButton);
-
-    await waitFor(() => expect(exportDataMock).toHaveBeenCalled());
-    expect(useToastMock.showWarning).toHaveBeenCalledWith(
-      "timeLog.messages.exportTruncatedTitle",
-      "timeLog.messages.exportTruncatedDescription",
-    );
   });
 
   it("renders advanced search metadata inline with truncation warning", async () => {

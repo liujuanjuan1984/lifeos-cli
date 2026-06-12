@@ -21,7 +21,6 @@ import AdvancedSearchPanel from "@/components/AdvancedSearchPanel";
 import TimeEntriesTable from "@/components/TimeEntriesTable";
 import TaskNotesModal from "@/components/TaskNotesModal";
 import CreateNoteModal from "@/components/CreateNoteModal";
-import { useTimelogExport } from "@/hooks/useExport";
 import { useToast } from "@/contexts/ToastContext";
 import { formatDate, formatDateInTimezone } from "@/utils/datetime";
 import { deriveNoteAssociationDefaults } from "@/utils/notes";
@@ -118,7 +117,7 @@ const TimeLogPage = () => {
   // Request concurrency guards - removed as it's now handled in the hook
 
   // Advanced search states
-  const { showSuccess, showError, showInfo, showWarning } = useToast();
+  const { showError, showInfo } = useToast();
   const { setHeader } = usePageHeader();
 
   useEffect(() => {
@@ -224,14 +223,10 @@ const TimeLogPage = () => {
     // Dimensions are served via shared cache; rely on TTL or expose refresh in useDimensions if needed
   };
 
-  const { exportData } = useTimelogExport();
-
   const {
     switchToAdvancedMode,
     switchToSingleMode,
     resetAdvancedSearch,
-    handleExportAdvanced,
-    handleExportDaily,
     handleAdvancedSearch,
     filteredEntries,
   } = useTimeLogAdvancedInteractions({
@@ -243,16 +238,12 @@ const TimeLogPage = () => {
     dimsFromCache,
     sortOrder,
     setAdvancedSearchResultsFromHook,
-    showSuccess,
     showError,
     showInfo,
-    showWarning,
     t,
-    exportData,
     processedEntries,
     selectedDimensionId,
     activeTimezone,
-    selectedDate,
   });
 
   const handleConfirmBatchDelete = useCallback(async () => {
@@ -352,7 +343,6 @@ const TimeLogPage = () => {
               setQueryMode("import");
             }
           }}
-          onExportDaily={handleExportDaily}
         />
       </div>
 
@@ -400,7 +390,6 @@ const TimeLogPage = () => {
                 }}
                 onSearch={handleAdvancedSearch}
                 onReset={resetAdvancedSearch}
-                onExport={handleExportAdvanced}
                 tasks={tasksForAdvancedSearch}
                 isSelectMode={isSelectMode}
                 onSelectModeToggle={setIsSelectMode}

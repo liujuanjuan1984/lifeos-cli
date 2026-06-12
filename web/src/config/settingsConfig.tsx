@@ -142,20 +142,6 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
             label: t("notes.collapseDisplayHint", { count: lines }),
           })),
         },
-        {
-          key: "exportPlanningTaskNotes",
-          type: "checkbox",
-          label: t("settings.notes.exportPlanning.taskNotes.label"),
-          description: t("settings.notes.exportPlanning.taskNotes.description"),
-        },
-        {
-          key: "exportPlanningCycleNotes",
-          type: "checkbox",
-          label: t("settings.notes.exportPlanning.cycleNotes.label"),
-          description: t(
-            "settings.notes.exportPlanning.cycleNotes.description",
-          ),
-        },
       ],
     },
     {

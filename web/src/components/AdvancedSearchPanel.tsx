@@ -25,7 +25,6 @@ interface AdvancedSearchPanelProps {
   onParamsChange: (params: AdvancedSearchParams) => void;
   onSearch: () => void;
   onReset: () => void;
-  onExport: () => void;
   // 新增任务相关props
   tasks: { id: UUID; name: string }[];
   // 新增批量操作相关props
@@ -47,7 +46,6 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
   onParamsChange,
   onSearch,
   onReset,
-  onExport,
   tasks,
   isSelectMode,
   onSelectModeToggle,
@@ -123,11 +121,6 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
     // Defer to next tick to allow parent state to commit before search
     setTimeout(() => onSearch(), 0);
   }, [flushKeywordToParent, onSearch]);
-
-  const handleExportClick = useCallback(() => {
-    flushKeywordToParent();
-    setTimeout(() => onExport(), 0);
-  }, [flushKeywordToParent, onExport]);
 
   // Handle other parameter changes
   const handleParamChange = useCallback(
@@ -338,13 +331,6 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
 
           {/* Right side buttons */}
           <div className="flex flex-wrap gap-2">
-            <ActionButton
-              label={t("timeLog.advancedSearch.export")}
-              iconName="clipboard"
-              color="success"
-              variant="outline"
-              onClick={handleExportClick}
-            />
             {!isSelectMode && (
               <ActionButton
                 label={t("timeLog.advancedSearch.enableBatchOperations")}

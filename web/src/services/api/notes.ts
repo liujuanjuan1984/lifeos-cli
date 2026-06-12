@@ -230,8 +230,6 @@ export type NoteListResponse = ListResponse<Note, NoteListMeta>;
 export const notesApi = {
   create: (noteData: NoteCreate) =>
     http.post<Note>(ENDPOINTS.NOTES.BASE, noteData),
-  createWithAutoIngest: (noteData: NoteCreate) =>
-    http.post<Note>(`${ENDPOINTS.NOTES.BASE}?auto_ingest=true`, noteData),
 
   fetchAll: () => http.get<NoteListResponse>(ENDPOINTS.NOTES.BASE),
 

@@ -28,7 +28,6 @@ interface TaskGroupCardProps {
   canAddTask: boolean;
   isCreatingTask: boolean;
   isAddingTask: boolean;
-  isExporting: boolean;
   isCarryingForward: boolean;
   carryForwardCount: number;
   showCreateTask: boolean;
@@ -65,7 +64,6 @@ export const TaskGroupCard: React.FC<TaskGroupCardProps> = ({
   canAddTask,
   isCreatingTask,
   isAddingTask,
-  isExporting,
   isCarryingForward,
   carryForwardCount,
   showCreateTask,
@@ -106,12 +104,10 @@ export const TaskGroupCard: React.FC<TaskGroupCardProps> = ({
           canAddTask={canAddTask}
           isCreatingTask={isCreatingTask}
           isAddingTask={isAddingTask}
-          isExporting={isExporting}
           isCarryingForward={isCarryingForward}
           carryForwardCount={carryForwardCount}
           onCreateTaskClick={handlers.handleCreateTaskClick}
           onAddTaskClick={handlers.handleAddTaskClick}
-          onExportClick={handlers.handleExportClick}
           onCarryForwardClick={handlers.handleCarryForwardClick}
         />
       </div>

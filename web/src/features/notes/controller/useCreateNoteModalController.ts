@@ -57,7 +57,6 @@ const findTaskInHierarchyCache = (
 interface UseCreateNoteModalControllerParams {
   mode: "create" | "edit";
   existingNote?: Note;
-  createStrategy?: "default" | "autoIngest";
   onCompleted: () => void;
   onNoteCreated?: (note?: Note) => void;
 }
@@ -75,7 +74,6 @@ interface SubmitNotePayload {
 export function useCreateNoteModalController({
   mode,
   existingNote,
-  createStrategy = "default",
   onCompleted,
   onNoteCreated,
 }: UseCreateNoteModalControllerParams) {
@@ -226,10 +224,7 @@ export function useCreateNoteModalController({
   );
 
   const createNoteMutation = useMutation({
-    mutationFn: (noteData: NoteCreate) =>
-      createStrategy === "autoIngest"
-        ? notesApi.createWithAutoIngest(noteData)
-        : notesApi.create(noteData),
+    mutationFn: (noteData: NoteCreate) => notesApi.create(noteData),
     onSuccess: (createdNote, variables) => {
       toast.showSuccess(
         t("createNoteModal.messages.noteCreateSuccess"),

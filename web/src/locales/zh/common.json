@@ -19,8 +19,6 @@
     "warning": "提醒",
     "logout": "退出登录",
     "user": "用户",
-    "login": "登录",
-    "register": "注册",
     "openNavigationMenu": "打开导航菜单",
     "requestFailed": "请求失败",
     "operationFailed": "操作失败",
@@ -707,16 +705,6 @@
       "minCollapsedLines": {
         "label": "折叠时保留的行数",
         "description": "选择折叠状态下仍然可见的笔记行数。"
-      },
-      "exportPlanning": {
-        "taskNotes": {
-          "label": "导出时包含任务相关笔记",
-          "description": "导出规划时，附加与当期任务相关的所有笔记。"
-        },
-        "cycleNotes": {
-          "label": "导出时包含当前周期笔记",
-          "description": "导出规划时，附加当前规划周期内创建的笔记（按日历体系计算）。"
-        }
       }
     },
     "autoSaveHint": "修改后将自动保存",
@@ -732,33 +720,6 @@
       "itemLabel": "维度 {{name}}，位置 {{position}}",
       "moveUp": "将 {{name}} 上移",
       "moveDown": "将 {{name}} 下移"
-    },
-    "finance": {
-      "title": "财务",
-      "description": "配置账户树、资产报表与换算时使用的默认项。",
-      "primaryCurrency": {
-        "label": "默认本位币",
-        "description": "选择在资产合并和汇率换算时使用的基准币种。",
-        "placeholder": "请选择币种..."
-      },
-      "currencyOptions": {
-        "USD": "USD — 美元",
-        "EUR": "EUR — 欧元",
-        "GBP": "GBP — 英镑",
-        "CNY": "CNY — 人民币",
-        "JPY": "JPY — 日元",
-        "AUD": "AUD — 澳大利亚元",
-        "CAD": "CAD — 加拿大元",
-        "CHF": "CHF — 瑞士法郎",
-        "HKD": "HKD — 港币",
-        "SGD": "SGD — 新加坡元",
-        "INR": "INR — 印度卢比",
-        "SEK": "SEK — 瑞典克朗",
-        "NZD": "NZD — 新西兰元",
-        "BTC": "BTC — 比特币",
-        "ETH": "ETH — 以太坊",
-        "USDT": "USDT — 泰达币"
-      }
     },
     "llm": {
       "title": "AI 接入",
@@ -1269,44 +1230,6 @@
       "rangeSuffix": "（{{range}}）"
     }
   },
-  "foodDiary": {
-    "foodLibrary": "食物库",
-    "deleteSuccessMessage": "记录已成功删除",
-    "deleteFailedMessage": "删除失败，请稍后重试",
-    "foodSelected": "食物已选择",
-    "foodSelectedMessage": "已选择 {{foodName}}，请选择要添加到的餐次"
-  },
-  "quickFoodEntry": {
-    "title": "快速添加饮食记录",
-    "hint": "提示：按 Tab 键切换字段，按 Enter 保存，按 Esc 取消",
-    "mealType": {
-      "label": "餐次 *",
-      "placeholder": "选择餐次",
-      "breakfast": "早餐",
-      "lunch": "午餐",
-      "dinner": "晚餐",
-      "snack": "加餐"
-    },
-    "foodName": {
-      "label": "食物名称 *",
-      "placeholder": "输入食物名称..."
-    },
-    "portionSize": {
-      "label": "分量 (g) *"
-    },
-    "notes": {
-      "placeholder": "添加备注..."
-    },
-    "validation": {
-      "foodNameRequired": "请输入食物名称",
-      "portionSizeRequired": "请输入有效的食物分量"
-    },
-    "messages": {
-      "saveSuccess": "饮食记录保存成功！",
-      "saveSuccessMessage": "\"{{foodName}}\" 已保存",
-      "saveFailed": "保存饮食记录失败"
-    }
-  },
   "quickTimeEntry": {
     "title": "快速添加",
     "templates": {
@@ -1399,14 +1322,11 @@
   "createNoteModal": {
     "title": "创建笔记",
     "editTitle": "编辑笔记",
-    "intelligentTitle": "智能创建笔记",
-    "intelligentDescription": "内容提交后，由 Agent 自动提炼并关联人物、任务与标签。",
     "contentPlaceholder": "写下你的想法... (Ctrl/Cmd + Enter 快速保存)",
     "relatedTaskLocked": "关联任务（已锁定）",
     "relatedTaskOptional": "选择关联任务（可选）",
     "submitText": "创建笔记",
     "updateText": "更新笔记",
-    "intelligentSubmitText": "智能创建",
     "timelogHeader": {
       "label": "关联的时间记录",
       "fallbackTitle": "时间记录",
@@ -1444,30 +1364,6 @@
     "noTags": "暂无标签",
     "filterTag": "点击过滤标签 #{{name}}"
   },
-  "foodLibrarySidebar": {
-    "title": "食物库",
-    "searchPlaceholder": "搜索食物...",
-    "showCommonOnly": "仅显示常用食物",
-    "noFoodFound": "没有找到食物",
-    "adjustSearchConditions": "请调整搜索条件",
-    "clickToAddFood": "点击上方按钮添加食物",
-    "addFood": "添加食物",
-    "caloriesPer100g": "卡/100g",
-    "common": "常用"
-  },
-  "nutritionSummarySidebar": {
-    "noNutritionData": "暂无营养数据",
-    "todayNutritionIntake": "今日营养摄入",
-    "entryCount": "{{count}} 项记录",
-    "calories": "卡路里",
-    "caloriesUnit": "卡",
-    "protein": "蛋白质",
-    "proteinUnit": "g",
-    "carbs": "碳水",
-    "fat": "脂肪",
-    "fiber": "纤维",
-    "sugar": "糖分"
-  },
   "persons": {
     "addContact": "新增联系人",
     "timeline": {
@@ -1491,491 +1387,7 @@
       "planned": "已计划"
     }
   },
-  "finance": {
-    "newBalanceSnapshot": "新建资产快照",
-    "snapshotCreated": "快照已保存",
-    "snapshotFailed": "保存财务快照失败",
-    "noAccounts": "请先创建账户后再记录快照。",
-    "noBalanceEntered": "请至少填写一个账户余额。",
-    "snapshotHint": "留空代表跳过该账户。",
-    "snapshotInlineHint": "可直接在此内联录入余额，保存后立即生效。",
-    "loadMoreSnapshots": "加载更多快照",
-    "missingRates": "请填写以下货币的汇率：{{currencies}}",
-    "emptyAccounts": "暂无账户，请先创建账户后开始记录财务数据。",
-    "collapse": "折叠",
-    "expand": "展开",
-    "deltaPositive": "+{{value}} {{currency}}",
-    "deltaNegative": "-{{value}} {{currency}}",
-    "noSnapshots": "尚未创建任何快照。完成首次资产更新后，这里会呈现历史时间线。",
-    "accountTreeTitle": "账户结构",
-    "accountTreeHint": "支持多级嵌套，可通过账户的时间线按钮查看历史余额。",
-    "createAccountButton": "新建账户",
-    "manageAccounts": "管理账户",
-    "accountsButton": "账户",
-    "accountTreeLabel": "账户树",
-    "cashflowTreeLabel": "来源树",
-    "manageTrees": "管理树",
-    "manageAccountTrees": "管理账户树",
-    "manageCashflowTrees": "管理来源树",
-    "treeNamePlaceholder": "输入树名称",
-    "setAsDefault": "设为默认",
-    "defaultTree": "默认",
-    "noTrees": "暂无可用树",
-    "deleteTreeConfirm": "确认删除该树？",
-    "treeCreateSuccess": "树已创建",
-    "treeCreateFailed": "创建树失败",
-    "treeUpdateSuccess": "树已更新",
-    "treeUpdateFailed": "更新树失败",
-    "treeDeleteSuccess": "树已删除",
-    "treeDeleteFailed": "删除树失败",
-    "accountTreeCreateSuccess": "账户树创建成功",
-    "accountTreeCreateFailed": "账户树创建失败",
-    "accountTreeUpdateSuccess": "账户树已更新",
-    "accountTreeUpdateFailed": "账户树更新失败",
-    "accountTreeDeleteSuccess": "账户树已删除",
-    "accountTreeDeleteFailed": "账户树删除失败",
-    "cashflowTreeCreateSuccess": "来源树创建成功",
-    "cashflowTreeCreateFailed": "来源树创建失败",
-    "cashflowTreeUpdateSuccess": "来源树已更新",
-    "cashflowTreeUpdateFailed": "来源树更新失败",
-    "cashflowTreeDeleteSuccess": "来源树已删除",
-    "cashflowTreeDeleteFailed": "来源树删除失败",
-    "selectTree": "选择树",
-    "tagToolbar": {
-      "title": "财务标签",
-      "empty": "关注一个财务标签以固定在此处。",
-      "followTag": "关注标签"
-    },
-    "tagSelector": {
-      "title": "管理财务标签",
-      "description": "选择或创建要固定在财务页的标签，这些标签会用来呈现相关笔记。",
-      "createSuccess": "标签“{{name}}”已创建",
-      "createFailed": "创建标签失败",
-      "saveFailedTitle": "保存标签失败",
-      "saveFailedMessage": "请稍后再试。",
-      "loadFailedTitle": "加载财务标签失败"
-    },
-    "tagNotes": {
-      "title": "{{tag}} 的笔记",
-      "titlePlaceholder": "笔记",
-      "emptyTitle": "暂无相关笔记",
-      "emptyDescription": "创建一条笔记，用这个标签记录财务相关内容。",
-      "createNote": "新建笔记",
-      "noTag": "财务标签"
-    },
-    "selectSnapshot": "选择快照",
-    "viewAccountTimeline": "查看账户时间线",
-    "accountTimelineTitle": "{{name}} 的账户时间线",
-    "accountTimelineTitleFallback": "账户时间线",
-    "accountTimelineColumnTimestamp": "快照时间",
-    "accountTimelineColumnConverted": "折算金额",
-    "accountTimelineColumnRaw": "原币金额",
-    "accountTimelineEmpty": "暂无该账户的历史余额记录。",
-    "accountTimelineLoadFailed": "加载账户时间线失败，请稍后重试。",
-    "createAccountTitle": "创建财务账户",
-    "createAccountSubtitle": "通过树状结构组织资产与负债，可选择父级账户。",
-    "accountNameLabel": "账户名称",
-    "accountNamePlaceholder": "例如：应急资金",
-    "accountParentLabel": "父级账户",
-    "accountCurrencyLabel": "币种",
-    "accountInterestLabel": "利率（可选）",
-    "accountInterestPlaceholder": "例如：0.015 或 1.5 表示 1.5%",
-    "createAccountSuccess": "账户创建成功",
-    "createAccountFailed": "创建账户失败",
-    "accountInterestInvalid": "请输入有效的百分比数值",
-    "snapshotDetailPlaceholder": "从时间线中选择一个快照。",
-    "metricAssets": "总资产",
-    "metricLiabilities": "总负债",
-    "metricNetWorth": "净资产",
-    "newSnapshotTitle": "记录最新快照",
-    "newSnapshotTableTitle": "录入账户余额",
-    "saveSnapshot": "保存快照",
-    "tableAccount": "账户",
-    "tableOriginalCurrency": "原币种",
-    "tableOriginalAmount": "原币金额",
-    "tableConvertedAmount": "折算金额（{{currency}}）",
-    "tableNote": "备注",
-    "balancePlaceholder": "请输入数值",
-    "autoAggregatedPlaceholder": "已由子账户自动汇总",
-    "invalidAmountFormat": "以下账户的金额格式无效：{{names}}",
-    "notePlaceholder": "可选",
-    "exchangeRateTitle": "汇率（换算至 {{currency}}）",
-    "exchangeRatePlaceholder": "折算为 {{currency}} 的数值",
-    "snapshotNoteLabel": "快照备注",
-    "snapshotNotePlaceholder": "记录此次更新的背景信息（可选）",
-    "snapshotTimeLabel": "快照时间",
-    "snapshotTimeHelper": "该时间用于页面展示与排序，请填写快照实际发生的时间。",
-    "snapshotTimeRequired": "请填写有效的快照时间。",
-    "snapshotTimeFutureError": "快照时间不能晚于当前时间。",
-    "tableOriginal": "原币余额",
-    "tableConverted": "折算余额",
-    "exchangeRateList": "使用的汇率",
-    "balanceSheetTab": "资产负债表",
-    "cashflowTab": "现金流",
-    "tradingTab": "交易计划",
-    "cashflowSources": "收入/支出来源",
-    "manageSources": "管理来源",
-    "sourcesButton": "来源",
-    "cashflowIncome": "收入",
-    "cashflowExpense": "支出",
-    "sourceList": "来源清单",
-    "cashflowSourceHint": "来源支持层级结构，父来源金额等于子来源之和。",
-    "cashflowSourceDefaultCurrency": "默认币种",
-    "newSourceName": "来源名称",
-    "newSourcePlaceholder": "例如：工资",
-    "parentSource": "上级来源",
-    "rootSource": "顶层",
-    "enableRollupSource": "设为汇总节点",
-    "rollupLabel": "汇总",
-    "rollupLabelShort": "汇总",
-    "rollupLockedHint": "已存在子来源，金额自动汇总。",
-    "rollupHint": "汇总节点的金额由其子来源累计。",
-    "aggregatedAmountLabel": "汇总金额：{{amount}}",
-    "childCountLabel": "{{count}} 个子来源",
-    "income": "收入",
-    "expense": "支出",
-    "creating": "新增中…",
-    "addSource": "新增来源",
-    "addChildSource": "新增子来源",
-    "addCashflowSource": "新增来源",
-    "editCashflowSource": "编辑来源",
-    "newCashflowSnapshot": "记录现金流快照",
-    "addCashflowSnapshot": "新建现金流快照",
-    "cashflowSnapshotInlineHint": "在此直接录入来源金额，保存后立即生效。",
-    "editCashflowSnapshotTitle": "编辑现金流快照",
-    "periodStart": "开始日期",
-    "periodEnd": "结束日期",
-    "periodMonth": "快照月份",
-    "cashflowNote": "备注",
-    "cashflowNotePlaceholder": "可选，记录本期重点",
-    "cashflowEntryNotePlaceholder": "来源备注（可选）",
-    "cashflowAmountUnit": "金额（单位 {{currency}}）",
-    "cashflowDefaultCurrency": "本币",
-    "cashflowPeriodRequired": "请填写有效的快照月份",
-    "noCashflowSnapshots": "尚未记录现金流快照。",
-    "selectCashflowSnapshot": "请选择一条记录进行查看。",
-    "snapshotPosition": "第 {{index}} / {{total}} 条快照",
-    "snapshotOptionWithNet": "{{month}} · 净现金流 {{value}} {{currency}}",
-    "snapshotOptionValue": "{{month}} · {{value}} {{currency}}",
-    "cashflowSource": "来源",
-    "cashflowCurrency": "币种",
-    "cashflowAmount": "金额",
-    "trading": {
-      "sections": {
-        "summary": "{{plan}} 的计划概览",
-        "instruments": "标的列表",
-        "entries": "交易流水"
-      },
-      "actions": {
-        "createPlan": "新建计划",
-        "editPlan": "编辑计划",
-        "archivePlan": "归档计划",
-        "addInstrument": "新增标的",
-        "addExchangeRate": "新增汇率",
-        "importCsv": "批量导入",
-        "exportCsv": "导出 CSV",
-        "exportJson": "导出 JSON"
-      },
-      "labels": {
-        "noPeriod": "未设置周期",
-        "targetRoi": "目标收益",
-        "allInstruments": "全部标的"
-      },
-      "selector": {
-        "placeholder": "选择计划",
-        "showArchived": "显示归档",
-        "hideArchived": "隐藏归档"
-      },
-      "statusDraft": "草稿",
-      "statusActive": "执行中",
-      "statusArchived": "已归档",
-      "status": {
-        "draft": "草稿",
-        "active": "执行中",
-        "archived": "已归档"
-      },
-      "fields": {
-        "name": "计划名称",
-        "periodStart": "开始时间",
-        "periodEnd": "结束时间",
-        "targetRoi": "目标 ROI",
-        "targetRoiHelper": "可输入 12 或 0.12，系统会自动换算。",
-        "status": "计划状态",
-        "note": "备注",
-        "symbol": "交易对",
-        "exchange": "交易所",
-        "strategyTag": "策略标签"
-      },
-      "modals": {
-        "createPlan": "创建交易计划",
-        "editPlan": "编辑交易计划",
-        "copyLabel": "复制既有计划",
-        "copyDescription": "选择一个计划以快速复制周期和备注。",
-        "copyPlaceholder": "选择计划…",
-        "copySuffix": "副本",
-        "createInstrument": "新增标的",
-        "editInstrument": "编辑标的"
-      },
-      "summary": {
-        "totalInvestment": "累计投入",
-        "realized": "已实现盈亏",
-        "unrealized": "浮动盈亏",
-        "netValue": "净值",
-        "roi": "ROI",
-        "empty": "暂无统计数据"
-      },
-      "instrument": {
-        "symbol": "标的",
-        "exchange": "交易所",
-        "position": "净持仓",
-        "baseSymbol": "基础资产",
-        "quoteSymbol": "计价资产",
-        "positionBase": "基础资产净持仓",
-        "positionQuote": "计价资产净持仓",
-        "avgCost": "平均成本",
-        "marketValue": "市值",
-        "marketValueBase": "基础资产市值",
-        "marketValueQuote": "计价资产市值",
-        "rateHint": "折算：1 {{asset}} ≈ {{rate}}",
-        "roi": "收益率",
-        "emptyTitle": "还没有标的",
-        "emptyDescription": "先创建标的，再录入交易流水。",
-        "deleteTitle": "删除标的"
-      },
-      "entries": {
-        "emptyTitle": "暂无流水",
-        "emptyDescription": "录入交易后，这里会展示时间线。",
-        "deleteTitle": "删除流水",
-        "direction": {
-          "buy": "买入",
-          "sell": "卖出",
-          "transfer": "划转"
-        },
-        "source": {
-          "manual": "手动",
-          "import": "导入"
-        },
-        "actions": {
-          "add": "新增流水",
-          "edit": "编辑流水"
-        },
-        "modal": {
-          "create": "新增交易流水",
-          "edit": "编辑交易流水"
-        },
-        "table": {
-          "tradeTime": "时间",
-          "symbol": "标的",
-          "baseSymbol": "基础资产",
-          "baseAmount": "基础资产净变化",
-          "baseDelta": "基础资产净变化",
-          "quoteSymbol": "计价资产",
-          "quoteAmount": "计价资产净变化",
-          "quoteDelta": "计价资产净变化",
-          "direction": "方向",
-          "price": "价格",
-          "fee": "手续费",
-          "source": "来源"
-        },
-        "form": {
-          "instrument": "选择标的",
-          "tradeTime": "成交时间",
-          "baseDeltaSymbol": "{{symbol}} 数量",
-          "quoteDeltaSymbol": "{{symbol}} 资金流",
-          "submit": "记录流水",
-          "disabled": "请选择计划与标的后再录入"
-        },
-        "quickAdd": {
-          "submit": "快速添加"
-        }
-      },
-      "filters": {
-        "instrument": "标的筛选",
-        "direction": "方向",
-        "source": "来源",
-        "dateFrom": "起始日期",
-        "dateTo": "结束日期",
-        "reset": "重置条件"
-      },
-      "errors": {
-        "nameRequired": "请填写计划名称",
-        "invalidPeriod": "结束时间需晚于开始时间",
-        "saveFailed": "保存失败，请稍后重试",
-        "symbolRequired": "请填写交易对",
-        "instrumentRequired": "请选择标的",
-        "tradeTimeRequired": "请填写成交时间",
-        "rateFailed": "拉取汇率失败"
-      },
-      "toasts": {
-        "planCreated": "计划已创建",
-        "planUpdated": "计划已更新",
-        "planArchived": "计划已归档",
-        "instrumentCreated": "标的已创建",
-        "instrumentUpdated": "标的已更新",
-        "instrumentDeleted": "标的已删除",
-        "entryCreated": "流水已记录",
-        "entryUpdated": "流水已更新",
-        "entryDeleted": "流水已删除"
-      },
-      "import": {
-        "title": "批量导入流水",
-        "description": "下载模板并填写后上传，系统会先展示预览，可继续修正。",
-        "downloadTemplate": "下载模板",
-        "selectFile": "选择 CSV",
-        "noRows": "尚未选择文件",
-        "removeRow": "删除",
-        "submit": "批量写入",
-        "success": "导入成功",
-        "failed": "导入失败",
-        "emptyFile": "文件内容为空",
-        "emptyRows": "没有可提交的记录",
-        "fixErrors": "请先修正所有错误行",
-        "errors": {
-          "instrument": "标的不存在",
-          "time": "时间无效",
-          "amount": "数量或金额不能为空"
-        }
-      },
-      "exchangeRates": {
-        "manage": "计划汇率",
-        "modalTitle": "为计划新增汇率",
-        "modalDescription": "为当前计划绑定 base/quote 汇率，用于数值折算。",
-        "fields": {
-          "base": "基础资产",
-          "quote": "报价资产",
-          "rate": "汇率",
-          "capturedAt": "记录时间",
-          "source": "来源"
-        },
-        "errors": {
-          "planRequired": "请先选择计划",
-          "rateRequired": "请填写资产与汇率"
-        },
-        "toasts": {
-          "created": "汇率已保存"
-        },
-        "planRatesTitle": "当前估值汇率",
-        "planRatesSubtitle": "展示本计划计算净值时实际使用的汇率，可在此直接覆盖。",
-        "modeSnapshot": "快照口径",
-        "modeSource": "实时口径",
-        "modeSnapshotHint": "快照口径会锁定汇率用于历史展示，切换实时口径仅作参考。",
-        "modeSourceHint": "实时口径基于最新汇率计算，仅用于展示，不回写历史数据。",
-        "snapshotLockedAt": "快照锁定：{{time}}",
-        "planRatesEmpty": "当前没有需要折算的币种，新增交易或录入汇率后会出现在这里。",
-        "lastUpdated": "最近更新：{{time}}",
-        "derived": "由反向汇率推导",
-        "override": "更新汇率",
-        "scope": {
-          "plan": "计划自定义",
-          "user": "个人默认",
-          "global": "系统默认",
-          "synthetic": "自动"
-        }
-      },
-      "charts": {
-        "net": "净值曲线",
-        "position": "持仓构成",
-        "pnl": "盈亏柱状",
-        "placeholder": "开发中",
-        "positionDescription": "展示各标的在当前净值中的占比。",
-        "positionEmpty": "暂无持仓，新增标的后即可查看。",
-        "positionNoValuation": "暂无可用估值，请录入交易或更新汇率后再试。"
-      },
-      "emptyState": {
-        "title": "还没有交易计划",
-        "description": "创建第一个计划以开始记录标的与流水。"
-      }
-    },
-    "emptyCashflowSources": "暂无来源",
-    "noCashflowEntries": "暂无任何收支条目",
-    "rollupAutoPlaceholder": "自动",
-    "cashflowSignHint": "正数代表流入，负数代表流出；汇总节点金额自动计算。",
-    "inflowLabel": "流入",
-    "outflowLabel": "流出",
-    "autoGenerated": "自动",
-    "kindRegular": "常规",
-    "editAccountTitle": "编辑账户",
-    "editAccountSubtitle": "在此更新账户信息，子账户保持原有数据。",
-    "addChildAccount": "新增子账户",
-    "billingLabel": "账期",
-    "manualEntry": "手动",
-    "viewBilling": "查看账单",
-    "deleteAccountTitle": "删除账户",
-    "deleteAccountWarning": "确认删除“{{name}}”？这会同时软删除该账户及其全部子账户。",
-    "deleteAccountConfirm": "确认删除“{{name}}”？这会同时软删除该账户及其全部子账户。",
-    "editSnapshotTitle": "编辑资产负债表快照",
-    "previousSnapshot": "上一条快照",
-    "nextSnapshot": "下一条快照",
-    "billingSectionTitle": "账期来源",
-    "applyBillingCycles": "生成账期条目",
-    "autoBillingHint": "自动生成：{{names}}",
-    "manageBilling": "管理 {{name}}",
-    "noBillingChanges": "暂无可保存的更改",
-    "billingSaved": "账期条目已保存",
-    "manualBillingQuickFill": "快速填充",
-    "manualBillingQuickFillFor": "{{name}} 的快速填充",
-    "manualBillingOnly": "仅支持手工账期来源。",
-    "addOlderBillingMonths": "加载较早的月份",
-    "noBillingCycles": "该月份没有匹配的账期",
-    "billingCycleRange": "{{start}} → {{end}}",
-    "amount": "金额",
-    "note": "备注",
-    "billingHistory": "账期记录",
-    "billingHistoryFor": "{{name}} 的账期记录",
-    "postedMonth": "归属月份：{{month}}",
-    "postedMonthHeader": "归属月份",
-    "postedMonthShort": "归属月份：{{month}}",
-    "billingCycle": "账期",
-    "optional": "可选",
-    "billingCycleType": "账期类型",
-    "cycleDay": "按日",
-    "cycleWeek": "按周",
-    "cycleMonth": "按月",
-    "cycleYear": "按年",
-    "billingInterval": "周期间隔",
-    "billingAnchorDate": "锚点日期",
-    "billingAnchorDay": "出账日 (1-28)",
-    "billingAnchorMonthlyLabel": "每月{{day}}日",
-    "billingAnchorYearlyLabel": "每年{{month}}月{{day}}日",
-    "billingAnchorWeeklyLabel": "每周{{weekday}}",
-    "billingAnchorDailyLabel": "按日结算",
-    "billingAnchorDateLabel": "{{date}}",
-    "billingPostTo": "归属自然月",
-    "postToEnd": "按结束日",
-    "postToStart": "按开始日",
-    "manualBillingInput": "需手动填写每期金额",
-    "defaultAmount": "默认金额",
-    "billingDefaultAmountLabel": "{{amount}}",
-    "inlineSeparator": "，",
-    "optionalDefaultAmount": "可选：仅作参考",
-    "requiredDefaultAmount": "必填：用于自动生成账期金额",
-    "defaultNote": "默认备注",
-    "addSourceSuccess": "来源已创建",
-    "addSourceFailed": "创建来源失败",
-    "updateSourceSuccess": "来源已更新",
-    "updateSnapshotSuccess": "快照已更新",
-    "deleteSnapshotWarning": "确认删除 {{timestamp}} 的快照？",
-    "deleteSnapshotSuccess": "快照已删除",
-    "billingApplied": "已生成账期条目",
-    "periodRange": "周期：{{start}} 至 {{end}}",
-    "cashflowNet": "净现金流",
-    "updateAccountSuccess": "账户已更新",
-    "updateAccountFailed": "更新账户失败",
-    "deleteAccountSuccess": "账户已删除",
-    "deleteAccountFailed": "删除账户失败",
-    "updateSnapshotFailed": "更新快照失败",
-    "deleteSnapshotFailed": "删除快照失败",
-    "actions": {
-      "exportAccounts": "导出账户",
-      "exportCashflow": "导出现金流"
-    }
-  },
   "modules": {
-    "agent": {
-      "displayName": "AI 助手",
-      "navLabel": "AI 助手",
-      "description": "与你的个人智能助手对话，获得建议和帮助。"
-    },
     "visions": {
       "displayName": "愿景",
       "navLabel": "愿景",
@@ -2053,20 +1465,10 @@
       "navLabel": "随手记",
       "description": "捕获转瞬即逝的思绪与灵感，构建你的个人知识库。"
     },
-    "sage-maxims": {
-      "displayName": "箴言",
-      "navLabel": "箴言",
-      "description": "收集并分享高认知的智慧箴言。"
-    },
     "persons": {
       "displayName": "关系",
       "navLabel": "关系",
       "description": "有意识地滋养对你重要的人际关系网络。"
-    },
-    "finance": {
-      "displayName": "财务",
-      "navLabel": "财务",
-      "description": "追踪资产、负债与余额快照，让财务目标与现实保持一致。"
     },
     "food-diary": {
       "displayName": "饮食",
@@ -2077,11 +1479,6 @@
       "displayName": "设置",
       "navLabel": "设置",
       "description": "管理您的个人偏好和系统设置。"
-    },
-    "invitations": {
-      "displayName": "邀请码",
-      "navLabel": "邀请码",
-      "description": "邀请特定邮箱注册内测账号。"
     }
   },
   "dimensionManager": {
@@ -2124,41 +1521,6 @@
       "spirituality": "心灵"
     }
   },
-  "register": {
-    "betaNotice": {
-      "title": "内测期间注册说明",
-      "description": "内测期间，仅支持邀请注册。请通过邀请链接注册，系统将自动填入邀请码和邮箱。"
-    }
-  },
-  "auth": {
-    "email": "邮箱",
-    "name": "姓名",
-    "password": "密码",
-    "emailPlaceholder": "you@example.com",
-    "namePlaceholder": "例如 Alice",
-    "passwordPlaceholder": "请输入密码",
-    "currentPassword": "当前密码",
-    "newPassword": "新密码",
-    "confirmPassword": "确认新密码",
-    "passwordRequirements": {
-      "title": "密码要求：",
-      "minLength": "至少8位字符",
-      "uppercase": "包含大写字母",
-      "lowercase": "包含小写字母",
-      "digit": "包含数字",
-      "special": "包含特殊字符"
-    },
-    "loginFailed": "登录失败",
-    "registerFailed": "注册失败",
-    "haveAccount": "已有账号？",
-    "noAccount": "还没有账号？",
-    "goToLogin": "去登录",
-    "goToRegister": "去注册",
-    "changePassword": "修改密码",
-    "passwordMismatch": "两次输入的新密码不一致",
-    "changeSuccess": "密码已更新，请重新登录。",
-    "changeFailed": "修改密码失败"
-  },
   "calendar": {
     "saveFailed": "保存失败，请稍后重试"
   },
@@ -2198,37 +1560,6 @@
     "viewTimeline": "查看时间线",
     "deleteConfirmMessage": "确定要删除联系人 \"{{name}}\" 吗？"
   },
-  "nutrition": {
-    "dailyIntake": "今日营养摄入",
-    "entryCount": "{{count}} 项饮食记录",
-    "labels": {
-      "calories": "总卡路里"
-    }
-  },
-  "foodList": {
-    "deleteTitle": "删除食物",
-    "deleteMessage": "确定要删除 \"{{foodName}}\" 吗？删除后相关的饮食记录将无法显示营养信息。"
-  },
-  "mealSections": {
-    "title": "饮食记录",
-    "mealTypes": {
-      "breakfast": "早餐",
-      "lunch": "午餐",
-      "dinner": "晚餐",
-      "snack": "加餐"
-    },
-    "tableHeaders": {
-      "mealType": "餐次",
-      "foodName": "食物名称",
-      "portion": "克数",
-      "time": "时间"
-    },
-    "calories": "{{calories}}卡",
-    "noEntries": "暂无饮食记录",
-    "addEntryHint": "点击上方按钮添加记录",
-    "deleteTitle": "删除饮食记录",
-    "deleteMessage": "确定要删除 \"{{foodName}}\" 的记录吗？"
-  },
   "habitForm": {
     "editTitle": "编辑习惯",
     "fields": {
@@ -2261,9 +1592,9 @@
     }
   },
   "apiErrors": {
-    "notLoggedIn": "用户未登录，请求已取消",
     "400": "请求参数错误",
     "409": "资源冲突，请检查输入信息",
+    "notLoggedIn": "用户未登录，请求已取消",
     "proxyResponseTitle": "代理或网关异常",
     "proxyHtmlResponse": "安全代理或网关返回了 HTML 错误页，请稍后重试；如频繁出现请联系管理员。",
     "invalidResponseFormat": "服务返回了无法识别的响应格式，请稍后重试。",
@@ -2341,314 +1672,13 @@
       "actionFailed": "模板操作失败"
     }
   },
-  "foodForm": {
-    "validationFailed": "表单验证失败",
-    "updateSuccess": "食物更新成功！",
-    "updateSuccessMessage": "食物\"{{name}}\"已成功更新",
-    "createSuccess": "食物创建成功！",
-    "createSuccessMessage": "新食物\"{{name}}\"已成功添加到数据库",
-    "saveFailed": "保存食物失败",
-    "editFood": "编辑食物",
-    "editFoodForm": "编辑食物表单",
-    "addFoodForm": "添加食物表单",
-    "namePlaceholder": "例如：苹果、鸡胸肉",
-    "markAsCommon": "标记为常用食物",
-    "nutritionInfo": "营养信息 (每100克)",
-    "caloriesUnit": "卡路里",
-    "grams": "克"
-  },
   "entryRow": {
     "selectRecord": "选择记录 {{id}}",
     "quickAddAriaLabel": "快速添加时间记录"
   },
-  "agent": {
-    "welcomeTitle": "欢迎使用 AI 助手",
-    "welcomeSubtitle": "开始对话，我会尽力帮助你！",
-    "thinking": "AI 正在思考...",
-    "inputPlaceholder": "输入消息...",
-    "sendMessageAriaLabel": "发送消息",
-    "quota": {
-      "exceededTitle": "使用次数限制",
-      "exceededMessage": "今日 Tokens {{used}}/{{limit}} 用量 超出，将在 {{hours}} 小时 {{minutes}} 分钟后恢复使用。"
-    },
-    "errors": {
-      "authExpired": "认证已过期，请重新登录",
-      "serviceUnavailable": "AI 服务暂时不可用，请稍后重试",
-      "requestFailed": "请求失败，请重试",
-      "networkError": "网络错误，请重试",
-      "permissionDenied": "权限不足，无法访问此服务",
-      "rateLimited": "今日 Token 用量已达上限，请稍后再试或联系管理员",
-      "streamTimeout": "响应超时，已终止本次请求，请稍后重试",
-      "sessionRequired": "请先选择或创建一个会话，再发送消息"
-    },
-    "messageStatus": {
-      "pending": "发送中…",
-      "failed": "发送失败",
-      "failedWithReason": "发送失败：{{reason}}",
-      "retry": "重试"
-    },
-    "identity": {
-      "user": "你",
-      "ai": "AI"
-    },
-    "controls": {
-      "title": "Agent 控制",
-      "moveAgent": "移动 Agent",
-      "moveAgentEditMode": "鼠标左键拖拽；右键松开自动保存",
-      "showFloatingAgent": "显示悬浮 Agent",
-      "hideFloatingAgent": "隐藏悬浮 Agent"
-    },
-    "smartNote": {
-      "bubbleTitle": "智能创建进度",
-      "notePreviewFallback": "新的智能笔记",
-      "jobQueuedTitle": "已提交智能创建",
-      "jobQueuedDescription": "「{{preview}}」已进入队列，稍等片刻",
-      "jobProcessingTitle": "AI 正在加工",
-      "jobProcessingDescription": "我会为「{{preview}}」自动补齐关联信息",
-      "jobSuccessTitle": "智能创建完成",
-      "jobSuccessDescription": "「{{preview}}」已整理完毕，可在笔记列表查看",
-      "jobFailureTitle": "智能创建失败",
-      "jobFailureDescription": "「{{preview}}」解析失败，请稍后重试",
-      "jobFailureDescriptionWithReason": "「{{preview}}」失败：{{reason}}",
-      "jobTimeoutTitle": "处理超时",
-      "jobTimeoutDescription": "暂未拿到结果，可稍后在笔记中查看「{{preview}}」",
-      "instantSuccessTitle": "笔记已创建",
-      "instantSuccessDescription": "「{{preview}}」已保存，可随时继续补充"
-    },
-    "quickActions": {
-      "title": "快速操作",
-      "todaySchedule": "我今天有哪些安排？",
-      "yesterdaySummary": "总结一下我的昨天"
-    },
-    "summary": {
-      "placeholder": "敬请期待..."
-    },
-    "context": {
-      "sectionTitle": "会话上下文",
-      "inlineTrigger": "添加上下文",
-      "modalTitle": "管理上下文",
-      "tabExisting": "已有上下文",
-      "tabCreate": "新建上下文",
-      "errorNoSession": "请先选择或创建一个会话",
-      "previewError": "预览上下文盒失败",
-      "addSuccess": "已加入\"{{name}}\"到当前会话",
-      "addError": "添加上下文盒失败",
-      "deleteSuccess": "已删除上下文盒\"{{name}}\"",
-      "deleteError": "删除上下文盒失败",
-      "deleteTitle": "删除上下文盒",
-      "deleteMessage": "确认删除上下文盒\"{{name}}\"？删除后将无法恢复。",
-      "deleteConfirm": "删除",
-      "previewRequired": "请先预览并确认要创建的上下文数据",
-      "createSuccess": "已创建并加入上下文盒\"{{name}}\"",
-      "createError": "创建上下文盒失败",
-      "loadingContext": "正在加载会话上下文…",
-      "noContextBoxes": "当前会话尚未关联任何上下文卡盒。",
-      "createOrSelectSession": "创建或选择会话后可查看上下文卡盒。",
-      "modules": {
-        "chat": "聊天",
-        "unknown": "未分类",
-        "actual_event": "时间日志",
-        "notes": "笔记",
-        "planning_tasks": "规划任务",
-        "vision_progress": "愿景进度"
-      },
-      "search": {
-        "contextBox": "搜索上下文盒",
-        "placeholder": "输入名称或模块关键词"
-      },
-      "availableContextBoxes": "可用上下文盒",
-      "noMatchingContextBoxes": "没有匹配的上下文盒。",
-      "previewContent": "预览内容",
-      "selectContextBoxToPreview": "选择一个上下文盒查看内容示例。",
-      "previewResults": "预览结果",
-      "previewMatchCount": "共 {{count}} 条匹配记录",
-      "previewInstructions": "配置筛选条件并点击\"预览数据\"以查看业务结果。",
-      "create": {
-        "module": "模块",
-        "contextName": "上下文名称（可选）",
-        "contextNamePlaceholder": "为上下文盒命名",
-        "startDate": "开始日期",
-        "endDate": "结束日期",
-        "dimension": "维度（可选）",
-        "keyword": "关键词（可选）",
-        "keywordPlaceholder": "用于筛选文本内容",
-        "relatedTags": "关联标签（可选）",
-        "relatedPersons": "关联人物（可选）",
-        "planningCycle": "规划周期",
-        "cycleOptions": {
-          "day": "按日",
-          "week": "按周",
-          "month": "按月",
-          "year": "按年"
-        },
-        "taskStatus": "任务状态",
-        "statusOptions": {
-          "all": "全部任务",
-          "active": "活跃中",
-          "completed": "已完成 / 取消"
-        },
-        "selectVision": "选择愿景"
-      },
-      "buttons": {
-        "previewData": "预览数据",
-        "searching": "检索中…",
-        "addToSession": "加入会话",
-        "creating": "创建中…",
-        "createAndAdd": "创建并加入当前会话"
-      },
-      "status": {
-        "added": "已加入",
-        "adding": "添加中…"
-      },
-      "createInstructions": "预览确认后再创建上下文盒。如需修改筛选条件，请重新预览。",
-      "previewFoundRecords": "已检索到 {{count}} 条记录，确认后将生成上下文盒。",
-      "errors": {
-        "selectStartDate": "请先选择开始日期",
-        "selectVision": "请先选择愿景",
-        "selectPlanningStartDate": "请选择规划周期的起始日期",
-        "selectAtLeastOneVision": "请至少选择一个愿景",
-        "previewFailed": "预览失败，请稍后再试"
-      }
-    },
-    "toolRun": {
-      "unknownTool": "未识别的工具",
-      "started": "正在调用工具 {{tool}}…",
-      "finished": "工具 {{tool}} 已完成。",
-      "finishedWithResult": "工具 {{tool}} 已完成：\n{{result}}",
-      "failed": "工具 {{tool}} 执行失败：{{reason}}",
-      "progressPercent": "{{value}}%",
-      "progressLabel": "执行中",
-      "duration": "耗时 {{value}}",
-      "startedAt": "开始于 {{time}}",
-      "finishedAt": "结束于 {{time}}",
-      "argumentsLabel": "参数",
-      "argumentsTitle": "调用参数",
-      "resultTitle": "输出结果",
-      "progressTitle": "进度详情",
-      "viewDetails": "查看详情",
-      "detailsTitle": "{{tool}} 运行详情",
-      "argumentsMore": "等 {{count}} 项",
-      "noOutput": "暂无输出信息"
-    },
-    "tokenUsage": {
-      "title": "上下文令牌使用",
-      "progress": "{{used}} / {{budget}} 个 tokens",
-      "progressWithoutBudget": "已使用 {{used}} 个 tokens",
-      "totalLabel": "累计",
-      "deltaLabel": "本次回复",
-      "tokensUnit": "{{count}} 个 tokens",
-      "budgetLabel": "上下文预算：{{count}} 个 tokens",
-      "windowLabel": "模型窗口：{{count}} 个 tokens",
-      "totalCost": "累计费用：${{value}}",
-      "deltaCost": "本次费用：${{value}}",
-      "badgeLabel": "令牌：{{count}}",
-      "badgeLabelFormatted": "令牌：{{value}}",
-      "tooltip": {
-        "tokens": "已用令牌：{{used}}",
-        "window": "模型窗口：{{count}}",
-        "budget": "上下文预算：{{count}}",
-        "cost": "成本预估：${{value}}"
-      }
-    },
-    "sessions": {
-      "recentTitle": "最近会话",
-      "historyButton": "会话历史",
-      "historyModalTitle": "会话历史",
-      "newSession": "新建会话",
-      "newSessionLabel": "新的会话",
-      "startFirstSession": "开始新会话",
-      "welcomeTitle": "开始你的第一个会话",
-      "welcomeDescription": "还没有任何会话，点击下方按钮开始与 AI 助手对话",
-      "sessionLabel": "会话 {{index}} · {{date}}",
-      "empty": "暂无最近会话",
-      "messageCount": "共 {{count}} 条消息",
-      "delete": "删除会话",
-      "markAllRead": "全部已读",
-      "unreadStatus": "（{{count}}条未读）",
-      "tabs": {
-        "chat": "对话",
-        "system": "系统通知"
-      }
-    },
-    "inputPlaceholderWithAgent": "与{{agent}}对话……",
-    "notifications": {
-      "readonlyMode": "系统通知仅供查看。",
-      "readonlyDescription": "系统通知用于汇总后台作业、定时提醒等系统级事件。",
-      "readonlyInput": "通知无法在此回复，如需继续对话请切换回聊天标签。",
-      "titleFallback": "系统通知",
-      "severity": {
-        "info": "提示",
-        "warning": "警告",
-        "critical": "严重"
-      }
-    },
-    "selectLabel": "助手选择",
-    "noAgentsAvailable": "暂无可用助手"
-  },
   "checkboxGroup": {
     "selectAll": "全选",
     "clearAll": "清空"
-  },
-  "cardbox": {
-    "filters": {
-      "date": "日期",
-      "startDate": "起始",
-      "endDate": "结束",
-      "dimension": "维度",
-      "keyword": "关键词",
-      "descriptionKeyword": "描述关键词",
-      "trackingMethod": "记录方式",
-      "tag": "标签",
-      "person": "人物",
-      "cycle": "周期",
-      "status": "状态",
-      "visionCount": "愿景数量",
-      "taskStatus": "任务状态",
-      "limit": "条数上限"
-    },
-    "labels": {
-      "time": "时间",
-      "duration": "时长",
-      "hour": "小时",
-      "minute": "分钟",
-      "trackingMethod": "记录方式",
-      "participants": "参与者",
-      "task": "任务",
-      "notes": "备注",
-      "tags": "标签",
-      "relatedTask": "关联任务",
-      "description": "描述",
-      "coreParticipants": "核心参与者",
-      "createdTime": "创建时间",
-      "noContent": "（无内容）",
-      "relatedPersons": "关联人物",
-      "cards": "张卡片",
-      "cardCount": "卡片数量",
-      "lastUpdated": "最近更新",
-      "filters": "筛选"
-    },
-    "status": {
-      "inProgress": "进行中",
-      "noTitleEvent": "无标题事件",
-      "noContent": "暂无内容",
-      "structuredDataPrompt": "该卡片包含结构化数据，请在上下文盒详情中查看完整内容。",
-      "noMatchingRecords": "未找到匹配的时序记录。",
-      "noMatchingNotes": "未找到匹配的笔记。",
-      "noMatchingTasks": "未找到符合条件的规划任务。",
-      "noMatchingVisions": "未找到匹配的愿景。",
-      "minutes": "分钟",
-      "unknownDimension": "未分配维度",
-      "statusFilter": "状态",
-      "priorityFilter": "优先级",
-      "planningCycleFilter": "规划周期",
-      "startDateFormat": "开始日期",
-      "totalEffortMinutes": "累计投入",
-      "stageFilter": "阶段",
-      "visionTaskList": "任务列表（共 {{count}} 项）：",
-      "statusPriority": "状态 · 优先级",
-      "noContentInBox": "该上下文盒暂无内容。",
-      "matchingRecords": "条匹配记录"
-    }
   },
   "tree": {
     "stage": {
@@ -2712,90 +1742,6 @@
     "empty": {
       "title": "还没有任务",
       "description": "开始创建您的第一个任务吧"
-    }
-  },
-  "sageMaxims": {
-    "createTitle": "提交新的智慧箴言",
-    "createPlaceholder": "写下你想分享的智慧短句（最多 280 字符）",
-    "submit": "发布箴言",
-    "lengthHint": "最多 280 字符",
-    "empty": "目前还没有智慧箴言，率先分享你的洞见吧！",
-    "sort": {
-      "label": "排序",
-      "random": "随机",
-      "latest": "最新",
-      "top": "热门"
-    },
-    "refresh": "刷新列表",
-    "submitSuccess": "箴言已发布",
-    "reactionError": "反馈动作失败，请稍后重试",
-    "createdBy": "{{name}} 发布于 {{date}}",
-    "likeCountLabel": "点赞 {{count}} 次",
-    "dislikeCountLabel": "点踩 {{count}} 次"
-  },
-  "invitations": {
-    "title": "邀请码",
-    "subtitle": "邀请特定邮箱注册内测账号。",
-    "status": {
-      "pending": "待使用",
-      "registered": "已注册",
-      "revoked": "已作废",
-      "expired": "已过期"
-    },
-    "invitedMe": {
-      "title": "谁邀请了我",
-      "empty": "暂无邀请记录。",
-      "fallbackName": "未知邀请人"
-    },
-    "generator": {
-      "title": "生成邀请码",
-      "description": "每个邀请码与受邀邮箱绑定，请私聊发给受邀人。",
-      "unavailable": "邀请功能暂未开放",
-      "unavailableDescription": "当前仅管理员可以创建邀请码。"
-    },
-    "form": {
-      "emailLabel": "受邀邮箱",
-      "emailPlaceholder": "name@example.com",
-      "inviteCodeLabel": "邀请码（可选）",
-      "inviteCodePlaceholder": "请输入邀请码（如有）",
-      "memoLabel": "备注（可选）",
-      "memoPlaceholder": "例如：李梅梅",
-      "submit": "生成邀请码"
-    },
-    "list": {
-      "title": "我邀请了谁",
-      "empty": "暂未创建任何邀请码。",
-      "email": "目标邮箱",
-      "code": "邀请码",
-      "status": "状态",
-      "createdAt": "创建时间",
-      "link": "注册链接（请复制给受邀对象）",
-      "copyLink": "复制链接",
-      "memo": "备注",
-      "actions": "操作",
-      "revoke": "取消邀请",
-      "restore": "启用"
-    },
-    "toast": {
-      "createSuccess": "邀请码已生成",
-      "createFailed": "邀请码生成失败",
-      "revokeSuccess": "邀请码已作废",
-      "revokeFailed": "邀请码作废失败",
-      "restoreSuccess": "邀请码已启用",
-      "restoreFailed": "邀请码启用失败",
-      "copySuccess": "注册链接已复制",
-      "copyFailed": "复制链接失败"
-    },
-    "validation": {
-      "emailRequired": "请输入受邀邮箱"
-    },
-    "register": {
-      "verifying": "正在验证邀请码...",
-      "invalid": "邀请码无效或已被使用，请联系邀请人。",
-      "valid": "邀请码验证成功",
-      "invitee": "绑定邮箱：{{email}}",
-      "inviterWithEmail": "邀请人：{{name}}（{{email}}）",
-      "inviterName": "邀请人：{{name}}"
     }
   }
 }
