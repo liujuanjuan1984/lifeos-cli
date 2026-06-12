@@ -1,0 +1,221 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { usePageHeader } from "@/contexts/PageHeaderContext";
+import PageLayout from "@/layouts/PageLayout";
+import { useVisions } from "@/hooks/queries/useVisions";
+import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
+import {
+  CalendarAdapterFactory,
+  type PlanningViewType,
+} from "@/utils/calendar";
+import PlanningTaskList from "@/components/PlanningTaskList";
+import ToolbarContainer from "@/components/ToolbarContainer";
+import { SegmentedControl } from "@/components/forms";
+import PeriodNavigation from "@/components/PeriodNavigation";
+import EmptyState from "@/components/EmptyState";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorDisplay from "@/components/ErrorDisplay";
+import { usePlanningTasks } from "@/hooks/queries/usePlanningTasks";
+import { Icon } from "@/components/icons";
+
+const PlanningPage: React.FC = () => {
+  const { t } = useTranslation();
+
+  const [viewType, setViewType] = useState<PlanningViewType>("day");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { visions: referenceVisions } = useVisions();
+  const { setHeader } = usePageHeader();
+  const { value: firstDayOfWeek } = usePreferenceWithBootstrap<number>({
+    key: "calendar.first_day_of_week",
+    defaultValue: 1,
+    module: "calendar",
+    validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
+  });
+  const { value: calendarSystem } = usePreferenceWithBootstrap<
+    "gregorian" | "mayan_13_moon"
+  >({
+    key: "calendar.system",
+    defaultValue: "gregorian",
+    module: "calendar",
+    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
+  });
+
+  const calendarAdapter = useMemo(() => {
+    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
+  }, [calendarSystem, firstDayOfWeek]);
+
+  React.useEffect(() => {
+    return () => setHeader({ actions: undefined });
+  }, [setHeader]);
+
+  const normalizedDate = useMemo(() => {
+    if (!calendarAdapter) return selectedDate;
+    switch (viewType) {
+      case "year":
+        return calendarAdapter.getYearStart(selectedDate);
+      case "month": {
+        const monthInfo = calendarAdapter.getMonthInfo(selectedDate);
+        if (monthInfo.isValidMonth && monthInfo.monthStart) {
+          return monthInfo.monthStart;
+        }
+        return calendarAdapter.getYearStart(selectedDate);
+      }
+      case "week":
+        return calendarAdapter.getWeekStart(selectedDate);
+      case "day":
+      default:
+        return selectedDate;
+    }
+  }, [calendarAdapter, viewType, selectedDate]);
+
+  const {
+    tasks: tasksForView,
+    query: tasksQuery,
+    prefetch,
+  } = usePlanningTasks(viewType, normalizedDate, { limit: 100 });
+
+  useEffect(() => {
+    const others: PlanningViewType[] = ["year", "month", "week", "day"].filter(
+      (vt) => vt !== viewType,
+    ) as PlanningViewType[];
+    others.forEach((vt) => {
+      const dateForPrefetch = (() => {
+        switch (vt) {
+          case "year":
+            return calendarAdapter.getYearStart(selectedDate);
+          case "month": {
+            const monthInfo = calendarAdapter.getMonthInfo(selectedDate);
+            if (monthInfo.isValidMonth && monthInfo.monthStart) {
+              return monthInfo.monthStart;
+            }
+            return calendarAdapter.getYearStart(selectedDate);
+          }
+          case "week":
+            return calendarAdapter.getWeekStart(selectedDate);
+          case "day":
+          default:
+            return selectedDate;
+        }
+      })();
+      void prefetch(vt, dateForPrefetch);
+    });
+  }, [viewType, selectedDate, prefetch, calendarAdapter]);
+
+  useEffect(() => {
+    setLoading(tasksQuery.isLoading);
+    setError(tasksQuery.error ? tasksQuery.error.message : null);
+  }, [tasksQuery.isLoading, tasksQuery.error]);
+
+  // Compute planning groups directly with useMemo to avoid callback dependency cycles
+  const planningGroups = useMemo(() => {
+    if (!calendarAdapter || tasksForView.length === 0) {
+      return [];
+    }
+    return calendarAdapter.buildPlanningGroups(
+      viewType,
+      selectedDate,
+      tasksForView,
+      firstDayOfWeek,
+    );
+  }, [calendarAdapter, viewType, selectedDate, tasksForView, firstDayOfWeek]);
+
+  const handleViewTypeChange = (newViewType: PlanningViewType) => {
+    setViewType(newViewType);
+    setSelectedDate(new Date());
+  };
+
+  const navigateToPreviousPeriod = () => {
+    const newDate = calendarAdapter.getPreviousPeriod(selectedDate, viewType);
+    setSelectedDate(newDate);
+  };
+
+  const navigateToCurrentPeriod = () => {
+    setSelectedDate(new Date());
+  };
+
+  const navigateToNextPeriod = () => {
+    const newDate = calendarAdapter.getNextPeriod(selectedDate, viewType);
+    setSelectedDate(newDate);
+  };
+
+  const renderEmptyState = () => (
+    <EmptyState
+      icon={
+        <Icon name="calendar" size={40} className="text-primary" aria-hidden />
+      }
+      title={t("planning.emptyState.title")}
+      description={t("planning.emptyState.description")}
+      className="py-12"
+    />
+  );
+
+  return (
+    <PageLayout>
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <ErrorDisplay error={error} />
+      ) : (
+        <>
+          <ToolbarContainer className="mb-4" layout="three-column">
+            <div className="flex items-center gap-1 sm:gap-2 w-full lg:w-auto">
+              <span className="text-sm sm:text-base font-bold shrink-0">
+                {t("planning.viewType.label")}：
+              </span>
+              <SegmentedControl
+                value={viewType}
+                options={[
+                  { value: "year", label: t("planning.viewType.year") },
+                  { value: "month", label: t("planning.viewType.month") },
+                  { value: "week", label: t("target.week") },
+                  { value: "day", label: t("target.day") },
+                ]}
+                onChange={(nextValue) =>
+                  handleViewTypeChange(nextValue as PlanningViewType)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-center w-full lg:w-auto">
+              <PeriodNavigation
+                periodType={viewType}
+                selectedDate={selectedDate}
+                onPrevious={navigateToPreviousPeriod}
+                onNext={navigateToNextPeriod}
+                onCurrent={navigateToCurrentPeriod}
+                onSelectDate={setSelectedDate}
+                centerButtonWidth="xl"
+              />
+            </div>
+
+            <div className="hidden lg:flex justify-end" />
+          </ToolbarContainer>
+
+          {planningGroups.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <div className="w-full space-y-4">
+              {planningGroups.map((group) => (
+                <PlanningTaskList
+                  key={group.id}
+                  group={group}
+                  visions={referenceVisions}
+                  onTaskUpdate={async () => {
+                    await tasksQuery.refetch();
+                  }}
+                  planningCycleType={viewType}
+                  calendarAdapter={calendarAdapter}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </PageLayout>
+  );
+};
+
+export default PlanningPage;

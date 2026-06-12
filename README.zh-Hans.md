@@ -46,6 +46,12 @@ uv tool install --upgrade lifeos-cli
 uv tool install --upgrade "lifeos-cli[postgres]"
 ```
 
+如果需要浏览器或 HTTP 访问，可以安装可选的本地 Web API 依赖。它会使用同一份 LifeOS 数据库配置：
+
+```bash
+uv tool install --upgrade "lifeos-cli[web]"
+```
+
 `lifeos-cli` 当前正式支持 SQLite 和 PostgreSQL。
 
 - SQLite 适合本地、单用户、低门槛使用场景。
@@ -65,6 +71,33 @@ lifeos init
 
 ```bash
 lifeos --help
+```
+
+启动本地 Web API 服务：
+
+```bash
+lifeos web serve
+```
+
+`lifeos web serve` 不会从 PyPI 安装、构建或内置前端工作区。如果要让同一个进程服务当前
+checkout 中已构建的 UI，需要先构建 `web/`，再显式传入输出目录：
+
+```bash
+lifeos web serve --static-dir web/dist
+```
+
+如果当前配置的数据库 URL 使用 PostgreSQL，需要同时安装或运行 `web` 和 `postgres` 两个可选依赖：
+
+```bash
+uv run --extra web --extra postgres lifeos web serve
+```
+
+前端开发时，可以在 `web/` 目录启动 Vite，并把 API 请求代理到本地 Web API：
+
+```bash
+cd web
+npm install
+npm run dev
 ```
 
 查看并调整运行时偏好：

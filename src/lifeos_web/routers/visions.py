@@ -1,0 +1,173 @@
+"""Vision endpoints used by the local planning UI."""
+
+from __future__ import annotations
+
+import math
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from lifeos_cli.db.services import visions as vision_services
+from lifeos_web.deps import get_db_session
+from lifeos_web.schemas import ListResponse, Pagination, VisionCreate, VisionUpdate
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
+
+router = APIRouter(prefix="/visions", tags=["visions"])
+SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+@router.get("/", response_model=ListResponse)
+async def list_visions(
+    session: SessionDep,
+    page: int = Query(1, ge=1),
+    size: int = Query(100, ge=1, le=500),
+    status_filter: str | None = None,
+) -> ListResponse:
+    """List active visions for selectors and planning cards."""
+    rows = await vision_services.list_visions(
+        session,
+        status=status_filter,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    items = [to_jsonable(row) for row in rows]
+    return ListResponse(
+        items=items,
+        pagination=Pagination(
+            page=page,
+            size=size,
+            total=len(items),
+            pages=math.ceil(len(items) / size) if size > 0 else 0,
+        ),
+        meta={"status_filter": status_filter},
+    )
+
+
+@router.get("/{vision_id}")
+async def get_vision(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one vision."""
+    vision = await vision_services.get_vision(session, vision_id=vision_id)
+    if vision is None:
+        raise HTTPException(status_code=404, detail=f"Vision {vision_id} was not found")
+    return to_jsonable_dict(vision)
+
+
+@router.post("/")
+async def create_vision(
+    payload: VisionCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create a vision."""
+    try:
+        vision = await vision_services.create_vision(
+            session,
+            name=payload.name,
+            description=payload.description,
+            status=payload.status,
+            experience_rate_per_hour=payload.experience_rate_per_hour,
+        )
+    except (LookupError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return to_jsonable_dict(vision)
+
+
+@router.put("/{vision_id}")
+async def replace_vision(
+    vision_id: UUID,
+    payload: VisionUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Frontend-compatible alias for partial vision update."""
+    return await update_vision(vision_id=vision_id, payload=payload, session=session)
+
+
+@router.patch("/{vision_id}")
+async def update_vision(
+    vision_id: UUID,
+    payload: VisionUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a vision."""
+    fields = payload.model_fields_set
+    clear_description = "description" in fields and payload.description is None
+    clear_experience_rate = (
+        "experience_rate_per_hour" in fields and payload.experience_rate_per_hour is None
+    )
+    try:
+        vision = await vision_services.update_vision(
+            session,
+            vision_id=vision_id,
+            name=payload.name,
+            description=payload.description,
+            clear_description=clear_description,
+            status=payload.status,
+            experience_rate_per_hour=payload.experience_rate_per_hour,
+            clear_experience_rate=clear_experience_rate,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return to_jsonable_dict(vision)
+
+
+@router.delete("/{vision_id}", status_code=204)
+async def delete_vision(
+    vision_id: UUID,
+    session: SessionDep,
+) -> None:
+    """Soft-delete a vision."""
+    try:
+        await vision_services.delete_vision(session, vision_id=vision_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/{vision_id}/with-tasks")
+async def get_vision_with_tasks(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load a vision with active tasks."""
+    try:
+        vision = await vision_services.get_vision_with_tasks(session, vision_id=vision_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return to_jsonable_dict(vision)
+
+
+@router.get("/{vision_id}/stats")
+async def get_vision_stats(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load vision task stats."""
+    try:
+        stats = await vision_services.get_vision_stats(session, vision_id=vision_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return to_jsonable_dict(stats)
+
+
+@router.post("/{vision_id}/add-experience")
+async def add_experience(
+    vision_id: UUID,
+    payload: dict[str, int],
+    session: SessionDep,
+) -> dict[str, object]:
+    """Add experience to one vision."""
+    try:
+        vision = await vision_services.add_experience_to_vision(
+            session,
+            vision_id=vision_id,
+            experience_points=payload.get("experience_points", 0),
+        )
+    except (LookupError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return to_jsonable_dict(vision)
+
+
+@router.post("/{vision_id}/harvest")
+async def harvest_vision(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Harvest one vision when the underlying LifeOS rules allow it."""
+    try:
+        vision = await vision_services.harvest_vision(session, vision_id=vision_id)
+    except (LookupError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return to_jsonable_dict(vision)
