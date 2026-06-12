@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from uuid import UUID
 
 import pytest
@@ -153,6 +154,271 @@ def test_web_timelog_payload_exposes_linked_task_summary() -> None:
         "content": "Ship web timelog task linkage",
         "status": "in_progress",
     }
+
+
+def test_web_task_update_null_planning_cycle_translates_to_clear_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks
+    from lifeos_web.schemas import TaskUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_task(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(tasks.task_services, "update_task", fake_update_task)
+
+    asyncio.run(
+        tasks.update_task(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            TaskUpdate(
+                planning_cycle_type=None,
+                planning_cycle_days=None,
+                planning_cycle_start_date=None,
+            ),
+            object(),
+        )
+    )
+
+    assert captured["clear_planning_cycle"] is True
+    assert captured["planning_cycle_type"] is None
+    assert captured["planning_cycle_days"] is None
+    assert captured["planning_cycle_start_date"] is None
+
+
+def test_web_task_update_null_parent_and_estimated_effort_translate_to_clear_flags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks
+    from lifeos_web.schemas import TaskUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_task(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(tasks.task_services, "update_task", fake_update_task)
+
+    asyncio.run(
+        tasks.update_task(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            TaskUpdate(parent_task_id=None, estimated_effort=None),
+            object(),
+        )
+    )
+
+    assert captured["clear_parent"] is True
+    assert captured["clear_estimated_effort"] is True
+
+
+def test_web_vision_update_null_description_and_experience_clear_flags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import visions
+    from lifeos_web.schemas import VisionUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_vision(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(visions.vision_services, "update_vision", fake_update_vision)
+
+    asyncio.run(
+        visions.update_vision(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            VisionUpdate(description=None, experience_rate_per_hour=None),
+            object(),
+        )
+    )
+
+    assert captured["clear_description"] is True
+    assert captured["clear_experience_rate"] is True
+
+
+def test_web_habit_update_null_fields_translate_to_clear_flags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_habit(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(habits.habit_services, "update_habit", fake_update_habit)
+    monkeypatch.setattr(
+        habits,
+        "_habit_model_payload",
+        lambda habit: {"id": str(habit.id)},
+    )
+
+    asyncio.run(
+        habits.update_habit(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            HabitUpdate(description=None, cadence_weekdays=None, task_id=None),
+            object(),
+        )
+    )
+
+    assert captured["clear_description"] is True
+    assert captured["clear_weekdays"] is True
+    assert captured["clear_task"] is True
+
+
+def test_web_habit_action_update_null_notes_maps_to_clear_notes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitActionUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_habit_action(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            id=UUID("22222222-2222-2222-2222-222222222222"),
+        )
+
+    monkeypatch.setattr(
+        habits.habit_action_services, "update_habit_action", fake_update_habit_action
+    )
+
+    async def fake_action_with_habit(_session: object, action: Any) -> dict[str, str]:
+        return {"id": str(action.id)}
+
+    monkeypatch.setattr(habits, "_action_with_habit", fake_action_with_habit)
+
+    asyncio.run(
+        habits.update_action(
+            UUID("66666666-6666-6666-6666-666666666666"),
+            UUID("77777777-7777-7777-7777-777777777777"),
+            HabitActionUpdate(notes=None),
+            object(),
+        )
+    )
+
+    assert captured["clear_notes"] is True
+
+
+def test_web_habit_action_by_date_update_null_notes_maps_to_clear_notes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitActionUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_habit_action_by_date(
+        _session: object,
+        **kwargs: object,
+    ) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            id=UUID("22222222-2222-2222-2222-222222222222"),
+        )
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "update_habit_action_by_date",
+        fake_update_habit_action_by_date,
+    )
+
+    async def fake_action_with_habit(_session: object, action: Any) -> dict[str, str]:
+        return {"id": str(action.id)}
+
+    monkeypatch.setattr(habits, "_action_with_habit", fake_action_with_habit)
+
+    asyncio.run(
+        habits.update_action_by_date(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            datetime(2026, 6, 1, tzinfo=timezone.utc).date(),
+            HabitActionUpdate(notes=None),
+            object(),
+        )
+    )
+
+    assert captured["clear_notes"] is True
+
+
+def test_web_timelog_update_null_fields_translate_to_clear_flags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db.services.timelog_support import TimelogUpdateInput
+    from lifeos_web.routers import timelogs
+    from lifeos_web.schemas import TimelogUpdate
+
+    captured_changes: TimelogUpdateInput | None = None
+
+    async def fake_update_timelog(
+        _session: object,
+        *,
+        changes: TimelogUpdateInput,
+        **_kwargs: object,
+    ) -> object:
+        nonlocal captured_changes
+        captured_changes = changes
+        return {
+            "title": "work",
+            "tracking_method": "manual",
+            "start_time": datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            "end_time": datetime(2026, 6, 1, 14, 0, tzinfo=timezone.utc),
+            "location": None,
+            "energy_level": None,
+            "notes": None,
+            "area_id": None,
+            "task_id": None,
+            "person_ids": [],
+            "tag_ids": [],
+            "created_at": datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            "deleted_at": None,
+        }
+
+    monkeypatch.setattr(timelogs.timelog_services, "update_timelog", fake_update_timelog)
+
+    asyncio.run(
+        timelogs.update_timelog(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            TimelogUpdate(
+                location=None,
+                energy_level=None,
+                notes=None,
+                area_id=None,
+                task_id=None,
+                person_ids=[],
+            ),
+            object(),
+        )
+    )
+
+    assert captured_changes is not None
+    assert captured_changes.clear_location is True
+    assert captured_changes.clear_energy_level is True
+    assert captured_changes.clear_notes is True
+    assert captured_changes.clear_area is True
+    assert captured_changes.clear_task is True
+    assert captured_changes.clear_people is True
 
 
 def test_web_timelog_batch_task_replace_maps_to_lifeos_task_update(

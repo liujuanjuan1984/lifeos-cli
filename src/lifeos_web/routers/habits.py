@@ -183,19 +183,26 @@ async def update_habit(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update a habit."""
+    fields = payload.model_fields_set
+    clear_description = "description" in fields and payload.description is None
+    clear_weekdays = "cadence_weekdays" in fields and payload.cadence_weekdays is None
+    clear_task = "task_id" in fields and payload.task_id is None
     try:
         habit = await habit_services.update_habit(
             session,
             habit_id=habit_id,
             title=payload.title,
             description=payload.description,
+            clear_description=clear_description,
             start_date=payload.start_date,
             duration_days=payload.duration_days,
             cadence_frequency=payload.cadence_frequency,
             cadence_weekdays=payload.cadence_weekdays,
+            clear_weekdays=clear_weekdays,
             target_per_cycle=payload.target_per_cycle,
             status=payload.status,
             task_id=payload.task_id,
+            clear_task=clear_task,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -276,12 +283,15 @@ async def update_action(
 ) -> dict[str, object]:
     """Update one habit action."""
     del habit_id
+    fields = payload.model_fields_set
+    clear_notes = "notes" in fields and payload.notes is None
     try:
         action = await habit_action_services.update_habit_action(
             session,
             action_id=action_id,
             status=payload.status,
             notes=payload.notes,
+            clear_notes=clear_notes,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -298,6 +308,8 @@ async def update_action_by_date(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update one habit action by habit/date, materializing it when needed."""
+    fields = payload.model_fields_set
+    clear_notes = "notes" in fields and payload.notes is None
     try:
         action = await habit_action_services.update_habit_action_by_date(
             session,
@@ -305,6 +317,7 @@ async def update_action_by_date(
             action_date=action_date,
             status=payload.status,
             notes=payload.notes,
+            clear_notes=clear_notes,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

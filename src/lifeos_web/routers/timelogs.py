@@ -268,6 +268,7 @@ async def update_timelog(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update a timelog."""
+    fields = payload.model_fields_set
     try:
         timelog = await timelog_services.update_timelog(
             session,
@@ -278,10 +279,15 @@ async def update_timelog(
                 end_time=payload.end_time,
                 tracking_method=payload.tracking_method,
                 location=payload.location,
+                clear_location="location" in fields and payload.location is None,
                 energy_level=payload.energy_level,
+                clear_energy_level="energy_level" in fields and payload.energy_level is None,
                 notes=payload.notes,
+                clear_notes="notes" in fields and payload.notes is None,
                 area_id=payload.area_id,
+                clear_area="area_id" in fields and payload.area_id is None,
                 task_id=payload.task_id,
+                clear_task="task_id" in fields and payload.task_id is None,
                 person_ids=payload.person_ids,
                 clear_people="person_ids" in payload.model_fields_set and payload.person_ids == [],
             ),

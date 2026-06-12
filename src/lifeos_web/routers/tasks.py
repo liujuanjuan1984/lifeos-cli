@@ -165,6 +165,10 @@ async def update_task(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update a task."""
+    fields = payload.model_fields_set
+    clear_planning_cycle = "planning_cycle_type" in fields and payload.planning_cycle_type is None
+    clear_parent = "parent_task_id" in fields and payload.parent_task_id is None
+    clear_estimated_effort = "estimated_effort" in fields and payload.estimated_effort is None
     try:
         task = await task_services.update_task(
             session,
@@ -178,6 +182,9 @@ async def update_task(
             planning_cycle_type=payload.planning_cycle_type,
             planning_cycle_days=payload.planning_cycle_days,
             planning_cycle_start_date=payload.planning_cycle_start_date,
+            clear_planning_cycle=clear_planning_cycle,
+            clear_parent=clear_parent,
+            clear_estimated_effort=clear_estimated_effort,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

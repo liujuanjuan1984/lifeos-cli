@@ -90,14 +90,21 @@ async def update_vision(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update a vision."""
+    fields = payload.model_fields_set
+    clear_description = "description" in fields and payload.description is None
+    clear_experience_rate = (
+        "experience_rate_per_hour" in fields and payload.experience_rate_per_hour is None
+    )
     try:
         vision = await vision_services.update_vision(
             session,
             vision_id=vision_id,
             name=payload.name,
             description=payload.description,
+            clear_description=clear_description,
             status=payload.status,
             experience_rate_per_hour=payload.experience_rate_per_hour,
+            clear_experience_rate=clear_experience_rate,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
