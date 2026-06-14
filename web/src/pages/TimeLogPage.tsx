@@ -619,6 +619,7 @@ const TimeLogPage = () => {
               sortOrder={sortOrder}
               onSortChange={setSortOrder}
               selectedDate={selectedDate}
+              timezone={activeTimezone}
               queryMode={queryMode}
               dimensionMap={dimensionMap}
               preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}

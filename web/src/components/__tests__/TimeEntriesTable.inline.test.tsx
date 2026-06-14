@@ -53,6 +53,24 @@ const buildPlaceholderEntry = (): ProcessedEntry => ({
   isPlaceholder: true,
 });
 
+const buildActualEntry = (): ProcessedEntry => ({
+  id: "evt" as UUID,
+  title: "Cross-midnight work session",
+  start_time: "2026-04-13T15:40:00.000Z",
+  end_time: "2026-04-13T17:30:00.000Z",
+  dimension_id: null,
+  tracking_method: "manual",
+  created_at: "2026-04-14T05:41:48.498Z",
+  updated_at: "2026-04-14T05:41:48.498Z",
+  persons: [],
+  tags: [],
+  extra_data: null,
+  task: null,
+  linked_notes: [],
+  linked_notes_count: 0,
+  isPlaceholder: false,
+});
+
 const renderTable = (
   overrides?: Partial<React.ComponentProps<typeof TimeEntriesTable>>,
 ) => {
@@ -147,5 +165,18 @@ describe("TimeEntriesTable inline entry sessions", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("inline-entry")).toBeNull();
     });
+  });
+
+  it("uses the active timezone when rendering cross-midnight entries", () => {
+    renderTable({
+      entries: [buildActualEntry()],
+      selectedDate: new Date("2026-04-13T16:00:00.000Z"),
+      timezone: "Asia/Shanghai",
+      disableQuickEntry: true,
+    });
+
+    expect(screen.getByText("2026-04-14")).toBeInTheDocument();
+    expect(screen.getByText(/23:40-01:30/)).toBeInTheDocument();
+    expect(screen.getByText("Cross-midnight work session")).toBeInTheDocument();
   });
 });

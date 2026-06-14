@@ -38,6 +38,7 @@ interface TimeEntriesTableProps {
   sortOrder: "asc" | "desc";
   onSortChange: (order: "asc" | "desc") => void;
   selectedDate: Date;
+  timezone?: string;
   queryMode: QueryMode;
   dimensionMap: Map<UUID, { name: string; color: string }>;
   preloadedTasks: TaskWithSubtasks[];
@@ -63,6 +64,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   sortOrder,
   onSortChange,
   selectedDate,
+  timezone,
   queryMode,
   dimensionMap,
   preloadedTasks,
@@ -128,16 +130,16 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
       }
 
       if (bestEndIso) {
-        return formatTime(bestEndIso);
+        return formatTime(bestEndIso, timezone);
       }
 
       if (placeholder?.start_time) {
-        return formatTime(placeholder.start_time);
+        return formatTime(placeholder.start_time, timezone);
       }
 
       return "";
     },
-    [entries],
+    [entries, timezone],
   );
 
   useEffect(() => {
@@ -213,9 +215,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     );
 
     if (autoExpandEntry) {
-      const rangeStartTimeStr = formatTime(autoExpandEntry.start_time);
+      const rangeStartTimeStr = formatTime(autoExpandEntry.start_time, timezone);
       const endTimeStr = autoExpandEntry.end_time
-        ? formatTime(autoExpandEntry.end_time)
+        ? formatTime(autoExpandEntry.end_time, timezone)
         : "";
       const timeRange = `${rangeStartTimeStr}-${endTimeStr}`;
       const startTimeStr =
@@ -231,6 +233,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     disableQuickEntry,
     justSubmitted,
     resolveInlineStartTime,
+    timezone,
     updateInlineTimes,
   ]);
 
@@ -245,7 +248,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
 
       // Keep the form open for continued entry, but reset form data
       const now = new Date();
-      const startTimeStr = formatTime(now.toISOString()).slice(0, 5);
+      const startTimeStr = formatTime(now.toISOString(), timezone).slice(0, 5);
       const endTimeStr = "23:59"; // Special flag for "now"
 
       updateInlineTimes(startTimeStr, endTimeStr);
@@ -256,7 +259,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
         onEntrySaved();
       }
     },
-    [inlineSessionId, onEntrySaved, updateInlineTimes],
+    [inlineSessionId, onEntrySaved, timezone, updateInlineTimes],
   );
 
   const handleInlineQuickEntryError = (errorMessage: string) => {
@@ -485,9 +488,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                   // Use time range for stable expansion state
                   let isExpanded = false;
                   if (entry.isPlaceholder) {
-                    const startTimeStr = formatTime(entry.start_time);
+                    const startTimeStr = formatTime(entry.start_time, timezone);
                     const endTimeStr = entry.end_time
-                      ? formatTime(entry.end_time)
+                      ? formatTime(entry.end_time, timezone)
                       : "";
                     const timeRange = `${startTimeStr}-${endTimeStr}`;
                     isExpanded = expandedTimeRange === timeRange;
@@ -512,6 +515,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                         onViewNotes={onViewNotesForEntry}
                         dimensionMap={dimensionMap}
                         selectedDate={selectedDate}
+                        timezone={timezone}
                         queryMode={queryMode}
                         onHoverTooltip={handleHoverStart}
                         onHoverMove={handleHoverMove}

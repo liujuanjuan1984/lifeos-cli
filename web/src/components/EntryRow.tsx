@@ -28,6 +28,7 @@ interface EntryRowProps {
   onViewNotes?: (entry: ProcessedEntry) => void;
   dimensionMap: Map<UUID, { name: string; color: string }>;
   selectedDate: Date;
+  timezone?: string;
   queryMode: QueryMode;
   onHoverTooltip?: (
     entry: ProcessedEntry,
@@ -55,6 +56,7 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
   onViewNotes,
   dimensionMap,
   selectedDate,
+  timezone,
   queryMode,
   onHoverTooltip,
   onHoverMove,
@@ -83,11 +85,11 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
   const getDisplayDate = () => {
     if (queryMode === "single") {
       // Single day mode: show selected date
-      return formatDateInTimezone(selectedDate);
+      return formatDateInTimezone(selectedDate, timezone);
     } else {
       // Advanced query mode: show actual record date
       if (entry.start_time) {
-        return formatDate(entry.start_time);
+        return formatDate(entry.start_time, timezone);
       }
       return "-";
     }
@@ -171,7 +173,11 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
       </td>
 
       <td className="px-4 py-3 whitespace-nowrap">
-        <TimeRangeText start={entry.start_time} end={entry.end_time} />
+        <TimeRangeText
+          start={entry.start_time}
+          end={entry.end_time}
+          timezone={timezone}
+        />
       </td>
 
       <td className="px-4 py-3 whitespace-nowrap">
