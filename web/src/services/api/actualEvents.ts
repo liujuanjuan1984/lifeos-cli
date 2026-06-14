@@ -94,6 +94,8 @@ export interface ActualEventAdvancedSearchRequest {
 export interface ActualEventAdvancedSearchMetadata {
   start_date?: string | null;
   end_date?: string | null;
+  window_start?: string | null;
+  window_end?: string | null;
   tracking_method?: string | null;
   dimension_id?: UUID | null;
   without_dimension?: boolean | null;
@@ -112,10 +114,6 @@ export type ActualEventListResponse = ListResponse<
 >;
 
 export type ActualEventAdvancedSearchResponse = ActualEventListResponse;
-
-function datePart(value: string): string {
-  return value.slice(0, 10);
-}
 
 function toTimelogPayload(
   payload: ActualEventCreate | ActualEventUpdate,
@@ -137,8 +135,8 @@ function toTimelogPayload(
 export const actualEventsApi = {
   fetchRange: (start: string, end: string, trackingMethod?: string) =>
     http.get<ActualEventListResponse>(ENDPOINTS.TIMELOGS.BASE, {
-      start_date: datePart(start),
-      end_date: datePart(end),
+      window_start: start,
+      window_end: end,
       tracking_method: trackingMethod,
     }),
 
@@ -212,8 +210,8 @@ export const actualEventsApi = {
     const response = await http.get<ActualEventAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
-        start_date: datePart(params.start_date),
-        end_date: params.end_date ? datePart(params.end_date) : undefined,
+        window_start: params.start_date,
+        window_end: params.end_date,
         query: params.description_keyword ?? undefined,
         dimension_id: withoutDimension
           ? undefined
@@ -230,10 +228,13 @@ export const actualEventsApi = {
       ...response,
       meta: {
         ...response.meta,
-        start_date: response.meta?.start_date ?? datePart(params.start_date),
+        start_date: response.meta?.start_date ?? params.start_date,
         end_date:
           response.meta?.end_date ??
-          (params.end_date ? datePart(params.end_date) : null),
+          (params.end_date ? params.end_date : null),
+        window_start: response.meta?.window_start ?? params.start_date,
+        window_end:
+          response.meta?.window_end ?? (params.end_date ? params.end_date : null),
         dimension_id:
           response.meta?.dimension_id ?? params.dimension_id ?? null,
         without_dimension:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.time_preferences import to_storage_timezone
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.services import timelogs as timelog_services
 from lifeos_cli.db.services.timelog_support import (
@@ -48,6 +49,12 @@ def _timelog_payload(timelog: object) -> dict[str, object]:
             "color": None,
         }
     return payload
+
+
+def _normalize_query_window(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return to_storage_timezone(value)
 
 
 async def _batch_add_timelog_people(
@@ -109,6 +116,8 @@ async def list_timelogs(
     size: int = Query(50, ge=1, le=500),
     start_date: date | None = None,
     end_date: date | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
     query: str | None = None,
     tracking_method: str | None = None,
     dimension_id: UUID | None = None,
@@ -117,6 +126,8 @@ async def list_timelogs(
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
+    normalized_window_start = _normalize_query_window(window_start)
+    normalized_window_end = _normalize_query_window(window_end)
     filters = TimelogQueryFilters(
         start_date=start_date,
         end_date=end_date,
@@ -126,6 +137,8 @@ async def list_timelogs(
         area_name=dimension_name,
         without_area=without_dimension,
         task_id=task_id,
+        window_start=normalized_window_start,
+        window_end=normalized_window_end,
     )
     total_count = await timelog_services.count_timelogs(session, filters=filters)
     rows = await timelog_services.list_timelogs(
@@ -148,6 +161,10 @@ async def list_timelogs(
         meta={
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
+            "window_start": normalized_window_start.isoformat()
+            if normalized_window_start
+            else None,
+            "window_end": normalized_window_end.isoformat() if normalized_window_end else None,
             "query": query,
             "tracking_method": tracking_method,
             "dimension_id": str(dimension_id) if dimension_id else None,
