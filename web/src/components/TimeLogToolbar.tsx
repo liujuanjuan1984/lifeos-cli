@@ -4,31 +4,53 @@ import ActionButton from "./ActionButton";
 import PeriodNavigation from "./PeriodNavigation";
 import ToolbarContainer from "./ToolbarContainer";
 import type { QueryMode } from "@/hooks/useQueryMode";
+import { dateStringToISO, formatDateInTimezone } from "@/utils/datetime";
 
 interface TimeLogToolbarProps {
   queryMode: QueryMode;
   selectedDate: Date;
+  timezone?: string;
   onDateChange: (date: Date) => void;
   onQueryModeChange: (mode: QueryMode) => void;
 }
 
+const shiftDateInTimezone = (
+  date: Date,
+  timezone: string | undefined,
+  deltaDays: number,
+): Date => {
+  if (!timezone) {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + deltaDays);
+    return nextDate;
+  }
+
+  const dateOnly = formatDateInTimezone(date, timezone);
+  const [year, month, day] = dateOnly.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + deltaDays));
+  const shiftedDateOnly = [
+    shifted.getUTCFullYear(),
+    String(shifted.getUTCMonth() + 1).padStart(2, "0"),
+    String(shifted.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+  const shiftedIso = dateStringToISO(shiftedDateOnly, timezone, false);
+  return shiftedIso ? new Date(shiftedIso) : date;
+};
+
 const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
   queryMode,
   selectedDate,
+  timezone,
   onDateChange,
   onQueryModeChange,
 }) => {
   const { t } = useTranslation();
   const goToPreviousDay = () => {
-    const previousDay = new Date(selectedDate);
-    previousDay.setDate(previousDay.getDate() - 1);
-    onDateChange(previousDay);
+    onDateChange(shiftDateInTimezone(selectedDate, timezone, -1));
   };
 
   const goToNextDay = () => {
-    const nextDay = new Date(selectedDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-    onDateChange(nextDay);
+    onDateChange(shiftDateInTimezone(selectedDate, timezone, 1));
   };
 
   const goToToday = () => {
@@ -79,6 +101,7 @@ const TimeLogToolbar: React.FC<TimeLogToolbarProps> = ({
           onNext={goToNextDay}
           onCurrent={goToToday}
           onSelectDate={onDateChange}
+          timezone={timezone}
           disabled={queryMode === "advanced"}
         />
       </div>

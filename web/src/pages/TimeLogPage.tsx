@@ -333,6 +333,7 @@ const TimeLogPage = () => {
         <TimeLogToolbar
           queryMode={queryMode}
           selectedDate={selectedDate}
+          timezone={activeTimezone}
           onDateChange={setSelectedDate}
           onQueryModeChange={(mode) => {
             if (mode === "advanced") {
