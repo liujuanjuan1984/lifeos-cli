@@ -5,10 +5,11 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
@@ -98,7 +99,7 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
 
     response = asyncio.run(
         timelogs.list_timelogs(
-            object(),
+            cast(AsyncSession, object()),
             page=1,
             size=50,
             without_dimension=True,
@@ -156,6 +157,36 @@ def test_web_timelog_payload_exposes_linked_task_summary() -> None:
     }
 
 
+def test_web_timelog_payload_serializes_naive_storage_datetimes_as_utc() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.timelogs import _timelog_payload
+
+    payload = _timelog_payload(
+        TimelogView(
+            id=UUID("11111111-1111-1111-1111-111111111111"),
+            title="SQLite-backed work",
+            tracking_method="manual",
+            start_time=datetime(2026, 6, 13, 21, 0),
+            end_time=datetime(2026, 6, 13, 21, 5),
+            location=None,
+            energy_level=None,
+            notes=None,
+            area_id=None,
+            task_id=None,
+            created_at=datetime(2026, 6, 13, 21, 9, 24),
+            updated_at=datetime(2026, 6, 13, 21, 9, 24),
+            deleted_at=None,
+            linked_notes_count=0,
+            task=None,
+        )
+    )
+
+    assert payload["start_time"] == "2026-06-13T21:00:00Z"
+    assert payload["end_time"] == "2026-06-13T21:05:00Z"
+    assert payload["created_at"] == "2026-06-13T21:09:24Z"
+
+
 def test_web_task_update_null_planning_cycle_translates_to_clear_flag(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -180,7 +211,7 @@ def test_web_task_update_null_planning_cycle_translates_to_clear_flag(
                 planning_cycle_days=None,
                 planning_cycle_start_date=None,
             ),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -210,7 +241,7 @@ def test_web_task_update_null_parent_and_estimated_effort_translate_to_clear_fla
         tasks.update_task(
             UUID("55555555-5555-5555-5555-555555555555"),
             TaskUpdate(parent_task_id=None, estimated_effort=None),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -238,7 +269,7 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
         visions.update_vision(
             UUID("55555555-5555-5555-5555-555555555555"),
             VisionUpdate(description=None, experience_rate_per_hour=None),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -270,8 +301,13 @@ def test_web_habit_update_null_fields_translate_to_clear_flags(
     asyncio.run(
         habits.update_habit(
             UUID("55555555-5555-5555-5555-555555555555"),
-            HabitUpdate(description=None, cadence_weekdays=None, task_id=None),
-            object(),
+            HabitUpdate(
+                description=None,
+                duration_days=None,
+                cadence_weekdays=None,
+                task_id=None,
+            ),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -310,7 +346,7 @@ def test_web_habit_action_update_null_notes_maps_to_clear_notes(
             UUID("66666666-6666-6666-6666-666666666666"),
             UUID("77777777-7777-7777-7777-777777777777"),
             HabitActionUpdate(notes=None),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -352,7 +388,7 @@ def test_web_habit_action_by_date_update_null_notes_maps_to_clear_notes(
             UUID("55555555-5555-5555-5555-555555555555"),
             datetime(2026, 6, 1, tzinfo=timezone.utc).date(),
             HabitActionUpdate(notes=None),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -408,7 +444,7 @@ def test_web_timelog_update_null_fields_translate_to_clear_flags(
                 task_id=None,
                 person_ids=[],
             ),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -461,7 +497,7 @@ def test_web_timelog_batch_task_replace_maps_to_lifeos_task_update(
                 update_type="task",
                 task=TimelogBatchTaskUpdate(mode="replace", task_id=task_id),
             ),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -501,7 +537,7 @@ def test_web_tag_create_maps_to_lifeos_tag_service(
     response = asyncio.run(
         tags.create_tag(
             TagCreate(name="Project", entity_type="note", category="general"),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 
@@ -557,7 +593,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
                 task_id=task_id,
                 actual_event_ids=[timelog_id],
             ),
-            object(),
+            cast(AsyncSession, object()),
         )
     )
 

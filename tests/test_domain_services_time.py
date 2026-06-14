@@ -613,6 +613,66 @@ def test_list_event_occurrences_expands_recurring_series_and_skips_exceptions() 
     ]
 
 
+def test_list_event_occurrences_treats_naive_sqlite_datetimes_as_utc() -> None:
+    class _Result:
+        def __init__(self, values: list[object]) -> None:
+            self._values = values
+
+        def scalars(self) -> list[object]:
+            return self._values
+
+    class _Session:
+        def __init__(self) -> None:
+            self._results = [
+                _Result(
+                    [
+                        SimpleNamespace(
+                            id=UUID("abababab-abab-abab-abab-abababababab"),
+                            title="Daily review",
+                            status="planned",
+                            event_type="appointment",
+                            start_time=datetime(2026, 4, 10, 13, 0),
+                            end_time=datetime(2026, 4, 10, 14, 0),
+                            task_id=None,
+                            deleted_at=None,
+                            recurrence_frequency="daily",
+                            recurrence_interval=1,
+                            recurrence_count=3,
+                            recurrence_until=None,
+                            recurrence_parent_event_id=None,
+                        )
+                    ]
+                ),
+                _Result(
+                    [
+                        SimpleNamespace(
+                            master_event_id=UUID("abababab-abab-abab-abab-abababababab"),
+                            instance_start=datetime(2026, 4, 11, 13, 0),
+                        )
+                    ]
+                ),
+                _Result([]),
+            ]
+
+        async def execute(self, statement: object) -> _Result:
+            return self._results.pop(0)
+
+    occurrences = asyncio.run(
+        events.list_event_occurrences(
+            cast(Any, _Session()),
+            query=events.EventOccurrenceQuery(
+                window_start=utc_datetime(2026, 4, 10, 0, 0),
+                window_end=utc_datetime(2026, 4, 12, 23, 59),
+            ),
+        )
+    )
+
+    assert [item.start_time for item in occurrences] == [
+        utc_datetime(2026, 4, 10, 13, 0),
+        utc_datetime(2026, 4, 12, 13, 0),
+    ]
+
+
 def test_list_event_occurrences_expands_monthly_series() -> None:
     class _Result:
         def __init__(self, values: list[object]) -> None:

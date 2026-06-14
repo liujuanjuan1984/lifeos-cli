@@ -11,6 +11,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.datetime_utils import normalize_storage_datetime
 from lifeos_cli.application.time_preferences import (
     get_operational_date,
     get_utc_window_for_local_date,
@@ -80,6 +81,8 @@ def iter_local_dates_for_timelog_window(
     end_time: datetime,
 ) -> tuple[date, ...]:
     """Return every configured local operational date touched by a timelog window."""
+    start_time = normalize_storage_datetime(start_time)
+    end_time = normalize_storage_datetime(end_time)
     if end_time <= start_time:
         return ()
     final_moment = end_time - timedelta(microseconds=1)
@@ -94,6 +97,10 @@ def overlap_minutes_for_window(
     window_end: datetime,
 ) -> int:
     """Return whole overlap minutes for one half-open window intersection."""
+    start_time = normalize_storage_datetime(start_time)
+    end_time = normalize_storage_datetime(end_time)
+    window_start = normalize_storage_datetime(window_start)
+    window_end = normalize_storage_datetime(window_end)
     overlap_start = max(start_time, window_start)
     overlap_end = min(end_time, window_end)
     if overlap_end <= overlap_start:

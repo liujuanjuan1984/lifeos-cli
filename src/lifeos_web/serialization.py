@@ -8,6 +8,8 @@ from enum import Enum
 from typing import Any, cast
 from uuid import UUID
 
+from lifeos_cli.application.datetime_utils import format_utc_iso
+
 
 def to_jsonable(value: Any) -> Any:
     """Convert LifeOS dataclasses and scalar values into JSON-compatible values."""
@@ -20,7 +22,7 @@ def to_jsonable(value: Any) -> Any:
     if isinstance(value, UUID):
         return str(value)
     if isinstance(value, datetime):
-        return value.isoformat()
+        return format_utc_iso(value)
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, Enum):
