@@ -156,6 +156,36 @@ def test_web_timelog_payload_exposes_linked_task_summary() -> None:
     }
 
 
+def test_web_timelog_payload_serializes_naive_storage_datetimes_as_utc() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.timelogs import _timelog_payload
+
+    payload = _timelog_payload(
+        TimelogView(
+            id=UUID("11111111-1111-1111-1111-111111111111"),
+            title="SQLite-backed work",
+            tracking_method="manual",
+            start_time=datetime(2026, 6, 13, 21, 0),
+            end_time=datetime(2026, 6, 13, 21, 5),
+            location=None,
+            energy_level=None,
+            notes=None,
+            area_id=None,
+            task_id=None,
+            created_at=datetime(2026, 6, 13, 21, 9, 24),
+            updated_at=datetime(2026, 6, 13, 21, 9, 24),
+            deleted_at=None,
+            linked_notes_count=0,
+            task=None,
+        )
+    )
+
+    assert payload["start_time"] == "2026-06-13T21:00:00Z"
+    assert payload["end_time"] == "2026-06-13T21:05:00Z"
+    assert payload["created_at"] == "2026-06-13T21:09:24Z"
+
+
 def test_web_task_update_null_planning_cycle_translates_to_clear_flag(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

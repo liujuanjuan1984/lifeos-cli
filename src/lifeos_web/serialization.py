@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Any, cast
 from uuid import UUID
+
+
+def datetime_to_utc_iso(value: datetime) -> str:
+    """Render stored datetimes as explicit UTC ISO strings for Web clients."""
+    if value.tzinfo is None or value.utcoffset() is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def to_jsonable(value: Any) -> Any:
@@ -20,7 +27,7 @@ def to_jsonable(value: Any) -> Any:
     if isinstance(value, UUID):
         return str(value)
     if isinstance(value, datetime):
-        return value.isoformat()
+        return datetime_to_utc_iso(value)
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, Enum):

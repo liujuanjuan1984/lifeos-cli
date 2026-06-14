@@ -45,6 +45,17 @@ def test_overlap_minutes_for_window_returns_whole_minutes() -> None:
     assert minutes == 30
 
 
+def test_overlap_minutes_for_window_treats_naive_storage_values_as_utc() -> None:
+    minutes = timelog_stats.overlap_minutes_for_window(
+        start_time=datetime(2026, 4, 10, 12, 0),
+        end_time=datetime(2026, 4, 10, 13, 0),
+        window_start=datetime(2026, 4, 10, 12, 30, tzinfo=timezone.utc),
+        window_end=datetime(2026, 4, 10, 13, 30, tzinfo=timezone.utc),
+    )
+
+    assert minutes == 30
+
+
 @pytest.mark.usefixtures("configured_time_preferences")
 def test_resolve_stats_period_uses_configured_week_boundary() -> None:
     start_date, end_date = timelog_stats.resolve_stats_period(

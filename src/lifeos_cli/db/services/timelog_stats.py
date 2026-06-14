@@ -5,7 +5,7 @@ from __future__ import annotations
 from calendar import monthrange
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
@@ -63,6 +63,13 @@ def iter_date_range(start_date: date, end_date: date) -> tuple[date, ...]:
     return tuple(dates)
 
 
+def _as_utc_aware(value: datetime) -> datetime:
+    """Interpret timezone-naive storage datetimes as UTC."""
+    if value.tzinfo is not None and value.utcoffset() is not None:
+        return value.astimezone(timezone.utc)
+    return value.replace(tzinfo=timezone.utc)
+
+
 def get_month_bounds(target_month: date) -> tuple[date, date]:
     """Return the first and last local dates for one month."""
     month_start = target_month.replace(day=1)
@@ -80,6 +87,8 @@ def iter_local_dates_for_timelog_window(
     end_time: datetime,
 ) -> tuple[date, ...]:
     """Return every configured local operational date touched by a timelog window."""
+    start_time = _as_utc_aware(start_time)
+    end_time = _as_utc_aware(end_time)
     if end_time <= start_time:
         return ()
     final_moment = end_time - timedelta(microseconds=1)
@@ -94,6 +103,10 @@ def overlap_minutes_for_window(
     window_end: datetime,
 ) -> int:
     """Return whole overlap minutes for one half-open window intersection."""
+    start_time = _as_utc_aware(start_time)
+    end_time = _as_utc_aware(end_time)
+    window_start = _as_utc_aware(window_start)
+    window_end = _as_utc_aware(window_end)
     overlap_start = max(start_time, window_start)
     overlap_end = min(end_time, window_end)
     if overlap_end <= overlap_start:

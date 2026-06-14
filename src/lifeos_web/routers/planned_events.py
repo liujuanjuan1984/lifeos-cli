@@ -21,6 +21,7 @@ from lifeos_cli.db.services.events import EventOccurrence
 from lifeos_cli.db.services.read_models import EventView
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, PlannedEventCreate, PlannedEventUpdate
+from lifeos_web.serialization import datetime_to_utc_iso
 
 router = APIRouter(prefix="/planned-events", tags=["planned-events"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -88,7 +89,9 @@ def _planned_event_payload(
             "interval": source_event.recurrence_interval,
             "count": source_event.recurrence_count,
             "until": (
-                source_event.recurrence_until.isoformat() if source_event.recurrence_until else None
+                datetime_to_utc_iso(source_event.recurrence_until)
+                if source_event.recurrence_until
+                else None
             ),
         }
     if is_occurrence:
@@ -96,8 +99,8 @@ def _planned_event_payload(
     else:
         assert isinstance(event, EventView)
         master_id = event.recurrence_parent_event_id or event.id
-    created_at = event.created_at.isoformat() if isinstance(event, EventView) else ""
-    updated_at = event.updated_at.isoformat() if isinstance(event, EventView) else ""
+    created_at = datetime_to_utc_iso(event.created_at) if isinstance(event, EventView) else ""
+    updated_at = datetime_to_utc_iso(event.updated_at) if isinstance(event, EventView) else ""
     area_id = source_event.area_id if source_event else None
     priority = source_event.priority if source_event else 0
     is_all_day = source_event.is_all_day if source_event else False
@@ -105,8 +108,8 @@ def _planned_event_payload(
     return {
         "id": str(event.id),
         "title": event.title,
-        "start_time": event.start_time.isoformat(),
-        "end_time": event.end_time.isoformat() if event.end_time else None,
+        "start_time": datetime_to_utc_iso(event.start_time),
+        "end_time": datetime_to_utc_iso(event.end_time) if event.end_time else None,
         "priority": priority,
         "dimension_id": str(area_id) if area_id else None,
         "task_id": str(event.task_id) if event.task_id else None,
