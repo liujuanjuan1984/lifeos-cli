@@ -48,6 +48,29 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/tags/" in route_paths
 
 
+def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.app import SPAStaticFiles
+
+    static_dir = tmp_path / "static"
+    assets_dir = static_dir / "assets"
+    assets_dir.mkdir(parents=True)
+    (static_dir / "index.html").write_text("<html>LifeOS</html>", encoding="utf-8")
+    (assets_dir / "app.js").write_text("console.log('lifeos')", encoding="utf-8")
+
+    static_files = SPAStaticFiles(directory=static_dir, html=True)
+    scope = {"type": "http", "method": "GET", "headers": []}
+
+    asset_response = asyncio.run(static_files.get_response("assets/app.js", scope))
+    spa_response = asyncio.run(static_files.get_response("timelog", scope))
+
+    assert asset_response.status_code == 200
+    assert asset_response.headers["cache-control"] == "no-store"
+    assert spa_response.status_code == 200
+    assert spa_response.headers["cache-control"] == "no-store"
+
+
 def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("fastapi")
     from lifeos_web import server
