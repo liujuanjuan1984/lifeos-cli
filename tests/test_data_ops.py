@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -9,6 +10,7 @@ from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
+from sqlalchemy import Column, DateTime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.backend_policy import backend_policy_for_drivername
@@ -67,6 +69,22 @@ def test_batch_update_resource_parses_typed_timelog_fields(
     assert changes.task_id == UUID("33333333-3333-3333-3333-333333333333")
     assert changes.tag_ids == [UUID("44444444-4444-4444-4444-444444444444")]
     assert changes.person_ids == [UUID("55555555-5555-5555-5555-555555555555")]
+
+
+def test_parse_datetime_snapshot_values_normalizes_offsets_to_utc() -> None:
+    column = Column("start_time", DateTime(timezone=True))
+
+    parsed = data_ops._parse_column_value(column, "2026-06-13T21:00:00-04:00")
+
+    assert parsed == datetime(2026, 6, 14, 1, 0, tzinfo=timezone.utc)
+
+
+def test_serialize_datetime_snapshot_values_uses_explicit_utc() -> None:
+    value = datetime.fromisoformat("2026-06-13T21:00:00-04:00")
+
+    serialized = data_ops._serialize_scalar(value)
+
+    assert serialized == "2026-06-14T01:00:00Z"
 
 
 def test_batch_update_resource_parses_extended_note_relation_fields(
