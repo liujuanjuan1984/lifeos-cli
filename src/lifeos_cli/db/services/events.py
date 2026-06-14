@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from lifeos_cli.application.datetime_utils import normalize_storage_datetime
 from lifeos_cli.application.time_preferences import (
     get_utc_window_for_local_date_range,
     to_storage_timezone,
@@ -34,7 +35,6 @@ from lifeos_cli.db.services.event_support import (
     EventQueryFilters,
     EventUpdateInput,
     EventValidationError,
-    as_utc_aware,
     ensure_event_area_exists,
     ensure_event_task_exists,
     event_is_recurring,
@@ -124,8 +124,8 @@ async def _get_event_model(
 
 
 def _event_duration(event: Event | EventOccurrence) -> timedelta | None:
-    start_time = as_utc_aware(event.start_time) or event.start_time
-    end_time = as_utc_aware(event.end_time)
+    start_time = normalize_storage_datetime(event.start_time)
+    end_time = normalize_storage_datetime(event.end_time)
     if end_time is None:
         return None
     return end_time - start_time
@@ -137,10 +137,10 @@ def _event_overlaps_window(
     window_start: datetime,
     window_end: datetime,
 ) -> bool:
-    start_time = as_utc_aware(event.start_time) or event.start_time
-    end_time = as_utc_aware(event.end_time)
-    window_start = as_utc_aware(window_start) or window_start
-    window_end = as_utc_aware(window_end) or window_end
+    start_time = normalize_storage_datetime(event.start_time)
+    end_time = normalize_storage_datetime(event.end_time)
+    window_start = normalize_storage_datetime(window_start)
+    window_end = normalize_storage_datetime(window_end)
     return start_time <= window_end and (end_time is None or end_time >= window_start)
 
 
@@ -195,7 +195,7 @@ async def _load_skip_exceptions(
     rows = list((await session.execute(stmt)).scalars())
     result: dict[UUID, set[datetime]] = {}
     for row in rows:
-        instance_start = as_utc_aware(row.instance_start) or row.instance_start
+        instance_start = normalize_storage_datetime(row.instance_start)
         result.setdefault(row.master_event_id, set()).add(instance_start)
     return result
 
@@ -729,7 +729,7 @@ async def list_event_occurrences(
     override_keys = {
         (
             override.recurrence_parent_event_id,
-            as_utc_aware(override.recurrence_instance_start) or override.recurrence_instance_start,
+            normalize_storage_datetime(override.recurrence_instance_start),
         ): override
         for override in overrides
         if override.recurrence_parent_event_id is not None
@@ -740,7 +740,7 @@ async def list_event_occurrences(
     for master in masters:
         if not event_is_recurring(master):
             if _event_overlaps_window(master, window_start=window_start, window_end=window_end):
-                start_time = as_utc_aware(master.start_time) or master.start_time
+                start_time = normalize_storage_datetime(master.start_time)
                 occurrences.append(
                     EventOccurrence(
                         id=master.id,
@@ -748,9 +748,9 @@ async def list_event_occurrences(
                         status=master.status,
                         event_type=master.event_type,
                         start_time=start_time,
-                        end_time=as_utc_aware(master.end_time),
+                        end_time=normalize_storage_datetime(master.end_time),
                         task_id=master.task_id,
-                        deleted_at=as_utc_aware(master.deleted_at),
+                        deleted_at=normalize_storage_datetime(master.deleted_at),
                         instance_start=start_time,
                     )
                 )
@@ -780,7 +780,7 @@ async def list_event_occurrences(
             )
 
     for override in overrides:
-        override_start = as_utc_aware(override.start_time) or override.start_time
+        override_start = normalize_storage_datetime(override.start_time)
         occurrences.append(
             EventOccurrence(
                 id=override.id,
@@ -788,10 +788,12 @@ async def list_event_occurrences(
                 status=override.status,
                 event_type=override.event_type,
                 start_time=override_start,
-                end_time=as_utc_aware(override.end_time),
+                end_time=normalize_storage_datetime(override.end_time),
                 task_id=override.task_id,
-                deleted_at=as_utc_aware(override.deleted_at),
-                instance_start=(as_utc_aware(override.recurrence_instance_start) or override_start),
+                deleted_at=normalize_storage_datetime(override.deleted_at),
+                instance_start=(
+                    normalize_storage_datetime(override.recurrence_instance_start) or override_start
+                ),
             )
         )
 

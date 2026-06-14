@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.datetime_utils import normalize_storage_datetime
 from lifeos_cli.config import get_preferences_settings
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.task import Task
@@ -242,25 +243,16 @@ class RecurringEventLike(Protocol):
     recurrence_until: datetime | None
 
 
-def as_utc_aware(value: datetime | None) -> datetime | None:
-    """Interpret timezone-naive storage datetimes as UTC."""
-    if value is None:
-        return None
-    if value.tzinfo is not None and value.utcoffset() is not None:
-        return value.astimezone(timezone.utc)
-    return value.replace(tzinfo=timezone.utc)
-
-
 def _build_event_series(event: RecurringEventLike) -> SeriesDefinition:
     if event.recurrence_frequency is None:
         raise EventValidationError("Recurring event operations require recurrence_frequency.")
     return build_series_definition(
-        anchor_start=as_utc_aware(event.start_time) or event.start_time,
-        anchor_end=as_utc_aware(event.end_time),
+        anchor_start=normalize_storage_datetime(event.start_time),
+        anchor_end=normalize_storage_datetime(event.end_time),
         frequency=event.recurrence_frequency,
         interval=event.recurrence_interval,
         count=event.recurrence_count,
-        until=as_utc_aware(event.recurrence_until),
+        until=normalize_storage_datetime(event.recurrence_until),
         week_starts_on=get_preferences_settings().week_starts_on,
     )
 
@@ -273,7 +265,7 @@ def event_is_recurring(event: RecurringEventLike) -> bool:
 def get_event_occurrence_index(event: RecurringEventLike, *, instance_start: datetime) -> int:
     """Return the zero-based occurrence index for one recurring event instance."""
     try:
-        normalized_instance_start = as_utc_aware(instance_start) or instance_start
+        normalized_instance_start = normalize_storage_datetime(instance_start)
         return get_occurrence_index(
             _build_event_series(event),
             instance_start=normalized_instance_start,
@@ -287,7 +279,7 @@ def validate_event_instance_start(event: RecurringEventLike, *, instance_start: 
     if not event_is_recurring(event):
         raise EventValidationError("Instance-level operations require a recurring master event")
     try:
-        normalized_instance_start = as_utc_aware(instance_start) or instance_start
+        normalized_instance_start = normalize_storage_datetime(instance_start)
         validate_occurrence_start(
             _build_event_series(event),
             instance_start=normalized_instance_start,
@@ -301,7 +293,7 @@ def get_previous_event_occurrence_start(
 ) -> datetime | None:
     """Return the previous occurrence start for one recurring event instance."""
     try:
-        normalized_instance_start = as_utc_aware(instance_start) or instance_start
+        normalized_instance_start = normalize_storage_datetime(instance_start)
         return get_previous_occurrence_start(
             _build_event_series(event),
             instance_start=normalized_instance_start,
@@ -319,8 +311,8 @@ def get_event_occurrence_starts_in_range(
     """Return occurrence start times that overlap the requested window."""
     if not event_is_recurring(event):
         return []
-    normalized_window_start = as_utc_aware(window_start) or window_start
-    normalized_window_end = as_utc_aware(window_end) or window_end
+    normalized_window_start = normalize_storage_datetime(window_start)
+    normalized_window_end = normalize_storage_datetime(window_end)
     return get_occurrence_starts_in_range(
         _build_event_series(event),
         window_start=normalized_window_start,

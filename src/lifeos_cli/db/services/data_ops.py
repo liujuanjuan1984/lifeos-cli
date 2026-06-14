@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -13,6 +13,7 @@ from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.datetime_utils import format_utc_iso, normalize_storage_datetime
 from lifeos_cli.application.package_metadata import get_installed_package_version
 from lifeos_cli.config import get_database_settings, get_preferences_settings
 from lifeos_cli.db.base import Base
@@ -211,18 +212,14 @@ DELETE_ARG_NAMES: dict[str, str] = {
 
 def _normalize_json_datetime(value: str) -> datetime:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+    return normalize_storage_datetime(parsed)
 
 
 def _serialize_scalar(value: Any) -> Any:
     if isinstance(value, UUID):
         return str(value)
     if isinstance(value, datetime):
-        if value.tzinfo is None or value.utcoffset() is None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return format_utc_iso(value)
     if isinstance(value, date):
         return value.isoformat()
     return value
