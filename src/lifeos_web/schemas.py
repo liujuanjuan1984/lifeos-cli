@@ -106,6 +106,8 @@ class VisionCreate(BaseModel):
     name: str
     description: str | None = None
     status: str = "active"
+    dimension_id: UUID | None = None
+    person_ids: list[UUID] | None = None
     experience_rate_per_hour: int | None = None
 
 
@@ -115,6 +117,8 @@ class VisionUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     status: str | None = None
+    dimension_id: UUID | None = None
+    person_ids: list[UUID] | None = None
     experience_rate_per_hour: int | None = None
 
 

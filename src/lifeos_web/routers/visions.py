@@ -12,10 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, VisionCreate, VisionUpdate
-from lifeos_web.serialization import to_jsonable, to_jsonable_dict
+from lifeos_web.serialization import to_jsonable_dict
 
 router = APIRouter(prefix="/visions", tags=["visions"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def _vision_payload(vision: object) -> dict[str, object]:
+    """Expose LifeOS area fields with frontend vision dimension names."""
+    payload = to_jsonable_dict(vision)
+    payload["dimension_id"] = payload.get("area_id")
+    return payload
 
 
 @router.get("/", response_model=ListResponse)
@@ -32,7 +39,7 @@ async def list_visions(
         limit=size,
         offset=(page - 1) * size,
     )
-    items = [to_jsonable(row) for row in rows]
+    items = [_vision_payload(row) for row in rows]
     return ListResponse(
         items=items,
         pagination=Pagination(
@@ -51,7 +58,7 @@ async def get_vision(vision_id: UUID, session: SessionDep) -> dict[str, object]:
     vision = await vision_services.get_vision(session, vision_id=vision_id)
     if vision is None:
         raise HTTPException(status_code=404, detail=f"Vision {vision_id} was not found")
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)
 
 
 @router.post("/")
@@ -66,11 +73,13 @@ async def create_vision(
             name=payload.name,
             description=payload.description,
             status=payload.status,
+            area_id=payload.dimension_id,
             experience_rate_per_hour=payload.experience_rate_per_hour,
+            person_ids=payload.person_ids,
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)
 
 
 @router.put("/{vision_id}")
@@ -95,6 +104,8 @@ async def update_vision(
     clear_experience_rate = (
         "experience_rate_per_hour" in fields and payload.experience_rate_per_hour is None
     )
+    clear_area = "dimension_id" in fields and payload.dimension_id is None
+    clear_people = "person_ids" in fields and payload.person_ids == []
     try:
         vision = await vision_services.update_vision(
             session,
@@ -103,14 +114,18 @@ async def update_vision(
             description=payload.description,
             clear_description=clear_description,
             status=payload.status,
+            area_id=payload.dimension_id,
+            clear_area=clear_area,
             experience_rate_per_hour=payload.experience_rate_per_hour,
             clear_experience_rate=clear_experience_rate,
+            person_ids=payload.person_ids,
+            clear_people=clear_people,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)
 
 
 @router.delete("/{vision_id}", status_code=204)
@@ -132,7 +147,7 @@ async def get_vision_with_tasks(vision_id: UUID, session: SessionDep) -> dict[st
         vision = await vision_services.get_vision_with_tasks(session, vision_id=vision_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)
 
 
 @router.get("/{vision_id}/stats")
@@ -160,7 +175,7 @@ async def add_experience(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)
 
 
 @router.post("/{vision_id}/harvest")
@@ -170,4 +185,4 @@ async def harvest_vision(vision_id: UUID, session: SessionDep) -> dict[str, obje
         vision = await vision_services.harvest_vision(session, vision_id=vision_id)
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(vision)
+    return _vision_payload(vision)

@@ -393,6 +393,55 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
 
     assert captured["clear_description"] is True
     assert captured["clear_experience_rate"] is True
+    assert captured["clear_area"] is False
+
+
+def test_web_vision_update_dimension_id_maps_to_area_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import visions
+    from lifeos_web.schemas import VisionUpdate
+
+    dimension_id = UUID("11111111-1111-1111-1111-111111111111")
+    person_id = UUID("33333333-3333-3333-3333-333333333333")
+    captured: dict[str, object] = {}
+
+    async def fake_update_vision(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            id=UUID("22222222-2222-2222-2222-222222222222"),
+            name="Vision",
+            description=None,
+            status="active",
+            stage=0,
+            experience_points=0,
+            experience_rate_per_hour=None,
+            area_id=dimension_id,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            people=(),
+            tasks=(),
+        )
+
+    monkeypatch.setattr(visions.vision_services, "update_vision", fake_update_vision)
+
+    response = asyncio.run(
+        visions.update_vision(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            VisionUpdate(dimension_id=dimension_id, person_ids=[person_id]),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["area_id"] == dimension_id
+    assert captured["clear_area"] is False
+    assert captured["person_ids"] == [person_id]
+    assert captured["clear_people"] is False
+    assert response["area_id"] == str(dimension_id)
+    assert response["dimension_id"] == str(dimension_id)
 
 
 def test_web_habit_update_null_fields_translate_to_clear_flags(
