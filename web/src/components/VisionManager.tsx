@@ -13,7 +13,7 @@ import TaskEditModal, {
   type TaskEditModalCloseContext,
   type TaskEditModalSaveResult,
 } from "./TaskEditModal";
-import TaskActualEventsModal from "./TaskActualEventsModal";
+import TaskTimelogsModal from "./TaskTimelogsModal";
 import DraggableTaskList from "./DraggableTaskList";
 import TaskManagementWrapper from "./TaskManagementWrapper";
 import ErrorDisplay from "./ErrorDisplay";
@@ -712,7 +712,7 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
           />
         )}
 
-        <TaskActualEventsModal
+        <TaskTimelogsModal
           isOpen={showTimeRecordsModal}
           onClose={handleTimeRecordsModalClose}
           task={viewingTimeRecordsTask}

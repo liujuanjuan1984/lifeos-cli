@@ -1,22 +1,22 @@
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { tasksApi } from "@/services/api/tasks";
 import { tasksKeys } from "@/services/api/queryKeys";
-import type { ActualEvent } from "@/services/api";
+import type { Timelog } from "@/services/api";
 import type { UUID } from "@/types/primitive";
 
 /**
- * Hook to fetch actual events for a single task
+ * Hook to fetch timelogs for a single task
  */
-export function useTaskActualEvents(
+export function useTaskTimelogs(
   taskId: UUID,
   options?: { enabled?: boolean },
 ) {
   const page = 1;
   const size = 100;
   return useQuery({
-    queryKey: tasksKeys.events(taskId),
+    queryKey: tasksKeys.timelogs(taskId),
     queryFn: async () => {
-      const response = await tasksApi.getActualEvents(taskId, page, size);
+      const response = await tasksApi.getTimelogs(taskId, page, size);
       return response.items ?? [];
     },
     enabled: options?.enabled ?? !!taskId,
@@ -25,10 +25,10 @@ export function useTaskActualEvents(
 }
 
 /**
- * Hook to fetch actual events for multiple tasks
+ * Hook to fetch timelogs for multiple tasks
  * This will create individual queries for each task and combine the results
  */
-export function useMultipleTaskActualEvents(
+export function useMultipleTaskTimelogs(
   taskIds: UUID[],
   options?: { enabled?: boolean },
 ) {
@@ -37,9 +37,9 @@ export function useMultipleTaskActualEvents(
   // 使用 useQueries 来并行获取多个任务的实际事件
   const queries = useQueries({
     queries: taskIds.map((taskId) => ({
-      queryKey: tasksKeys.events(taskId),
+      queryKey: tasksKeys.timelogs(taskId),
       queryFn: async () => {
-        const response = await tasksApi.getActualEvents(taskId, page, size);
+        const response = await tasksApi.getTimelogs(taskId, page, size);
         return response.items ?? [];
       },
       enabled: (options?.enabled ?? true) && !!taskId,
@@ -48,19 +48,19 @@ export function useMultipleTaskActualEvents(
   });
 
   // Combine results into a Map for easy lookup
-  const taskActualEvents = new Map<UUID, ActualEvent[]>();
+  const taskTimelogs = new Map<UUID, Timelog[]>();
   const isLoading = queries.some((query) => query.isLoading);
   const isError = queries.some((query) => query.isError);
   const error = queries.find((query) => query.error)?.error;
 
   queries.forEach((query, index) => {
     if (query.data) {
-      taskActualEvents.set(taskIds[index], query.data);
+      taskTimelogs.set(taskIds[index], query.data);
     }
   });
 
   return {
-    taskActualEvents,
+    taskTimelogs,
     isLoading,
     isError,
     error,

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  ActualEvent,
-  ActualEventCreate,
-  ActualEventWithEnergyResponse,
+  Timelog,
+  TimelogCreate,
+  TimelogWithEnergyResponse,
   TaskWithSubtasks,
 } from "@/services/api";
 import { tasksApi } from "@/services/api/tasks";
@@ -20,21 +20,21 @@ import { useToast } from "@/contexts/ToastContext";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { ALL_TASK_STATUSES } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
-import { useActualEventsMutations } from "@/hooks/useActualEventsMutations";
+import { useTimelogMutations } from "@/hooks/useTimelogMutations";
 import { resolvePreferredTimezone } from "@/utils/datetime";
 
 interface TimeEntryModalProps {
   isOpen: boolean;
   onClose: (context?: { sessionId: string }) => void;
   onSave: (
-    result: ActualEvent | ActualEventWithEnergyResponse,
+    result: Timelog | TimelogWithEnergyResponse,
     context: { sessionId: string },
   ) => void;
-  entry?: ActualEvent | null;
+  entry?: Timelog | null;
   selectedDate: Date;
   preloadedTasks?: TaskWithSubtasks[]; // 添加预加载任务支持
   mode?: "default" | "draft";
-  onDraftSubmit?: (payload: ActualEventCreate) => void | Promise<void>;
+  onDraftSubmit?: (payload: TimelogCreate) => void | Promise<void>;
   sessionId: string;
 }
 
@@ -50,7 +50,7 @@ const TimeEntryModal = ({
   onDraftSubmit,
 }: TimeEntryModalProps) => {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<ActualEventCreate>({
+  const [formData, setFormData] = useState<TimelogCreate>({
     title: "",
     start_time: "",
     end_time: "",
@@ -206,8 +206,8 @@ const TimeEntryModal = ({
     return hoursDiff <= 24;
   }, []);
 
-  const { createActualEventAsync, updateActualEventAsync } =
-    useActualEventsMutations();
+  const { createTimelogAsync, updateTimelogAsync } =
+    useTimelogMutations();
 
   // Optimize submit handler with useCallback
   const sessionAwareClose = useCallback(() => {
@@ -228,7 +228,7 @@ const TimeEntryModal = ({
         return;
       }
 
-      const prepared: ActualEventCreate = {
+      const prepared: TimelogCreate = {
         ...formData,
         start_time: formData.start_time || formData.end_time || "",
       };
@@ -248,17 +248,17 @@ const TimeEntryModal = ({
 
       try {
         await withLoading(async () => {
-          let result: ActualEvent | ActualEventWithEnergyResponse;
+          let result: Timelog | TimelogWithEnergyResponse;
 
           let autoPlanningApplied = false;
 
           if (entry) {
-            result = await updateActualEventAsync({
+            result = await updateTimelogAsync({
               id: entry.id,
               data: prepared,
             });
           } else {
-            result = await createActualEventAsync(prepared);
+            result = await createTimelogAsync(prepared);
           }
 
           if (
@@ -313,8 +313,8 @@ const TimeEntryModal = ({
       autoSetTaskPlanningToday,
       isWithin24Hours,
       autoSetTaskPlanning,
-      createActualEventAsync,
-      updateActualEventAsync,
+      createTimelogAsync,
+      updateTimelogAsync,
       mode,
       onDraftSubmit,
       sessionAwareClose,
@@ -341,15 +341,23 @@ const TimeEntryModal = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
         ...prev,
-        start_time: hhmmOnDateToISO(selectedDate, e.target.value),
+        start_time: hhmmOnDateToISO(
+          selectedDate,
+          e.target.value,
+          activeTimezone,
+        ),
       }));
     },
-    [selectedDate],
+    [activeTimezone, selectedDate],
   );
 
   const handleEndTimeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newEndIso = hhmmOnDateToISO(selectedDate, e.target.value);
+      const newEndIso = hhmmOnDateToISO(
+        selectedDate,
+        e.target.value,
+        activeTimezone,
+      );
       // handle cross-day if needed
       const start = new Date(formData.start_time);
       const end = new Date(newEndIso);
@@ -361,7 +369,7 @@ const TimeEntryModal = ({
         end_time: end.toISOString(),
       }));
     },
-    [selectedDate, formData.start_time],
+    [activeTimezone, selectedDate, formData.start_time],
   );
 
   // Optimize dimension change handler with useCallback

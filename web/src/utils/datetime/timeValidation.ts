@@ -7,7 +7,7 @@
  * - Gap detection and placeholder generation
  */
 
-import type { ActualEvent } from "@/services/api";
+import type { Timelog } from "@/services/api";
 import type { UUID } from "@/types/primitive";
 import { createDateBoundaries, sortTimeEntriesByTime } from "./datetime";
 interface TimeValidationResult {
@@ -32,7 +32,7 @@ export interface PlaceholderEntry {
   isPlaceholder: true;
 }
 
-export interface ProcessedEntry extends Omit<ActualEvent, "id"> {
+export interface ProcessedEntry extends Omit<Timelog, "id"> {
   id: UUID | string; // Support both real entries (number) and placeholders (string)
   isPlaceholder?: boolean;
   validationResult?: TimeValidationResult;
@@ -41,7 +41,7 @@ export interface ProcessedEntry extends Omit<ActualEvent, "id"> {
 /**
  * Check if an entry has negative duration
  */
-function hasNegativeDuration(entry: ActualEvent): boolean {
+function hasNegativeDuration(entry: Timelog): boolean {
   if (!entry.start_time || !entry.end_time) {
     return false;
   }
@@ -77,7 +77,7 @@ function intervalsOverlap(
  * Find all overlapping entries in a list
  * Returns array of entry indices that have overlaps
  */
-function findOverlappingEntries(entries: ActualEvent[]): number[] {
+function findOverlappingEntries(entries: Timelog[]): number[] {
   const overlappingIndices = new Set<number>();
 
   for (let i = 0; i < entries.length; i++) {
@@ -108,8 +108,8 @@ function findOverlappingEntries(entries: ActualEvent[]): number[] {
  * Validate a single time entry
  */
 function validateTimeEntry(
-  entry: ActualEvent,
-  allEntries: ActualEvent[],
+  entry: Timelog,
+  allEntries: Timelog[],
 ): TimeValidationResult {
   const hasNegDuration = hasNegativeDuration(entry);
   const overlappingEntries = findOverlappingEntries(allEntries);
@@ -133,7 +133,7 @@ function validateTimeEntry(
  * @param unknownDimensionId - ID to use for placeholder entries (will be -1 for unknown)
  */
 function generatePlaceholderEntries(
-  entries: ActualEvent[],
+  entries: Timelog[],
   selectedDate: Date,
   unknownDimensionId: UUID = "-1" as UUID,
   timezone?: string,
@@ -276,7 +276,7 @@ function generatePlaceholderEntries(
  * This is the main function to be called by components
  */
 export function processTimeEntries(
-  entries: ActualEvent[],
+  entries: Timelog[],
   selectedDate: Date,
   timezone?: string,
 ): ProcessedEntry[] {

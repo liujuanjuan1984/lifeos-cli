@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  ActualEventCreate,
-  ActualEventWithEnergyResponse,
+  TimelogCreate,
+  TimelogWithEnergyResponse,
   TaskWithSubtasks,
   Vision,
   PersonSummary,
@@ -11,7 +11,7 @@ import type { Task as ApiTask } from "@/services/api/tasks";
 import { tasksApi } from "@/services/api/tasks";
 import { visionsApi } from "@/services/api/visions";
 import type { Dimension as ApiDimension } from "@/services/api/dimensions";
-import { useActualEventsMutations } from "@/hooks/useActualEventsMutations";
+import { useTimelogMutations } from "@/hooks/useTimelogMutations";
 import { useTasksMutations } from "@/hooks/useTasksMutations";
 import { logger } from "@/utils/core";
 import {
@@ -27,6 +27,7 @@ import { TextInput } from "./forms";
 import {
   getNearestFiveMinuteTime,
   hhmmOnDateToISO,
+  formatDate,
   formatTime,
   formatDuration,
   addMinutesToIso,
@@ -36,10 +37,10 @@ import DimensionSelect from "./selects/DimensionSelect";
 import PersonSelector from "./selects/PersonSelector";
 import { useToast } from "@/contexts/ToastContext";
 import type { UUID } from "@/types/primitive";
-import { useActualEventTemplates } from "@/hooks/queries/useActualEventTemplates";
-import type { ActualEventTemplate } from "@/services/api/actualEventTemplates";
+import { useTimelogTemplates } from "@/hooks/queries/useTimelogTemplates";
+import type { TimelogTemplate } from "@/services/api/timelogTemplates";
 
-const sortTemplates = (input: ActualEventTemplate[]): ActualEventTemplate[] => {
+const sortTemplates = (input: TimelogTemplate[]): TimelogTemplate[] => {
   const templates = Array.isArray(input) ? input : [];
   return [...templates].sort((a, b) => {
     const ua = a.usage_count || 0;
@@ -98,7 +99,7 @@ interface InlineQuickTimeEntryProps {
   startTime: string;
   endTime: string;
   onEntryCreated: (
-    result: ActualEventWithEnergyResponse,
+    result: TimelogWithEnergyResponse,
     context: { sessionId: string },
   ) => void;
   onError: (error: string) => void;
@@ -118,6 +119,7 @@ interface InlineQuickTimeEntryProps {
   /** Prefix for generating unique IDs */
   idPrefix?: string;
   sessionId: string;
+  timezone?: string;
 }
 
 export default function InlineQuickTimeEntry({
@@ -132,9 +134,10 @@ export default function InlineQuickTimeEntry({
   preloadedTasks,
   idPrefix = "quick-time",
   sessionId,
+  timezone,
 }: InlineQuickTimeEntryProps) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<ActualEventCreate>({
+  const [formData, setFormData] = useState<TimelogCreate>({
     title: "",
     start_time: "",
     end_time: "",
@@ -159,7 +162,7 @@ export default function InlineQuickTimeEntry({
   const toast = useToast();
 
   // TanStack Query mutations
-  const { createActualEventAsync } = useActualEventsMutations();
+  const { createTimelogAsync } = useTimelogMutations();
   const { updateTaskAsync: updateTaskPlanningAsync } = useTasksMutations();
 
   // Sync external preselected task id to local state
@@ -210,7 +213,7 @@ export default function InlineQuickTimeEntry({
   }, [durationMinutes]);
 
   const syncDurationWithTimes = useCallback(
-    (next: ActualEventCreate): ActualEventCreate => {
+    (next: TimelogCreate): TimelogCreate => {
       if (next.start_time && next.end_time) {
         const rawMinutes = computeDurationMinutes(
           next.start_time,
@@ -236,7 +239,7 @@ export default function InlineQuickTimeEntry({
   );
 
   const setFormDataWithSync = useCallback(
-    (updater: (prev: ActualEventCreate) => ActualEventCreate) => {
+    (updater: (prev: TimelogCreate) => TimelogCreate) => {
       setFormData((prev) => {
         const next = updater(prev);
         const synced = syncDurationWithTimes(next);
@@ -395,11 +398,11 @@ export default function InlineQuickTimeEntry({
     templates,
     bumpTemplateUsage,
     loading: templatesLoading,
-  } = useActualEventTemplates();
+  } = useTimelogTemplates();
   const sortedTemplates = useMemo(() => sortTemplates(templates), [templates]);
 
   const hhmmToISO = (baseDate: Date, hhmm: string): string =>
-    hhmmOnDateToISO(baseDate, hhmm);
+    hhmmOnDateToISO(baseDate, hhmm, timezone);
 
   // Human readable duration label
   const formStartTime = formData.start_time;
@@ -495,13 +498,13 @@ export default function InlineQuickTimeEntry({
 
     try {
       // Create start and end datetime objects
-      const prepared: ActualEventCreate = {
+      const prepared: TimelogCreate = {
         ...formData,
         task_id: selectedTaskId !== null ? selectedTaskId : undefined,
         person_ids: preparedPersonIds,
       };
 
-      const result = await createActualEventAsync(prepared);
+      const result = await createTimelogAsync(prepared);
 
       // Check if auto-set task planning to today is needed (based on user settings)
       let autoPlanningApplied = false;
@@ -624,13 +627,7 @@ export default function InlineQuickTimeEntry({
   // Helper function to auto-set task planning to today
   const autoSetTaskPlanningToday = async (taskId: UUID, entryTime: string) => {
     try {
-      // Use time log's entryTime to get local date
-      const entryDate = new Date(entryTime);
-      // Use local timezone to get date, not UTC
-      const year = entryDate.getFullYear();
-      const month = String(entryDate.getMonth() + 1).padStart(2, "0");
-      const day = String(entryDate.getDate()).padStart(2, "0");
-      const dateString = `${year}-${month}-${day}`;
+      const dateString = formatDate(entryTime, timezone);
 
       const updateData = {
         planning_cycle_type: "day",
@@ -689,7 +686,7 @@ export default function InlineQuickTimeEntry({
     return found ? found.id : "";
   };
 
-  const applyTemplate = async (tpl: ActualEventTemplate) => {
+  const applyTemplate = async (tpl: TimelogTemplate) => {
     try {
       await bumpTemplateUsage(tpl.id);
     } catch (err) {
@@ -715,7 +712,7 @@ export default function InlineQuickTimeEntry({
         : tpl.dimension_name
           ? resolveDimensionIdByName(tpl.dimension_name)
           : null;
-      let next: ActualEventCreate = {
+      let next: TimelogCreate = {
         ...prev,
         title: tpl.title,
         dimension_id: resolvedDimensionId,
@@ -852,7 +849,7 @@ export default function InlineQuickTimeEntry({
               name={`${idPrefix}-start-time`}
               type="time"
               step="300"
-              value={formatTime(formData.start_time || "")}
+              value={formatTime(formData.start_time || "", timezone)}
               onChange={(e) => handleStartTimeChange(e.target.value)}
               onKeyDown={handleKeyDown}
               size="sm"
@@ -874,7 +871,7 @@ export default function InlineQuickTimeEntry({
               name={`${idPrefix}-end-time`}
               type="time"
               step="300"
-              value={formatTime(formData.end_time || "")}
+              value={formatTime(formData.end_time || "", timezone)}
               onChange={(e) => handleEndTimeChange(e.target.value)}
               onKeyDown={handleKeyDown}
               size="sm"

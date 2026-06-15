@@ -2,22 +2,22 @@ export type QueryLike = {
   queryKey: unknown;
 };
 
-export const isActualEventsListQuery = (query: QueryLike): boolean => {
+export const isTimelogsListQuery = (query: QueryLike): boolean => {
   if (!Array.isArray(query.queryKey)) return false;
   return (
     query.queryKey.length >= 2 &&
-    query.queryKey[0] === "actual-events" &&
+    query.queryKey[0] === "timelogs" &&
     query.queryKey[1] === "list"
   );
 };
 
-export const isActualEventsAdvancedSearchQuery = (
+export const isTimelogsAdvancedSearchQuery = (
   query: QueryLike,
 ): boolean => {
   if (!Array.isArray(query.queryKey)) return false;
   return (
     query.queryKey.length >= 2 &&
-    query.queryKey[0] === "actual-events" &&
+    query.queryKey[0] === "timelogs" &&
     query.queryKey[1] === "advanced-search"
   );
 };

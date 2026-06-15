@@ -6,23 +6,23 @@ import {
   type PaginatedSearchResult,
 } from "./usePaginatedSearch";
 import {
-  actualEventsApi,
-  type ActualEventAdvancedSearchMetadata,
-} from "@/services/api/actualEvents";
-import { actualEventsKeys } from "@/services/api/queryKeys";
+  timelogsApi,
+  type TimelogAdvancedSearchMetadata,
+} from "@/services/api/timelogs";
+import { timelogsKeys } from "@/services/api/queryKeys";
 import type {
-  ActualEventAdvancedSearchRequest,
-  ActualEvent,
-} from "@/services/api/actualEvents";
+  TimelogAdvancedSearchRequest,
+  Timelog,
+} from "@/services/api/timelogs";
 
-export interface AdvancedSearchParams extends ActualEventAdvancedSearchRequest {
+export interface AdvancedSearchParams extends TimelogAdvancedSearchRequest {
   sort_order?: "asc" | "desc";
 }
 
 const BASE_OPTIONS = {
   queryKey: (params: AdvancedSearchParams) =>
-    actualEventsKeys.advancedSearch(params),
-  idleKey: [...actualEventsKeys.all, "advanced-search", "idle"] as const,
+    timelogsKeys.advancedSearch(params),
+  idleKey: [...timelogsKeys.all, "advanced-search", "idle"] as const,
   staleTime: 30 * 1000,
   retry: 1,
   refetchOnWindowFocus: false,
@@ -30,26 +30,26 @@ const BASE_OPTIONS = {
 
 export function useAdvancedSearchWithPagination(
   pageSize: number = 100,
-): PaginatedSearchResult<ActualEvent, AdvancedSearchParams, Error> & {
-  metadata: ActualEventAdvancedSearchMetadata | null;
+): PaginatedSearchResult<Timelog, AdvancedSearchParams, Error> & {
+  metadata: TimelogAdvancedSearchMetadata | null;
 } {
   const { t } = useTranslation();
   const { showError } = useToast();
   const [metadata, setMetadata] =
-    useState<ActualEventAdvancedSearchMetadata | null>(null);
+    useState<TimelogAdvancedSearchMetadata | null>(null);
   const metadataMapRef = useRef<
-    Record<string, ActualEventAdvancedSearchMetadata>
+    Record<string, TimelogAdvancedSearchMetadata>
   >({});
 
   const buildSignature = useCallback((params: AdvancedSearchParams) => {
     return JSON.stringify(params);
   }, []);
 
-  const searchResult = usePaginatedSearch<ActualEvent, AdvancedSearchParams>({
+  const searchResult = usePaginatedSearch<Timelog, AdvancedSearchParams>({
     ...BASE_OPTIONS,
     pageSize,
     queryFn: async (params: AdvancedSearchParams) => {
-      const response = await actualEventsApi.advancedSearch(params);
+      const response = await timelogsApi.advancedSearch(params);
       const signature = buildSignature(params);
       metadataMapRef.current[signature] = response.meta;
       return response.items;

@@ -7,7 +7,7 @@ import { TextInput } from "./forms";
 import DimensionSelect from "./selects/DimensionSelect";
 import PersonSelector from "./selects/PersonSelector";
 import type { UUID } from "@/types/primitive";
-import type { ActualEventTemplate } from "@/services/api/actualEventTemplates";
+import type { TimelogTemplate } from "@/services/api/timelogTemplates";
 
 export interface QuickTemplateEditorValues {
   title: string;
@@ -20,7 +20,7 @@ interface QuickTemplateEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (values: QuickTemplateEditorValues) => Promise<void> | void;
-  initialTemplate?: ActualEventTemplate | null;
+  initialTemplate?: TimelogTemplate | null;
   submitting?: boolean;
   errorMessage?: string | null;
 }

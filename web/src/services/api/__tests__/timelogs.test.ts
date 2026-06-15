@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ENDPOINTS } from "@/services/api/endpoints";
-import { actualEventsApi } from "@/services/api/actualEvents";
+import { timelogsApi } from "@/services/api/timelogs";
 
 const localUrl = (path: string) => new URL(path, "http://localhost").toString();
 
-describe("actualEventsApi", () => {
+describe("timelogsApi", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -25,7 +25,7 @@ describe("actualEventsApi", () => {
       ),
     );
 
-    await actualEventsApi.fetchRange(
+    await timelogsApi.fetchRange(
       "2026-04-10T16:00:00.000Z",
       "2026-04-11T15:59:59.999Z",
     );
@@ -107,7 +107,7 @@ describe("actualEventsApi", () => {
         ),
       );
 
-    const response = await actualEventsApi.fetchRange(
+    const response = await timelogsApi.fetchRange(
       "2026-04-13T16:00:00.000Z",
       "2026-04-14T15:59:59.999Z",
     );
@@ -141,7 +141,7 @@ describe("actualEventsApi", () => {
       ),
     );
 
-    await actualEventsApi.advancedSearch({
+    await timelogsApi.advancedSearch({
       start_date: "2026-06-01T04:00:00.000Z",
       end_date: "2026-06-02T03:59:59.999Z",
       dimension_id: null,

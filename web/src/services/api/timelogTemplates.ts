@@ -2,7 +2,7 @@ import type { UUID } from "@/types/primitive";
 import type { PersonSummary } from "./types/common";
 import type { ListResponse } from "@/types/pagination";
 
-export interface ActualEventTemplate {
+export interface TimelogTemplate {
   id: UUID;
   user_id: UUID;
   title: string;
@@ -19,16 +19,16 @@ export interface ActualEventTemplate {
   updated_at: string;
 }
 
-interface ActualEventTemplatesListMeta {
+interface TimelogTemplatesListMeta {
   order_by?: "position" | "usage" | "recent" | null;
 }
 
-export type ActualEventTemplatesListResponse = ListResponse<
-  ActualEventTemplate,
-  ActualEventTemplatesListMeta
+export type TimelogTemplatesListResponse = ListResponse<
+  TimelogTemplate,
+  TimelogTemplatesListMeta
 >;
 
-export interface ActualEventTemplateCreateRequest {
+export interface TimelogTemplateCreateRequest {
   title: string;
   dimension_id?: UUID | null;
   person_ids?: UUID[] | null;
@@ -38,7 +38,7 @@ export interface ActualEventTemplateCreateRequest {
   last_used_at?: string | null;
 }
 
-export interface ActualEventTemplateUpdateRequest {
+export interface TimelogTemplateUpdateRequest {
   title?: string;
   dimension_id?: UUID | null;
   person_ids?: UUID[] | null;
@@ -48,7 +48,7 @@ export interface ActualEventTemplateUpdateRequest {
   last_used_at?: string | null;
 }
 
-export interface ActualEventTemplateReorderItem {
+export interface TimelogTemplateReorderItem {
   id: UUID;
   position: number;
 }
@@ -56,12 +56,12 @@ export interface ActualEventTemplateReorderItem {
 const unsupported = () =>
   Promise.reject(new Error("Quick time-entry templates are not supported yet."));
 
-export const actualEventTemplatesApi = {
+export const timelogTemplatesApi = {
   list: async (params?: {
     page?: number;
     size?: number;
     order_by?: "position" | "usage" | "recent";
-  }): Promise<ActualEventTemplatesListResponse> => ({
+  }): Promise<TimelogTemplatesListResponse> => ({
     items: [],
     pagination: {
       page: params?.page ?? 1,
@@ -72,21 +72,21 @@ export const actualEventTemplatesApi = {
     meta: { order_by: params?.order_by ?? null },
   }),
   create: (
-    _payload: ActualEventTemplateCreateRequest,
-  ): Promise<ActualEventTemplate> => unsupported(),
+    _payload: TimelogTemplateCreateRequest,
+  ): Promise<TimelogTemplate> => unsupported(),
   bulkCreate: async (
-    _items: ActualEventTemplateCreateRequest[],
-  ): Promise<ActualEventTemplatesListResponse> => ({
+    _items: TimelogTemplateCreateRequest[],
+  ): Promise<TimelogTemplatesListResponse> => ({
     items: [],
     pagination: { page: 1, size: 100, total: 0, pages: 0 },
     meta: {},
   }),
   update: (
     _id: UUID,
-    _payload: ActualEventTemplateUpdateRequest,
-  ): Promise<ActualEventTemplate> => unsupported(),
+    _payload: TimelogTemplateUpdateRequest,
+  ): Promise<TimelogTemplate> => unsupported(),
   remove: (_id: UUID): Promise<void> => unsupported(),
-  reorder: async (_items: ActualEventTemplateReorderItem[]): Promise<void> =>
+  reorder: async (_items: TimelogTemplateReorderItem[]): Promise<void> =>
     undefined,
-  bumpUsage: (_id: UUID): Promise<ActualEventTemplate> => unsupported(),
+  bumpUsage: (_id: UUID): Promise<TimelogTemplate> => unsupported(),
 };

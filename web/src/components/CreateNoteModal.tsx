@@ -39,8 +39,8 @@ interface CreateNoteModalProps {
   onClose: () => void;
   preSelectedTaskId?: UUID;
   preSelectedTaskTitle?: string;
-  preSelectedActualEventId?: UUID;
-  preSelectedActualEvent?: TimelogPreview | null;
+  preSelectedTimelogId?: UUID;
+  preSelectedTimelog?: TimelogPreview | null;
   preSelectedPersonIds?: UUID[];
   preSelectedTagIds?: UUID[];
   lockTaskSelection?: boolean;
@@ -49,6 +49,7 @@ interface CreateNoteModalProps {
   onNoteCreated?: (note?: Note) => void;
   mode?: "create" | "edit";
   existingNote?: Note;
+  timezone?: string;
 }
 
 export default function CreateNoteModal({
@@ -56,8 +57,8 @@ export default function CreateNoteModal({
   onClose,
   preSelectedTaskId,
   preSelectedTaskTitle,
-  preSelectedActualEventId,
-  preSelectedActualEvent,
+  preSelectedTimelogId,
+  preSelectedTimelog,
   preSelectedPersonIds,
   preSelectedTagIds,
   lockTaskSelection,
@@ -66,6 +67,7 @@ export default function CreateNoteModal({
   onNoteCreated,
   mode = "create",
   existingNote,
+  timezone,
 }: CreateNoteModalProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -99,13 +101,13 @@ export default function CreateNoteModal({
       isTagSelectionLocked ? uniqueUuidList(normalizedPreSelectedTagIds) : [],
     [isTagSelectionLocked, normalizedPreSelectedTagIds],
   );
-  const initialActualEventId = useMemo(
-    () => preSelectedActualEvent?.id ?? preSelectedActualEventId ?? null,
-    [preSelectedActualEvent?.id, preSelectedActualEventId],
+  const initialTimelogId = useMemo(
+    () => preSelectedTimelog?.id ?? preSelectedTimelogId ?? null,
+    [preSelectedTimelog?.id, preSelectedTimelogId],
   );
 
-  const [selectedActualEventIds, setSelectedActualEventIds] = useState<UUID[]>(
-    initialActualEventId ? [initialActualEventId] : [],
+  const [selectedTimelogIds, setSelectedTimelogIds] = useState<UUID[]>(
+    initialTimelogId ? [initialTimelogId] : [],
   );
 
   const lockedTaskOptionId: UUID | null =
@@ -142,7 +144,7 @@ export default function CreateNoteModal({
       if (existingNote.task?.content) {
         setLockedTaskLabel(existingNote.task.content);
       }
-      setSelectedActualEventIds(
+      setSelectedTimelogIds(
         existingNote.timelogs?.map((timelog) => timelog.id) || [],
       );
     }
@@ -151,10 +153,10 @@ export default function CreateNoteModal({
   useEffect(() => {
     if (!isOpen) return;
     if (mode === "edit") return;
-    setSelectedActualEventIds(
-      initialActualEventId ? [initialActualEventId] : [],
+    setSelectedTimelogIds(
+      initialTimelogId ? [initialTimelogId] : [],
     );
-  }, [isOpen, initialActualEventId, mode]);
+  }, [isOpen, initialTimelogId, mode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -179,11 +181,11 @@ export default function CreateNoteModal({
     setSelectedTagIds([...normalizedPreSelectedTagIds]);
     setSelectedTaskId(preSelectedTaskId ?? null);
     setLockedTaskLabel(preSelectedTaskTitle ?? null);
-    setSelectedActualEventIds(
-      initialActualEventId ? [initialActualEventId] : [],
+    setSelectedTimelogIds(
+      initialTimelogId ? [initialTimelogId] : [],
     );
   }, [
-    initialActualEventId,
+    initialTimelogId,
     preSelectedPersonIds,
     preSelectedTaskId,
     preSelectedTaskTitle,
@@ -260,7 +262,7 @@ export default function CreateNoteModal({
         lockedTagIds,
         isTagSelectionLocked,
         selectedTaskId,
-        selectedActualEventIds,
+        selectedTimelogIds,
       });
     },
     [
@@ -268,7 +270,7 @@ export default function CreateNoteModal({
       selectedPersonIds,
       selectedTagIds,
       selectedTaskId,
-      selectedActualEventIds,
+      selectedTimelogIds,
       isTagSelectionLocked,
       lockedTagIds,
       submitNote,
@@ -301,23 +303,23 @@ export default function CreateNoteModal({
     if (mode === "edit" && existingNote?.timelogs?.length) {
       return existingNote.timelogs[0];
     }
-    if (preSelectedActualEvent) {
-      return preSelectedActualEvent;
+    if (preSelectedTimelog) {
+      return preSelectedTimelog;
     }
     return null;
-  }, [mode, existingNote, preSelectedActualEvent]);
+  }, [mode, existingNote, preSelectedTimelog]);
 
   const timelogTimes = useMemo(() => {
     if (!timelogPreview)
       return { start: null as string | null, end: null as string | null };
     const start = timelogPreview.start_time
-      ? formatTime(timelogPreview.start_time)
+      ? formatTime(timelogPreview.start_time, timezone)
       : null;
     const end = timelogPreview.end_time
-      ? formatTime(timelogPreview.end_time)
+      ? formatTime(timelogPreview.end_time, timezone)
       : null;
     return { start, end };
-  }, [timelogPreview]);
+  }, [timelogPreview, timezone]);
 
   const timelogRangeLabel = useMemo(() => {
     if (!timelogPreview) return null;

@@ -120,6 +120,19 @@ async def list_timelogs(
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
+    if (start_date is None) != (end_date is None):
+        raise HTTPException(
+            status_code=400,
+            detail="start_date and end_date must be provided together.",
+        )
+    if (start_date is not None or end_date is not None) and (
+        window_start is not None or window_end is not None
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Use either start_date/end_date or window_start/window_end, not both.",
+        )
+
     normalized_window_start = to_storage_timezone(window_start) if window_start else None
     normalized_window_end = to_storage_timezone(window_end) if window_end else None
     filters = TimelogQueryFilters(

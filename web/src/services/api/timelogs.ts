@@ -6,7 +6,7 @@ import { DataCleaner } from "@/utils/protocol";
 import type { ListResponse } from "@/types/pagination";
 import type { NoteSummary } from "./notes";
 
-// Types local to actual events
+// Types local to timelogs
 interface DimensionSummary {
   id: UUID;
   name: string;
@@ -20,7 +20,7 @@ interface VisionSummary {
   dimension_id?: UUID | null;
 }
 
-export interface ActualEventTaskSummary {
+export interface TimelogTaskSummary {
   id: UUID;
   content: string;
   vision_id: UUID | null;
@@ -28,7 +28,7 @@ export interface ActualEventTaskSummary {
   vision_summary?: VisionSummary | null;
 }
 
-export interface ActualEvent {
+export interface Timelog {
   id: UUID;
   title: string;
   start_time: string;
@@ -46,12 +46,12 @@ export interface ActualEvent {
   updated_at: string;
   persons?: PersonSummary[];
   // Preferred single associated task summary
-  task?: ActualEventTaskSummary | null;
+  task?: TimelogTaskSummary | null;
   linked_notes?: NoteSummary[];
   linked_notes_count?: number;
 }
 
-export interface ActualEventCreate {
+export interface TimelogCreate {
   title: string;
   start_time: string;
   end_time: string;
@@ -67,7 +67,7 @@ export interface ActualEventCreate {
   [key: string]: unknown;
 }
 
-export type ActualEventUpdate = Partial<ActualEventCreate>;
+export type TimelogUpdate = Partial<TimelogCreate>;
 
 interface EnergyInjectionResult {
   vision_id: UUID;
@@ -77,11 +77,11 @@ interface EnergyInjectionResult {
   total_experience: number;
 }
 
-export interface ActualEventWithEnergyResponse extends ActualEvent {
+export interface TimelogWithEnergyResponse extends Timelog {
   energy_injections?: EnergyInjectionResult[];
 }
 
-export interface ActualEventAdvancedSearchRequest {
+export interface TimelogAdvancedSearchRequest {
   start_date: string;
   end_date?: string;
   dimension_id?: UUID | null;
@@ -91,7 +91,7 @@ export interface ActualEventAdvancedSearchRequest {
   task_id?: UUID | null;
 }
 
-export interface ActualEventAdvancedSearchMetadata {
+export interface TimelogAdvancedSearchMetadata {
   start_date?: string | null;
   end_date?: string | null;
   window_start?: string | null;
@@ -108,18 +108,18 @@ export interface ActualEventAdvancedSearchMetadata {
   truncated?: boolean | null;
 }
 
-export type ActualEventListResponse = ListResponse<
-  ActualEvent,
-  ActualEventAdvancedSearchMetadata
+export type TimelogListResponse = ListResponse<
+  Timelog,
+  TimelogAdvancedSearchMetadata
 >;
 
-export type ActualEventAdvancedSearchResponse = ActualEventListResponse;
+export type TimelogAdvancedSearchResponse = TimelogListResponse;
 
 const TIMELOG_PAGE_SIZE = 500;
 const MAX_TIMELOG_RANGE_PAGES = 100;
 
 function toTimelogPayload(
-  payload: ActualEventCreate | ActualEventUpdate,
+  payload: TimelogCreate | TimelogUpdate,
 ): Record<string, unknown> {
   return {
     title: payload.title,
@@ -135,16 +135,16 @@ function toTimelogPayload(
   };
 }
 
-export const actualEventsApi = {
+export const timelogsApi = {
   fetchRange: async (start: string, end: string, trackingMethod?: string) => {
-    const items: ActualEvent[] = [];
-    let firstResponse: ActualEventListResponse | null = null;
+    const items: Timelog[] = [];
+    let firstResponse: TimelogListResponse | null = null;
     let page = 1;
     let totalCount = 0;
     let totalPages = 0;
 
     while (page <= MAX_TIMELOG_RANGE_PAGES) {
-      const response = await http.get<ActualEventListResponse>(
+      const response = await http.get<TimelogListResponse>(
         ENDPOINTS.TIMELOGS.BASE,
         {
           window_start: start,
@@ -198,22 +198,22 @@ export const actualEventsApi = {
     };
   },
 
-  create: (payload: ActualEventCreate) => {
+  create: (payload: TimelogCreate) => {
     const cleanedData = DataCleaner.create(toTimelogPayload(payload));
-    return http.post<ActualEventWithEnergyResponse>(
+    return http.post<TimelogWithEnergyResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       cleanedData,
     );
   },
 
-  batchCreate: (events: ActualEventCreate[]) => {
+  batchCreate: (events: TimelogCreate[]) => {
     const cleanedEvents = events.map((event) =>
       DataCleaner.create(toTimelogPayload(event)),
     );
 
     return Promise.all(
       cleanedEvents.map((event) =>
-        http.post<ActualEvent>(ENDPOINTS.TIMELOGS.BASE, event),
+        http.post<Timelog>(ENDPOINTS.TIMELOGS.BASE, event),
       ),
     ).then((createdEvents) => ({
       created_count: createdEvents.length,
@@ -223,18 +223,18 @@ export const actualEventsApi = {
     }));
   },
 
-  update: (id: UUID, payload: ActualEventUpdate) => {
+  update: (id: UUID, payload: TimelogUpdate) => {
     // 使用新的数据协议，支持明确设置空值
     const cleanedData = DataCleaner.update(toTimelogPayload(payload));
 
-    return http.patch<ActualEvent>(
+    return http.patch<Timelog>(
       ENDPOINTS.TIMELOGS.BY_ID(id),
       cleanedData,
     );
   },
 
   quickEnd: (id: UUID) =>
-    http.patch<ActualEvent>(ENDPOINTS.TIMELOGS.BY_ID(id), {
+    http.patch<Timelog>(ENDPOINTS.TIMELOGS.BY_ID(id), {
       end_time: new Date().toISOString(),
     }),
 
@@ -262,10 +262,10 @@ export const actualEventsApi = {
       errors: ["Restore is not supported by LifeOS timelogs yet."],
     }),
 
-  advancedSearch: async (params: ActualEventAdvancedSearchRequest) => {
+  advancedSearch: async (params: TimelogAdvancedSearchRequest) => {
     const withoutDimension =
       params.without_dimension ?? params.dimension_id === null;
-    const response = await http.get<ActualEventAdvancedSearchResponse>(
+    const response = await http.get<TimelogAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
         window_start: params.start_date,

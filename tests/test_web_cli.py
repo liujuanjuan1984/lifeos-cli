@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -191,6 +191,46 @@ def test_web_timelog_window_filters_map_to_lifeos_window_filters(
     assert list_query.filters.window_end == window_end
     assert response.meta["window_start"] == window_start.isoformat()
     assert response.meta["window_end"] == window_end.isoformat()
+
+
+def test_web_timelog_rejects_mixed_date_and_window_filters() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                start_date=date(2026, 4, 10),
+                end_date=date(2026, 4, 10),
+                window_start=datetime(2026, 4, 10, 16, 0, tzinfo=timezone.utc),
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use either start_date/end_date or window_start/window_end" in str(
+        getattr(exc_info.value, "detail", "")
+    )
+
+
+def test_web_timelog_rejects_partial_date_filter() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                start_date=date(2026, 4, 10),
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "start_date and end_date must be provided together" in str(
+        getattr(exc_info.value, "detail", "")
+    )
 
 
 def test_web_timelog_payload_exposes_linked_task_summary() -> None:

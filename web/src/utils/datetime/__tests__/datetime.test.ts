@@ -37,13 +37,11 @@ describe("datetime helpers", () => {
     ).toBe("2h30m");
   });
 
-  it("merges hh:mm input onto the provided base date", () => {
+  it("merges hh:mm input onto the provided date in the explicit timezone", () => {
     const baseDate = new Date("2024-05-15T08:30:00.000Z");
-    const isoString = hhmmOnDateToISO(baseDate, "14:45");
-    const result = new Date(isoString);
+    const isoString = hhmmOnDateToISO(baseDate, "14:45", "Asia/Shanghai");
 
-    expect(result.getHours()).toBe(14);
-    expect(result.getMinutes()).toBe(45);
+    expect(isoString).toBe("2024-05-15T06:45:00.000Z");
   });
 
   it("formats datetime strings with explicit timezone", () => {

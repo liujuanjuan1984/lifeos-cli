@@ -47,6 +47,7 @@ interface NoteItemProps {
   isSelected?: boolean;
   onSelectChange?: (noteId: UUID, checked: boolean) => void;
   minCollapsedLines?: number;
+  timezone?: string;
 }
 
 const NoteItem = React.memo<NoteItemProps>(
@@ -64,6 +65,7 @@ const NoteItem = React.memo<NoteItemProps>(
     isSelected = false,
     onSelectChange,
     minCollapsedLines,
+    timezone,
   }) => {
     const { t } = useTranslation();
     const toast = useToast();
@@ -135,8 +137,10 @@ const NoteItem = React.memo<NoteItemProps>(
         return timelog.title.trim();
       }
 
-      const start = timelog.start_time ? formatTime(timelog.start_time) : "";
-      const end = timelog.end_time ? formatTime(timelog.end_time) : "";
+      const start = timelog.start_time
+        ? formatTime(timelog.start_time, timezone)
+        : "";
+      const end = timelog.end_time ? formatTime(timelog.end_time, timezone) : "";
 
       if (start && end) {
         return `${start}-${end}`;
@@ -363,6 +367,7 @@ const NoteItem = React.memo<NoteItemProps>(
                   associationTooltip.payload.timelog.task_summary ?? undefined,
               }}
               dimensionMap={dimensionMap}
+              timezone={timezone}
             />
           );
         default:

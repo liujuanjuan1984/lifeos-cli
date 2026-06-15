@@ -5,11 +5,11 @@ import ModalBase from "@/layouts/ModalBase";
 import ActionButton, { ActionButtonGroup } from "./ActionButton";
 import PersonSelector from "./selects/PersonSelector";
 import DimensionSelect from "./selects/DimensionSelect";
-import { actualEventsApi } from "@/services/api/actualEvents";
+import { timelogsApi } from "@/services/api/timelogs";
 import {
-  invalidateActualEventLists,
-  invalidateActualEventsAdvancedSearch,
-} from "@/services/api/cacheInvalidation/actualEvents";
+  invalidateTimelogLists,
+  invalidateTimelogsAdvancedSearch,
+} from "@/services/api/cacheInvalidation/timelogs";
 import { useToast } from "@/contexts/ToastContext";
 import TaskSelector from "./selects/TaskSelector";
 import { ALL_TASK_STATUSES } from "@/utils/constants";
@@ -200,7 +200,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         }
 
         try {
-          const response = await actualEventsApi.batchUpdate(updateParams);
+          const response = await timelogsApi.batchUpdate(updateParams);
 
           totalUpdated += response.updated_count;
           totalFailed += response.failed_ids.length;
@@ -252,8 +252,8 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         }
 
         await Promise.all([
-          invalidateActualEventLists(queryClient),
-          invalidateActualEventsAdvancedSearch(queryClient),
+          invalidateTimelogLists(queryClient),
+          invalidateTimelogsAdvancedSearch(queryClient),
         ]);
         await onSuccess();
         onClose();

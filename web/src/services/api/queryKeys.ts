@@ -55,7 +55,7 @@ export const tasksKeys = {
   hierarchy: (visionId: UUID) =>
     [...tasksKeys.all, "hierarchy", visionId] as const,
   stats: (id: UUID) => [...tasksKeys.detail(id), "stats"] as const,
-  events: (id: UUID) => [...tasksKeys.detail(id), "events"] as const,
+  timelogs: (id: UUID) => [...tasksKeys.detail(id), "timelogs"] as const,
 };
 
 // Persons
@@ -97,14 +97,14 @@ export const dimensionsKeys = {
   order: () => [...dimensionsKeys.all, "order"] as const,
 };
 
-// Actual Event Templates
-export const actualEventTemplatesKeys = {
-  all: ["actual-event-templates"] as const,
-  lists: () => [...actualEventTemplatesKeys.all, "list"] as const,
+// Timelog Templates
+export const timelogTemplatesKeys = {
+  all: ["timelog-templates"] as const,
+  lists: () => [...timelogTemplatesKeys.all, "list"] as const,
   list: (filters: { limit?: number; offset?: number; order_by?: string }) =>
-    [...actualEventTemplatesKeys.lists(), filters] as const,
-  details: () => [...actualEventTemplatesKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...actualEventTemplatesKeys.details(), id] as const,
+    [...timelogTemplatesKeys.lists(), filters] as const,
+  details: () => [...timelogTemplatesKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...timelogTemplatesKeys.details(), id] as const,
 };
 
 // Tags
@@ -197,19 +197,19 @@ export const plannedEventsKeys = {
   detail: (id: UUID) => [...plannedEventsKeys.details(), id] as const,
 };
 
-// Actual Events
-export const actualEventsKeys = {
-  all: ["actual-events"] as const,
-  lists: () => [...actualEventsKeys.all, "list"] as const,
+// Timelogs
+export const timelogsKeys = {
+  all: ["timelogs"] as const,
+  lists: () => [...timelogsKeys.all, "list"] as const,
   list: (filters: {
     start?: string;
     end?: string;
     tracking_method?: string;
     sort_order?: "asc" | "desc";
     timezone?: string;
-  }) => [...actualEventsKeys.lists(), filters] as const,
-  details: () => [...actualEventsKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...actualEventsKeys.details(), id] as const,
+  }) => [...timelogsKeys.lists(), filters] as const,
+  details: () => [...timelogsKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...timelogsKeys.details(), id] as const,
   advancedSearch: (filters: {
     start_date: string;
     end_date?: string;
@@ -219,7 +219,7 @@ export const actualEventsKeys = {
     description_keyword?: string | null;
     task_id?: UUID | null;
     sort_order?: "asc" | "desc";
-  }) => [...actualEventsKeys.all, "advanced-search", filters] as const,
+  }) => [...timelogsKeys.all, "advanced-search", filters] as const,
 };
 
 // Preferences

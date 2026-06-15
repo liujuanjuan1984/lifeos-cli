@@ -7,7 +7,7 @@ import type { ProcessedEntry } from "@/utils/datetime";
 import type { UUID } from "@/types/primitive";
 import type {
   TaskWithSubtasks,
-  ActualEventWithEnergyResponse,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import { renderWithProviders } from "@test/utils";
 
@@ -128,7 +128,7 @@ describe("TimeEntriesTable inline entry sessions", () => {
       created_at: baseDate.toISOString(),
       updated_at: baseDate.toISOString(),
       persons: [],
-    } as unknown as ActualEventWithEnergyResponse;
+    } as unknown as TimelogWithEnergyResponse;
 
     await act(async () => {
       inlineProps.onEntryCreated(fakeEntry, { sessionId: "stale-session" });

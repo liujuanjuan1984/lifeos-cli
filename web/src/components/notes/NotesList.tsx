@@ -25,6 +25,7 @@ interface NotesListProps {
   selectedNoteIds?: Set<UUID>;
   onSelectChange?: (noteId: UUID, checked: boolean) => void;
   minCollapsedLines?: number;
+  timezone?: string;
 }
 
 export function NotesList({
@@ -44,6 +45,7 @@ export function NotesList({
   selectedNoteIds,
   onSelectChange,
   minCollapsedLines,
+  timezone,
 }: NotesListProps) {
   const { t } = useTranslation();
 
@@ -90,6 +92,7 @@ export function NotesList({
             isSelected={selectedNoteIds ? selectedNoteIds.has(note.id) : false}
             onSelectChange={onSelectChange}
             minCollapsedLines={minCollapsedLines}
+            timezone={timezone}
           />
         </div>
       ))}

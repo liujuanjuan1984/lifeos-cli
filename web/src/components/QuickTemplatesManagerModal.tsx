@@ -8,8 +8,8 @@ import QuickTemplateEditorModal, {
 } from "./QuickTemplateEditorModal";
 import { useToast } from "@/contexts/ToastContext";
 import { useDimensions } from "@/hooks/queries/useDimensions";
-import { useActualEventTemplates } from "@/hooks/queries/useActualEventTemplates";
-import type { ActualEventTemplate } from "@/services/api/actualEventTemplates";
+import { useTimelogTemplates } from "@/hooks/queries/useTimelogTemplates";
+import type { TimelogTemplate } from "@/services/api/timelogTemplates";
 
 interface QuickTemplatesManagerModalProps {
   isOpen: boolean;
@@ -29,12 +29,12 @@ const QuickTemplatesManagerModal = ({
     createTemplate,
     updateTemplate,
     deleteTemplate,
-  } = useActualEventTemplates();
+  } = useTimelogTemplates();
   const { dimensionMap } = useDimensions();
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
-    useState<ActualEventTemplate | null>(null);
+    useState<TimelogTemplate | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [editorSubmitting, setEditorSubmitting] = useState(false);
 
@@ -56,13 +56,13 @@ const QuickTemplatesManagerModal = ({
     setEditorOpen(true);
   };
 
-  const handleEditClick = (template: ActualEventTemplate) => {
+  const handleEditClick = (template: TimelogTemplate) => {
     setEditingTemplate(template);
     setEditorError(null);
     setEditorOpen(true);
   };
 
-  const handleDelete = async (template: ActualEventTemplate) => {
+  const handleDelete = async (template: TimelogTemplate) => {
     try {
       await deleteTemplate(template.id);
       toast.showSuccess(t("quickTemplatesManager.messages.deleteSuccess"));

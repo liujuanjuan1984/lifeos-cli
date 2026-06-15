@@ -5,9 +5,9 @@ import { type ReactNode } from "react";
 
 import { renderWithProviders, setupTranslationMock } from "@test/utils";
 import type {
-  ActualEvent,
-  ActualEventAdvancedSearchMetadata,
-} from "@/services/api/actualEvents";
+  Timelog,
+  TimelogAdvancedSearchMetadata,
+} from "@/services/api/timelogs";
 import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
 
 setupTranslationMock();
@@ -208,10 +208,10 @@ vi.mock("@/features/timeLog/controller/useTimeLogData", () => ({
   useTimeLogData: (props: unknown) => useTimeLogDataMock(props),
 }));
 
-const createActualEvent = (
-  overrides: Partial<ActualEvent> = {},
-): ActualEvent => ({
-  id: (overrides.id ?? "actual-event") as ActualEvent["id"],
+const createTimelog = (
+  overrides: Partial<Timelog> = {},
+): Timelog => ({
+  id: (overrides.id ?? "timelog-entry") as Timelog["id"],
   title: overrides.title ?? "entry",
   start_time: overrides.start_time ?? "2025-01-01T00:00:00Z",
   end_time: overrides.end_time ?? "2025-01-01T01:00:00Z",
@@ -229,7 +229,7 @@ const createActualEvent = (
 });
 
 type AdvancedSearchMock = {
-  data: ActualEvent[];
+  data: Timelog[];
   totalCount: number;
   currentPage: number;
   totalPages: number;
@@ -242,7 +242,7 @@ type AdvancedSearchMock = {
   nextPage: ReturnType<typeof vi.fn>;
   goToPage: ReturnType<typeof vi.fn>;
   refetch: ReturnType<typeof vi.fn>;
-  metadata: ActualEventAdvancedSearchMetadata | null;
+  metadata: TimelogAdvancedSearchMetadata | null;
 };
 
 const advancedSearchMock: AdvancedSearchMock = {
@@ -374,13 +374,13 @@ describe("TimeLogPage", () => {
     useTimeLogDataMock.mockReturnValue(
       buildDataReturn({
         processedEntries: [
-          createActualEvent({
-            id: "entry-no-dimension" as ActualEvent["id"],
+          createTimelog({
+            id: "entry-no-dimension" as Timelog["id"],
             dimension_id: null,
           }),
-          createActualEvent({
-            id: "entry-with-dimension" as ActualEvent["id"],
-            dimension_id: "dim-1" as ActualEvent["dimension_id"],
+          createTimelog({
+            id: "entry-with-dimension" as Timelog["id"],
+            dimension_id: "dim-1" as Timelog["dimension_id"],
           }),
         ],
       }),

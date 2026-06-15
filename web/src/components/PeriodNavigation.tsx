@@ -287,8 +287,8 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
 
-        const startDateStr = formatDate(weekStart.toISOString());
-        const endDateStr = formatDate(weekEnd.toISOString());
+        const startDateStr = formatDate(weekStart.toISOString(), timezone);
+        const endDateStr = formatDate(weekEnd.toISOString(), timezone);
 
         // 如果跨年，显示完整日期
         if (weekStart.getFullYear() !== weekEnd.getFullYear()) {
@@ -298,10 +298,10 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
 
         // 如果跨月，显示月份
         if (weekStart.getMonth() !== weekEnd.getMonth()) {
-          const startMonthStr = formatDate(weekStart.toISOString()).substring(
-            0,
-            7,
-          );
+          const startMonthStr = formatDate(
+            weekStart.toISOString(),
+            timezone,
+          ).substring(0, 7);
           const endDay = String(weekEnd.getDate()).padStart(2, "0");
           const weekRange = `${startMonthStr}-${String(weekStart.getDate()).padStart(2, "0")}~${endDay}`;
           return addCurrentIndicator(weekRange);
@@ -310,7 +310,7 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
         // 同月内
         const startDay = String(weekStart.getDate()).padStart(2, "0");
         const endDay = String(weekEnd.getDate()).padStart(2, "0");
-        const weekRange = `${formatDate(weekStart.toISOString()).substring(0, 7)}-${startDay}~${endDay}`;
+        const weekRange = `${formatDate(weekStart.toISOString(), timezone).substring(0, 7)}-${startDay}~${endDay}`;
         return addCurrentIndicator(weekRange);
       }
 

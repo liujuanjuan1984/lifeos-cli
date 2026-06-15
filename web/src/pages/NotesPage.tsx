@@ -559,6 +559,7 @@ function NotesPage() {
                 selectedNoteIds={isAdvancedMode ? selectedNoteIds : undefined}
                 onSelectChange={isAdvancedMode ? handleSelectNote : undefined}
                 minCollapsedLines={noteCollapsePreference.value}
+                timezone={activeTimezone}
               />
 
               {isAdvancedMode && advancedTotalCount > 0 && (

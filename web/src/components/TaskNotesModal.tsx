@@ -4,7 +4,7 @@ import ModalBase from "@/layouts/ModalBase";
 import CreateNoteModal from "./CreateNoteModal";
 import Badge from "@/components/common/Badge";
 import type { TaskWithSubtasks } from "@/services/api";
-import type { ActualEvent } from "@/services/api/actualEvents";
+import type { Timelog } from "@/services/api/timelogs";
 import type { Note, NoteTimelogSummary } from "@/services/api/notes";
 import { formatTime } from "@/utils/datetime";
 import { deriveNoteAssociationDefaults } from "@/utils/notes";
@@ -21,6 +21,7 @@ type SharedProps = {
   isOpen: boolean;
   onClose: () => void;
   defaultCreateOpen?: boolean;
+  timezone?: string;
 };
 
 type TaskContextProps = SharedProps & {
@@ -30,13 +31,14 @@ type TaskContextProps = SharedProps & {
 
 type TimelogContextProps = SharedProps & {
   entityType: "timelog";
-  timelog: ActualEvent | null;
+  timelog: Timelog | null;
 };
 
 type TaskNotesModalProps = TaskContextProps | TimelogContextProps;
 
 export default function TaskNotesModal(props: TaskNotesModalProps) {
   const { isOpen, onClose } = props;
+  const timezone = props.timezone;
   const entityType = props.entityType ?? "task";
   const defaultCreateOpen = props.defaultCreateOpen ?? false;
   const task = entityType === "task" ? (props as TaskContextProps).task : null;
@@ -119,8 +121,10 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
       return timelog.title.trim();
     }
 
-    const start = timelog.start_time ? formatTime(timelog.start_time) : "";
-    const end = timelog.end_time ? formatTime(timelog.end_time) : "";
+    const start = timelog.start_time
+      ? formatTime(timelog.start_time, timezone)
+      : "";
+    const end = timelog.end_time ? formatTime(timelog.end_time, timezone) : "";
 
     if (start && end) {
       return `${start}-${end}`;
@@ -339,10 +343,10 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
             createModalNoteDefaults?.preSelectedTaskTitle ??
             (entityType === "task" ? task?.content : undefined)
           }
-          preSelectedActualEventId={
+          preSelectedTimelogId={
             entityType === "timelog" ? timelog?.id : undefined
           }
-          preSelectedActualEvent={
+          preSelectedTimelog={
             entityType === "timelog" && timelog
               ? {
                   id: timelog.id,
@@ -363,6 +367,7 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
           onNoteCreated={() => {
             refetch();
           }}
+          timezone={timezone}
         />
       )}
 
@@ -373,6 +378,7 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
           mode="edit"
           existingNote={editingNote}
           onNoteCreated={handleEditComplete}
+          timezone={timezone}
         />
       )}
     </ModalBase>

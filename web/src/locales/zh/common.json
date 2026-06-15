@@ -1421,7 +1421,7 @@
     "calendar": {
       "displayName": "行程表",
       "navLabel": "行程表",
-      "description": "在此查看您的行程表与实际足迹（如果您记录了时间日志）。",
+      "description": "在此查看您的行程表与时间记录足迹。",
       "taskIndicator": "任务",
       "view": {
         "label": "视图：",
@@ -1449,7 +1449,7 @@
       "loading": "正在加载日历数据...",
       "hint": {
         "title": "提示：",
-        "actualEnabled": "已启用实际足迹显示，可选择特定维度进行筛选，或保持\"全部\"以查看所有维度的实际活动。"
+        "actualEnabled": "已启用时间记录足迹显示，可选择特定维度进行筛选，或保持\"全部\"以查看所有维度的时间记录。"
       },
       "fc": {
         "today": "今天",
@@ -1616,7 +1616,7 @@
       "description": "通过时间日志入口创建的笔记会显示在这里，用它记录更多感受、思考或后续事项。"
     }
   },
-  "taskActualEvents": {
+  "taskTimelogs": {
     "title": "日志",
     "taskLabel": "任务：",
     "totalTime": "总计",

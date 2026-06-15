@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  ActualEvent,
-  ActualEventWithEnergyResponse,
+  Timelog,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import TimeEntryModal from "@/components/TimeEntryModal";
 import TimeProgressBar from "@/components/TimeProgressBar";
@@ -88,7 +88,7 @@ const TimeLogPage = () => {
 
   // Modal states
   const [showEntryModal, setShowEntryModal] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<ActualEvent | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Timelog | null>(null);
   const [entryModalSessionId, setEntryModalSessionId] = useState<string | null>(
     null,
   );
@@ -138,14 +138,14 @@ const TimeLogPage = () => {
     return () => setHeader({ actions: undefined });
   }, [setHeader, t]);
 
-  const openEntryModal = useCallback((entry: ActualEvent | null) => {
+  const openEntryModal = useCallback((entry: Timelog | null) => {
     setEditingEntry(entry);
     setEntryModalSessionId(createModalSessionId());
     setShowEntryModal(true);
   }, []);
 
   const handleEdit = useCallback(
-    (entry: ActualEvent) => {
+    (entry: Timelog) => {
       openEntryModal(entry);
     },
     [openEntryModal],
@@ -170,7 +170,7 @@ const TimeLogPage = () => {
 
   const handleEntrySaved = useCallback(
     (
-      _result: ActualEvent | ActualEventWithEnergyResponse,
+      _result: Timelog | TimelogWithEnergyResponse,
       context: { sessionId: string },
     ) => {
       if (entryModalSessionId && context.sessionId !== entryModalSessionId) {
@@ -607,7 +607,7 @@ const TimeLogPage = () => {
               isSelectMode={isSelectMode}
               selectedEntryIds={selectedEntryIds}
               onSelectChange={selectionHandlers.handleSelectEntry}
-              onEdit={(entry) => handleEdit(entry as ActualEvent)}
+              onEdit={(entry) => handleEdit(entry as Timelog)}
               onDelete={requestDeleteEntry}
               onPlaceholderClick={(_placeholder) => {
                 // Handle placeholder click - the TimeEntriesTable will handle expansion internally
@@ -665,7 +665,8 @@ const TimeLogPage = () => {
           isOpen={isNotesModalOpen}
           onClose={handleCloseTimelogNotes}
           entityType="timelog"
-          timelog={activeTimelogForNotes as unknown as ActualEvent}
+          timelog={activeTimelogForNotes as unknown as Timelog}
+          timezone={activeTimezone}
         />
       )}
 
@@ -675,8 +676,8 @@ const TimeLogPage = () => {
           onClose={handleCloseCreateNoteModal}
           preSelectedTaskId={activeTimelogNoteDefaults?.preSelectedTaskId}
           preSelectedTaskTitle={activeTimelogNoteDefaults?.preSelectedTaskTitle}
-          preSelectedActualEventId={activeTimelogForNotes.id as unknown as UUID}
-          preSelectedActualEvent={{
+          preSelectedTimelogId={activeTimelogForNotes.id as unknown as UUID}
+          preSelectedTimelog={{
             id: activeTimelogForNotes.id as unknown as UUID,
             title: activeTimelogForNotes.title,
             start_time: activeTimelogForNotes.start_time,
@@ -692,6 +693,7 @@ const TimeLogPage = () => {
           onNoteCreated={() => {
             setOpenNotesAfterCreate(true);
           }}
+          timezone={activeTimezone}
         />
       )}
 

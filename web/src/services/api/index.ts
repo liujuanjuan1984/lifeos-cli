@@ -12,10 +12,10 @@ export type {
   PlannedEventUpdate,
 } from "./plannedEvents";
 export type {
-  ActualEvent,
-  ActualEventCreate,
-  ActualEventWithEnergyResponse,
-} from "./actualEvents";
+  Timelog,
+  TimelogCreate,
+  TimelogWithEnergyResponse,
+} from "./timelogs";
 export type {
   Vision,
   VisionCreate,

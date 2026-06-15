@@ -273,7 +273,7 @@ export const invalidateTasksByIds = async (
     );
     if (!options.skipEvents) {
       promises.push(
-        queryClient.invalidateQueries({ queryKey: tasksKeys.events(taskId) }),
+        queryClient.invalidateQueries({ queryKey: tasksKeys.timelogs(taskId) }),
       );
     }
   });

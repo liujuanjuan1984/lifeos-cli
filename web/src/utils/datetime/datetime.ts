@@ -83,16 +83,36 @@ export function utcToLocalDateTimeLocal(
   return dt.toFormat("yyyy-LL-dd'T'HH:mm");
 }
 
-export function hhmmOnDateToISO(baseDate: Date, hhmm: string): string {
+export function hhmmOnDateToISO(
+  baseDate: Date,
+  hhmm: string,
+  timezone?: string,
+): string {
   const [hours, minutes] = hhmm.split(":").map((v) => parseInt(v, 10));
-  const d = new Date(baseDate);
-  d.setHours(
+  const tz = resolveTimezoneInput(timezone);
+  const dateOnly = formatDateInTimezone(baseDate, tz);
+  if (!dateOnly) return "";
+  const [yearStr, monthStr, dayStr] = dateOnly.split("-");
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return "";
+  }
+  return zonedDateTimeToUtc(
+    year,
+    month,
+    day,
     Number.isFinite(hours) ? hours : 0,
     Number.isFinite(minutes) ? minutes : 0,
     0,
     0,
-  );
-  return d.toISOString();
+    tz,
+  ).toISOString();
 }
 
 // ---- Time helpers (from timeUtils.ts)

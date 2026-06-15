@@ -23,12 +23,12 @@ import type { ProcessedEntry } from "@/utils/datetime";
 import type { UUID } from "@/types/primitive";
 import type { TaskWithSubtasks } from "@/services/api";
 import type {
-  ActualEvent,
-  ActualEventCreate,
-  ActualEventTaskSummary,
-} from "@/services/api/actualEvents";
+  Timelog,
+  TimelogCreate,
+  TimelogTaskSummary,
+} from "@/services/api/timelogs";
 import type { PersonSummary } from "@/services/api/types/common";
-import { useActualEventsMutations } from "@/hooks/useActualEventsMutations";
+import { useTimelogMutations } from "@/hooks/useTimelogMutations";
 import { useToast } from "@/contexts/ToastContext";
 import { usePersonsList } from "@/hooks/queries/usePersonsList";
 
@@ -115,7 +115,7 @@ const convertToUtcIso = (
 const buildProcessedEntry = (
   row: EditableRow,
   timezone: string,
-  taskLookup: Map<UUID, ActualEventTaskSummary>,
+  taskLookup: Map<UUID, TimelogTaskSummary>,
   personLookup: Map<UUID, PersonSummary>,
 ): ProcessedEntry => {
   const startIso = convertToUtcIso(row.date, row.startTime, timezone);
@@ -222,12 +222,12 @@ const validateRowFields = (
   return errors;
 };
 
-const buildDraftActualEvent = (
+const buildDraftTimelog = (
   row: EditableRow,
   timezone: string,
-  taskLookup: Map<UUID, ActualEventTaskSummary>,
+  taskLookup: Map<UUID, TimelogTaskSummary>,
   personLookup: Map<UUID, PersonSummary>,
-): ActualEvent => {
+): Timelog => {
   const startIso = convertToUtcIso(row.date, row.startTime, timezone);
   const endIso = convertToUtcIso(row.endDate, row.endTime, timezone);
   const nowIso = new Date().toISOString();
@@ -307,7 +307,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const toast = useToast();
-  const { batchCreateActualEventsAsync } = useActualEventsMutations();
+  const { batchCreateTimelogsAsync } = useTimelogMutations();
   const { persons: knownPersons } = usePersonsList();
 
   const [startDateInput, setStartDateInput] = useState(
@@ -347,7 +347,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   );
 
   const taskSummaryLookup = useMemo(() => {
-    const map = new Map<UUID, ActualEventTaskSummary>();
+    const map = new Map<UUID, TimelogTaskSummary>();
     preloadedTasks.forEach((task) => {
       map.set(task.id, {
         id: task.id,
@@ -462,7 +462,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
 
     setIsSubmitting(true);
     try {
-      const payload: ActualEventCreate[] = validRows.map((row) => {
+      const payload: TimelogCreate[] = validRows.map((row) => {
         const startIso = convertToUtcIso(
           row.date,
           row.startTime,
@@ -473,7 +473,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
           row.endTime,
           effectiveTimezone,
         );
-        const eventData: ActualEventCreate = {
+        const eventData: TimelogCreate = {
           title: row.description,
           start_time: startIso,
           end_time: endIso,
@@ -494,7 +494,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
         }
         return eventData;
       });
-      await batchCreateActualEventsAsync(payload);
+      await batchCreateTimelogsAsync(payload);
       setRows([]);
       setRawInput("");
       setEditingRowId(null);
@@ -515,7 +515,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   const editingEntry = useMemo(
     () =>
       activeRow
-        ? buildDraftActualEvent(
+        ? buildDraftTimelog(
             activeRow,
             effectiveTimezone,
             taskSummaryLookup,
@@ -531,7 +531,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   );
 
   const handleDraftSubmit = useCallback(
-    async (payload: ActualEventCreate) => {
+    async (payload: TimelogCreate) => {
       if (!activeRow) return;
       const startIso = payload.start_time || payload.end_time;
       const endIso = payload.end_time || payload.start_time;

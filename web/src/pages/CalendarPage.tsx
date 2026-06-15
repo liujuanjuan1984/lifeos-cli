@@ -73,7 +73,7 @@ function CalendarPage() {
   );
 
   const [showPlannedEvents, setShowPlannedEvents] = useState(true);
-  const [showActualEvents, setShowActualEvents] = useState(false);
+  const [showTimelogs, setShowTimelogs] = useState(false);
   const [selectedDimensionId, setSelectedDimensionId] = useState<
     UUID | null | undefined
   >(undefined);
@@ -105,10 +105,10 @@ function CalendarPage() {
   const stableAllFlatTasks = useMemo(() => allFlatTasks, [allFlatTasks]);
 
   useEffect(() => {
-    if (!showActualEvents) {
+    if (!showTimelogs) {
       setSelectedDimensionId(undefined);
     }
-  }, [showActualEvents]);
+  }, [showTimelogs]);
 
   const [startISO, setStartISO] = useState<string | null>(null);
   const [endISO, setEndISO] = useState<string | null>(null);
@@ -141,7 +141,7 @@ function CalendarPage() {
     startISO,
     endISO,
     showPlannedEvents,
-    showActualEvents,
+    showTimelogs,
     selectedDimensionId,
     taskIndicatorLabel: t("modules.calendar.taskIndicator"),
     preloadedTasks: stableAllFlatTasks,
@@ -253,17 +253,17 @@ function CalendarPage() {
             <ActionButton
               label={t("modules.calendar.toggle.actual_label")}
               iconName="timer"
-              color={showActualEvents ? "primary" : "neutral"}
-              variant={showActualEvents ? "solid" : "ghost"}
+              color={showTimelogs ? "primary" : "neutral"}
+              variant={showTimelogs ? "solid" : "ghost"}
               title={
-                showActualEvents
+                showTimelogs
                   ? t("modules.calendar.toggle.actual.title.hide")
                   : t("modules.calendar.toggle.actual.title.show")
               }
-              onClick={() => setShowActualEvents((v) => !v)}
+              onClick={() => setShowTimelogs((v) => !v)}
             />
           </div>
-          {showActualEvents && (
+          {showTimelogs && (
             <div className="flex items-center gap-2 pl-4 border-l border-base-300">
               <DimensionSelect
                 value={
@@ -287,7 +287,7 @@ function CalendarPage() {
       <ErrorDisplay error={error} className="mb-6" />
 
       <Container>
-        {showActualEvents && selectedDimensionId === undefined && (
+        {showTimelogs && selectedDimensionId === undefined && (
           <div className="mb-4 p-3  bg-primary/10 border border-primary/20 rounded-md ">
             <div className="flex items-center gap-2 text-primary">
               <span className="text-base inline-flex items-center gap-1">
@@ -349,7 +349,7 @@ function CalendarPage() {
             const type = arg.event.extendedProps?.type;
             return type === "planned"
               ? "planned-event-custom"
-              : "actual-event-custom";
+              : "timelog-event-custom";
           }}
         />
       </Container>

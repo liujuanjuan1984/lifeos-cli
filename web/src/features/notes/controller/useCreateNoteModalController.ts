@@ -9,7 +9,7 @@ import { tasksApi } from "@/services/api/tasks";
 import type { Tag, Task, TaskWithSubtasks } from "@/services/api";
 import type { Note, NoteCreate, NoteUpdate } from "@/services/api/notes";
 import {
-  actualEventsKeys,
+  timelogsKeys,
   notesKeys,
   tasksKeys,
   visionsKeys,
@@ -20,7 +20,7 @@ import {
   invalidateNotesStats,
 } from "@/services/api/cacheInvalidation/notes";
 import {
-  isActualEventsAdvancedSearchQuery,
+  isTimelogsAdvancedSearchQuery,
   type QueryLike,
 } from "@/services/api/queryPredicates";
 import { invalidateTasksByIds, updateTaskCaches } from "@/utils/query";
@@ -68,7 +68,7 @@ interface SubmitNotePayload {
   lockedTagIds: UUID[];
   isTagSelectionLocked: boolean;
   selectedTaskId: UUID | null;
-  selectedActualEventIds: UUID[];
+  selectedTimelogIds: UUID[];
 }
 
 export function useCreateNoteModalController({
@@ -83,7 +83,7 @@ export function useCreateNoteModalController({
 
   const invalidateRelatedQueries = useCallback(
     async (targets?: {
-      actualEventIds?: UUID[];
+      timelogIds?: UUID[];
       taskIds?: UUID[];
       notes?: Note[];
       removedNoteIds?: UUID[];
@@ -105,26 +105,26 @@ export function useCreateNoteModalController({
         });
       });
 
-      const actualEventIds =
-        targets?.actualEventIds && targets.actualEventIds.length > 0
-          ? Array.from(new Set(targets.actualEventIds))
+      const timelogIds =
+        targets?.timelogIds && targets.timelogIds.length > 0
+          ? Array.from(new Set(targets.timelogIds))
           : [];
-      if (actualEventIds.length > 0) {
+      if (timelogIds.length > 0) {
         tasks.push(
           queryClient.invalidateQueries({
-            queryKey: actualEventsKeys.lists(),
+            queryKey: timelogsKeys.lists(),
           }),
         );
         tasks.push(
           queryClient.invalidateQueries({
             predicate: (query) =>
-              isActualEventsAdvancedSearchQuery(query as QueryLike),
+              isTimelogsAdvancedSearchQuery(query as QueryLike),
           }),
         );
-        actualEventIds.forEach((id) => {
+        timelogIds.forEach((id) => {
           tasks.push(
             queryClient.invalidateQueries({
-              queryKey: actualEventsKeys.detail(id),
+              queryKey: timelogsKeys.detail(id),
             }),
           );
         });
@@ -230,12 +230,12 @@ export function useCreateNoteModalController({
         t("createNoteModal.messages.noteCreateSuccess"),
         t("createNoteModal.messages.noteCreateSuccessMessage"),
       );
-      const actualEventIds = new Set<UUID>();
+      const timelogIds = new Set<UUID>();
       if (variables?.actual_event_ids) {
-        variables.actual_event_ids.forEach((id) => actualEventIds.add(id));
+        variables.actual_event_ids.forEach((id) => timelogIds.add(id));
       }
       createdNote?.timelogs?.forEach((timelog) =>
-        actualEventIds.add(timelog.id),
+        timelogIds.add(timelog.id),
       );
 
       const taskIds = new Set<UUID>();
@@ -249,7 +249,7 @@ export function useCreateNoteModalController({
       const refreshCaches = async () => {
         await syncTaskFromNoteSummary(createdNote?.task);
         await invalidateRelatedQueries({
-          actualEventIds: Array.from(actualEventIds),
+          timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),
           notes: [createdNote],
         });
@@ -287,15 +287,15 @@ export function useCreateNoteModalController({
         t("createNoteModal.messages.noteUpdateSuccess"),
         t("createNoteModal.messages.noteUpdateSuccessMessage"),
       );
-      const actualEventIds = new Set<UUID>();
+      const timelogIds = new Set<UUID>();
       existingNote?.timelogs?.forEach((timelog) =>
-        actualEventIds.add(timelog.id),
+        timelogIds.add(timelog.id),
       );
       updatedNote?.timelogs?.forEach((timelog) =>
-        actualEventIds.add(timelog.id),
+        timelogIds.add(timelog.id),
       );
-      const payloadActualEventIds = variables?.noteData?.actual_event_ids ?? [];
-      payloadActualEventIds.forEach((id) => actualEventIds.add(id));
+      const payloadTimelogIds = variables?.noteData?.actual_event_ids ?? [];
+      payloadTimelogIds.forEach((id) => timelogIds.add(id));
 
       const taskIds = new Set<UUID>();
       if (existingNote?.task?.id) {
@@ -315,7 +315,7 @@ export function useCreateNoteModalController({
           existingNote?.task?.id ?? null,
         );
         await invalidateRelatedQueries({
-          actualEventIds: Array.from(actualEventIds),
+          timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),
           notes: [updatedNote],
         });
@@ -371,7 +371,7 @@ export function useCreateNoteModalController({
       lockedTagIds,
       isTagSelectionLocked,
       selectedTaskId,
-      selectedActualEventIds,
+      selectedTimelogIds,
     }: SubmitNotePayload) => {
       const mergedTagIds = isTagSelectionLocked
         ? Array.from(new Set<UUID>([...lockedTagIds, ...selectedTagIds]))
@@ -388,7 +388,7 @@ export function useCreateNoteModalController({
               : selectedTaskId
                 ? selectedTaskId
                 : undefined,
-          actual_event_ids: selectedActualEventIds,
+          actual_event_ids: selectedTimelogIds,
         };
         updateNoteMutation.mutate({ noteId: existingNote.id, noteData });
         return;
@@ -405,8 +405,8 @@ export function useCreateNoteModalController({
               ? selectedTaskId
               : undefined,
         actual_event_ids:
-          selectedActualEventIds.length > 0
-            ? selectedActualEventIds
+          selectedTimelogIds.length > 0
+            ? selectedTimelogIds
             : undefined,
       };
       createNoteMutation.mutate(payload);

@@ -1441,15 +1441,15 @@
         },
         "actual": {
           "title": {
-            "show": "Show actual events",
-            "hide": "Hide actual events"
+            "show": "Show timelogs",
+            "hide": "Hide timelogs"
           }
         }
       },
       "loading": "Loading calendar data...",
       "hint": {
         "title": "Tip:",
-        "actualEnabled": "Actual footprints enabled. Filter by a specific dimension, or keep 'All' to view all dimensions."
+        "actualEnabled": "Timelog footprints enabled. Filter by a specific dimension, or keep 'All' to view all dimensions."
       },
       "fc": {
         "today": "Today",
@@ -1616,7 +1616,7 @@
       "description": "Notes linked from this time entry will appear here. Capture extra context, reflections, or follow-up items."
     }
   },
-  "taskActualEvents": {
+  "taskTimelogs": {
     "title": "Logs",
     "taskLabel": "Task:",
     "totalTime": "Total",

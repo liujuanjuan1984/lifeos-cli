@@ -23,19 +23,21 @@ interface TimelogTooltipContentProps {
     } | null;
   };
   dimensionMap: Map<UUID, { name: string; color: string }>;
+  timezone?: string;
 }
 
 const TimelogTooltipContent: React.FC<TimelogTooltipContentProps> = ({
   entry,
   dimensionMap,
+  timezone,
 }) => {
   const { t } = useTranslation();
 
   const startLabel = entry.start_time
-    ? formatTime(entry.start_time)
+    ? formatTime(entry.start_time, timezone)
     : t("common.placeholder");
   const endLabel = entry.end_time
-    ? formatTime(entry.end_time)
+    ? formatTime(entry.end_time, timezone)
     : t("common.placeholder");
   const timeRange = `${startLabel} - ${endLabel}`;
   const durationLabel = formatDurationFromTimes(

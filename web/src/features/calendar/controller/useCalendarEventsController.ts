@@ -10,11 +10,11 @@ import type {
   EventInput,
 } from "@fullcalendar/core";
 import { plannedEventsApi } from "@/services/api/plannedEvents";
-import { actualEventsApi } from "@/services/api/actualEvents";
-import { actualEventsKeys, plannedEventsKeys } from "@/services/api/queryKeys";
+import { timelogsApi } from "@/services/api/timelogs";
+import { timelogsKeys, plannedEventsKeys } from "@/services/api/queryKeys";
 import { invalidatePlannedEventLists } from "@/services/api/cacheInvalidation/plannedEvents";
 import type {
-  ActualEvent,
+  Timelog,
   PlannedEvent,
   Task as ApiTask,
   Vision,
@@ -31,7 +31,7 @@ interface UseCalendarEventsControllerParams {
   startISO: string | null;
   endISO: string | null;
   showPlannedEvents: boolean;
-  showActualEvents: boolean;
+  showTimelogs: boolean;
   selectedDimensionId: UUID | null | undefined;
   taskIndicatorLabel: string;
   preloadedTasks: ApiTask[];
@@ -72,7 +72,7 @@ export function useCalendarEventsController({
   startISO,
   endISO,
   showPlannedEvents,
-  showActualEvents,
+  showTimelogs,
   selectedDimensionId,
   taskIndicatorLabel,
   preloadedTasks,
@@ -102,23 +102,23 @@ export function useCalendarEventsController({
     placeholderData: [],
   });
 
-  const actualQuery = useQuery<ActualEvent[]>({
-    queryKey: actualEventsKeys.list({
+  const timelogQuery = useQuery<Timelog[]>({
+    queryKey: timelogsKeys.list({
       start: startISO ?? undefined,
       end: endISO ?? undefined,
       timezone,
     }),
     queryFn: async () => {
-      const response = await actualEventsApi.fetchRange(startISO!, endISO!);
+      const response = await timelogsApi.fetchRange(startISO!, endISO!);
       return response.items;
     },
-    enabled: Boolean(startISO && endISO && showActualEvents),
+    enabled: Boolean(startISO && endISO && showTimelogs),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     placeholderData: [],
-    select: (rows: ActualEvent[]) =>
+    select: (rows: Timelog[]) =>
       selectedDimensionId === undefined
         ? rows
         : rows.filter((row) =>
@@ -129,7 +129,7 @@ export function useCalendarEventsController({
   });
 
   const planned = useMemo(() => plannedQuery.data ?? [], [plannedQuery.data]);
-  const actual = useMemo(() => actualQuery.data ?? [], [actualQuery.data]);
+  const timelogs = useMemo(() => timelogQuery.data ?? [], [timelogQuery.data]);
 
   const events = useMemo(() => {
     const plannedMapped: EventInput[] = (showPlannedEvents ? planned : []).map(
@@ -161,34 +161,34 @@ export function useCalendarEventsController({
       },
     );
 
-    const actualMapped: EventInput[] = (showActualEvents ? actual : []).map(
-      (event, index) => ({
-        id: `actual-${event.id}-${event.start_time}-${index}`,
-        title: event.title,
-        start: event.start_time,
-        end: event.end_time || undefined,
+    const timelogMapped: EventInput[] = (showTimelogs ? timelogs : []).map(
+      (timelog, index) => ({
+        id: `timelog-${timelog.id}-${timelog.start_time}-${index}`,
+        title: timelog.title,
+        start: timelog.start_time,
+        end: timelog.end_time || undefined,
         allDay: false,
-        classNames: ["actual-event"],
+        classNames: ["timelog-event"],
         extendedProps: {
-          type: "actual",
-          originalEvent: event,
-          location: event.location,
-          trackingMethod: event.tracking_method,
-          energyLevel: event.energy_level,
-          notes: event.notes,
-          tags: event.tags,
-          dimensionId: event.dimension_id,
+          type: "timelog",
+          originalEvent: timelog,
+          location: timelog.location,
+          trackingMethod: timelog.tracking_method,
+          energyLevel: timelog.energy_level,
+          notes: timelog.notes,
+          tags: timelog.tags,
+          dimensionId: timelog.dimension_id,
         },
       }),
     );
 
-    return [...plannedMapped, ...actualMapped];
+    return [...plannedMapped, ...timelogMapped];
   }, [
-    actual,
     planned,
-    showActualEvents,
+    showTimelogs,
     showPlannedEvents,
     taskIndicatorLabel,
+    timelogs,
   ]);
 
   const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
@@ -226,10 +226,10 @@ export function useCalendarEventsController({
   const error = useMemo(() => {
     return (
       getQueryErrorMessage(plannedQuery as UseQueryResult<unknown, unknown>) ||
-      getQueryErrorMessage(actualQuery as UseQueryResult<unknown, unknown>) ||
+      getQueryErrorMessage(timelogQuery as UseQueryResult<unknown, unknown>) ||
       null
     );
-  }, [actualQuery, plannedQuery]);
+  }, [plannedQuery, timelogQuery]);
 
   const eventModalProps = useMemo(
     () => ({
@@ -256,7 +256,7 @@ export function useCalendarEventsController({
 
   return {
     events,
-    loading: plannedQuery.isFetching || actualQuery.isFetching,
+    loading: plannedQuery.isFetching || timelogQuery.isFetching,
     error,
     showEventModal,
     eventModalProps,

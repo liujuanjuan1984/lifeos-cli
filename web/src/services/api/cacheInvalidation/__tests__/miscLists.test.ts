@@ -1,10 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { invalidateActualEventTemplateLists } from "@/services/api/cacheInvalidation/actualEventTemplates";
+import { invalidateTimelogTemplateLists } from "@/services/api/cacheInvalidation/timelogTemplates";
 import { invalidateTagList } from "@/services/api/cacheInvalidation/tags";
 import {
-  actualEventTemplatesKeys,
+  timelogTemplatesKeys,
   tagsKeys,
 } from "@/services/api/queryKeys";
 
@@ -19,11 +19,11 @@ describe("misc list cache invalidation helpers", () => {
     } as unknown as QueryClient;
   });
 
-  it("invalidates actual event template list namespace", () => {
-    invalidateActualEventTemplateLists(queryClient);
+  it("invalidates timelog template list namespace", () => {
+    invalidateTimelogTemplateLists(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: actualEventTemplatesKeys.lists(),
+      queryKey: timelogTemplatesKeys.lists(),
     });
   });
 

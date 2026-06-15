@@ -28,7 +28,6 @@ export const ENDPOINTS = {
     REORDER: `${API_V1}/tasks/reorder`,
     MOVE: (id: string) => `${API_V1}/tasks/${id}/move`,
     STATS: (id: string) => `${API_V1}/tasks/${id}/stats`,
-    ACTUAL_EVENTS: (id: string) => `${API_V1}/tasks/${id}/actual-events`,
   },
   TIMELOGS: {
     BASE: `${API_V1}/timelogs/`,

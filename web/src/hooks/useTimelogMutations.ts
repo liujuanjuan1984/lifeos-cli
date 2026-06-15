@@ -1,27 +1,27 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { actualEventsApi } from "@/services/api/actualEvents";
+import { timelogsApi } from "@/services/api/timelogs";
 import {
-  isActualEventsListQuery,
+  isTimelogsListQuery,
   type QueryLike,
 } from "@/services/api/queryPredicates";
 import {
-  invalidateActualEventLists,
-  invalidateActualEventsAdvancedSearch,
-  removeActualEventDetailCache,
-  setActualEventDetailCache,
-} from "@/services/api/cacheInvalidation/actualEvents";
+  invalidateTimelogLists,
+  invalidateTimelogsAdvancedSearch,
+  removeTimelogDetailCache,
+  setTimelogDetailCache,
+} from "@/services/api/cacheInvalidation/timelogs";
 import { useToast } from "@/contexts/ToastContext";
 import type {
-  ActualEventCreate,
-  ActualEventUpdate,
-  ActualEventWithEnergyResponse,
-  ActualEvent,
-} from "@/services/api/actualEvents";
+  TimelogCreate,
+  TimelogUpdate,
+  TimelogWithEnergyResponse,
+  Timelog,
+} from "@/services/api/timelogs";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
 
-const mergeActualEvent = <T extends ActualEvent>(
+const mergeTimelog = <T extends Timelog>(
   existing: T[] | undefined,
   next: T,
 ): T[] => {
@@ -33,7 +33,7 @@ const mergeActualEvent = <T extends ActualEvent>(
   );
 };
 
-const removeActualEvents = <T extends ActualEvent>(
+const removeTimelogs = <T extends Timelog>(
   existing: T[] | undefined,
   idsToRemove: Set<UUID>,
 ): T[] => {
@@ -43,35 +43,35 @@ const removeActualEvents = <T extends ActualEvent>(
 };
 
 /**
- * Hook for managing actual events mutations (create, update, delete)
+ * Hook for managing timelogs mutations (create, update, delete)
  */
-export function useActualEventsMutations() {
+export function useTimelogMutations() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { t } = useTranslation();
 
-  const scheduleActualEventRefresh = (context: string) => {
+  const scheduleTimelogRefresh = (context: string) => {
     void Promise.all([
-      invalidateActualEventLists(queryClient),
-      invalidateActualEventsAdvancedSearch(queryClient),
+      invalidateTimelogLists(queryClient),
+      invalidateTimelogsAdvancedSearch(queryClient),
     ]).catch((error) => {
       logger.warn(context, error);
     });
   };
 
-  // Create actual event mutation
+  // Create timelog mutation
   const createMutation = useMutation({
-    mutationFn: (data: ActualEventCreate) => actualEventsApi.create(data),
-    onSuccess: (result: ActualEventWithEnergyResponse) => {
-      setActualEventDetailCache(queryClient, result);
+    mutationFn: (data: TimelogCreate) => timelogsApi.create(data),
+    onSuccess: (result: TimelogWithEnergyResponse) => {
+      setTimelogDetailCache(queryClient, result);
       queryClient.setQueriesData(
-        { predicate: (query) => isActualEventsListQuery(query as QueryLike) },
+        { predicate: (query) => isTimelogsListQuery(query as QueryLike) },
         (existing) =>
-          mergeActualEvent(existing as ActualEvent[] | undefined, result),
+          mergeTimelog(existing as Timelog[] | undefined, result),
       );
 
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after creating actual event",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after creating timelog",
       );
 
       // Invalidate task-related queries to refresh planning page and vision page
@@ -92,20 +92,20 @@ export function useActualEventsMutations() {
     },
   });
 
-  // Update actual event mutation
+  // Update timelog mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: UUID; data: ActualEventUpdate }) =>
-      actualEventsApi.update(id, data),
-    onSuccess: (result: ActualEvent) => {
-      setActualEventDetailCache(queryClient, result);
+    mutationFn: ({ id, data }: { id: UUID; data: TimelogUpdate }) =>
+      timelogsApi.update(id, data),
+    onSuccess: (result: Timelog) => {
+      setTimelogDetailCache(queryClient, result);
       queryClient.setQueriesData(
-        { predicate: (query) => isActualEventsListQuery(query as QueryLike) },
+        { predicate: (query) => isTimelogsListQuery(query as QueryLike) },
         (existing) =>
-          mergeActualEvent(existing as ActualEvent[] | undefined, result),
+          mergeTimelog(existing as Timelog[] | undefined, result),
       );
 
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after updating actual event",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after updating timelog",
       );
 
       // Invalidate task-related queries to refresh planning page and vision page
@@ -124,23 +124,23 @@ export function useActualEventsMutations() {
     },
   });
 
-  // Delete single actual event mutation
+  // Delete single timelog mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: UUID) => actualEventsApi.delete(id),
+    mutationFn: (id: UUID) => timelogsApi.delete(id),
     onSuccess: (_, eventId) => {
-      removeActualEventDetailCache(queryClient, eventId);
+      removeTimelogDetailCache(queryClient, eventId);
 
       queryClient.setQueriesData(
-        { predicate: (query) => isActualEventsListQuery(query as QueryLike) },
+        { predicate: (query) => isTimelogsListQuery(query as QueryLike) },
         (existing) =>
-          removeActualEvents(
-            existing as ActualEvent[] | undefined,
+          removeTimelogs(
+            existing as Timelog[] | undefined,
             new Set<UUID>([eventId]),
           ),
       );
 
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after deleting actual event",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after deleting timelog",
       );
 
       // Show success message
@@ -154,23 +154,23 @@ export function useActualEventsMutations() {
     },
   });
 
-  // Batch delete actual events mutation
+  // Batch delete timelogs mutation
   const batchDeleteMutation = useMutation({
-    mutationFn: (eventIds: UUID[]) => actualEventsApi.batchDelete(eventIds),
+    mutationFn: (eventIds: UUID[]) => timelogsApi.batchDelete(eventIds),
     onSuccess: (result, eventIds) => {
       const idsToRemove = new Set<UUID>(eventIds);
 
       queryClient.setQueriesData(
-        { predicate: (query) => isActualEventsListQuery(query as QueryLike) },
+        { predicate: (query) => isTimelogsListQuery(query as QueryLike) },
         (existing) =>
-          removeActualEvents(
-            existing as ActualEvent[] | undefined,
+          removeTimelogs(
+            existing as Timelog[] | undefined,
             idsToRemove,
           ),
       );
 
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after batch deleting actual events",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after batch deleting timelogs",
       );
 
       if (result.failed_ids.length > 0) {
@@ -199,13 +199,13 @@ export function useActualEventsMutations() {
     },
   });
 
-  // Batch create actual events mutation
+  // Batch create timelogs mutation
   const batchCreateMutation = useMutation({
-    mutationFn: (events: ActualEventCreate[]) =>
-      actualEventsApi.batchCreate(events),
+    mutationFn: (events: TimelogCreate[]) =>
+      timelogsApi.batchCreate(events),
     onSuccess: (result) => {
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after batch creating actual events",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after batch creating timelogs",
       );
 
       if (result.failed_count > 0) {
@@ -234,7 +234,7 @@ export function useActualEventsMutations() {
     },
   });
 
-  // Batch update actual events mutation
+  // Batch update timelogs mutation
   const batchUpdateMutation = useMutation({
     mutationFn: (params: {
       event_ids: UUID[];
@@ -255,10 +255,10 @@ export function useActualEventsMutations() {
       dimension?: {
         dimension_id: UUID | null;
       };
-    }) => actualEventsApi.batchUpdate(params),
+    }) => timelogsApi.batchUpdate(params),
     onSuccess: (result) => {
-      scheduleActualEventRefresh(
-        "Failed to refresh caches after batch updating actual events",
+      scheduleTimelogRefresh(
+        "Failed to refresh caches after batch updating timelogs",
       );
 
       // Invalidate task-related queries to refresh planning page and vision page
@@ -292,21 +292,21 @@ export function useActualEventsMutations() {
 
   return {
     // Individual mutations
-    createActualEvent: createMutation,
-    updateActualEvent: updateMutation,
-    deleteActualEvent: deleteMutation,
+    createTimelog: createMutation,
+    updateTimelog: updateMutation,
+    deleteTimelog: deleteMutation,
 
     // Batch mutations
-    batchCreateActualEvents: batchCreateMutation,
-    batchUpdateActualEvents: batchUpdateMutation,
-    batchDeleteActualEvents: batchDeleteMutation,
+    batchCreateTimelogs: batchCreateMutation,
+    batchUpdateTimelogs: batchUpdateMutation,
+    batchDeleteTimelogs: batchDeleteMutation,
 
     // Convenience methods for async operations
-    createActualEventAsync: createMutation.mutateAsync,
-    updateActualEventAsync: updateMutation.mutateAsync,
-    deleteActualEventAsync: deleteMutation.mutateAsync,
-    batchCreateActualEventsAsync: batchCreateMutation.mutateAsync,
-    batchUpdateActualEventsAsync: batchUpdateMutation.mutateAsync,
-    batchDeleteActualEventsAsync: batchDeleteMutation.mutateAsync,
+    createTimelogAsync: createMutation.mutateAsync,
+    updateTimelogAsync: updateMutation.mutateAsync,
+    deleteTimelogAsync: deleteMutation.mutateAsync,
+    batchCreateTimelogsAsync: batchCreateMutation.mutateAsync,
+    batchUpdateTimelogsAsync: batchUpdateMutation.mutateAsync,
+    batchDeleteTimelogsAsync: batchDeleteMutation.mutateAsync,
   };
 }

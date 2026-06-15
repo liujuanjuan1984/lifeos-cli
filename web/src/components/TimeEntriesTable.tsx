@@ -9,8 +9,8 @@ import DimensionSelect from "./selects/DimensionSelect";
 import Checkbox from "./forms/Checkbox";
 import type {
   TaskWithSubtasks,
-  ActualEvent,
-  ActualEventWithEnergyResponse,
+  Timelog,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import { formatTime } from "@/utils/datetime";
 import Container from "@/layouts/Container";
@@ -186,7 +186,11 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   }, [hideTooltip]);
 
   const tooltipContent = hoveredEntry ? (
-    <TimelogTooltipContent entry={hoveredEntry} dimensionMap={dimensionMap} />
+    <TimelogTooltipContent
+      entry={hoveredEntry}
+      dimensionMap={dimensionMap}
+      timezone={timezone}
+    />
   ) : null;
 
   // Auto-expand the first placeholder when entries are loaded
@@ -239,7 +243,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
 
   const handleInlineQuickEntrySaved = useCallback(
     (
-      _entry: ActualEvent | ActualEventWithEnergyResponse,
+      _entry: Timelog | TimelogWithEnergyResponse,
       context: { sessionId: string },
     ) => {
       if (!inlineSessionId || context.sessionId !== inlineSessionId) {
@@ -295,9 +299,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     }
 
     // Create stable time range identifier and set form state
-    const rangeStartTimeStr = formatTime(placeholder.start_time);
+    const rangeStartTimeStr = formatTime(placeholder.start_time, timezone);
     const endTimeStr = placeholder.end_time
-      ? formatTime(placeholder.end_time)
+      ? formatTime(placeholder.end_time, timezone)
       : "";
     const timeRange = `${rangeStartTimeStr}-${endTimeStr}`;
     const startTimeStr =
@@ -540,6 +544,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                                   preloadedTasks={preloadedTasks}
                                   idPrefix="timelog-inline"
                                   sessionId={inlineSessionId}
+                                  timezone={timezone}
                                 />
                               </div>
                             </td>
