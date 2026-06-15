@@ -10,7 +10,7 @@ import type {
 import type { Task as ApiTask } from "@/services/api/tasks";
 import { tasksApi } from "@/services/api/tasks";
 import { visionsApi } from "@/services/api/visions";
-import type { Dimension as ApiDimension } from "@/services/api/dimensions";
+import type { Area as ApiArea } from "@/services/api/areas";
 import { useTimelogMutations } from "@/hooks/useTimelogMutations";
 import { useTasksMutations } from "@/hooks/useTasksMutations";
 import { logger } from "@/utils/core";
@@ -18,7 +18,7 @@ import {
   ACTIVE_TASK_STATUSES,
   QUICK_TIME_ENTRY_MAX_DURATION_MINUTES,
 } from "@/utils/constants";
-import { useDimensions } from "@/hooks/queries/useDimensions";
+import { useAreas } from "@/hooks/queries/useAreas";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import ActionButton, { FormActions } from "./ActionButton";
 import { Icon } from "./icons";
@@ -33,7 +33,7 @@ import {
   addMinutesToIso,
 } from "@/utils/datetime";
 import QuickTemplatesManagerModal from "./QuickTemplatesManagerModal";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import PersonSelector from "./selects/PersonSelector";
 import { useToast } from "@/contexts/ToastContext";
 import type { UUID } from "@/types/primitive";
@@ -141,7 +141,7 @@ export default function InlineQuickTimeEntry({
     title: "",
     start_time: "",
     end_time: "",
-    dimension_id: null,
+    area_id: null,
     task_id: undefined,
     person_ids: [],
     tracking_method: "manual",
@@ -190,7 +190,7 @@ export default function InlineQuickTimeEntry({
 
         // Use extracted helper functions
         autoFillTitle(task);
-        autoFillDimension(vision);
+        autoFillArea(vision);
         applyTaskPersons(task.persons);
       } catch {
         // ignore autofill errors
@@ -343,7 +343,7 @@ export default function InlineQuickTimeEntry({
       };
     });
   };
-  const [dimensions, setDimensions] = useState<ApiDimension[]>([]);
+  const [areas, setAreas] = useState<ApiArea[]>([]);
   // Removed internal tasks loading; TaskSelector will handle via shared cache
   // const [selectedTask, setSelectedTask] = useState<TaskWithSubtasks | null>(null);
   const [loading, setLoading] = useState(false);
@@ -351,15 +351,15 @@ export default function InlineQuickTimeEntry({
   // Flag to track if we should use props for time initialization
   const [shouldInitializeFromProps, setShouldInitializeFromProps] =
     useState(true);
-  // removed duplicate state declarations for dimensions
+  // removed duplicate state declarations for areas
 
   // Refs for keyboard navigation
   const titleRef = useRef<HTMLInputElement>(null);
-  const dimensionRef = useRef<HTMLInputElement>(null);
+  const areaRef = useRef<HTMLInputElement>(null);
 
   // Load reference data on component mount
   // Use cached reference data where possible
-  const { dimensions: dimsFromCache } = useDimensions();
+  const { areas: areasFromCache } = useAreas();
 
   // Time log task planning settings
   const { value: autoSetTaskPlanning } = usePreferenceWithBootstrap<boolean>({
@@ -380,7 +380,7 @@ export default function InlineQuickTimeEntry({
     const loadReferenceData = async () => {
       try {
         if (!cancelled) {
-          setDimensions(dimsFromCache as ApiDimension[]);
+          setAreas(areasFromCache as ApiArea[]);
         }
 
         // visions/tasks are now globally cached elsewhere via TaskSelector; skip here to avoid duplication
@@ -392,7 +392,7 @@ export default function InlineQuickTimeEntry({
     return () => {
       cancelled = true;
     };
-  }, [dimsFromCache]);
+  }, [areasFromCache]);
 
   const {
     templates,
@@ -472,7 +472,7 @@ export default function InlineQuickTimeEntry({
       return;
     }
 
-    // dimension_id is now optional, no validation needed
+    // area_id is now optional, no validation needed
 
     if (!formData.start_time) {
       onError(t("quickTimeEntry.validation.startTimeRequired"));
@@ -551,7 +551,7 @@ export default function InlineQuickTimeEntry({
           title: "",
           start_time: startISO,
           end_time: resetEndIso,
-          dimension_id: "",
+          area_id: "",
           task_id: undefined,
           person_ids: [],
           tracking_method: "manual",
@@ -584,7 +584,7 @@ export default function InlineQuickTimeEntry({
     }
   };
 
-  // Handle task selection with auto-fill title and dimension inherited from vision
+  // Handle task selection with auto-fill title and area inherited from vision
   const handleTaskSelect = (
     task: TaskWithSubtasks | null,
     vision?: Vision | null,
@@ -597,7 +597,7 @@ export default function InlineQuickTimeEntry({
     if (task) {
       // Use extracted helper functions for auto-fill
       autoFillTitle(task);
-      autoFillDimension(vision);
+      autoFillArea(vision);
       if (task.persons && task.persons.length > 0) {
         applyTaskPersons(task.persons);
       } else {
@@ -617,7 +617,7 @@ export default function InlineQuickTimeEntry({
   // When external task id changes, trigger autofill via TaskSelector callback path
   useEffect(() => {
     if (!selectedTaskId) return;
-    // We don't have the full task object here; rely on vision-based autofill via DimensionSelect if available.
+    // We don't have the full task object here; rely on vision-based autofill via AreaSelect if available.
     // Minimal behavior: clear lastAutoTitleRef to allow title autofill on next onTaskSelect.
     lastAutoTitleRef.current = "";
   }, [selectedTaskId]);
@@ -666,23 +666,23 @@ export default function InlineQuickTimeEntry({
     }
   };
 
-  const autoFillDimension = (vision?: Vision | null) => {
+  const autoFillArea = (vision?: Vision | null) => {
     if (
       vision &&
-      typeof vision.dimension_id === "string" &&
-      vision.dimension_id > ""
+      typeof vision.area_id === "string" &&
+      vision.area_id > ""
     ) {
       setFormData((prev) =>
-        prev.dimension_id && prev.dimension_id > ""
+        prev.area_id && prev.area_id > ""
           ? prev
-          : { ...prev, dimension_id: vision.dimension_id as UUID },
+          : { ...prev, area_id: vision.area_id as UUID },
       );
     }
   };
 
-  const resolveDimensionIdByName = (name?: string): UUID => {
+  const resolveAreaIdByName = (name?: string): UUID => {
     if (!name) return "";
-    const found = dimensions.find((d) => d.name === name);
+    const found = areas.find((d) => d.name === name);
     return found ? found.id : "";
   };
 
@@ -707,15 +707,15 @@ export default function InlineQuickTimeEntry({
     }
 
     setFormDataWithSync((prev) => {
-      const resolvedDimensionId = tpl.dimension_id
-        ? tpl.dimension_id
-        : tpl.dimension_name
-          ? resolveDimensionIdByName(tpl.dimension_name)
+      const resolvedAreaId = tpl.area_id
+        ? tpl.area_id
+        : tpl.area_name
+          ? resolveAreaIdByName(tpl.area_name)
           : null;
       let next: TimelogCreate = {
         ...prev,
         title: tpl.title,
-        dimension_id: resolvedDimensionId,
+        area_id: resolvedAreaId,
       };
       if (templateDuration !== null && prev.start_time) {
         next = {
@@ -792,31 +792,31 @@ export default function InlineQuickTimeEntry({
                   onClick={() => void applyTemplate(tpl)}
                   className="px-2 py-0.5 text-xs rounded-md bg-base-200/70 hover:bg-base-200 transition inline-flex items-center gap-1 text-left"
                   title={(() => {
-                    const dimensionLabel = tpl.dimension_id
-                      ? (dimensions.find((d) => d.id === tpl.dimension_id)
+                    const areaLabel = tpl.area_id
+                      ? (areas.find((d) => d.id === tpl.area_id)
                           ?.name ??
-                        tpl.dimension_name ??
+                        tpl.area_name ??
                         "?")
-                      : tpl.dimension_name || "?";
+                      : tpl.area_name || "?";
                     if (tpl.default_duration_minutes) {
-                      return `${tpl.title}（维度: ${dimensionLabel}，时长: ${tpl.default_duration_minutes} 分钟）`;
+                      return `${tpl.title}（领域: ${areaLabel}，时长: ${tpl.default_duration_minutes} 分钟）`;
                     }
-                    return `${tpl.title}（维度: ${dimensionLabel}）`;
+                    return `${tpl.title}（领域: ${areaLabel}）`;
                   })()}
                 >
-                  {/* dimension color dot */}
+                  {/* area color dot */}
                   {(() => {
-                    const dimById = tpl.dimension_id
-                      ? dimensions.find((d) => d.id === tpl.dimension_id)
+                    const areaById = tpl.area_id
+                      ? areas.find((d) => d.id === tpl.area_id)
                       : null;
-                    const dimByName =
-                      !dimById && tpl.dimension_name
-                        ? dimensions.find((d) => d.name === tpl.dimension_name)
+                    const areaByName =
+                      !areaById && tpl.area_name
+                        ? areas.find((d) => d.name === tpl.area_name)
                         : null;
                     const color =
-                      dimById?.color ||
-                      dimByName?.color ||
-                      tpl.dimension_color ||
+                      areaById?.color ||
+                      areaByName?.color ||
+                      tpl.area_color ||
                       "#9CA3AF";
                     return (
                       <span
@@ -934,20 +934,20 @@ export default function InlineQuickTimeEntry({
             />
           </div>
 
-          {/* Dimension */}
+          {/* Area */}
           <div className="flex-shrink-0 w-22 mt-2">
-            <DimensionSelect
-              ref={dimensionRef}
-              value={formData.dimension_id || null}
+            <AreaSelect
+              ref={areaRef}
+              value={formData.area_id || null}
               onChange={(v) =>
                 setFormData((prev) => ({
                   ...prev,
-                  dimension_id: v ?? null,
+                  area_id: v ?? null,
                 }))
               }
               disabled={loading}
               placeholder={t("common.please_select")}
-              id={`${idPrefix}-dimension`}
+              id={`${idPrefix}-area`}
             />
           </div>
 
@@ -976,7 +976,7 @@ export default function InlineQuickTimeEntry({
             onSubmit={() => document.querySelector("form")?.requestSubmit()}
             disabled={
               !formData.title.trim() ||
-              formData.dimension_id === "" ||
+              formData.area_id === "" ||
               !formData.start_time ||
               !formData.end_time
             }

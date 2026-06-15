@@ -609,7 +609,7 @@ const PersonManager: React.FC<PersonManagerProps> = ({
       {deletingPerson && (
         <ConfirmDialog
           isOpen={!!deletingPerson}
-          title={t("dimensionManager.deleteConfirmTitle")}
+          title={t("areaManager.deleteConfirmTitle")}
           message={t("personManager.deleteConfirmMessage", {
             name: deletingPerson.display_name,
           })}

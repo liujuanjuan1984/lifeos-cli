@@ -35,7 +35,7 @@
     "actions": "操作",
     "all": "全部",
     "none": "无",
-    "noDimension": "无维度",
+    "noArea": "无领域",
     "please_select": "请选择……",
     "no_options": "暂无选项",
     "create_new": "新建",
@@ -52,7 +52,7 @@
     "required": "为必填项"
   },
   "target": {
-    "dimension": "维度",
+    "area": "领域",
     "priority": "优先级",
     "tag": "标签",
     "year": "年份",
@@ -173,7 +173,7 @@
       "noTitleValue": "请输入标题内容",
       "noFindText": "请输入要查找的文本",
       "noTaskSelected": "请选择相关任务",
-      "noDimensionSelected": "请选择维度",
+      "noAreaSelected": "请选择领域",
       "noRecordsUpdated": "没有记录被更新",
       "batchFailed": "第 {{batch}} 批处理失败: {{error}}",
       "details": "批量编辑错误详情:"
@@ -204,8 +204,8 @@
       "description": "输入要关联的任务ID，将替换所有选中记录的关联任务",
       "clearDescription": "将清空所有选中记录的关联任务"
     },
-    "dimension": {
-      "description": "将替换所有选中记录的维度"
+    "area": {
+      "description": "将替换所有选中记录的领域"
     },
     "confirmEditing": "编辑中..."
   },
@@ -644,9 +644,9 @@
         "description": "让日常仪式成为你每日计划的一部分，选择是否在此显示习惯动作。"
       }
     },
-    "dimensionOrder": {
-      "title": "维度排序",
-      "description": "自定义维度的呈现顺序，让你能优先关注最重要的生命领域。"
+    "areaOrder": {
+      "title": "领域排序",
+      "description": "自定义领域的呈现顺序，让你能优先关注最重要的生命领域。"
     },
     "defaultInboxVision": {
       "label": "选择默认愿景",
@@ -708,16 +708,16 @@
       }
     },
     "autoSaveHint": "修改后将自动保存",
-    "dimensionSorter": {
-      "loading": "加载维度中...",
-      "error": "加载维度失败：{{message}}",
-      "empty": "暂无维度数据",
-      "groupLabel": "维度排序",
+    "areaSorter": {
+      "loading": "加载领域中...",
+      "error": "加载领域失败：{{message}}",
+      "empty": "暂无领域数据",
+      "groupLabel": "领域排序",
       "instructions": "从左到右排列，可使用 ↑↓ 按钮调整顺序。",
       "clearAll": "重置",
-      "clearAllAria": "重置维度排序",
-      "listLabel": "维度列表",
-      "itemLabel": "维度 {{name}}，位置 {{position}}",
+      "clearAllAria": "重置领域排序",
+      "listLabel": "领域列表",
+      "itemLabel": "领域 {{name}}，位置 {{position}}",
       "moveUp": "将 {{name}} 上移",
       "moveDown": "将 {{name}} 下移"
     },
@@ -815,7 +815,7 @@
       "createFirstTask": "开始创建您的第一个任务吧"
     },
     "filters": {
-      "dimensionNone": "无维度"
+      "areaNone": "无领域"
     },
     "modal": {
       "createVision": "创建愿景",
@@ -1041,7 +1041,7 @@
     "progressBar": {
       "title": "时间开销分布",
       "unknownUnfilled": "未知/未填写",
-      "unknownDimension": "未知维度"
+      "unknownArea": "未知领域"
     },
     "modal": {
       "addTimeLog": "添加时间日志",
@@ -1063,7 +1063,7 @@
     "tooltip": {
       "timeRange": "时间段",
       "duration": "持续时长",
-      "dimension": "所属维度",
+      "area": "所属领域",
       "vision": "关联愿景",
       "task": "关联任务",
       "status": "任务状态"
@@ -1072,7 +1072,7 @@
       "title": "高级查询结果：",
       "from": "从 {{startDate}}",
       "to": "到 {{endDate}}",
-      "dimension": "维度：{{dimension}}",
+      "area": "领域：{{area}}",
       "keyword": "关键词：{{keyword}}",
       "task": "任务：{{task}}",
       "noTask": "无任务",
@@ -1137,7 +1137,7 @@
       "timeLogBatchUpdateFailedMessage": "请稍后重试"
     },
     "actions": {
-      "manageDimensions": "管理维度"
+      "manageAreas": "管理领域"
     },
     "bulkImport": {
       "modalTitle": "批量导入时间记录",
@@ -1219,7 +1219,7 @@
     "noStats": "暂无统计数据",
     "noStatsDescription": "开始记录你的时间日志，你的第一份数据洞察报告将在这里生成。",
     "statsTitle": "日志统计",
-    "dimensionTooltip": {
+    "areaTooltip": {
       "title": "{{name}}",
       "total": "总计：{{duration}}",
       "averagePerTotalDays": "按总天数平均（{{days}} 天）：{{duration}}",
@@ -1449,7 +1449,7 @@
       "loading": "正在加载日历数据...",
       "hint": {
         "title": "提示：",
-        "actualEnabled": "已启用时间记录足迹显示，可选择特定维度进行筛选，或保持\"全部\"以查看所有维度的时间记录。"
+        "actualEnabled": "已启用时间记录足迹显示，可选择特定领域进行筛选，或保持\"全部\"以查看所有领域的时间记录。"
       },
       "fc": {
         "today": "今天",
@@ -1481,30 +1481,30 @@
       "description": "管理您的个人偏好和系统设置。"
     }
   },
-  "dimensionManager": {
-    "title": "生命维度管理",
-    "addNewDimension": "添加新维度",
-    "editDimension": "编辑维度",
-    "dimensionName": "维度名称",
-    "dimensionNamePlaceholder": "例如：工作、健康、家庭",
-    "descriptionPlaceholder": "描述这个生命维度...",
+  "areaManager": {
+    "title": "生命领域管理",
+    "addNewArea": "添加新领域",
+    "editArea": "编辑领域",
+    "areaName": "领域名称",
+    "areaNamePlaceholder": "例如：工作、健康、家庭",
+    "descriptionPlaceholder": "描述这个生命领域...",
     "color": "颜色",
     "icon": "图标",
     "iconPlaceholder": "选择图标...",
-    "enableDimension": "启用此维度",
-    "loadingDimensions": "加载维度数据中...",
-    "dimensionUpdated": "维度更新成功！",
-    "dimensionCreated": "维度创建成功！",
-    "dimensionDeleted": "维度删除成功",
-    "dimensionUpdateSuccess": "维度信息已成功更新",
-    "dimensionCreateSuccess": "新的生命维度已添加到您的生命之树",
-    "dimensionDeleteSuccess": "维度已从您的生命之树中移除",
-    "saveError": "保存维度时出错",
-    "deleteError": "删除维度失败",
+    "enableArea": "启用此领域",
+    "loadingAreas": "加载领域数据中...",
+    "areaUpdated": "领域更新成功！",
+    "areaCreated": "领域创建成功！",
+    "areaDeleted": "领域删除成功",
+    "areaUpdateSuccess": "领域信息已成功更新",
+    "areaCreateSuccess": "新的生命领域已添加到您的生命之树",
+    "areaDeleteSuccess": "领域已从您的生命之树中移除",
+    "saveError": "保存领域时出错",
+    "deleteError": "删除领域失败",
     "operationFailed": "操作失败：",
     "retryLater": "请稍后重试",
     "deleteConfirmTitle": "删除确认",
-    "deleteConfirmMessage": "确定要删除维度 \"{{name}}\" 吗？这将同时删除所有相关数据。",
+    "deleteConfirmMessage": "确定要删除领域 \"{{name}}\" 吗？这将同时删除所有相关数据。",
     "toggleActive": "停用",
     "toggleInactive": "启用",
     "iconLabel": "图标:",
@@ -1625,7 +1625,7 @@
     "minutes": "分钟",
     "hours": "小时",
     "untitled": "未命名事件",
-    "unknownDimension": "未分配维度",
+    "unknownArea": "未分配领域",
     "emptyState": {
       "title": "暂无日志",
       "description": "在时间日志页面记录时间时关联此任务即可显示"
@@ -1635,7 +1635,7 @@
       "duration": "时长",
       "date": "日期",
       "description": "行为描述",
-      "dimension": "维度"
+      "area": "领域"
     }
   },
   "taskSelector": {

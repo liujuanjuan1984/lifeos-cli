@@ -6,7 +6,7 @@ import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
 /**
  * Persistent UI state for Timelog page
  * - sortOrder: "asc" | "desc"
- * - selectedDimensionId: UUID | "" | "__none__" | null
+ * - selectedAreaId: UUID | "" | "__none__" | null
  * - scrollPosition: number
  */
 export function useTimeLogUIState() {
@@ -19,10 +19,10 @@ export function useTimeLogUIState() {
     expireInHours: 0,
   });
 
-  // Dimension filter (default all), expire in 48h
-  const { state: selectedDimensionId, setState: setSelectedDimensionId } =
+  // Area filter (default all), expire in 48h
+  const { state: selectedAreaId, setState: setSelectedAreaId } =
     usePersistentState<UUID | "" | null | typeof SelectorSpecialValue.None>({
-      key: "tt_selected_dimension_id",
+      key: "tt_selected_area_id",
       defaultValue: "",
       expireInHours: 48,
     });
@@ -57,12 +57,12 @@ export function useTimeLogUIState() {
   return {
     // state
     sortOrder,
-    selectedDimensionId,
+    selectedAreaId,
     scrollPosition,
 
     // setters
     setSortOrder,
-    setSelectedDimensionId,
+    setSelectedAreaId,
     setScrollPosition,
 
     // helpers

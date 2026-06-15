@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import ModalBase from "@/layouts/ModalBase";
 import ActionButton, { ActionButtonGroup } from "./ActionButton";
 import PersonSelector from "./selects/PersonSelector";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import { timelogsApi } from "@/services/api/timelogs";
 import {
   invalidateTimelogLists,
@@ -23,7 +23,7 @@ interface BatchEditModalProps {
   onSuccess: () => void | Promise<void>;
 }
 
-type EditMode = "persons" | "title" | "task" | "dimension";
+type EditMode = "persons" | "title" | "task" | "area";
 
 const BatchEditModal: React.FC<BatchEditModalProps> = ({
   isOpen,
@@ -46,10 +46,10 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
   const [findText, setFindText] = useState("");
   const [taskMode, setTaskMode] = useState<"replace" | "clear">("replace");
   const [selectedTaskId, setSelectedTaskId] = useState<UUID | null>(null);
-  const [dimensionMode, setDimensionMode] = useState<"replace" | "clear">(
+  const [areaMode, setAreaMode] = useState<"replace" | "clear">(
     "replace",
   );
-  const [selectedDimensionId, setSelectedDimensionId] = useState<UUID | null>(
+  const [selectedAreaId, setSelectedAreaId] = useState<UUID | null>(
     null,
   );
 
@@ -126,7 +126,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
             find?: string;
           };
           task?: { mode: "replace" | "clear"; task_id?: UUID };
-          dimension?: { dimension_id: UUID | null };
+          area?: { area_id: UUID | null };
         } = {
           timelog_ids: batchIds,
           update_type: editMode,
@@ -179,22 +179,22 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
               task_id: selectedTaskId || undefined,
             }),
           };
-        } else if (editMode === "dimension") {
-          if (dimensionMode === "replace") {
-            if (selectedDimensionId === null) {
+        } else if (editMode === "area") {
+          if (areaMode === "replace") {
+            if (selectedAreaId === null) {
               showError(
                 t("batchEdit.title"),
-                t("batchEdit.errors.noDimensionSelected"),
+                t("batchEdit.errors.noAreaSelected"),
               );
               setLoading(false);
               return;
             }
-            updateParams.dimension = {
-              dimension_id: selectedDimensionId,
+            updateParams.area = {
+              area_id: selectedAreaId,
             };
           } else {
-            updateParams.dimension = {
-              dimension_id: null,
+            updateParams.area = {
+              area_id: null,
             };
           }
         }
@@ -277,8 +277,8 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
     findText,
     taskMode,
     selectedTaskId,
-    dimensionMode,
-    selectedDimensionId,
+    areaMode,
+    selectedAreaId,
     onSuccess,
     onClose,
     queryClient,
@@ -298,8 +298,8 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
       setFindText("");
       setTaskMode("replace");
       setSelectedTaskId(null);
-      setDimensionMode("replace");
-      setSelectedDimensionId(null);
+      setAreaMode("replace");
+      setSelectedAreaId(null);
       onClose();
     }
   }, [loading, onClose]);
@@ -366,9 +366,9 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
             onClick={() => setEditMode("task")}
           />
           <ToggleButton
-            label={t("target.dimension")}
-            active={editMode === "dimension"}
-            onClick={() => setEditMode("dimension")}
+            label={t("target.area")}
+            active={editMode === "area"}
+            onClick={() => setEditMode("area")}
           />
         </div>
       </div>
@@ -528,8 +528,8 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
           </div>
         )}
 
-        {/* Dimension Edit Mode */}
-        {editMode === "dimension" && (
+        {/* Area Edit Mode */}
+        {editMode === "area" && (
           <div className="space-y-4">
             <div>
               <label className="block text-base font-medium text-base-content mb-2">
@@ -538,35 +538,35 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
               <div className="flex gap-2">
                 <ToggleButton
                   label={t("common.replace")}
-                  active={dimensionMode === "replace"}
-                  onClick={() => setDimensionMode("replace")}
+                  active={areaMode === "replace"}
+                  onClick={() => setAreaMode("replace")}
                 />
                 <ToggleButton
                   label={t("common.clear")}
-                  active={dimensionMode === "clear"}
+                  active={areaMode === "clear"}
                   onClick={() => {
-                    setDimensionMode("clear");
-                    setSelectedDimensionId(null);
+                    setAreaMode("clear");
+                    setSelectedAreaId(null);
                   }}
                 />
               </div>
             </div>
 
-            {dimensionMode === "replace" ? (
+            {areaMode === "replace" ? (
               <div>
-                <DimensionSelect
-                  value={selectedDimensionId || undefined}
-                  onChange={(value) => setSelectedDimensionId(value || null)}
-                  id="batch-edit-dimension"
+                <AreaSelect
+                  value={selectedAreaId || undefined}
+                  onChange={(value) => setSelectedAreaId(value || null)}
+                  id="batch-edit-area"
                   placeholder={t("common.please_select")}
                 />
                 <p className="text-sm mt-1">
-                  {t("batchEdit.dimension.description")}
+                  {t("batchEdit.area.description")}
                 </p>
               </div>
             ) : (
               <div className="text-sm">
-                {t("batchEdit.dimension.description")}
+                {t("batchEdit.area.description")}
               </div>
             )}
           </div>

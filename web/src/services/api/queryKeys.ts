@@ -83,18 +83,18 @@ export const personsKeys = {
     [...personsKeys.all, "search-by-tag", tagName] as const,
 };
 
-// Dimensions
-export const dimensionsKeys = {
-  all: ["dimensions"] as const,
-  lists: () => [...dimensionsKeys.all, "list"] as const,
+// Areas
+export const areasKeys = {
+  all: ["areas"] as const,
+  lists: () => [...areasKeys.all, "list"] as const,
   list: (filters: {
     include_inactive?: boolean;
     page?: number;
     size?: number;
-  }) => [...dimensionsKeys.lists(), filters] as const,
-  details: () => [...dimensionsKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...dimensionsKeys.details(), id] as const,
-  order: () => [...dimensionsKeys.all, "order"] as const,
+  }) => [...areasKeys.lists(), filters] as const,
+  details: () => [...areasKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...areasKeys.details(), id] as const,
+  order: () => [...areasKeys.all, "order"] as const,
 };
 
 // Timelog Templates
@@ -132,21 +132,21 @@ export const tagsKeys = {
 // Stats
 export const statsKeys = {
   all: ["stats"] as const,
-  dailyDimensions: (filters: {
+  dailyAreas: (filters: {
     start: string;
     end: string;
     timezone: string;
-    dimension_ids?: UUID[];
-  }) => [...statsKeys.all, "daily-dimensions", filters] as const,
-  aggregatedDimensions: (filters: {
+    area_ids?: UUID[];
+  }) => [...statsKeys.all, "daily-areas", filters] as const,
+  aggregatedAreas: (filters: {
     granularity: AggregationGranularity;
     start: string;
     end: string;
     timezone: string;
-    dimension_ids?: UUID[];
+    area_ids?: UUID[];
     first_day_of_week: number;
     calendar_system?: string;
-  }) => [...statsKeys.all, "aggregated-dimensions", filters] as const,
+  }) => [...statsKeys.all, "aggregated-areas", filters] as const,
   dayBreakdown: (day: string, timezone: string) =>
     [...statsKeys.all, "day-breakdown", { day, timezone }] as const,
 };
@@ -213,9 +213,9 @@ export const timelogsKeys = {
   advancedSearch: (filters: {
     start_date: string;
     end_date?: string;
-    dimension_id?: UUID | null;
-    without_dimension?: boolean;
-    dimension_name?: string | null;
+    area_id?: UUID | null;
+    without_area?: boolean;
+    area_name?: string | null;
     description_keyword?: string | null;
     task_id?: UUID | null;
     sort_order?: "asc" | "desc";

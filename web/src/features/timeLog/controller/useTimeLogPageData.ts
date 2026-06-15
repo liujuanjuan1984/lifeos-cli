@@ -4,7 +4,7 @@ import { resolvePreferredTimezone } from "@/utils/datetime";
 import { useTimeLogData } from "@/features/timeLog/controller/useTimeLogData";
 import { useAdvancedSearchWithPagination } from "@/hooks/queries/useAdvancedSearch";
 import { useAllTasks } from "@/hooks/queries/useTasks";
-import { useDimensions } from "@/hooks/queries/useDimensions";
+import { useAreas } from "@/hooks/queries/useAreas";
 import { createDateBoundaries } from "@/utils/datetime";
 import type { UUID } from "@/types/primitive";
 import type { Task as ApiTask } from "@/services/api";
@@ -25,8 +25,8 @@ export interface TimeLogPageData extends TimeLogDataResult {
   advancedSearchParams: {
     start_date: string;
     end_date: string;
-    dimension_id: UUID | null | undefined;
-    dimension_name: string | null;
+    area_id: UUID | null | undefined;
+    area_name: string | null;
     description_keyword: string | null;
     task_id: UUID | null | undefined;
   };
@@ -34,8 +34,8 @@ export interface TimeLogPageData extends TimeLogDataResult {
     React.SetStateAction<{
       start_date: string;
       end_date: string;
-      dimension_id: UUID | null | undefined;
-      dimension_name: string | null;
+      area_id: UUID | null | undefined;
+      area_name: string | null;
       description_keyword: string | null;
       task_id: UUID | null | undefined;
     }>
@@ -43,8 +43,8 @@ export interface TimeLogPageData extends TimeLogDataResult {
   advancedSearch: ReturnType<typeof useAdvancedSearchWithPagination>;
   tasksForAdvancedSearch: Array<{ id: UUID; name: string }>;
   allFlatTasks: ApiTask[];
-  dimsFromCache: ReturnType<typeof useDimensions>["dimensions"];
-  dimensionMap: ReturnType<typeof useDimensions>["dimensionMap"];
+  areasFromCache: ReturnType<typeof useAreas>["areas"];
+  areaMap: ReturnType<typeof useAreas>["areaMap"];
 }
 
 export function useTimeLogPageData(
@@ -77,8 +77,8 @@ export function useTimeLogPageData(
     return {
       start_date: startOfDay.toISOString(),
       end_date: endOfDay.toISOString(),
-      dimension_id: undefined as UUID | null | undefined,
-      dimension_name: null as string | null,
+      area_id: undefined as UUID | null | undefined,
+      area_name: null as string | null,
       description_keyword: null as string | null,
       task_id: undefined as UUID | null | undefined,
     };
@@ -128,7 +128,7 @@ export function useTimeLogPageData(
     [allFlatTasks],
   );
 
-  const { dimensions: dimsFromCache, dimensionMap } = useDimensions();
+  const { areas: areasFromCache, areaMap } = useAreas();
 
   return {
     ...timeLogData,
@@ -139,7 +139,7 @@ export function useTimeLogPageData(
     advancedSearch,
     tasksForAdvancedSearch,
     allFlatTasks,
-    dimsFromCache,
-    dimensionMap,
+    areasFromCache,
+    areaMap,
   };
 }

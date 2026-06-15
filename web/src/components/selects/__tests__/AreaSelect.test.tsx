@@ -15,73 +15,73 @@ vi.mock("@/components/selects/AsyncEntitySelect", () => ({
   __esModule: true,
   default: React.forwardRef((props: unknown, _ref) => {
     mockAsyncSelect(props);
-    return <div data-testid="dimension-select" />;
+    return <div data-testid="area-select" />;
   }),
 }));
 
-vi.mock("@/hooks/queries/useDimensions", () => ({
-  useDimensions: () => ({
-    dimensions: [
-      { id: "dim-1", name: "Health" },
-      { id: "dim-2", name: "Career" },
+vi.mock("@/hooks/queries/useAreas", () => ({
+  useAreas: () => ({
+    areas: [
+      { id: "area-1", name: "Health" },
+      { id: "area-2", name: "Career" },
     ],
   }),
 }));
 
 setupTranslationMock();
 
-let DimensionSelect: typeof import("@/components/selects/DimensionSelect").default;
+let AreaSelect: typeof import("@/components/selects/AreaSelect").default;
 
 beforeAll(async () => {
-  ({ default: DimensionSelect } = await import(
-    "@/components/selects/DimensionSelect"
+  ({ default: AreaSelect } = await import(
+    "@/components/selects/AreaSelect"
   ));
 });
 
-const getDimensionSelect = () => {
-  if (!DimensionSelect) {
-    throw new Error("DimensionSelect was not loaded");
+const getAreaSelect = () => {
+  if (!AreaSelect) {
+    throw new Error("AreaSelect was not loaded");
   }
-  return DimensionSelect;
+  return AreaSelect;
 };
 
-describe("DimensionSelect", () => {
+describe("AreaSelect", () => {
   beforeEach(() => {
     mockAsyncSelect.mockClear();
   });
 
-  it("maps dimension data to entity options and passes through props", () => {
+  it("maps area data to entity options and passes through props", () => {
     const handleChange = vi.fn();
-    const Component = getDimensionSelect();
+    const Component = getAreaSelect();
 
     render(
       <Component
-        value={"dim-1" as UUID}
+        value={"area-1" as UUID}
         onChange={handleChange}
         className="custom"
       />,
     );
 
     const props = mockAsyncSelect.mock.calls[0][0] as Record<string, unknown>;
-    expect(props.value).toBe("dim-1");
+    expect(props.value).toBe("area-1");
     expect(props.className).toBe("custom");
     expect(props.placeholder).toBe("common.please_select");
-    expect(props.label).toBe("target.dimension");
+    expect(props.label).toBe("target.area");
 
     const options = props.options as Array<{ id: string; label: string }>;
     expect(options).toEqual([
-      { id: "dim-1", label: "Health" },
-      { id: "dim-2", label: "Career" },
+      { id: "area-1", label: "Health" },
+      { id: "area-2", label: "Career" },
     ]);
 
     const onChange = props.onChange as (val: SelectorValue) => void;
-    onChange("dim-2");
-    expect(handleChange).toHaveBeenCalledWith("dim-2");
+    onChange("area-2");
+    expect(handleChange).toHaveBeenCalledWith("area-2");
   });
 
   it("handles special options and clear behavior", () => {
     const handleChange = vi.fn();
-    const Component = getDimensionSelect();
+    const Component = getAreaSelect();
 
     render(
       <Component
@@ -102,8 +102,8 @@ describe("DimensionSelect", () => {
     onChange(SelectorSpecialValue.None);
     expect(handleChange).toHaveBeenLastCalledWith(null);
 
-    onChange("dim-1");
-    expect(handleChange).toHaveBeenLastCalledWith("dim-1");
+    onChange("area-1");
+    expect(handleChange).toHaveBeenLastCalledWith("area-1");
 
     onChange(undefined);
     expect(handleChange).toHaveBeenLastCalledWith(undefined);
@@ -112,13 +112,13 @@ describe("DimensionSelect", () => {
   it("supports custom clear behavior", () => {
     const asNone = vi.fn();
     const preserve = vi.fn();
-    const Component = getDimensionSelect();
+    const Component = getAreaSelect();
 
     render(
       <>
         <Component value={null} onChange={asNone} clearBehavior="none" />
         <Component
-          value={"dim-1" as UUID}
+          value={"area-1" as UUID}
           onChange={preserve}
           clearBehavior="preserve"
         />

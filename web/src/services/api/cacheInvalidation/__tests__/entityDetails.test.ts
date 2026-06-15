@@ -1,9 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { invalidateDimensionOrder } from "@/services/api/cacheInvalidation/dimensions";
+import { invalidateAreaOrder } from "@/services/api/cacheInvalidation/areas";
 import { invalidatePersonAnniversaries } from "@/services/api/cacheInvalidation/persons";
-import { dimensionsKeys, personsKeys } from "@/services/api/queryKeys";
+import { areasKeys, personsKeys } from "@/services/api/queryKeys";
 
 describe("entity detail cache invalidation helpers", () => {
   let invalidateQueriesMock: ReturnType<typeof vi.fn>;
@@ -16,11 +16,11 @@ describe("entity detail cache invalidation helpers", () => {
     } as unknown as QueryClient;
   });
 
-  it("invalidates dimension order precisely", () => {
-    invalidateDimensionOrder(queryClient);
+  it("invalidates area order precisely", () => {
+    invalidateAreaOrder(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: dimensionsKeys.order(),
+      queryKey: areasKeys.order(),
       exact: true,
     });
   });

@@ -44,7 +44,7 @@ export interface BulkImportRow {
   endDate: string;
   endTime: string;
   description: string;
-  dimensionId: string | null;
+  areaId: string | null;
   taskId: string | null;
   personIds: string[];
   notes: string;
@@ -283,7 +283,7 @@ export const parseBulkTimelogInput = (
         endDate: formatDateInput(startDate),
         endTime: DEFAULT_FIRST_START,
         description: raw,
-        dimensionId: null,
+        areaId: null,
         taskId: null,
         personIds: [],
         notes: "",
@@ -378,7 +378,7 @@ export const parseBulkTimelogInput = (
         endDate: endDateInfo.date,
         endTime: endDateInfo.time,
         description,
-        dimensionId: null,
+        areaId: null,
         taskId: null,
         personIds: [],
         notes: "",
@@ -398,7 +398,7 @@ export const parseBulkTimelogInput = (
         endDate: formatDateInput(startDate),
         endTime: DEFAULT_FIRST_START,
         description,
-        dimensionId: null,
+        areaId: null,
         taskId: null,
         personIds: [],
         notes: "",

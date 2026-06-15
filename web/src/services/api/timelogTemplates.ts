@@ -6,9 +6,9 @@ export interface TimelogTemplate {
   id: UUID;
   user_id: UUID;
   title: string;
-  dimension_id: UUID | null;
-  dimension_name?: string | null;
-  dimension_color?: string | null;
+  area_id: UUID | null;
+  area_name?: string | null;
+  area_color?: string | null;
   person_ids: UUID[];
   persons: PersonSummary[];
   default_duration_minutes?: number | null;
@@ -30,7 +30,7 @@ export type TimelogTemplatesListResponse = ListResponse<
 
 export interface TimelogTemplateCreateRequest {
   title: string;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
   person_ids?: UUID[] | null;
   default_duration_minutes?: number | null;
   position?: number | null;
@@ -40,7 +40,7 @@ export interface TimelogTemplateCreateRequest {
 
 export interface TimelogTemplateUpdateRequest {
   title?: string;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
   person_ids?: UUID[] | null;
   default_duration_minutes?: number | null;
   position?: number | null;

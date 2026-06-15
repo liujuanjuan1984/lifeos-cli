@@ -4,7 +4,7 @@ import type { SettingGroupConfig } from "@/components/settings/types";
 import { useVisibleModules } from "@/hooks/queries/useVisibleModules";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { useLanguage } from "@/hooks/useLanguage";
-import DimensionSorter from "@/components/DimensionSorter";
+import AreaSorter from "@/components/AreaSorter";
 import { getAvailableTimezones } from "@/utils/datetime";
 import { NOTE_COLLAPSE_ALLOWED_LINES } from "@/hooks/notes/useNoteCollapsePreference";
 import VisionExperienceRatesTable from "@/components/settings/VisionExperienceRatesTable";
@@ -151,10 +151,10 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
       icon: <DataIcon />,
       items: [
         {
-          key: "dimensionOrder",
+          key: "areaOrder",
           type: "custom",
-          label: t("settings.dimensionOrder.title"),
-          description: t("settings.dimensionOrder.description"),
+          label: t("settings.areaOrder.title"),
+          description: t("settings.areaOrder.description"),
           render: ({ value, onCommit, loading, saving, disabled, id }) => {
             const currentOrder = Array.isArray(value) ? (value as UUID[]) : [];
             const handleOrderChange = (nextOrder: UUID[]) => {
@@ -162,9 +162,9 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
             };
             return (
               <div id={id} role="group" aria-labelledby={`${id}-label`}>
-                <DimensionSorter
+                <AreaSorter
                   id={`${id}-sorter`}
-                  dimensionOrder={currentOrder}
+                  areaOrder={currentOrder}
                   onOrderChange={handleOrderChange}
                   loading={loading}
                   disabled={disabled || saving}

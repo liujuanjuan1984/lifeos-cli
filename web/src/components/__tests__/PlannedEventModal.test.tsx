@@ -50,13 +50,13 @@ vi.mock("@/components/selects/TaskSelector", () => ({
   default: () => <div data-testid="task-selector" />,
 }));
 
-vi.mock("@/components/selects/DimensionSelect", () => ({
+vi.mock("@/components/selects/AreaSelect", () => ({
   __esModule: true,
-  default: () => <div data-testid="dimension-select" />,
+  default: () => <div data-testid="area-select" />,
 }));
 
-vi.mock("@/hooks/queries/useDimensions", () => ({
-  useDimensions: () => ({ dimensions: [] }),
+vi.mock("@/hooks/queries/useAreas", () => ({
+  useAreas: () => ({ areas: [] }),
 }));
 
 vi.mock("@/hooks/useModalState", () => ({
@@ -87,7 +87,7 @@ const recurringInstance: PlannedEvent = {
   start_time: "2025-08-11T08:00:00Z",
   end_time: "2025-08-11T08:30:00Z",
   priority: 0,
-  dimension_id: "dim-1",
+  area_id: "area-1",
   task_id: "task-1",
   is_all_day: false,
   is_recurring: true,

@@ -35,7 +35,7 @@ import { usePersonsList } from "@/hooks/queries/usePersonsList";
 interface TimeLogBulkImportPanelProps {
   selectedDate: Date;
   timezone?: string | null;
-  dimensionMap: Map<UUID, { name: string; color?: string | null }>;
+  areaMap: Map<UUID, { name: string; color?: string | null }>;
   preloadedTasks: TaskWithSubtasks[];
   onCancel: () => void;
   onImported: () => void;
@@ -148,7 +148,7 @@ const buildProcessedEntry = (
     title: row.description,
     start_time: startIso,
     end_time: endIso,
-    dimension_id: (row.dimensionId as UUID) ?? null,
+    area_id: (row.areaId as UUID) ?? null,
     tracking_method: "manual",
     location: null,
     energy_level: row.energyLevel ?? null,
@@ -259,8 +259,8 @@ const buildDraftTimelog = (
     title: row.description,
     start_time: startIso,
     end_time: endIso,
-    dimension_id: (row.dimensionId as UUID) ?? null,
-    dimension_summary: null,
+    area_id: (row.areaId as UUID) ?? null,
+    area_summary: null,
     tracking_method: "manual",
     location: null,
     energy_level: row.energyLevel ?? null,
@@ -300,7 +300,7 @@ const formatTimeToken = (iso: string, timezone: string): string => {
 const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   selectedDate,
   timezone,
-  dimensionMap,
+  areaMap,
   preloadedTasks,
   onCancel,
   onImported,
@@ -407,16 +407,16 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
     executeParse();
   }, [executeParse]);
 
-  const normalizedDimensionMap = useMemo(() => {
+  const normalizedAreaMap = useMemo(() => {
     const normalized = new Map<UUID, { name: string; color: string }>();
-    dimensionMap.forEach((value, key) => {
+    areaMap.forEach((value, key) => {
       normalized.set(key, {
         name: value.name,
         color: value.color ?? "#94a3b8",
       });
     });
     return normalized;
-  }, [dimensionMap]);
+  }, [areaMap]);
 
   const previewEntries = useMemo<ProcessedEntry[]>(() => {
     const mapped = rows.map((row) =>
@@ -477,7 +477,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
           title: row.description,
           start_time: startIso,
           end_time: endIso,
-          dimension_id: (row.dimensionId as UUID) ?? null,
+          area_id: (row.areaId as UUID) ?? null,
           tracking_method: "manual",
         };
         if (row.taskId) {
@@ -547,7 +547,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
             startTime: formatTimeToken(startIso, effectiveTimezone),
             endDate: formatDateToken(endIso, effectiveTimezone),
             endTime: formatTimeToken(endIso, effectiveTimezone),
-            dimensionId: (payload.dimension_id as string | null) ?? null,
+            areaId: (payload.area_id as string | null) ?? null,
             taskId: (payload.task_id as string | null) ?? null,
             personIds: (payload.person_ids as string[] | undefined) ?? [],
             notes: payload.notes ?? "",
@@ -718,11 +718,11 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
             onSortChange={setSortOrder}
             selectedDate={selectedDate}
             queryMode="import"
-            dimensionMap={normalizedDimensionMap}
+            areaMap={normalizedAreaMap}
             preloadedTasks={preloadedTasks}
             disableQuickEntry
-            selectedDimensionId={null}
-            onDimensionChange={() => {}}
+            selectedAreaId={null}
+            onAreaChange={() => {}}
           />
         )}
         {rows.some((row) => row.errors.length > 0) && (

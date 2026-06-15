@@ -81,7 +81,7 @@ const NoteItem = React.memo<NoteItemProps>(
       focusOffset: (rect) => ({ x: -rect.width / 2, y: -16 }),
     });
     const tooltipId = useId();
-    const dimensionMap = useMemo(
+    const areaMap = useMemo(
       () => new Map<UUID, { name: string; color: string }>(),
       [],
     );
@@ -358,22 +358,22 @@ const NoteItem = React.memo<NoteItemProps>(
                 start_time:
                   associationTooltip.payload.timelog.start_time ?? null,
                 end_time: associationTooltip.payload.timelog.end_time ?? null,
-                dimension_id:
-                  associationTooltip.payload.timelog.dimension_id ?? null,
-                dimension_summary:
-                  associationTooltip.payload.timelog.dimension_summary ??
+                area_id:
+                  associationTooltip.payload.timelog.area_id ?? null,
+                area_summary:
+                  associationTooltip.payload.timelog.area_summary ??
                   undefined,
                 task_summary:
                   associationTooltip.payload.timelog.task_summary ?? undefined,
               }}
-              dimensionMap={dimensionMap}
+              areaMap={areaMap}
               timezone={timezone}
             />
           );
         default:
           return null;
       }
-    }, [associationTooltip, dimensionMap]);
+    }, [associationTooltip, areaMap]);
 
     // 复制笔记内容到剪贴板
     const handleCopy = async () => {

@@ -8,7 +8,7 @@ import { usePageHeader } from "@/contexts/PageHeaderContext";
 import PageLayout from "@/layouts/PageLayout";
 import { CreateNewButton } from "@/components/ActionButton";
 import EnumSelect from "@/components/selects/EnumSelect";
-import DimensionSelect from "@/components/selects/DimensionSelect";
+import AreaSelect from "@/components/selects/AreaSelect";
 import { VISION_STATUS_FILTER_OPTIONS } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
 
@@ -26,7 +26,7 @@ const VisionPage: React.FC = () => {
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState<string>("active");
-  const [dimensionFilter, setDimensionFilter] = useState<
+  const [areaFilter, setAreaFilter] = useState<
     UUID | null | undefined
   >(undefined);
 
@@ -35,17 +35,17 @@ const VisionPage: React.FC = () => {
       actions: (
         <div className="flex items-center gap-2 flex-nowrap">
           <div className="flex items-center gap-2 flex-shrink-0">
-            <DimensionSelect
-              value={dimensionFilter}
-              onChange={(value) => setDimensionFilter(value)}
+            <AreaSelect
+              value={areaFilter}
+              onChange={(value) => setAreaFilter(value)}
               placeholder={t("common.all")}
               showAllOption
               showNoneOption
-              noneLabel={t("visions.filters.dimensionNone")}
+              noneLabel={t("visions.filters.areaNone")}
               showLabel={false}
               fullWidth={false}
               className="min-w-[180px]"
-              id="vision-dimension-filter"
+              id="vision-area-filter"
             />
             <EnumSelect
               value={statusFilter}
@@ -65,14 +65,14 @@ const VisionPage: React.FC = () => {
       ),
     });
     return () => setHeader({ actions: undefined });
-  }, [setHeader, t, statusFilter, dimensionFilter]);
+  }, [setHeader, t, statusFilter, areaFilter]);
 
   return (
     <PageLayout>
       <VisionManager
         ref={vmRef}
         statusFilter={statusFilter}
-        dimensionFilter={dimensionFilter}
+        areaFilter={areaFilter}
       />
     </PageLayout>
   );

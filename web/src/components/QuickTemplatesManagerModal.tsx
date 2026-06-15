@@ -7,7 +7,7 @@ import QuickTemplateEditorModal, {
   type QuickTemplateEditorValues,
 } from "./QuickTemplateEditorModal";
 import { useToast } from "@/contexts/ToastContext";
-import { useDimensions } from "@/hooks/queries/useDimensions";
+import { useAreas } from "@/hooks/queries/useAreas";
 import { useTimelogTemplates } from "@/hooks/queries/useTimelogTemplates";
 import type { TimelogTemplate } from "@/services/api/timelogTemplates";
 
@@ -30,7 +30,7 @@ const QuickTemplatesManagerModal = ({
     updateTemplate,
     deleteTemplate,
   } = useTimelogTemplates();
-  const { dimensionMap } = useDimensions();
+  const { areaMap } = useAreas();
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
@@ -85,7 +85,7 @@ const QuickTemplatesManagerModal = ({
           id: editingTemplate.id,
           payload: {
             title: values.title,
-            dimension_id: values.dimension_id ?? null,
+            area_id: values.area_id ?? null,
             person_ids: values.person_ids,
             default_duration_minutes: values.default_duration_minutes ?? null,
           },
@@ -94,7 +94,7 @@ const QuickTemplatesManagerModal = ({
       } else {
         await createTemplate({
           title: values.title,
-          dimension_id: values.dimension_id ?? null,
+          area_id: values.area_id ?? null,
           person_ids: values.person_ids,
           default_duration_minutes: values.default_duration_minutes ?? null,
         });
@@ -145,19 +145,19 @@ const QuickTemplatesManagerModal = ({
           ) : (
             <div className="border border-base-300 rounded-lg divide-y divide-base-200 max-h-[55vh] overflow-y-auto">
               {sortedTemplates.map((template) => {
-                const dimension = template.dimension_id
-                  ? dimensionMap.get(template.dimension_id)
-                  : template.dimension_name
+                const area = template.area_id
+                  ? areaMap.get(template.area_id)
+                  : template.area_name
                     ? {
-                        name: template.dimension_name,
-                        color: template.dimension_color,
+                        name: template.area_name,
+                        color: template.area_color,
                       }
                     : undefined;
                 const color =
-                  dimension?.color || template.dimension_color || "#9CA3AF";
-                const dimensionLabel =
-                  dimension?.name ??
-                  template.dimension_name ??
+                  area?.color || template.area_color || "#9CA3AF";
+                const areaLabel =
+                  area?.name ??
+                  template.area_name ??
                   t("common.none");
                 const durationLabel = template.default_duration_minutes
                   ? `${template.default_duration_minutes} ${t("quickTemplatesManager.minutes")}`
@@ -179,7 +179,7 @@ const QuickTemplatesManagerModal = ({
                       style={{ backgroundColor: color }}
                     />
                     <span className="w-28 text-sm text-base-content/80 truncate">
-                      {dimensionLabel}
+                      {areaLabel}
                     </span>
                     <span className="flex-1 min-w-0 text-sm font-medium text-base-content truncate">
                       {template.title}

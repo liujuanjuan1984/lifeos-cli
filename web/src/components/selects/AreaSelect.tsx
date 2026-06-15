@@ -4,15 +4,15 @@ import AsyncEntitySelect, {
   type AsyncEntitySelectProps,
   type EntityOption,
 } from "./AsyncEntitySelect";
-import { useDimensions } from "@/hooks/queries/useDimensions";
+import { useAreas } from "@/hooks/queries/useAreas";
 import type { UUID } from "@/types/primitive";
 import { SelectorSpecialValue, type SelectorValue } from "./selectorTypes";
 
-interface DimensionSelectProps
+interface AreaSelectProps
   extends Omit<AsyncEntitySelectProps, "options" | "onChange" | "value"> {
   value?: UUID | null;
   /**
-   * Emits selected dimension id, or undefined for "All", or null for "None".
+   * Emits selected area id, or undefined for "All", or null for "None".
    */
   onChange: (value: UUID | undefined | null) => void;
   /**
@@ -44,12 +44,12 @@ interface DimensionSelectProps
 }
 
 /**
- * DimensionSelect
- * Single-select for life dimensions, backed by shared cache via useDimensions().
+ * AreaSelect
+ * Single-select for life areas, backed by shared cache via useAreas().
  */
-const DimensionSelect = React.forwardRef<
+const AreaSelect = React.forwardRef<
   HTMLInputElement,
-  DimensionSelectProps
+  AreaSelectProps
 >(
   (
     {
@@ -73,16 +73,16 @@ const DimensionSelect = React.forwardRef<
     ref,
   ) => {
     const { t } = useTranslation();
-    const effectiveLabel = label ?? t("target.dimension");
-    const { dimensions } = useDimensions();
+    const effectiveLabel = label ?? t("target.area");
+    const { areas } = useAreas();
 
     const options: EntityOption[] = useMemo(
       () =>
-        (dimensions || []).map((d) => ({
+        (areas || []).map((d) => ({
           id: String(d.id),
           label: d.name,
         })),
-      [dimensions],
+      [areas],
     );
 
     const optionsWithSpecial: EntityOption[] = useMemo(() => {
@@ -159,4 +159,4 @@ const DimensionSelect = React.forwardRef<
   },
 );
 
-export default DimensionSelect;
+export default AreaSelect;

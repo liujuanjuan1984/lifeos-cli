@@ -1,11 +1,11 @@
 import React from "react";
 import type { UUID } from "@/types/primitive";
 
-interface DimensionBadgeProps {
+interface AreaBadgeProps {
   /** When provided, used to look up name/color if `name`/`color` not directly given */
-  dimensionId?: UUID;
-  /** Dimension lookup map: id -> { name, color } (stable reference is recommended) */
-  dimensionMap?: Map<UUID, { name: string; color: string }>;
+  areaId?: UUID;
+  /** Area lookup map: id -> { name, color } (stable reference is recommended) */
+  areaMap?: Map<UUID, { name: string; color: string }>;
   /** Direct name override; takes precedence over map */
   name?: string;
   /** Direct color override; takes precedence over map */
@@ -20,9 +20,9 @@ interface DimensionBadgeProps {
   ariaLabel?: string;
 }
 
-const DimensionBadgeComponent: React.FC<DimensionBadgeProps> = ({
-  dimensionId,
-  dimensionMap,
+const AreaBadgeComponent: React.FC<AreaBadgeProps> = ({
+  areaId,
+  areaMap,
   name,
   color,
   showLabel,
@@ -34,20 +34,20 @@ const DimensionBadgeComponent: React.FC<DimensionBadgeProps> = ({
   const dotClass =
     size === "lg" ? "w-4 h-4" : size === "sm" ? "w-2 h-2" : "w-3 h-3";
 
-  const isUnknownId = typeof dimensionId === "string" && dimensionId === "-1";
+  const isUnknownId = typeof areaId === "string" && areaId === "-1";
 
   const resolvedColor =
     color ??
-    (typeof dimensionId === "string"
-      ? (dimensionMap?.get(dimensionId)?.color ??
+    (typeof areaId === "string"
+      ? (areaMap?.get(areaId)?.color ??
         (isUnknownId ? "#9CA3AF" : "#6B7280"))
       : "#6B7280");
 
   const resolvedName =
     name ??
-    (typeof dimensionId === "string"
-      ? (dimensionMap?.get(dimensionId)?.name ??
-        (isUnknownId ? "未知" : showUnknownText ? "未知维度" : ""))
+    (typeof areaId === "string"
+      ? (areaMap?.get(areaId)?.name ??
+        (isUnknownId ? "未知" : showUnknownText ? "未知领域" : ""))
       : "");
 
   const shouldShowLabel =
@@ -62,7 +62,7 @@ const DimensionBadgeComponent: React.FC<DimensionBadgeProps> = ({
       <span
         className={`${dotClass} rounded-full mr-2 inline-block flex-shrink-0`}
         style={{ backgroundColor: resolvedColor }}
-        aria-label={ariaLabel || resolvedName || "dimension"}
+        aria-label={ariaLabel || resolvedName || "area"}
       />
       {shouldShowLabel ? (
         <span className="text-base text-base-content truncate max-w-[120px]">
@@ -73,11 +73,11 @@ const DimensionBadgeComponent: React.FC<DimensionBadgeProps> = ({
   );
 };
 
-const DimensionBadge = React.memo(
-  DimensionBadgeComponent,
+const AreaBadge = React.memo(
+  AreaBadgeComponent,
   (prev, next) =>
-    prev.dimensionId === next.dimensionId &&
-    prev.dimensionMap === next.dimensionMap &&
+    prev.areaId === next.areaId &&
+    prev.areaMap === next.areaMap &&
     prev.name === next.name &&
     prev.color === next.color &&
     prev.showLabel === next.showLabel &&
@@ -87,4 +87,4 @@ const DimensionBadge = React.memo(
     prev.ariaLabel === next.ariaLabel,
 );
 
-export default DimensionBadge;
+export default AreaBadge;

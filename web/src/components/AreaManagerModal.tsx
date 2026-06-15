@@ -11,46 +11,46 @@ import ActionButton, {
 import ConfirmDialog from "./ConfirmDialog";
 import EnumSelect from "./selects/EnumSelect";
 import { FormField, TextInput, TextArea, Checkbox } from "./forms";
-import { useDimensionManagerController } from "@/features/dimensions/controller/useDimensionManagerController";
+import { useAreaManagerController } from "@/features/areas/controller/useAreaManagerController";
 
-interface DimensionManagerModalProps {
+interface AreaManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 /**
- * DimensionManagerModal
- * A comprehensive modal component for managing life dimensions.
- * Handles all dimension CRUD operations with a unified interface.
+ * AreaManagerModal
+ * A comprehensive modal component for managing life areas.
+ * Handles all area CRUD operations with a unified interface.
  */
-const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
+const AreaManagerModal: React.FC<AreaManagerModalProps> = ({
   isOpen,
   onClose,
 }) => {
   const { t } = useTranslation();
   const {
     loading,
-    dimensions,
+    areas,
     showForm,
     setShowForm,
-    editingDimension,
-    deletingDimension,
+    editingArea,
+    deletingArea,
     formData,
     setFormData,
     resetForm,
     handleClose,
     handleEdit,
     requestDelete,
-    saveDimension,
+    saveArea,
     confirmDelete,
     toggleActive,
-    clearDeletingDimension,
-  } = useDimensionManagerController({
+    clearDeletingArea,
+  } = useAreaManagerController({
     isOpen,
     onClose,
   });
 
-  // Common color palette for dimensions
+  // Common color palette for areas
   const colorPalette = [
     "#3B82F6", // Blue
     "#10B981", // Green
@@ -64,18 +64,18 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
     "#6366F1", // Indigo
   ];
 
-  // Common icons for dimensions
+  // Common icons for areas
   const iconOptions = [
-    { value: "work", label: t("dimensionManager.icons.work") },
-    { value: "health", label: t("dimensionManager.icons.health") },
-    { value: "family", label: t("dimensionManager.icons.family") },
-    { value: "learning", label: t("dimensionManager.icons.learning") },
-    { value: "creativity", label: t("dimensionManager.icons.creativity") },
-    { value: "social", label: t("dimensionManager.icons.social") },
-    { value: "finance", label: t("dimensionManager.icons.finance") },
-    { value: "hobby", label: t("dimensionManager.icons.hobby") },
-    { value: "travel", label: t("dimensionManager.icons.travel") },
-    { value: "spirituality", label: t("dimensionManager.icons.spirituality") },
+    { value: "work", label: t("areaManager.icons.work") },
+    { value: "health", label: t("areaManager.icons.health") },
+    { value: "family", label: t("areaManager.icons.family") },
+    { value: "learning", label: t("areaManager.icons.learning") },
+    { value: "creativity", label: t("areaManager.icons.creativity") },
+    { value: "social", label: t("areaManager.icons.social") },
+    { value: "finance", label: t("areaManager.icons.finance") },
+    { value: "hobby", label: t("areaManager.icons.hobby") },
+    { value: "travel", label: t("areaManager.icons.travel") },
+    { value: "spirituality", label: t("areaManager.icons.spirituality") },
   ];
 
   if (loading) {
@@ -83,12 +83,12 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
       <ModalBase
         isOpen={isOpen}
         onClose={onClose}
-        ariaLabelledBy="dimension-manager-title"
+        ariaLabelledBy="area-manager-title"
         size="xl"
-        header={t("dimensionManager.title")}
+        header={t("areaManager.title")}
       >
         <div className="flex items-center justify-center h-64 text-base-content/60">
-          {t("dimensionManager.loadingDimensions")}
+          {t("areaManager.loadingAreas")}
         </div>
       </ModalBase>
     );
@@ -98,9 +98,9 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
     <ModalBase
       isOpen={isOpen}
       onClose={handleClose}
-      ariaLabelledBy="dimension-manager-title"
+      ariaLabelledBy="area-manager-title"
       size="2xl"
-      header={t("dimensionManager.title")}
+      header={t("areaManager.title")}
       loading={loading}
       showLoadingOverlay={false}
       showLoadingSpinner={true}
@@ -110,18 +110,18 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
     >
       <div className="flex justify-center mb-6">
         <CreateNewButton
-          label={t("dimensionManager.addNewDimension")}
+          label={t("areaManager.addNewArea")}
           onClick={() => setShowForm(true)}
         />
       </div>
 
-      {/* Dimensions Grid */}
+      {/* Areas Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {dimensions.map((dimension) => (
+        {areas.map((area) => (
           <div
-            key={dimension.id}
+            key={area.id}
             className={`p-4 rounded-lg border-2 transition-all ${
-              dimension.is_active
+              area.is_active
                 ? "border-base-200 bg-base-100 shadow-sm"
                 : "border-base-200 bg-base-200 opacity-60"
             }`}
@@ -130,41 +130,41 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
               <div className="flex items-center space-x-2">
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: dimension.color }}
+                  style={{ backgroundColor: area.color }}
                 />
                 <h3 className="font-semibold text-base-content">
-                  {dimension.name}
+                  {area.name}
                 </h3>
               </div>
               <ActionButtonGroup gap="sm" align="end">
-                <EditButton onClick={() => handleEdit(dimension)} />
+                <EditButton onClick={() => handleEdit(area)} />
                 <ActionButton
-                  label={dimension.is_active ? "" : ""}
+                  label={area.is_active ? "" : ""}
                   iconName="eye"
                   color="neutral"
                   size="sm"
-                  onClick={() => void toggleActive(dimension)}
+                  onClick={() => void toggleActive(area)}
                   title={
-                    dimension.is_active
-                      ? t("dimensionManager.toggleActive")
-                      : t("dimensionManager.toggleInactive")
+                    area.is_active
+                      ? t("areaManager.toggleActive")
+                      : t("areaManager.toggleInactive")
                   }
                 />
-                <DeleteButton onClick={() => requestDelete(dimension)} />
+                <DeleteButton onClick={() => requestDelete(area)} />
               </ActionButtonGroup>
             </div>
 
-            {dimension.description && (
+            {area.description && (
               <p className="text-base text-base-content mb-2">
-                {dimension.description}
+                {area.description}
               </p>
             )}
 
-            {dimension.icon && (
+            {area.icon && (
               <div className="text-base text-base-content/60">
-                {t("dimensionManager.iconLabel")}{" "}
-                {iconOptions.find((opt) => opt.value === dimension.icon)
-                  ?.label || dimension.icon}
+                {t("areaManager.iconLabel")}{" "}
+                {iconOptions.find((opt) => opt.value === area.icon)
+                  ?.label || area.icon}
               </div>
             )}
           </div>
@@ -176,7 +176,7 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
         <ModalBase
           isOpen={showForm}
           onClose={resetForm}
-          ariaLabelledBy="dimension-form-title"
+          ariaLabelledBy="area-form-title"
           overlayClassName="fixed inset-0 bg-base-content/50 flex items-center justify-center z-modal-nested p-4"
           className="bg-base-100 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto z-modal-nested"
           loading={loading}
@@ -187,41 +187,41 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
           errorDisplayMode="none"
         >
           <h3
-            id="dimension-form-title"
+            id="area-form-title"
             className="text-lg font-bold font-semibold text-base-content mb-4"
           >
-            {editingDimension
-              ? t("dimensionManager.editDimension")
-              : t("dimensionManager.addNewDimension")}
+            {editingArea
+              ? t("areaManager.editArea")
+              : t("areaManager.addNewArea")}
           </h3>
 
-          <form onSubmit={saveDimension} className="space-y-4">
+          <form onSubmit={saveArea} className="space-y-4">
             <FormField
-              label={t("dimensionManager.dimensionName")}
-              htmlFor="dimension-name"
+              label={t("areaManager.areaName")}
+              htmlFor="area-name"
               required
             >
               <TextInput
-                id="dimension-name"
-                name="dimension-name"
+                id="area-name"
+                name="area-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
                 required
-                placeholder={t("dimensionManager.dimensionNamePlaceholder")}
+                placeholder={t("areaManager.areaNamePlaceholder")}
                 size="sm"
               />
             </FormField>
 
             <FormField
               label={t("visions.vision.description")}
-              htmlFor="dimension-description"
+              htmlFor="area-description"
             >
               <TextArea
-                id="dimension-description"
-                name="dimension-description"
+                id="area-description"
+                name="area-description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -230,14 +230,14 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
                   }))
                 }
                 rows={2}
-                placeholder={t("dimensionManager.descriptionPlaceholder")}
+                placeholder={t("areaManager.descriptionPlaceholder")}
                 size="sm"
               />
             </FormField>
 
             <div>
               <label className="block text-base font-medium text-base-content mb-1">
-                {t("dimensionManager.color")}
+                {t("areaManager.color")}
               </label>
               <div className="flex space-x-2 mb-2">
                 {colorPalette.map((color) => (
@@ -255,8 +255,8 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
                 ))}
               </div>
               <input
-                id="dimension-color"
-                name="dimension-color"
+                id="area-color"
+                name="area-color"
                 type="color"
                 value={formData.color}
                 onChange={(e) =>
@@ -269,7 +269,7 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
             <div>
               <div className="min-w-[180px]">
                 <EnumSelect
-                  id="dimension-manager-icon"
+                  id="area-manager-icon"
                   value={formData.icon}
                   onChange={(value) =>
                     setFormData((prev) => ({
@@ -280,12 +280,12 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
                   options={[
                     {
                       value: "",
-                      label: t("dimensionManager.iconPlaceholder"),
+                      label: t("areaManager.iconPlaceholder"),
                     },
                     ...iconOptions,
                   ]}
                   showLabel={true}
-                  label={t("dimensionManager.icon")}
+                  label={t("areaManager.icon")}
                 />
               </div>
             </div>
@@ -300,7 +300,7 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
                   is_active: checked,
                 }))
               }
-              label={t("dimensionManager.enableDimension")}
+              label={t("areaManager.enableArea")}
               variant="primary"
               size="md"
             />
@@ -314,20 +314,20 @@ const DimensionManagerModal: React.FC<DimensionManagerModalProps> = ({
       )}
 
       {/* Confirmation Dialog */}
-      {deletingDimension && (
+      {deletingArea && (
         <ConfirmDialog
-          isOpen={!!deletingDimension}
-          title={t("dimensionManager.deleteConfirmTitle")}
-          message={t("dimensionManager.deleteConfirmMessage", {
-            name: deletingDimension.name,
+          isOpen={!!deletingArea}
+          title={t("areaManager.deleteConfirmTitle")}
+          message={t("areaManager.deleteConfirmMessage", {
+            name: deletingArea.name,
           })}
           confirmText={t("common.delete")}
           onConfirm={() => void confirmDelete()}
-          onCancel={clearDeletingDimension}
+          onCancel={clearDeletingArea}
         />
       )}
     </ModalBase>
   );
 };
 
-export default DimensionManagerModal;
+export default AreaManagerModal;

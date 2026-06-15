@@ -238,7 +238,7 @@ export function useTimelogMutations() {
   const batchUpdateMutation = useMutation({
     mutationFn: (params: {
       timelog_ids: UUID[];
-      update_type: "persons" | "title" | "task" | "dimension";
+      update_type: "persons" | "title" | "task" | "area";
       persons?: {
         mode: "add" | "replace" | "clear";
         person_ids: UUID[];
@@ -252,8 +252,8 @@ export function useTimelogMutations() {
         mode: "replace" | "clear";
         task_id?: UUID;
       };
-      dimension?: {
-        dimension_id: UUID | null;
+      area?: {
+        area_id: UUID | null;
       };
     }) => timelogsApi.batchUpdate(params),
     onSuccess: (result) => {

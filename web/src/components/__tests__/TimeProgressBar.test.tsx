@@ -2,13 +2,13 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessedEntry } from "@/utils/datetime";
-import type { Dimension } from "@/services/api/dimensions";
+import type { Area } from "@/services/api/areas";
 
 import { setupTranslationMock } from "@test/utils";
 
 const getLocalDayBreakdown = vi.fn();
 const formatDurationMock = vi.fn((minutes: number) => `fmt(${minutes})`);
-const useDimensionOrderReadOnlyMock = vi.fn(() => ({ order: [] as string[] }));
+const useAreaOrderReadOnlyMock = vi.fn(() => ({ order: [] as string[] }));
 
 setupTranslationMock();
 
@@ -23,8 +23,8 @@ vi.mock("@/utils/datetime", () => ({
   formatDuration: (minutes: number) => formatDurationMock(minutes),
 }));
 
-vi.mock("@/hooks/queries/useDimensionOrderReadOnly", () => ({
-  useDimensionOrderReadOnly: () => useDimensionOrderReadOnlyMock(),
+vi.mock("@/hooks/queries/useAreaOrderReadOnly", () => ({
+  useAreaOrderReadOnly: () => useAreaOrderReadOnlyMock(),
 }));
 
 vi.mock("@/layouts/Card", () => ({
@@ -44,7 +44,7 @@ const buildEntry = (
     title: overrides.title ?? "Entry",
     start_time: overrides.start_time ?? "2025-10-10T00:00:00.000Z",
     end_time: overrides.end_time ?? "2025-10-10T01:00:00.000Z",
-    dimension_id: overrides.dimension_id ?? "dim-a",
+    area_id: overrides.area_id ?? "area-a",
     tracking_method: overrides.tracking_method ?? "manual",
     created_at: overrides.created_at ?? "2025-10-10T00:00:00.000Z",
     updated_at: overrides.updated_at ?? "2025-10-10T00:00:00.000Z",
@@ -67,27 +67,27 @@ beforeEach(() => {
   getLocalDayBreakdown.mockReset();
   formatDurationMock.mockReset();
   formatDurationMock.mockImplementation((minutes: number) => `fmt(${minutes})`);
-  useDimensionOrderReadOnlyMock.mockReset();
-  useDimensionOrderReadOnlyMock.mockReturnValue({ order: [] });
+  useAreaOrderReadOnlyMock.mockReset();
+  useAreaOrderReadOnlyMock.mockReturnValue({ order: [] });
 });
 
 describe("TimeProgressBar", () => {
   it("renders server breakdown data when available", async () => {
-    useDimensionOrderReadOnlyMock.mockReturnValue({
-      order: ["dim-b", "dim-a"],
+    useAreaOrderReadOnlyMock.mockReturnValue({
+      order: ["area-b", "area-a"],
     });
     getLocalDayBreakdown.mockResolvedValue({
       items: [
-        { dimension_id: "dim-a", minutes: 60 },
-        { dimension_id: "dim-b", minutes: 120 },
+        { area_id: "area-a", minutes: 60 },
+        { area_id: "area-b", minutes: 120 },
       ],
       pagination: { page: 1, size: 2, total: 2, pages: 1 },
       meta: { day: "2025-10-10", timezone: "UTC" },
     });
 
-    const dimensions: Dimension[] = [
+    const areas: Area[] = [
       {
-        id: "dim-a",
+        id: "area-a",
         name: "Deep Work",
         color: "#111",
         is_active: true,
@@ -95,7 +95,7 @@ describe("TimeProgressBar", () => {
         updated_at: "",
       },
       {
-        id: "dim-b",
+        id: "area-b",
         name: "Shallow Work",
         color: "#222",
         is_active: true,
@@ -107,7 +107,7 @@ describe("TimeProgressBar", () => {
     render(
       <TimeProgressBar
         entries={[]}
-        dimensions={dimensions}
+        areas={areas}
         localDateISO="2025-10-10"
         timezone="UTC"
       />,
@@ -127,9 +127,9 @@ describe("TimeProgressBar", () => {
   });
 
   it("falls back to client entries when no server data is fetched", () => {
-    const dimensions: Dimension[] = [
+    const areas: Area[] = [
       {
-        id: "dim-a",
+        id: "area-a",
         name: "Focus",
         color: "#123",
         is_active: true,
@@ -143,21 +143,21 @@ describe("TimeProgressBar", () => {
         id: "entry-1",
         start_time: "2025-10-10T08:00:00.000Z",
         end_time: "2025-10-10T09:00:00.000Z",
-        dimension_id: "dim-a",
+        area_id: "area-a",
       }),
       buildEntry({
         id: "placeholder-1",
         start_time: "2025-10-10T09:00:00.000Z",
         end_time: "2025-10-10T09:30:00.000Z",
         isPlaceholder: true,
-        dimension_id: null,
+        area_id: null,
       }),
     ];
 
     render(
       <TimeProgressBar
         entries={entries}
-        dimensions={dimensions}
+        areas={areas}
         timezone="UTC"
       />,
     );
@@ -183,7 +183,7 @@ describe("TimeProgressBar", () => {
     render(
       <TimeProgressBar
         entries={[]}
-        dimensions={[]}
+        areas={[]}
         localDateISO="2025-10-11"
       />,
     );

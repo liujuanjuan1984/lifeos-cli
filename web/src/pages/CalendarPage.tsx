@@ -13,7 +13,7 @@ import ActionButton from "@/components/ActionButton";
 import { SegmentedControl } from "@/components/forms";
 import PeriodNavigation from "@/components/PeriodNavigation";
 import PageLayout from "@/layouts/PageLayout";
-import DimensionSelect from "@/components/selects/DimensionSelect";
+import AreaSelect from "@/components/selects/AreaSelect";
 import ToolbarContainer from "@/components/ToolbarContainer";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { usePersistentState } from "@/hooks/usePersistentState";
@@ -74,7 +74,7 @@ function CalendarPage() {
 
   const [showPlannedEvents, setShowPlannedEvents] = useState(true);
   const [showTimelogs, setShowTimelogs] = useState(false);
-  const [selectedDimensionId, setSelectedDimensionId] = useState<
+  const [selectedAreaId, setSelectedAreaId] = useState<
     UUID | null | undefined
   >(undefined);
 
@@ -106,7 +106,7 @@ function CalendarPage() {
 
   useEffect(() => {
     if (!showTimelogs) {
-      setSelectedDimensionId(undefined);
+      setSelectedAreaId(undefined);
     }
   }, [showTimelogs]);
 
@@ -142,7 +142,7 @@ function CalendarPage() {
     endISO,
     showPlannedEvents,
     showTimelogs,
-    selectedDimensionId,
+    selectedAreaId,
     taskIndicatorLabel: t("modules.calendar.taskIndicator"),
     preloadedTasks: stableAllFlatTasks,
     visions: stableVisions,
@@ -265,18 +265,18 @@ function CalendarPage() {
           </div>
           {showTimelogs && (
             <div className="flex items-center gap-2 pl-4 border-l border-base-300">
-              <DimensionSelect
+              <AreaSelect
                 value={
-                  selectedDimensionId === undefined
+                  selectedAreaId === undefined
                     ? undefined
-                    : selectedDimensionId
+                    : selectedAreaId
                 }
-                onChange={(id) => setSelectedDimensionId(id)}
+                onChange={(id) => setSelectedAreaId(id)}
                 placeholder={t("common.all")}
                 showAllOption
                 showNoneOption
-                noneLabel={t("common.noDimension")}
-                id="calendar-dimension-filter"
+                noneLabel={t("common.noArea")}
+                id="calendar-area-filter"
               />
             </div>
           )}
@@ -287,7 +287,7 @@ function CalendarPage() {
       <ErrorDisplay error={error} className="mb-6" />
 
       <Container>
-        {showTimelogs && selectedDimensionId === undefined && (
+        {showTimelogs && selectedAreaId === undefined && (
           <div className="mb-4 p-3  bg-primary/10 border border-primary/20 rounded-md ">
             <div className="flex items-center gap-2 text-primary">
               <span className="text-base inline-flex items-center gap-1">

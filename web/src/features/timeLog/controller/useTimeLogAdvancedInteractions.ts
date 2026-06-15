@@ -18,14 +18,14 @@ interface TimeLogAdvancedInteractionsOptions {
   advancedSearchParams: TimeLogPageData["advancedSearchParams"];
   setAdvancedSearchParams: TimeLogPageData["setAdvancedSearchParams"];
   advancedSearch: ReturnType<typeof useAdvancedSearchWithPagination>;
-  dimsFromCache: TimeLogPageData["dimsFromCache"];
+  areasFromCache: TimeLogPageData["areasFromCache"];
   sortOrder: "asc" | "desc";
   setAdvancedSearchResultsFromHook: (results: ProcessedEntry[]) => void;
   showError: (title: string, description?: string) => void;
   showInfo: (title: string, description?: string) => void;
   t: TFunction;
   processedEntries: ProcessedEntry[];
-  selectedDimensionId:
+  selectedAreaId:
     | UUID
     | null
     | string
@@ -50,14 +50,14 @@ export function useTimeLogAdvancedInteractions({
   advancedSearchParams,
   setAdvancedSearchParams,
   advancedSearch,
-  dimsFromCache,
+  areasFromCache,
   sortOrder,
   setAdvancedSearchResultsFromHook,
   showError,
   showInfo,
   t,
   processedEntries,
-  selectedDimensionId,
+  selectedAreaId,
   activeTimezone,
 }: TimeLogAdvancedInteractionsOptions): TimeLogAdvancedInteractionsReturn {
   const switchToAdvancedMode = useCallback(() => {
@@ -80,8 +80,8 @@ export function useTimeLogAdvancedInteractions({
     const resetParams = {
       start_date: startOfDay.toISOString(),
       end_date: endOfDay.toISOString(),
-      dimension_id: undefined,
-      dimension_name: null,
+      area_id: undefined,
+      area_name: null,
       description_keyword: null,
       task_id: undefined,
     };
@@ -104,9 +104,9 @@ export function useTimeLogAdvancedInteractions({
   ]);
 
   const buildAdvancedSearchPayload = useCallback((): AdvancedSearchParams => {
-    const dimensionName =
-      typeof advancedSearchParams.dimension_id === "string"
-        ? dimsFromCache?.find((d) => d.id === advancedSearchParams.dimension_id)
+    const areaName =
+      typeof advancedSearchParams.area_id === "string"
+        ? areasFromCache?.find((d) => d.id === advancedSearchParams.area_id)
             ?.name || null
         : null;
 
@@ -118,14 +118,14 @@ export function useTimeLogAdvancedInteractions({
 
     return {
       ...restParams,
-      ...(advancedSearchParams.dimension_id !== undefined && {
-        dimension_id: advancedSearchParams.dimension_id,
+      ...(advancedSearchParams.area_id !== undefined && {
+        area_id: advancedSearchParams.area_id,
       }),
       ...(normalizedTaskId !== undefined && { task_id: normalizedTaskId }),
-      dimension_name: dimensionName,
+      area_name: areaName,
       sort_order: sortOrder,
     };
-  }, [advancedSearchParams, dimsFromCache, sortOrder]);
+  }, [advancedSearchParams, areasFromCache, sortOrder]);
 
   const loadAdvancedSearchResults = useCallback(async () => {
     try {
@@ -175,16 +175,16 @@ export function useTimeLogAdvancedInteractions({
     }
 
     if (
-      selectedDimensionId === null ||
-      selectedDimensionId === undefined ||
-      selectedDimensionId === ""
+      selectedAreaId === null ||
+      selectedAreaId === undefined ||
+      selectedAreaId === ""
     )
       return processedEntries;
 
     const filtered = processedEntries.filter((entry) =>
-      selectedDimensionId === SelectorSpecialValue.None
-        ? entry.dimension_id === null
-        : entry.dimension_id === selectedDimensionId,
+      selectedAreaId === SelectorSpecialValue.None
+        ? entry.area_id === null
+        : entry.area_id === selectedAreaId,
     );
     if (filtered.length === 0) {
       return processedEntries.filter((entry) => entry.isPlaceholder);
@@ -194,7 +194,7 @@ export function useTimeLogAdvancedInteractions({
     processedAdvancedSearchData,
     processedEntries,
     queryMode,
-    selectedDimensionId,
+    selectedAreaId,
   ]);
 
   return {

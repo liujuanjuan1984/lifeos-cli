@@ -21,7 +21,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "./EmptyState";
 import ActionButton, { EditButton, ActionButtonGroup } from "./ActionButton";
 import ExpandableCard from "./ExpandableCard";
-import DimensionBadge from "./DimensionBadge";
+import AreaBadge from "./AreaBadge";
 import { Icon } from "./icons";
 import type { Vision, TaskWithSubtasks } from "@/services/api";
 import { visionsApi } from "@/services/api";
@@ -29,7 +29,7 @@ import { formatDuration, formatDate } from "@/utils/datetime";
 import { logger } from "@/utils/core";
 import { useVisionManager } from "@/features/visions/controller/useVisionManager";
 import { useVisionUIState } from "@/features/visions/controller/useVisionUIState";
-import { useDimensions } from "@/hooks/queries/useDimensions";
+import { useAreas } from "@/hooks/queries/useAreas";
 import { useToast } from "@/contexts/ToastContext";
 import ConfirmDialog from "./ConfirmDialog";
 import type { UUID } from "@/types/primitive";
@@ -45,14 +45,14 @@ export interface VisionManagerHandle {
 
 interface VisionManagerProps {
   statusFilter?: string;
-  dimensionFilter?: UUID | null;
+  areaFilter?: UUID | null;
 }
 
 /**
  * VisionManager - Component for managing visions and their tasks
  */
 const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
-  ({ statusFilter = "active", dimensionFilter }, ref) => {
+  ({ statusFilter = "active", areaFilter }, ref) => {
     const { t } = useTranslation();
 
     // Use custom hook for vision management
@@ -91,16 +91,16 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
     } = useVisionManager(statusFilter);
 
     const filteredVisions = useMemo(() => {
-      if (dimensionFilter === undefined) {
+      if (areaFilter === undefined) {
         return visions;
       }
-      if (dimensionFilter === null) {
-        return visions.filter((vision) => !vision.dimension_id);
+      if (areaFilter === null) {
+        return visions.filter((vision) => !vision.area_id);
       }
       return visions.filter(
-        (vision) => vision.dimension_id === dimensionFilter,
+        (vision) => vision.area_id === areaFilter,
       );
-    }, [dimensionFilter, visions]);
+    }, [areaFilter, visions]);
 
     // UI state management for scroll position
     const { saveScrollPosition, restoreScrollPosition } = useVisionUIState();
@@ -123,8 +123,8 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
       "single",
     );
 
-    // Reference data (dimensions map) with caching/TTL
-    const { dimensionMap } = useDimensions();
+    // Reference data (areas map) with caching/TTL
+    const { areaMap } = useAreas();
 
     // Toast notifications
     const toast = useToast();
@@ -443,7 +443,7 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
             // 构建愿景标题+描述容器（占据满行）
             const titleDescriptionContainer = (
               <div className="space-y-3">
-                {/* 愿景标题 + 维度标签 */}
+                {/* 愿景标题 + 领域标签 */}
                 <div className="flex items-center space-x-3 min-w-0">
                   <h2 className="text-xl lg:text-2xl font-semibold whitespace-nowrap flex items-center gap-2">
                     <Icon
@@ -454,9 +454,9 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
                     />
                     {vision.name}
                   </h2>
-                  <DimensionBadge
-                    dimensionId={vision.dimension_id || undefined}
-                    dimensionMap={dimensionMap}
+                  <AreaBadge
+                    areaId={vision.area_id || undefined}
+                    areaMap={areaMap}
                   />
                 </div>
 

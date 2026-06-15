@@ -19,10 +19,8 @@ SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
 def _vision_payload(vision: object) -> dict[str, object]:
-    """Expose LifeOS area fields with frontend vision dimension names."""
-    payload = to_jsonable_dict(vision)
-    payload["dimension_id"] = payload.get("area_id")
-    return payload
+    """Serialize a vision for the Web UI."""
+    return to_jsonable_dict(vision)
 
 
 @router.get("/", response_model=ListResponse)
@@ -73,7 +71,7 @@ async def create_vision(
             name=payload.name,
             description=payload.description,
             status=payload.status,
-            area_id=payload.dimension_id,
+            area_id=payload.area_id,
             experience_rate_per_hour=payload.experience_rate_per_hour,
             person_ids=payload.person_ids,
         )
@@ -104,7 +102,7 @@ async def update_vision(
     clear_experience_rate = (
         "experience_rate_per_hour" in fields and payload.experience_rate_per_hour is None
     )
-    clear_area = "dimension_id" in fields and payload.dimension_id is None
+    clear_area = "area_id" in fields and payload.area_id is None
     clear_people = "person_ids" in fields and payload.person_ids == []
     try:
         vision = await vision_services.update_vision(
@@ -114,7 +112,7 @@ async def update_vision(
             description=payload.description,
             clear_description=clear_description,
             status=payload.status,
-            area_id=payload.dimension_id,
+            area_id=payload.area_id,
             clear_area=clear_area,
             experience_rate_per_hour=payload.experience_rate_per_hour,
             clear_experience_rate=clear_experience_rate,

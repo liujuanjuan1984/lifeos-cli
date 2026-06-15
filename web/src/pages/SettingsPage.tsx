@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import type { AppTheme } from "@/theme";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
-import { dimensionsApi } from "@/services/api/dimensions";
+import { areasApi } from "@/services/api/areas";
 import {
   visionsApi,
   type VisionExperienceRateUpdatePayload,
 } from "@/services/api/visions";
 import { useLanguage, type Language } from "@/hooks/useLanguage";
-import DimensionManagerModal from "@/components/DimensionManagerModal";
+import AreaManagerModal from "@/components/AreaManagerModal";
 import { useVisibleModules } from "@/hooks/queries/useVisibleModules";
 import { useTheme } from "@/contexts/ThemeContext";
 import { SettingsLayout } from "@/components/settings";
@@ -42,10 +42,10 @@ function SettingsPage() {
       value <= VISION_EXPERIENCE_RATE_MAX,
   });
 
-  const dimensionOrderSettings = usePreferenceWithBootstrap<UUID[]>({
-    key: "dashboard.dimension_order",
+  const areaOrderSettings = usePreferenceWithBootstrap<UUID[]>({
+    key: "dashboard.area_order",
     defaultValue: [],
-    module: "dimensions",
+    module: "areas",
     validator: (value) => {
       if (!Array.isArray(value)) return false;
       return value.every(
@@ -141,8 +141,8 @@ function SettingsPage() {
   // Get settings configuration with props
   const groupsConfig = useSettingsConfig();
 
-  // Dimension manager modal state
-  const [showDimensionManager, setShowDimensionManager] = useState(false);
+  // Area manager modal state
+  const [showAreaManager, setShowAreaManager] = useState(false);
 
   // Create preferences map for easy access
   const preferences = useMemo(
@@ -193,27 +193,27 @@ function SettingsPage() {
         updateValue: (value: unknown) =>
           noteCollapseSettings.updateValue(coerceNoteCollapseValue(value)),
       },
-      "data.dimensionOrder": {
-        value: dimensionOrderSettings.value,
-        loading: dimensionOrderSettings.loading,
-        saving: dimensionOrderSettings.saving,
-        error: dimensionOrderSettings.error,
-        bootstrapped: dimensionOrderSettings.bootstrapped,
+      "data.areaOrder": {
+        value: areaOrderSettings.value,
+        loading: areaOrderSettings.loading,
+        saving: areaOrderSettings.saving,
+        error: areaOrderSettings.error,
+        bootstrapped: areaOrderSettings.bootstrapped,
         saveValue: async (value: unknown) => {
           let incoming = value as UUID[];
           if (Array.isArray(incoming) && incoming.length === 0) {
-            // Fallback: if empty, backfill with all dimensions order before saving
-            const dimsResponse = await dimensionsApi.getDimensions();
-            incoming = (dimsResponse.items ?? []).map(
-              (d) => d.id as UUID,
+            // Fallback: if empty, backfill with all areas order before saving
+            const areasResponse = await areasApi.getAreas();
+            incoming = (areasResponse.items ?? []).map(
+              (area) => area.id as UUID,
             );
           }
-          await dimensionsApi.setOrder(incoming);
-          dimensionOrderSettings.updateValue(incoming);
+          await areasApi.setOrder(incoming);
+          areaOrderSettings.updateValue(incoming);
           return true;
         },
         updateValue: (value: unknown) => {
-          dimensionOrderSettings.updateValue(value as UUID[]);
+          areaOrderSettings.updateValue(value as UUID[]);
         },
       },
       "data.defaultInboxVision": {
@@ -256,7 +256,7 @@ function SettingsPage() {
       visibleModulesSettings,
       visionExperiencePreference,
       noteCollapseSettings,
-      dimensionOrderSettings,
+      areaOrderSettings,
       defaultInboxVisionSettings,
       languageSettings,
       timezoneSettings,
@@ -277,8 +277,8 @@ function SettingsPage() {
     return Object.values(preferences).some((pref) => pref.saving);
   }, [preferences]);
 
-  const handleDimensionManagerClose = () => {
-    setShowDimensionManager(false);
+  const handleAreaManagerClose = () => {
+    setShowAreaManager(false);
   };
 
   return (
@@ -290,9 +290,9 @@ function SettingsPage() {
         disabled={isSaving}
       />
 
-      <DimensionManagerModal
-        isOpen={showDimensionManager}
-        onClose={handleDimensionManagerClose}
+      <AreaManagerModal
+        isOpen={showAreaManager}
+        onClose={handleAreaManagerClose}
       />
     </>
   );

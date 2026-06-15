@@ -13,7 +13,7 @@ import { hhmmOnDateToISO, formatTime, formatDate } from "@/utils/datetime";
 import { logger } from "@/utils/core";
 import ModalBase from "@/layouts/ModalBase";
 import { FormActions } from "./ActionButton";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import { TextInput } from "./forms";
 import { useModalState } from "@/hooks/useModalState";
 import { useToast } from "@/contexts/ToastContext";
@@ -54,7 +54,7 @@ const TimeEntryModal = ({
     title: "",
     start_time: "",
     end_time: "",
-    dimension_id: null,
+    area_id: null,
     notes: "",
     energy_level: 3,
     task_id: undefined,
@@ -111,7 +111,7 @@ const TimeEntryModal = ({
           title: entry.title,
           start_time: entry.start_time || "",
           end_time: entry.end_time || "",
-          dimension_id: entry.dimension_id,
+          area_id: entry.area_id,
           notes: entry.notes || "",
           energy_level: entry.energy_level || 3,
           task_id: entry.task?.id ?? entry.task_id ?? null,
@@ -131,7 +131,7 @@ const TimeEntryModal = ({
           title: "",
           start_time: defaultStartTime.toISOString(),
           end_time: defaultEndTime.toISOString(),
-          dimension_id: null,
+          area_id: null,
           notes: "",
           energy_level: 3,
           task_id: undefined,
@@ -372,11 +372,11 @@ const TimeEntryModal = ({
     [activeTimezone, selectedDate, formData.start_time],
   );
 
-  // Optimize dimension change handler with useCallback
-  const handleDimensionChange = useCallback((v: UUID | null | undefined) => {
+  // Optimize area change handler with useCallback
+  const handleAreaChange = useCallback((v: UUID | null | undefined) => {
     setFormData((prev) => ({
       ...prev,
-      dimension_id: v ?? "",
+      area_id: v ?? "",
     }));
   }, []);
 
@@ -501,14 +501,14 @@ const TimeEntryModal = ({
           </div>
         </div>
 
-        {/* Dimension */}
+        {/* Area */}
         <div className="mb-4">
           <div className="flex items-center gap-2">
-            <DimensionSelect
-              value={formData.dimension_id || null}
-              onChange={handleDimensionChange}
+            <AreaSelect
+              value={formData.area_id || null}
+              onChange={handleAreaChange}
               disabled={loading}
-              id="time-entry-dimension"
+              id="time-entry-area"
               placeholder={t("common.please_select")}
             />
           </div>

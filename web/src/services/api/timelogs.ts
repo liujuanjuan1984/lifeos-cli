@@ -7,7 +7,7 @@ import type { ListResponse } from "@/types/pagination";
 import type { NoteSummary } from "./notes";
 
 // Types local to timelogs
-interface DimensionSummary {
+interface AreaSummary {
   id: UUID;
   name: string;
   color?: string | null;
@@ -17,7 +17,7 @@ interface VisionSummary {
   id: UUID;
   name: string;
   status?: string | null;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
 }
 
 export interface TimelogTaskSummary {
@@ -33,9 +33,9 @@ export interface Timelog {
   title: string;
   start_time: string;
   end_time: string;
-  dimension_id: UUID | null;
+  area_id: UUID | null;
   task_id?: UUID | null;
-  dimension_summary?: DimensionSummary | null;
+  area_summary?: AreaSummary | null;
   tracking_method: string;
   location?: string | null;
   energy_level?: number | null;
@@ -55,7 +55,7 @@ export interface TimelogCreate {
   title: string;
   start_time: string;
   end_time: string;
-  dimension_id: UUID | null;
+  area_id: UUID | null;
   tracking_method?: string;
   location?: string;
   energy_level?: number;
@@ -84,9 +84,9 @@ export interface TimelogWithEnergyResponse extends Timelog {
 export interface TimelogAdvancedSearchRequest {
   start_date: string;
   end_date?: string;
-  dimension_id?: UUID | null;
-  without_dimension?: boolean;
-  dimension_name?: string | null;
+  area_id?: UUID | null;
+  without_area?: boolean;
+  area_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
 }
@@ -97,9 +97,9 @@ export interface TimelogAdvancedSearchMetadata {
   window_start?: string | null;
   window_end?: string | null;
   tracking_method?: string | null;
-  dimension_id?: UUID | null;
-  without_dimension?: boolean | null;
-  dimension_name?: string | null;
+  area_id?: UUID | null;
+  without_area?: boolean | null;
+  area_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
   limit?: number | null;
@@ -129,7 +129,7 @@ function toTimelogPayload(
     location: payload.location,
     energy_level: payload.energy_level,
     notes: payload.notes,
-    area_id: payload.dimension_id,
+    area_id: payload.area_id,
     task_id: payload.task_id,
     person_ids: payload.person_ids,
   };
@@ -224,7 +224,6 @@ export const timelogsApi = {
   },
 
   update: (id: UUID, payload: TimelogUpdate) => {
-    // 使用新的数据协议，支持明确设置空值
     const cleanedData = DataCleaner.update(toTimelogPayload(payload));
 
     return http.patch<Timelog>(
@@ -263,19 +262,19 @@ export const timelogsApi = {
     }),
 
   advancedSearch: async (params: TimelogAdvancedSearchRequest) => {
-    const withoutDimension =
-      params.without_dimension ?? params.dimension_id === null;
+    const withoutArea =
+      params.without_area ?? params.area_id === null;
     const response = await http.get<TimelogAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
         window_start: params.start_date,
         window_end: params.end_date,
         query: params.description_keyword ?? undefined,
-        dimension_id: withoutDimension
+        area_id: withoutArea
           ? undefined
-          : (params.dimension_id ?? undefined),
-        without_dimension: withoutDimension || undefined,
-        dimension_name: params.dimension_name ?? undefined,
+          : (params.area_id ?? undefined),
+        without_area: withoutArea || undefined,
+        area_name: params.area_name ?? undefined,
         task_id: params.task_id ?? undefined,
         size: 500,
       },
@@ -293,12 +292,12 @@ export const timelogsApi = {
         window_start: response.meta?.window_start ?? params.start_date,
         window_end:
           response.meta?.window_end ?? (params.end_date ? params.end_date : null),
-        dimension_id:
-          response.meta?.dimension_id ?? params.dimension_id ?? null,
-        without_dimension:
-          response.meta?.without_dimension ?? withoutDimension,
-        dimension_name:
-          response.meta?.dimension_name ?? params.dimension_name ?? null,
+        area_id:
+          response.meta?.area_id ?? params.area_id ?? null,
+        without_area:
+          response.meta?.without_area ?? withoutArea,
+        area_name:
+          response.meta?.area_name ?? params.area_name ?? null,
         description_keyword:
           response.meta?.description_keyword ??
           params.description_keyword ??
@@ -314,7 +313,7 @@ export const timelogsApi = {
 
   batchUpdate: (params: {
     timelog_ids: UUID[];
-    update_type: "persons" | "title" | "task" | "dimension";
+    update_type: "persons" | "title" | "task" | "area";
     persons?: {
       mode: "add" | "replace" | "clear";
       person_ids: UUID[];
@@ -328,8 +327,8 @@ export const timelogsApi = {
       mode: "replace" | "clear";
       task_id?: UUID;
     };
-    dimension?: {
-      dimension_id: UUID | null;
+    area?: {
+      area_id: UUID | null;
     };
   }) =>
     http.post<{

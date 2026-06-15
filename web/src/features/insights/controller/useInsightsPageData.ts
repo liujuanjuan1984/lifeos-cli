@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { CalendarAdapterFactory, type CalendarAdapter } from "@/utils/calendar";
-import { useDimensions } from "@/hooks/queries/useDimensions";
-import { useDimensionOrderReadOnly } from "@/hooks/queries/useDimensionOrderReadOnly";
+import { useAreas } from "@/hooks/queries/useAreas";
+import { useAreaOrderReadOnly } from "@/hooks/queries/useAreaOrderReadOnly";
 import { resolvePreferredTimezone } from "@/utils/datetime";
 
 interface InsightsPageData {
@@ -10,9 +10,9 @@ interface InsightsPageData {
   calendarSystem: "gregorian" | "mayan_13_moon";
   activeTimezone: string;
   calendarAdapter: CalendarAdapter;
-  dimensions: ReturnType<typeof useDimensions>["dimensions"];
-  dimensionMap: ReturnType<typeof useDimensions>["dimensionMap"];
-  dimensionOrder: ReturnType<typeof useDimensionOrderReadOnly>["order"];
+  areas: ReturnType<typeof useAreas>["areas"];
+  areaMap: ReturnType<typeof useAreas>["areaMap"];
+  areaOrder: ReturnType<typeof useAreaOrderReadOnly>["order"];
   calendarLoading: boolean;
 }
 
@@ -57,17 +57,17 @@ export function useInsightsPageData(): InsightsPageData {
     [calendarSystem, firstDayOfWeek],
   );
 
-  const { dimensions, dimensionMap } = useDimensions();
-  const { order: dimensionOrder } = useDimensionOrderReadOnly();
+  const { areas, areaMap } = useAreas();
+  const { order: areaOrder } = useAreaOrderReadOnly();
 
   return {
     firstDayOfWeek,
     calendarSystem,
     activeTimezone,
     calendarAdapter,
-    dimensions,
-    dimensionMap,
-    dimensionOrder,
+    areas,
+    areaMap,
+    areaOrder,
     calendarLoading: calendarSystemPreference.loading,
   };
 }

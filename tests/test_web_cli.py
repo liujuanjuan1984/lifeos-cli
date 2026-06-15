@@ -92,7 +92,7 @@ def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.Mo
     assert checked_urls == ["postgresql+psycopg://localhost/lifeos"]
 
 
-def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
+def test_web_timelog_without_area_filter_maps_to_lifeos_without_area(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("fastapi")
@@ -125,7 +125,7 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
             cast(AsyncSession, object()),
             page=1,
             size=50,
-            without_dimension=True,
+            without_area=True,
         )
     )
 
@@ -135,7 +135,7 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
     assert isinstance(list_query, TimelogListInput)
     assert count_filters.without_area is True
     assert list_query.filters.without_area is True
-    assert response.meta["without_dimension"] is True
+    assert response.meta["without_area"] is True
 
 
 def test_web_timelog_window_filters_map_to_lifeos_window_filters(
@@ -396,7 +396,7 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
     assert captured["clear_area"] is False
 
 
-def test_web_vision_update_dimension_id_maps_to_area_id(
+def test_web_vision_update_area_id_passes_through(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("fastapi")
@@ -404,7 +404,7 @@ def test_web_vision_update_dimension_id_maps_to_area_id(
     from lifeos_web.routers import visions
     from lifeos_web.schemas import VisionUpdate
 
-    dimension_id = UUID("11111111-1111-1111-1111-111111111111")
+    area_id = UUID("11111111-1111-1111-1111-111111111111")
     person_id = UUID("33333333-3333-3333-3333-333333333333")
     captured: dict[str, object] = {}
 
@@ -418,7 +418,7 @@ def test_web_vision_update_dimension_id_maps_to_area_id(
             stage=0,
             experience_points=0,
             experience_rate_per_hour=None,
-            area_id=dimension_id,
+            area_id=area_id,
             created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
             updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
             deleted_at=None,
@@ -431,17 +431,17 @@ def test_web_vision_update_dimension_id_maps_to_area_id(
     response = asyncio.run(
         visions.update_vision(
             UUID("55555555-5555-5555-5555-555555555555"),
-            VisionUpdate(dimension_id=dimension_id, person_ids=[person_id]),
+            VisionUpdate(area_id=area_id, person_ids=[person_id]),
             cast(AsyncSession, object()),
         )
     )
 
-    assert captured["area_id"] == dimension_id
+    assert captured["area_id"] == area_id
     assert captured["clear_area"] is False
     assert captured["person_ids"] == [person_id]
     assert captured["clear_people"] is False
-    assert response["area_id"] == str(dimension_id)
-    assert response["dimension_id"] == str(dimension_id)
+    assert response["area_id"] == str(area_id)
+    assert set(response).issuperset({"id", "name", "area_id"})
 
 
 def test_web_habit_update_null_fields_translate_to_clear_flags(

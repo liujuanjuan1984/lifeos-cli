@@ -32,7 +32,7 @@ interface UseCalendarScheduleControllerParams {
   endISO: string | null;
   showPlannedEvents: boolean;
   showTimelogs: boolean;
-  selectedDimensionId: UUID | null | undefined;
+  selectedAreaId: UUID | null | undefined;
   taskIndicatorLabel: string;
   preloadedTasks: ApiTask[];
   visions: Vision[];
@@ -73,7 +73,7 @@ export function useCalendarScheduleController({
   endISO,
   showPlannedEvents,
   showTimelogs,
-  selectedDimensionId,
+  selectedAreaId,
   taskIndicatorLabel,
   preloadedTasks,
   visions,
@@ -120,12 +120,12 @@ export function useCalendarScheduleController({
     refetchOnReconnect: false,
     placeholderData: [],
     select: (rows: Timelog[]) =>
-      selectedDimensionId === undefined
+      selectedAreaId === undefined
         ? rows
         : rows.filter((row) =>
-            selectedDimensionId === null
-              ? row.dimension_id === null
-              : row.dimension_id === selectedDimensionId,
+            selectedAreaId === null
+              ? row.area_id === null
+              : row.area_id === selectedAreaId,
           ),
   });
 
@@ -179,7 +179,7 @@ export function useCalendarScheduleController({
         energyLevel: timelog.energy_level,
         notes: timelog.notes,
         tags: timelog.tags,
-        dimensionId: timelog.dimension_id,
+        areaId: timelog.area_id,
       },
     }));
 

@@ -5,7 +5,7 @@ import EntryRow from "./EntryRow";
 import InlineQuickTimeEntry from "./InlineQuickTimeEntry";
 import EmptyState from "./EmptyState";
 import ActionButton from "./ActionButton";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import Checkbox from "./forms/Checkbox";
 import type {
   TaskWithSubtasks,
@@ -40,13 +40,13 @@ interface TimeEntriesTableProps {
   selectedDate: Date;
   timezone?: string;
   queryMode: QueryMode;
-  dimensionMap: Map<UUID, { name: string; color: string }>;
+  areaMap: Map<UUID, { name: string; color: string }>;
   preloadedTasks: TaskWithSubtasks[];
   /** 是否禁用快捷添加功能，通常在编辑模式下使用 */
   disableQuickEntry?: boolean;
-  /** 维度筛选相关属性 */
-  selectedDimensionId: UUID | null | "" | typeof SelectorSpecialValue.None;
-  onDimensionChange: (dimensionId: UUID | null | undefined) => void;
+  /** 领域筛选相关属性 */
+  selectedAreaId: UUID | null | "" | typeof SelectorSpecialValue.None;
+  onAreaChange: (areaId: UUID | null | undefined) => void;
   onCreateNoteForEntry?: (entry: ProcessedEntry) => void;
   onViewNotesForEntry?: (entry: ProcessedEntry) => void;
 }
@@ -66,11 +66,11 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   selectedDate,
   timezone,
   queryMode,
-  dimensionMap,
+  areaMap,
   preloadedTasks,
   disableQuickEntry = false,
-  selectedDimensionId,
-  onDimensionChange,
+  selectedAreaId,
+  onAreaChange,
   onCreateNoteForEntry,
   onViewNotesForEntry,
 }) => {
@@ -188,7 +188,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   const tooltipContent = hoveredEntry ? (
     <TimelogTooltipContent
       entry={hoveredEntry}
-      dimensionMap={dimensionMap}
+      areaMap={areaMap}
       timezone={timezone}
     />
   ) : null;
@@ -428,22 +428,22 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
               </th>
               <th className="px-4 py-3 text-left text-base font-medium text-base-content uppercase tracking-wider w-28">
                 {queryMode === "single" ? (
-                  <DimensionSelect
+                  <AreaSelect
                     value={
-                      selectedDimensionId === SelectorSpecialValue.None
+                      selectedAreaId === SelectorSpecialValue.None
                         ? null
-                        : (selectedDimensionId ?? undefined)
+                        : (selectedAreaId ?? undefined)
                     }
-                    onChange={(v) => onDimensionChange(v)}
-                    id="table-dimension-filter"
+                    onChange={(v) => onAreaChange(v)}
+                    id="table-area-filter"
                     placeholder={t("common.all")}
                     showAllOption={true}
                     showNoneOption={true}
-                    noneLabel={t("common.noDimension")}
+                    noneLabel={t("common.noArea")}
                     showLabel={false}
                   />
                 ) : (
-                  t("target.dimension")
+                  t("target.area")
                 )}
               </th>
               <th className="px-4 py-3 text-left text-base font-medium text-base-content uppercase tracking-wider">
@@ -517,7 +517,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                         onPlaceholderClick={handlePlaceholderClick}
                         onCreateNote={onCreateNoteForEntry}
                         onViewNotes={onViewNotesForEntry}
-                        dimensionMap={dimensionMap}
+                        areaMap={areaMap}
                         selectedDate={selectedDate}
                         timezone={timezone}
                         queryMode={queryMode}

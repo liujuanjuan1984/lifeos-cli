@@ -59,7 +59,7 @@ describe("timelogsApi", () => {
                 title: "Later event",
                 start_time: "2026-04-14T15:00:00.000Z",
                 end_time: "2026-04-14T15:30:00.000Z",
-                dimension_id: null,
+                area_id: null,
                 tracking_method: "manual",
                 created_at: "2026-04-14T15:00:00.000Z",
                 updated_at: "2026-04-14T15:00:00.000Z",
@@ -87,7 +87,7 @@ describe("timelogsApi", () => {
                 title: "Cross-day event",
                 start_time: "2026-04-13T15:40:00.000Z",
                 end_time: "2026-04-13T17:30:00.000Z",
-                dimension_id: null,
+                area_id: null,
                 tracking_method: "manual",
                 created_at: "2026-04-13T15:40:00.000Z",
                 updated_at: "2026-04-13T15:40:00.000Z",
@@ -126,7 +126,7 @@ describe("timelogsApi", () => {
     expect(response.meta.total_count).toBe(2);
   });
 
-  it("serializes null dimension as a without-dimension filter", async () => {
+  it("serializes null area as a without-area filter", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -144,7 +144,7 @@ describe("timelogsApi", () => {
     await timelogsApi.advancedSearch({
       start_date: "2026-06-01T04:00:00.000Z",
       end_date: "2026-06-02T03:59:59.999Z",
-      dimension_id: null,
+      area_id: null,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -159,8 +159,8 @@ describe("timelogsApi", () => {
     );
     expect(parsedUrl.searchParams.get("start_date")).toBeNull();
     expect(parsedUrl.searchParams.get("end_date")).toBeNull();
-    expect(parsedUrl.searchParams.get("dimension_id")).toBeNull();
-    expect(parsedUrl.searchParams.get("without_dimension")).toBe("true");
+    expect(parsedUrl.searchParams.get("area_id")).toBeNull();
+    expect(parsedUrl.searchParams.get("without_area")).toBe("true");
     expect(init.method).toBe("GET");
   });
 });

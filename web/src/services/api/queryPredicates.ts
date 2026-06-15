@@ -121,11 +121,11 @@ export const isHabitsActionsQuery = (query: QueryLike): boolean => {
   );
 };
 
-export const isDimensionsListQuery = (query: QueryLike): boolean => {
+export const isAreasListQuery = (query: QueryLike): boolean => {
   if (!Array.isArray(query.queryKey)) return false;
   return (
     query.queryKey.length >= 2 &&
-    query.queryKey[0] === "dimensions" &&
+    query.queryKey[0] === "areas" &&
     query.queryKey[1] === "list"
   );
 };

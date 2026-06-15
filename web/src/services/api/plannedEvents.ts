@@ -10,7 +10,7 @@ export interface PlannedEvent {
   start_time: string;
   end_time?: string | null;
   priority: number;
-  dimension_id: UUID | null;
+  area_id: UUID | null;
   task_id?: UUID | null;
   is_all_day: boolean;
   is_recurring: boolean;
@@ -44,7 +44,7 @@ export interface PlannedEventCreate {
   start_time: string;
   end_time?: string;
   priority?: number;
-  dimension_id: UUID | null;
+  area_id: UUID | null;
   task_id?: UUID | null;
   is_all_day?: boolean;
   is_recurring?: boolean;

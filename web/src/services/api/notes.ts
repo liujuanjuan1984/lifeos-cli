@@ -21,7 +21,7 @@ interface NoteVisionSummary {
   id: UUID;
   name: string;
   status?: string | null;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
 }
 
 interface TaskParentSummary {
@@ -51,8 +51,8 @@ export interface NoteTimelogSummary {
   title?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  dimension_id?: UUID | null;
-  dimension_summary?: NoteTimelogDimensionSummary | null;
+  area_id?: UUID | null;
+  area_summary?: NoteTimelogAreaSummary | null;
   task_summary?: NoteTimelogTaskSummary | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -67,7 +67,7 @@ export interface NoteIngestJobSummary {
   updated_at: string;
 }
 
-interface NoteTimelogDimensionSummary {
+interface NoteTimelogAreaSummary {
   id: UUID;
   name?: string | null;
   color?: string | null;

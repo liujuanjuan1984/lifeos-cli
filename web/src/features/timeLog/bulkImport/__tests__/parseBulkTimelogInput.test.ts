@@ -32,7 +32,7 @@ describe("parseBulkTimelogInput", () => {
     expect(first.date).toBe("2025-01-01");
     expect(first.startTime).toBe("06:30");
     expect(first.endTime).toBe("07:00");
-    expect(first.dimensionId).toBeNull();
+    expect(first.areaId).toBeNull();
     expect(first.personIds).toEqual([]);
 
     const third = toRow(result.rows, 2);

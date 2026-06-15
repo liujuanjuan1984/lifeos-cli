@@ -36,14 +36,12 @@ SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
 def _timelog_payload(timelog: object) -> dict[str, object]:
-    """Expose LifeOS area fields with frontend timelog dimension names."""
     payload = to_jsonable(timelog)
     if not isinstance(payload, dict):
         raise TypeError("Timelog serialization did not produce a dictionary.")
     area_id = payload.get("area_id")
-    payload["dimension_id"] = area_id
     if area_id is not None:
-        payload["dimension_summary"] = {
+        payload["area_summary"] = {
             "id": area_id,
             "name": None,
             "color": None,
@@ -114,9 +112,9 @@ async def list_timelogs(
     window_end: datetime | None = None,
     query: str | None = None,
     tracking_method: str | None = None,
-    dimension_id: UUID | None = None,
-    dimension_name: str | None = None,
-    without_dimension: bool = False,
+    area_id: UUID | None = None,
+    area_name: str | None = None,
+    without_area: bool = False,
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
@@ -140,9 +138,9 @@ async def list_timelogs(
         end_date=end_date,
         query=query,
         tracking_method=tracking_method,
-        area_id=dimension_id,
-        area_name=dimension_name,
-        without_area=without_dimension,
+        area_id=area_id,
+        area_name=area_name,
+        without_area=without_area,
         task_id=task_id,
         window_start=normalized_window_start,
         window_end=normalized_window_end,
@@ -174,9 +172,9 @@ async def list_timelogs(
             "window_end": normalized_window_end.isoformat() if normalized_window_end else None,
             "query": query,
             "tracking_method": tracking_method,
-            "dimension_id": str(dimension_id) if dimension_id else None,
-            "dimension_name": dimension_name,
-            "without_dimension": without_dimension,
+            "area_id": str(area_id) if area_id else None,
+            "area_name": area_name,
+            "without_area": without_area,
             "task_id": str(task_id) if task_id else None,
             "limit": size,
             "returned_count": len(items),
@@ -239,12 +237,12 @@ async def batch_update_timelogs(
             task_id=payload.task.task_id,
             clear_task=payload.task.mode == "clear" or payload.task.task_id is None,
         )
-    elif payload.update_type == "dimension":
-        if payload.dimension is None:
-            raise HTTPException(status_code=400, detail="Dimension update payload is required")
+    elif payload.update_type == "area":
+        if payload.area is None:
+            raise HTTPException(status_code=400, detail="Area update payload is required")
         changes = TimelogUpdateInput(
-            area_id=payload.dimension.dimension_id,
-            clear_area=payload.dimension.dimension_id is None,
+            area_id=payload.area.area_id,
+            clear_area=payload.area.area_id is None,
         )
     elif payload.update_type == "persons":
         if payload.persons is None:

@@ -7,7 +7,7 @@ import TimeRangeText from "./TimeRangeText";
 import ModalBase from "@/layouts/ModalBase";
 import { useTaskTimelogs } from "@/hooks/queries/useTaskTimelogs";
 import ListContainer from "@/layouts/ListContainer";
-import DimensionBadge from "./DimensionBadge";
+import AreaBadge from "./AreaBadge";
 import { Icon } from "./icons";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 
@@ -159,8 +159,8 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
             align: "left",
           },
           {
-            key: "dimension",
-            label: t("taskTimelogs.columns.dimension"),
+            key: "area",
+            label: t("taskTimelogs.columns.area"),
             width: "0.5fr",
             align: "left",
           },
@@ -212,9 +212,9 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                   trimmedTitle.length > 0
                     ? trimmedTitle
                     : t("taskTimelogs.untitled");
-                const dimensionName =
-                  event.dimension_summary?.name ||
-                  t("taskTimelogs.unknownDimension");
+                const areaName =
+                  event.area_summary?.name ||
+                  t("taskTimelogs.unknownArea");
 
                 return (
                   <React.Fragment key={event.id}>
@@ -238,12 +238,12 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                       {calculateDuration(event)}
                     </div>
                     <div className="flex items-center">
-                      <DimensionBadge
-                        name={dimensionName}
-                        color={event.dimension_summary?.color || undefined}
+                      <AreaBadge
+                        name={areaName}
+                        color={event.area_summary?.color || undefined}
                         showLabel
                         className="text-sm"
-                        ariaLabel={dimensionName}
+                        ariaLabel={areaName}
                       />
                     </div>
                     <div

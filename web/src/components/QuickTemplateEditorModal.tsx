@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import ModalBase from "@/layouts/ModalBase";
 import { FormActions } from "./ActionButton";
 import { TextInput } from "./forms";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import PersonSelector from "./selects/PersonSelector";
 import type { UUID } from "@/types/primitive";
 import type { TimelogTemplate } from "@/services/api/timelogTemplates";
 
 export interface QuickTemplateEditorValues {
   title: string;
-  dimension_id: UUID | null;
+  area_id: UUID | null;
   person_ids: UUID[];
   default_duration_minutes?: number | null;
 }
@@ -27,14 +27,14 @@ interface QuickTemplateEditorModalProps {
 
 interface FormState {
   title: string;
-  dimensionId: UUID | null;
+  areaId: UUID | null;
   personIds: UUID[];
   durationText: string;
 }
 
 const emptyState: FormState = {
   title: "",
-  dimensionId: null,
+  areaId: null,
   personIds: [],
   durationText: "",
 };
@@ -55,7 +55,7 @@ const QuickTemplateEditorModal = ({
       if (initialTemplate) {
         setForm({
           title: initialTemplate.title,
-          dimensionId: initialTemplate.dimension_id,
+          areaId: initialTemplate.area_id,
           personIds:
             initialTemplate.person_ids && initialTemplate.person_ids.length > 0
               ? initialTemplate.person_ids
@@ -83,7 +83,7 @@ const QuickTemplateEditorModal = ({
     if (!canSubmit) return;
     const payload: QuickTemplateEditorValues = {
       title: form.title.trim(),
-      dimension_id: form.dimensionId,
+      area_id: form.areaId,
       person_ids: form.personIds,
       default_duration_minutes: form.durationText
         ? Number(form.durationText)
@@ -169,16 +169,16 @@ const QuickTemplateEditorModal = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <DimensionSelect
-              value={form.dimensionId}
+            <AreaSelect
+              value={form.areaId}
               onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  dimensionId: (value ?? null) as UUID | null,
+                  areaId: (value ?? null) as UUID | null,
                 }))
               }
-              id="quick-template-dimension"
-              label={t("target.dimension")}
+              id="quick-template-area"
+              label={t("target.area")}
               showLabel={true}
               disabled={submitting}
             />
