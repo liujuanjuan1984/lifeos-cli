@@ -129,7 +129,7 @@ describe("PlannedEventModal", () => {
         isOpen
         onClose={vi.fn()}
         onSave={onSave}
-        event={recurringInstance}
+        plannedEvent={recurringInstance}
       />,
     );
 

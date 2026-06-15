@@ -38,7 +38,7 @@ const baseEvent: PlannedEvent = {
 
 describe("plannedEventModalUtils", () => {
   it("omits unchanged related fields from update payloads", () => {
-    const initial = buildPlannedEventFormData({ event: baseEvent });
+    const initial = buildPlannedEventFormData({ plannedEvent: baseEvent });
     const current = { ...initial, title: "Recurring Review Updated" };
 
     expect(buildPlannedEventUpdatePayload(initial, current)).toEqual({
@@ -47,7 +47,7 @@ describe("plannedEventModalUtils", () => {
   });
 
   it("preserves explicit clears in update payloads", () => {
-    const initial = buildPlannedEventFormData({ event: baseEvent });
+    const initial = buildPlannedEventFormData({ plannedEvent: baseEvent });
     const current = {
       ...initial,
       dimension_id: null,

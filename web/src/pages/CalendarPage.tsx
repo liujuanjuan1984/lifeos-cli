@@ -25,7 +25,7 @@ import "@/styles/calendar.css";
 import Container from "@/layouts/Container";
 import type { UUID } from "@/types/primitive";
 import { normalizeTimezone, resolvePreferredTimezone } from "@/utils/datetime";
-import { useCalendarEventsController } from "@/features/calendar/controller/useCalendarEventsController";
+import { useCalendarScheduleController } from "@/features/calendar/controller/useCalendarScheduleController";
 
 function CalendarPage() {
   const { t } = useTranslation();
@@ -130,14 +130,14 @@ function CalendarPage() {
   );
 
   const {
-    events,
+    scheduleEntries,
     loading,
     error,
-    showEventModal,
-    eventModalProps,
+    showPlannedEventModal,
+    plannedEventModalProps,
     handleDateSelect,
-    handleEventClick,
-  } = useCalendarEventsController({
+    handlePlannedEventClick,
+  } = useCalendarScheduleController({
     startISO,
     endISO,
     showPlannedEvents,
@@ -313,7 +313,7 @@ function CalendarPage() {
           nowIndicator
           scrollTime="08:00:00"
           expandRows
-          events={events}
+          events={scheduleEntries}
           selectable
           selectMirror
           dayMaxEvents
@@ -322,7 +322,7 @@ function CalendarPage() {
           firstDay={firstDayOfWeek === 7 ? 0 : firstDayOfWeek}
           datesSet={handleDatesSet}
           select={handleDateSelect}
-          eventClick={handleEventClick}
+          eventClick={handlePlannedEventClick}
           locale="zh-cn"
           buttonText={{
             today: t("modules.calendar.fc.today"),
@@ -346,15 +346,15 @@ function CalendarPage() {
           }}
           nextDayThreshold="00:00:00"
           eventClassNames={(arg) => {
-            const type = arg.event.extendedProps?.type;
-            return type === "planned"
+            const entryType = arg.event.extendedProps?.entryType;
+            return entryType === "planned"
               ? "planned-event-custom"
               : "timelog-event-custom";
           }}
         />
       </Container>
 
-      {showEventModal && <PlannedEventModal {...eventModalProps} />}
+      {showPlannedEventModal && <PlannedEventModal {...plannedEventModalProps} />}
     </PageLayout>
   );
 }

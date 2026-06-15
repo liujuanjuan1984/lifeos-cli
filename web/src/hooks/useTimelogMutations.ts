@@ -26,7 +26,7 @@ const mergeTimelog = <T extends Timelog>(
   next: T,
 ): T[] => {
   const list = Array.isArray(existing) ? existing : [];
-  const filtered = list.filter((event) => event.id !== next.id);
+  const filtered = list.filter((timelog) => timelog.id !== next.id);
   return [next, ...filtered].sort(
     (a, b) =>
       new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
@@ -39,7 +39,7 @@ const removeTimelogs = <T extends Timelog>(
 ): T[] => {
   const list = Array.isArray(existing) ? existing : [];
   if (list.length === 0) return list;
-  return list.filter((event) => !idsToRemove.has(event.id));
+  return list.filter((timelog) => !idsToRemove.has(timelog.id));
 };
 
 /**
@@ -201,8 +201,8 @@ export function useTimelogMutations() {
 
   // Batch create timelogs mutation
   const batchCreateMutation = useMutation({
-    mutationFn: (events: TimelogCreate[]) =>
-      timelogsApi.batchCreate(events),
+    mutationFn: (timelogs: TimelogCreate[]) =>
+      timelogsApi.batchCreate(timelogs),
     onSuccess: (result) => {
       scheduleTimelogRefresh(
         "Failed to refresh caches after batch creating timelogs",
@@ -237,7 +237,7 @@ export function useTimelogMutations() {
   // Batch update timelogs mutation
   const batchUpdateMutation = useMutation({
     mutationFn: (params: {
-      event_ids: UUID[];
+      timelog_ids: UUID[];
       update_type: "persons" | "title" | "task" | "dimension";
       persons?: {
         mode: "add" | "replace" | "clear";

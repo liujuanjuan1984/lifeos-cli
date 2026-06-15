@@ -1378,7 +1378,7 @@
     },
     "activityTypes": {
       "vision": "Vision Management",
-      "actual_event": "TimeLog",
+      "timelog": "Timelog",
       "note": "Notes",
       "task": "Tasks",
       "planned_event": "Calendar"

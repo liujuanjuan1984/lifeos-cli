@@ -36,7 +36,7 @@ interface PlannedEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  event?: PlannedEvent | null;
+  plannedEvent?: PlannedEvent | null;
   initialDateInfo?: {
     start: Date;
     end: Date;
@@ -54,7 +54,7 @@ export default function PlannedEventModal({
   isOpen,
   onClose,
   onSave,
-  event,
+  plannedEvent,
   initialDateInfo,
   preloadedTasks,
   visions,
@@ -97,7 +97,9 @@ export default function PlannedEventModal({
     () => dimensionsRaw,
     [dimensionsRaw],
   );
-  const allowScopedEditing = Boolean(event?.is_recurring && event?.is_instance);
+  const allowScopedEditing = Boolean(
+    plannedEvent?.is_recurring && plannedEvent?.is_instance,
+  );
   const effectiveScope = allowScopedEditing ? editScope : "all";
 
   // Toast notifications
@@ -122,26 +124,26 @@ export default function PlannedEventModal({
     setError(null);
 
     const nextFormData = buildPlannedEventFormData({
-      event,
+      plannedEvent,
       initialDateInfo,
     });
     initialFormDataRef.current = nextFormData;
     setFormData(nextFormData);
 
-    if (event) {
-      setSelectedTaskId(event.task_id || null);
+    if (plannedEvent) {
+      setSelectedTaskId(plannedEvent.task_id || null);
     } else {
       setSelectedTaskId(null);
     }
 
-    if (event?.is_recurring && event?.is_instance) {
+    if (plannedEvent?.is_recurring && plannedEvent?.is_instance) {
       setEditScope("single");
     } else {
       setEditScope("all");
     }
 
     initializedRef.current = true;
-  }, [isOpen, dimsFromCache, event, initialDateInfo, setError]);
+  }, [isOpen, dimsFromCache, plannedEvent, initialDateInfo, setError]);
 
   // Memoize preloadedTasks to prevent unnecessary re-renders
   const stablePreloadedTasks = useMemo(
@@ -167,9 +169,9 @@ export default function PlannedEventModal({
   );
 
   const occurrenceDateLabel = useMemo(() => {
-    if (!event?.start_time) return "";
-    return formatDateTime(event.start_time, resolvedTimezone);
-  }, [event?.start_time, resolvedTimezone]);
+    if (!plannedEvent?.start_time) return "";
+    return formatDateTime(plannedEvent.start_time, resolvedTimezone);
+  }, [plannedEvent?.start_time, resolvedTimezone]);
 
   /**
    * Handle form input changes
@@ -319,8 +321,8 @@ export default function PlannedEventModal({
    * Handle form submission
    */
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (formEvent: React.FormEvent) => {
+      formEvent.preventDefault();
 
       if (!formData.title.trim()) {
         setError(t("eventModal.errors.titleRequired"));
@@ -336,7 +338,7 @@ export default function PlannedEventModal({
 
       try {
         await withLoading(async () => {
-          if (event) {
+          if (plannedEvent) {
             const payload: PlannedEventUpdate = buildPlannedEventUpdatePayload(
               initialFormDataRef.current ?? createEmptyPlannedEventFormData(),
               formData,
@@ -352,20 +354,19 @@ export default function PlannedEventModal({
               return;
             }
 
-            // Update existing event
             await plannedEventsApi.update(
-              event.id,
+              plannedEvent.id,
               payload,
-              event.is_recurring
+              plannedEvent.is_recurring
                 ? {
                     updateType: effectiveScope,
                     instanceId:
                       allowScopedEditing && effectiveScope !== "all"
-                        ? event.instance_id
+                        ? plannedEvent.instance_id
                         : undefined,
                     instanceStart:
                       allowScopedEditing && effectiveScope !== "all"
-                        ? event.start_time
+                        ? plannedEvent.start_time
                         : undefined,
                   }
                 : undefined,
@@ -377,7 +378,6 @@ export default function PlannedEventModal({
               t("eventModal.success.updateMessage", { title: formData.title }),
             );
           } else {
-            // Create new event
             await plannedEventsApi.create(formData);
 
             // 显示成功提示
@@ -405,7 +405,7 @@ export default function PlannedEventModal({
     },
     [
       formData,
-      event,
+      plannedEvent,
       withLoading,
       toast,
       onSave,
@@ -421,20 +421,21 @@ export default function PlannedEventModal({
    */
   const handleDelete = useCallback(
     async (type: "single" | "all_future" | "all") => {
-      if (!event) return;
+      if (!plannedEvent) return;
 
       try {
         await withLoading(async () => {
           // Call delete API with delete type
-          const requiresInstanceContext = event.is_recurring && type !== "all";
-          await plannedEventsApi.delete(event.id, {
+          const requiresInstanceContext =
+            plannedEvent.is_recurring && type !== "all";
+          await plannedEventsApi.delete(plannedEvent.id, {
             deleteType: type,
             instanceId:
-              requiresInstanceContext && event.is_instance
-                ? event.instance_id
+              requiresInstanceContext && plannedEvent.is_instance
+                ? plannedEvent.instance_id
                 : undefined,
             instanceStart: requiresInstanceContext
-              ? event.start_time
+              ? plannedEvent.start_time
               : undefined,
           });
 
@@ -449,7 +450,7 @@ export default function PlannedEventModal({
             t("eventModal.success.deleteTitle"),
             t("eventModal.success.deleteMessage", {
               type: deleteTypeText,
-              title: event.title,
+              title: plannedEvent.title,
             }),
           );
 
@@ -472,23 +473,21 @@ export default function PlannedEventModal({
         setShowDeleteConfirm(false);
       }
     },
-    [event, withLoading, onSave, onClose, toast, setError, t],
+    [plannedEvent, withLoading, onSave, onClose, toast, setError, t],
   );
 
   /**
    * Handle delete button click
    */
   const handleDeleteClick = useCallback(() => {
-    if (!event) return; // Only existing events can be deleted
+    if (!plannedEvent) return;
 
-    if (event.is_recurring) {
-      // Show delete options for recurring events
+    if (plannedEvent.is_recurring) {
       setShowDeleteConfirm(true);
     } else {
-      // Direct delete for non-recurring events
       handleDelete("single");
     }
-  }, [event, handleDelete]);
+  }, [plannedEvent, handleDelete]);
 
   // Optimize delete button click handler for delete confirm
   const handleDeleteConfirm = useCallback(() => {
@@ -517,7 +516,7 @@ export default function PlannedEventModal({
       isOpen={isOpen}
       onClose={attemptClose}
       closeDisabled={loading}
-      header={event ? t("common.edit") : t("eventModal.title.create")}
+      header={plannedEvent ? t("common.edit") : t("eventModal.title.create")}
       loading={loading}
       error={error}
       onErrorDismiss={handleErrorDismiss}
@@ -532,7 +531,7 @@ export default function PlannedEventModal({
           onCancel={onClose}
           onSubmit={() => document.querySelector("form")?.requestSubmit()}
           leftSlot={
-            event ? (
+            plannedEvent ? (
               <DeleteButton onClick={handleDeleteClick} disabled={loading} />
             ) : undefined
           }
@@ -579,7 +578,7 @@ export default function PlannedEventModal({
             <DimensionSelect
               value={formData.dimension_id ?? null}
               onChange={handleDimensionChange}
-              id="event-modal-dimension"
+              id="planned-event-modal-dimension"
               showNoneOption
               clearBehavior="none"
             />
@@ -756,7 +755,7 @@ export default function PlannedEventModal({
         >
           <p className="text-sm sm:text-base leading-relaxed mb-3 sm:mb-4">
             {t("eventModal.deleteConfirm.description", {
-              title: event?.title,
+              title: plannedEvent?.title,
             })}
           </p>
 

@@ -67,7 +67,7 @@ class NoteCreate(BaseModel):
     person_ids: list[UUID] | None = None
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
-    actual_event_ids: list[UUID] | None = None
+    timelog_ids: list[UUID] | None = None
 
 
 class NoteUpdate(BaseModel):
@@ -77,7 +77,7 @@ class NoteUpdate(BaseModel):
     person_ids: list[UUID] | None = None
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
-    actual_event_ids: list[UUID] | None = None
+    timelog_ids: list[UUID] | None = None
 
 
 class TagCreate(BaseModel):
@@ -213,7 +213,7 @@ class TimelogBatchPeopleUpdate(BaseModel):
 class TimelogBatchUpdate(BaseModel):
     """Payload for updating multiple timelogs from the Web UI."""
 
-    event_ids: list[UUID]
+    timelog_ids: list[UUID]
     update_type: str
     title: TimelogBatchTitleUpdate | None = None
     task: TimelogBatchTaskUpdate | None = None
@@ -222,7 +222,7 @@ class TimelogBatchUpdate(BaseModel):
 
 
 class PlannedEventCreate(BaseModel):
-    """Frontend-compatible planned event creation payload backed by LifeOS events."""
+    """Frontend-compatible planned event creation payload backed by LifeOS Event records."""
 
     title: str
     start_time: datetime
@@ -240,7 +240,7 @@ class PlannedEventCreate(BaseModel):
 
 
 class PlannedEventUpdate(BaseModel):
-    """Frontend-compatible planned event update payload backed by LifeOS events."""
+    """Frontend-compatible planned event update payload backed by LifeOS Event records."""
 
     title: str | None = None
     start_time: datetime | None = None

@@ -206,19 +206,19 @@ export const timelogsApi = {
     );
   },
 
-  batchCreate: (events: TimelogCreate[]) => {
-    const cleanedEvents = events.map((event) =>
-      DataCleaner.create(toTimelogPayload(event)),
+  batchCreate: (timelogs: TimelogCreate[]) => {
+    const cleanedTimelogs = timelogs.map((timelog) =>
+      DataCleaner.create(toTimelogPayload(timelog)),
     );
 
     return Promise.all(
-      cleanedEvents.map((event) =>
-        http.post<Timelog>(ENDPOINTS.TIMELOGS.BASE, event),
+      cleanedTimelogs.map((timelog) =>
+        http.post<Timelog>(ENDPOINTS.TIMELOGS.BASE, timelog),
       ),
-    ).then((createdEvents) => ({
-      created_count: createdEvents.length,
+    ).then((createdTimelogs) => ({
+      created_count: createdTimelogs.length,
       failed_count: 0,
-      created_events: createdEvents,
+      created_timelogs: createdTimelogs,
       errors: [],
     }));
   },
@@ -313,7 +313,7 @@ export const timelogsApi = {
   },
 
   batchUpdate: (params: {
-    event_ids: UUID[];
+    timelog_ids: UUID[];
     update_type: "persons" | "title" | "task" | "dimension";
     persons?: {
       mode: "add" | "replace" | "clear";

@@ -611,7 +611,7 @@ def test_web_timelog_batch_task_replace_maps_to_lifeos_task_update(
     response = asyncio.run(
         timelogs.batch_update_timelogs(
             TimelogBatchUpdate(
-                event_ids=[timelog_id],
+                timelog_ids=[timelog_id],
                 update_type="task",
                 task=TimelogBatchTaskUpdate(mode="replace", task_id=task_id),
             ),
@@ -709,7 +709,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
                 tag_ids=[tag_id],
                 person_ids=[person_id],
                 task_id=task_id,
-                actual_event_ids=[timelog_id],
+                timelog_ids=[timelog_id],
             ),
             cast(AsyncSession, object()),
         )

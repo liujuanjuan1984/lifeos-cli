@@ -117,7 +117,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         }
 
         const updateParams: {
-          event_ids: UUID[];
+          timelog_ids: UUID[];
           update_type: EditMode;
           persons?: { mode: "add" | "replace" | "clear"; person_ids: UUID[] };
           title?: {
@@ -128,7 +128,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
           task?: { mode: "replace" | "clear"; task_id?: UUID };
           dimension?: { dimension_id: UUID | null };
         } = {
-          event_ids: batchIds,
+          timelog_ids: batchIds,
           update_type: editMode,
         };
 

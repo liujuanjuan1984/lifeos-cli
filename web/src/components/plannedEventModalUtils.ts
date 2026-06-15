@@ -61,28 +61,28 @@ export const createEmptyPlannedEventFormData = (): PlannedEventCreate => ({
 });
 
 export const buildPlannedEventFormData = ({
-  event,
+  plannedEvent,
   initialDateInfo,
 }: {
-  event?: PlannedEvent | null;
+  plannedEvent?: PlannedEvent | null;
   initialDateInfo?: PlannedEventInitialDateInfo | null;
 }): PlannedEventCreate => {
-  if (event) {
+  if (plannedEvent) {
     return {
-      title: event.title,
-      start_time: event.start_time,
-      end_time: event.end_time || "",
-      priority: event.priority,
-      dimension_id: event.dimension_id,
-      task_id: event.task_id || null,
-      is_all_day: event.is_all_day,
-      is_recurring: event.is_recurring,
-      recurrence_pattern: event.recurrence_pattern ?? undefined,
-      rrule_string: event.rrule_string || "",
-      status: event.status,
-      tags: event.tags ? [...event.tags] : [],
-      extra_data: event.extra_data ?? undefined,
-      person_ids: event.persons?.map((person) => person.id) || [],
+      title: plannedEvent.title,
+      start_time: plannedEvent.start_time,
+      end_time: plannedEvent.end_time || "",
+      priority: plannedEvent.priority,
+      dimension_id: plannedEvent.dimension_id,
+      task_id: plannedEvent.task_id || null,
+      is_all_day: plannedEvent.is_all_day,
+      is_recurring: plannedEvent.is_recurring,
+      recurrence_pattern: plannedEvent.recurrence_pattern ?? undefined,
+      rrule_string: plannedEvent.rrule_string || "",
+      status: plannedEvent.status,
+      tags: plannedEvent.tags ? [...plannedEvent.tags] : [],
+      extra_data: plannedEvent.extra_data ?? undefined,
+      person_ids: plannedEvent.persons?.map((person) => person.id) || [],
     };
   }
 

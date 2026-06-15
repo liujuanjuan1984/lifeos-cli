@@ -1378,7 +1378,7 @@
     },
     "activityTypes": {
       "vision": "愿景管理",
-      "actual_event": "时间跟踪",
+      "timelog": "时间跟踪",
       "note": "快速笔记",
       "task": "任务",
       "planned_event": "日程安排"

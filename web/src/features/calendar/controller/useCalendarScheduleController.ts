@@ -5,9 +5,9 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type {
-  DateSelectArg,
-  EventClickArg,
-  EventInput,
+  DateSelectArg as FullCalendarDateSelectArg,
+  EventClickArg as FullCalendarEventClickArg,
+  EventInput as FullCalendarScheduleInput,
 } from "@fullcalendar/core";
 import { plannedEventsApi } from "@/services/api/plannedEvents";
 import { timelogsApi } from "@/services/api/timelogs";
@@ -27,7 +27,7 @@ interface SelectedDateInfo {
   allDay: boolean;
 }
 
-interface UseCalendarEventsControllerParams {
+interface UseCalendarScheduleControllerParams {
   startISO: string | null;
   endISO: string | null;
   showPlannedEvents: boolean;
@@ -39,23 +39,23 @@ interface UseCalendarEventsControllerParams {
   timezone: string;
 }
 
-interface UseCalendarEventsControllerResult {
-  events: EventInput[];
+interface UseCalendarScheduleControllerResult {
+  scheduleEntries: FullCalendarScheduleInput[];
   loading: boolean;
   error: string | null;
-  showEventModal: boolean;
-  eventModalProps: {
+  showPlannedEventModal: boolean;
+  plannedEventModalProps: {
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
-    event: PlannedEvent | null;
+    plannedEvent: PlannedEvent | null;
     initialDateInfo: SelectedDateInfo | null;
     preloadedTasks: ApiTask[];
     visions: Vision[];
     timezone: string;
   };
-  handleDateSelect: (selectInfo: DateSelectArg) => void;
-  handleEventClick: (clickInfo: EventClickArg) => void;
+  handleDateSelect: (selectInfo: FullCalendarDateSelectArg) => void;
+  handlePlannedEventClick: (clickInfo: FullCalendarEventClickArg) => void;
 }
 
 const getQueryErrorMessage = (
@@ -68,7 +68,7 @@ const getQueryErrorMessage = (
   return String(query.error);
 };
 
-export function useCalendarEventsController({
+export function useCalendarScheduleController({
   startISO,
   endISO,
   showPlannedEvents,
@@ -78,10 +78,11 @@ export function useCalendarEventsController({
   preloadedTasks,
   visions,
   timezone,
-}: UseCalendarEventsControllerParams): UseCalendarEventsControllerResult {
+}: UseCalendarScheduleControllerParams): UseCalendarScheduleControllerResult {
   const queryClient = useQueryClient();
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<PlannedEvent | null>(null);
+  const [showPlannedEventModal, setShowPlannedEventModal] = useState(false);
+  const [selectedPlannedEvent, setSelectedPlannedEvent] =
+    useState<PlannedEvent | null>(null);
   const [selectedDateInfo, setSelectedDateInfo] =
     useState<SelectedDateInfo | null>(null);
 
@@ -131,58 +132,58 @@ export function useCalendarEventsController({
   const planned = useMemo(() => plannedQuery.data ?? [], [plannedQuery.data]);
   const timelogs = useMemo(() => timelogQuery.data ?? [], [timelogQuery.data]);
 
-  const events = useMemo(() => {
-    const plannedMapped: EventInput[] = (showPlannedEvents ? planned : []).map(
-      (event, index) => {
-        const hasTask = event.task_id != null;
-        return {
-          id: event.is_instance
-            ? `planned-${event.master_event_id || event.id}-instance-${event.start_time}-${index}`
-            : `planned-${event.id}`,
-          title: hasTask
-            ? `${taskIndicatorLabel}: ${event.title}`
-            : event.title,
-          start: event.start_time,
-          end: event.end_time || undefined,
-          allDay: event.is_all_day,
-          classNames: hasTask
-            ? ["planned-event", "task-linked"]
-            : ["planned-event"],
-          extendedProps: {
-            type: "planned",
-            originalEvent: event,
-            priority: event.priority,
-            isRecurring: event.is_recurring,
-            tags: event.tags,
-            hasTask,
-            taskId: event.task_id,
-          },
-        } as EventInput;
-      },
-    );
-
-    const timelogMapped: EventInput[] = (showTimelogs ? timelogs : []).map(
-      (timelog, index) => ({
-        id: `timelog-${timelog.id}-${timelog.start_time}-${index}`,
-        title: timelog.title,
-        start: timelog.start_time,
-        end: timelog.end_time || undefined,
-        allDay: false,
-        classNames: ["timelog-event"],
+  const scheduleEntries = useMemo(() => {
+    const plannedEventInputs: FullCalendarScheduleInput[] = (
+      showPlannedEvents ? planned : []
+    ).map((plannedEvent, index) => {
+      const hasTask = plannedEvent.task_id != null;
+      return {
+        id: plannedEvent.is_instance
+          ? `planned-${plannedEvent.master_event_id || plannedEvent.id}-instance-${plannedEvent.start_time}-${index}`
+          : `planned-${plannedEvent.id}`,
+        title: hasTask
+          ? `${taskIndicatorLabel}: ${plannedEvent.title}`
+          : plannedEvent.title,
+        start: plannedEvent.start_time,
+        end: plannedEvent.end_time || undefined,
+        allDay: plannedEvent.is_all_day,
+        classNames: hasTask
+          ? ["planned-event", "task-linked"]
+          : ["planned-event"],
         extendedProps: {
-          type: "timelog",
-          originalEvent: timelog,
-          location: timelog.location,
-          trackingMethod: timelog.tracking_method,
-          energyLevel: timelog.energy_level,
-          notes: timelog.notes,
-          tags: timelog.tags,
-          dimensionId: timelog.dimension_id,
+          entryType: "planned",
+          originalPlannedEvent: plannedEvent,
+          priority: plannedEvent.priority,
+          isRecurring: plannedEvent.is_recurring,
+          tags: plannedEvent.tags,
+          hasTask,
+          taskId: plannedEvent.task_id,
         },
-      }),
-    );
+      } as FullCalendarScheduleInput;
+    });
 
-    return [...plannedMapped, ...timelogMapped];
+    const timelogInputs: FullCalendarScheduleInput[] = (
+      showTimelogs ? timelogs : []
+    ).map((timelog, index) => ({
+      id: `timelog-${timelog.id}-${timelog.start_time}-${index}`,
+      title: timelog.title,
+      start: timelog.start_time,
+      end: timelog.end_time || undefined,
+      allDay: false,
+      classNames: ["timelog-event"],
+      extendedProps: {
+        entryType: "timelog",
+        originalTimelog: timelog,
+        location: timelog.location,
+        trackingMethod: timelog.tracking_method,
+        energyLevel: timelog.energy_level,
+        notes: timelog.notes,
+        tags: timelog.tags,
+        dimensionId: timelog.dimension_id,
+      },
+    }));
+
+    return [...plannedEventInputs, ...timelogInputs];
   }, [
     planned,
     showTimelogs,
@@ -191,34 +192,36 @@ export function useCalendarEventsController({
     timelogs,
   ]);
 
-  const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
+  const handleDateSelect = useCallback((selectInfo: FullCalendarDateSelectArg) => {
     setSelectedDateInfo({
       start: selectInfo.start,
       end: selectInfo.end,
       allDay: selectInfo.allDay,
     });
-    setSelectedEvent(null);
-    setShowEventModal(true);
+    setSelectedPlannedEvent(null);
+    setShowPlannedEventModal(true);
   }, []);
 
-  const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-    const eventType = clickInfo.event.extendedProps.type;
-    const originalEvent = clickInfo.event.extendedProps.originalEvent;
+  const handlePlannedEventClick = useCallback((clickInfo: FullCalendarEventClickArg) => {
+    const fullCalendarEntry = clickInfo.event;
+    const entryType = fullCalendarEntry.extendedProps.entryType;
+    const originalPlannedEvent =
+      fullCalendarEntry.extendedProps.originalPlannedEvent;
 
-    if (eventType === "planned") {
-      setSelectedEvent(originalEvent as PlannedEvent);
+    if (entryType === "planned") {
+      setSelectedPlannedEvent(originalPlannedEvent as PlannedEvent);
       setSelectedDateInfo(null);
-      setShowEventModal(true);
+      setShowPlannedEventModal(true);
     }
   }, []);
 
   const handleModalClose = useCallback(() => {
-    setShowEventModal(false);
-    setSelectedEvent(null);
+    setShowPlannedEventModal(false);
+    setSelectedPlannedEvent(null);
     setSelectedDateInfo(null);
   }, []);
 
-  const handleEventSaved = useCallback(() => {
+  const handlePlannedEventSaved = useCallback(() => {
     void invalidatePlannedEventLists(queryClient);
     handleModalClose();
   }, [handleModalClose, queryClient]);
@@ -231,36 +234,36 @@ export function useCalendarEventsController({
     );
   }, [plannedQuery, timelogQuery]);
 
-  const eventModalProps = useMemo(
+  const plannedEventModalProps = useMemo(
     () => ({
-      isOpen: showEventModal,
+      isOpen: showPlannedEventModal,
       onClose: handleModalClose,
-      onSave: handleEventSaved,
-      event: selectedEvent,
+      onSave: handlePlannedEventSaved,
+      plannedEvent: selectedPlannedEvent,
       initialDateInfo: selectedDateInfo,
       preloadedTasks,
       visions,
       timezone,
     }),
     [
-      handleEventSaved,
+      handlePlannedEventSaved,
       handleModalClose,
       preloadedTasks,
       selectedDateInfo,
-      selectedEvent,
-      showEventModal,
+      selectedPlannedEvent,
+      showPlannedEventModal,
       timezone,
       visions,
     ],
   );
 
   return {
-    events,
+    scheduleEntries,
     loading: plannedQuery.isFetching || timelogQuery.isFetching,
     error,
-    showEventModal,
-    eventModalProps,
+    showPlannedEventModal,
+    plannedEventModalProps,
     handleDateSelect,
-    handleEventClick,
+    handlePlannedEventClick,
   };
 }

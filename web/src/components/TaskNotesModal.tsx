@@ -79,7 +79,7 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
     if (entityType === "task") {
       return { task_id: task?.id } as const;
     }
-    return { actual_event_id: timelog?.id } as const;
+    return { timelog_id: timelog?.id } as const;
   }, [entityType, task?.id, timelog?.id]);
 
   const { notes, isLoading, error, refetch } = useAssociatedNotesController({

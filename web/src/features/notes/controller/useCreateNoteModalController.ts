@@ -231,8 +231,8 @@ export function useCreateNoteModalController({
         t("createNoteModal.messages.noteCreateSuccessMessage"),
       );
       const timelogIds = new Set<UUID>();
-      if (variables?.actual_event_ids) {
-        variables.actual_event_ids.forEach((id) => timelogIds.add(id));
+      if (variables?.timelog_ids) {
+        variables.timelog_ids.forEach((id) => timelogIds.add(id));
       }
       createdNote?.timelogs?.forEach((timelog) =>
         timelogIds.add(timelog.id),
@@ -294,7 +294,7 @@ export function useCreateNoteModalController({
       updatedNote?.timelogs?.forEach((timelog) =>
         timelogIds.add(timelog.id),
       );
-      const payloadTimelogIds = variables?.noteData?.actual_event_ids ?? [];
+      const payloadTimelogIds = variables?.noteData?.timelog_ids ?? [];
       payloadTimelogIds.forEach((id) => timelogIds.add(id));
 
       const taskIds = new Set<UUID>();
@@ -388,7 +388,7 @@ export function useCreateNoteModalController({
               : selectedTaskId
                 ? selectedTaskId
                 : undefined,
-          actual_event_ids: selectedTimelogIds,
+          timelog_ids: selectedTimelogIds,
         };
         updateNoteMutation.mutate({ noteId: existingNote.id, noteData });
         return;
@@ -404,7 +404,7 @@ export function useCreateNoteModalController({
             : selectedTaskId
               ? selectedTaskId
               : undefined,
-        actual_event_ids:
+        timelog_ids:
           selectedTimelogIds.length > 0
             ? selectedTimelogIds
             : undefined,

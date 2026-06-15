@@ -108,8 +108,8 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
         badgeClass: "text-info bg-info/10",
         icon: "calendar" as const,
       },
-      actual_event: {
-        label: t("persons.activityTypes.actual_event"),
+      timelog: {
+        label: t("persons.activityTypes.timelog"),
         badgeClass: "text-warning bg-warning/20",
         icon: "timer" as const,
       },
@@ -132,8 +132,8 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
         label: activityTypeMeta.planned_event.label,
       },
       {
-        value: "actual_event" as const,
-        label: activityTypeMeta.actual_event.label,
+        value: "timelog" as const,
+        label: activityTypeMeta.timelog.label,
       },
       { value: "vision" as const, label: activityTypeMeta.vision.label },
     ],

@@ -36,7 +36,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
 def _timelog_payload(timelog: object) -> dict[str, object]:
-    """Expose LifeOS area fields with frontend actual-event dimension names."""
+    """Expose LifeOS area fields with frontend timelog dimension names."""
     payload = to_jsonable(timelog)
     if not isinstance(payload, dict):
         raise TypeError("Timelog serialization did not produce a dictionary.")
@@ -252,7 +252,7 @@ async def batch_update_timelogs(
         if payload.persons.mode == "add":
             return await _batch_add_timelog_people(
                 session,
-                timelog_ids=payload.event_ids,
+                timelog_ids=payload.timelog_ids,
                 person_ids=payload.persons.person_ids,
             )
         changes = TimelogUpdateInput(
@@ -267,7 +267,7 @@ async def batch_update_timelogs(
     try:
         result = await timelog_services.batch_update_timelogs(
             session,
-            timelog_ids=payload.event_ids,
+            timelog_ids=payload.timelog_ids,
             changes=TimelogBatchUpdateInput(
                 title=title,
                 find_title_text=find_title_text,
