@@ -115,6 +115,9 @@ export type ActualEventListResponse = ListResponse<
 
 export type ActualEventAdvancedSearchResponse = ActualEventListResponse;
 
+const TIMELOG_PAGE_SIZE = 500;
+const MAX_TIMELOG_RANGE_PAGES = 100;
+
 function toTimelogPayload(
   payload: ActualEventCreate | ActualEventUpdate,
 ): Record<string, unknown> {
@@ -133,12 +136,67 @@ function toTimelogPayload(
 }
 
 export const actualEventsApi = {
-  fetchRange: (start: string, end: string, trackingMethod?: string) =>
-    http.get<ActualEventListResponse>(ENDPOINTS.TIMELOGS.BASE, {
-      window_start: start,
-      window_end: end,
-      tracking_method: trackingMethod,
-    }),
+  fetchRange: async (start: string, end: string, trackingMethod?: string) => {
+    const items: ActualEvent[] = [];
+    let firstResponse: ActualEventListResponse | null = null;
+    let page = 1;
+    let totalCount = 0;
+    let totalPages = 0;
+
+    while (page <= MAX_TIMELOG_RANGE_PAGES) {
+      const response = await http.get<ActualEventListResponse>(
+        ENDPOINTS.TIMELOGS.BASE,
+        {
+          window_start: start,
+          window_end: end,
+          tracking_method: trackingMethod,
+          page,
+          size: TIMELOG_PAGE_SIZE,
+        },
+      );
+
+      firstResponse ??= response;
+      items.push(...response.items);
+      totalPages = response.pagination?.pages ?? 0;
+      totalCount = response.pagination?.total ?? items.length;
+      const backendTruncated = response.meta?.truncated === true;
+
+      if (items.length >= totalCount) break;
+      if (totalPages > 0 && page >= totalPages) break;
+      if (!backendTruncated && response.items.length < TIMELOG_PAGE_SIZE) break;
+
+      page += 1;
+    }
+
+    if (!firstResponse) {
+      return {
+        items: [],
+        pagination: { page: 1, size: 0, total: 0, pages: 0 },
+        meta: {
+          returned_count: 0,
+          total_count: 0,
+          truncated: false,
+        },
+      };
+    }
+
+    const truncated = items.length < totalCount;
+    return {
+      items,
+      pagination: {
+        page: 1,
+        size: items.length,
+        total: totalCount,
+        pages: truncated ? Math.max(totalPages, 1) : 1,
+      },
+      meta: {
+        ...firstResponse.meta,
+        returned_count: items.length,
+        total_count: totalCount,
+        truncated,
+      },
+    };
+  },
 
   create: (payload: ActualEventCreate) => {
     const cleanedData = DataCleaner.create(toTimelogPayload(payload));

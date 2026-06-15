@@ -51,12 +51,6 @@ def _timelog_payload(timelog: object) -> dict[str, object]:
     return payload
 
 
-def _normalize_query_window(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    return to_storage_timezone(value)
-
-
 async def _batch_add_timelog_people(
     session: AsyncSession,
     *,
@@ -126,8 +120,8 @@ async def list_timelogs(
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
-    normalized_window_start = _normalize_query_window(window_start)
-    normalized_window_end = _normalize_query_window(window_end)
+    normalized_window_start = to_storage_timezone(window_start) if window_start else None
+    normalized_window_end = to_storage_timezone(window_end) if window_end else None
     filters = TimelogQueryFilters(
         start_date=start_date,
         end_date=end_date,
