@@ -64,4 +64,9 @@ _keep(
     update_task_status,
     pagination,
     timestamp,
+    impl,
+    cache_ok,
+    load_dialect_impl,
+    process_bind_param,
+    process_result_value,
 )

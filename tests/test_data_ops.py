@@ -10,11 +10,12 @@ from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.backend_policy import backend_policy_for_drivername
 from lifeos_cli.db.services import data_ops
+from lifeos_cli.db.types import UTCDateTime
 
 
 class FakeBatchSession:
@@ -72,7 +73,7 @@ def test_batch_update_resource_parses_typed_timelog_fields(
 
 
 def test_parse_datetime_snapshot_values_normalizes_offsets_to_utc() -> None:
-    column = Column("start_time", DateTime(timezone=True))
+    column: Column[datetime] = Column("start_time", UTCDateTime())
 
     parsed = data_ops._parse_column_value(column, "2026-06-13T21:00:00-04:00")
 

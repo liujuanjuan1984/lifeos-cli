@@ -8,9 +8,19 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from lifeos_cli.config import clear_config_cache
+from lifeos_cli.db.base import Base
+from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services import events, task_effort, timelogs
+from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
 
 
@@ -25,6 +35,21 @@ async def _identity_timelog_view(_: object, timelog: object) -> object:
 def _set_timezone(monkeypatch: pytest.MonkeyPatch, timezone_name: str = "America/Toronto") -> None:
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_TIMEZONE", timezone_name)
+
+
+async def _create_sqlite_session_factory() -> tuple[
+    AsyncEngine,
+    async_sessionmaker[AsyncSession],
+]:
+    from lifeos_cli.db import models as db_models
+
+    assert db_models.Event is Event
+    engine = configure_async_engine(
+        create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    return engine, async_sessionmaker(engine, expire_on_commit=False, future=True)
 
 
 def test_create_event_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -457,52 +482,62 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
     session.commit.assert_not_called()
 
 
-def test_update_event_normalizes_existing_naive_times(monkeypatch: pytest.MonkeyPatch) -> None:
-    event = SimpleNamespace(
-        id=UUID("abababab-abab-abab-abab-abababababab"),
-        title="Naive stored appointment",
-        description=None,
-        start_time=datetime(2026, 6, 15, 10, 30),
-        end_time=datetime(2026, 6, 15, 11, 30),
-        priority=0,
-        status="planned",
-        event_type="appointment",
-        is_all_day=False,
-        recurrence_frequency=None,
-        recurrence_interval=None,
-        recurrence_count=None,
-        recurrence_until=None,
-        area_id=None,
-        task_id=None,
-    )
-    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
-
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
-        assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
-        return event
-
-    async def fake_apply_links(_: object, **__: object) -> None:
-        return None
-
-    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
+def test_sqlite_roundtrip_returns_utc_aware_datetimes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
-    monkeypatch.setattr(events, "_apply_event_links", fake_apply_links)
 
-    updated_event = asyncio.run(
-        events.update_event(
-            cast(Any, session),
-            event_id=UUID("abababab-abab-abab-abab-abababababab"),
-            changes=events.EventUpdateInput(
-                end_time=datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc),
-            ),
-        )
-    )
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                event = Event(
+                    title="SQLite appointment",
+                    start_time=datetime(
+                        2026,
+                        6,
+                        15,
+                        6,
+                        30,
+                        tzinfo=timezone(timedelta(hours=-4)),
+                    ),
+                    end_time=datetime(2026, 6, 15, 7, 30, tzinfo=timezone(timedelta(hours=-4))),
+                )
+                timelog = Timelog(
+                    title="SQLite work",
+                    start_time=utc_datetime(2026, 6, 15, 10, 30),
+                    end_time=utc_datetime(2026, 6, 15, 11, 0),
+                )
+                session.add_all([event, timelog])
+                await session.commit()
+                event_id = event.id
+                timelog_id = timelog.id
 
-    assert updated_event.start_time == datetime(2026, 6, 15, 10, 30)
-    assert updated_event.end_time == utc_datetime(2026, 6, 15, 12, 0)
-    session.flush.assert_awaited_once()
-    session.commit.assert_not_called()
+            async with session_factory() as session:
+                loaded_event = await session.get(Event, event_id)
+                loaded_timelog = await session.get(Timelog, timelog_id)
+
+                assert loaded_event is not None
+                assert loaded_timelog is not None
+                assert loaded_event.start_time == utc_datetime(2026, 6, 15, 10, 30)
+                assert loaded_event.end_time == utc_datetime(2026, 6, 15, 11, 30)
+                assert loaded_event.created_at.utcoffset() == timedelta(0)
+                assert loaded_timelog.start_time == utc_datetime(2026, 6, 15, 10, 30)
+                assert loaded_timelog.end_time.utcoffset() == timedelta(0)
+
+            async with session_factory() as session:
+                updated_event = await events.update_event(
+                    session,
+                    event_id=event_id,
+                    changes=events.EventUpdateInput(
+                        end_time=datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc),
+                    ),
+                )
+
+                assert updated_event.start_time == utc_datetime(2026, 6, 15, 10, 30)
+                assert updated_event.end_time == utc_datetime(2026, 6, 15, 12, 0)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
 
 
 def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPatch) -> None:

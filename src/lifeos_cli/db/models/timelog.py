@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, Uuid
+from sqlalchemy import ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
+from lifeos_cli.db.types import UTCDateTime
 
 
 class Timelog(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -22,10 +23,8 @@ class Timelog(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
-    )
-    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    start_time: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
+    end_time: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
     tracking_method: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
     location: Mapped[str | None] = mapped_column(String(200), nullable=True)
     energy_level: Mapped[int | None] = mapped_column(Integer, nullable=True)

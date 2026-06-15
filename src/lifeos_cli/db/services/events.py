@@ -283,17 +283,15 @@ def _resolve_event_times(
         to_storage_timezone(changes.start_time) if changes.start_time is not None else None
     )
     normalized_end_time = to_storage_timezone(changes.end_time) if changes.end_time else None
-    existing_start_time = normalize_storage_datetime(event.start_time)
-    existing_end_time = normalize_storage_datetime(event.end_time)
     next_start_time = (
-        normalized_start_time if normalized_start_time is not None else existing_start_time
+        normalized_start_time if normalized_start_time is not None else event.start_time
     )
     next_end_time = (
         None
         if changes.clear_end_time
         else normalized_end_time
         if normalized_end_time is not None
-        else existing_end_time
+        else event.end_time
     )
     validate_event_time_range(start_time=next_start_time, end_time=next_end_time)
     return normalized_start_time, normalized_end_time, next_start_time
@@ -308,7 +306,6 @@ def _resolve_event_recurrence_update(
     normalized_recurrence_until = (
         to_storage_timezone(changes.recurrence_until) if changes.recurrence_until else None
     )
-    existing_recurrence_until = normalize_storage_datetime(event.recurrence_until)
     next_recurrence_frequency = (
         None
         if changes.clear_recurrence
@@ -335,7 +332,7 @@ def _resolve_event_recurrence_update(
         if changes.clear_recurrence
         else normalized_recurrence_until
         if normalized_recurrence_until is not None
-        else existing_recurrence_until
+        else event.recurrence_until
     )
     return validate_event_recurrence(
         start_time=next_start_time,

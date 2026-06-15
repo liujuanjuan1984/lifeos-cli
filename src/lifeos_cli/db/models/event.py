@@ -8,7 +8,6 @@ from uuid import UUID
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -19,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
+from lifeos_cli.db.types import UTCDateTime
 
 
 class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -40,12 +40,8 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
-    )
-    end_time: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
-    )
+    start_time: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
+    end_time: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True, index=True)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="planned", index=True)
     event_type: Mapped[str] = mapped_column(String(20), nullable=False, default="appointment")
@@ -54,7 +50,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     recurrence_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)
     recurrence_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     recurrence_until: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
+        UTCDateTime(), nullable=True, index=True
     )
     area_id: Mapped[UUID | None] = mapped_column(
         Uuid,
@@ -71,9 +67,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         ForeignKey("events.id", ondelete="CASCADE"),
         nullable=True,
     )
-    recurrence_instance_start: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    recurrence_instance_start: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
     area = relationship("Area", foreign_keys=[area_id])
     task = relationship("Task", foreign_keys=[task_id])
