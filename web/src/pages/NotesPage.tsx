@@ -652,9 +652,6 @@ function NotesPage() {
         onTagUpdated={async () => {
           await refreshNoteTags();
         }}
-        loading={false}
-        error={null}
-        onErrorDismiss={() => {}}
       />
 
       <NotesBatchEditModal
