@@ -457,6 +457,54 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
     session.commit.assert_not_called()
 
 
+def test_update_event_normalizes_existing_naive_times(monkeypatch: pytest.MonkeyPatch) -> None:
+    event = SimpleNamespace(
+        id=UUID("abababab-abab-abab-abab-abababababab"),
+        title="Naive stored appointment",
+        description=None,
+        start_time=datetime(2026, 6, 15, 10, 30),
+        end_time=datetime(2026, 6, 15, 11, 30),
+        priority=0,
+        status="planned",
+        event_type="appointment",
+        is_all_day=False,
+        recurrence_frequency=None,
+        recurrence_interval=None,
+        recurrence_count=None,
+        recurrence_until=None,
+        area_id=None,
+        task_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+        assert event_id == UUID("abababab-abab-abab-abab-abababababab")
+        assert include_deleted is False
+        return event
+
+    async def fake_apply_links(_: object, **__: object) -> None:
+        return None
+
+    monkeypatch.setattr(events, "_get_event_model", fake_get_event)
+    monkeypatch.setattr(events, "_build_event_view", _identity_event_view)
+    monkeypatch.setattr(events, "_apply_event_links", fake_apply_links)
+
+    updated_event = asyncio.run(
+        events.update_event(
+            cast(Any, session),
+            event_id=UUID("abababab-abab-abab-abab-abababababab"),
+            changes=events.EventUpdateInput(
+                end_time=datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc),
+            ),
+        )
+    )
+
+    assert updated_event.start_time == datetime(2026, 6, 15, 10, 30)
+    assert updated_event.end_time == utc_datetime(2026, 6, 15, 12, 0)
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
 def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     event = SimpleNamespace(
         id=UUID("abababab-abab-abab-abab-abababababab"),
