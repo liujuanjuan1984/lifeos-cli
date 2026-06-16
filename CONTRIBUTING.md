@@ -57,12 +57,17 @@ If you change dependency or release workflows, also run:
 
 ```bash
 bash ./scripts/dependency_health.sh
+bash ./scripts/web_dependency_health.sh
 ```
 
 Dependency maintenance policy:
 
-- `.github/dependabot.yml` opens a single weekly grouped version-update PR for `uv`.
-- `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for outdated packages and dependency-related health checks.
+- `.github/dependabot.yml` opens separate weekly version-update PRs for the root `uv` backend workspace and the `web/` npm frontend workspace.
+- Backend dependency updates use the `backend` and `dependencies` labels.
+- Frontend dependency updates use the `frontend` and `dependencies` labels, with runtime and tooling dependency groups kept separate inside the npm workspace.
+- `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for Python outdated packages and dependency-related health checks.
+- `bash ./scripts/web_dependency_health.sh` remains the explicit maintainer audit flow for frontend outdated packages and dependency-related health checks.
+- `.github/workflows/frontend-dependency-audit.yml` runs a weekly frontend audit and opens a draft PR when non-force `npm audit fix --package-lock-only` produces changes for `web/package-lock.json` or `web/package.json`.
 
 Static-analysis governance:
 
