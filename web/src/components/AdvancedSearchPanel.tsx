@@ -181,6 +181,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
       expandFilterForSelected: true,
       showSpecialOptions: true,
       preloadedTasks,
+      clearBehavior: "all" as const,
     };
   }, [taskSelectorValue, t, stableFilterStatus, preloadedTasks]);
 

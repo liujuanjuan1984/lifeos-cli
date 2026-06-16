@@ -43,6 +43,7 @@ interface TaskSelectorProps {
   usePortal?: boolean;
   showSpecialOptions?: boolean;
   showNoTaskOption?: boolean;
+  clearBehavior?: "none" | "all" | "preserve";
 }
 
 type TaskOptionMeta =
@@ -158,6 +159,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
   usePortal = true,
   showSpecialOptions = false,
   showNoTaskOption = true,
+  clearBehavior = "none",
 }) => {
   const { t } = useTranslation();
   const { visions } = useVisions();
@@ -200,6 +202,14 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
     (selected: SelectorValue) => {
       const normalized = asSelectorString(selected);
       if (!normalized) {
+        if (clearBehavior === "preserve") {
+          return;
+        }
+        if (clearBehavior === "all") {
+          onChange(SPECIAL_ALL_ID);
+          onTaskSelect?.(null, undefined);
+          return;
+        }
         onChange(null);
         onTaskSelect?.(null, undefined);
         return;
@@ -230,7 +240,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
       onChange(normalized as UUID);
       onTaskSelect?.(null, undefined);
     },
-    [onChange, onTaskSelect, optionLookup, visionMap],
+    [clearBehavior, onChange, onTaskSelect, optionLookup, visionMap],
   );
 
   const renderOption = useCallback(

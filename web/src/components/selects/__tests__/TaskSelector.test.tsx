@@ -150,6 +150,39 @@ describe("TaskSelector", () => {
     onChange(SelectorSpecialValue.None);
     expect(handleChange).toHaveBeenLastCalledWith(null);
     expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
+
+    onChange(SelectorSpecialValue.All);
+    expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.All);
+    expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
+  });
+
+  it("can map empty selection to the all special value", () => {
+    const handleChange = vi.fn();
+    const handleTaskSelect = vi.fn();
+    const Component = getTaskSelector();
+
+    renderWithProviders(
+      <Component
+        value={null}
+        onChange={handleChange}
+        onTaskSelect={handleTaskSelect}
+        preloadedTasks={preloadedTasks}
+        filterStatus={["todo"]}
+        showSpecialOptions
+        showNoTaskOption
+        clearBehavior="all"
+      />,
+    );
+
+    const props = mockAsyncSelect.mock.calls.at(-1)?.[0] as Record<
+      string,
+      unknown
+    >;
+    const onChange = props.onChange as (value: string | undefined) => void;
+
+    onChange(undefined);
+    expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.All);
+    expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
   });
 
   it("loads additional task pages from the server on demand", async () => {

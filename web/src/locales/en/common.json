@@ -1644,7 +1644,7 @@
     "noResults": "No matching tasks found",
     "loadMore": "Load more tasks",
     "specialOptions": {
-      "allTasks": "All tasks"
+      "allTasks": "All"
     }
   },
   "errorBoundary": {
