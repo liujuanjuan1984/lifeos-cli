@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateTimelogList } from "@/services/api/cacheInvalidation/timelogs";
 import { timelogsApi } from "@/services/api/timelogs";
@@ -73,6 +73,17 @@ export const useTimeLogData = ({
   const [advancedSearchResults, setAdvancedSearchResults] = useState<
     ProcessedEntry[]
   >([]);
+
+  useEffect(() => {
+    if (queryMode === "advanced") {
+      return;
+    }
+
+    setSelectedEntryIds(new Set());
+    setIsSelectMode(false);
+    setDeletingEntryCount(0);
+    setAdvancedSearchResults([]);
+  }, [queryMode]);
 
   // Query for single day entries
   const {
