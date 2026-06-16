@@ -202,6 +202,52 @@ def test_web_timelog_without_area_filter_maps_to_lifeos_without_area(
     assert response.meta["without_area"] is True
 
 
+def test_web_timelog_without_task_filter_maps_to_lifeos_without_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    captured: dict[str, TimelogListInput | TimelogQueryFilters] = {}
+
+    async def fake_count_timelogs(_session: object, *, filters: TimelogQueryFilters) -> int:
+        captured["count_filters"] = filters
+        return 0
+
+    async def fake_list_timelogs(_session: object, *, query: TimelogListInput) -> list[object]:
+        captured["list_query"] = query
+        return []
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "count_timelogs",
+        fake_count_timelogs,
+    )
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "list_timelogs",
+        fake_list_timelogs,
+    )
+
+    response = asyncio.run(
+        timelogs.list_timelogs(
+            cast(AsyncSession, object()),
+            page=1,
+            size=50,
+            without_task=True,
+        )
+    )
+
+    count_filters = captured["count_filters"]
+    list_query = captured["list_query"]
+    assert isinstance(count_filters, TimelogQueryFilters)
+    assert isinstance(list_query, TimelogListInput)
+    assert count_filters.without_task is True
+    assert list_query.filters.without_task is True
+    assert response.meta["without_task"] is True
+
+
 def test_web_timelog_window_filters_map_to_lifeos_window_filters(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -276,6 +322,24 @@ def test_web_timelog_rejects_mixed_date_and_window_filters() -> None:
     assert "Use either start_date/end_date or window_start/window_end" in str(
         getattr(exc_info.value, "detail", "")
     )
+
+
+def test_web_timelog_rejects_task_id_with_without_task() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                task_id=UUID("11111111-1111-1111-1111-111111111111"),
+                without_task=True,
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use either task_id or without_task" in str(getattr(exc_info.value, "detail", ""))
 
 
 def test_web_timelog_rejects_partial_date_filter() -> None:

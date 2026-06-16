@@ -95,6 +95,17 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
       >
         advanced-set-no-area
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onParamsChange({
+            ...params,
+            task_id: null,
+          })
+        }
+      >
+        advanced-set-no-task
+      </button>
       <button type="button" onClick={onBatchDelete}>
         advanced-batch-delete
       </button>
@@ -405,6 +416,23 @@ describe("TimeLogPage", () => {
       expect.objectContaining({
         area_id: null,
         area_name: null,
+      }),
+    );
+  });
+
+  it("sends explicit null task filter in advanced search", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TimeLogPage />);
+
+    await user.click(screen.getByText("switch-advanced"));
+    await user.click(screen.getByText("advanced-set-no-task"));
+    await user.click(screen.getByText("advanced-search"));
+
+    await waitFor(() => expect(advancedSearchMock.search).toHaveBeenCalled());
+    expect(advancedSearchMock.search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        task_id: null,
       }),
     );
   });
