@@ -43,7 +43,7 @@ interface TaskSelectorProps {
   usePortal?: boolean;
   showSpecialOptions?: boolean;
   showNoTaskOption?: boolean;
-  clearBehavior?: "none" | "all" | "preserve";
+  clearBehavior?: "none" | "all";
 }
 
 type TaskOptionMeta =
@@ -202,9 +202,6 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
     (selected: SelectorValue) => {
       const normalized = asSelectorString(selected);
       if (!normalized) {
-        if (clearBehavior === "preserve") {
-          return;
-        }
         if (clearBehavior === "all") {
           onChange(SPECIAL_ALL_ID);
           onTaskSelect?.(null, undefined);
