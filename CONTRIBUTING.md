@@ -33,6 +33,14 @@ bash ./scripts/doctor.sh
 
 The default validation baseline includes dead-code scanning through `vulture`. It validates locked dependency resolution, runs lint plus the default non-integration test suite, exports runtime requirements for `pip-audit`, builds package artifacts, and then calls `bash ./scripts/integration_tests.sh` as the explicit PostgreSQL-backed integration entrypoint. When `LIFEOS_TEST_DATABASE_URL` is unset, the integration script reports an explicit skip and `doctor.sh` finishes with a warning that PostgreSQL CLI coverage did not run.
 
+For frontend changes, including npm dependency updates, also run:
+
+```bash
+bash ./scripts/web_validate.sh
+```
+
+The frontend validation entrypoint installs the locked npm workspace, builds the Vite app, runs ESLint, and executes the Vitest suite.
+
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
 ```bash
@@ -65,8 +73,10 @@ Dependency maintenance policy:
 - `.github/dependabot.yml` opens separate weekly version-update PRs for the root `uv` backend workspace and the `web/` npm frontend workspace.
 - Backend dependency updates use the `backend` and `dependencies` labels.
 - Frontend dependency updates use the `frontend` and `dependencies` labels, with runtime and tooling dependency groups kept separate inside the npm workspace.
+- Frontend Dependabot version-update groups only allow semver minor and patch updates. Semver major version updates for the npm workspace are intentionally ignored by routine automation and should be handled as explicit migration tasks with frontend validation coverage. Security updates continue to rely on GitHub Dependabot security update behavior.
 - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for Python outdated packages and dependency-related health checks.
 - `bash ./scripts/web_dependency_health.sh` remains the explicit maintainer audit flow for frontend outdated packages and dependency-related health checks.
+- `bash ./scripts/web_validate.sh` remains the explicit maintainer and CI validation flow for frontend install, build, lint, and tests.
 - `.github/workflows/frontend-dependency-audit.yml` runs a weekly frontend audit and opens a draft PR when non-force `npm audit fix --package-lock-only` produces changes for `web/package-lock.json` or `web/package.json`.
 
 Static-analysis governance:
