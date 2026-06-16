@@ -47,6 +47,7 @@ interface NoteItemProps {
   isSelected?: boolean;
   onSelectChange?: (noteId: UUID, checked: boolean) => void;
   minCollapsedLines?: number;
+  timezone?: string;
 }
 
 const NoteItem = React.memo<NoteItemProps>(
@@ -64,6 +65,7 @@ const NoteItem = React.memo<NoteItemProps>(
     isSelected = false,
     onSelectChange,
     minCollapsedLines,
+    timezone,
   }) => {
     const { t } = useTranslation();
     const toast = useToast();
@@ -79,7 +81,7 @@ const NoteItem = React.memo<NoteItemProps>(
       focusOffset: (rect) => ({ x: -rect.width / 2, y: -16 }),
     });
     const tooltipId = useId();
-    const dimensionMap = useMemo(
+    const areaMap = useMemo(
       () => new Map<UUID, { name: string; color: string }>(),
       [],
     );
@@ -135,8 +137,10 @@ const NoteItem = React.memo<NoteItemProps>(
         return timelog.title.trim();
       }
 
-      const start = timelog.start_time ? formatTime(timelog.start_time) : "";
-      const end = timelog.end_time ? formatTime(timelog.end_time) : "";
+      const start = timelog.start_time
+        ? formatTime(timelog.start_time, timezone)
+        : "";
+      const end = timelog.end_time ? formatTime(timelog.end_time, timezone) : "";
 
       if (start && end) {
         return `${start}-${end}`;
@@ -354,21 +358,22 @@ const NoteItem = React.memo<NoteItemProps>(
                 start_time:
                   associationTooltip.payload.timelog.start_time ?? null,
                 end_time: associationTooltip.payload.timelog.end_time ?? null,
-                dimension_id:
-                  associationTooltip.payload.timelog.dimension_id ?? null,
-                dimension_summary:
-                  associationTooltip.payload.timelog.dimension_summary ??
+                area_id:
+                  associationTooltip.payload.timelog.area_id ?? null,
+                area_summary:
+                  associationTooltip.payload.timelog.area_summary ??
                   undefined,
                 task_summary:
                   associationTooltip.payload.timelog.task_summary ?? undefined,
               }}
-              dimensionMap={dimensionMap}
+              areaMap={areaMap}
+              timezone={timezone}
             />
           );
         default:
           return null;
       }
-    }, [associationTooltip, dimensionMap]);
+    }, [associationTooltip, areaMap]);
 
     // 复制笔记内容到剪贴板
     const handleCopy = async () => {

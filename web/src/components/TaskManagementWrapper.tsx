@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import TaskEditModal from "./TaskEditModal";
-import TaskActualEventsModal from "./TaskActualEventsModal";
+import TaskTimelogsModal from "./TaskTimelogsModal";
 import TaskNotesModal from "./TaskNotesModal";
 import CreateNoteModal from "./CreateNoteModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -136,7 +136,7 @@ const TaskManagementWrapper: React.FC<TaskManagementWrapperProps> = ({
       {/* 时间记录查看模态框 */}
       {taskManagement.isTimeRecordsModalOpen &&
         taskManagement.viewingTimeRecords && (
-          <TaskActualEventsModal
+          <TaskTimelogsModal
             isOpen={taskManagement.isTimeRecordsModalOpen}
             onClose={taskManagement.actions.closeTimeRecordsModal}
             task={taskManagement.viewingTimeRecords}

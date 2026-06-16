@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { invalidateActualEventList } from "@/services/api/cacheInvalidation/actualEvents";
-import { actualEventsApi } from "@/services/api/actualEvents";
+import { invalidateTimelogList } from "@/services/api/cacheInvalidation/timelogs";
+import { timelogsApi } from "@/services/api/timelogs";
 import { processTimeEntries, type ProcessedEntry } from "@/utils/datetime";
 import { logger } from "@/utils/core";
 import { createDateBoundaries, sortTimeEntriesByTime } from "@/utils/datetime";
-import { actualEventsKeys } from "@/services/api/queryKeys";
+import { timelogsKeys } from "@/services/api/queryKeys";
 import { useToast } from "@/contexts/ToastContext";
 import type { UUID } from "@/types/primitive";
 
@@ -81,13 +81,13 @@ export const useTimeLogData = ({
     error: singleDayError,
     refetch: refetchSingleDay,
   } = useQuery({
-    queryKey: actualEventsKeys.list(singleDayListFilters),
+    queryKey: timelogsKeys.list(singleDayListFilters),
     queryFn: async () => {
-      const actualEvents = await actualEventsApi.fetchRange(
+      const timelogs = await timelogsApi.fetchRange(
         startOfDay.toISOString(),
         endOfDay.toISOString(),
       );
-      const events = actualEvents.items;
+      const events = timelogs.items;
 
       // Sort by start time, then end time for stable ordering
       sortTimeEntriesByTime(events);
@@ -131,10 +131,10 @@ export const useTimeLogData = ({
 
   // Delete single entry mutation
   const deleteEntryMutation = useMutation({
-    mutationFn: (entryId: UUID) => actualEventsApi.delete(entryId),
+    mutationFn: (entryId: UUID) => timelogsApi.delete(entryId),
     onSuccess: () => {
       toast.showSuccess("时间日志删除成功！");
-      invalidateActualEventList(queryClient, singleDayListFilters);
+      invalidateTimelogList(queryClient, singleDayListFilters);
     },
     onError: (err: Error) => {
       logger.error("Failed to delete entry:", err);
@@ -144,7 +144,7 @@ export const useTimeLogData = ({
 
   // Batch delete mutation
   const batchDeleteMutation = useMutation({
-    mutationFn: (eventIds: UUID[]) => actualEventsApi.batchDelete(eventIds),
+    mutationFn: (eventIds: UUID[]) => timelogsApi.batchDelete(eventIds),
     onSuccess: (result) => {
       if (result.failed_ids.length > 0) {
         toast.showError(
@@ -157,7 +157,7 @@ export const useTimeLogData = ({
         setSelectedEntryIds(new Set());
         setIsSelectMode(false);
       }
-      invalidateActualEventList(queryClient, singleDayListFilters);
+      invalidateTimelogList(queryClient, singleDayListFilters);
     },
     onError: (err: Error) => {
       logger.error("Failed to batch delete entries:", err);

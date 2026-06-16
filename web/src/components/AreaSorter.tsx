@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { dimensionsApi, type Dimension } from "@/services/api/dimensions";
+import { areasApi, type Area } from "@/services/api/areas";
 import { logger } from "@/utils/core";
 import type { UUID } from "@/types/primitive";
 import ActionButton from "./ActionButton";
 
-interface DimensionSorterProps {
-  dimensionOrder: UUID[];
+interface AreaSorterProps {
+  areaOrder: UUID[];
   onOrderChange: (order: UUID[]) => void;
   loading?: boolean;
   disabled?: boolean;
@@ -16,56 +16,56 @@ interface DimensionSorterProps {
   showClearAll?: boolean;
 }
 
-export default function DimensionSorter({
-  dimensionOrder,
+export default function AreaSorter({
+  areaOrder,
   onOrderChange,
   loading = false,
   disabled = false,
   refreshTrigger,
   id,
   showClearAll = true,
-}: DimensionSorterProps) {
+}: AreaSorterProps) {
   const { t } = useTranslation();
-  const [dimensions, setDimensions] = useState<Dimension[]>([]);
-  const [dimensionsLoading, setDimensionsLoading] = useState(true);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [areasLoading, setAreasLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load dimensions
+  // Load areas
   useEffect(() => {
-    const loadDimensions = async () => {
+    const loadAreas = async () => {
       try {
-        setDimensionsLoading(true);
+        setAreasLoading(true);
         setError(null);
-        const response = await dimensionsApi.getDimensions();
-        setDimensions(response.items ?? []);
+        const response = await areasApi.getAreas();
+        setAreas(response.items ?? []);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to load dimensions";
+          err instanceof Error ? err.message : "Failed to load areas";
         setError(errorMessage);
-        logger.error("Failed to load dimensions", err);
+        logger.error("Failed to load areas", err);
       } finally {
-        setDimensionsLoading(false);
+        setAreasLoading(false);
       }
     };
 
-    loadDimensions();
+    loadAreas();
   }, [refreshTrigger]); // Add refreshTrigger as dependency
 
-  const { allDimensionIds, completeOrder } = useMemo(() => {
-    const ids = dimensions.map((d) => d.id);
-    const filteredOrder = dimensionOrder.filter((id) => ids.includes(id));
+  const { allAreaIds, completeOrder } = useMemo(() => {
+    const ids = areas.map((d) => d.id);
+    const filteredOrder = areaOrder.filter((id) => ids.includes(id));
     const missing = ids.filter((id) => !filteredOrder.includes(id));
 
     return {
-      allDimensionIds: ids,
+      allAreaIds: ids,
       completeOrder: [...filteredOrder, ...missing],
     };
-  }, [dimensions, dimensionOrder]);
+  }, [areas, areaOrder]);
 
   // Handle move up/down buttons based on the complete order we display
-  const moveDimension = (dimensionId: UUID, direction: "up" | "down") => {
+  const moveArea = (areaId: UUID, direction: "up" | "down") => {
     const workingOrder = [...completeOrder];
-    const currentIndex = workingOrder.indexOf(dimensionId);
+    const currentIndex = workingOrder.indexOf(areaId);
 
     if (currentIndex === -1) return;
 
@@ -81,15 +81,15 @@ export default function DimensionSorter({
     onOrderChange(workingOrder);
   };
 
-  const allOrderedDimensions = completeOrder
-    .map((id) => dimensions.find((d) => d.id === id))
-    .filter((d): d is Dimension => d !== undefined);
+  const allOrderedAreas = completeOrder
+    .map((id) => areas.find((d) => d.id === id))
+    .filter((d): d is Area => d !== undefined);
 
-  if (dimensionsLoading) {
+  if (areasLoading) {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="text-sm text-base-content/60">
-          {t("settings.dimensionSorter.loading")}
+          {t("settings.areaSorter.loading")}
         </div>
       </div>
     );
@@ -98,15 +98,15 @@ export default function DimensionSorter({
   if (error) {
     return (
       <div className="p-4 text-sm text-error bg-error/20 rounded">
-        {t("settings.dimensionSorter.error", { message: error })}
+        {t("settings.areaSorter.error", { message: error })}
       </div>
     );
   }
 
-  if (allOrderedDimensions.length === 0) {
+  if (allOrderedAreas.length === 0) {
     return (
       <div className="p-4 text-sm bg-base-200 rounded">
-        {t("settings.dimensionSorter.empty")}
+        {t("settings.areaSorter.empty")}
       </div>
     );
   }
@@ -115,35 +115,35 @@ export default function DimensionSorter({
     <div
       id={id}
       role="group"
-      aria-label={t("settings.dimensionSorter.groupLabel")}
+      aria-label={t("settings.areaSorter.groupLabel")}
       className="space-y-2"
     >
       <div className="flex items-center justify-between text-sm mb-2">
-        <span>{t("settings.dimensionSorter.instructions")}</span>
+        <span>{t("settings.areaSorter.instructions")}</span>
         {showClearAll && (
           <ActionButton
-            label={t("settings.dimensionSorter.clearAll")}
+            label={t("settings.areaSorter.clearAll")}
             size="xs"
             variant="ghost"
-            onClick={() => onOrderChange([...allDimensionIds])}
+            onClick={() => onOrderChange([...allAreaIds])}
             disabled={disabled || loading || completeOrder.length === 0}
-            ariaLabel={t("settings.dimensionSorter.clearAllAria")}
+            ariaLabel={t("settings.areaSorter.clearAllAria")}
             className="h-7"
           />
         )}
       </div>
       <div
         role="list"
-        aria-label={t("settings.dimensionSorter.listLabel")}
+        aria-label={t("settings.areaSorter.listLabel")}
         className="space-y-1"
       >
-        {allOrderedDimensions.map((dimension, index) => {
+        {allOrderedAreas.map((area, index) => {
           return (
             <div
-              key={dimension.id}
+              key={area.id}
               role="listitem"
-              aria-label={t("settings.dimensionSorter.itemLabel", {
-                name: dimension.name,
+              aria-label={t("settings.areaSorter.itemLabel", {
+                name: area.name,
                 position: index + 1,
               })}
               className={`flex items-center gap-2 p-2 border rounded transition-colors ${
@@ -157,50 +157,50 @@ export default function DimensionSorter({
                 {index + 1}
               </div>
 
-              {/* Dimension color indicator */}
+              {/* Area color indicator */}
               <div
                 className="w-4 h-4 rounded-full border"
-                style={{ backgroundColor: dimension.color || "#9CA3AF" }}
+                style={{ backgroundColor: area.color || "#9CA3AF" }}
               />
 
-              {/* Dimension name */}
-              <div className="flex-1 text-sm font-medium">{dimension.name}</div>
+              {/* Area name */}
+              <div className="flex-1 text-sm font-medium">{area.name}</div>
 
               {/* Move buttons */}
               <div className="flex flex-row gap-1">
                 <ActionButton
-                  label={t("settings.dimensionSorter.moveUp", {
-                    name: dimension.name,
+                  label={t("settings.areaSorter.moveUp", {
+                    name: area.name,
                   })}
                   iconName="arrow-up"
                   size="xs"
                   variant="ghost"
                   shape="square"
                   className="h-6 w-6"
-                  onClick={() => moveDimension(dimension.id, "up")}
+                  onClick={() => moveArea(area.id, "up")}
                   disabled={disabled || loading || index === 0}
-                  ariaLabel={t("settings.dimensionSorter.moveUp", {
-                    name: dimension.name,
+                  ariaLabel={t("settings.areaSorter.moveUp", {
+                    name: area.name,
                   })}
                   iconOnly
                 />
                 <ActionButton
-                  label={t("settings.dimensionSorter.moveDown", {
-                    name: dimension.name,
+                  label={t("settings.areaSorter.moveDown", {
+                    name: area.name,
                   })}
                   iconName="arrow-down"
                   size="xs"
                   variant="ghost"
                   shape="square"
                   className="h-6 w-6"
-                  onClick={() => moveDimension(dimension.id, "down")}
+                  onClick={() => moveArea(area.id, "down")}
                   disabled={
                     disabled ||
                     loading ||
-                    index === allOrderedDimensions.length - 1
+                    index === allOrderedAreas.length - 1
                   }
-                  ariaLabel={t("settings.dimensionSorter.moveDown", {
-                    name: dimension.name,
+                  ariaLabel={t("settings.areaSorter.moveDown", {
+                    name: area.name,
                   })}
                   iconOnly
                 />

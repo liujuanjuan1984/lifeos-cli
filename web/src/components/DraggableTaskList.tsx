@@ -500,7 +500,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                         })()}
                       </span>
                     )}
-                    {/* Dimension badge if task inherits vision dimension (optional) */}
+                    {/* Area badge if task inherits vision area (optional) */}
                   </div>
                 </div>
 

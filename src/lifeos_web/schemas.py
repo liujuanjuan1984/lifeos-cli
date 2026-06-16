@@ -67,7 +67,7 @@ class NoteCreate(BaseModel):
     person_ids: list[UUID] | None = None
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
-    actual_event_ids: list[UUID] | None = None
+    timelog_ids: list[UUID] | None = None
 
 
 class NoteUpdate(BaseModel):
@@ -77,7 +77,7 @@ class NoteUpdate(BaseModel):
     person_ids: list[UUID] | None = None
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
-    actual_event_ids: list[UUID] | None = None
+    timelog_ids: list[UUID] | None = None
 
 
 class TagCreate(BaseModel):
@@ -106,6 +106,8 @@ class VisionCreate(BaseModel):
     name: str
     description: str | None = None
     status: str = "active"
+    area_id: UUID | None = None
+    person_ids: list[UUID] | None = None
     experience_rate_per_hour: int | None = None
 
 
@@ -115,6 +117,8 @@ class VisionUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     status: str | None = None
+    area_id: UUID | None = None
+    person_ids: list[UUID] | None = None
     experience_rate_per_hour: int | None = None
 
 
@@ -197,10 +201,10 @@ class TimelogBatchTaskUpdate(BaseModel):
     task_id: UUID | None = None
 
 
-class TimelogBatchDimensionUpdate(BaseModel):
+class TimelogBatchAreaUpdate(BaseModel):
     """Area update payload for timelog batch edits."""
 
-    dimension_id: UUID | None = None
+    area_id: UUID | None = None
 
 
 class TimelogBatchPeopleUpdate(BaseModel):
@@ -213,22 +217,22 @@ class TimelogBatchPeopleUpdate(BaseModel):
 class TimelogBatchUpdate(BaseModel):
     """Payload for updating multiple timelogs from the Web UI."""
 
-    event_ids: list[UUID]
+    timelog_ids: list[UUID]
     update_type: str
     title: TimelogBatchTitleUpdate | None = None
     task: TimelogBatchTaskUpdate | None = None
-    dimension: TimelogBatchDimensionUpdate | None = None
+    area: TimelogBatchAreaUpdate | None = None
     persons: TimelogBatchPeopleUpdate | None = None
 
 
 class PlannedEventCreate(BaseModel):
-    """Frontend-compatible planned event creation payload backed by LifeOS events."""
+    """Frontend-compatible planned event creation payload backed by LifeOS Event records."""
 
     title: str
     start_time: datetime
     end_time: datetime | None = None
     priority: int = 0
-    dimension_id: UUID | None = None
+    area_id: UUID | None = None
     task_id: UUID | None = None
     is_all_day: bool = False
     is_recurring: bool = False
@@ -240,13 +244,13 @@ class PlannedEventCreate(BaseModel):
 
 
 class PlannedEventUpdate(BaseModel):
-    """Frontend-compatible planned event update payload backed by LifeOS events."""
+    """Frontend-compatible planned event update payload backed by LifeOS Event records."""
 
     title: str | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
     priority: int | None = None
-    dimension_id: UUID | None = None
+    area_id: UUID | None = None
     task_id: UUID | None = None
     is_all_day: bool | None = None
     is_recurring: bool | None = None

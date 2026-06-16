@@ -13,7 +13,7 @@ import ActionButton from "@/components/ActionButton";
 import { SegmentedControl } from "@/components/forms";
 import PeriodNavigation from "@/components/PeriodNavigation";
 import PageLayout from "@/layouts/PageLayout";
-import DimensionSelect from "@/components/selects/DimensionSelect";
+import AreaSelect from "@/components/selects/AreaSelect";
 import ToolbarContainer from "@/components/ToolbarContainer";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { usePersistentState } from "@/hooks/usePersistentState";
@@ -25,7 +25,7 @@ import "@/styles/calendar.css";
 import Container from "@/layouts/Container";
 import type { UUID } from "@/types/primitive";
 import { normalizeTimezone, resolvePreferredTimezone } from "@/utils/datetime";
-import { useCalendarEventsController } from "@/features/calendar/controller/useCalendarEventsController";
+import { useCalendarScheduleController } from "@/features/calendar/controller/useCalendarScheduleController";
 
 function CalendarPage() {
   const { t } = useTranslation();
@@ -73,8 +73,8 @@ function CalendarPage() {
   );
 
   const [showPlannedEvents, setShowPlannedEvents] = useState(true);
-  const [showActualEvents, setShowActualEvents] = useState(false);
-  const [selectedDimensionId, setSelectedDimensionId] = useState<
+  const [showTimelogs, setShowTimelogs] = useState(false);
+  const [selectedAreaId, setSelectedAreaId] = useState<
     UUID | null | undefined
   >(undefined);
 
@@ -105,10 +105,10 @@ function CalendarPage() {
   const stableAllFlatTasks = useMemo(() => allFlatTasks, [allFlatTasks]);
 
   useEffect(() => {
-    if (!showActualEvents) {
-      setSelectedDimensionId(undefined);
+    if (!showTimelogs) {
+      setSelectedAreaId(undefined);
     }
-  }, [showActualEvents]);
+  }, [showTimelogs]);
 
   const [startISO, setStartISO] = useState<string | null>(null);
   const [endISO, setEndISO] = useState<string | null>(null);
@@ -130,19 +130,19 @@ function CalendarPage() {
   );
 
   const {
-    events,
+    scheduleEntries,
     loading,
     error,
-    showEventModal,
-    eventModalProps,
+    showPlannedEventModal,
+    plannedEventModalProps,
     handleDateSelect,
-    handleEventClick,
-  } = useCalendarEventsController({
+    handlePlannedEventClick,
+  } = useCalendarScheduleController({
     startISO,
     endISO,
     showPlannedEvents,
-    showActualEvents,
-    selectedDimensionId,
+    showTimelogs,
+    selectedAreaId,
     taskIndicatorLabel: t("modules.calendar.taskIndicator"),
     preloadedTasks: stableAllFlatTasks,
     visions: stableVisions,
@@ -253,30 +253,30 @@ function CalendarPage() {
             <ActionButton
               label={t("modules.calendar.toggle.actual_label")}
               iconName="timer"
-              color={showActualEvents ? "primary" : "neutral"}
-              variant={showActualEvents ? "solid" : "ghost"}
+              color={showTimelogs ? "primary" : "neutral"}
+              variant={showTimelogs ? "solid" : "ghost"}
               title={
-                showActualEvents
+                showTimelogs
                   ? t("modules.calendar.toggle.actual.title.hide")
                   : t("modules.calendar.toggle.actual.title.show")
               }
-              onClick={() => setShowActualEvents((v) => !v)}
+              onClick={() => setShowTimelogs((v) => !v)}
             />
           </div>
-          {showActualEvents && (
+          {showTimelogs && (
             <div className="flex items-center gap-2 pl-4 border-l border-base-300">
-              <DimensionSelect
+              <AreaSelect
                 value={
-                  selectedDimensionId === undefined
+                  selectedAreaId === undefined
                     ? undefined
-                    : selectedDimensionId
+                    : selectedAreaId
                 }
-                onChange={(id) => setSelectedDimensionId(id)}
+                onChange={(id) => setSelectedAreaId(id)}
                 placeholder={t("common.all")}
                 showAllOption
                 showNoneOption
-                noneLabel={t("common.noDimension")}
-                id="calendar-dimension-filter"
+                noneLabel={t("common.noArea")}
+                id="calendar-area-filter"
               />
             </div>
           )}
@@ -287,7 +287,7 @@ function CalendarPage() {
       <ErrorDisplay error={error} className="mb-6" />
 
       <Container>
-        {showActualEvents && selectedDimensionId === undefined && (
+        {showTimelogs && selectedAreaId === undefined && (
           <div className="mb-4 p-3  bg-primary/10 border border-primary/20 rounded-md ">
             <div className="flex items-center gap-2 text-primary">
               <span className="text-base inline-flex items-center gap-1">
@@ -313,7 +313,7 @@ function CalendarPage() {
           nowIndicator
           scrollTime="08:00:00"
           expandRows
-          events={events}
+          events={scheduleEntries}
           selectable
           selectMirror
           dayMaxEvents
@@ -322,7 +322,7 @@ function CalendarPage() {
           firstDay={firstDayOfWeek === 7 ? 0 : firstDayOfWeek}
           datesSet={handleDatesSet}
           select={handleDateSelect}
-          eventClick={handleEventClick}
+          eventClick={handlePlannedEventClick}
           locale="zh-cn"
           buttonText={{
             today: t("modules.calendar.fc.today"),
@@ -346,15 +346,15 @@ function CalendarPage() {
           }}
           nextDayThreshold="00:00:00"
           eventClassNames={(arg) => {
-            const type = arg.event.extendedProps?.type;
-            return type === "planned"
+            const entryType = arg.event.extendedProps?.entryType;
+            return entryType === "planned"
               ? "planned-event-custom"
-              : "actual-event-custom";
+              : "timelog-event-custom";
           }}
         />
       </Container>
 
-      {showEventModal && <PlannedEventModal {...eventModalProps} />}
+      {showPlannedEventModal && <PlannedEventModal {...plannedEventModalProps} />}
     </PageLayout>
   );
 }

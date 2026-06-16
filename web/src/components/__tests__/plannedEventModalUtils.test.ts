@@ -12,7 +12,7 @@ const baseEvent: PlannedEvent = {
   start_time: "2025-08-11T08:00:00Z",
   end_time: "2025-08-11T08:30:00Z",
   priority: 0,
-  dimension_id: "dim-1",
+  area_id: "area-1",
   task_id: "task-1",
   is_all_day: false,
   is_recurring: true,
@@ -38,7 +38,7 @@ const baseEvent: PlannedEvent = {
 
 describe("plannedEventModalUtils", () => {
   it("omits unchanged related fields from update payloads", () => {
-    const initial = buildPlannedEventFormData({ event: baseEvent });
+    const initial = buildPlannedEventFormData({ plannedEvent: baseEvent });
     const current = { ...initial, title: "Recurring Review Updated" };
 
     expect(buildPlannedEventUpdatePayload(initial, current)).toEqual({
@@ -47,16 +47,16 @@ describe("plannedEventModalUtils", () => {
   });
 
   it("preserves explicit clears in update payloads", () => {
-    const initial = buildPlannedEventFormData({ event: baseEvent });
+    const initial = buildPlannedEventFormData({ plannedEvent: baseEvent });
     const current = {
       ...initial,
-      dimension_id: null,
+      area_id: null,
       task_id: null,
       person_ids: [],
     };
 
     expect(buildPlannedEventUpdatePayload(initial, current)).toEqual({
-      dimension_id: null,
+      area_id: null,
       task_id: null,
       person_ids: [],
     });

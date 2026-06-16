@@ -2,14 +2,14 @@ import type { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  invalidateActualEventList,
-  invalidateActualEventLists,
-  invalidateActualEventsAdvancedSearch,
-  removeActualEventDetailCache,
-  setActualEventDetailCache,
-} from "@/services/api/cacheInvalidation/actualEvents";
+  invalidateTimelogList,
+  invalidateTimelogLists,
+  invalidateTimelogsAdvancedSearch,
+  removeTimelogDetailCache,
+  setTimelogDetailCache,
+} from "@/services/api/cacheInvalidation/timelogs";
 import { invalidatePlannedEventLists } from "@/services/api/cacheInvalidation/plannedEvents";
-import { actualEventsKeys, plannedEventsKeys } from "@/services/api/queryKeys";
+import { timelogsKeys, plannedEventsKeys } from "@/services/api/queryKeys";
 
 describe("event cache invalidation helpers", () => {
   let invalidateQueriesMock: ReturnType<typeof vi.fn>;
@@ -28,20 +28,20 @@ describe("event cache invalidation helpers", () => {
     } as unknown as QueryClient;
   });
 
-  it("invalidates actual event list queries using the shared predicate", () => {
-    invalidateActualEventLists(queryClient);
+  it("invalidates timelog list queries using the shared predicate", () => {
+    invalidateTimelogLists(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
     const [{ predicate }] = invalidateQueriesMock.mock.calls[0];
     expect(
-      predicate({ queryKey: actualEventsKeys.list({ start: "2025-01-01" }) }),
+      predicate({ queryKey: timelogsKeys.list({ start: "2025-01-01" }) }),
     ).toBe(true);
-    expect(predicate({ queryKey: actualEventsKeys.detail("event-1") })).toBe(
+    expect(predicate({ queryKey: timelogsKeys.detail("event-1") })).toBe(
       false,
     );
   });
 
-  it("invalidates one actual event list exactly", () => {
+  it("invalidates one timelog list exactly", () => {
     const filters = {
       start: "2025-01-01T00:00:00.000Z",
       end: "2025-01-01T23:59:59.999Z",
@@ -49,42 +49,42 @@ describe("event cache invalidation helpers", () => {
       timezone: "America/Toronto",
     };
 
-    invalidateActualEventList(queryClient, filters);
+    invalidateTimelogList(queryClient, filters);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: actualEventsKeys.list(filters),
+      queryKey: timelogsKeys.list(filters),
       exact: true,
     });
   });
 
-  it("invalidates actual event advanced search queries using the shared predicate", () => {
-    invalidateActualEventsAdvancedSearch(queryClient);
+  it("invalidates timelog advanced search queries using the shared predicate", () => {
+    invalidateTimelogsAdvancedSearch(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
     const [{ predicate }] = invalidateQueriesMock.mock.calls[0];
     expect(
       predicate({
-        queryKey: actualEventsKeys.advancedSearch({ start_date: "2025-01-01" }),
+        queryKey: timelogsKeys.advancedSearch({ start_date: "2025-01-01" }),
       }),
     ).toBe(true);
-    expect(predicate({ queryKey: actualEventsKeys.list({}) })).toBe(false);
+    expect(predicate({ queryKey: timelogsKeys.list({}) })).toBe(false);
   });
 
-  it("updates and removes actual event detail caches with shared keys", () => {
+  it("updates and removes timelog detail caches with shared keys", () => {
     const event = {
       id: "event-1",
       title: "Focus time",
     };
 
-    setActualEventDetailCache(queryClient, event as never);
-    removeActualEventDetailCache(queryClient, "event-1");
+    setTimelogDetailCache(queryClient, event as never);
+    removeTimelogDetailCache(queryClient, "event-1");
 
     expect(setQueryDataMock).toHaveBeenCalledWith(
-      actualEventsKeys.detail("event-1"),
+      timelogsKeys.detail("event-1"),
       event,
     );
     expect(removeQueriesMock).toHaveBeenCalledWith({
-      queryKey: actualEventsKeys.detail("event-1"),
+      queryKey: timelogsKeys.detail("event-1"),
       exact: true,
     });
   });

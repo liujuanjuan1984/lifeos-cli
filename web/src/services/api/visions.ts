@@ -9,7 +9,7 @@ export interface Vision {
   id: UUID;
   name: string;
   description?: string | null;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
   status: string;
   stage: number;
   experience_points: number;
@@ -25,7 +25,7 @@ export interface Vision {
 export interface VisionCreate {
   name: string;
   description?: string;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
   person_ids?: UUID[];
   status?: string;
   experience_rate_per_hour?: number | null;
@@ -35,7 +35,7 @@ export interface VisionUpdate {
   name?: string;
   description?: string;
   status?: string;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
   person_ids?: UUID[];
   experience_rate_per_hour?: number | null;
 }

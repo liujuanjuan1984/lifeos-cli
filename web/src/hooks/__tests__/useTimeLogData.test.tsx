@@ -9,8 +9,8 @@ const fetchRangeMock = vi.fn();
 const deleteMock = vi.fn();
 const batchDeleteMock = vi.fn();
 
-vi.mock("@/services/api/actualEvents", () => ({
-  actualEventsApi: {
+vi.mock("@/services/api/timelogs", () => ({
+  timelogsApi: {
     fetchRange: (...args: unknown[]) => fetchRangeMock(...args),
     delete: (...args: unknown[]) => deleteMock(...args),
     batchDelete: (...args: unknown[]) => batchDeleteMock(...args),

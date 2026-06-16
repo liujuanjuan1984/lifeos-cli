@@ -6,7 +6,7 @@ import PersonSelector from "./selects/PersonSelector";
 import type { Vision, VisionCreate, VisionUpdate } from "@/services/api";
 import { logger } from "@/utils/core";
 import { FormActions, DeleteButton } from "./ActionButton";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import { useModalState } from "@/hooks/useModalState";
 import { useToast } from "@/contexts/ToastContext";
 import EnumSelect from "./selects/EnumSelect";
@@ -40,7 +40,7 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
     name: "",
     description: "",
     person_ids: [],
-    dimension_id: undefined,
+    area_id: undefined,
     status: "active",
     experience_rate_per_hour: undefined,
   });
@@ -68,7 +68,7 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
           name: vision.name,
           description: vision.description || "",
           person_ids: vision.persons?.map((person) => person.id) || [],
-          dimension_id: vision.dimension_id ?? undefined,
+          area_id: vision.area_id ?? undefined,
           status: vision.status,
           experience_rate_per_hour: vision.experience_rate_per_hour,
         });
@@ -79,7 +79,7 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
           name: "",
           description: "",
           person_ids: [],
-          dimension_id: undefined,
+          area_id: undefined,
           status: "active",
           experience_rate_per_hour: undefined,
         });
@@ -123,9 +123,9 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
           const updateData: VisionUpdate = {
             name: formData.name.trim(),
             description: formData.description?.trim() || undefined,
-            dimension_id:
-              formData.dimension_id && formData.dimension_id !== ""
-                ? formData.dimension_id
+            area_id:
+              formData.area_id && formData.area_id !== ""
+                ? formData.area_id
                 : null,
             status: formData.status,
             experience_rate_per_hour: formData.experience_rate_per_hour ?? null,
@@ -147,9 +147,9 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
             name: formData.name.trim(),
             description: formData.description?.trim() || undefined,
             person_ids: formData.person_ids,
-            dimension_id:
-              formData.dimension_id && formData.dimension_id !== ""
-                ? formData.dimension_id
+            area_id:
+              formData.area_id && formData.area_id !== ""
+                ? formData.area_id
                 : null,
             status: formData.status,
           };
@@ -308,22 +308,22 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
           />
         </FormField>
 
-        {/* Responsive Grid Layout for Dimension and Status */}
+        {/* Responsive Grid Layout for Area and Status */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          {/* Dimension (optional) */}
+          {/* Area (optional) */}
           <div className="w-full">
-            <DimensionSelect
-              value={formData.dimension_id ?? undefined}
+            <AreaSelect
+              value={formData.area_id ?? undefined}
               onChange={(v) =>
                 setFormData({
                   ...formData,
-                  dimension_id: v ?? null,
+                  area_id: v ?? null,
                 })
               }
               showNoneOption={true}
               clearBehavior="none"
               disabled={loading}
-              id="vision-dimension"
+              id="vision-area"
               placeholder={t("common.none")}
             />
           </div>

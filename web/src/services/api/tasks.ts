@@ -1,7 +1,7 @@
 import { http } from "./client";
 import { ENDPOINTS } from "./endpoints";
 import type { PersonSummary } from "./types/common";
-import type { ActualEventListResponse } from "./actualEvents";
+import type { TimelogListResponse } from "./timelogs";
 import type { UUID } from "@/types/primitive";
 import type { ListResponse } from "@/types/pagination";
 import { MAX_TASKS_PAGE_SIZE } from "@/utils/constants";
@@ -298,11 +298,11 @@ export const tasksApi = {
     }
   },
 
-  async getActualEvents(
+  async getTimelogs(
     id: UUID,
     page: number = 1,
     size: number = 100,
-  ): Promise<ActualEventListResponse> {
+  ): Promise<TimelogListResponse> {
     return Promise.resolve({
       items: [],
       pagination: { page, size, total: 0, pages: 0 },

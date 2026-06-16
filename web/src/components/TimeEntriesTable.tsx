@@ -5,12 +5,12 @@ import EntryRow from "./EntryRow";
 import InlineQuickTimeEntry from "./InlineQuickTimeEntry";
 import EmptyState from "./EmptyState";
 import ActionButton from "./ActionButton";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import Checkbox from "./forms/Checkbox";
 import type {
   TaskWithSubtasks,
-  ActualEvent,
-  ActualEventWithEnergyResponse,
+  Timelog,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import { formatTime } from "@/utils/datetime";
 import Container from "@/layouts/Container";
@@ -38,14 +38,15 @@ interface TimeEntriesTableProps {
   sortOrder: "asc" | "desc";
   onSortChange: (order: "asc" | "desc") => void;
   selectedDate: Date;
+  timezone?: string;
   queryMode: QueryMode;
-  dimensionMap: Map<UUID, { name: string; color: string }>;
+  areaMap: Map<UUID, { name: string; color: string }>;
   preloadedTasks: TaskWithSubtasks[];
   /** 是否禁用快捷添加功能，通常在编辑模式下使用 */
   disableQuickEntry?: boolean;
-  /** 维度筛选相关属性 */
-  selectedDimensionId: UUID | null | "" | typeof SelectorSpecialValue.None;
-  onDimensionChange: (dimensionId: UUID | null | undefined) => void;
+  /** 领域筛选相关属性 */
+  selectedAreaId: UUID | null | "" | typeof SelectorSpecialValue.None;
+  onAreaChange: (areaId: UUID | null | undefined) => void;
   onCreateNoteForEntry?: (entry: ProcessedEntry) => void;
   onViewNotesForEntry?: (entry: ProcessedEntry) => void;
 }
@@ -63,12 +64,13 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   sortOrder,
   onSortChange,
   selectedDate,
+  timezone,
   queryMode,
-  dimensionMap,
+  areaMap,
   preloadedTasks,
   disableQuickEntry = false,
-  selectedDimensionId,
-  onDimensionChange,
+  selectedAreaId,
+  onAreaChange,
   onCreateNoteForEntry,
   onViewNotesForEntry,
 }) => {
@@ -128,16 +130,16 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
       }
 
       if (bestEndIso) {
-        return formatTime(bestEndIso);
+        return formatTime(bestEndIso, timezone);
       }
 
       if (placeholder?.start_time) {
-        return formatTime(placeholder.start_time);
+        return formatTime(placeholder.start_time, timezone);
       }
 
       return "";
     },
-    [entries],
+    [entries, timezone],
   );
 
   useEffect(() => {
@@ -184,7 +186,11 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
   }, [hideTooltip]);
 
   const tooltipContent = hoveredEntry ? (
-    <TimelogTooltipContent entry={hoveredEntry} dimensionMap={dimensionMap} />
+    <TimelogTooltipContent
+      entry={hoveredEntry}
+      areaMap={areaMap}
+      timezone={timezone}
+    />
   ) : null;
 
   // Auto-expand the first placeholder when entries are loaded
@@ -213,9 +219,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     );
 
     if (autoExpandEntry) {
-      const rangeStartTimeStr = formatTime(autoExpandEntry.start_time);
+      const rangeStartTimeStr = formatTime(autoExpandEntry.start_time, timezone);
       const endTimeStr = autoExpandEntry.end_time
-        ? formatTime(autoExpandEntry.end_time)
+        ? formatTime(autoExpandEntry.end_time, timezone)
         : "";
       const timeRange = `${rangeStartTimeStr}-${endTimeStr}`;
       const startTimeStr =
@@ -231,12 +237,13 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     disableQuickEntry,
     justSubmitted,
     resolveInlineStartTime,
+    timezone,
     updateInlineTimes,
   ]);
 
   const handleInlineQuickEntrySaved = useCallback(
     (
-      _entry: ActualEvent | ActualEventWithEnergyResponse,
+      _entry: Timelog | TimelogWithEnergyResponse,
       context: { sessionId: string },
     ) => {
       if (!inlineSessionId || context.sessionId !== inlineSessionId) {
@@ -245,7 +252,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
 
       // Keep the form open for continued entry, but reset form data
       const now = new Date();
-      const startTimeStr = formatTime(now.toISOString()).slice(0, 5);
+      const startTimeStr = formatTime(now.toISOString(), timezone).slice(0, 5);
       const endTimeStr = "23:59"; // Special flag for "now"
 
       updateInlineTimes(startTimeStr, endTimeStr);
@@ -256,7 +263,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
         onEntrySaved();
       }
     },
-    [inlineSessionId, onEntrySaved, updateInlineTimes],
+    [inlineSessionId, onEntrySaved, timezone, updateInlineTimes],
   );
 
   const handleInlineQuickEntryError = (errorMessage: string) => {
@@ -292,9 +299,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     }
 
     // Create stable time range identifier and set form state
-    const rangeStartTimeStr = formatTime(placeholder.start_time);
+    const rangeStartTimeStr = formatTime(placeholder.start_time, timezone);
     const endTimeStr = placeholder.end_time
-      ? formatTime(placeholder.end_time)
+      ? formatTime(placeholder.end_time, timezone)
       : "";
     const timeRange = `${rangeStartTimeStr}-${endTimeStr}`;
     const startTimeStr =
@@ -421,22 +428,22 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
               </th>
               <th className="px-4 py-3 text-left text-base font-medium text-base-content uppercase tracking-wider w-28">
                 {queryMode === "single" ? (
-                  <DimensionSelect
+                  <AreaSelect
                     value={
-                      selectedDimensionId === SelectorSpecialValue.None
+                      selectedAreaId === SelectorSpecialValue.None
                         ? null
-                        : (selectedDimensionId ?? undefined)
+                        : (selectedAreaId ?? undefined)
                     }
-                    onChange={(v) => onDimensionChange(v)}
-                    id="table-dimension-filter"
+                    onChange={(v) => onAreaChange(v)}
+                    id="table-area-filter"
                     placeholder={t("common.all")}
                     showAllOption={true}
                     showNoneOption={true}
-                    noneLabel={t("common.noDimension")}
+                    noneLabel={t("common.noArea")}
                     showLabel={false}
                   />
                 ) : (
-                  t("target.dimension")
+                  t("target.area")
                 )}
               </th>
               <th className="px-4 py-3 text-left text-base font-medium text-base-content uppercase tracking-wider">
@@ -485,9 +492,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                   // Use time range for stable expansion state
                   let isExpanded = false;
                   if (entry.isPlaceholder) {
-                    const startTimeStr = formatTime(entry.start_time);
+                    const startTimeStr = formatTime(entry.start_time, timezone);
                     const endTimeStr = entry.end_time
-                      ? formatTime(entry.end_time)
+                      ? formatTime(entry.end_time, timezone)
                       : "";
                     const timeRange = `${startTimeStr}-${endTimeStr}`;
                     isExpanded = expandedTimeRange === timeRange;
@@ -510,8 +517,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                         onPlaceholderClick={handlePlaceholderClick}
                         onCreateNote={onCreateNoteForEntry}
                         onViewNotes={onViewNotesForEntry}
-                        dimensionMap={dimensionMap}
+                        areaMap={areaMap}
                         selectedDate={selectedDate}
+                        timezone={timezone}
                         queryMode={queryMode}
                         onHoverTooltip={handleHoverStart}
                         onHoverMove={handleHoverMove}
@@ -536,6 +544,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                                   preloadedTasks={preloadedTasks}
                                   idPrefix="timelog-inline"
                                   sessionId={inlineSessionId}
+                                  timezone={timezone}
                                 />
                               </div>
                             </td>

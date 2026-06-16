@@ -76,7 +76,7 @@ Keep query or mutation hooks in `src/hooks` only when they are shared across
 multiple features or represent reusable infrastructure.
 
 Allowed examples:
-- `hooks/queries/useDimensions.ts`
+- `hooks/queries/useAreas.ts`
 - `hooks/queries/usePlanningTasks.ts`
 - `hooks/useActualEventsMutations.ts`
 - `hooks/useTasksMutations.ts`
@@ -205,7 +205,7 @@ These modules reflect the preferred structure after the `#146` cleanup:
   - `src/features/notes/controller/useNotesPageData.ts`
   - `src/features/calendar/controller/useCalendarEventsController.ts`
   - `src/features/insights/controller/useInsightsStatsController.ts`
-  - `src/features/dimensions/controller/useDimensionManagerController.ts`
+  - `src/features/areas/controller/useAreaManagerController.ts`
 - Shared hooks kept at root by design:
   - `src/hooks/useActualEventsMutations.ts`
   - `src/hooks/useTasksMutations.ts`

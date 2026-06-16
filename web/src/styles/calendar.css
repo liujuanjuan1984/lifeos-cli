@@ -97,7 +97,7 @@
 }
 
 /* Actual events - use success color palette for theme compatibility */
-.actual-event-custom {
+.timelog-event-custom {
   background-color: hsl(var(--su));
   border: 1px solid hsl(var(--su));
   color: hsl(var(--suc));

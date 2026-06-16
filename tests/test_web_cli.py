@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -48,6 +48,29 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/tags/" in route_paths
 
 
+def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.app import SPAStaticFiles
+
+    static_dir = tmp_path / "static"
+    assets_dir = static_dir / "assets"
+    assets_dir.mkdir(parents=True)
+    (static_dir / "index.html").write_text("<html>LifeOS</html>", encoding="utf-8")
+    (assets_dir / "app.js").write_text("console.log('lifeos')", encoding="utf-8")
+
+    static_files = SPAStaticFiles(directory=static_dir, html=True)
+    scope = {"type": "http", "method": "GET", "headers": []}
+
+    asset_response = asyncio.run(static_files.get_response("assets/app.js", scope))
+    spa_response = asyncio.run(static_files.get_response("timelog", scope))
+
+    assert asset_response.status_code == 200
+    assert asset_response.headers["cache-control"] == "no-store"
+    assert spa_response.status_code == 200
+    assert spa_response.headers["cache-control"] == "no-store"
+
+
 def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("fastapi")
     from lifeos_web import server
@@ -69,7 +92,7 @@ def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.Mo
     assert checked_urls == ["postgresql+psycopg://localhost/lifeos"]
 
 
-def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
+def test_web_timelog_without_area_filter_maps_to_lifeos_without_area(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("fastapi")
@@ -102,7 +125,7 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
             cast(AsyncSession, object()),
             page=1,
             size=50,
-            without_dimension=True,
+            without_area=True,
         )
     )
 
@@ -112,7 +135,102 @@ def test_web_timelog_without_dimension_filter_maps_to_lifeos_without_area(
     assert isinstance(list_query, TimelogListInput)
     assert count_filters.without_area is True
     assert list_query.filters.without_area is True
-    assert response.meta["without_dimension"] is True
+    assert response.meta["without_area"] is True
+
+
+def test_web_timelog_window_filters_map_to_lifeos_window_filters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    captured: dict[str, TimelogListInput | TimelogQueryFilters] = {}
+
+    async def fake_count_timelogs(_session: object, *, filters: TimelogQueryFilters) -> int:
+        captured["count_filters"] = filters
+        return 0
+
+    async def fake_list_timelogs(_session: object, *, query: TimelogListInput) -> list[object]:
+        captured["list_query"] = query
+        return []
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "count_timelogs",
+        fake_count_timelogs,
+    )
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "list_timelogs",
+        fake_list_timelogs,
+    )
+
+    window_start = datetime(2026, 4, 10, 16, 0, tzinfo=timezone.utc)
+    window_end = datetime(2026, 4, 11, 15, 59, 59, 999000, tzinfo=timezone.utc)
+
+    response = asyncio.run(
+        timelogs.list_timelogs(
+            cast(AsyncSession, object()),
+            page=1,
+            size=50,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    )
+
+    count_filters = captured["count_filters"]
+    list_query = captured["list_query"]
+    assert isinstance(count_filters, TimelogQueryFilters)
+    assert isinstance(list_query, TimelogListInput)
+    assert count_filters.start_date is None
+    assert count_filters.end_date is None
+    assert count_filters.window_start == window_start
+    assert count_filters.window_end == window_end
+    assert list_query.filters.window_start == window_start
+    assert list_query.filters.window_end == window_end
+    assert response.meta["window_start"] == window_start.isoformat()
+    assert response.meta["window_end"] == window_end.isoformat()
+
+
+def test_web_timelog_rejects_mixed_date_and_window_filters() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                start_date=date(2026, 4, 10),
+                end_date=date(2026, 4, 10),
+                window_start=datetime(2026, 4, 10, 16, 0, tzinfo=timezone.utc),
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use either start_date/end_date or window_start/window_end" in str(
+        getattr(exc_info.value, "detail", "")
+    )
+
+
+def test_web_timelog_rejects_partial_date_filter() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                start_date=date(2026, 4, 10),
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "start_date and end_date must be provided together" in str(
+        getattr(exc_info.value, "detail", "")
+    )
 
 
 def test_web_timelog_payload_exposes_linked_task_summary() -> None:
@@ -275,6 +393,55 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
 
     assert captured["clear_description"] is True
     assert captured["clear_experience_rate"] is True
+    assert captured["clear_area"] is False
+
+
+def test_web_vision_update_area_id_passes_through(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import visions
+    from lifeos_web.schemas import VisionUpdate
+
+    area_id = UUID("11111111-1111-1111-1111-111111111111")
+    person_id = UUID("33333333-3333-3333-3333-333333333333")
+    captured: dict[str, object] = {}
+
+    async def fake_update_vision(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            id=UUID("22222222-2222-2222-2222-222222222222"),
+            name="Vision",
+            description=None,
+            status="active",
+            stage=0,
+            experience_points=0,
+            experience_rate_per_hour=None,
+            area_id=area_id,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            people=(),
+            tasks=(),
+        )
+
+    monkeypatch.setattr(visions.vision_services, "update_vision", fake_update_vision)
+
+    response = asyncio.run(
+        visions.update_vision(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            VisionUpdate(area_id=area_id, person_ids=[person_id]),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["area_id"] == area_id
+    assert captured["clear_area"] is False
+    assert captured["person_ids"] == [person_id]
+    assert captured["clear_people"] is False
+    assert response["area_id"] == str(area_id)
+    assert set(response).issuperset({"id", "name", "area_id"})
 
 
 def test_web_habit_update_null_fields_translate_to_clear_flags(
@@ -493,7 +660,7 @@ def test_web_timelog_batch_task_replace_maps_to_lifeos_task_update(
     response = asyncio.run(
         timelogs.batch_update_timelogs(
             TimelogBatchUpdate(
-                event_ids=[timelog_id],
+                timelog_ids=[timelog_id],
                 update_type="task",
                 task=TimelogBatchTaskUpdate(mode="replace", task_id=task_id),
             ),
@@ -591,7 +758,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
                 tag_ids=[tag_id],
                 person_ids=[person_id],
                 task_id=task_id,
-                actual_event_ids=[timelog_id],
+                timelog_ids=[timelog_id],
             ),
             cast(AsyncSession, object()),
         )

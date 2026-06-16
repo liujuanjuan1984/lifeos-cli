@@ -1,4 +1,4 @@
-"""Frontend-compatible planned event endpoints backed by LifeOS events."""
+"""Frontend-compatible planned event endpoints backed by LifeOS Event records."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _event_scope(value: str | None) -> str:
 
 
 def _parse_rrule(rrule_string: str | None) -> dict[str, object]:
-    """Parse the subset of RRULE fields supported by LifeOS events."""
+    """Parse the subset of RRULE fields supported by planned events."""
     if not rrule_string:
         return {}
     values: dict[str, object] = {}
@@ -61,25 +61,25 @@ def _optional_int(value: object | None) -> int | None:
     return int(str(value))
 
 
-def _tag_names(event: EventView | EventOccurrence) -> list[str]:
-    if not isinstance(event, EventView):
+def _tag_names(planned_event_record: EventView | EventOccurrence) -> list[str]:
+    if not isinstance(planned_event_record, EventView):
         return []
-    return [tag.name for tag in event.tags]
+    return [tag.name for tag in planned_event_record.tags]
 
 
-def _people(event: EventView | EventOccurrence) -> list[dict[str, str]]:
-    if not isinstance(event, EventView):
+def _people(planned_event_record: EventView | EventOccurrence) -> list[dict[str, str]]:
+    if not isinstance(planned_event_record, EventView):
         return []
-    return [{"id": str(person.id), "name": person.name} for person in event.people]
+    return [{"id": str(person.id), "name": person.name} for person in planned_event_record.people]
 
 
 def _planned_event_payload(
-    event: EventView | EventOccurrence,
+    planned_event_record: EventView | EventOccurrence,
     *,
     master_event: EventView | None = None,
 ) -> dict[str, object]:
-    is_occurrence = isinstance(event, EventOccurrence)
-    source = master_event if is_occurrence else event
+    is_occurrence = isinstance(planned_event_record, EventOccurrence)
+    source = master_event if is_occurrence else planned_event_record
     source_event = source if isinstance(source, EventView) else None
     recurrence_frequency = source_event.recurrence_frequency if source_event else None
     recurrence_pattern = None
@@ -95,36 +95,46 @@ def _planned_event_payload(
             ),
         }
     if is_occurrence:
-        master_id = source_event.id if source_event else event.id
+        master_id = source_event.id if source_event else planned_event_record.id
     else:
-        assert isinstance(event, EventView)
-        master_id = event.recurrence_parent_event_id or event.id
-    created_at = format_utc_iso(event.created_at) if isinstance(event, EventView) else ""
-    updated_at = format_utc_iso(event.updated_at) if isinstance(event, EventView) else ""
+        assert isinstance(planned_event_record, EventView)
+        master_id = planned_event_record.recurrence_parent_event_id or planned_event_record.id
+    created_at = (
+        format_utc_iso(planned_event_record.created_at)
+        if isinstance(planned_event_record, EventView)
+        else ""
+    )
+    updated_at = (
+        format_utc_iso(planned_event_record.updated_at)
+        if isinstance(planned_event_record, EventView)
+        else ""
+    )
     area_id = source_event.area_id if source_event else None
     priority = source_event.priority if source_event else 0
     is_all_day = source_event.is_all_day if source_event else False
     rrule_string = f"FREQ={recurrence_frequency.upper()}" if recurrence_frequency else None
     return {
-        "id": str(event.id),
-        "title": event.title,
-        "start_time": format_utc_iso(event.start_time),
-        "end_time": format_utc_iso(event.end_time) if event.end_time else None,
+        "id": str(planned_event_record.id),
+        "title": planned_event_record.title,
+        "start_time": format_utc_iso(planned_event_record.start_time),
+        "end_time": (
+            format_utc_iso(planned_event_record.end_time) if planned_event_record.end_time else None
+        ),
         "priority": priority,
-        "dimension_id": str(area_id) if area_id else None,
-        "task_id": str(event.task_id) if event.task_id else None,
+        "area_id": str(area_id) if area_id else None,
+        "task_id": str(planned_event_record.task_id) if planned_event_record.task_id else None,
         "is_all_day": is_all_day,
         "is_recurring": recurrence_frequency is not None,
         "recurrence_pattern": recurrence_pattern,
         "rrule_string": rrule_string,
-        "status": event.status,
+        "status": planned_event_record.status,
         "tags": _tag_names(source_event) if source_event else [],
-        "extra_data": {"event_type": event.event_type},
+        "extra_data": {"event_type": planned_event_record.event_type},
         "created_at": created_at,
         "updated_at": updated_at,
         "is_instance": is_occurrence and recurrence_frequency is not None,
         "master_event_id": str(master_id) if master_id else None,
-        "instance_id": str(event.id) if is_occurrence else None,
+        "instance_id": str(planned_event_record.id) if is_occurrence else None,
         "persons": _people(source_event) if source_event else [],
     }
 
@@ -142,7 +152,7 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
         status=payload.status,
         event_type="timeblock" if payload.task_id else "appointment",
         is_all_day=payload.is_all_day,
-        area_id=payload.dimension_id,
+        area_id=payload.area_id,
         task_id=payload.task_id,
         person_ids=payload.person_ids,
         recurrence_frequency=str(recurrence.get("frequency")) if has_recurrence_frequency else None,
@@ -171,8 +181,8 @@ def _update_input(payload: PlannedEventUpdate) -> EventUpdateInput:
         status=payload.status,
         event_type="timeblock" if payload.task_id else None,
         is_all_day=payload.is_all_day,
-        area_id=payload.dimension_id,
-        clear_area="dimension_id" in fields and payload.dimension_id is None,
+        area_id=payload.area_id,
+        clear_area="area_id" in fields and payload.area_id is None,
         task_id=payload.task_id,
         clear_task="task_id" in fields and payload.task_id is None,
         person_ids=payload.person_ids,
@@ -257,7 +267,7 @@ async def list_planned_events(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
-    """List expanded LifeOS events for a calendar window."""
+    """List expanded planned events for a calendar window."""
     return await _list_events(session, start=start, end=end, status=status, page=page, size=size)
 
 
@@ -268,7 +278,7 @@ async def list_raw_planned_events(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
-    """List stored LifeOS event records without a required window."""
+    """List stored planned event records without a required window."""
     return await _list_events(session, status=status, page=page, size=size)
 
 
@@ -279,17 +289,23 @@ async def list_planned_events_by_task(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
-    """List events linked to a task."""
+    """List planned events linked to a task."""
     return await _list_events(session, task_id=task_id, page=page, size=size)
 
 
-@router.get("/{event_id}")
-async def get_planned_event(event_id: UUID, session: SessionDep) -> dict[str, object]:
-    """Load one LifeOS event as a planned event."""
-    event = await event_services.get_event(session, event_id=event_id)
-    if event is None:
-        raise HTTPException(status_code=404, detail=f"Planned event {event_id} was not found")
-    return _planned_event_payload(event)
+@router.get("/{planned_event_id}")
+async def get_planned_event(
+    planned_event_id: UUID,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Load one planned event."""
+    planned_event_record = await event_services.get_event(session, event_id=planned_event_id)
+    if planned_event_record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Planned event {planned_event_id} was not found",
+        )
+    return _planned_event_payload(planned_event_record)
 
 
 @router.post("/")
@@ -297,27 +313,30 @@ async def create_planned_event(
     payload: PlannedEventCreate,
     session: SessionDep,
 ) -> dict[str, object]:
-    """Create a LifeOS event through the frontend planned-event contract."""
+    """Create a planned event through the frontend contract."""
     try:
-        event = await event_services.create_event(session, payload=_create_input(payload))
+        planned_event_record = await event_services.create_event(
+            session,
+            payload=_create_input(payload),
+        )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _planned_event_payload(event)
+    return _planned_event_payload(planned_event_record)
 
 
-@router.patch("/{event_id}")
+@router.patch("/{planned_event_id}")
 async def update_planned_event(
-    event_id: UUID,
+    planned_event_id: UUID,
     payload: PlannedEventUpdate,
     session: SessionDep,
     updateType: str | None = None,
     instanceStart: datetime | None = None,
 ) -> dict[str, object]:
-    """Update a LifeOS event through the frontend planned-event contract."""
+    """Update a planned event through the frontend contract."""
     try:
-        event = await event_services.update_event(
+        planned_event_record = await event_services.update_event(
             session,
-            event_id=event_id,
+            event_id=planned_event_id,
             changes=_update_input(payload),
             scope=_event_scope(updateType),
             instance_start=instanceStart,
@@ -326,21 +345,21 @@ async def update_planned_event(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _planned_event_payload(event)
+    return _planned_event_payload(planned_event_record)
 
 
-@router.delete("/{event_id}", status_code=204)
+@router.delete("/{planned_event_id}", status_code=204)
 async def delete_planned_event(
-    event_id: UUID,
+    planned_event_id: UUID,
     session: SessionDep,
     deleteType: str | None = None,
     instanceStart: datetime | None = None,
 ) -> None:
-    """Soft-delete a LifeOS event through the frontend planned-event contract."""
+    """Soft-delete a planned event through the frontend contract."""
     try:
         await event_services.delete_event(
             session,
-            event_id=event_id,
+            event_id=planned_event_id,
             scope=_event_scope(deleteType),
             instance_start=instanceStart,
         )

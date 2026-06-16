@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { Dimension } from "@/services/api/dimensions";
+import type { Area } from "@/services/api/areas";
 import type { ProcessedEntry } from "@/utils/datetime";
 import { statsApi } from "@/services/api/stats";
 import { formatDuration } from "@/utils/datetime";
-import { useDimensionOrderReadOnly } from "@/hooks/queries/useDimensionOrderReadOnly";
+import { useAreaOrderReadOnly } from "@/hooks/queries/useAreaOrderReadOnly";
 import Card from "@/layouts/Card";
 import type { UUID } from "@/types/primitive";
 
 interface TimeProgressBarProps {
   entries: ProcessedEntry[];
-  dimensions: Dimension[];
+  areas: Area[];
   // Optional: when provided, fetch server-side day breakdown for this local date
   localDateISO?: string; // YYYY-MM-DD (client local)
   timezone?: string;
@@ -18,37 +18,36 @@ interface TimeProgressBarProps {
   className?: string;
 }
 
-interface DimensionTimeData {
-  dimensionId: UUID;
-  dimensionName: string;
-  dimensionColor: string;
+interface AreaTimeData {
+  areaId: UUID;
+  areaName: string;
+  areaColor: string;
   totalMinutes: number;
   percentage: number;
 }
 
 /**
- * TimeProgressBar - Displays 24-hour time allocation by dimension
+ * TimeProgressBar - Displays 24-hour time allocation by area
  *
  * This component creates a horizontal progress bar showing how time is distributed
- * across different dimensions throughout the day, sorted by duration.
+ * across different areas throughout the day, sorted by duration.
  */
 const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
   entries,
-  dimensions,
+  areas,
   localDateISO,
   timezone,
   isLoading = false,
   className,
 }) => {
   const { t } = useTranslation();
-  // Optional server minutes per dimension for local day
-  const [serverMinutes, setServerMinutes] = useState<Record<
-    number,
-    number
-  > | null>(null);
+  // Optional server minutes per area for local day
+  const [serverMinutes, setServerMinutes] = useState<Record<UUID, number> | null>(
+    null,
+  );
 
-  // Read-only dimension order via TanStack Query cache
-  const { order: dimensionOrder } = useDimensionOrderReadOnly();
+  // Read-only area order via TanStack Query cache
+  const { order: areaOrder } = useAreaOrderReadOnly();
 
   useEffect(() => {
     const shouldFetch = Boolean(localDateISO);
@@ -61,28 +60,28 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
       .then((response) => {
         const rows = response.items ?? [];
         const map: Record<UUID, number> = {};
-        rows.forEach((r) => (map[r.dimension_id] = r.minutes));
+        rows.forEach((r) => (map[r.area_id] = r.minutes));
         setServerMinutes(map);
       })
       .catch(() => setServerMinutes(null));
   }, [localDateISO, timezone]);
-  // Calculate time allocation by dimension
-  const calculateTimeAllocation = useMemo((): DimensionTimeData[] => {
-    const dimensionTimeMap = new Map<UUID, number>();
+  // Calculate time allocation by area
+  const calculateTimeAllocation = useMemo((): AreaTimeData[] => {
+    const areaTimeMap = new Map<UUID, number>();
 
-    // Initialize all dimensions with 0 minutes
-    dimensions.forEach((dim) => {
-      dimensionTimeMap.set(dim.id, 0);
+    // Initialize all areas with 0 minutes
+    areas.forEach((area) => {
+      areaTimeMap.set(area.id, 0);
     });
 
-    // Add unknown dimension for placeholders and gaps
-    dimensionTimeMap.set("-1", 0);
+    // Add unknown area for placeholders and gaps
+    areaTimeMap.set("-1", 0);
 
     if (serverMinutes) {
       // Use backend totals (per local day)
-      Object.entries(serverMinutes).forEach(([dimIdStr, minutes]) => {
-        const dimId = dimIdStr as UUID;
-        dimensionTimeMap.set(dimId, minutes as number);
+      Object.entries(serverMinutes).forEach(([areaIdStr, minutes]) => {
+        const areaId = areaIdStr as UUID;
+        areaTimeMap.set(areaId, minutes as number);
       });
     } else {
       // Fallback to client-side calculation from entries
@@ -94,14 +93,14 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
           const durationMinutes = Math.round(durationMs / (1000 * 60));
 
           if (entry.isPlaceholder) {
-            const currentMinutes = dimensionTimeMap.get("-1") || 0;
-            dimensionTimeMap.set("-1", currentMinutes + durationMinutes);
+            const currentMinutes = areaTimeMap.get("-1") || 0;
+            areaTimeMap.set("-1", currentMinutes + durationMinutes);
           } else {
-            const dimensionId = entry.dimension_id || "-1";
+            const areaId = entry.area_id || "-1";
             const currentMinutes =
-              dimensionTimeMap.get(dimensionId as UUID) || 0;
-            dimensionTimeMap.set(
-              dimensionId as UUID,
+              areaTimeMap.get(areaId as UUID) || 0;
+            areaTimeMap.set(
+              areaId as UUID,
               currentMinutes + durationMinutes,
             );
           }
@@ -113,38 +112,38 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
     const totalMinutes = 1440; // Fixed 24 hours
 
     // Convert to array and calculate percentages
-    const dimensionTimeData: DimensionTimeData[] = Array.from(
-      dimensionTimeMap.entries(),
+    const areaTimeData: AreaTimeData[] = Array.from(
+      areaTimeMap.entries(),
     )
-      .map(([dimensionId, minutesForDim]) => {
-        if (dimensionId === "-1") {
-          // Unknown dimension (placeholders and gaps)
+      .map(([areaId, minutesForArea]) => {
+        if (areaId === "-1") {
+          // Unknown area (placeholders and gaps)
           return {
-            dimensionId: dimensionId as UUID,
-            dimensionName: t("timeLog.progressBar.unknownUnfilled"),
-            dimensionColor: "#9CA3AF", // Gray color for unknown
-            totalMinutes: minutesForDim,
+            areaId: areaId as UUID,
+            areaName: t("timeLog.progressBar.unknownUnfilled"),
+            areaColor: "#9CA3AF", // Gray color for unknown
+            totalMinutes: minutesForArea,
             percentage: 0,
           };
         } else {
-          const dimension = dimensions.find((d) => d.id === dimensionId);
+          const area = areas.find((item) => item.id === areaId);
           return {
-            dimensionId: dimensionId as UUID,
-            dimensionName:
-              dimension?.name || t("timeLog.progressBar.unknownDimension"),
-            dimensionColor: dimension?.color || "#9CA3AF",
-            totalMinutes: minutesForDim,
+            areaId: areaId as UUID,
+            areaName:
+              area?.name || t("timeLog.progressBar.unknownArea"),
+            areaColor: area?.color || "#9CA3AF",
+            totalMinutes: minutesForArea,
             percentage: 0,
           };
         }
       })
-      .filter((item) => item.totalMinutes > 0) // Only show dimensions with time
+      .filter((item) => item.totalMinutes > 0) // Only show areas with time
       .sort((a, b) => {
         // Sort by backend order first, then by duration descending
-        const aOrder = dimensionOrder.indexOf(a.dimensionId);
-        const bOrder = dimensionOrder.indexOf(b.dimensionId);
+        const aOrder = areaOrder.indexOf(a.areaId);
+        const bOrder = areaOrder.indexOf(b.areaId);
 
-        // If both dimensions are in the order, sort by order
+        // If both areas are in the order, sort by order
         if (aOrder !== -1 && bOrder !== -1) {
           return aOrder - bOrder;
         }
@@ -158,12 +157,12 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
       });
 
     // Recalculate percentages based on 24 hours (1440 minutes)
-    dimensionTimeData.forEach((item) => {
+    areaTimeData.forEach((item) => {
       item.percentage = (item.totalMinutes / totalMinutes) * 100;
     });
 
-    return dimensionTimeData;
-  }, [entries, dimensions, serverMinutes, dimensionOrder, t]);
+    return areaTimeData;
+  }, [entries, areas, serverMinutes, areaOrder, t]);
 
   const timeAllocation = calculateTimeAllocation;
 
@@ -197,9 +196,9 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
   // If no time is recorded, show 100% unknown
   if (timeAllocation.length === 0) {
     timeAllocation.push({
-      dimensionId: "-1",
-      dimensionName: t("timeLog.progressBar.unknownUnfilled"),
-      dimensionColor: "#9CA3AF",
+      areaId: "-1",
+      areaName: t("timeLog.progressBar.unknownUnfilled"),
+      areaColor: "#9CA3AF",
       totalMinutes: 1440, // 24 hours
       percentage: 100,
     });
@@ -209,13 +208,13 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
     <Card className={cardClassName}>
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mb-3">
-        {timeAllocation.map((item: DimensionTimeData) => (
-          <div key={item.dimensionId} className="flex items-center gap-2">
+        {timeAllocation.map((item: AreaTimeData) => (
+          <div key={item.areaId} className="flex items-center gap-2">
             <div
               className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.dimensionColor }}
+              style={{ backgroundColor: item.areaColor }}
             ></div>
-            <span className="text-sm font-medium">{item.dimensionName}</span>
+            <span className="text-sm font-medium">{item.areaName}</span>
             <span className="text-sm">{formatDuration(item.totalMinutes)}</span>
             <span className="text-sm">({item.percentage.toFixed(1)}%)</span>
           </div>
@@ -223,16 +222,16 @@ const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
       </div>
       {/* Progress Bar */}
       <div className="flex h-6 bg-base-200 rounded-lg overflow-hidden mt-3">
-        {timeAllocation.map((item: DimensionTimeData) => (
+        {timeAllocation.map((item: AreaTimeData) => (
           <div
-            key={item.dimensionId}
+            key={item.areaId}
             className="flex items-center justify-center text-sm text-base-content font-medium"
             style={{
               width: `${item.percentage}%`,
-              backgroundColor: item.dimensionColor,
+              backgroundColor: item.areaColor,
               minWidth: item.percentage > 5 ? "auto" : "20px",
             }}
-            title={`${item.dimensionName}: ${formatDuration(item.totalMinutes)} (${item.percentage.toFixed(1)}%)`}
+            title={`${item.areaName}: ${formatDuration(item.totalMinutes)} (${item.percentage.toFixed(1)}%)`}
           >
             {item.percentage > 8 && (
               <span className="truncate px-1">

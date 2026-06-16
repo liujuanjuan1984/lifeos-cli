@@ -73,7 +73,7 @@ interface PersonListMeta {
 
 export interface PersonActivityItem {
   id: UUID;
-  type: "vision" | "task" | "planned_event" | "actual_event" | "note";
+  type: "vision" | "task" | "planned_event" | "timelog" | "note";
   title: string;
   description?: string | null;
   date: string;

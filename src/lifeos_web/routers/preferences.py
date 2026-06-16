@@ -75,7 +75,7 @@ _STATIC_DEFAULTS: dict[str, Any] = {
     "appearance.theme": "system",
     "calendar.first_day_of_week": 1,
     "calendar.system": "gregorian",
-    "dashboard.dimension_order": [],
+    "dashboard.area_order": [],
     "navigation.visible_modules": _VISIBLE_MODULES,
     "notes.card_min_collapsed_lines": 5,
     "notes.export_planning.include_cycle_notes": False,

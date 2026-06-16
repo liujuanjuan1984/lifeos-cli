@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.time_preferences import to_storage_timezone
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.services import timelogs as timelog_services
 from lifeos_cli.db.services.timelog_support import (
@@ -35,14 +36,12 @@ SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
 def _timelog_payload(timelog: object) -> dict[str, object]:
-    """Expose LifeOS area fields with frontend actual-event dimension names."""
     payload = to_jsonable(timelog)
     if not isinstance(payload, dict):
         raise TypeError("Timelog serialization did not produce a dictionary.")
     area_id = payload.get("area_id")
-    payload["dimension_id"] = area_id
     if area_id is not None:
-        payload["dimension_summary"] = {
+        payload["area_summary"] = {
             "id": area_id,
             "name": None,
             "color": None,
@@ -109,23 +108,42 @@ async def list_timelogs(
     size: int = Query(50, ge=1, le=500),
     start_date: date | None = None,
     end_date: date | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
     query: str | None = None,
     tracking_method: str | None = None,
-    dimension_id: UUID | None = None,
-    dimension_name: str | None = None,
-    without_dimension: bool = False,
+    area_id: UUID | None = None,
+    area_name: str | None = None,
+    without_area: bool = False,
     task_id: UUID | None = None,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
+    if (start_date is None) != (end_date is None):
+        raise HTTPException(
+            status_code=400,
+            detail="start_date and end_date must be provided together.",
+        )
+    if (start_date is not None or end_date is not None) and (
+        window_start is not None or window_end is not None
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Use either start_date/end_date or window_start/window_end, not both.",
+        )
+
+    normalized_window_start = to_storage_timezone(window_start) if window_start else None
+    normalized_window_end = to_storage_timezone(window_end) if window_end else None
     filters = TimelogQueryFilters(
         start_date=start_date,
         end_date=end_date,
         query=query,
         tracking_method=tracking_method,
-        area_id=dimension_id,
-        area_name=dimension_name,
-        without_area=without_dimension,
+        area_id=area_id,
+        area_name=area_name,
+        without_area=without_area,
         task_id=task_id,
+        window_start=normalized_window_start,
+        window_end=normalized_window_end,
     )
     total_count = await timelog_services.count_timelogs(session, filters=filters)
     rows = await timelog_services.list_timelogs(
@@ -148,11 +166,15 @@ async def list_timelogs(
         meta={
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
+            "window_start": normalized_window_start.isoformat()
+            if normalized_window_start
+            else None,
+            "window_end": normalized_window_end.isoformat() if normalized_window_end else None,
             "query": query,
             "tracking_method": tracking_method,
-            "dimension_id": str(dimension_id) if dimension_id else None,
-            "dimension_name": dimension_name,
-            "without_dimension": without_dimension,
+            "area_id": str(area_id) if area_id else None,
+            "area_name": area_name,
+            "without_area": without_area,
             "task_id": str(task_id) if task_id else None,
             "limit": size,
             "returned_count": len(items),
@@ -215,12 +237,12 @@ async def batch_update_timelogs(
             task_id=payload.task.task_id,
             clear_task=payload.task.mode == "clear" or payload.task.task_id is None,
         )
-    elif payload.update_type == "dimension":
-        if payload.dimension is None:
-            raise HTTPException(status_code=400, detail="Dimension update payload is required")
+    elif payload.update_type == "area":
+        if payload.area is None:
+            raise HTTPException(status_code=400, detail="Area update payload is required")
         changes = TimelogUpdateInput(
-            area_id=payload.dimension.dimension_id,
-            clear_area=payload.dimension.dimension_id is None,
+            area_id=payload.area.area_id,
+            clear_area=payload.area.area_id is None,
         )
     elif payload.update_type == "persons":
         if payload.persons is None:
@@ -228,7 +250,7 @@ async def batch_update_timelogs(
         if payload.persons.mode == "add":
             return await _batch_add_timelog_people(
                 session,
-                timelog_ids=payload.event_ids,
+                timelog_ids=payload.timelog_ids,
                 person_ids=payload.persons.person_ids,
             )
         changes = TimelogUpdateInput(
@@ -243,7 +265,7 @@ async def batch_update_timelogs(
     try:
         result = await timelog_services.batch_update_timelogs(
             session,
-            timelog_ids=payload.event_ids,
+            timelog_ids=payload.timelog_ids,
             changes=TimelogBatchUpdateInput(
                 title=title,
                 find_title_text=find_title_text,

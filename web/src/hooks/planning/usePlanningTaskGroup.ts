@@ -9,7 +9,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
-import { useMultipleTaskActualEvents } from "@/hooks/queries/useTaskActualEvents";
+import { useMultipleTaskTimelogs } from "@/hooks/queries/useTaskTimelogs";
 import { useHabitActionsByDate } from "@/hooks/queries/useHabitActionsByDate";
 import { useTaskExpansionState } from "@/hooks/useTaskExpansionState";
 import { usePersistentState } from "@/hooks/usePersistentState";
@@ -156,7 +156,7 @@ export function usePlanningTaskGroup(
     () => group.tasks.map((task) => task.id),
     [group.tasks],
   );
-  const { taskActualEvents } = useMultipleTaskActualEvents(taskIds, {
+  const { taskTimelogs } = useMultipleTaskTimelogs(taskIds, {
     enabled: group.tasks.length > 0,
   });
 
@@ -355,7 +355,7 @@ export function usePlanningTaskGroup(
     let totalMinutes = 0;
 
     group.tasks.forEach((task) => {
-      const timeRecords = taskActualEvents.get(task.id) || [];
+      const timeRecords = taskTimelogs.get(task.id) || [];
       timeRecords.forEach((event) => {
         if (event.start_time && event.end_time) {
           const startTime = new Date(event.start_time);
@@ -369,7 +369,7 @@ export function usePlanningTaskGroup(
     });
 
     return formatDuration(totalMinutes);
-  }, [group.tasks, taskActualEvents]);
+  }, [group.tasks, taskTimelogs]);
 
   const carryForwardableTasks = useMemo(
     () =>

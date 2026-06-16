@@ -7,7 +7,7 @@ import {
   formatDurationFromTimes,
 } from "@/utils/datetime";
 import TimeRangeText from "./TimeRangeText";
-import DimensionBadge from "./DimensionBadge";
+import AreaBadge from "./AreaBadge";
 import PersonsList from "./PersonsList";
 import ActionButton, { EditButton, DeleteButton } from "./ActionButton";
 import { ActionButtonGroup } from "./ActionButton";
@@ -26,8 +26,9 @@ interface EntryRowProps {
   onPlaceholderClick: (placeholder: PlaceholderEntry) => void;
   onCreateNote?: (entry: ProcessedEntry) => void;
   onViewNotes?: (entry: ProcessedEntry) => void;
-  dimensionMap: Map<UUID, { name: string; color: string }>;
+  areaMap: Map<UUID, { name: string; color: string }>;
   selectedDate: Date;
+  timezone?: string;
   queryMode: QueryMode;
   onHoverTooltip?: (
     entry: ProcessedEntry,
@@ -53,8 +54,9 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
   onPlaceholderClick,
   onCreateNote,
   onViewNotes,
-  dimensionMap,
+  areaMap,
   selectedDate,
+  timezone,
   queryMode,
   onHoverTooltip,
   onHoverMove,
@@ -83,11 +85,11 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
   const getDisplayDate = () => {
     if (queryMode === "single") {
       // Single day mode: show selected date
-      return formatDateInTimezone(selectedDate);
+      return formatDateInTimezone(selectedDate, timezone);
     } else {
       // Advanced query mode: show actual record date
       if (entry.start_time) {
-        return formatDate(entry.start_time);
+        return formatDate(entry.start_time, timezone);
       }
       return "-";
     }
@@ -171,7 +173,11 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
       </td>
 
       <td className="px-4 py-3 whitespace-nowrap">
-        <TimeRangeText start={entry.start_time} end={entry.end_time} />
+        <TimeRangeText
+          start={entry.start_time}
+          end={entry.end_time}
+          timezone={timezone}
+        />
       </td>
 
       <td className="px-4 py-3 whitespace-nowrap">
@@ -181,9 +187,9 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
       </td>
 
       <td className="px-4 py-3 whitespace-nowrap">
-        <DimensionBadge
-          dimensionId={entry.dimension_id || undefined}
-          dimensionMap={dimensionMap}
+        <AreaBadge
+          areaId={entry.area_id || undefined}
+          areaMap={areaMap}
         />
       </td>
 
@@ -273,7 +279,7 @@ const EntryRow = React.memo(
     prev.index === next.index &&
     prev.isSelectMode === next.isSelectMode &&
     prev.selected === next.selected &&
-    prev.dimensionMap === next.dimensionMap &&
+    prev.areaMap === next.areaMap &&
     prev.selectedDate === next.selectedDate &&
     prev.queryMode === next.queryMode &&
     prev.onSelectChange === next.onSelectChange &&

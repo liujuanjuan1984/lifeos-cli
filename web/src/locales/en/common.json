@@ -35,7 +35,7 @@
     "actions": "Actions",
     "all": "All",
     "none": "None",
-    "noDimension": "No Dimension",
+    "noArea": "No Area",
     "please_select": "Please select...",
     "no_options": "No options",
     "create_new": "Create New",
@@ -52,7 +52,7 @@
     "required": " is required"
   },
   "target": {
-    "dimension": "Dimension",
+    "area": "Area",
     "priority": "Priority",
     "tag": "Tag",
     "year": "Year",
@@ -173,7 +173,7 @@
       "noTitleValue": "Please enter title content",
       "noFindText": "Please enter text to find",
       "noTaskSelected": "Please select related task",
-      "noDimensionSelected": "Please select dimension",
+      "noAreaSelected": "Please select area",
       "noRecordsUpdated": "No records were updated",
       "batchFailed": "Batch {{batch}} processing failed: {{error}}",
       "details": "Batch edit error details:"
@@ -204,8 +204,8 @@
       "description": "Enter task ID to associate, will replace all selected records' related tasks",
       "clearDescription": "Will clear all selected records' related tasks"
     },
-    "dimension": {
-      "description": "Will replace all selected records' dimensions"
+    "area": {
+      "description": "Will replace all selected records' areas"
     },
     "confirmEditing": "Editing..."
   },
@@ -644,9 +644,9 @@
         "description": "Make daily rituals a part of your daily plan. Choose whether to display habit actions here."
       }
     },
-    "dimensionOrder": {
-      "title": "Dimension Order",
-      "description": "Customize the display order of your dimensions, allowing you to prioritize the most important areas of your life."
+    "areaOrder": {
+      "title": "Area Order",
+      "description": "Customize the display order of your areas, allowing you to prioritize the most important areas of your life."
     },
     "defaultInboxVision": {
       "label": "Select Default Vision",
@@ -708,16 +708,16 @@
       }
     },
     "autoSaveHint": "Changes are saved automatically.",
-    "dimensionSorter": {
-      "loading": "Loading dimensions...",
-      "error": "Failed to load dimensions: {{message}}",
-      "empty": "No dimensions available",
-      "groupLabel": "Dimension order",
+    "areaSorter": {
+      "loading": "Loading areas...",
+      "error": "Failed to load areas: {{message}}",
+      "empty": "No areas available",
+      "groupLabel": "Area order",
       "instructions": "Arrange left to right using the ↑↓ buttons.",
       "clearAll": "Reset",
-      "clearAllAria": "Reset dimension order",
-      "listLabel": "Dimension list",
-      "itemLabel": "Dimension {{name}}, position {{position}}",
+      "clearAllAria": "Reset area order",
+      "listLabel": "Area list",
+      "itemLabel": "Area {{name}}, position {{position}}",
       "moveUp": "Move {{name}} up",
       "moveDown": "Move {{name}} down"
     },
@@ -815,7 +815,7 @@
       "createFirstTask": "Start by creating your first task"
     },
     "filters": {
-      "dimensionNone": "No dimension"
+      "areaNone": "No area"
     },
     "modal": {
       "createVision": "Create Vision",
@@ -1041,7 +1041,7 @@
     "progressBar": {
       "title": "Time Allocation Distribution",
       "unknownUnfilled": "Unknown/Unfilled",
-      "unknownDimension": "Unknown Dimension"
+      "unknownArea": "Unknown Area"
     },
     "modal": {
       "addTimeLog": "Add Time Log",
@@ -1063,7 +1063,7 @@
     "tooltip": {
       "timeRange": "Time Range",
       "duration": "Duration",
-      "dimension": "Dimension",
+      "area": "Area",
       "vision": "Vision",
       "task": "Task",
       "status": "Task Status"
@@ -1072,7 +1072,7 @@
       "title": "Advanced Search Results:",
       "from": "From {{startDate}}",
       "to": "to {{endDate}}",
-      "dimension": "Dimension: {{dimension}}",
+      "area": "Area: {{area}}",
       "keyword": "Keyword: {{keyword}}",
       "task": "Task: {{task}}",
       "noTask": "No Task",
@@ -1137,7 +1137,7 @@
       "timeLogBatchUpdateFailedMessage": "Please try again later"
     },
     "actions": {
-      "manageDimensions": "Manage Dimensions"
+      "manageAreas": "Manage Areas"
     },
     "bulkImport": {
       "modalTitle": "Batch Import Timelogs",
@@ -1219,7 +1219,7 @@
     "noStats": "No statistics available",
     "noStatsDescription": "Start tracking your time, and your first data insight report will be generated here.",
     "statsTitle": "Log Statistics",
-    "dimensionTooltip": {
+    "areaTooltip": {
       "title": "{{name}}",
       "total": "Total: {{duration}}",
       "averagePerTotalDays": "Average per total days ({{days}} d): {{duration}}",
@@ -1378,7 +1378,7 @@
     },
     "activityTypes": {
       "vision": "Vision Management",
-      "actual_event": "TimeLog",
+      "timelog": "Timelog",
       "note": "Notes",
       "task": "Tasks",
       "planned_event": "Calendar"
@@ -1441,15 +1441,15 @@
         },
         "actual": {
           "title": {
-            "show": "Show actual events",
-            "hide": "Hide actual events"
+            "show": "Show timelogs",
+            "hide": "Hide timelogs"
           }
         }
       },
       "loading": "Loading calendar data...",
       "hint": {
         "title": "Tip:",
-        "actualEnabled": "Actual footprints enabled. Filter by a specific dimension, or keep 'All' to view all dimensions."
+        "actualEnabled": "Timelog footprints enabled. Filter by a specific area, or keep 'All' to view all areas."
       },
       "fc": {
         "today": "Today",
@@ -1481,30 +1481,30 @@
       "description": "Manage LifeOS Web UI preferences and local settings."
     }
   },
-  "dimensionManager": {
-    "title": "Life Dimension Management",
-    "addNewDimension": "Add New Dimension",
-    "editDimension": "Edit Dimension",
-    "dimensionName": "Dimension Name",
-    "dimensionNamePlaceholder": "e.g., Work, Health, Family",
-    "descriptionPlaceholder": "Describe this life dimension...",
+  "areaManager": {
+    "title": "Life Area Management",
+    "addNewArea": "Add New Area",
+    "editArea": "Edit Area",
+    "areaName": "Area Name",
+    "areaNamePlaceholder": "e.g., Work, Health, Family",
+    "descriptionPlaceholder": "Describe this life area...",
     "color": "Color",
     "icon": "Icon",
     "iconPlaceholder": "Select icon...",
-    "enableDimension": "Enable this dimension",
-    "loadingDimensions": "Loading dimension data...",
-    "dimensionUpdated": "Dimension updated successfully!",
-    "dimensionCreated": "Dimension created successfully!",
-    "dimensionDeleted": "Dimension deleted successfully",
-    "dimensionUpdateSuccess": "Dimension information has been successfully updated",
-    "dimensionCreateSuccess": "New life dimension has been added to your life tree",
-    "dimensionDeleteSuccess": "Dimension has been removed from your life tree",
-    "saveError": "Error saving dimension",
-    "deleteError": "Failed to delete dimension",
+    "enableArea": "Enable this area",
+    "loadingAreas": "Loading area data...",
+    "areaUpdated": "Area updated successfully!",
+    "areaCreated": "Area created successfully!",
+    "areaDeleted": "Area deleted successfully",
+    "areaUpdateSuccess": "Area information has been successfully updated",
+    "areaCreateSuccess": "New life area has been added to your life tree",
+    "areaDeleteSuccess": "Area has been removed from your life tree",
+    "saveError": "Error saving area",
+    "deleteError": "Failed to delete area",
     "operationFailed": "Operation failed:",
     "retryLater": "Please try again later",
     "deleteConfirmTitle": "Delete Confirmation",
-    "deleteConfirmMessage": "Are you sure you want to delete dimension \"{{name}}\"? This will also delete all related data.",
+    "deleteConfirmMessage": "Are you sure you want to delete area \"{{name}}\"? This will also delete all related data.",
     "toggleActive": "Deactivate",
     "toggleInactive": "Activate",
     "iconLabel": "Icon:",
@@ -1616,7 +1616,7 @@
       "description": "Notes linked from this time entry will appear here. Capture extra context, reflections, or follow-up items."
     }
   },
-  "taskActualEvents": {
+  "taskTimelogs": {
     "title": "Logs",
     "taskLabel": "Task:",
     "totalTime": "Total",
@@ -1625,7 +1625,7 @@
     "minutes": "minutes",
     "hours": "hours",
     "untitled": "Untitled event",
-    "unknownDimension": "Unassigned dimension",
+    "unknownArea": "Unassigned area",
     "emptyState": {
       "title": "No Logs",
       "description": "Link timelog entries to this task to review them here."
@@ -1635,7 +1635,7 @@
       "duration": "Duration",
       "date": "Date",
       "description": "Description",
-      "dimension": "Dimension"
+      "area": "Area"
     }
   },
   "taskSelector": {

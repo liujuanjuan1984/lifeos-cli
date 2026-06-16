@@ -7,7 +7,7 @@ import type { ProcessedEntry } from "@/utils/datetime";
 import type { UUID } from "@/types/primitive";
 import type {
   TaskWithSubtasks,
-  ActualEventWithEnergyResponse,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import { renderWithProviders } from "@test/utils";
 
@@ -40,7 +40,7 @@ const buildPlaceholderEntry = (): ProcessedEntry => ({
   title: "未记录",
   start_time: baseDate.toISOString(),
   end_time: new Date(baseDate.getTime() + 60 * 60 * 1000).toISOString(),
-  dimension_id: null,
+  area_id: null,
   tracking_method: "manual",
   created_at: baseDate.toISOString(),
   updated_at: baseDate.toISOString(),
@@ -51,6 +51,24 @@ const buildPlaceholderEntry = (): ProcessedEntry => ({
   linked_notes: [],
   linked_notes_count: 0,
   isPlaceholder: true,
+});
+
+const buildActualEntry = (): ProcessedEntry => ({
+  id: "evt" as UUID,
+  title: "Cross-midnight work session",
+  start_time: "2026-04-13T15:40:00.000Z",
+  end_time: "2026-04-13T17:30:00.000Z",
+  area_id: null,
+  tracking_method: "manual",
+  created_at: "2026-04-14T05:41:48.498Z",
+  updated_at: "2026-04-14T05:41:48.498Z",
+  persons: [],
+  tags: [],
+  extra_data: null,
+  task: null,
+  linked_notes: [],
+  linked_notes_count: 0,
+  isPlaceholder: false,
 });
 
 const renderTable = (
@@ -71,11 +89,11 @@ const renderTable = (
     onSortChange: vi.fn(),
     selectedDate: baseDate,
     queryMode: "single",
-    dimensionMap: new Map(),
+    areaMap: new Map(),
     preloadedTasks: [] as TaskWithSubtasks[],
     disableQuickEntry: false,
-    selectedDimensionId: null,
-    onDimensionChange: vi.fn(),
+    selectedAreaId: null,
+    onAreaChange: vi.fn(),
     onCreateNoteForEntry: vi.fn(),
     onViewNotesForEntry: vi.fn(),
   };
@@ -105,12 +123,12 @@ describe("TimeEntriesTable inline entry sessions", () => {
       title: "entry",
       start_time: baseDate.toISOString(),
       end_time: baseDate.toISOString(),
-      dimension_id: null,
+      area_id: null,
       tracking_method: "manual",
       created_at: baseDate.toISOString(),
       updated_at: baseDate.toISOString(),
       persons: [],
-    } as unknown as ActualEventWithEnergyResponse;
+    } as unknown as TimelogWithEnergyResponse;
 
     await act(async () => {
       inlineProps.onEntryCreated(fakeEntry, { sessionId: "stale-session" });
@@ -147,5 +165,18 @@ describe("TimeEntriesTable inline entry sessions", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("inline-entry")).toBeNull();
     });
+  });
+
+  it("uses the active timezone when rendering cross-midnight entries", () => {
+    renderTable({
+      entries: [buildActualEntry()],
+      selectedDate: new Date("2026-04-13T16:00:00.000Z"),
+      timezone: "Asia/Shanghai",
+      disableQuickEntry: true,
+    });
+
+    expect(screen.getByText("2026-04-14")).toBeInTheDocument();
+    expect(screen.getByText(/23:40-01:30/)).toBeInTheDocument();
+    expect(screen.getByText("Cross-midnight work session")).toBeInTheDocument();
   });
 });

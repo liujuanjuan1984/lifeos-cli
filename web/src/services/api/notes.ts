@@ -21,7 +21,7 @@ interface NoteVisionSummary {
   id: UUID;
   name: string;
   status?: string | null;
-  dimension_id?: UUID | null;
+  area_id?: UUID | null;
 }
 
 interface TaskParentSummary {
@@ -51,8 +51,8 @@ export interface NoteTimelogSummary {
   title?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  dimension_id?: UUID | null;
-  dimension_summary?: NoteTimelogDimensionSummary | null;
+  area_id?: UUID | null;
+  area_summary?: NoteTimelogAreaSummary | null;
   task_summary?: NoteTimelogTaskSummary | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -67,7 +67,7 @@ export interface NoteIngestJobSummary {
   updated_at: string;
 }
 
-interface NoteTimelogDimensionSummary {
+interface NoteTimelogAreaSummary {
   id: UUID;
   name?: string | null;
   color?: string | null;
@@ -93,7 +93,7 @@ export interface NoteCreate {
   person_ids?: UUID[];
   tag_ids?: UUID[];
   task_id?: UUID | null;
-  actual_event_ids?: UUID[];
+  timelog_ids?: UUID[];
 }
 
 export interface NoteUpdate {
@@ -101,7 +101,7 @@ export interface NoteUpdate {
   person_ids?: UUID[];
   tag_ids?: UUID[];
   task_id?: UUID | null;
-  actual_event_ids?: UUID[];
+  timelog_ids?: UUID[];
 }
 
 // New interfaces for statistics and filtering
@@ -192,7 +192,7 @@ export interface NoteBulkCreateRequestPayload {
   person_ids?: UUID[];
   tag_ids?: UUID[];
   task_id?: UUID | null;
-  actual_event_ids?: UUID[];
+  timelog_ids?: UUID[];
 }
 
 interface NoteBulkCreateFailedItem {
@@ -212,7 +212,7 @@ interface NoteListMeta {
   tag_id?: UUID | null;
   person_id?: UUID | null;
   task_id?: UUID | null;
-  actual_event_id?: UUID | null;
+  timelog_id?: UUID | null;
   keyword?: string | null;
   untagged?: boolean | null;
   start_date?: string | null;
@@ -240,7 +240,7 @@ export const notesApi = {
       tag_id?: UUID;
       person_id?: UUID;
       task_id?: UUID;
-      actual_event_id?: UUID;
+      timelog_id?: UUID;
       keyword?: string;
       untagged?: boolean;
     },
@@ -255,8 +255,8 @@ export const notesApi = {
     if (params.keyword) searchParams.append("keyword", params.keyword);
     if (params.task_id)
       searchParams.append("task_id", params.task_id.toString());
-    if (params.actual_event_id)
-      searchParams.append("actual_event_id", params.actual_event_id.toString());
+    if (params.timelog_id)
+      searchParams.append("timelog_id", params.timelog_id.toString());
     if (params.untagged) searchParams.append("untagged", "true");
 
     const queryString = searchParams.toString();

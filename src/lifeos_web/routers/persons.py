@@ -187,24 +187,24 @@ async def _load_activity_items(
             )
 
     if activity_filter in (None, "planned_event"):
-        event_ids = entity_ids.get("event", [])
-        if event_ids:
-            event_rows = await session.execute(
-                select(Event).where(Event.id.in_(event_ids), Event.deleted_at.is_(None))
+        planned_event_ids = entity_ids.get("event", [])
+        if planned_event_ids:
+            planned_event_rows = await session.execute(
+                select(Event).where(Event.id.in_(planned_event_ids), Event.deleted_at.is_(None))
             )
             items.extend(
                 _activity_payload(
-                    entity_id=event.id,
+                    entity_id=planned_event_record.id,
                     activity_type="planned_event",
-                    title=event.title,
-                    description=event.description,
-                    activity_date=event.start_time,
-                    status=event.status,
+                    title=planned_event_record.title,
+                    description=planned_event_record.description,
+                    activity_date=planned_event_record.start_time,
+                    status=planned_event_record.status,
                 )
-                for event in event_rows.scalars()
+                for planned_event_record in planned_event_rows.scalars()
             )
 
-    if activity_filter in (None, "actual_event"):
+    if activity_filter in (None, "timelog"):
         timelog_ids = entity_ids.get("timelog", [])
         if timelog_ids:
             timelog_rows = await session.execute(
@@ -213,7 +213,7 @@ async def _load_activity_items(
             items.extend(
                 _activity_payload(
                     entity_id=timelog.id,
-                    activity_type="actual_event",
+                    activity_type="timelog",
                     title=timelog.title,
                     description=timelog.notes,
                     activity_date=timelog.start_time,
@@ -366,7 +366,7 @@ async def list_person_activities(
     activity_filter = activity_type or type
     if activity_filter == "all":
         activity_filter = None
-    if activity_filter not in {None, "vision", "task", "planned_event", "actual_event", "note"}:
+    if activity_filter not in {None, "vision", "task", "planned_event", "timelog", "note"}:
         raise HTTPException(status_code=400, detail=f"Unsupported activity type: {activity_filter}")
 
     all_items = await _load_activity_items(

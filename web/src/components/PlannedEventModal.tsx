@@ -18,8 +18,8 @@ import DateTimeSelector from "./forms/DateTimeSelector";
 
 import TaskSelector from "./selects/TaskSelector";
 import { DeleteButton, FormActions } from "./ActionButton";
-import { useDimensions } from "@/hooks/queries/useDimensions";
-import DimensionSelect from "./selects/DimensionSelect";
+import { useAreas } from "@/hooks/queries/useAreas";
+import AreaSelect from "./selects/AreaSelect";
 import { useModalState } from "@/hooks/useModalState";
 import { useToast } from "@/contexts/ToastContext";
 import { ACTIVE_TASK_STATUSES } from "@/utils/constants";
@@ -36,7 +36,7 @@ interface PlannedEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  event?: PlannedEvent | null;
+  plannedEvent?: PlannedEvent | null;
   initialDateInfo?: {
     start: Date;
     end: Date;
@@ -54,7 +54,7 @@ export default function PlannedEventModal({
   isOpen,
   onClose,
   onSave,
-  event,
+  plannedEvent,
   initialDateInfo,
   preloadedTasks,
   visions,
@@ -89,15 +89,17 @@ export default function PlannedEventModal({
     "all",
   );
 
-  // Shared dimensions via hook
-  const dimensionsRaw = useDimensions();
+  // Shared areas via hook
+  const areasRaw = useAreas();
 
-  // Memoize dimensions to prevent unnecessary re-renders
-  const { dimensions: dimsFromCache } = useMemo(
-    () => dimensionsRaw,
-    [dimensionsRaw],
+  // Memoize areas to prevent unnecessary re-renders
+  const { areas: areasFromCache } = useMemo(
+    () => areasRaw,
+    [areasRaw],
   );
-  const allowScopedEditing = Boolean(event?.is_recurring && event?.is_instance);
+  const allowScopedEditing = Boolean(
+    plannedEvent?.is_recurring && plannedEvent?.is_instance,
+  );
   const effectiveScope = allowScopedEditing ? editScope : "all";
 
   // Toast notifications
@@ -122,26 +124,26 @@ export default function PlannedEventModal({
     setError(null);
 
     const nextFormData = buildPlannedEventFormData({
-      event,
+      plannedEvent,
       initialDateInfo,
     });
     initialFormDataRef.current = nextFormData;
     setFormData(nextFormData);
 
-    if (event) {
-      setSelectedTaskId(event.task_id || null);
+    if (plannedEvent) {
+      setSelectedTaskId(plannedEvent.task_id || null);
     } else {
       setSelectedTaskId(null);
     }
 
-    if (event?.is_recurring && event?.is_instance) {
+    if (plannedEvent?.is_recurring && plannedEvent?.is_instance) {
       setEditScope("single");
     } else {
       setEditScope("all");
     }
 
     initializedRef.current = true;
-  }, [isOpen, dimsFromCache, event, initialDateInfo, setError]);
+  }, [isOpen, areasFromCache, plannedEvent, initialDateInfo, setError]);
 
   // Memoize preloadedTasks to prevent unnecessary re-renders
   const stablePreloadedTasks = useMemo(
@@ -167,9 +169,9 @@ export default function PlannedEventModal({
   );
 
   const occurrenceDateLabel = useMemo(() => {
-    if (!event?.start_time) return "";
-    return formatDateTime(event.start_time, resolvedTimezone);
-  }, [event?.start_time, resolvedTimezone]);
+    if (!plannedEvent?.start_time) return "";
+    return formatDateTime(plannedEvent.start_time, resolvedTimezone);
+  }, [plannedEvent?.start_time, resolvedTimezone]);
 
   /**
    * Handle form input changes
@@ -188,7 +190,7 @@ export default function PlannedEventModal({
           ...prev,
           [name]: checked,
         }));
-      } else if (type === "number" || name === "dimension_id") {
+      } else if (type === "number" || name === "area_id") {
         setFormData((prev) => ({
           ...prev,
           [name]: parseInt(value) || "",
@@ -215,7 +217,7 @@ export default function PlannedEventModal({
           task_id: taskIdValue !== null ? taskIdValue : null,
         };
 
-        // Auto-fill title and dimension if it's empty and we have task data
+        // Auto-fill title and area if it's empty and we have task data
         if (
           taskIdValue !== null &&
           Array.isArray(stablePreloadedTasks) &&
@@ -237,13 +239,13 @@ export default function PlannedEventModal({
               newState.title = combinedTitle;
             }
 
-            // Auto-fill dimension if not set and vision has dimension
+            // Auto-fill area if not set and vision has area
             if (
-              (!prev.dimension_id || prev.dimension_id === null) &&
-              v?.dimension_id
+              (!prev.area_id || prev.area_id === null) &&
+              v?.area_id
             ) {
-              // 确保 dimension_id 始终是字符串类型，null 转换为 null
-              newState.dimension_id = v.dimension_id || null;
+              // 确保 area_id 始终是字符串类型，null 转换为 null
+              newState.area_id = v.area_id || null;
             }
           }
         }
@@ -307,11 +309,11 @@ export default function PlannedEventModal({
     }));
   }, []);
 
-  // Optimize dimension change handler
-  const handleDimensionChange = useCallback((v: UUID | null | undefined) => {
+  // Optimize area change handler
+  const handleAreaChange = useCallback((v: UUID | null | undefined) => {
     setFormData((prev) => ({
       ...prev,
-      dimension_id: v ?? null,
+      area_id: v ?? null,
     }));
   }, []);
 
@@ -319,8 +321,8 @@ export default function PlannedEventModal({
    * Handle form submission
    */
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (formEvent: React.FormEvent) => {
+      formEvent.preventDefault();
 
       if (!formData.title.trim()) {
         setError(t("eventModal.errors.titleRequired"));
@@ -332,11 +334,11 @@ export default function PlannedEventModal({
         return;
       }
 
-      // dimension_id is now optional, no validation needed
+      // area_id is now optional, no validation needed
 
       try {
         await withLoading(async () => {
-          if (event) {
+          if (plannedEvent) {
             const payload: PlannedEventUpdate = buildPlannedEventUpdatePayload(
               initialFormDataRef.current ?? createEmptyPlannedEventFormData(),
               formData,
@@ -352,20 +354,19 @@ export default function PlannedEventModal({
               return;
             }
 
-            // Update existing event
             await plannedEventsApi.update(
-              event.id,
+              plannedEvent.id,
               payload,
-              event.is_recurring
+              plannedEvent.is_recurring
                 ? {
                     updateType: effectiveScope,
                     instanceId:
                       allowScopedEditing && effectiveScope !== "all"
-                        ? event.instance_id
+                        ? plannedEvent.instance_id
                         : undefined,
                     instanceStart:
                       allowScopedEditing && effectiveScope !== "all"
-                        ? event.start_time
+                        ? plannedEvent.start_time
                         : undefined,
                   }
                 : undefined,
@@ -377,7 +378,6 @@ export default function PlannedEventModal({
               t("eventModal.success.updateMessage", { title: formData.title }),
             );
           } else {
-            // Create new event
             await plannedEventsApi.create(formData);
 
             // 显示成功提示
@@ -405,7 +405,7 @@ export default function PlannedEventModal({
     },
     [
       formData,
-      event,
+      plannedEvent,
       withLoading,
       toast,
       onSave,
@@ -421,20 +421,21 @@ export default function PlannedEventModal({
    */
   const handleDelete = useCallback(
     async (type: "single" | "all_future" | "all") => {
-      if (!event) return;
+      if (!plannedEvent) return;
 
       try {
         await withLoading(async () => {
           // Call delete API with delete type
-          const requiresInstanceContext = event.is_recurring && type !== "all";
-          await plannedEventsApi.delete(event.id, {
+          const requiresInstanceContext =
+            plannedEvent.is_recurring && type !== "all";
+          await plannedEventsApi.delete(plannedEvent.id, {
             deleteType: type,
             instanceId:
-              requiresInstanceContext && event.is_instance
-                ? event.instance_id
+              requiresInstanceContext && plannedEvent.is_instance
+                ? plannedEvent.instance_id
                 : undefined,
             instanceStart: requiresInstanceContext
-              ? event.start_time
+              ? plannedEvent.start_time
               : undefined,
           });
 
@@ -449,7 +450,7 @@ export default function PlannedEventModal({
             t("eventModal.success.deleteTitle"),
             t("eventModal.success.deleteMessage", {
               type: deleteTypeText,
-              title: event.title,
+              title: plannedEvent.title,
             }),
           );
 
@@ -472,23 +473,21 @@ export default function PlannedEventModal({
         setShowDeleteConfirm(false);
       }
     },
-    [event, withLoading, onSave, onClose, toast, setError, t],
+    [plannedEvent, withLoading, onSave, onClose, toast, setError, t],
   );
 
   /**
    * Handle delete button click
    */
   const handleDeleteClick = useCallback(() => {
-    if (!event) return; // Only existing events can be deleted
+    if (!plannedEvent) return;
 
-    if (event.is_recurring) {
-      // Show delete options for recurring events
+    if (plannedEvent.is_recurring) {
       setShowDeleteConfirm(true);
     } else {
-      // Direct delete for non-recurring events
       handleDelete("single");
     }
-  }, [event, handleDelete]);
+  }, [plannedEvent, handleDelete]);
 
   // Optimize delete button click handler for delete confirm
   const handleDeleteConfirm = useCallback(() => {
@@ -517,7 +516,7 @@ export default function PlannedEventModal({
       isOpen={isOpen}
       onClose={attemptClose}
       closeDisabled={loading}
-      header={event ? t("common.edit") : t("eventModal.title.create")}
+      header={plannedEvent ? t("common.edit") : t("eventModal.title.create")}
       loading={loading}
       error={error}
       onErrorDismiss={handleErrorDismiss}
@@ -532,7 +531,7 @@ export default function PlannedEventModal({
           onCancel={onClose}
           onSubmit={() => document.querySelector("form")?.requestSubmit()}
           leftSlot={
-            event ? (
+            plannedEvent ? (
               <DeleteButton onClick={handleDeleteClick} disabled={loading} />
             ) : undefined
           }
@@ -553,7 +552,7 @@ export default function PlannedEventModal({
           />
         </div>
 
-        {/* 2. 标题 + 维度 - 响应式排列 */}
+        {/* 2. 标题 + 领域 - 响应式排列 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Title - 移动端全宽，平板占1/2，桌面占2/3 */}
           <div className="sm:col-span-2 lg:col-span-2">
@@ -574,16 +573,16 @@ export default function PlannedEventModal({
             </FormField>
           </div>
 
-          {/* Dimension - 移动端全宽，平板和桌面占1/3 */}
+          {/* Area - 移动端全宽，平板和桌面占1/3 */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <DimensionSelect
-              value={formData.dimension_id ?? null}
-              onChange={handleDimensionChange}
-              id="event-modal-dimension"
+            <AreaSelect
+              value={formData.area_id ?? null}
+              onChange={handleAreaChange}
+              id="planned-event-modal-area"
               showNoneOption
               clearBehavior="none"
             />
-            {/* dimension_id is now optional, no error message needed */}
+            {/* area_id is now optional, no error message needed */}
           </div>
         </div>
 
@@ -756,7 +755,7 @@ export default function PlannedEventModal({
         >
           <p className="text-sm sm:text-base leading-relaxed mb-3 sm:mb-4">
             {t("eventModal.deleteConfirm.description", {
-              title: event?.title,
+              title: plannedEvent?.title,
             })}
           </p>
 

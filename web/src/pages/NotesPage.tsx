@@ -559,6 +559,7 @@ function NotesPage() {
                 selectedNoteIds={isAdvancedMode ? selectedNoteIds : undefined}
                 onSelectChange={isAdvancedMode ? handleSelectNote : undefined}
                 minCollapsedLines={noteCollapsePreference.value}
+                timezone={activeTimezone}
               />
 
               {isAdvancedMode && advancedTotalCount > 0 && (
@@ -651,9 +652,6 @@ function NotesPage() {
         onTagUpdated={async () => {
           await refreshNoteTags();
         }}
-        loading={false}
-        error={null}
-        onErrorDismiss={() => {}}
       />
 
       <NotesBatchEditModal

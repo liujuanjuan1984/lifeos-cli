@@ -7,7 +7,7 @@
  * - Gap detection and placeholder generation
  */
 
-import type { ActualEvent } from "@/services/api";
+import type { Timelog } from "@/services/api";
 import type { UUID } from "@/types/primitive";
 import { createDateBoundaries, sortTimeEntriesByTime } from "./datetime";
 interface TimeValidationResult {
@@ -22,7 +22,7 @@ export interface PlaceholderEntry {
   title: string;
   start_time: string;
   end_time: string;
-  dimension_id: UUID | null; // Will use a special "unknown" dimension
+  area_id: UUID | null; // Will use a special "unknown" area
   location?: string | null;
   energy_level?: number | null;
   notes?: string | null;
@@ -32,7 +32,7 @@ export interface PlaceholderEntry {
   isPlaceholder: true;
 }
 
-export interface ProcessedEntry extends Omit<ActualEvent, "id"> {
+export interface ProcessedEntry extends Omit<Timelog, "id"> {
   id: UUID | string; // Support both real entries (number) and placeholders (string)
   isPlaceholder?: boolean;
   validationResult?: TimeValidationResult;
@@ -41,7 +41,7 @@ export interface ProcessedEntry extends Omit<ActualEvent, "id"> {
 /**
  * Check if an entry has negative duration
  */
-function hasNegativeDuration(entry: ActualEvent): boolean {
+function hasNegativeDuration(entry: Timelog): boolean {
   if (!entry.start_time || !entry.end_time) {
     return false;
   }
@@ -77,7 +77,7 @@ function intervalsOverlap(
  * Find all overlapping entries in a list
  * Returns array of entry indices that have overlaps
  */
-function findOverlappingEntries(entries: ActualEvent[]): number[] {
+function findOverlappingEntries(entries: Timelog[]): number[] {
   const overlappingIndices = new Set<number>();
 
   for (let i = 0; i < entries.length; i++) {
@@ -108,8 +108,8 @@ function findOverlappingEntries(entries: ActualEvent[]): number[] {
  * Validate a single time entry
  */
 function validateTimeEntry(
-  entry: ActualEvent,
-  allEntries: ActualEvent[],
+  entry: Timelog,
+  allEntries: Timelog[],
 ): TimeValidationResult {
   const hasNegDuration = hasNegativeDuration(entry);
   const overlappingEntries = findOverlappingEntries(allEntries);
@@ -130,12 +130,12 @@ function validateTimeEntry(
  *
  * @param entries - Sorted array of actual entries for the day
  * @param selectedDate - The date being processed
- * @param unknownDimensionId - ID to use for placeholder entries (will be -1 for unknown)
+ * @param unknownAreaId - ID to use for placeholder entries (will be -1 for unknown)
  */
 function generatePlaceholderEntries(
-  entries: ActualEvent[],
+  entries: Timelog[],
   selectedDate: Date,
-  unknownDimensionId: UUID = "-1" as UUID,
+  unknownAreaId: UUID = "-1" as UUID,
   timezone?: string,
 ): PlaceholderEntry[] {
   const placeholders: PlaceholderEntry[] = [];
@@ -172,7 +172,7 @@ function generatePlaceholderEntries(
         title: "未记录",
         start_time: currentTime.toISOString(),
         end_time: firstEntryStart.toISOString(),
-        dimension_id: unknownDimensionId,
+        area_id: unknownAreaId,
         location: null,
         energy_level: null,
         notes: null,
@@ -205,7 +205,7 @@ function generatePlaceholderEntries(
         title: "未记录",
         start_time: prevEntryEnd.toISOString(),
         end_time: currentEntryStart.toISOString(),
-        dimension_id: unknownDimensionId,
+        area_id: unknownAreaId,
         location: null,
         energy_level: null,
         notes: null,
@@ -238,7 +238,7 @@ function generatePlaceholderEntries(
         title: "未记录",
         start_time: currentTime.toISOString(),
         end_time: dayEnd.toISOString(),
-        dimension_id: unknownDimensionId,
+        area_id: unknownAreaId,
         location: null,
         energy_level: null,
         notes: null,
@@ -257,7 +257,7 @@ function generatePlaceholderEntries(
       title: "未记录",
       start_time: dayStart.toISOString(),
       end_time: dayEnd.toISOString(),
-      dimension_id: unknownDimensionId,
+      area_id: unknownAreaId,
       location: null,
       energy_level: null,
       notes: null,
@@ -276,7 +276,7 @@ function generatePlaceholderEntries(
  * This is the main function to be called by components
  */
 export function processTimeEntries(
-  entries: ActualEvent[],
+  entries: Timelog[],
   selectedDate: Date,
   timezone?: string,
 ): ProcessedEntry[] {

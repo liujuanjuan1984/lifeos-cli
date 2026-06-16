@@ -5,9 +5,9 @@ import type {
 } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  AggregatedDimensionRow,
+  AggregatedAreaRow,
   AggregationGranularity,
-  DailyDimensionRow,
+  DailyAreaRow,
 } from "@/services/api/stats";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -21,7 +21,7 @@ import type {
   CalendarAdapter,
   ExtendedPlanningViewType,
 } from "@/utils/calendar";
-import type { Dimension } from "@/services/api/dimensions";
+import type { Area } from "@/services/api/areas";
 import ActionButton from "@/components/ActionButton";
 import { RadioGroup, SegmentedControl, TextInput } from "@/components/forms";
 import PeriodNavigation from "@/components/PeriodNavigation";
@@ -37,14 +37,14 @@ import {
 } from "@/features/insights/useInsightsViewState";
 import { useInsightsStatsController } from "@/features/insights/controller/useInsightsStatsController";
 
-type DimensionBucket = {
-  dimensionId: UUID;
+type AreaBucket = {
+  areaId: UUID;
   minutes: number;
   periodStart: string;
   periodEnd: string;
 };
 
-interface DimensionTooltipContent {
+interface AreaTooltipContent {
   title: string;
   lines: string[];
 }
@@ -206,22 +206,20 @@ const formatBucketTitle = (
   return formatBucketLabel(granularity, start, end);
 };
 
-// 辅助函数：将十六进制颜色转换为 RGB
 const hexToRgb = (hex: string): string => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return "155, 163, 175"; // 默认灰色
+  if (!result) return "155, 163, 175";
   const r = parseInt(result[1], 16);
   const g = parseInt(result[2], 16);
   const b = parseInt(result[3], 16);
   return `${r}, ${g}, ${b}`;
 };
 
-// 统计项组件
 interface StatisticItemProps {
   day: string;
-  rows: DailyDimensionRow[];
-  dimensionIdToName: Record<UUID, string>;
-  dimensionIdToColor: Record<UUID, string>;
+  rows: DailyAreaRow[];
+  areaIdToName: Record<UUID, string>;
+  areaIdToColor: Record<UUID, string>;
   viewMode: "minutes" | "percent";
   label?: string;
   labelTitle?: string;
@@ -231,8 +229,8 @@ interface StatisticItemProps {
 const StatisticItem: React.FC<StatisticItemProps> = ({
   day,
   rows,
-  dimensionIdToName,
-  dimensionIdToColor,
+  areaIdToName,
+  areaIdToColor,
   viewMode,
   label,
   labelTitle,
@@ -266,13 +264,13 @@ const StatisticItem: React.FC<StatisticItemProps> = ({
 
             return (
               <div
-                key={`bar-${day}-${r.dimension_id}`}
+                key={`bar-${day}-${r.area_id}`}
                 className="relative flex items-center justify-center"
                 style={{
                   width: `${widthPct}%`,
-                  backgroundColor: `rgba(${hexToRgb(dimensionIdToColor[r.dimension_id] || "#9CA3AF")}, 0.7)`,
+                  backgroundColor: `rgba(${hexToRgb(areaIdToColor[r.area_id] || "#9CA3AF")}, 0.7)`,
                 }}
-                title={`${dimensionIdToName[r.dimension_id] || `维度${r.dimension_id}`}: ${duration} (${percentage}%)`}
+                title={`${areaIdToName[r.area_id] || `领域${r.area_id}`}: ${duration} (${percentage}%)`}
               >
                 {showLabel && (
                   <span className="px-2 py-2 text-sm font-medium text-white drop-shadow-sm truncate max-w-full flex items-center justify-center h-full">
@@ -298,20 +296,20 @@ function InsightsPage() {
   useEffect(() => {
     return () => setHeader({ actions: undefined });
   }, [setHeader]);
-  const [dimensionIdToName, setDimensionIdToName] = useState<
+  const [areaIdToName, setAreaIdToName] = useState<
     Record<UUID, string>
   >({});
-  const [dimensionIdToColor, setDimensionIdToColor] = useState<
+  const [areaIdToColor, setAreaIdToColor] = useState<
     Record<UUID, string>
   >({});
-  const [selectedDims, setSelectedDims] = useState<Set<UUID>>(new Set());
+  const [selectedAreas, setSelectedAreas] = useState<Set<UUID>>(new Set());
   const {
-    tooltipState: dimensionTooltip,
-    showTooltip: showDimensionTooltip,
-    schedulePositionUpdate: updateDimensionTooltipPosition,
-    hideTooltip: hideDimensionTooltip,
-    showTooltipForElement: showDimensionTooltipForElement,
-  } = useHoverTooltip<DimensionTooltipContent>({
+    tooltipState: areaTooltip,
+    showTooltip: showAreaTooltip,
+    schedulePositionUpdate: updateAreaTooltipPosition,
+    hideTooltip: hideAreaTooltip,
+    showTooltipForElement: showAreaTooltipForElement,
+  } = useHoverTooltip<AreaTooltipContent>({
     defaultOffset: { x: 16, y: -12 },
     focusOffset: (rect) => ({ x: -rect.width / 2, y: -16 }),
   });
@@ -320,8 +318,8 @@ function InsightsPage() {
     calendarSystem,
     activeTimezone,
     calendarAdapter,
-    dimensions,
-    dimensionOrder,
+    areas,
+    areaOrder,
     calendarLoading,
   } = useInsightsPageData();
   const {
@@ -348,15 +346,15 @@ function InsightsPage() {
   });
 
   useEffect(() => {
-    const dims = Array.isArray(dimensions) ? dimensions : [];
+    const areaItems = Array.isArray(areas) ? areas : [];
     const idName: Record<UUID, string> = {};
     const idColor: Record<UUID, string> = {};
-    const getDisplayOrder = (item: { display_order?: number } | Dimension) => {
+    const getDisplayOrder = (item: { display_order?: number } | Area) => {
       const order = (item as { display_order?: number }).display_order;
       return typeof order === "number" ? order : null;
     };
 
-    const sorted = [...dims].sort((a, b) => {
+    const sorted = [...areaItems].sort((a, b) => {
       const aOrder = getDisplayOrder(a);
       const bOrder = getDisplayOrder(b);
 
@@ -368,17 +366,14 @@ function InsightsPage() {
 
       return (a as { id: UUID }).id.localeCompare((b as { id: UUID }).id);
     });
-    sorted.forEach((d) => {
-      idName[d.id] = d.name;
-      idColor[d.id] = d.color || "#9CA3AF";
+    sorted.forEach((area) => {
+      idName[area.id] = area.name;
+      idColor[area.id] = area.color || "#9CA3AF";
     });
-    setDimensionIdToName(idName);
-    setDimensionIdToColor(idColor);
-    // 默认全选所有维度
-    setSelectedDims(new Set(dims.map((d) => d.id)));
-  }, [dimensions]);
-
-  // 排序：固定使用 Settings 的顺序（useDimensionOrderReadOnly）
+    setAreaIdToName(idName);
+    setAreaIdToColor(idColor);
+    setSelectedAreas(new Set(areaItems.map((area) => area.id)));
+  }, [areas]);
 
   const normalizedFirstDayOfWeek = firstDayOfWeek ?? 1;
   const { dailyStats, aggregatedRows, isLoading, displayError, refreshStats } =
@@ -410,16 +405,16 @@ function InsightsPage() {
   }, [startDate, endDate, calendarAdapter, granularity]);
 
   const groupByDay = useCallback(
-    (rows: DailyDimensionRow[]) => {
-      const map = new Map<string, DailyDimensionRow[]>();
+    (rows: DailyAreaRow[]) => {
+      const map = new Map<string, DailyAreaRow[]>();
       rows.forEach((r) => {
-        if (!selectedDims.has(r.dimension_id)) return;
+        if (!selectedAreas.has(r.area_id)) return;
         if (!map.has(r.date)) map.set(r.date, []);
         map.get(r.date)!.push(r);
       });
       return map;
     },
-    [selectedDims],
+    [selectedAreas],
   );
 
   const curByDay = useMemo(
@@ -435,7 +430,7 @@ function InsightsPage() {
         periodEnd: string;
         label: string;
         labelTitle: string;
-        rows: DailyDimensionRow[];
+        rows: DailyAreaRow[];
         capacityMinutes: number;
         totalSelectedMinutes: number;
       }>;
@@ -447,7 +442,7 @@ function InsightsPage() {
       calendarAdapter,
     );
 
-    const lookup = new Map<string, AggregatedDimensionRow[]>();
+    const lookup = new Map<string, AggregatedAreaRow[]>();
     aggregatedRows.forEach((row) => {
       const key = `${row.period_start}_${row.period_end}`;
       const existing = lookup.get(key);
@@ -459,17 +454,17 @@ function InsightsPage() {
       const key = `${start}_${end}`;
       const rawRows = lookup.get(key) || [];
       const filteredRows = rawRows.filter((row) =>
-        selectedDims.has(row.dimension_id),
+        selectedAreas.has(row.area_id),
       );
-      const convertedRows: DailyDimensionRow[] = filteredRows.map((row) => ({
+      const convertedRows: DailyAreaRow[] = filteredRows.map((row) => ({
         date: row.period_start,
-        dimension_id: row.dimension_id,
+        area_id: row.area_id,
         minutes: row.minutes,
       }));
       convertedRows.sort(
         (a, b) =>
-          dimensionOrder.indexOf(a.dimension_id) -
-          dimensionOrder.indexOf(b.dimension_id),
+          areaOrder.indexOf(a.area_id) -
+          areaOrder.indexOf(b.area_id),
       );
       const totalSelectedMinutes = convertedRows.reduce(
         (sum, current) => sum + current.minutes,
@@ -492,8 +487,8 @@ function InsightsPage() {
     startDate,
     endDate,
     calendarAdapter,
-    selectedDims,
-    dimensionOrder,
+    selectedAreas,
+    areaOrder,
   ]);
 
   const displayBuckets = useMemo(() => {
@@ -503,8 +498,8 @@ function InsightsPage() {
           .slice()
           .sort(
             (a, b) =>
-              dimensionOrder.indexOf(a.dimension_id) -
-              dimensionOrder.indexOf(b.dimension_id),
+              areaOrder.indexOf(a.area_id) -
+              areaOrder.indexOf(b.area_id),
           );
         const totalSelectedMinutes = rows.reduce(
           (sum, current) => sum + current.minutes,
@@ -524,7 +519,7 @@ function InsightsPage() {
     }
 
     return aggregatedBuckets;
-  }, [granularity, dayRange, curByDay, dimensionOrder, aggregatedBuckets]);
+  }, [granularity, dayRange, curByDay, areaOrder, aggregatedBuckets]);
 
   const totalPeriodDayCount = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -541,32 +536,32 @@ function InsightsPage() {
     }, 0);
   }, [granularity, dayRange, aggregatedBuckets, startDate, endDate]);
 
-  const dimensionTotalsMinutes = useMemo(() => {
+  const areaTotalsMinutes = useMemo(() => {
     const totals = new Map<string, number>();
     const source:
-      | Array<Pick<DailyDimensionRow, "dimension_id" | "minutes">>
-      | Array<Pick<AggregatedDimensionRow, "dimension_id" | "minutes">> =
+      | Array<Pick<DailyAreaRow, "area_id" | "minutes">>
+      | Array<Pick<AggregatedAreaRow, "area_id" | "minutes">> =
       granularity === "day" ? dailyStats : aggregatedRows;
 
     source.forEach((row) => {
-      const key = String(row.dimension_id);
+      const key = String(row.area_id);
       totals.set(key, (totals.get(key) ?? 0) + row.minutes);
     });
 
     return totals;
   }, [dailyStats, aggregatedRows, granularity]);
 
-  const dimensionInsightStats = useMemo(() => {
-    const bucketSource: DimensionBucket[] =
+  const areaInsightStats = useMemo(() => {
+    const bucketSource: AreaBucket[] =
       granularity === "day"
         ? dailyStats.map((row) => ({
-            dimensionId: row.dimension_id,
+            areaId: row.area_id,
             minutes: row.minutes ?? 0,
             periodStart: row.date,
             periodEnd: row.date,
           }))
         : aggregatedRows.map((row) => ({
-            dimensionId: row.dimension_id,
+            areaId: row.area_id,
             minutes: row.minutes ?? 0,
             periodStart: row.period_start,
             periodEnd: row.period_end,
@@ -580,14 +575,14 @@ function InsightsPage() {
         activeDayCount: number;
         averagePerTotalDay: number | null;
         averagePerActiveDay: number | null;
-        maxBucket: DimensionBucket | null;
-        minBucket: DimensionBucket | null;
+        maxBucket: AreaBucket | null;
+        minBucket: AreaBucket | null;
         lastActiveDate: string | null;
       }
     >();
 
     bucketSource.forEach((bucket) => {
-      const key = String(bucket.dimensionId);
+      const key = String(bucket.areaId);
       const minutes = Number.isFinite(bucket.minutes) ? bucket.minutes : 0;
       let entry = statsMap.get(key);
       if (!entry) {
@@ -649,7 +644,7 @@ function InsightsPage() {
     return statsMap;
   }, [granularity, dailyStats, aggregatedRows, totalPeriodDayCount]);
 
-  const describeBucketRange = useCallback((bucket: DimensionBucket | null) => {
+  const describeBucketRange = useCallback((bucket: AreaBucket | null) => {
     if (!bucket) return "";
     const { periodStart, periodEnd } = bucket;
     if (!periodStart && !periodEnd) return "";
@@ -676,7 +671,7 @@ function InsightsPage() {
     [t],
   );
 
-  const buildDimensionTooltipContent = useCallback(
+  const buildAreaTooltipContent = useCallback(
     (options: {
       name: string;
       totalDuration: string;
@@ -687,9 +682,9 @@ function InsightsPage() {
       maxBucket?: { duration: string; range?: string | null } | null;
       minBucket?: { duration: string; range?: string | null } | null;
       lastActive: string;
-    }): DimensionTooltipContent => {
+    }): AreaTooltipContent => {
       const lines: string[] = [
-        t("insights.dimensionTooltip.total", {
+        t("insights.areaTooltip.total", {
           duration: options.totalDuration,
         }),
       ];
@@ -697,7 +692,7 @@ function InsightsPage() {
       const totalDays = options.averages.totalDays;
       if (totalDays?.duration) {
         lines.push(
-          t("insights.dimensionTooltip.averagePerTotalDays", {
+          t("insights.areaTooltip.averagePerTotalDays", {
             duration: totalDays.duration,
             days: totalDays.days,
           }),
@@ -707,7 +702,7 @@ function InsightsPage() {
       const activeDays = options.averages.activeDays;
       if (activeDays?.duration) {
         lines.push(
-          t("insights.dimensionTooltip.averagePerActiveDays", {
+          t("insights.areaTooltip.averagePerActiveDays", {
             duration: activeDays.duration,
             days: activeDays.days,
           }),
@@ -716,12 +711,12 @@ function InsightsPage() {
 
       if (options.maxBucket) {
         const rangeText = options.maxBucket.range
-          ? t("insights.dimensionTooltip.rangeSuffix", {
+          ? t("insights.areaTooltip.rangeSuffix", {
               range: options.maxBucket.range,
             })
           : "";
         lines.push(
-          t("insights.dimensionTooltip.max", {
+          t("insights.areaTooltip.max", {
             duration: options.maxBucket.duration,
             range: rangeText,
           }),
@@ -730,12 +725,12 @@ function InsightsPage() {
 
       if (options.minBucket) {
         const rangeText = options.minBucket.range
-          ? t("insights.dimensionTooltip.rangeSuffix", {
+          ? t("insights.areaTooltip.rangeSuffix", {
               range: options.minBucket.range,
             })
           : "";
         lines.push(
-          t("insights.dimensionTooltip.min", {
+          t("insights.areaTooltip.min", {
             duration: options.minBucket.duration,
             range: rangeText,
           }),
@@ -743,56 +738,56 @@ function InsightsPage() {
       }
 
       lines.push(
-        t("insights.dimensionTooltip.lastActive", {
+        t("insights.areaTooltip.lastActive", {
           date: options.lastActive,
         }),
       );
 
       return {
-        title: t("insights.dimensionTooltip.title", { name: options.name }),
+        title: t("insights.areaTooltip.title", { name: options.name }),
         lines,
       };
     },
     [t],
   );
 
-  const handleDimensionMouseEnter = useCallback(
-    (event: ReactMouseEvent<HTMLElement>, content: DimensionTooltipContent) => {
-      showDimensionTooltip({
+  const handleAreaMouseEnter = useCallback(
+    (event: ReactMouseEvent<HTMLElement>, content: AreaTooltipContent) => {
+      showAreaTooltip({
         payload: content,
         position: { x: event.clientX, y: event.clientY },
       });
     },
-    [showDimensionTooltip],
+    [showAreaTooltip],
   );
 
-  const handleDimensionMouseMove = useCallback(
-    (event: ReactMouseEvent<HTMLElement>, content: DimensionTooltipContent) => {
-      if (!dimensionTooltip) {
-        showDimensionTooltip({
+  const handleAreaMouseMove = useCallback(
+    (event: ReactMouseEvent<HTMLElement>, content: AreaTooltipContent) => {
+      if (!areaTooltip) {
+        showAreaTooltip({
           payload: content,
           position: { x: event.clientX, y: event.clientY },
         });
         return;
       }
-      updateDimensionTooltipPosition({
+      updateAreaTooltipPosition({
         x: event.clientX,
         y: event.clientY,
       });
     },
-    [dimensionTooltip, showDimensionTooltip, updateDimensionTooltipPosition],
+    [areaTooltip, showAreaTooltip, updateAreaTooltipPosition],
   );
 
-  const handleDimensionFocus = useCallback(
-    (event: ReactFocusEvent<HTMLElement>, content: DimensionTooltipContent) => {
-      showDimensionTooltipForElement(content, event.currentTarget);
+  const handleAreaFocus = useCallback(
+    (event: ReactFocusEvent<HTMLElement>, content: AreaTooltipContent) => {
+      showAreaTooltipForElement(content, event.currentTarget);
     },
-    [showDimensionTooltipForElement],
+    [showAreaTooltipForElement],
   );
 
-  const handleDimensionMouseLeave = useCallback(() => {
-    hideDimensionTooltip();
-  }, [hideDimensionTooltip]);
+  const handleAreaMouseLeave = useCallback(() => {
+    hideAreaTooltip();
+  }, [hideAreaTooltip]);
 
   const granularityOptions = INSIGHT_VIEW_CONFIG[viewType].options;
   const hasGranularityToggle = granularityOptions.length > 0;
@@ -938,7 +933,6 @@ function InsightsPage() {
       {isLoading && <LoadingSpinner message={t("insights.loadingStats")} />}
       <ErrorDisplay error={displayError} className="mb-6" />
 
-      {/* 维度按钮行（从 headerAction 移出，置于列表上方） */}
       {!displayError && (
         <Container
           className="mb-4 w-full max-w-full"
@@ -957,24 +951,23 @@ function InsightsPage() {
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {Object.entries(dimensionIdToName)
+              {Object.entries(areaIdToName)
                 .filter(([idStr]) => idStr && idStr.trim() !== "") // 过滤无效的ID
                 .sort(([aId], [bId]) => {
                   // Use UUID strings directly, don't convert to numbers
-                  const ai = dimensionOrder.indexOf(aId);
-                  const bi = dimensionOrder.indexOf(bId);
+                  const ai = areaOrder.indexOf(aId);
+                  const bi = areaOrder.indexOf(bId);
                   const aPos = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
                   const bPos = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
                   return aPos - bPos;
                 })
                 .map(([idStr, name]) => {
-                  const selected = selectedDims.has(idStr);
+                  const selected = selectedAreas.has(idStr);
 
-                  // 计算该维度的总时长
                   const totalMinutes = Math.round(
-                    dimensionTotalsMinutes.get(idStr) ?? 0,
+                    areaTotalsMinutes.get(idStr) ?? 0,
                   );
-                  const stats = dimensionInsightStats.get(idStr);
+                  const stats = areaInsightStats.get(idStr);
                   const maxLabel = describeBucketRange(
                     stats?.maxBucket ?? null,
                   );
@@ -998,7 +991,7 @@ function InsightsPage() {
                     averagePerActiveDay && averagePerActiveDay > 0
                       ? formatDuration(Math.round(averagePerActiveDay))
                       : null;
-                  const tooltipContent = buildDimensionTooltipContent({
+                  const tooltipContent = buildAreaTooltipContent({
                     name,
                     totalDuration: totalDurationText,
                     averages: {
@@ -1036,7 +1029,6 @@ function InsightsPage() {
                     lastActive: lastActiveLabel,
                   });
 
-                  // 使用 ActionButton 的样式类，但用原生 button 支持复杂内容
                   const baseClasses = [
                     "btn",
                     selected ? "btn-primary/40" : "btn-neutral/40",
@@ -1052,7 +1044,7 @@ function InsightsPage() {
                       key={idStr}
                       className={baseClasses}
                       onClick={() => {
-                        setSelectedDims((prev) => {
+                        setSelectedAreas((prev) => {
                           const next = new Set(prev);
                           if (next.has(idStr)) next.delete(idStr);
                           else next.add(idStr);
@@ -1060,23 +1052,23 @@ function InsightsPage() {
                         });
                       }}
                       onMouseEnter={(event) =>
-                        handleDimensionMouseEnter(event, tooltipContent)
+                        handleAreaMouseEnter(event, tooltipContent)
                       }
                       onMouseMove={(event) =>
-                        handleDimensionMouseMove(event, tooltipContent)
+                        handleAreaMouseMove(event, tooltipContent)
                       }
-                      onMouseLeave={handleDimensionMouseLeave}
+                      onMouseLeave={handleAreaMouseLeave}
                       onFocus={(event) =>
-                        handleDimensionFocus(event, tooltipContent)
+                        handleAreaFocus(event, tooltipContent)
                       }
-                      onBlur={handleDimensionMouseLeave}
+                      onBlur={handleAreaMouseLeave}
                     >
                       <div className="flex items-center gap-1 w-full min-w-0">
                         <span
                           className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                           style={{
                             backgroundColor:
-                              dimensionIdToColor[idStr] || "#9CA3AF",
+                              areaIdToColor[idStr] || "#9CA3AF",
                           }}
                         />
                         <span className="font-medium text-base-content truncate">
@@ -1136,8 +1128,8 @@ function InsightsPage() {
                   <StatisticItem
                     day={bucket.periodStart}
                     rows={bucket.rows}
-                    dimensionIdToName={dimensionIdToName}
-                    dimensionIdToColor={dimensionIdToColor}
+                    areaIdToName={areaIdToName}
+                    areaIdToColor={areaIdToColor}
                     viewMode={viewMode}
                     label={bucket.label}
                     labelTitle={bucket.labelTitle}
@@ -1150,18 +1142,18 @@ function InsightsPage() {
         </ListContainer>
       )}
       <HoverTooltipOverlay
-        visible={Boolean(dimensionTooltip)}
-        position={dimensionTooltip?.position ?? null}
-        offset={dimensionTooltip?.offset}
+        visible={Boolean(areaTooltip)}
+        position={areaTooltip?.position ?? null}
+        offset={areaTooltip?.offset}
         className="text-sm leading-relaxed max-w-sm sm:max-w-md"
       >
-        {dimensionTooltip?.payload && (
+        {areaTooltip?.payload && (
           <div>
             <div className="font-semibold mb-2 text-base-content">
-              {dimensionTooltip.payload.title}
+              {areaTooltip.payload.title}
             </div>
             <ul className="space-y-1 text-base-content/80">
-              {dimensionTooltip.payload.lines.map((line, index) => (
+              {areaTooltip.payload.lines.map((line, index) => (
                 <li key={index}>{line}</li>
               ))}
             </ul>

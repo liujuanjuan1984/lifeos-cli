@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  ActualEvent,
-  ActualEventWithEnergyResponse,
+  Timelog,
+  TimelogWithEnergyResponse,
 } from "@/services/api";
 import TimeEntryModal from "@/components/TimeEntryModal";
 import TimeProgressBar from "@/components/TimeProgressBar";
-import DimensionManagerModal from "@/components/DimensionManagerModal";
+import AreaManagerModal from "@/components/AreaManagerModal";
 import QuickTemplatesManagerModal from "@/components/QuickTemplatesManagerModal";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -39,12 +39,12 @@ const TimeLogPage = () => {
   const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Dimensions are provided via shared cache (dimensionMap and list)
+  // Areas are provided via shared cache (areaMap and list)
   const {
     sortOrder,
     setSortOrder,
-    selectedDimensionId,
-    setSelectedDimensionId,
+    selectedAreaId,
+    setSelectedAreaId,
     saveScrollPosition,
     scrollPosition,
     clearScrollPosition,
@@ -76,8 +76,8 @@ const TimeLogPage = () => {
     advancedSearch,
     tasksForAdvancedSearch,
     allFlatTasks,
-    dimsFromCache,
-    dimensionMap,
+    areasFromCache,
+    areaMap,
     loadEntries,
   } = useTimeLogPageData({
     selectedDate,
@@ -88,15 +88,15 @@ const TimeLogPage = () => {
 
   // Modal states
   const [showEntryModal, setShowEntryModal] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<ActualEvent | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Timelog | null>(null);
   const [entryModalSessionId, setEntryModalSessionId] = useState<string | null>(
     null,
   );
 
   // Scroll position persistence handled by useTimeLogUIState
 
-  // Dimension manager modal state
-  const [showDimensionManager, setShowDimensionManager] = useState(false);
+  // Area manager modal state
+  const [showAreaManager, setShowAreaManager] = useState(false);
   const [showQuickTemplatesManager, setShowQuickTemplatesManager] =
     useState(false);
 
@@ -125,12 +125,12 @@ const TimeLogPage = () => {
       actions: (
         <div className="flex gap-2">
           <ActionButton
-            label={t("timeLog.actions.manageDimensions")}
+            label={t("timeLog.actions.manageAreas")}
             iconName="settings"
             color="primary"
             variant="solid"
-            ariaLabel="Open dimension manager"
-            onClick={() => setShowDimensionManager(true)}
+            ariaLabel="Open area manager"
+            onClick={() => setShowAreaManager(true)}
           />
         </div>
       ),
@@ -138,14 +138,14 @@ const TimeLogPage = () => {
     return () => setHeader({ actions: undefined });
   }, [setHeader, t]);
 
-  const openEntryModal = useCallback((entry: ActualEvent | null) => {
+  const openEntryModal = useCallback((entry: Timelog | null) => {
     setEditingEntry(entry);
     setEntryModalSessionId(createModalSessionId());
     setShowEntryModal(true);
   }, []);
 
   const handleEdit = useCallback(
-    (entry: ActualEvent) => {
+    (entry: Timelog) => {
       openEntryModal(entry);
     },
     [openEntryModal],
@@ -170,7 +170,7 @@ const TimeLogPage = () => {
 
   const handleEntrySaved = useCallback(
     (
-      _result: ActualEvent | ActualEventWithEnergyResponse,
+      _result: Timelog | TimelogWithEnergyResponse,
       context: { sessionId: string },
     ) => {
       if (entryModalSessionId && context.sessionId !== entryModalSessionId) {
@@ -218,9 +218,9 @@ const TimeLogPage = () => {
     }
   }, [openNotesAfterCreate]);
 
-  const handleDimensionManagerClose = () => {
-    setShowDimensionManager(false);
-    // Dimensions are served via shared cache; rely on TTL or expose refresh in useDimensions if needed
+  const handleAreaManagerClose = () => {
+    setShowAreaManager(false);
+    // Areas are served via shared cache; rely on TTL or expose refresh in useAreas if needed
   };
 
   const {
@@ -235,14 +235,14 @@ const TimeLogPage = () => {
     advancedSearchParams,
     setAdvancedSearchParams,
     advancedSearch,
-    dimsFromCache,
+    areasFromCache,
     sortOrder,
     setAdvancedSearchResultsFromHook,
     showError,
     showInfo,
     t,
     processedEntries,
-    selectedDimensionId,
+    selectedAreaId,
     activeTimezone,
   });
 
@@ -284,9 +284,9 @@ const TimeLogPage = () => {
   const advancedSearchMetadata =
     queryMode === "advanced" ? advancedSearch.metadata : null;
 
-  // dimensionMap from useDimensions
+  // areaMap from useAreas
 
-  // name/color lookup handled by DimensionBadge via dimensionMap
+  // name/color lookup handled by AreaBadge via areaMap
 
   // Derived: filtered entries (memoized)
   // Unified loading flag for table rendering
@@ -295,24 +295,24 @@ const TimeLogPage = () => {
     [queryMode, advancedSearch.isLoading, loading],
   );
 
-  // Handle dimension filter change
-  const handleDimensionFilterChange = (
-    dimensionId: UUID | null | undefined,
+  // Handle area filter change
+  const handleAreaFilterChange = (
+    areaId: UUID | null | undefined,
   ) => {
-    // 在高级查询模式下，禁用维度筛选
+    // 在高级查询模式下，禁用领域筛选
     if (queryMode === "advanced") return;
 
-    if (dimensionId === undefined) {
-      setSelectedDimensionId("");
+    if (areaId === undefined) {
+      setSelectedAreaId("");
       return;
     }
 
-    if (dimensionId === null) {
-      setSelectedDimensionId(SelectorSpecialValue.None);
+    if (areaId === null) {
+      setSelectedAreaId(SelectorSpecialValue.None);
       return;
     }
 
-    setSelectedDimensionId(dimensionId);
+    setSelectedAreaId(areaId);
   };
 
   // no-op: filteredEntries derived by useMemo
@@ -333,6 +333,7 @@ const TimeLogPage = () => {
         <TimeLogToolbar
           queryMode={queryMode}
           selectedDate={selectedDate}
+          timezone={activeTimezone}
           onDateChange={setSelectedDate}
           onQueryModeChange={(mode) => {
             if (mode === "advanced") {
@@ -350,7 +351,7 @@ const TimeLogPage = () => {
         <TimeLogBulkImportPanel
           selectedDate={selectedDate}
           timezone={activeTimezone}
-          dimensionMap={dimensionMap}
+          areaMap={areaMap}
           preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
           onCancel={() => switchToSingleMode()}
           onImported={() => {
@@ -367,7 +368,7 @@ const TimeLogPage = () => {
                 params={{
                   start_date: new Date(advancedSearchParams.start_date),
                   end_date: new Date(advancedSearchParams.end_date),
-                  dimension_id: advancedSearchParams.dimension_id,
+                  area_id: advancedSearchParams.area_id,
                   description_keyword: advancedSearchParams.description_keyword,
                   task_id: advancedSearchParams.task_id,
                 }}
@@ -375,13 +376,13 @@ const TimeLogPage = () => {
                   setAdvancedSearchParams({
                     start_date: params.start_date.toISOString(),
                     end_date: params.end_date.toISOString(),
-                    dimension_id: params.dimension_id,
-                    dimension_name:
-                      params.dimension_id === null
-                        ? t("common.noDimension")
-                        : params.dimension_id
-                          ? dimsFromCache?.find(
-                              (d) => d.id === params.dimension_id,
+                    area_id: params.area_id,
+                    area_name:
+                      params.area_id === null
+                        ? t("common.noArea")
+                        : params.area_id
+                          ? areasFromCache?.find(
+                              (d) => d.id === params.area_id,
                             )?.name || null
                           : null,
                     description_keyword: params.description_keyword,
@@ -532,7 +533,7 @@ const TimeLogPage = () => {
           <div className="w-full">
             <TimeProgressBar
               entries={processedEntries}
-              dimensions={dimsFromCache}
+              areas={areasFromCache}
               localDateISO={
                 queryMode === "single"
                   ? formatDateInTimezone(selectedDate, activeTimezone)
@@ -569,9 +570,9 @@ const TimeLogPage = () => {
                             activeTimezone,
                           ),
                         })}`}
-                      {advancedSearchParams.dimension_name &&
-                        ` | ${t("timeLog.searchResults.dimension", {
-                          dimension: advancedSearchParams.dimension_name,
+                      {advancedSearchParams.area_name &&
+                        ` | ${t("timeLog.searchResults.area", {
+                          area: advancedSearchParams.area_name,
                         })}`}
                       {advancedSearchParams.description_keyword &&
                         ` | ${t("timeLog.searchResults.keyword", {
@@ -606,7 +607,7 @@ const TimeLogPage = () => {
               isSelectMode={isSelectMode}
               selectedEntryIds={selectedEntryIds}
               onSelectChange={selectionHandlers.handleSelectEntry}
-              onEdit={(entry) => handleEdit(entry as ActualEvent)}
+              onEdit={(entry) => handleEdit(entry as Timelog)}
               onDelete={requestDeleteEntry}
               onPlaceholderClick={(_placeholder) => {
                 // Handle placeholder click - the TimeEntriesTable will handle expansion internally
@@ -619,14 +620,15 @@ const TimeLogPage = () => {
               sortOrder={sortOrder}
               onSortChange={setSortOrder}
               selectedDate={selectedDate}
+              timezone={activeTimezone}
               queryMode={queryMode}
-              dimensionMap={dimensionMap}
+              areaMap={areaMap}
               preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
               disableQuickEntry={showEntryModal}
-              selectedDimensionId={
-                queryMode === "advanced" ? null : selectedDimensionId
+              selectedAreaId={
+                queryMode === "advanced" ? null : selectedAreaId
               }
-              onDimensionChange={handleDimensionFilterChange}
+              onAreaChange={handleAreaFilterChange}
               onCreateNoteForEntry={(entry) =>
                 handleOpenTimelogNotes(entry, "create")
               }
@@ -653,9 +655,9 @@ const TimeLogPage = () => {
         />
       )}
 
-      <DimensionManagerModal
-        isOpen={showDimensionManager}
-        onClose={handleDimensionManagerClose}
+      <AreaManagerModal
+        isOpen={showAreaManager}
+        onClose={handleAreaManagerClose}
       />
 
       {isNotesModalOpen && activeTimelogForNotes && (
@@ -663,7 +665,8 @@ const TimeLogPage = () => {
           isOpen={isNotesModalOpen}
           onClose={handleCloseTimelogNotes}
           entityType="timelog"
-          timelog={activeTimelogForNotes as unknown as ActualEvent}
+          timelog={activeTimelogForNotes as unknown as Timelog}
+          timezone={activeTimezone}
         />
       )}
 
@@ -673,8 +676,8 @@ const TimeLogPage = () => {
           onClose={handleCloseCreateNoteModal}
           preSelectedTaskId={activeTimelogNoteDefaults?.preSelectedTaskId}
           preSelectedTaskTitle={activeTimelogNoteDefaults?.preSelectedTaskTitle}
-          preSelectedActualEventId={activeTimelogForNotes.id as unknown as UUID}
-          preSelectedActualEvent={{
+          preSelectedTimelogId={activeTimelogForNotes.id as unknown as UUID}
+          preSelectedTimelog={{
             id: activeTimelogForNotes.id as unknown as UUID,
             title: activeTimelogForNotes.title,
             start_time: activeTimelogForNotes.start_time,
@@ -690,6 +693,7 @@ const TimeLogPage = () => {
           onNoteCreated={() => {
             setOpenNotesAfterCreate(true);
           }}
+          timezone={activeTimezone}
         />
       )}
 

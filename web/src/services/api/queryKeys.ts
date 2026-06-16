@@ -11,7 +11,7 @@ export const notesKeys = {
     tag_id?: UUID;
     person_id?: UUID;
     task_id?: UUID;
-    actual_event_id?: UUID;
+    timelog_id?: UUID;
     keyword?: string;
     untagged?: boolean;
     page?: number;
@@ -55,7 +55,7 @@ export const tasksKeys = {
   hierarchy: (visionId: UUID) =>
     [...tasksKeys.all, "hierarchy", visionId] as const,
   stats: (id: UUID) => [...tasksKeys.detail(id), "stats"] as const,
-  events: (id: UUID) => [...tasksKeys.detail(id), "events"] as const,
+  timelogs: (id: UUID) => [...tasksKeys.detail(id), "timelogs"] as const,
 };
 
 // Persons
@@ -83,28 +83,28 @@ export const personsKeys = {
     [...personsKeys.all, "search-by-tag", tagName] as const,
 };
 
-// Dimensions
-export const dimensionsKeys = {
-  all: ["dimensions"] as const,
-  lists: () => [...dimensionsKeys.all, "list"] as const,
+// Areas
+export const areasKeys = {
+  all: ["areas"] as const,
+  lists: () => [...areasKeys.all, "list"] as const,
   list: (filters: {
     include_inactive?: boolean;
     page?: number;
     size?: number;
-  }) => [...dimensionsKeys.lists(), filters] as const,
-  details: () => [...dimensionsKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...dimensionsKeys.details(), id] as const,
-  order: () => [...dimensionsKeys.all, "order"] as const,
+  }) => [...areasKeys.lists(), filters] as const,
+  details: () => [...areasKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...areasKeys.details(), id] as const,
+  order: () => [...areasKeys.all, "order"] as const,
 };
 
-// Actual Event Templates
-export const actualEventTemplatesKeys = {
-  all: ["actual-event-templates"] as const,
-  lists: () => [...actualEventTemplatesKeys.all, "list"] as const,
+// Timelog Templates
+export const timelogTemplatesKeys = {
+  all: ["timelog-templates"] as const,
+  lists: () => [...timelogTemplatesKeys.all, "list"] as const,
   list: (filters: { limit?: number; offset?: number; order_by?: string }) =>
-    [...actualEventTemplatesKeys.lists(), filters] as const,
-  details: () => [...actualEventTemplatesKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...actualEventTemplatesKeys.details(), id] as const,
+    [...timelogTemplatesKeys.lists(), filters] as const,
+  details: () => [...timelogTemplatesKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...timelogTemplatesKeys.details(), id] as const,
 };
 
 // Tags
@@ -132,21 +132,21 @@ export const tagsKeys = {
 // Stats
 export const statsKeys = {
   all: ["stats"] as const,
-  dailyDimensions: (filters: {
+  dailyAreas: (filters: {
     start: string;
     end: string;
     timezone: string;
-    dimension_ids?: UUID[];
-  }) => [...statsKeys.all, "daily-dimensions", filters] as const,
-  aggregatedDimensions: (filters: {
+    area_ids?: UUID[];
+  }) => [...statsKeys.all, "daily-areas", filters] as const,
+  aggregatedAreas: (filters: {
     granularity: AggregationGranularity;
     start: string;
     end: string;
     timezone: string;
-    dimension_ids?: UUID[];
+    area_ids?: UUID[];
     first_day_of_week: number;
     calendar_system?: string;
-  }) => [...statsKeys.all, "aggregated-dimensions", filters] as const,
+  }) => [...statsKeys.all, "aggregated-areas", filters] as const,
   dayBreakdown: (day: string, timezone: string) =>
     [...statsKeys.all, "day-breakdown", { day, timezone }] as const,
 };
@@ -197,29 +197,29 @@ export const plannedEventsKeys = {
   detail: (id: UUID) => [...plannedEventsKeys.details(), id] as const,
 };
 
-// Actual Events
-export const actualEventsKeys = {
-  all: ["actual-events"] as const,
-  lists: () => [...actualEventsKeys.all, "list"] as const,
+// Timelogs
+export const timelogsKeys = {
+  all: ["timelogs"] as const,
+  lists: () => [...timelogsKeys.all, "list"] as const,
   list: (filters: {
     start?: string;
     end?: string;
     tracking_method?: string;
     sort_order?: "asc" | "desc";
     timezone?: string;
-  }) => [...actualEventsKeys.lists(), filters] as const,
-  details: () => [...actualEventsKeys.all, "detail"] as const,
-  detail: (id: UUID) => [...actualEventsKeys.details(), id] as const,
+  }) => [...timelogsKeys.lists(), filters] as const,
+  details: () => [...timelogsKeys.all, "detail"] as const,
+  detail: (id: UUID) => [...timelogsKeys.details(), id] as const,
   advancedSearch: (filters: {
     start_date: string;
     end_date?: string;
-    dimension_id?: UUID | null;
-    without_dimension?: boolean;
-    dimension_name?: string | null;
+    area_id?: UUID | null;
+    without_area?: boolean;
+    area_name?: string | null;
     description_keyword?: string | null;
     task_id?: UUID | null;
     sort_order?: "asc" | "desc";
-  }) => [...actualEventsKeys.all, "advanced-search", filters] as const,
+  }) => [...timelogsKeys.all, "advanced-search", filters] as const,
 };
 
 // Preferences

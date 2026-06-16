@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { dimensionsApi } from "@/services/api/dimensions";
-import { dimensionsKeys } from "@/services/api/queryKeys";
+import { areasApi } from "@/services/api/areas";
+import { areasKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 
-export function useDimensions(options?: {
+export function useAreas(options?: {
   ttlMs?: number;
   includeInactive?: boolean;
 }) {
@@ -14,13 +14,13 @@ export function useDimensions(options?: {
   const size = 100;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: dimensionsKeys.list({
+    queryKey: areasKeys.list({
       include_inactive: options?.includeInactive ?? false,
       page,
       size,
     }),
     queryFn: () =>
-      dimensionsApi.getDimensions(
+      areasApi.getAreas(
         options?.includeInactive ?? false,
         page,
         size,
@@ -28,19 +28,19 @@ export function useDimensions(options?: {
     staleTime: options?.ttlMs ?? 5 * 60 * 1000,
   });
 
-  const dimensionItems = useMemo(() => data?.items ?? [], [data?.items]);
+  const areaItems = useMemo(() => data?.items ?? [], [data?.items]);
 
-  const dimensionMap = useMemo(() => {
+  const areaMap = useMemo(() => {
     const map = new Map<UUID, { name: string; color: string }>();
-    for (const d of dimensionItems) {
+    for (const d of areaItems) {
       map.set(d.id, { name: d.name, color: d.color || "#6B7280" });
     }
     return map;
-  }, [dimensionItems]);
+  }, [areaItems]);
 
   return {
-    dimensions: dimensionItems,
-    dimensionMap,
+    areas: areaItems,
+    areaMap,
     loading: isLoading,
     error: error
       ? error instanceof Error

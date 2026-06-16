@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid, text
+from sqlalchemy import ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
+from lifeos_cli.db.types import UTCDateTime
 
 
 class EventOccurrenceException(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -34,7 +35,7 @@ class EventOccurrenceException(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDelete
         nullable=False,
     )
     action: Mapped[str] = mapped_column(String(20), nullable=False, default="skip")
-    instance_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    instance_start: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
 
     master_event = relationship("Event", foreign_keys=[master_event_id])
 

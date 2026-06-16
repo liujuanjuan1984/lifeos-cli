@@ -5,9 +5,9 @@ import { type ReactNode } from "react";
 
 import { renderWithProviders, setupTranslationMock } from "@test/utils";
 import type {
-  ActualEvent,
-  ActualEventAdvancedSearchMetadata,
-} from "@/services/api/actualEvents";
+  Timelog,
+  TimelogAdvancedSearchMetadata,
+} from "@/services/api/timelogs";
 import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
 
 setupTranslationMock();
@@ -57,14 +57,14 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
     params: {
       start_date: Date;
       end_date: Date;
-      dimension_id: string | null | undefined;
+      area_id: string | null | undefined;
       description_keyword: string | null;
       task_id: string | null | undefined;
     };
     onParamsChange: (params: {
       start_date: Date;
       end_date: Date;
-      dimension_id: string | null | undefined;
+      area_id: string | null | undefined;
       description_keyword: string | null;
       task_id: string | null | undefined;
     }) => void;
@@ -89,11 +89,11 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
         onClick={() =>
           onParamsChange({
             ...params,
-            dimension_id: null,
+            area_id: null,
           })
         }
       >
-        advanced-set-no-dimension
+        advanced-set-no-area
       </button>
       <button type="button" onClick={onBatchDelete}>
         advanced-batch-delete
@@ -120,9 +120,9 @@ vi.mock("@/components/TimeEntryModal", () => ({
   default: () => <div data-testid="time-entry-modal" />,
 }));
 
-vi.mock("@/components/DimensionManagerModal", () => ({
+vi.mock("@/components/AreaManagerModal", () => ({
   __esModule: true,
-  default: () => <div data-testid="dimension-modal" />,
+  default: () => <div data-testid="area-modal" />,
 }));
 
 vi.mock("@/components/QuickTemplatesManagerModal", () => ({
@@ -183,8 +183,8 @@ vi.mock("@/contexts/ToastContext", async (importOriginal) => {
   };
 });
 
-vi.mock("@/hooks/queries/useDimensions", () => ({
-  useDimensions: () => ({ dimensions: [], dimensionMap: new Map() }),
+vi.mock("@/hooks/queries/useAreas", () => ({
+  useAreas: () => ({ areas: [], areaMap: new Map() }),
 }));
 
 const useTimeLogUIStateMock = vi.fn();
@@ -195,8 +195,8 @@ vi.mock("@/features/timeLog/controller/useTimeLogUIState", () => ({
 const buildUiState = (overrides: Record<string, unknown> = {}) => ({
   sortOrder: "asc",
   setSortOrder: vi.fn(),
-  selectedDimensionId: "",
-  setSelectedDimensionId: vi.fn(),
+  selectedAreaId: "",
+  setSelectedAreaId: vi.fn(),
   saveScrollPosition: vi.fn(),
   scrollPosition: 0,
   clearScrollPosition: vi.fn(),
@@ -208,14 +208,14 @@ vi.mock("@/features/timeLog/controller/useTimeLogData", () => ({
   useTimeLogData: (props: unknown) => useTimeLogDataMock(props),
 }));
 
-const createActualEvent = (
-  overrides: Partial<ActualEvent> = {},
-): ActualEvent => ({
-  id: (overrides.id ?? "actual-event") as ActualEvent["id"],
+const createTimelog = (
+  overrides: Partial<Timelog> = {},
+): Timelog => ({
+  id: (overrides.id ?? "timelog-entry") as Timelog["id"],
   title: overrides.title ?? "entry",
   start_time: overrides.start_time ?? "2025-01-01T00:00:00Z",
   end_time: overrides.end_time ?? "2025-01-01T01:00:00Z",
-  dimension_id: overrides.dimension_id ?? null,
+  area_id: overrides.area_id ?? null,
   tracking_method: overrides.tracking_method ?? "manual",
   location: overrides.location ?? null,
   energy_level: overrides.energy_level ?? null,
@@ -229,7 +229,7 @@ const createActualEvent = (
 });
 
 type AdvancedSearchMock = {
-  data: ActualEvent[];
+  data: Timelog[];
   totalCount: number;
   currentPage: number;
   totalPages: number;
@@ -242,7 +242,7 @@ type AdvancedSearchMock = {
   nextPage: ReturnType<typeof vi.fn>;
   goToPage: ReturnType<typeof vi.fn>;
   refetch: ReturnType<typeof vi.fn>;
-  metadata: ActualEventAdvancedSearchMetadata | null;
+  metadata: TimelogAdvancedSearchMetadata | null;
 };
 
 const advancedSearchMock: AdvancedSearchMock = {
@@ -367,20 +367,20 @@ describe("TimeLogPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("filters single-day entries when no-dimension filter is selected", () => {
+  it("filters single-day entries when no-area filter is selected", () => {
     useTimeLogUIStateMock.mockImplementation(() =>
-      buildUiState({ selectedDimensionId: SelectorSpecialValue.None }),
+      buildUiState({ selectedAreaId: SelectorSpecialValue.None }),
     );
     useTimeLogDataMock.mockReturnValue(
       buildDataReturn({
         processedEntries: [
-          createActualEvent({
-            id: "entry-no-dimension" as ActualEvent["id"],
-            dimension_id: null,
+          createTimelog({
+            id: "entry-no-area" as Timelog["id"],
+            area_id: null,
           }),
-          createActualEvent({
-            id: "entry-with-dimension" as ActualEvent["id"],
-            dimension_id: "dim-1" as ActualEvent["dimension_id"],
+          createTimelog({
+            id: "entry-with-area" as Timelog["id"],
+            area_id: "area-1" as Timelog["area_id"],
           }),
         ],
       }),
@@ -391,20 +391,20 @@ describe("TimeLogPage", () => {
     expect(screen.getByTestId("entries-table")).toHaveTextContent("entries:1");
   });
 
-  it("sends explicit null dimension filter in advanced search", async () => {
+  it("sends explicit null area filter in advanced search", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(<TimeLogPage />);
 
     await user.click(screen.getByText("switch-advanced"));
-    await user.click(screen.getByText("advanced-set-no-dimension"));
+    await user.click(screen.getByText("advanced-set-no-area"));
     await user.click(screen.getByText("advanced-search"));
 
     await waitFor(() => expect(advancedSearchMock.search).toHaveBeenCalled());
     expect(advancedSearchMock.search).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        dimension_id: null,
-        dimension_name: null,
+        area_id: null,
+        area_name: null,
       }),
     );
   });

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import ActionButton from "./ActionButton";
 import BatchEditModal from "./BatchEditModal";
 import TaskSelector from "./selects/TaskSelector";
-import DimensionSelect from "./selects/DimensionSelect";
+import AreaSelect from "./selects/AreaSelect";
 import { SelectorSpecialValue } from "./selects/selectorTypes";
 import { ALL_TASK_STATUSES } from "@/utils/constants";
 import Card from "@/layouts/Card";
@@ -15,7 +15,7 @@ import type { UUID } from "@/types/primitive";
 interface AdvancedSearchParams {
   start_date: Date;
   end_date: Date;
-  dimension_id: UUID | null | undefined;
+  area_id: UUID | null | undefined;
   description_keyword: string | null;
   task_id: UUID | null | undefined; // null 表示仅无任务，undefined 表示全部任务
 }
@@ -249,20 +249,20 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
             />
           </div>
 
-          {/* Dimension Selection */}
+          {/* Area Selection */}
           <div>
-            <DimensionSelect
+            <AreaSelect
               value={
-                params.dimension_id === undefined
+                params.area_id === undefined
                   ? undefined
-                  : params.dimension_id
+                  : params.area_id
               }
-              onChange={(value) => handleParamChange("dimension_id", value)}
+              onChange={(value) => handleParamChange("area_id", value)}
               showAllOption={true}
               showNoneOption={true}
-              noneLabel={t("common.noDimension")}
+              noneLabel={t("common.noArea")}
               placeholder={t("common.all")}
-              id="advanced-search-dimension-id-select"
+              id="advanced-search-area-id-select"
             />
           </div>
 

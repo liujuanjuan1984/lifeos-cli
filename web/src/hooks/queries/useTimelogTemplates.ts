@@ -3,14 +3,14 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  actualEventTemplatesApi,
-  type ActualEventTemplate,
-  type ActualEventTemplateCreateRequest,
-  type ActualEventTemplateUpdateRequest,
-  type ActualEventTemplatesListResponse,
-} from "@/services/api/actualEventTemplates";
-import { actualEventTemplatesKeys } from "@/services/api/queryKeys";
-import { invalidateActualEventTemplateLists } from "@/services/api/cacheInvalidation/actualEventTemplates";
+  timelogTemplatesApi,
+  type TimelogTemplate,
+  type TimelogTemplateCreateRequest,
+  type TimelogTemplateUpdateRequest,
+  type TimelogTemplatesListResponse,
+} from "@/services/api/timelogTemplates";
+import { timelogTemplatesKeys } from "@/services/api/queryKeys";
+import { invalidateTimelogTemplateLists } from "@/services/api/cacheInvalidation/timelogTemplates";
 
 const DEFAULT_SIZE = 50;
 
@@ -20,28 +20,28 @@ const DEFAULT_LIST_PARAMS = {
   order_by: "position" as const,
 };
 
-export function useActualEventTemplates() {
+export function useTimelogTemplates() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const query = useQuery<ActualEventTemplatesListResponse>({
-    queryKey: actualEventTemplatesKeys.list(DEFAULT_LIST_PARAMS),
-    queryFn: async () => actualEventTemplatesApi.list(DEFAULT_LIST_PARAMS),
+  const query = useQuery<TimelogTemplatesListResponse>({
+    queryKey: timelogTemplatesKeys.list(DEFAULT_LIST_PARAMS),
+    queryFn: async () => timelogTemplatesApi.list(DEFAULT_LIST_PARAMS),
     staleTime: 5 * 60 * 1000,
   });
 
-  const templates = useMemo<ActualEventTemplate[]>(() => {
+  const templates = useMemo<TimelogTemplate[]>(() => {
     const items = query.data?.items ?? [];
     return [...items].sort((a, b) => a.position - b.position);
   }, [query.data]);
 
   const invalidate = useCallback(() => {
-    return invalidateActualEventTemplateLists(queryClient);
+    return invalidateTimelogTemplateLists(queryClient);
   }, [queryClient]);
 
   const createMutation = useMutation({
-    mutationFn: (payload: ActualEventTemplateCreateRequest) =>
-      actualEventTemplatesApi.create(payload),
+    mutationFn: (payload: TimelogTemplateCreateRequest) =>
+      timelogTemplatesApi.create(payload),
     onSuccess: () => invalidate(),
   });
 
@@ -50,28 +50,28 @@ export function useActualEventTemplates() {
       id,
       payload,
     }: {
-      id: ActualEventTemplate["id"];
-      payload: ActualEventTemplateUpdateRequest;
-    }) => actualEventTemplatesApi.update(id, payload),
+      id: TimelogTemplate["id"];
+      payload: TimelogTemplateUpdateRequest;
+    }) => timelogTemplatesApi.update(id, payload),
     onSuccess: () => invalidate(),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: ActualEventTemplate["id"]) =>
-      actualEventTemplatesApi.remove(id),
+    mutationFn: (id: TimelogTemplate["id"]) =>
+      timelogTemplatesApi.remove(id),
     onSuccess: () => invalidate(),
   });
 
   const reorderMutation = useMutation({
     mutationFn: (
-      items: { id: ActualEventTemplate["id"]; position: number }[],
-    ) => actualEventTemplatesApi.reorder(items),
+      items: { id: TimelogTemplate["id"]; position: number }[],
+    ) => timelogTemplatesApi.reorder(items),
     onSuccess: () => invalidate(),
   });
 
   const bumpMutation = useMutation({
-    mutationFn: (id: ActualEventTemplate["id"]) =>
-      actualEventTemplatesApi.bumpUsage(id),
+    mutationFn: (id: TimelogTemplate["id"]) =>
+      timelogTemplatesApi.bumpUsage(id),
     onSuccess: () => invalidate(),
   });
 

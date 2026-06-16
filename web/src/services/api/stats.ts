@@ -2,51 +2,51 @@ import type { UUID } from "@/types/primitive";
 import type { ListResponse } from "@/types/pagination";
 import { http } from "./client";
 
-export interface DailyDimensionRow {
+export interface DailyAreaRow {
   date: string;
-  dimension_id: UUID;
+  area_id: UUID;
   minutes: number;
 }
 
 export type AggregationGranularity = "day" | "week" | "month" | "year";
 
-export interface AggregatedDimensionRow {
+export interface AggregatedAreaRow {
   granularity: AggregationGranularity;
   period_start: string;
   period_end: string;
-  dimension_id: UUID;
+  area_id: UUID;
   minutes: number;
 }
 
-interface DailyDimensionStatsMeta {
+interface DailyAreaStatsMeta {
   start?: string | null;
   end?: string | null;
   timezone?: string | null;
-  dimension_ids?: string[] | null;
+  area_ids?: string[] | null;
 }
 
-export type DailyDimensionListResponse = ListResponse<
-  DailyDimensionRow,
-  DailyDimensionStatsMeta
+export type DailyAreaListResponse = ListResponse<
+  DailyAreaRow,
+  DailyAreaStatsMeta
 >;
 
-interface AggregatedDimensionStatsMeta {
+interface AggregatedAreaStatsMeta {
   granularity?: AggregationGranularity | null;
   start?: string | null;
   end?: string | null;
   timezone?: string | null;
-  dimension_ids?: string[] | null;
+  area_ids?: string[] | null;
   first_day_of_week?: number | null;
   calendar_system?: string | null;
 }
 
-export type AggregatedDimensionListResponse = ListResponse<
-  AggregatedDimensionRow,
-  AggregatedDimensionStatsMeta
+export type AggregatedAreaListResponse = ListResponse<
+  AggregatedAreaRow,
+  AggregatedAreaStatsMeta
 >;
 
 interface DayBreakdownRow {
-  dimension_id: UUID;
+  area_id: UUID;
   minutes: number;
 }
 
@@ -61,17 +61,17 @@ export type DayBreakdownListResponse = ListResponse<
 >;
 
 export const statsApi = {
-  async getDailyDimensions(
+  async getDailyAreas(
     start: string,
     end: string,
-    dimensionIds?: UUID[],
+    areaIds?: UUID[],
     timezone?: string,
   ) {
-    return http.get<DailyDimensionListResponse>("/api/v1/stats/daily-dimensions", {
+    return http.get<DailyAreaListResponse>("/api/v1/stats/daily-areas", {
       start,
       end,
       timezone,
-      dimension_ids: dimensionIds,
+      area_ids: areaIds,
     });
   },
   async getLocalDayBreakdown(day: string, timezone?: string) {
@@ -80,37 +80,37 @@ export const statsApi = {
       timezone,
     });
   },
-  async getAggregatedDimensions(
+  async getAggregatedAreas(
     granularity: AggregationGranularity,
     start: string,
     end: string,
     options?: {
-      dimensionIds?: UUID[];
+      areaIds?: UUID[];
       timezone?: string;
       firstDayOfWeek?: number;
       calendarSystem?: string;
     },
   ) {
-    return http.get<AggregatedDimensionListResponse>(
-      "/api/v1/stats/aggregated-dimensions",
+    return http.get<AggregatedAreaListResponse>(
+      "/api/v1/stats/aggregated-areas",
       {
         granularity,
         start,
         end,
         timezone: options?.timezone,
-        dimension_ids: options?.dimensionIds,
+        area_ids: options?.areaIds,
         first_day_of_week: options?.firstDayOfWeek,
         calendar_system: options?.calendarSystem,
       },
     );
   },
-  async recomputeDailyDimensions(
+  async recomputeDailyAreas(
     start: string,
     end: string,
     timezone?: string,
   ) {
     return http.post<{ days_recomputed: number }>(
-      "/api/v1/stats/daily-dimensions/recompute",
+      "/api/v1/stats/daily-areas/recompute",
       undefined,
       { start, end, timezone },
     );

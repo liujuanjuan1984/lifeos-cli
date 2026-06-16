@@ -19,8 +19,8 @@ SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 Granularity = Literal["day", "week", "month", "year"]
 
 
-def _filter_dimension(row_area_id: UUID, dimension_ids: set[UUID] | None) -> bool:
-    return dimension_ids is None or row_area_id in dimension_ids
+def _filter_area(row_area_id: UUID, area_ids: set[UUID] | None) -> bool:
+    return area_ids is None or row_area_id in area_ids
 
 
 def _pagination(*, page: int, size: int, total: int) -> Pagination:
@@ -33,7 +33,7 @@ def _page_items(items: list[dict[str, object]], *, page: int, size: int) -> list
     return items[start : start + size]
 
 
-def _parse_dimension_ids(values: list[UUID] | None) -> set[UUID] | None:
+def _parse_area_ids(values: list[UUID] | None) -> set[UUID] | None:
     if not values:
         return None
     return set(values)
@@ -79,20 +79,20 @@ async def _aggregated_report(
     )
 
 
-@router.get("/daily-dimensions", response_model=ListResponse)
-async def list_daily_dimensions(
+@router.get("/daily-areas", response_model=ListResponse)
+async def list_daily_areas(
     session: SessionDep,
     start: date,
     end: date,
-    dimension_ids: Annotated[list[UUID] | None, Query()] = None,
+    area_ids: Annotated[list[UUID] | None, Query()] = None,
     timezone: str | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=1000)] = 1000,
 ) -> ListResponse:
-    """Return daily timelog minutes by LifeOS area as frontend dimensions."""
+    """Return daily timelog minutes by LifeOS area."""
     if end < start:
         raise HTTPException(status_code=400, detail="end must be on or after start")
-    selected_dimensions = _parse_dimension_ids(dimension_ids)
+    selected_areas = _parse_area_ids(area_ids)
     rows: list[dict[str, object]] = []
     cursor = start
     while cursor <= end:
@@ -101,11 +101,11 @@ async def list_daily_dimensions(
             target_date=cursor,
         )
         for row in report.rows:
-            if _filter_dimension(row.area_id, selected_dimensions):
+            if _filter_area(row.area_id, selected_areas):
                 rows.append(
                     {
                         "date": cursor.isoformat(),
-                        "dimension_id": str(row.area_id),
+                        "area_id": str(row.area_id),
                         "minutes": row.minutes,
                     }
                 )
@@ -117,7 +117,7 @@ async def list_daily_dimensions(
             "start": start.isoformat(),
             "end": end.isoformat(),
             "timezone": timezone,
-            "dimension_ids": [str(item) for item in dimension_ids] if dimension_ids else None,
+            "area_ids": [str(item) for item in area_ids] if area_ids else None,
         },
     )
 
@@ -135,7 +135,7 @@ async def get_day_breakdown(
     )
     rows = [
         {
-            "dimension_id": str(row.area_id),
+            "area_id": str(row.area_id),
             "minutes": row.minutes,
         }
         for row in report.rows
@@ -147,23 +147,23 @@ async def get_day_breakdown(
     )
 
 
-@router.get("/aggregated-dimensions", response_model=ListResponse)
-async def list_aggregated_dimensions(
+@router.get("/aggregated-areas", response_model=ListResponse)
+async def list_aggregated_areas(
     session: SessionDep,
     granularity: Granularity,
     start: date,
     end: date,
-    dimension_ids: Annotated[list[UUID] | None, Query()] = None,
+    area_ids: Annotated[list[UUID] | None, Query()] = None,
     timezone: str | None = None,
     first_day_of_week: int | None = None,
     calendar_system: str | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=1000)] = 1000,
 ) -> ListResponse:
-    """Return aggregated timelog minutes by LifeOS area as frontend dimensions."""
+    """Return aggregated timelog minutes by LifeOS area."""
     if end < start:
         raise HTTPException(status_code=400, detail="end must be on or after start")
-    selected_dimensions = _parse_dimension_ids(dimension_ids)
+    selected_areas = _parse_area_ids(area_ids)
     rows: list[dict[str, object]] = []
     seen_periods: set[tuple[date, date]] = set()
     cursor = start
@@ -173,13 +173,13 @@ async def list_aggregated_dimensions(
         if period_key not in seen_periods:
             seen_periods.add(period_key)
             for row in report.rows:
-                if _filter_dimension(row.area_id, selected_dimensions):
+                if _filter_area(row.area_id, selected_areas):
                     rows.append(
                         {
                             "granularity": granularity,
                             "period_start": report.start_date.isoformat(),
                             "period_end": report.end_date.isoformat(),
-                            "dimension_id": str(row.area_id),
+                            "area_id": str(row.area_id),
                             "minutes": row.minutes,
                         }
                     )
@@ -192,15 +192,15 @@ async def list_aggregated_dimensions(
             "start": start.isoformat(),
             "end": end.isoformat(),
             "timezone": timezone,
-            "dimension_ids": [str(item) for item in dimension_ids] if dimension_ids else None,
+            "area_ids": [str(item) for item in area_ids] if area_ids else None,
             "first_day_of_week": first_day_of_week,
             "calendar_system": calendar_system,
         },
     )
 
 
-@router.post("/daily-dimensions/recompute")
-async def recompute_daily_dimensions(
+@router.post("/daily-areas/recompute")
+async def recompute_daily_areas(
     session: SessionDep,
     start: date,
     end: date,

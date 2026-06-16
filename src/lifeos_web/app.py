@@ -12,7 +12,7 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from lifeos_web.routers import (
-    dimensions,
+    areas,
     habits,
     health,
     notes,
@@ -34,11 +34,14 @@ class SPAStaticFiles(StaticFiles):
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and "." not in Path(path).name:
-                return await super().get_response("index.html", scope)
-            raise
+                response = await super().get_response("index.html", scope)
+            else:
+                raise
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
 
 def create_app(*, static_dir: Path | None = None) -> FastAPI:
@@ -64,7 +67,7 @@ def create_app(*, static_dir: Path | None = None) -> FastAPI:
     app.include_router(notes.router, prefix=API_PREFIX)
     app.include_router(timelogs.router, prefix=API_PREFIX)
     app.include_router(persons.router, prefix=API_PREFIX)
-    app.include_router(dimensions.router, prefix=API_PREFIX)
+    app.include_router(areas.router, prefix=API_PREFIX)
     app.include_router(planned_events.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
     app.include_router(tags.router, prefix=API_PREFIX)

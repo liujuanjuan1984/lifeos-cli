@@ -1,4 +1,4 @@
-"""Frontend-compatible dimension endpoints backed by LifeOS areas."""
+"""Area endpoints for the local Web UI."""
 
 from __future__ import annotations
 
@@ -15,12 +15,12 @@ from lifeos_cli.db.services import areas as area_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination
 
-router = APIRouter(prefix="/dimensions", tags=["dimensions"])
+router = APIRouter(prefix="/areas", tags=["areas"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
-class DimensionCreate(BaseModel):
-    """Frontend-compatible dimension creation payload."""
+class AreaCreate(BaseModel):
+    """Payload for creating an area from the Web UI."""
 
     name: str
     description: str | None = None
@@ -29,8 +29,8 @@ class DimensionCreate(BaseModel):
     display_order: int = 0
 
 
-class DimensionUpdate(BaseModel):
-    """Frontend-compatible dimension update payload."""
+class AreaUpdate(BaseModel):
+    """Payload for updating an area from the Web UI."""
 
     name: str | None = None
     description: str | None = None
@@ -40,7 +40,7 @@ class DimensionUpdate(BaseModel):
     is_active: bool | None = None
 
 
-def _dimension_payload(area: Area) -> dict[str, object]:
+def _area_payload(area: Area) -> dict[str, object]:
     return {
         "id": str(area.id),
         "name": area.name,
@@ -55,20 +55,20 @@ def _dimension_payload(area: Area) -> dict[str, object]:
 
 
 @router.get("/", response_model=ListResponse)
-async def list_dimensions(
+async def list_areas(
     session: SessionDep,
     include_inactive: bool = False,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
-    """List LifeOS areas as frontend-compatible dimensions."""
+    """List LifeOS areas for frontend selectors and managers."""
     areas = await area_services.list_areas(
         session,
         include_inactive=include_inactive,
         limit=size,
         offset=(page - 1) * size,
     )
-    items = [_dimension_payload(area) for area in areas]
+    items = [_area_payload(area) for area in areas]
     return ListResponse(
         items=items,
         pagination=Pagination(
@@ -82,15 +82,15 @@ async def list_dimensions(
 
 
 @router.get("/order")
-async def get_dimension_order(session: SessionDep) -> list[str]:
-    """Return current area display order as dimension ids."""
+async def get_area_order(session: SessionDep) -> list[str]:
+    """Return current area display order as area ids."""
     areas = await area_services.list_areas(session, include_inactive=True, limit=500)
     return [str(area.id) for area in areas]
 
 
 @router.put("/order", status_code=204)
-async def set_dimension_order(order: list[UUID], session: SessionDep) -> None:
-    """Persist area display order from the frontend dimension sorter."""
+async def set_area_order(order: list[UUID], session: SessionDep) -> None:
+    """Persist area display order from the frontend area sorter."""
     for index, area_id in enumerate(order):
         try:
             await area_services.update_area(session, area_id=area_id, display_order=index)
@@ -99,25 +99,25 @@ async def set_dimension_order(order: list[UUID], session: SessionDep) -> None:
 
 
 @router.delete("/order", status_code=204)
-async def reset_dimension_order(session: SessionDep) -> None:
+async def reset_area_order(session: SessionDep) -> None:
     """Reset area display order to the current list order."""
     areas = await area_services.list_areas(session, include_inactive=True, limit=500)
     for index, area in enumerate(areas):
         await area_services.update_area(session, area_id=area.id, display_order=index)
 
 
-@router.get("/{dimension_id}")
-async def get_dimension(dimension_id: UUID, session: SessionDep) -> dict[str, object]:
-    """Load one LifeOS area as a dimension."""
-    area = await area_services.get_area(session, area_id=dimension_id, include_deleted=False)
+@router.get("/{area_id}")
+async def get_area(area_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one LifeOS area."""
+    area = await area_services.get_area(session, area_id=area_id, include_deleted=False)
     if area is None:
-        raise HTTPException(status_code=404, detail=f"Dimension {dimension_id} was not found")
-    return _dimension_payload(area)
+        raise HTTPException(status_code=404, detail=f"Area {area_id} was not found")
+    return _area_payload(area)
 
 
 @router.post("/")
-async def create_dimension(payload: DimensionCreate, session: SessionDep) -> dict[str, object]:
-    """Create a LifeOS area from the dimension manager."""
+async def create_area(payload: AreaCreate, session: SessionDep) -> dict[str, object]:
+    """Create a LifeOS area from the Web UI."""
     try:
         area = await area_services.create_area(
             session,
@@ -129,21 +129,21 @@ async def create_dimension(payload: DimensionCreate, session: SessionDep) -> dic
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _dimension_payload(area)
+    return _area_payload(area)
 
 
-@router.patch("/{dimension_id}")
-async def update_dimension(
-    dimension_id: UUID,
-    payload: DimensionUpdate,
+@router.patch("/{area_id}")
+async def update_area(
+    area_id: UUID,
+    payload: AreaUpdate,
     session: SessionDep,
 ) -> dict[str, object]:
-    """Update a LifeOS area through the dimension manager."""
+    """Update a LifeOS area through the Web UI."""
     fields = payload.model_fields_set
     try:
         area = await area_services.update_area(
             session,
-            area_id=dimension_id,
+            area_id=area_id,
             name=payload.name,
             description=payload.description,
             clear_description="description" in fields and payload.description in {None, ""},
@@ -157,27 +157,27 @@ async def update_dimension(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _dimension_payload(area)
+    return _area_payload(area)
 
 
-@router.delete("/{dimension_id}", status_code=204)
-async def delete_dimension(dimension_id: UUID, session: SessionDep) -> None:
+@router.delete("/{area_id}", status_code=204)
+async def delete_area(area_id: UUID, session: SessionDep) -> None:
     """Soft-delete a LifeOS area."""
     try:
-        await area_services.delete_area(session, area_id=dimension_id)
+        await area_services.delete_area(session, area_id=area_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{dimension_id}/activate")
-async def activate_dimension(dimension_id: UUID, session: SessionDep) -> dict[str, object]:
+@router.post("/{area_id}/activate")
+async def activate_area(area_id: UUID, session: SessionDep) -> dict[str, object]:
     """Reactivate an inactive LifeOS area."""
     try:
         area = await area_services.update_area(
             session,
-            area_id=dimension_id,
+            area_id=area_id,
             is_active=True,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return _dimension_payload(area)
+    return _area_payload(area)

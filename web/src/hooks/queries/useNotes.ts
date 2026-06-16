@@ -20,7 +20,7 @@ export function useNotes(
     tag_id?: UUID;
     person_id?: UUID;
     task_id?: UUID;
-    actual_event_id?: UUID;
+    timelog_id?: UUID;
     keyword?: string;
     untagged?: boolean;
   } = {},

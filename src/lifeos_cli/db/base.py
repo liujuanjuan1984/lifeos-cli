@@ -6,8 +6,10 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, MetaData, Uuid
+from sqlalchemy import MetaData, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from lifeos_cli.db.types import UTCDateTime
 
 NAMING_CONVENTION: dict[str, str] = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",
@@ -42,12 +44,12 @@ class TimestampedMixin:
     """Reusable created/updated timestamp fields."""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UTCDateTime(),
         default=utc_now,
         nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UTCDateTime(),
         default=utc_now,
         onupdate=utc_now,
         nullable=False,
@@ -57,7 +59,7 @@ class TimestampedMixin:
 class SoftDeleteMixin:
     """Reusable soft-delete field."""
 
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
     def soft_delete(self) -> None:
         """Mark a record as soft-deleted."""

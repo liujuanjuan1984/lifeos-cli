@@ -6,10 +6,12 @@ import type { TaskCreate, TaskUpdate, Task } from "@/services/api/tasks";
 import type { UUID } from "@/types/primitive";
 import {
   invalidateVisionsHierarchy,
-  invalidateAllVisionHierarchies,
   removeTaskDetailCache,
 } from "@/services/api/cacheInvalidation/tasks";
-import { addTaskToHierarchyCache } from "@/services/api/cacheInvalidation/visions";
+import {
+  addTaskToHierarchyCache,
+  invalidateAllVisionHierarchies,
+} from "@/services/api/cacheInvalidation/visions";
 import {
   invalidatePlanningSnapshots,
   type PlanningSnapshot,

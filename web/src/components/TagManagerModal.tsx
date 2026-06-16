@@ -28,10 +28,6 @@ interface TagManagerProps {
   onTagCreated?: (tag: Tag) => void;
   onTagUpdated?: (tag: Tag) => void;
   onTagDeleted?: (tagId: UUID) => void;
-  // legacy external state props are intentionally not used after refactor
-  loading?: boolean;
-  error?: string | null;
-  onErrorDismiss?: () => void;
   title?: string;
   entityTypeScope: string;
 }
@@ -118,8 +114,6 @@ const getDefaultCategoryForTag = (
   entityType: string | null | undefined,
 ) => normalizeTagCategory(tagCategory, entityType);
 
-// removed createTagWithStats; list refresh is handled via refetch
-
 /**
  * TagManager - Unified component for managing all types of tags
  *
@@ -137,9 +131,6 @@ const TagManager: React.FC<TagManagerProps> = ({
   onTagCreated,
   onTagUpdated,
   onTagDeleted,
-  loading: _externalLoading,
-  error: _externalError,
-  onErrorDismiss: _onErrorDismiss,
   title,
   entityTypeScope,
 }) => {
@@ -344,7 +335,7 @@ const TagManager: React.FC<TagManagerProps> = ({
 
   // Generic error handler
   const handleError = useCallback(
-    (error: unknown, operation: string, _externalErrorExists: boolean) => {
+    (error: unknown, operation: string) => {
       const errorMessage =
         error instanceof Error ? error.message : `Failed to ${operation}`;
       console.error(errorMessage);
@@ -639,7 +630,7 @@ const TagManager: React.FC<TagManagerProps> = ({
         t("tagManager.errors.createTitle"),
         t("eventModal.errors.saveMessage", { error: errorMessage }),
       );
-      handleError(err, "create tag", false);
+      handleError(err, "create tag");
       setError(errorMessage);
     }
   };
@@ -668,7 +659,7 @@ const TagManager: React.FC<TagManagerProps> = ({
         t("tagManager.errors.updateTitle"),
         t("eventModal.errors.saveMessage", { error: errorMessage }),
       );
-      handleError(err, "update tag", false);
+      handleError(err, "update tag");
       setError(errorMessage);
     }
   };
@@ -694,7 +685,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           t("tagManager.errors.deleteTitle"),
           t("eventModal.errors.saveMessage", { error: errorMessage }),
         );
-        handleError(err, "delete tag", false);
+        handleError(err, "delete tag");
         setError(errorMessage);
       }
     },

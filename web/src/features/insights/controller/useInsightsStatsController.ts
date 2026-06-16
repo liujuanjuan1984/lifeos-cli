@@ -2,9 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   statsApi,
-  type AggregatedDimensionRow,
+  type AggregatedAreaRow,
   type AggregationGranularity,
-  type DailyDimensionRow,
+  type DailyAreaRow,
 } from "@/services/api/stats";
 import { statsKeys } from "@/services/api/queryKeys";
 import { logger } from "@/utils/core";
@@ -21,8 +21,8 @@ interface UseInsightsStatsControllerParams {
 }
 
 interface UseInsightsStatsControllerResult {
-  dailyStats: DailyDimensionRow[];
-  aggregatedRows: AggregatedDimensionRow[];
+  dailyStats: DailyAreaRow[];
+  aggregatedRows: AggregatedAreaRow[];
   isLoading: boolean;
   displayError: string | null;
   refreshStats: () => Promise<void>;
@@ -44,14 +44,14 @@ export function useInsightsStatsController({
   const normalizedFirstDayOfWeek = firstDayOfWeek ?? 1;
   const needsDailyStats = granularity === "day";
 
-  const dailyQuery = useQuery<DailyDimensionRow[]>({
-    queryKey: statsKeys.dailyDimensions({
+  const dailyQuery = useQuery<DailyAreaRow[]>({
+    queryKey: statsKeys.dailyAreas({
       start: startDate,
       end: endDate,
       timezone: activeTimezone,
     }),
     queryFn: async () => {
-      const response = await statsApi.getDailyDimensions(
+      const response = await statsApi.getDailyAreas(
         startDate,
         endDate,
         undefined,
@@ -67,8 +67,8 @@ export function useInsightsStatsController({
     placeholderData: [],
   });
 
-  const aggregatedQuery = useQuery<AggregatedDimensionRow[]>({
-    queryKey: statsKeys.aggregatedDimensions({
+  const aggregatedQuery = useQuery<AggregatedAreaRow[]>({
+    queryKey: statsKeys.aggregatedAreas({
       granularity,
       start: startDate,
       end: endDate,
@@ -77,7 +77,7 @@ export function useInsightsStatsController({
       calendar_system: calendarSystem,
     }),
     queryFn: async () => {
-      const response = await statsApi.getAggregatedDimensions(
+      const response = await statsApi.getAggregatedAreas(
         granularity,
         startDate,
         endDate,
@@ -127,21 +127,21 @@ export function useInsightsStatsController({
     setRefreshError(null);
 
     try {
-      await statsApi.recomputeDailyDimensions(
+      await statsApi.recomputeDailyAreas(
         startDate,
         endDate,
         activeTimezone,
       );
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: statsKeys.dailyDimensions({
+          queryKey: statsKeys.dailyAreas({
             start: startDate,
             end: endDate,
             timezone: activeTimezone,
           }),
         }),
         queryClient.invalidateQueries({
-          queryKey: statsKeys.aggregatedDimensions({
+          queryKey: statsKeys.aggregatedAreas({
             granularity,
             start: startDate,
             end: endDate,

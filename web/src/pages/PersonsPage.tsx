@@ -223,9 +223,6 @@ const PersonsPage: React.FC = () => {
         onClose={() => setShowTagManager(false)}
         title={t("personManager.socialTagManager")}
         entityTypeScope="person"
-        loading={false}
-        error={null}
-        onErrorDismiss={() => {}}
         onTagUpdated={() => {
           refreshPersonTags();
         }}

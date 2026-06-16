@@ -17,6 +17,8 @@ setupTranslationMock({
       "planning.periodNavigation.pickDateButton": "Pick Date",
       "planning.periodNavigation.pickDateLabel": "Select date",
       "planning.periodNavigation.pickDatePlaceholder": "YYYY-MM-DD",
+      "common.confirm": "Confirm",
+      "common.cancel": "Cancel",
     };
     if (typeof options === "object" && options?.defaultValue) {
       return String(options.defaultValue);
@@ -31,13 +33,20 @@ vi.mock("@/components/ActionButton", () => ({
   __esModule: true,
   default: (props: unknown) => {
     actionButtonSpy(props);
-    const { label, onClick, disabled } = props as {
+    const { label, onClick, disabled, type, ariaLabel } = props as {
       label: string;
       onClick: () => void;
       disabled?: boolean;
+      type?: "button" | "submit" | "reset";
+      ariaLabel?: string;
     };
     return (
-      <button type="button" disabled={disabled} onClick={onClick}>
+      <button
+        type={type ?? "button"}
+        disabled={disabled}
+        onClick={onClick}
+        aria-label={ariaLabel}
+      >
         {label}
       </button>
     );
@@ -94,6 +103,7 @@ describe("PeriodNavigation", () => {
   });
 
   it("renders current day label with indicator", () => {
+    vi.useFakeTimers();
     const now = new Date("2025-01-01T00:00:00Z");
     vi.setSystemTime(now);
 
@@ -112,6 +122,56 @@ describe("PeriodNavigation", () => {
     );
     const centerButton = buttons[1];
     expect(centerButton.label).toMatch(/Current/);
+  });
+
+  it("renders day labels in the provided timezone", () => {
+    const selectedDate = new Date("2026-04-13T16:00:00.000Z");
+
+    renderWithProviders(
+      <PeriodNavigation
+        periodType="day"
+        selectedDate={selectedDate}
+        timezone="Asia/Shanghai"
+        onPrevious={vi.fn()}
+        onNext={vi.fn()}
+        onCurrent={vi.fn()}
+      />,
+    );
+
+    const buttons = actionButtonSpy.mock.calls.map(
+      (call) => call[0] as { label: string },
+    );
+    const centerButton = buttons[1];
+    expect(centerButton.label).toBe("2026-04-14");
+  });
+
+  it("selects date input values at the start of the provided timezone day", async () => {
+    const user = userEvent.setup();
+    const onSelectDate = vi.fn();
+
+    renderWithProviders(
+      <PeriodNavigation
+        periodType="day"
+        selectedDate={new Date("2026-04-13T16:00:00.000Z")}
+        timezone="Asia/Shanghai"
+        onPrevious={vi.fn()}
+        onNext={vi.fn()}
+        onCurrent={vi.fn()}
+        onSelectDate={onSelectDate}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Pick Date" }));
+    const input = screen.getByDisplayValue("2026-04-14");
+    expect(input).toHaveValue("2026-04-14");
+
+    await user.clear(input);
+    await user.type(input, "2026-04-15");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    expect(onSelectDate).toHaveBeenCalledWith(
+      new Date("2026-04-14T16:00:00.000Z"),
+    );
   });
 
   it("uses adapter range for month label when provided", async () => {

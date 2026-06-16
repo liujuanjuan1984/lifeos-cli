@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { preferencesApi } from "@/services/api/preferences";
-import { preferencesKeys, dimensionsKeys } from "@/services/api/queryKeys";
+import { preferencesKeys, areasKeys } from "@/services/api/queryKeys";
 import { logger } from "@/utils/core";
 import { setPreferredTimezone } from "@/utils/datetime";
 
@@ -182,10 +182,10 @@ export function usePreferenceWithBootstrap<T>({
         queryKey: preferencesKeys.detail(key),
       });
 
-      if (key === "dashboard.dimension_order") {
-        queryClient.setQueryData(dimensionsKeys.order(), nextValue);
+      if (key === "dashboard.area_order") {
+        queryClient.setQueryData(areasKeys.order(), nextValue);
         queryClient.invalidateQueries({
-          queryKey: dimensionsKeys.order(),
+          queryKey: areasKeys.order(),
         });
       }
     },

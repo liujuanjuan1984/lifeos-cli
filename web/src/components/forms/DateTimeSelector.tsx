@@ -7,7 +7,7 @@ import TextInput from "./TextInput";
 interface DateTimeSelectorProps {
   /** Current ISO datetime string */
   value: string;
-  /** Whether this is for an all-day event (date only) */
+  /** Whether this is for an all-day planned event (date only) */
   isAllDay?: boolean;
   /** Whether the selector is disabled */
   disabled?: boolean;
@@ -66,14 +66,14 @@ export default function DateTimeSelector({
     const utcDate = new Date(value);
 
     if (isAllDay) {
-      // For all-day events, use the UTC date directly
+      // For all-day planned events, use the UTC date directly.
       return {
         datePart: utcDate.toISOString().split("T")[0],
         timePart: "",
       };
     }
 
-    // For time-specific events, convert UTC to local timezone
+    // For time-specific planned events, convert UTC to local timezone.
     const localDate = new Date(value);
 
     return {
@@ -106,7 +106,7 @@ export default function DateTimeSelector({
       const [year, month, day] = newDate.split("-").map(Number);
 
       if (isAllDay) {
-        // For all-day events, create UTC start of day
+        // For all-day planned events, create UTC start of day.
         const utcDate = zonedDateTimeToUtc(
           year,
           month,
@@ -223,7 +223,7 @@ export default function DateTimeSelector({
         />
       </div>
 
-      {/* Time input (only for non-all-day events) */}
+      {/* Time input (only for non-all-day planned events) */}
       {!isAllDay && (
         <div>
           <label

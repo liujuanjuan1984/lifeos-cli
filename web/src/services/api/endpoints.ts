@@ -28,7 +28,6 @@ export const ENDPOINTS = {
     REORDER: `${API_V1}/tasks/reorder`,
     MOVE: (id: string) => `${API_V1}/tasks/${id}/move`,
     STATS: (id: string) => `${API_V1}/tasks/${id}/stats`,
-    ACTUAL_EVENTS: (id: string) => `${API_V1}/tasks/${id}/actual-events`,
   },
   TIMELOGS: {
     BASE: `${API_V1}/timelogs/`,
@@ -70,11 +69,11 @@ export const ENDPOINTS = {
       `${API_V1}/persons/${personId}/tags/${tagId}`,
     SEARCH_BY_TAG: `${API_V1}/persons/search-by-tag`,
   },
-  DIMENSIONS: {
-    BASE: `${API_V1}/dimensions/`,
-    BY_ID: (id: string) => `${API_V1}/dimensions/${id}`,
-    ACTIVATE: (id: string) => `${API_V1}/dimensions/${id}/activate`,
-    ORDER: `${API_V1}/dimensions/order`,
+  AREAS: {
+    BASE: `${API_V1}/areas/`,
+    BY_ID: (id: string) => `${API_V1}/areas/${id}`,
+    ACTIVATE: (id: string) => `${API_V1}/areas/${id}/activate`,
+    ORDER: `${API_V1}/areas/order`,
   },
   PLANNED_EVENTS: {
     BASE: `${API_V1}/planned-events/`,
@@ -86,10 +85,10 @@ export const ENDPOINTS = {
     BY_KEY: (key: string) => `${API_V1}/preferences/${encodeURIComponent(key)}`,
   },
   STATS: {
-    DAILY_DIMENSIONS: `${API_V1}/stats/daily-dimensions`,
+    DAILY_AREAS: `${API_V1}/stats/daily-areas`,
     DAY_BREAKDOWN: `${API_V1}/stats/day-breakdown`,
-    AGGREGATED_DIMENSIONS: `${API_V1}/stats/aggregated-dimensions`,
-    DAILY_DIMENSIONS_RECOMPUTE: `${API_V1}/stats/daily-dimensions/recompute`,
+    AGGREGATED_AREAS: `${API_V1}/stats/aggregated-areas`,
+    DAILY_AREAS_RECOMPUTE: `${API_V1}/stats/daily-areas/recompute`,
     NOTES_TOTAL: `${API_V1}/stats/notes/total`,
     TAGS_USAGE: (entityType: string) =>
       `${API_V1}/stats/tags/usage/${entityType}`,
