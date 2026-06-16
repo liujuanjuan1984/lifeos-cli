@@ -149,6 +149,30 @@ describe("PlanningPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("boom");
   });
 
+  it("keeps the day planning group mounted when there are no tasks", async () => {
+    usePlanningTasksMock.mockReturnValue({
+      tasks: [],
+      query: { isLoading: false, error: null },
+      prefetch: prefetchMock,
+    } satisfies UsePlanningTasksMockResult);
+
+    renderWithProviders(<PlanningPage />);
+
+    await waitFor(() =>
+      expect(calendarAdapter.buildPlanningGroups).toHaveBeenCalledWith(
+        "day",
+        expect.any(Date),
+        [],
+        expect.anything(),
+      ),
+    );
+
+    expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
+    expect(screen.getByTestId("planning-task-list")).toHaveTextContent(
+      "tasks:0",
+    );
+  });
+
   it("renders planning content and handles view changes", async () => {
     const user = userEvent.setup();
 
