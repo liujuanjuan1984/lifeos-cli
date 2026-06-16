@@ -37,7 +37,6 @@ interface UseTimeLogDataReturn {
   setIsSelectMode: (value: boolean) => void;
   // Advanced search support
   setAdvancedSearchResultsFromHook: (results: ProcessedEntry[]) => void;
-  clearAdvancedSearchResultsFromHook: () => void;
   selectionHandlers: {
     handleSelectEntry: (entryId: UUID, checked: boolean) => void;
     handleSelectAll: () => void;
@@ -287,11 +286,6 @@ export const useTimeLogData = ({
     [],
   );
 
-  const clearAdvancedSearchResultsFromHook = useCallback(() => {
-    // Reset to empty state for advanced search
-    setAdvancedSearchResults([]);
-  }, []);
-
   return {
     processedEntries,
     loading,
@@ -309,7 +303,6 @@ export const useTimeLogData = ({
     cancelBatchDelete,
     setIsSelectMode,
     setAdvancedSearchResultsFromHook,
-    clearAdvancedSearchResultsFromHook,
     selectionHandlers: {
       handleSelectEntry,
       handleSelectAll,
