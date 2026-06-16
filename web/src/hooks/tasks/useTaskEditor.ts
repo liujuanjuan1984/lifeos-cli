@@ -13,7 +13,6 @@ import { useModalState } from "@/hooks/useModalState";
 import { useToast } from "@/contexts/ToastContext";
 import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
-import { useAllTasks } from "@/hooks/queries/useTasks";
 import { ALL_TASK_STATUSES, ALL_VISION_STATUSES } from "@/utils/constants";
 import type { PlanningViewType } from "@/utils/calendar";
 import type { UUID } from "@/types/primitive";
@@ -87,6 +86,7 @@ interface UseTaskEditorResult {
   modalTitle: string;
   canChangeVision: boolean;
   filteredTasksForParent: TaskWithSubtasks[];
+  excludedParentTaskIds: UUID[];
   visionStatusFilter: string[];
   taskStatusFilter: string[];
   focusTrigger: number;
@@ -122,13 +122,6 @@ export function useTaskEditor(
     validator: (value) =>
       ["none", "today", "this_week", "this_month"].includes(value),
   });
-  const { data: allTasksFromHookData } = useAllTasks({
-    enabled: isOpen,
-  });
-  const allTasksFromHook = useMemo(
-    () => allTasksFromHookData ?? [],
-    [allTasksFromHookData],
-  );
   const { loading, error, setError, withLoading } = useModalState();
   const isBulkMode = mode === "bulk";
 
@@ -262,10 +255,7 @@ export function useTaskEditor(
   );
 
   const filteredTasksForParent = useMemo(() => {
-    const sourceTasks =
-      allTasksFromHook.length > 0 ? allTasksFromHook : allTasks;
-
-    const tasksWithSubtasks: TaskWithSubtasks[] = sourceTasks.map(
+    const tasksWithSubtasks: TaskWithSubtasks[] = allTasks.map(
       (candidate) => ({
         ...candidate,
         subtasks: [],
@@ -290,13 +280,29 @@ export function useTaskEditor(
       return !isAtMaxDepth(taskOption.id);
     });
   }, [
-    allTasksFromHook,
     allTasks,
     formData.vision_id,
     task,
     getDescendantTaskIds,
     isAtMaxDepth,
   ]);
+
+  const excludedParentTaskIds = useMemo(() => {
+    const excluded = new Set<UUID>();
+    allTasks.forEach((candidate) => {
+      if (candidate.vision_id !== formData.vision_id) return;
+      if (isAtMaxDepth(candidate.id)) {
+        excluded.add(candidate.id);
+      }
+    });
+
+    if (task) {
+      excluded.add(task.id);
+      getDescendantTaskIds(task.id).forEach((taskId) => excluded.add(taskId));
+    }
+
+    return Array.from(excluded);
+  }, [allTasks, formData.vision_id, getDescendantTaskIds, isAtMaxDepth, task]);
 
   const updateParentTaskStatusRecursively = useCallback(
     async (taskId: UUID) => {
@@ -955,6 +961,7 @@ export function useTaskEditor(
     modalTitle,
     canChangeVision,
     filteredTasksForParent,
+    excludedParentTaskIds,
     visionStatusFilter,
     taskStatusFilter,
     focusTrigger,

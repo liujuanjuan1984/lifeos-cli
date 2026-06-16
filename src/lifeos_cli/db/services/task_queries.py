@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.person import Person
@@ -146,6 +147,69 @@ def _parse_status_csv(value: str | None) -> list[str]:
     return [validate_task_status(item) for item in _split_csv(value)]
 
 
+def _apply_task_filters(
+    stmt: Any,
+    *,
+    vision_id: UUID | None = None,
+    vision_in: str | None = None,
+    parent_task_id: UUID | None = None,
+    person_id: UUID | None = None,
+    status: str | None = None,
+    status_in: str | None = None,
+    exclude_status: str | None = None,
+    planning_cycle_type: str | None = None,
+    planning_cycle_start_date: date | None = None,
+    content: str | None = None,
+    query: str | None = None,
+    include_deleted: bool = False,
+) -> Any:
+    """Apply the shared task list/count filter contract."""
+    if not include_deleted:
+        stmt = stmt.where(Task.deleted_at.is_(None))
+    if vision_id is not None:
+        stmt = stmt.where(Task.vision_id == vision_id)
+    vision_ids = _parse_uuid_csv(vision_in)
+    if vision_ids:
+        stmt = stmt.where(Task.vision_id.in_(vision_ids))
+    if parent_task_id is None and vision_id is not None:
+        stmt = stmt.where(Task.parent_task_id.is_(None))
+    elif parent_task_id is not None:
+        stmt = stmt.where(Task.parent_task_id == parent_task_id)
+    if person_id is not None:
+        stmt = stmt.join(
+            person_associations,
+            (person_associations.c.entity_id == Task.id)
+            & (person_associations.c.entity_type == "task"),
+        ).where(person_associations.c.person_id == person_id)
+    if status is not None:
+        stmt = stmt.where(Task.status == validate_task_status(status))
+    included_statuses = _parse_status_csv(status_in)
+    if included_statuses:
+        stmt = stmt.where(Task.status.in_(included_statuses))
+    excluded_statuses = _parse_status_csv(exclude_status)
+    if excluded_statuses:
+        stmt = stmt.where(Task.status.not_in(excluded_statuses))
+    if planning_cycle_type is not None:
+        normalized_cycle_type = planning_cycle_type.strip().lower()
+        if normalized_cycle_type not in VALID_PLANNING_CYCLE_TYPES:
+            allowed = ", ".join(sorted(VALID_PLANNING_CYCLE_TYPES))
+            raise ValueError(
+                f"Invalid planning cycle type {normalized_cycle_type!r}. Expected one of: {allowed}"
+            )
+        stmt = stmt.where(Task.planning_cycle_type == normalized_cycle_type)
+    if planning_cycle_start_date is not None:
+        stmt = stmt.where(Task.planning_cycle_start_date == planning_cycle_start_date)
+    if content is not None:
+        normalized_content = content.strip()
+        if normalized_content:
+            stmt = stmt.where(Task.content == normalized_content)
+    if query is not None:
+        normalized_query = query.strip()
+        if normalized_query:
+            stmt = stmt.where(Task.content.ilike(f"%{normalized_query}%"))
+    return stmt
+
+
 async def _build_task_view(session: AsyncSession, task: Task) -> TaskView:
     people_map = await load_people_for_entities(
         session,
@@ -195,51 +259,27 @@ async def list_tasks(
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
     content: str | None = None,
+    query: str | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[TaskView]:
     """List tasks with basic filters."""
-    stmt = select(Task)
-    if not include_deleted:
-        stmt = stmt.where(Task.deleted_at.is_(None))
-    if vision_id is not None:
-        stmt = stmt.where(Task.vision_id == vision_id)
-    vision_ids = _parse_uuid_csv(vision_in)
-    if vision_ids:
-        stmt = stmt.where(Task.vision_id.in_(vision_ids))
-    if parent_task_id is None and vision_id is not None:
-        stmt = stmt.where(Task.parent_task_id.is_(None))
-    elif parent_task_id is not None:
-        stmt = stmt.where(Task.parent_task_id == parent_task_id)
-    if person_id is not None:
-        stmt = stmt.join(
-            person_associations,
-            (person_associations.c.entity_id == Task.id)
-            & (person_associations.c.entity_type == "task"),
-        ).where(person_associations.c.person_id == person_id)
-    if status is not None:
-        stmt = stmt.where(Task.status == validate_task_status(status))
-    included_statuses = _parse_status_csv(status_in)
-    if included_statuses:
-        stmt = stmt.where(Task.status.in_(included_statuses))
-    excluded_statuses = _parse_status_csv(exclude_status)
-    if excluded_statuses:
-        stmt = stmt.where(Task.status.not_in(excluded_statuses))
-    if planning_cycle_type is not None:
-        normalized_cycle_type = planning_cycle_type.strip().lower()
-        if normalized_cycle_type not in VALID_PLANNING_CYCLE_TYPES:
-            allowed = ", ".join(sorted(VALID_PLANNING_CYCLE_TYPES))
-            raise ValueError(
-                f"Invalid planning cycle type {normalized_cycle_type!r}. Expected one of: {allowed}"
-            )
-        stmt = stmt.where(Task.planning_cycle_type == normalized_cycle_type)
-    if planning_cycle_start_date is not None:
-        stmt = stmt.where(Task.planning_cycle_start_date == planning_cycle_start_date)
-    if content is not None:
-        normalized_content = content.strip()
-        if normalized_content:
-            stmt = stmt.where(Task.content == normalized_content)
+    stmt = _apply_task_filters(
+        select(Task),
+        vision_id=vision_id,
+        vision_in=vision_in,
+        parent_task_id=parent_task_id,
+        person_id=person_id,
+        status=status,
+        status_in=status_in,
+        exclude_status=exclude_status,
+        planning_cycle_type=planning_cycle_type,
+        planning_cycle_start_date=planning_cycle_start_date,
+        content=content,
+        query=query,
+        include_deleted=include_deleted,
+    )
     stmt = (
         stmt.order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
         .offset(offset)
@@ -247,6 +287,41 @@ async def list_tasks(
     )
     tasks = list((await session.execute(stmt)).scalars())
     return await _build_task_views(session, tasks)
+
+
+async def count_tasks(
+    session: AsyncSession,
+    *,
+    vision_id: UUID | None = None,
+    vision_in: str | None = None,
+    parent_task_id: UUID | None = None,
+    person_id: UUID | None = None,
+    status: str | None = None,
+    status_in: str | None = None,
+    exclude_status: str | None = None,
+    planning_cycle_type: str | None = None,
+    planning_cycle_start_date: date | None = None,
+    content: str | None = None,
+    query: str | None = None,
+    include_deleted: bool = False,
+) -> int:
+    """Count tasks with the same filters as ``list_tasks``."""
+    stmt = _apply_task_filters(
+        select(func.count()).select_from(Task),
+        vision_id=vision_id,
+        vision_in=vision_in,
+        parent_task_id=parent_task_id,
+        person_id=person_id,
+        status=status,
+        status_in=status_in,
+        exclude_status=exclude_status,
+        planning_cycle_type=planning_cycle_type,
+        planning_cycle_start_date=planning_cycle_start_date,
+        content=content,
+        query=query,
+        include_deleted=include_deleted,
+    )
+    return int((await session.execute(stmt)).scalar_one())
 
 
 async def get_vision_task_hierarchy(

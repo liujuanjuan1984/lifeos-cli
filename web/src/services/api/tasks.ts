@@ -83,11 +83,13 @@ export interface TaskStatsResponse {
 
 interface TaskListMeta {
   vision_id?: UUID | null;
+  vision_in?: string | null;
   status_filter?: string | null;
   status_in?: string | null;
   exclude_status?: string | null;
   planning_cycle_type?: string | null;
   planning_cycle_start_date?: string | null;
+  query?: string | null;
   fields?: TaskFieldsMode | null;
 }
 
@@ -106,6 +108,7 @@ export interface TaskListFilters {
   size?: number;
   planning_cycle_type?: string;
   planning_cycle_start_date?: string; // YYYY-MM-DD
+  query?: string;
   fields?: TaskFieldsMode;
 }
 
@@ -148,9 +151,31 @@ export const tasksApi = {
       params.planning_cycle_type = extra.planning_cycle_type;
     if (extra?.planning_cycle_start_date)
       params.planning_cycle_start_date = extra.planning_cycle_start_date;
+    if (extra?.query) params.query = extra.query;
     const fields: TaskFieldsMode = extra?.fields ?? "basic";
     params.fields = fields;
     return http.get<TaskListResponse>(ENDPOINTS.TASKS.BASE, params);
+  },
+
+  async searchSelectorPage(opts: {
+    visionId?: UUID | null;
+    query?: string;
+    statusIn?: readonly string[];
+    page?: number;
+    pageSize?: number;
+    fields?: TaskFieldsMode;
+  }): Promise<TaskListResponse> {
+    return tasksApi.getAll(undefined, undefined, {
+      vision_in: opts.visionId ? [String(opts.visionId)] : undefined,
+      status_in: opts.statusIn ? [...opts.statusIn] : undefined,
+      page: opts.page ?? 1,
+      size: Math.min(
+        Math.max(opts.pageSize ?? 50, 1),
+        MAX_TASKS_PAGE_SIZE,
+      ),
+      query: opts.query?.trim() || undefined,
+      fields: opts.fields ?? "basic",
+    });
   },
 
   async queryAllPaged(opts: {

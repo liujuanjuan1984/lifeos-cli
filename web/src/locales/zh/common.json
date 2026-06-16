@@ -1642,8 +1642,9 @@
     "placeholder": "选择任务...",
     "searchHint": "输入任务名称来搜索",
     "noResults": "没有找到匹配的任务",
+    "loadMore": "加载更多任务",
     "specialOptions": {
-      "allTasks": "全部任务"
+      "allTasks": "全部"
     }
   },
   "errorBoundary": {

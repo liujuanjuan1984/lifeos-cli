@@ -89,6 +89,7 @@ export interface TimelogAdvancedSearchRequest {
   area_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
+  without_task?: boolean;
 }
 
 export interface TimelogAdvancedSearchMetadata {
@@ -102,6 +103,7 @@ export interface TimelogAdvancedSearchMetadata {
   area_name?: string | null;
   description_keyword?: string | null;
   task_id?: UUID | null;
+  without_task?: boolean | null;
   limit?: number | null;
   returned_count?: number | null;
   total_count?: number | null;
@@ -264,6 +266,8 @@ export const timelogsApi = {
   advancedSearch: async (params: TimelogAdvancedSearchRequest) => {
     const withoutArea =
       params.without_area ?? params.area_id === null;
+    const withoutTask =
+      params.without_task ?? params.task_id === null;
     const response = await http.get<TimelogAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
@@ -275,7 +279,8 @@ export const timelogsApi = {
           : (params.area_id ?? undefined),
         without_area: withoutArea || undefined,
         area_name: params.area_name ?? undefined,
-        task_id: params.task_id ?? undefined,
+        task_id: withoutTask ? undefined : (params.task_id ?? undefined),
+        without_task: withoutTask || undefined,
         size: 500,
       },
     );

@@ -299,7 +299,7 @@ const TimeLogPage = () => {
   const handleAreaFilterChange = (
     areaId: UUID | null | undefined,
   ) => {
-    // 在高级查询模式下，禁用领域筛选
+    // Area filter changes are disabled while advanced search is active.
     if (queryMode === "advanced") return;
 
     if (areaId === undefined) {
@@ -578,9 +578,8 @@ const TimeLogPage = () => {
                         ` | ${t("timeLog.searchResults.keyword", {
                           keyword: advancedSearchParams.description_keyword,
                         })}`}
-                      {advancedSearchParams.task_id !== null &&
-                        advancedSearchParams.task_id !== undefined &&
-                        (advancedSearchParams.task_id === ""
+                      {advancedSearchParams.task_id !== undefined &&
+                        (advancedSearchParams.task_id === null
                           ? ` | ${t("timeLog.searchResults.task", {
                               task: t("timeLog.searchResults.noTask"),
                             })}`

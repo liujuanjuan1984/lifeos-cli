@@ -17,7 +17,7 @@ interface AdvancedSearchParams {
   end_date: Date;
   area_id: UUID | null | undefined;
   description_keyword: string | null;
-  task_id: UUID | null | undefined; // null 表示仅无任务，undefined 表示全部任务
+  task_id: UUID | null | undefined; // null means no linked task; undefined means all tasks.
 }
 
 interface AdvancedSearchPanelProps {
@@ -25,9 +25,9 @@ interface AdvancedSearchPanelProps {
   onParamsChange: (params: AdvancedSearchParams) => void;
   onSearch: () => void;
   onReset: () => void;
-  // 新增任务相关props
+  // Task selector source data.
   tasks: { id: UUID; name: string }[];
-  // 新增批量操作相关props
+  // Batch operation controls.
   isSelectMode: boolean;
   onSelectModeToggle: (value: boolean) => void;
   selectedEntryIds: Set<UUID>;
@@ -37,7 +37,7 @@ interface AdvancedSearchPanelProps {
   onBatchDelete: () => void;
   filteredEntriesCount: number;
   onBatchEditSuccess: () => void;
-  // 新增时区支持
+  // Optional timezone for local date rendering.
   timezone?: string;
 }
 
@@ -181,6 +181,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
       expandFilterForSelected: true,
       showSpecialOptions: true,
       preloadedTasks,
+      clearBehavior: "all" as const,
     };
   }, [taskSelectorValue, t, stableFilterStatus, preloadedTasks]);
 

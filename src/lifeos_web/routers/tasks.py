@@ -24,9 +24,9 @@ def _page_envelope(
     items: list[dict[str, object]],
     page: int,
     size: int,
+    total: int,
     meta: dict[str, object],
 ) -> ListResponse:
-    total = len(items)
     pages = math.ceil(total / size) if size > 0 else 0
     return ListResponse(
         items=items,
@@ -78,6 +78,7 @@ async def list_tasks(
     exclude_status: str | None = None,
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
+    query: str | None = None,
     fields: str = "basic",
 ) -> ListResponse:
     """List tasks using the frontend planning query shape."""
@@ -92,8 +93,20 @@ async def list_tasks(
             exclude_status=exclude_status,
             planning_cycle_type=planning_cycle_type,
             planning_cycle_start_date=planning_cycle_start_date,
+            query=query,
             limit=size,
             offset=(page - 1) * size,
+        )
+        total_count = await task_services.count_tasks(
+            session,
+            vision_id=vision_id,
+            vision_in=vision_in,
+            status=status_filter,
+            status_in=status_in,
+            exclude_status=exclude_status,
+            planning_cycle_type=planning_cycle_type,
+            planning_cycle_start_date=planning_cycle_start_date,
+            query=query,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -101,6 +114,7 @@ async def list_tasks(
         items=[to_jsonable(row) for row in rows],
         page=page,
         size=size,
+        total=total_count,
         meta={
             "vision_id": str(vision_id) if vision_id else None,
             "vision_in": vision_in,
@@ -111,6 +125,7 @@ async def list_tasks(
             "planning_cycle_start_date": (
                 planning_cycle_start_date.isoformat() if planning_cycle_start_date else None
             ),
+            "query": query,
         },
     )
 

@@ -48,6 +48,70 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/tags/" in route_paths
 
 
+def test_web_tasks_list_uses_count_for_pagination_and_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks as task_router
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_tasks(_session: object, **kwargs: object) -> list[object]:
+        captured["list_kwargs"] = kwargs
+        return [
+            SimpleNamespace(
+                id=UUID("11111111-1111-1111-1111-111111111111"),
+                vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+                parent_task_id=None,
+                content="Needle task",
+                status="todo",
+            )
+        ]
+
+    async def fake_count_tasks(_session: object, **kwargs: object) -> int:
+        captured["count_kwargs"] = kwargs
+        return 123
+
+    monkeypatch.setattr(task_router.task_services, "list_tasks", fake_list_tasks)
+    monkeypatch.setattr(task_router.task_services, "count_tasks", fake_count_tasks)
+
+    response = asyncio.run(
+        task_router.list_tasks(
+            cast(AsyncSession, object()),
+            page=2,
+            size=50,
+            query="Needle",
+        )
+    )
+
+    assert captured["list_kwargs"] == {
+        "vision_id": None,
+        "vision_in": None,
+        "status": None,
+        "status_in": None,
+        "exclude_status": None,
+        "planning_cycle_type": None,
+        "planning_cycle_start_date": None,
+        "query": "Needle",
+        "limit": 50,
+        "offset": 50,
+    }
+    assert captured["count_kwargs"] == {
+        "vision_id": None,
+        "vision_in": None,
+        "status": None,
+        "status_in": None,
+        "exclude_status": None,
+        "planning_cycle_type": None,
+        "planning_cycle_start_date": None,
+        "query": "Needle",
+    }
+    assert response.pagination.total == 123
+    assert response.pagination.pages == 3
+    assert response.meta["query"] == "Needle"
+
+
 def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
     pytest.importorskip("fastapi")
 
@@ -138,6 +202,52 @@ def test_web_timelog_without_area_filter_maps_to_lifeos_without_area(
     assert response.meta["without_area"] is True
 
 
+def test_web_timelog_without_task_filter_maps_to_lifeos_without_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    captured: dict[str, TimelogListInput | TimelogQueryFilters] = {}
+
+    async def fake_count_timelogs(_session: object, *, filters: TimelogQueryFilters) -> int:
+        captured["count_filters"] = filters
+        return 0
+
+    async def fake_list_timelogs(_session: object, *, query: TimelogListInput) -> list[object]:
+        captured["list_query"] = query
+        return []
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "count_timelogs",
+        fake_count_timelogs,
+    )
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "list_timelogs",
+        fake_list_timelogs,
+    )
+
+    response = asyncio.run(
+        timelogs.list_timelogs(
+            cast(AsyncSession, object()),
+            page=1,
+            size=50,
+            without_task=True,
+        )
+    )
+
+    count_filters = captured["count_filters"]
+    list_query = captured["list_query"]
+    assert isinstance(count_filters, TimelogQueryFilters)
+    assert isinstance(list_query, TimelogListInput)
+    assert count_filters.without_task is True
+    assert list_query.filters.without_task is True
+    assert response.meta["without_task"] is True
+
+
 def test_web_timelog_window_filters_map_to_lifeos_window_filters(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -212,6 +322,24 @@ def test_web_timelog_rejects_mixed_date_and_window_filters() -> None:
     assert "Use either start_date/end_date or window_start/window_end" in str(
         getattr(exc_info.value, "detail", "")
     )
+
+
+def test_web_timelog_rejects_task_id_with_without_task() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                task_id=UUID("11111111-1111-1111-1111-111111111111"),
+                without_task=True,
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use either task_id or without_task" in str(getattr(exc_info.value, "detail", ""))
 
 
 def test_web_timelog_rejects_partial_date_filter() -> None:

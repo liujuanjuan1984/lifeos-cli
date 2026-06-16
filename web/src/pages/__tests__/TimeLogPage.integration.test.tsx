@@ -95,6 +95,28 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
       >
         advanced-set-no-area
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onParamsChange({
+            ...params,
+            task_id: null,
+          })
+        }
+      >
+        advanced-set-no-task
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onParamsChange({
+            ...params,
+            task_id: undefined,
+          })
+        }
+      >
+        advanced-set-all-tasks
+      </button>
       <button type="button" onClick={onBatchDelete}>
         advanced-batch-delete
       </button>
@@ -406,6 +428,40 @@ describe("TimeLogPage", () => {
         area_id: null,
         area_name: null,
       }),
+    );
+  });
+
+  it("sends explicit null task filter in advanced search", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TimeLogPage />);
+
+    await user.click(screen.getByText("switch-advanced"));
+    await user.click(screen.getByText("advanced-set-no-task"));
+    await user.click(screen.getByText("advanced-search"));
+
+    await waitFor(() => expect(advancedSearchMock.search).toHaveBeenCalled());
+    expect(advancedSearchMock.search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        task_id: null,
+      }),
+    );
+  });
+
+  it("omits task filter in advanced search when all tasks are selected", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TimeLogPage />);
+
+    await user.click(screen.getByText("switch-advanced"));
+    await user.click(screen.getByText("advanced-set-no-task"));
+    await user.click(screen.getByText("advanced-set-all-tasks"));
+    await user.click(screen.getByText("advanced-search"));
+
+    await waitFor(() => expect(advancedSearchMock.search).toHaveBeenCalled());
+    const [payload] = advancedSearchMock.search.mock.calls.at(-1) ?? [];
+    expect(Object.prototype.hasOwnProperty.call(payload, "task_id")).toBe(
+      false,
     );
   });
 
