@@ -40,7 +40,6 @@ interface TimeLogAdvancedInteractionsReturn {
   resetAdvancedSearch: () => void;
   loadAdvancedSearchResults: () => Promise<void>;
   handleAdvancedSearch: () => void;
-  processedAdvancedSearchData: ProcessedEntry[];
   filteredEntries: ProcessedEntry[];
 }
 
@@ -203,7 +202,6 @@ export function useTimeLogAdvancedInteractions({
     resetAdvancedSearch,
     loadAdvancedSearchResults,
     handleAdvancedSearch,
-    processedAdvancedSearchData,
     filteredEntries,
   };
 }

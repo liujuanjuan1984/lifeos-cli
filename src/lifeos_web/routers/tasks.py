@@ -12,7 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.services import tasks as task_services
 from lifeos_web.deps import get_db_session
-from lifeos_web.schemas import ListResponse, Pagination, TaskCreate, TaskStatusUpdate, TaskUpdate
+from lifeos_web.schemas import (
+    ListResponse,
+    Pagination,
+    TaskCreate,
+    TaskReorderRequest,
+    TaskStatusUpdate,
+    TaskUpdate,
+)
 from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -130,15 +137,6 @@ async def list_tasks(
     )
 
 
-@router.get("/{task_id}")
-async def get_task(task_id: UUID, session: SessionDep) -> dict[str, object]:
-    """Load one task."""
-    task = await task_services.get_task(session, task_id=task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} was not found")
-    return to_jsonable_dict(task)
-
-
 @router.post("/")
 async def create_task(
     payload: TaskCreate,
@@ -160,6 +158,38 @@ async def create_task(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return to_jsonable_dict(task)
+
+
+@router.get("/vision/{vision_id}/hierarchy")
+async def get_vision_hierarchy(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load a frontend-compatible task hierarchy for one vision."""
+    try:
+        hierarchy = await task_services.get_vision_task_hierarchy(session, vision_id=vision_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "vision_id": str(hierarchy.vision_id),
+        "root_tasks": [_task_tree_payload(task) for task in hierarchy.root_tasks],
+    }
+
+
+@router.post("/reorder", status_code=204)
+async def reorder_tasks(payload: TaskReorderRequest, session: SessionDep) -> None:
+    """Update display order for multiple tasks."""
+    task_orders = [(item.id, item.display_order) for item in payload.task_orders]
+    try:
+        await task_services.reorder_tasks(session, task_orders=task_orders)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/{task_id}")
+async def get_task(task_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one task."""
+    task = await task_services.get_task(session, task_id=task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} was not found")
     return to_jsonable_dict(task)
 
 
@@ -237,19 +267,6 @@ async def update_task_status(
     return to_jsonable_dict(task)
 
 
-@router.get("/vision/{vision_id}/hierarchy")
-async def get_vision_hierarchy(vision_id: UUID, session: SessionDep) -> dict[str, object]:
-    """Load a frontend-compatible task hierarchy for one vision."""
-    try:
-        hierarchy = await task_services.get_vision_task_hierarchy(session, vision_id=vision_id)
-    except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return {
-        "vision_id": str(hierarchy.vision_id),
-        "root_tasks": [_task_tree_payload(task) for task in hierarchy.root_tasks],
-    }
-
-
 @router.get("/{task_id}/with-subtasks")
 async def get_task_with_subtasks(task_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load one task with nested subtasks."""
@@ -267,19 +284,6 @@ async def get_task_stats(task_id: UUID, session: SessionDep) -> dict[str, object
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return to_jsonable_dict(stats)
-
-
-@router.post("/reorder", status_code=204)
-async def reorder_tasks(payload: dict[str, Any], session: SessionDep) -> None:
-    """Update display order for multiple tasks."""
-    task_orders = [
-        (UUID(str(item["id"])), int(item["display_order"]))
-        for item in payload.get("task_orders", [])
-    ]
-    try:
-        await task_services.reorder_tasks(session, task_orders=task_orders)
-    except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/{task_id}/move")

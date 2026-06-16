@@ -85,6 +85,19 @@ describe("useTimeLogData", () => {
       { wrapper },
     );
 
+  const setupWithMode = (queryMode: "single" | "advanced" | "import") =>
+    renderHook(
+      ({ mode }) =>
+        useTimeLogData({
+          selectedDate: new Date("2025-01-01T00:00:00Z"),
+          sortOrder: "asc",
+          queryMode: mode,
+          saveScrollPosition: vi.fn(),
+          timezone: "UTC",
+        }),
+      { wrapper, initialProps: { mode: queryMode } },
+    );
+
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -191,5 +204,47 @@ describe("useTimeLogData", () => {
     expect(toastMock.showSuccess).toHaveBeenCalled();
     expect(result.current.selectedEntryIds.size).toBe(0);
     expect(result.current.isSelectMode).toBe(false);
+  });
+
+  it("clears advanced selection state when returning to single-day mode", () => {
+    fetchRangeMock.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, size: 0, total: 0, pages: 0 },
+      meta: {},
+    });
+    processTimeEntriesMock.mockReturnValue([]);
+
+    const { result, rerender } = setupWithMode("advanced");
+
+    act(() => {
+      result.current.setAdvancedSearchResultsFromHook([
+        { id: "event-1", isPlaceholder: false } as never,
+        { id: "event-2", isPlaceholder: false } as never,
+      ]);
+      result.current.setIsSelectMode(true);
+      result.current.selectionHandlers.handleSelectEntry(
+        "event-1" as never,
+        true,
+      );
+      result.current.selectionHandlers.handleSelectEntry(
+        "event-2" as never,
+        true,
+      );
+    });
+
+    act(() => {
+      result.current.requestBatchDelete();
+    });
+
+    expect(result.current.isSelectMode).toBe(true);
+    expect(result.current.selectedEntryIds.size).toBe(2);
+    expect(result.current.deletingEntryCount).toBe(2);
+
+    rerender({ mode: "single" });
+
+    expect(result.current.isSelectMode).toBe(false);
+    expect(result.current.selectedEntryIds.size).toBe(0);
+    expect(result.current.deletingEntryCount).toBe(0);
+    expect(result.current.processedEntries).toEqual([]);
   });
 });

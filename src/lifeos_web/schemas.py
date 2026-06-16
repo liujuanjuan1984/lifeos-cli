@@ -60,6 +60,19 @@ class TaskStatusUpdate(BaseModel):
     status: str
 
 
+class TaskReorderItem(BaseModel):
+    """One task display-order update."""
+
+    id: UUID
+    display_order: int
+
+
+class TaskReorderRequest(BaseModel):
+    """Payload for reordering tasks from the Web UI."""
+
+    task_orders: list[TaskReorderItem] = Field(default_factory=list)
+
+
 class NoteCreate(BaseModel):
     """Payload for creating a note from the Web UI."""
 

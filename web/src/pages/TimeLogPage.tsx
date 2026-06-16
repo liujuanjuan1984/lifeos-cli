@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   Timelog,
@@ -69,7 +69,6 @@ const TimeLogPage = () => {
     cancelBatchDelete,
     setIsSelectMode,
     setAdvancedSearchResultsFromHook,
-    clearAdvancedSearchResultsFromHook: _clearAdvancedSearchResultsFromHook,
     selectionHandlers,
     advancedSearchParams,
     setAdvancedSearchParams,
@@ -253,33 +252,6 @@ const TimeLogPage = () => {
       handleAdvancedSearch();
     }
   }, [confirmBatchDelete, handleAdvancedSearch, queryMode]);
-
-  // Convert advanced search data to ProcessedEntry format
-  const processedAdvancedSearchData = React.useMemo(() => {
-    if (queryMode === "advanced" && advancedSearch.data.length > 0) {
-      return advancedSearch.data.map((event) => ({
-        ...event,
-        validationResult: {
-          isValid: true,
-          hasNegativeDuration: false,
-          hasOverlaps: false,
-          overlappingEntries: [],
-        },
-        isPlaceholder: false,
-      }));
-    }
-    return [];
-  }, [queryMode, advancedSearch.data]);
-
-  // Sync processed data to useTimeLogData hook
-  const setAdvancedSearchResultsRef = React.useRef(
-    setAdvancedSearchResultsFromHook,
-  );
-  setAdvancedSearchResultsRef.current = setAdvancedSearchResultsFromHook;
-
-  React.useEffect(() => {
-    setAdvancedSearchResultsRef.current(processedAdvancedSearchData);
-  }, [processedAdvancedSearchData]);
 
   const advancedSearchMetadata =
     queryMode === "advanced" ? advancedSearch.metadata : null;

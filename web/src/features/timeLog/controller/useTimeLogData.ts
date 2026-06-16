@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateTimelogList } from "@/services/api/cacheInvalidation/timelogs";
 import { timelogsApi } from "@/services/api/timelogs";
@@ -37,7 +37,6 @@ interface UseTimeLogDataReturn {
   setIsSelectMode: (value: boolean) => void;
   // Advanced search support
   setAdvancedSearchResultsFromHook: (results: ProcessedEntry[]) => void;
-  clearAdvancedSearchResultsFromHook: () => void;
   selectionHandlers: {
     handleSelectEntry: (entryId: UUID, checked: boolean) => void;
     handleSelectAll: () => void;
@@ -73,6 +72,17 @@ export const useTimeLogData = ({
   const [advancedSearchResults, setAdvancedSearchResults] = useState<
     ProcessedEntry[]
   >([]);
+
+  useEffect(() => {
+    if (queryMode === "advanced") {
+      return;
+    }
+
+    setSelectedEntryIds(new Set());
+    setIsSelectMode(false);
+    setDeletingEntryCount(0);
+    setAdvancedSearchResults([]);
+  }, [queryMode]);
 
   // Query for single day entries
   const {
@@ -276,11 +286,6 @@ export const useTimeLogData = ({
     [],
   );
 
-  const clearAdvancedSearchResultsFromHook = useCallback(() => {
-    // Reset to empty state for advanced search
-    setAdvancedSearchResults([]);
-  }, []);
-
   return {
     processedEntries,
     loading,
@@ -298,7 +303,6 @@ export const useTimeLogData = ({
     cancelBatchDelete,
     setIsSelectMode,
     setAdvancedSearchResultsFromHook,
-    clearAdvancedSearchResultsFromHook,
     selectionHandlers: {
       handleSelectEntry,
       handleSelectAll,

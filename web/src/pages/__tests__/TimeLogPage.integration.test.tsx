@@ -325,7 +325,6 @@ const buildDataReturn = (
   cancelBatchDelete: vi.fn(),
   setIsSelectMode: vi.fn(),
   setAdvancedSearchResultsFromHook: vi.fn(),
-  clearAdvancedSearchResultsFromHook: vi.fn(),
   selectionHandlers: {
     handleSelectEntry: vi.fn(),
     handleSelectAll: vi.fn(),

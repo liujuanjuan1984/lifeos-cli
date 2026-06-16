@@ -112,6 +112,46 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
     assert response.meta["query"] == "Needle"
 
 
+def test_web_tasks_reorder_route_precedes_task_id_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks as task_router
+    from lifeos_web.schemas import TaskReorderItem, TaskReorderRequest
+
+    captured: dict[str, object] = {}
+
+    async def fake_reorder_tasks(_session: object, **kwargs: object) -> None:
+        captured["task_orders"] = kwargs["task_orders"]
+
+    monkeypatch.setattr(task_router.task_services, "reorder_tasks", fake_reorder_tasks)
+
+    task_route_paths = [getattr(route, "path", None) for route in task_router.router.routes]
+
+    task_one_id = "11111111-1111-1111-1111-111111111111"
+    task_two_id = "22222222-2222-2222-2222-222222222222"
+
+    assert task_route_paths.index("/tasks/reorder") < task_route_paths.index("/tasks/{task_id}")
+
+    asyncio.run(
+        task_router.reorder_tasks(
+            TaskReorderRequest(
+                task_orders=[
+                    TaskReorderItem(id=UUID(task_two_id), display_order=0),
+                    TaskReorderItem(id=UUID(task_one_id), display_order=1),
+                ],
+            ),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["task_orders"] == [
+        (UUID(task_two_id), 0),
+        (UUID(task_one_id), 1),
+    ]
+
+
 def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
     pytest.importorskip("fastapi")
 
