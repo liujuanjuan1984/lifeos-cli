@@ -48,6 +48,11 @@ export const tasksKeys = {
   list: (filters: TaskListFilters) => [...tasksKeys.lists(), filters] as const,
   selectorSource: (filters?: TaskSelectorSourceFiltersNormalized) =>
     [...tasksKeys.all, "selector-source", filters ?? {}] as const,
+  selectorSearch: (filters: {
+    visionId?: UUID | null;
+    query?: string;
+    statusIn?: readonly string[];
+  }) => [...tasksKeys.all, "selector-search", filters] as const,
   details: () => [...tasksKeys.all, "detail"] as const,
   detail: (id: UUID) => [...tasksKeys.details(), id] as const,
   withSubtasks: (id: UUID) =>

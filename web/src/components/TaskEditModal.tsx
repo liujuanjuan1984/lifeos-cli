@@ -86,6 +86,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
       formData={editor.formData}
       handlers={editor.handlers}
       filteredTasksForParent={editor.filteredTasksForParent}
+      excludedParentTaskIds={editor.excludedParentTaskIds}
       taskStatusFilter={editor.taskStatusFilter}
       visionStatusFilter={editor.visionStatusFilter}
       focusTrigger={editor.focusTrigger}

@@ -26,6 +26,7 @@ interface TaskEditModalViewProps {
   formData: TaskCreate;
   handlers: UseTaskEditorHandlers;
   filteredTasksForParent: TaskWithSubtasks[];
+  excludedParentTaskIds: UUID[];
   taskStatusFilter: readonly string[];
   visionStatusFilter: readonly string[];
   focusTrigger: number;
@@ -45,6 +46,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   formData,
   handlers,
   filteredTasksForParent,
+  excludedParentTaskIds,
   taskStatusFilter,
   visionStatusFilter,
   focusTrigger,
@@ -150,6 +152,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 formData.vision_id === visionId ? formData.vision_id : undefined
               }
               preloadedTasks={filteredTasksForParent}
+              excludeTaskIds={excludedParentTaskIds}
               deferRemoteLoad={true}
               expandFilterForSelected
               filterStatus={[...taskStatusFilter]}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import AsyncEntitySelect, {
   type EntityOption,
@@ -10,9 +11,9 @@ import {
   type SelectorValue,
 } from "./selectorTypes";
 import type { Task, TaskWithSubtasks, Vision } from "@/services/api";
-import { useAllTasks } from "@/hooks/queries/useTasks";
 import { useVisions } from "@/hooks/queries/useVisions";
 import { tasksApi } from "@/services/api/tasks";
+import { tasksKeys } from "@/services/api/queryKeys";
 import { ACTIVE_TASK_STATUSES } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
@@ -26,6 +27,7 @@ interface TaskSelectorProps {
   className?: string;
   filterStatus?: readonly string[];
   allowedTaskIds?: UUID[];
+  excludeTaskIds?: UUID[];
   overrideOptions?: { id: UUID; label: string }[];
   preloadedTasks?: Task[];
   deferRemoteLoad?: boolean;
@@ -51,6 +53,8 @@ type TaskEntityOption = EntityOption & { data: TaskOptionMeta };
 
 const SPECIAL_NONE_ID = SelectorSpecialValue.None as unknown as UUID;
 const SPECIAL_ALL_ID = SelectorSpecialValue.All as unknown as UUID;
+const TASK_SELECTOR_PAGE_SIZE = 50;
+const TASK_SELECTOR_SEARCH_DEBOUNCE_MS = 250;
 
 const TaskSelector: React.FC<TaskSelectorProps> = (props) => {
   if (props.overrideOptions && props.overrideOptions.length > 0) {
@@ -143,6 +147,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
   className = "",
   filterStatus = ACTIVE_TASK_STATUSES,
   allowedTaskIds,
+  excludeTaskIds,
   preloadedTasks,
   deferRemoteLoad = true,
   expandFilterForSelected = true,
@@ -157,19 +162,28 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
   const { t } = useTranslation();
   const { visions } = useVisions();
 
-  const { options, optionLookup, isLoading, onInteract } =
-    useTaskSelectorOptions({
-      value,
-      filterStatus,
-      allowedTaskIds,
-      preloadedTasks,
-      deferRemoteLoad,
-      expandFilterForSelected,
-      showSpecialOptions,
-      showNoTaskOption,
-      visionId,
-      translator: t,
-    });
+  const {
+    options,
+    optionLookup,
+    isLoading,
+    hasMoreOptions,
+    isLoadingMore,
+    onInteract,
+    onLoadMore,
+    onSearchQueryChange,
+  } = useTaskSelectorOptions({
+    value,
+    filterStatus,
+    allowedTaskIds,
+    excludeTaskIds,
+    preloadedTasks,
+    deferRemoteLoad,
+    expandFilterForSelected,
+    showSpecialOptions,
+    showNoTaskOption,
+    visionId,
+    translator: t,
+  });
 
   const visionMap = useMemo(() => {
     return new Map<UUID, Vision>(visions.map((vision) => [vision.id, vision]));
@@ -304,6 +318,11 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
         dropdownPreferredWidth={(rect) => Math.max(rect.width, 640)}
         dropdownOffset={4}
         isLoading={isLoading}
+        hasMoreOptions={options.length > 0 && hasMoreOptions}
+        isLoadingMore={isLoadingMore}
+        loadMoreLabel={t("taskSelector.loadMore")}
+        onLoadMore={onLoadMore}
+        onSearchQueryChange={onSearchQueryChange}
         renderOption={renderOption}
         renderEmpty={(query) => (
           <div className="p-3 text-center text-base-content/60">
@@ -328,6 +347,7 @@ interface UseTaskSelectorOptionsArgs {
   value: UUID | null;
   filterStatus: readonly string[];
   allowedTaskIds?: UUID[];
+  excludeTaskIds?: UUID[];
   preloadedTasks?: Task[];
   deferRemoteLoad: boolean;
   expandFilterForSelected: boolean;
@@ -341,7 +361,11 @@ interface UseTaskSelectorOptionsResult {
   options: TaskEntityOption[];
   optionLookup: Map<string, TaskOptionMeta>;
   isLoading: boolean;
+  hasMoreOptions: boolean;
+  isLoadingMore: boolean;
   onInteract: () => void;
+  onLoadMore: () => void;
+  onSearchQueryChange: (query: string) => void;
 }
 
 const useTaskSelectorOptions = (
@@ -351,6 +375,7 @@ const useTaskSelectorOptions = (
     value,
     filterStatus,
     allowedTaskIds,
+    excludeTaskIds,
     preloadedTasks,
     deferRemoteLoad,
     expandFilterForSelected,
@@ -361,11 +386,55 @@ const useTaskSelectorOptions = (
   } = args;
 
   const [hasInteracted, setHasInteracted] = useState(false);
-  const { data: allTasksData, isLoading: tasksLoading } = useAllTasks({
-    enabled: !deferRemoteLoad || hasInteracted || !!value,
-  });
-  const allTasks = useMemo(() => allTasksData ?? [], [allTasksData]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [extraTasks, setExtraTasks] = useState<Task[]>([]);
+  const shouldRemoteLoad = !deferRemoteLoad || hasInteracted || !!value;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, TASK_SELECTOR_SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const statusIn = useMemo(
+    () => (filterStatus.length > 0 ? [...filterStatus] : undefined),
+    [filterStatus],
+  );
+
+  const selectorQuery = useInfiniteQuery({
+    queryKey: tasksKeys.selectorSearch({
+      visionId,
+      query: debouncedSearchQuery,
+      statusIn,
+    }),
+    queryFn: ({ pageParam }) =>
+      tasksApi.searchSelectorPage({
+        visionId,
+        query: debouncedSearchQuery,
+        statusIn,
+        page: pageParam,
+        pageSize: TASK_SELECTOR_PAGE_SIZE,
+        fields: "basic",
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const currentPage = lastPage.pagination?.page ?? 1;
+      const totalPages = lastPage.pagination?.pages ?? 0;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    enabled: shouldRemoteLoad,
+  });
+
+  const remoteTasks = useMemo(
+    () =>
+      (selectorQuery.data?.pages.flatMap((page) => page.items) ?? []).filter(
+        (task) => !(task as { deleted_at?: string | null }).deleted_at,
+      ),
+    [selectorQuery.data],
+  );
 
   const sanitizedPreloaded = useMemo(
     () =>
@@ -373,14 +442,6 @@ const useTaskSelectorOptions = (
         (task) => !(task as { deleted_at?: string | null }).deleted_at,
       ),
     [preloadedTasks],
-  );
-
-  const remoteTasks = useMemo(
-    () =>
-      (allTasks as Task[]).filter(
-        (task) => !(task as { deleted_at?: string | null }).deleted_at,
-      ),
-    [allTasks],
   );
 
   const baseTasks = useMemo(() => {
@@ -396,15 +457,11 @@ const useTaskSelectorOptions = (
     };
 
     addTasks(sanitizedPreloaded as Task[]);
-    if (!deferRemoteLoad) {
-      addTasks(remoteTasks);
-    } else if (map.size === 0) {
-      addTasks(remoteTasks);
-    }
+    addTasks(remoteTasks);
     addTasks(extraTasks);
 
     return Array.from(map.values());
-  }, [sanitizedPreloaded, remoteTasks, extraTasks, deferRemoteLoad]);
+  }, [sanitizedPreloaded, remoteTasks, extraTasks]);
 
   const selectedTaskId = useMemo<UUID | null>(() => {
     if (!value) return null;
@@ -465,12 +522,20 @@ const useTaskSelectorOptions = (
     return statusFilteredTasks.filter((task) => allow.has(task.id));
   }, [statusFilteredTasks, allowedTaskIds]);
 
-  const visionFilteredTasks = useMemo(() => {
-    if (visionId === undefined || visionId === null) {
+  const excludedFilteredTasks = useMemo(() => {
+    if (!excludeTaskIds || excludeTaskIds.length === 0) {
       return allowedFilteredTasks;
     }
-    return allowedFilteredTasks.filter((task) => task.vision_id === visionId);
-  }, [allowedFilteredTasks, visionId]);
+    const excluded = new Set(excludeTaskIds);
+    return allowedFilteredTasks.filter((task) => !excluded.has(task.id));
+  }, [allowedFilteredTasks, excludeTaskIds]);
+
+  const visionFilteredTasks = useMemo(() => {
+    if (visionId === undefined || visionId === null) {
+      return excludedFilteredTasks;
+    }
+    return excludedFilteredTasks.filter((task) => task.vision_id === visionId);
+  }, [excludedFilteredTasks, visionId]);
 
   const hierarchy = useMemo(
     () => buildTaskHierarchy(visionFilteredTasks),
@@ -540,14 +605,22 @@ const useTaskSelectorOptions = (
   const hasPreloaded = sanitizedPreloaded.length > 0;
   const shouldShowLoading =
     (!deferRemoteLoad || baseTasks.length === 0) &&
-    tasksLoading &&
+    selectorQuery.isLoading &&
     !hasPreloaded;
 
   return {
     options,
     optionLookup,
     isLoading: shouldShowLoading,
+    hasMoreOptions: Boolean(selectorQuery.hasNextPage),
+    isLoadingMore: selectorQuery.isFetchingNextPage,
     onInteract: () => setHasInteracted(true),
+    onLoadMore: () => {
+      if (selectorQuery.hasNextPage && !selectorQuery.isFetchingNextPage) {
+        void selectorQuery.fetchNextPage();
+      }
+    },
+    onSearchQueryChange: setSearchQuery,
   };
 };
 

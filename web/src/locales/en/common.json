@@ -1642,6 +1642,7 @@
     "placeholder": "Select task...",
     "searchHint": "Enter task name to search",
     "noResults": "No matching tasks found",
+    "loadMore": "Load more tasks",
     "specialOptions": {
       "allTasks": "All tasks"
     }

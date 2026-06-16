@@ -48,6 +48,70 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/tags/" in route_paths
 
 
+def test_web_tasks_list_uses_count_for_pagination_and_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks as task_router
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_tasks(_session: object, **kwargs: object) -> list[object]:
+        captured["list_kwargs"] = kwargs
+        return [
+            SimpleNamespace(
+                id=UUID("11111111-1111-1111-1111-111111111111"),
+                vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+                parent_task_id=None,
+                content="Needle task",
+                status="todo",
+            )
+        ]
+
+    async def fake_count_tasks(_session: object, **kwargs: object) -> int:
+        captured["count_kwargs"] = kwargs
+        return 123
+
+    monkeypatch.setattr(task_router.task_services, "list_tasks", fake_list_tasks)
+    monkeypatch.setattr(task_router.task_services, "count_tasks", fake_count_tasks)
+
+    response = asyncio.run(
+        task_router.list_tasks(
+            cast(AsyncSession, object()),
+            page=2,
+            size=50,
+            query="Needle",
+        )
+    )
+
+    assert captured["list_kwargs"] == {
+        "vision_id": None,
+        "vision_in": None,
+        "status": None,
+        "status_in": None,
+        "exclude_status": None,
+        "planning_cycle_type": None,
+        "planning_cycle_start_date": None,
+        "query": "Needle",
+        "limit": 50,
+        "offset": 50,
+    }
+    assert captured["count_kwargs"] == {
+        "vision_id": None,
+        "vision_in": None,
+        "status": None,
+        "status_in": None,
+        "exclude_status": None,
+        "planning_cycle_type": None,
+        "planning_cycle_start_date": None,
+        "query": "Needle",
+    }
+    assert response.pagination.total == 123
+    assert response.pagination.pages == 3
+    assert response.meta["query"] == "Needle"
+
+
 def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
     pytest.importorskip("fastapi")
 

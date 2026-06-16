@@ -59,6 +59,11 @@ export interface AsyncEntitySelectProps {
   renderEmpty?: (query: string) => ReactNode;
   renderLoading?: () => ReactNode;
   isLoading?: boolean;
+  hasMoreOptions?: boolean;
+  isLoadingMore?: boolean;
+  loadMoreLabel?: string;
+  onLoadMore?: () => void;
+  onSearchQueryChange?: (query: string) => void;
   onFocus?: () => void;
   onClick?: () => void;
 }
@@ -95,6 +100,11 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
       renderEmpty,
       renderLoading,
       isLoading = false,
+      hasMoreOptions = false,
+      isLoadingMore = false,
+      loadMoreLabel,
+      onLoadMore,
+      onSearchQueryChange,
       onFocus,
       onClick,
     },
@@ -184,7 +194,8 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
     const closeDropdown = useCallback(() => {
       setIsOpen(false);
       setQuery("");
-    }, []);
+      onSearchQueryChange?.("");
+    }, [onSearchQueryChange]);
 
     const dropdown = useDropdownSurface({
       anchorRef: containerRef,
@@ -223,9 +234,10 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
         }
         if (query) {
           setQuery("");
+          onSearchQueryChange?.("");
         }
       }
-    }, [isOpen, normalizedValue, query]);
+    }, [isOpen, normalizedValue, onSearchQueryChange, query]);
     const {
       renderSurface,
       menuRef,
@@ -533,6 +545,23 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
                 </button>
               );
             })}
+            {hasMoreOptions && (
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-center text-base text-primary hover:bg-base-200 disabled:opacity-60"
+                disabled={isLoadingMore}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  if (!isLoadingMore) {
+                    onLoadMore?.();
+                  }
+                }}
+              >
+                {isLoadingMore
+                  ? t("common.loading")
+                  : (loadMoreLabel ?? t("common.loadMore"))}
+              </button>
+            )}
           </div>
         )}
       </div>,
@@ -569,7 +598,9 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
             openDropdown();
           }}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
+            onSearchQueryChange?.(nextQuery);
             if (!isOpen) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
