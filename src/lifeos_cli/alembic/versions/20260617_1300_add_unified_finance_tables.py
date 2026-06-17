@@ -68,8 +68,6 @@ def upgrade() -> None:
         sa.Column("tree_id", sa.Uuid(), nullable=False),
         sa.Column("parent_id", sa.Uuid(), nullable=True),
         sa.Column("name", sa.String(length=200), nullable=False),
-        sa.Column("node_kind", sa.String(length=20), nullable=False),
-        sa.Column("normal_side", sa.String(length=20), nullable=True),
         sa.Column("currency_code", sa.String(length=16), nullable=True),
         sa.Column("path", sa.String(length=1200), nullable=False),
         sa.Column("depth", sa.Integer(), nullable=False),

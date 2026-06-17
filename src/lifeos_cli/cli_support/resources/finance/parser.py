@@ -127,18 +127,19 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "node-add",
         help_content=HelpContent(
             summary="Add a finance tree node.",
-            description="Add a regular or rollup node to a finance tree.",
+            description=(
+                "Add a node to a finance tree. Nodes with children are rolled up "
+                "automatically when snapshots are saved."
+            ),
             examples=(
                 'lifeos finance node-add <tree-id> "Checking" --parent-id <assets-id>',
-                'lifeos finance node-add <tree-id> "Assets" --node-kind rollup',
+                'lifeos finance node-add <tree-id> "Cash"',
             ),
         ),
     )
     node_add.add_argument("tree_id", type=UUID)
     node_add.add_argument("name")
     node_add.add_argument("--parent-id", type=UUID)
-    node_add.add_argument("--node-kind", default="regular", choices=("regular", "rollup"))
-    node_add.add_argument("--normal-side", choices=("positive", "negative", "neutral"))
     node_add.add_argument("--currency-code")
     node_add.add_argument("--display-order", type=int, default=0)
     node_add.set_defaults(handler=make_sync_handler(handle_finance_node_add_async))
@@ -154,9 +155,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     )
     node_update.add_argument("node_id", type=UUID)
     node_update.add_argument("--name")
-    node_update.add_argument("--node-kind", choices=("regular", "rollup"))
-    node_update.add_argument("--normal-side", choices=("positive", "negative", "neutral"))
-    node_update.add_argument("--clear-normal-side", action="store_true")
     node_update.add_argument("--currency-code")
     node_update.add_argument("--display-order", type=int)
     node_update.set_defaults(handler=make_sync_handler(handle_finance_node_update_async))

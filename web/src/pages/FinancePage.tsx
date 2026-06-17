@@ -16,8 +16,6 @@ import ModalBase from "@/layouts/ModalBase";
 import PageLayout from "@/layouts/PageLayout";
 import {
   financeApi,
-  type FinanceNodeKind,
-  type FinanceNormalSide,
   type FinancePurpose,
   type FinanceSnapshot,
   type FinanceSnapshotEntryCreate,
@@ -198,7 +196,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const treeNodes = useMemo(() => buildTree(tree?.nodes ?? []), [tree?.nodes]);
   const flatNodes = useMemo(() => flattenTree(treeNodes), [treeNodes]);
   const entryNodes = useMemo(
-    () => flatNodes.filter((node) => node.node_kind === "regular" || node.children_count === 0),
+    () => flatNodes.filter((node) => node.children_count === 0),
     [flatNodes],
   );
 
@@ -229,8 +227,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     mutationFn: (payload: {
       name: string;
       parent_id?: UUID | null;
-      node_kind: FinanceNodeKind;
-      normal_side?: FinanceNormalSide | null;
       currency_code?: string | null;
     }) => financeApi.createNode(tree!.id, payload),
     onSuccess: async () => {
@@ -252,8 +248,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       nodeId: UUID;
       payload: {
         name?: string;
-        node_kind?: FinanceNodeKind;
-        normal_side?: FinanceNormalSide | null;
         currency_code?: string | null;
       };
     }) => financeApi.updateNode(nodeId, payload),
@@ -841,16 +835,12 @@ function FinanceNodeFormModal({
   onCreateNode: (payload: {
     name: string;
     parent_id?: UUID | null;
-    node_kind: FinanceNodeKind;
-    normal_side?: FinanceNormalSide | null;
     currency_code?: string | null;
   }) => void;
   onUpdateNode: (
     nodeId: UUID,
     payload: {
       name?: string;
-      node_kind?: FinanceNodeKind;
-      normal_side?: FinanceNormalSide | null;
       currency_code?: string | null;
     },
   ) => void;
@@ -866,16 +856,12 @@ function FinanceNodeFormModal({
     tree.primary_currency;
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<UUID | "">("");
-  const [nodeKind, setNodeKind] = useState<FinanceNodeKind>("regular");
-  const [normalSide, setNormalSide] = useState<FinanceNormalSide | "">("");
   const [currency, setCurrency] = useState(tree.primary_currency);
 
   useEffect(() => {
     if (!formState) return;
     setName(editingNode?.name ?? "");
     setParentId(initialParentId ?? "");
-    setNodeKind(editingNode?.node_kind ?? "regular");
-    setNormalSide(editingNode?.normal_side ?? "");
     setCurrency(initialCurrency);
   }, [editingNode, formState, initialCurrency, initialParentId]);
 
@@ -884,8 +870,6 @@ function FinanceNodeFormModal({
     if (!name.trim()) return;
     const payload = {
       name: name.trim(),
-      node_kind: nodeKind,
-      normal_side: normalSide || null,
       currency_code: currency || tree.primary_currency,
     };
     if (editingNode) {
@@ -933,30 +917,6 @@ function FinanceNodeFormModal({
             </select>
           </label>
         ) : null}
-        <label className="form-control">
-          <span className="label-text">{t("finance.tree.kind")}</span>
-          <select
-            className="select select-bordered select-sm"
-            value={nodeKind}
-            onChange={(event) => setNodeKind(event.target.value as FinanceNodeKind)}
-          >
-            <option value="regular">{t("finance.tree.regular")}</option>
-            <option value="rollup">{t("finance.tree.rollup")}</option>
-          </select>
-        </label>
-        <label className="form-control">
-          <span className="label-text">{t("finance.tree.normalSide")}</span>
-          <select
-            className="select select-bordered select-sm"
-            value={normalSide}
-            onChange={(event) => setNormalSide(event.target.value as FinanceNormalSide | "")}
-          >
-            <option value="">{t("common.none")}</option>
-            <option value="positive">{t("finance.tree.positive")}</option>
-            <option value="negative">{t("finance.tree.negative")}</option>
-            <option value="neutral">{t("finance.tree.neutral")}</option>
-          </select>
-        </label>
         <FormField label={t("finance.tree.currency")}>
           <TextInput
             size="sm"
@@ -1090,13 +1050,8 @@ function TreeNodeRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{node.name}</span>
-            <Badge tone={node.node_kind === "rollup" ? "info" : "neutral"} size="xs" variant="outline">
-              {node.node_kind}
-            </Badge>
           </div>
-          <div className="text-xs text-base-content/60 truncate">
-            {node.currency_code || "-"} {node.normal_side ? ` · ${node.normal_side}` : ""}
-          </div>
+          <div className="text-xs text-base-content/60 truncate">{node.currency_code || "-"}</div>
         </div>
         <ActionButton
           label=""

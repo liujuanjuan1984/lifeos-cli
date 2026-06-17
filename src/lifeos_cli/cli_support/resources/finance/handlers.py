@@ -24,10 +24,7 @@ def _format_tree_summary(tree: FinanceTree) -> str:
 
 def _format_node_summary(node: FinanceTreeNode) -> str:
     indent = "  " * node.depth
-    return (
-        f"{node.id}\t{node.parent_id or '-'}\t{node.node_kind}\t"
-        f"{node.currency_code or '-'}\t{indent}{node.name}"
-    )
+    return f"{node.id}\t{node.parent_id or '-'}\t{node.currency_code or '-'}\t{indent}{node.name}"
 
 
 def _format_snapshot_period(snapshot: FinanceSnapshot) -> str:
@@ -191,8 +188,6 @@ async def handle_finance_node_add_async(args: argparse.Namespace) -> int:
                 tree_id=args.tree_id,
                 parent_id=args.parent_id,
                 name=args.name,
-                node_kind=args.node_kind,
-                normal_side=args.normal_side,
                 currency_code=args.currency_code,
                 display_order=args.display_order,
             )
@@ -209,9 +204,6 @@ async def handle_finance_node_update_async(args: argparse.Namespace) -> int:
                 session,
                 node_id=args.node_id,
                 name=args.name,
-                node_kind=args.node_kind,
-                normal_side=args.normal_side,
-                normal_side_provided=args.clear_normal_side or args.normal_side is not None,
                 currency_code=args.currency_code,
                 display_order=args.display_order,
             )

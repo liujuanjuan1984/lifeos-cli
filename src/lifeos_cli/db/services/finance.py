@@ -22,8 +22,6 @@ from lifeos_cli.db.models.finance import (
 
 VALID_FINANCE_PURPOSES = {"balance", "cashflow", "custom"}
 VALID_FINANCE_TIME_MODES = {"instant", "period"}
-VALID_FINANCE_NODE_KINDS = {"regular", "rollup"}
-VALID_FINANCE_NORMAL_SIDES = {"positive", "negative", "neutral"}
 DEFAULT_FINANCE_CURRENCY = "USD"
 
 
@@ -82,26 +80,6 @@ def default_time_mode_for_purpose(purpose: str) -> str:
     if normalized == "cashflow":
         return "period"
     return "instant"
-
-
-def normalize_node_kind(node_kind: str) -> str:
-    """Validate and normalize a finance node kind."""
-    normalized = node_kind.strip().lower()
-    if normalized not in VALID_FINANCE_NODE_KINDS:
-        allowed = ", ".join(sorted(VALID_FINANCE_NODE_KINDS))
-        raise FinanceValidationError(f"Finance node kind must be one of: {allowed}")
-    return normalized
-
-
-def normalize_optional_normal_side(normal_side: str | None) -> str | None:
-    """Validate and normalize an optional finance normal side."""
-    if normal_side is None:
-        return None
-    normalized = normal_side.strip().lower()
-    if normalized not in VALID_FINANCE_NORMAL_SIDES:
-        allowed = ", ".join(sorted(VALID_FINANCE_NORMAL_SIDES))
-        raise FinanceValidationError(f"Finance normal side must be one of: {allowed}")
-    return normalized
 
 
 def normalize_currency_code(currency_code: str | None, *, fallback: str | None = None) -> str:
@@ -350,8 +328,6 @@ async def create_finance_node(
     tree_id: UUID,
     name: str,
     parent_id: UUID | None = None,
-    node_kind: str = "regular",
-    normal_side: str | None = None,
     currency_code: str | None = None,
     display_order: int = 0,
     metadata: dict[str, Any] | None = None,
@@ -376,8 +352,6 @@ async def create_finance_node(
         tree_id=tree_id,
         parent_id=parent_id,
         name=resolved_name,
-        node_kind=normalize_node_kind(node_kind),
-        normal_side=normalize_optional_normal_side(normal_side),
         currency_code=normalize_currency_code(currency_code, fallback=tree.primary_currency),
         depth=0 if parent is None else parent.depth + 1,
         display_order=display_order,
@@ -389,8 +363,6 @@ async def create_finance_node(
     node.path = str(node.id) if parent is None else f"{parent.path}/{node.id}"
     if parent is not None:
         parent.children_count += 1
-        if parent.node_kind == "regular":
-            parent.node_kind = "rollup"
     await session.flush()
     await session.refresh(node)
     return node
@@ -401,9 +373,6 @@ async def update_finance_node(
     *,
     node_id: UUID,
     name: str | None = None,
-    node_kind: str | None = None,
-    normal_side: str | None = None,
-    normal_side_provided: bool = False,
     currency_code: str | None = None,
     display_order: int | None = None,
 ) -> FinanceTreeNode:
@@ -421,10 +390,6 @@ async def update_finance_node(
             excluding_node_id=node.id,
         )
         node.name = resolved_name
-    if node_kind is not None:
-        node.node_kind = normalize_node_kind(node_kind)
-    if normal_side_provided:
-        node.normal_side = normalize_optional_normal_side(normal_side)
     if currency_code is not None:
         node.currency_code = normalize_currency_code(currency_code)
     if display_order is not None:
@@ -502,7 +467,7 @@ async def _load_rollup_nodes(
         select(FinanceTreeNode)
         .where(
             FinanceTreeNode.tree_id == tree_id,
-            FinanceTreeNode.node_kind == "rollup",
+            FinanceTreeNode.children_count > 0,
             FinanceTreeNode.deleted_at.is_(None),
         )
         .order_by(FinanceTreeNode.depth.desc())
@@ -758,25 +723,13 @@ async def ensure_default_finance_tree(
             session,
             tree_id=tree.id,
             name="Assets",
-            node_kind="rollup",
-            normal_side="positive",
             display_order=0,
         )
         await create_finance_node(
             session,
             tree_id=tree.id,
             name="Liabilities",
-            node_kind="rollup",
-            normal_side="negative",
             display_order=1,
-        )
-        await create_finance_node(
-            session,
-            tree_id=tree.id,
-            name="Equity",
-            node_kind="rollup",
-            normal_side="neutral",
-            display_order=2,
         )
         return tree
     if resolved_purpose == "cashflow":
@@ -793,16 +746,12 @@ async def ensure_default_finance_tree(
             session,
             tree_id=tree.id,
             name="Inflows",
-            node_kind="rollup",
-            normal_side="positive",
             display_order=0,
         )
         await create_finance_node(
             session,
             tree_id=tree.id,
             name="Outflows",
-            node_kind="rollup",
-            normal_side="negative",
             display_order=1,
         )
         return tree

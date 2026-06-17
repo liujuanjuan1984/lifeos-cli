@@ -79,8 +79,6 @@ class FinanceTreeNode(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
         index=True,
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    node_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="regular")
-    normal_side: Mapped[str | None] = mapped_column(String(20), nullable=True)
     currency_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
     path: Mapped[str] = mapped_column(String(1200), nullable=False, default="")
     depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

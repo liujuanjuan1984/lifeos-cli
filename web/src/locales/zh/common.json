@@ -1392,15 +1392,15 @@
     "subtitle": "用统一的财务树与快照系统记录真实财务状态。",
     "balance": {
       "title": "资产负债表",
-      "description": "记录某一时刻的资产、负债、权益与净值快照。",
+      "description": "记录某一时刻的资产、负债与净值快照。",
       "amountLabel": "填写所选时刻的余额。",
-      "treeHint": "用汇总节点表达资产、负债等分组，再在其下添加具体账户或资产节点。"
+      "treeHint": "用资产、负债等分组组织节点，再在其下添加具体账户或资产节点。"
     },
     "cashflow": {
       "title": "现金流",
       "description": "用同一套树与快照模型记录某个周期内的收入与支出。",
       "amountLabel": "流入填写正数，流出填写负数。",
-      "treeHint": "用汇总节点表达流入与流出，再在其下添加具体来源或支出节点。"
+      "treeHint": "用流入、流出等分组组织节点，再在其下添加具体来源或支出节点。"
     },
     "metrics": {
       "positive": "正向金额",
@@ -1415,13 +1415,6 @@
       "nodeNamePlaceholder": "节点名称",
       "parent": "父节点",
       "root": "根节点",
-      "kind": "类型",
-      "regular": "普通",
-      "rollup": "汇总",
-      "normalSide": "默认方向",
-      "positive": "正向",
-      "negative": "负向",
-      "neutral": "中性",
       "currency": "币种",
       "createNode": "创建节点",
       "createNodeTitle": "创建财务节点",
@@ -1450,7 +1443,7 @@
       "note": "备注",
       "snapshotNote": "快照备注",
       "save": "保存快照",
-      "noEntryNodes": "保存快照前，请先添加至少一个普通节点。",
+      "noEntryNodes": "保存快照前，请先添加至少一个叶子节点。",
       "auto": "自动",
       "manual": "手动",
       "source": "来源"

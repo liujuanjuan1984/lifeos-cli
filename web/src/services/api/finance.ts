@@ -5,16 +5,12 @@ import { ENDPOINTS } from "./endpoints";
 
 export type FinancePurpose = "balance" | "cashflow" | "custom";
 export type FinanceTimeMode = "instant" | "period";
-export type FinanceNodeKind = "regular" | "rollup";
-export type FinanceNormalSide = "positive" | "negative" | "neutral";
 
 export interface FinanceTreeNode {
   id: UUID;
   tree_id: UUID;
   parent_id: UUID | null;
   name: string;
-  node_kind: FinanceNodeKind;
-  normal_side: FinanceNormalSide | null;
   currency_code: string | null;
   path: string;
   depth: number;
@@ -47,7 +43,6 @@ export interface FinanceSnapshotEntry {
   node_id: UUID;
   node_name: string | null;
   node_path: string | null;
-  node_kind: FinanceNodeKind | null;
   amount: string;
   currency_code: string;
   amount_converted: string;
@@ -92,16 +87,12 @@ export interface FinanceTreeCreate {
 export interface FinanceNodeCreate {
   name: string;
   parent_id?: UUID | null;
-  node_kind?: FinanceNodeKind;
-  normal_side?: FinanceNormalSide | null;
   currency_code?: string | null;
   display_order?: number;
 }
 
 export interface FinanceNodeUpdate {
   name?: string;
-  node_kind?: FinanceNodeKind;
-  normal_side?: FinanceNormalSide | null;
   currency_code?: string | null;
   display_order?: number;
 }

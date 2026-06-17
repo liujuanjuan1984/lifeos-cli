@@ -39,8 +39,6 @@ class FinanceNodeCreate(BaseModel):
 
     name: str
     parent_id: UUID | None = None
-    node_kind: str = "regular"
-    normal_side: str | None = None
     currency_code: str | None = None
     display_order: int = 0
     metadata: dict[str, Any] | None = None
@@ -50,8 +48,6 @@ class FinanceNodeUpdate(BaseModel):
     """Payload for updating a finance tree node."""
 
     name: str | None = None
-    node_kind: str | None = None
-    normal_side: str | None = None
     currency_code: str | None = None
     display_order: int | None = None
 
@@ -104,8 +100,6 @@ def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
         "tree_id": str(node.tree_id),
         "parent_id": str(node.parent_id) if node.parent_id else None,
         "name": node.name,
-        "node_kind": node.node_kind,
-        "normal_side": node.normal_side,
         "currency_code": node.currency_code,
         "path": node.path,
         "depth": node.depth,
@@ -144,7 +138,6 @@ def _entry_payload(entry: FinanceSnapshotEntry) -> dict[str, object]:
         "node_id": str(entry.node_id),
         "node_name": entry.node.name if entry.node else None,
         "node_path": entry.node.path if entry.node else None,
-        "node_kind": entry.node.node_kind if entry.node else None,
         "amount": _decimal_str(entry.amount),
         "currency_code": entry.currency_code,
         "amount_converted": _decimal_str(entry.amount_converted),
@@ -279,8 +272,6 @@ async def create_node(
             tree_id=tree_id,
             name=payload.name,
             parent_id=payload.parent_id,
-            node_kind=payload.node_kind,
-            normal_side=payload.normal_side,
             currency_code=payload.currency_code,
             display_order=payload.display_order,
             metadata=payload.metadata,
@@ -304,9 +295,6 @@ async def update_node(
             session,
             node_id=node_id,
             name=payload.name,
-            node_kind=payload.node_kind,
-            normal_side=payload.normal_side,
-            normal_side_provided="normal_side" in payload.model_fields_set,
             currency_code=payload.currency_code,
             display_order=payload.display_order,
         )

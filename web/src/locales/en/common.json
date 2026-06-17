@@ -1392,15 +1392,15 @@
     "subtitle": "Track financial reality through one unified tree and snapshot system.",
     "balance": {
       "title": "Balance Sheet",
-      "description": "Capture point-in-time asset, liability, equity, and net-worth snapshots.",
+      "description": "Capture point-in-time asset, liability, and net-worth snapshots.",
       "amountLabel": "Enter balances as of the selected moment.",
-      "treeHint": "Use rollup nodes for groups such as assets and liabilities, then add account-like leaf nodes underneath."
+      "treeHint": "Use groups such as assets and liabilities, then add account-like leaf nodes underneath."
     },
     "cashflow": {
       "title": "Cashflow",
       "description": "Capture income and spending over a period with the same tree and snapshot model.",
       "amountLabel": "Enter inflows as positive amounts and outflows as negative amounts.",
-      "treeHint": "Use rollup nodes for inflows and outflows, then add source-like leaf nodes underneath."
+      "treeHint": "Use groups such as inflows and outflows, then add source-like leaf nodes underneath."
     },
     "metrics": {
       "positive": "Positive",
@@ -1415,13 +1415,6 @@
       "nodeNamePlaceholder": "Node name",
       "parent": "Parent",
       "root": "Root",
-      "kind": "Kind",
-      "regular": "Regular",
-      "rollup": "Rollup",
-      "normalSide": "Normal side",
-      "positive": "Positive",
-      "negative": "Negative",
-      "neutral": "Neutral",
       "currency": "Currency",
       "createNode": "Create node",
       "createNodeTitle": "Create finance node",
@@ -1450,7 +1443,7 @@
       "note": "Note",
       "snapshotNote": "Snapshot note",
       "save": "Save snapshot",
-      "noEntryNodes": "Add at least one regular node before saving a snapshot.",
+      "noEntryNodes": "Add at least one leaf node before saving a snapshot.",
       "auto": "Auto",
       "manual": "Manual",
       "source": "Source"

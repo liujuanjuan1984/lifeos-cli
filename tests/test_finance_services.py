@@ -35,6 +35,7 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
+                assert {node.name for node in nodes} == {"Assets", "Liabilities"}
                 assets = next(node for node in nodes if node.name == "Assets")
                 checking = await finance.create_finance_node(
                     session,
