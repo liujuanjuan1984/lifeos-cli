@@ -92,6 +92,16 @@ export const ENDPOINTS = {
   PREFERENCES: {
     BY_KEY: (key: string) => `${API_V1}/preferences/${encodeURIComponent(key)}`,
   },
+  FINANCE: {
+    TREES: `${API_V1}/finance/trees`,
+    ENSURE_DEFAULT_TREE: `${API_V1}/finance/trees/ensure-default`,
+    TREE_BY_ID: (id: string) => `${API_V1}/finance/trees/${id}`,
+    TREE_NODES: (treeId: string) => `${API_V1}/finance/trees/${treeId}/nodes`,
+    NODE_BY_ID: (id: string) => `${API_V1}/finance/nodes/${id}`,
+    TREE_SNAPSHOTS: (treeId: string) =>
+      `${API_V1}/finance/trees/${treeId}/snapshots`,
+    SNAPSHOT_BY_ID: (id: string) => `${API_V1}/finance/snapshots/${id}`,
+  },
   STATS: {
     DAILY_AREAS: `${API_V1}/stats/daily-areas`,
     DAY_BREAKDOWN: `${API_V1}/stats/day-breakdown`,

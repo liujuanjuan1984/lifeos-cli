@@ -1387,6 +1387,73 @@
       "planned": "Planned"
     }
   },
+  "finance": {
+    "title": "Finance",
+    "subtitle": "Track financial reality through one unified tree and snapshot system.",
+    "balance": {
+      "title": "Balance Sheet",
+      "description": "Capture point-in-time asset, liability, equity, and net-worth snapshots.",
+      "amountLabel": "Enter balances as of the selected moment.",
+      "treeHint": "Use rollup nodes for groups such as assets and liabilities, then add account-like leaf nodes underneath."
+    },
+    "cashflow": {
+      "title": "Cashflow",
+      "description": "Capture income and spending over a period with the same tree and snapshot model.",
+      "amountLabel": "Enter inflows as positive amounts and outflows as negative amounts.",
+      "treeHint": "Use rollup nodes for inflows and outflows, then add source-like leaf nodes underneath."
+    },
+    "metrics": {
+      "positive": "Positive",
+      "negative": "Negative",
+      "net": "Net",
+      "entries": "Entries"
+    },
+    "tree": {
+      "title": "Tree",
+      "empty": "No nodes yet.",
+      "addNode": "Add node",
+      "nodeNamePlaceholder": "Node name",
+      "parent": "Parent",
+      "root": "Root",
+      "kind": "Kind",
+      "regular": "Regular",
+      "rollup": "Rollup",
+      "normalSide": "Normal side",
+      "positive": "Positive",
+      "negative": "Negative",
+      "neutral": "Neutral",
+      "currency": "Currency",
+      "createNode": "Create node"
+    },
+    "snapshot": {
+      "formTitle": "Snapshot",
+      "snapshotTime": "Snapshot time",
+      "periodStart": "Period start",
+      "periodEnd": "Period end",
+      "node": "Node",
+      "amount": "Amount",
+      "currency": "Currency",
+      "note": "Note",
+      "snapshotNote": "Snapshot note",
+      "save": "Save snapshot",
+      "noEntryNodes": "Add at least one regular node before saving a snapshot.",
+      "auto": "Auto",
+      "manual": "Manual"
+    },
+    "history": {
+      "title": "History",
+      "subtitle": "Review saved snapshots and their entries.",
+      "empty": "No snapshots yet.",
+      "noSelection": "Select a snapshot to inspect entries."
+    },
+    "messages": {
+      "treeMissing": "Finance tree is unavailable.",
+      "nodeCreated": "Finance node created",
+      "nodeDeleted": "Finance node deleted",
+      "snapshotCreated": "Finance snapshot saved",
+      "noEntries": "Enter at least one amount before saving."
+    }
+  },
   "modules": {
     "visions": {
       "displayName": "Vision",
@@ -1412,6 +1479,11 @@
       "displayName": "Timelog",
       "navLabel": "Timelog",
       "description": "Record actual time and review how effort was spent."
+    },
+    "finance": {
+      "displayName": "Finance",
+      "navLabel": "Finance",
+      "description": "Track net worth and cashflow snapshots from one unified model."
     },
     "insights": {
       "displayName": "Stats",

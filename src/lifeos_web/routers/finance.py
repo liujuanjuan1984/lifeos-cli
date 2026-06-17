@@ -1,0 +1,389 @@
+"""Unified finance endpoints for the local Web UI."""
+
+from __future__ import annotations
+
+import math
+from datetime import datetime
+from decimal import Decimal
+from typing import Annotated, Any
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from lifeos_cli.db.models.finance import FinanceSnapshot, FinanceSnapshotEntry, FinanceTreeNode
+from lifeos_cli.db.services import finance as finance_services
+from lifeos_web.deps import get_db_session
+from lifeos_web.schemas import ListResponse, Pagination
+from lifeos_web.serialization import to_jsonable
+
+router = APIRouter(prefix="/finance", tags=["finance"])
+SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+class FinanceTreeCreate(BaseModel):
+    """Payload for creating a finance tree."""
+
+    name: str
+    purpose: str = "custom"
+    time_mode: str | None = None
+    primary_currency: str = "USD"
+    display_order: int = 0
+    is_default: bool = False
+    metadata: dict[str, Any] | None = None
+
+
+class FinanceNodeCreate(BaseModel):
+    """Payload for creating a finance tree node."""
+
+    name: str
+    parent_id: UUID | None = None
+    node_kind: str = "regular"
+    normal_side: str | None = None
+    currency_code: str | None = None
+    display_order: int = 0
+    metadata: dict[str, Any] | None = None
+
+
+class FinanceNodeUpdate(BaseModel):
+    """Payload for updating a finance tree node."""
+
+    name: str | None = None
+    node_kind: str | None = None
+    normal_side: str | None = None
+    currency_code: str | None = None
+    display_order: int | None = None
+
+
+class FinanceSnapshotEntryCreate(BaseModel):
+    """Payload for one finance snapshot entry."""
+
+    node_id: UUID
+    amount: Decimal
+    currency_code: str | None = None
+    amount_converted: Decimal | None = None
+    note: str | None = None
+
+
+class FinanceSnapshotCreate(BaseModel):
+    """Payload for creating a finance snapshot."""
+
+    snapshot_ts: datetime | None = None
+    period_start: datetime | None = None
+    period_end: datetime | None = None
+    primary_currency: str | None = None
+    exchange_rates: dict[str, Any] | None = None
+    note: str | None = None
+    entries: list[FinanceSnapshotEntryCreate] = Field(default_factory=list)
+
+
+def _page_envelope(
+    *,
+    items: list[dict[str, object]],
+    page: int,
+    size: int,
+    total: int,
+    meta: dict[str, object] | None = None,
+) -> ListResponse:
+    pages = math.ceil(total / size) if size > 0 else 0
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=page, size=size, total=total, pages=pages),
+        meta=meta or {},
+    )
+
+
+def _decimal_str(value: Decimal | None) -> str | None:
+    return None if value is None else str(value)
+
+
+def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
+    return {
+        "id": str(node.id),
+        "tree_id": str(node.tree_id),
+        "parent_id": str(node.parent_id) if node.parent_id else None,
+        "name": node.name,
+        "node_kind": node.node_kind,
+        "normal_side": node.normal_side,
+        "currency_code": node.currency_code,
+        "path": node.path,
+        "depth": node.depth,
+        "display_order": node.display_order,
+        "children_count": node.children_count,
+        "metadata": to_jsonable(node.metadata_json),
+        "created_at": node.created_at.isoformat(),
+        "updated_at": node.updated_at.isoformat(),
+        "deleted_at": node.deleted_at.isoformat() if node.deleted_at else None,
+    }
+
+
+def _tree_payload(tree, *, nodes: list[FinanceTreeNode] | None = None) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": str(tree.id),
+        "name": tree.name,
+        "purpose": tree.purpose,
+        "time_mode": tree.time_mode,
+        "primary_currency": tree.primary_currency,
+        "display_order": tree.display_order,
+        "is_default": tree.is_default,
+        "metadata": to_jsonable(tree.metadata_json),
+        "created_at": tree.created_at.isoformat(),
+        "updated_at": tree.updated_at.isoformat(),
+        "deleted_at": tree.deleted_at.isoformat() if tree.deleted_at else None,
+    }
+    if nodes is not None:
+        payload["nodes"] = [_node_payload(node) for node in nodes]
+    return payload
+
+
+def _entry_payload(entry: FinanceSnapshotEntry) -> dict[str, object]:
+    return {
+        "id": str(entry.id),
+        "snapshot_id": str(entry.snapshot_id),
+        "node_id": str(entry.node_id),
+        "node_name": entry.node.name if entry.node else None,
+        "node_path": entry.node.path if entry.node else None,
+        "node_kind": entry.node.node_kind if entry.node else None,
+        "amount": _decimal_str(entry.amount),
+        "currency_code": entry.currency_code,
+        "amount_converted": _decimal_str(entry.amount_converted),
+        "note": entry.note,
+        "is_auto_generated": entry.is_auto_generated,
+        "created_at": entry.created_at.isoformat(),
+        "updated_at": entry.updated_at.isoformat(),
+        "deleted_at": entry.deleted_at.isoformat() if entry.deleted_at else None,
+    }
+
+
+def _snapshot_payload(
+    snapshot: FinanceSnapshot,
+    *,
+    include_entries: bool = False,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": str(snapshot.id),
+        "tree_id": str(snapshot.tree_id),
+        "tree_name": snapshot.tree.name if snapshot.tree else None,
+        "purpose": snapshot.tree.purpose if snapshot.tree else None,
+        "time_mode": snapshot.tree.time_mode if snapshot.tree else None,
+        "snapshot_ts": snapshot.snapshot_ts.isoformat() if snapshot.snapshot_ts else None,
+        "period_start": snapshot.period_start.isoformat() if snapshot.period_start else None,
+        "period_end": snapshot.period_end.isoformat() if snapshot.period_end else None,
+        "primary_currency": snapshot.primary_currency,
+        "total_positive": _decimal_str(snapshot.total_positive),
+        "total_negative": _decimal_str(snapshot.total_negative),
+        "net_amount": _decimal_str(snapshot.net_amount),
+        "exchange_rates": to_jsonable(snapshot.exchange_rates),
+        "summary": to_jsonable(snapshot.summary),
+        "note": snapshot.note,
+        "created_at": snapshot.created_at.isoformat(),
+        "updated_at": snapshot.updated_at.isoformat(),
+        "deleted_at": snapshot.deleted_at.isoformat() if snapshot.deleted_at else None,
+    }
+    if include_entries:
+        payload["entries"] = [_entry_payload(entry) for entry in snapshot.entries]
+    return payload
+
+
+@router.get("/trees", response_model=ListResponse)
+async def list_trees(
+    session: SessionDep,
+    purpose: str | None = None,
+    include_deleted: bool = False,
+    page: int = Query(1, ge=1),
+    size: int = Query(100, ge=1, le=500),
+) -> ListResponse:
+    """List finance trees."""
+    try:
+        trees = await finance_services.list_finance_trees(
+            session,
+            purpose=purpose,
+            include_deleted=include_deleted,
+            limit=size,
+            offset=(page - 1) * size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _page_envelope(
+        items=[_tree_payload(tree) for tree in trees],
+        page=page,
+        size=size,
+        total=len(trees),
+        meta={"purpose": purpose, "include_deleted": include_deleted},
+    )
+
+
+@router.post("/trees")
+async def create_tree(payload: FinanceTreeCreate, session: SessionDep) -> dict[str, object]:
+    """Create a finance tree."""
+    try:
+        tree = await finance_services.create_finance_tree(
+            session,
+            name=payload.name,
+            purpose=payload.purpose,
+            time_mode=payload.time_mode,
+            primary_currency=payload.primary_currency,
+            display_order=payload.display_order,
+            is_default=payload.is_default,
+            metadata=payload.metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _tree_payload(tree)
+
+
+@router.post("/trees/ensure-default")
+async def ensure_default_tree(
+    session: SessionDep,
+    purpose: str = Query(...),
+    primary_currency: str | None = None,
+) -> dict[str, object]:
+    """Ensure the requested preset tree exists."""
+    try:
+        tree = await finance_services.ensure_default_finance_tree(
+            session,
+            purpose=purpose,
+            primary_currency=primary_currency,
+        )
+        nodes = await finance_services.list_finance_nodes(session, tree_id=tree.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _tree_payload(tree, nodes=nodes)
+
+
+@router.get("/trees/{tree_id}")
+async def get_tree(tree_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one finance tree with nodes."""
+    tree = await finance_services.get_finance_tree_with_nodes(session, tree_id=tree_id)
+    if tree is None:
+        raise HTTPException(status_code=404, detail=f"Finance tree {tree_id} was not found")
+    return _tree_payload(tree, nodes=list(tree.nodes))
+
+
+@router.post("/trees/{tree_id}/nodes")
+async def create_node(
+    tree_id: UUID,
+    payload: FinanceNodeCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create a finance node under one tree."""
+    try:
+        node = await finance_services.create_finance_node(
+            session,
+            tree_id=tree_id,
+            name=payload.name,
+            parent_id=payload.parent_id,
+            node_kind=payload.node_kind,
+            normal_side=payload.normal_side,
+            currency_code=payload.currency_code,
+            display_order=payload.display_order,
+            metadata=payload.metadata,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _node_payload(node)
+
+
+@router.patch("/nodes/{node_id}")
+async def update_node(
+    node_id: UUID,
+    payload: FinanceNodeUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a finance node."""
+    try:
+        node = await finance_services.update_finance_node(
+            session,
+            node_id=node_id,
+            name=payload.name,
+            node_kind=payload.node_kind,
+            normal_side=payload.normal_side,
+            normal_side_provided="normal_side" in payload.model_fields_set,
+            currency_code=payload.currency_code,
+            display_order=payload.display_order,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _node_payload(node)
+
+
+@router.delete("/nodes/{node_id}", status_code=204)
+async def delete_node(node_id: UUID, session: SessionDep) -> None:
+    """Soft-delete one finance node."""
+    try:
+        await finance_services.delete_finance_node(session, node_id=node_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/trees/{tree_id}/snapshots", response_model=ListResponse)
+async def list_tree_snapshots(
+    tree_id: UUID,
+    session: SessionDep,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+) -> ListResponse:
+    """List snapshots for one finance tree."""
+    snapshots = await finance_services.list_finance_snapshots(
+        session,
+        tree_id=tree_id,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    total = await finance_services.count_finance_snapshots(session, tree_id=tree_id)
+    return _page_envelope(
+        items=[_snapshot_payload(snapshot) for snapshot in snapshots],
+        page=page,
+        size=size,
+        total=total,
+        meta={"tree_id": str(tree_id)},
+    )
+
+
+@router.post("/trees/{tree_id}/snapshots")
+async def create_snapshot(
+    tree_id: UUID,
+    payload: FinanceSnapshotCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create a finance snapshot."""
+    try:
+        snapshot = await finance_services.create_finance_snapshot(
+            session,
+            tree_id=tree_id,
+            snapshot_ts=payload.snapshot_ts,
+            period_start=payload.period_start,
+            period_end=payload.period_end,
+            primary_currency=payload.primary_currency,
+            exchange_rates=payload.exchange_rates,
+            note=payload.note,
+            entries=[
+                finance_services.FinanceSnapshotEntryInput(
+                    node_id=entry.node_id,
+                    amount=entry.amount,
+                    currency_code=entry.currency_code,
+                    amount_converted=entry.amount_converted,
+                    note=entry.note,
+                )
+                for entry in payload.entries
+            ],
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _snapshot_payload(snapshot, include_entries=True)
+
+
+@router.get("/snapshots/{snapshot_id}")
+async def get_snapshot(snapshot_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Load one finance snapshot with entries."""
+    snapshot = await finance_services.get_finance_snapshot(session, snapshot_id=snapshot_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail=f"Finance snapshot {snapshot_id} was not found")
+    return _snapshot_payload(snapshot, include_entries=True)

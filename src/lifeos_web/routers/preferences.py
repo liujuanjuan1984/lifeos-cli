@@ -23,6 +23,7 @@ _VISIBLE_MODULES = [
     "habits",
     "planning",
     "timelog",
+    "finance",
     "insights",
     "calendar",
     "notes",

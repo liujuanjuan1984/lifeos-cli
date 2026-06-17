@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 import pytest
@@ -149,6 +150,42 @@ def test_cli_parser_supports_data_commands() -> None:
     assert batch_update_args.target == "task"
     assert batch_delete_args.data_command == "batch-delete"
     assert batch_delete_args.target == "event"
+
+
+def test_cli_parser_supports_finance_commands() -> None:
+    parser = build_parser()
+
+    tree_args = parser.parse_args(
+        ["finance", "tree-add", "Balance Sheet", "--purpose", "balance", "--default"]
+    )
+    node_args = parser.parse_args(
+        [
+            "finance",
+            "node-add",
+            "11111111-1111-1111-1111-111111111111",
+            "Checking",
+            "--parent-id",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+    snapshot_args = parser.parse_args(
+        [
+            "finance",
+            "snapshot-add",
+            "11111111-1111-1111-1111-111111111111",
+            "--entry",
+            "22222222-2222-2222-2222-222222222222:100:USD",
+        ]
+    )
+
+    assert tree_args.resource == "finance"
+    assert tree_args.finance_command == "tree-add"
+    assert tree_args.purpose == "balance"
+    assert tree_args.default is True
+    assert node_args.finance_command == "node-add"
+    assert str(node_args.parent_id) == "22222222-2222-2222-2222-222222222222"
+    assert snapshot_args.finance_command == "snapshot-add"
+    assert snapshot_args.entries[0].amount == Decimal("100")
 
 
 def test_cli_parser_supports_timelog_stats_commands() -> None:

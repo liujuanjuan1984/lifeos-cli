@@ -1387,6 +1387,73 @@
       "planned": "已计划"
     }
   },
+  "finance": {
+    "title": "财务",
+    "subtitle": "用统一的财务树与快照系统记录真实财务状态。",
+    "balance": {
+      "title": "资产负债表",
+      "description": "记录某一时刻的资产、负债、权益与净值快照。",
+      "amountLabel": "填写所选时刻的余额。",
+      "treeHint": "用汇总节点表达资产、负债等分组，再在其下添加具体账户或资产节点。"
+    },
+    "cashflow": {
+      "title": "现金流",
+      "description": "用同一套树与快照模型记录某个周期内的收入与支出。",
+      "amountLabel": "流入填写正数，流出填写负数。",
+      "treeHint": "用汇总节点表达流入与流出，再在其下添加具体来源或支出节点。"
+    },
+    "metrics": {
+      "positive": "正向金额",
+      "negative": "负向金额",
+      "net": "净额",
+      "entries": "条目"
+    },
+    "tree": {
+      "title": "财务树",
+      "empty": "暂无节点。",
+      "addNode": "添加节点",
+      "nodeNamePlaceholder": "节点名称",
+      "parent": "父节点",
+      "root": "根节点",
+      "kind": "类型",
+      "regular": "普通",
+      "rollup": "汇总",
+      "normalSide": "默认方向",
+      "positive": "正向",
+      "negative": "负向",
+      "neutral": "中性",
+      "currency": "币种",
+      "createNode": "创建节点"
+    },
+    "snapshot": {
+      "formTitle": "快照",
+      "snapshotTime": "快照时间",
+      "periodStart": "周期开始",
+      "periodEnd": "周期结束",
+      "node": "节点",
+      "amount": "金额",
+      "currency": "币种",
+      "note": "备注",
+      "snapshotNote": "快照备注",
+      "save": "保存快照",
+      "noEntryNodes": "保存快照前，请先添加至少一个普通节点。",
+      "auto": "自动",
+      "manual": "手动"
+    },
+    "history": {
+      "title": "历史",
+      "subtitle": "查看已保存快照及其条目。",
+      "empty": "暂无快照。",
+      "noSelection": "选择一个快照查看条目。"
+    },
+    "messages": {
+      "treeMissing": "财务树不可用。",
+      "nodeCreated": "财务节点已创建",
+      "nodeDeleted": "财务节点已删除",
+      "snapshotCreated": "财务快照已保存",
+      "noEntries": "保存前请至少填写一个金额。"
+    }
+  },
   "modules": {
     "visions": {
       "displayName": "愿景",
@@ -1412,6 +1479,11 @@
       "displayName": "时间日志",
       "navLabel": "时间日志",
       "description": "诚实地记录时间投入，看见真实的精力流向与行为模式。"
+    },
+    "finance": {
+      "displayName": "财务",
+      "navLabel": "财务",
+      "description": "用统一模型记录净值与现金流快照。"
     },
     "insights": {
       "displayName": "数据洞察",

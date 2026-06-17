@@ -115,6 +115,7 @@ lifeos schedule show --date 2026-04-13
 lifeos task list
 lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
+lifeos finance tree-ensure-default --purpose balance
 ```
 
 完整的 CLI 用法、工作流和输出约定，请参考 [docs/cli.md](docs/cli.md)。
@@ -142,12 +143,14 @@ lifeos timelog list --date 2026-04-13
 - habits and habit actions
 - events
 - timelogs
+- finance trees and snapshots
 
 当前还具备这些跨模块能力：
 
 - 一个 `schedule` 读模型，可把 tasks、habit actions 和 planned events 聚合成按天或按区间查看的视图
 - recurring events 的展开能力，以及 recurring habits 的 cadence 支持，包括按需生成的 habit-action
 - 跨 tasks、visions、events、people、timelogs、tags 的通用 note associations
+- 一套统一的 finance tree 与 snapshot 模型，可用于 balance-sheet、cashflow 与自定义财务记录
 - 持久化的运行时配置，既覆盖 database 连接，也覆盖 timezone、language、day boundary、week boundary 和 vision experience defaults 等偏好
 - 本地化的 CLI help，以及适合人类直用和 agent 消费的稳定摘要表输出
 

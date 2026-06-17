@@ -118,6 +118,7 @@ lifeos schedule show --date 2026-04-13
 lifeos task list
 lifeos note add "Capture today's key decisions"
 lifeos timelog list --date 2026-04-13
+lifeos finance tree-ensure-default --purpose balance
 ```
 
 For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
@@ -145,12 +146,14 @@ The current system already covers the core building blocks of a practical LifeOS
 - habits and habit actions
 - events
 - timelogs
+- finance trees and snapshots
 
 Cross-cutting capabilities:
 
 - a `schedule` read model that aggregates tasks, habit actions, and planned events into day and range views
 - recurring event expansion and recurring habit cadence support, including on-demand habit-action materialization
 - generic note associations across tasks, visions, events, people, timelogs, and tags
+- a unified finance tree and snapshot model for balance-sheet, cashflow, and custom financial records
 - persisted runtime configuration for database access plus preferences such as timezone, language, day boundary, week boundary, and vision experience defaults
 - localized CLI help and stable summary-table output for direct human use and agent consumption
 

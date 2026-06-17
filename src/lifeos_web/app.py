@@ -13,6 +13,7 @@ from starlette.types import Scope
 
 from lifeos_web.routers import (
     areas,
+    finance,
     habits,
     health,
     notes,
@@ -80,6 +81,7 @@ def create_app(*, static_dir: Path | None = None) -> FastAPI:
     app.include_router(timelog_templates.router, prefix=API_PREFIX)
     app.include_router(persons.router, prefix=API_PREFIX)
     app.include_router(areas.router, prefix=API_PREFIX)
+    app.include_router(finance.router, prefix=API_PREFIX)
     app.include_router(planned_events.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
     app.include_router(tags.router, prefix=API_PREFIX)

@@ -89,6 +89,7 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/habits/habit-task-associations/" in route_paths
     assert "/api/v1/persons/" in route_paths
     assert "/api/v1/tags/" in route_paths
+    assert "/api/v1/finance/trees" in route_paths
 
 
 def test_web_tasks_list_uses_count_for_pagination_and_query(
