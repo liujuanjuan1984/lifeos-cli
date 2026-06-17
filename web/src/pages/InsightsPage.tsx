@@ -36,6 +36,10 @@ import {
   type InsightViewType,
 } from "@/features/insights/useInsightsViewState";
 import { useInsightsStatsController } from "@/features/insights/controller/useInsightsStatsController";
+import {
+  buildPeriodCoverage,
+  type PeriodCoverage,
+} from "@/features/insights/periodCoverage";
 
 type AreaBucket = {
   areaId: UUID;
@@ -224,6 +228,7 @@ interface StatisticItemProps {
   label?: string;
   labelTitle?: string;
   totalMinutesOverride?: number;
+  coverage: PeriodCoverage;
 }
 
 const StatisticItem: React.FC<StatisticItemProps> = ({
@@ -235,18 +240,28 @@ const StatisticItem: React.FC<StatisticItemProps> = ({
   label,
   labelTitle,
   totalMinutesOverride,
+  coverage,
 }) => {
   const displayLabel = label ?? formatDate(day);
-  const labelTooltip = labelTitle ?? displayLabel;
   const denominator = totalMinutesOverride ?? 1440;
+  const coverageColorClass = coverage.isComplete
+    ? "text-base-content/80"
+    : "text-warning";
   return (
     <div className="flex items-center gap-3">
       {/* 日期 - 使用常规大小 */}
       <div
         className="w-32 text-base font-medium text-base-content/80 flex-shrink-0 flex items-center justify-center"
-        title={labelTooltip}
+        title={labelTitle ?? displayLabel}
       >
         {displayLabel}
+      </div>
+
+      <div
+        className={`w-16 text-sm font-semibold tabular-nums ${coverageColorClass} flex-shrink-0 flex items-center justify-center`}
+        title={coverage.label}
+      >
+        {coverage.label}
       </div>
 
       {/* 条带图 - 改进样式 */}
@@ -432,7 +447,7 @@ function InsightsPage() {
         labelTitle: string;
         rows: DailyAreaRow[];
         capacityMinutes: number;
-        totalSelectedMinutes: number;
+        totalLoggedMinutes: number;
       }>;
 
     const boundaries = buildBucketBoundaries(
@@ -466,7 +481,7 @@ function InsightsPage() {
           areaOrder.indexOf(a.area_id) -
           areaOrder.indexOf(b.area_id),
       );
-      const totalSelectedMinutes = convertedRows.reduce(
+      const totalLoggedMinutes = rawRows.reduce(
         (sum, current) => sum + current.minutes,
         0,
       );
@@ -478,7 +493,7 @@ function InsightsPage() {
         labelTitle: formatBucketTitle(granularity, start, end),
         rows: convertedRows,
         capacityMinutes: calculateBucketCapacityMinutes(start, end),
-        totalSelectedMinutes,
+        totalLoggedMinutes,
       };
     });
   }, [
@@ -494,6 +509,7 @@ function InsightsPage() {
   const displayBuckets = useMemo(() => {
     if (granularity === "day") {
       return dayRange.map((day) => {
+        const rawRows = dailyStats.filter((row) => row.date === day);
         const rows = (curByDay.get(day) || [])
           .slice()
           .sort(
@@ -501,7 +517,7 @@ function InsightsPage() {
               areaOrder.indexOf(a.area_id) -
               areaOrder.indexOf(b.area_id),
           );
-        const totalSelectedMinutes = rows.reduce(
+        const totalLoggedMinutes = rawRows.reduce(
           (sum, current) => sum + current.minutes,
           0,
         );
@@ -513,13 +529,20 @@ function InsightsPage() {
           labelTitle: formatDate(day),
           rows,
           capacityMinutes: 24 * 60,
-          totalSelectedMinutes,
+          totalLoggedMinutes,
         };
       });
     }
 
     return aggregatedBuckets;
-  }, [granularity, dayRange, curByDay, areaOrder, aggregatedBuckets]);
+  }, [
+    granularity,
+    dayRange,
+    dailyStats,
+    curByDay,
+    areaOrder,
+    aggregatedBuckets,
+  ]);
 
   const totalPeriodDayCount = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -1134,6 +1157,10 @@ function InsightsPage() {
                     label={bucket.label}
                     labelTitle={bucket.labelTitle}
                     totalMinutesOverride={bucket.capacityMinutes}
+                    coverage={buildPeriodCoverage(
+                      bucket.totalLoggedMinutes,
+                      bucket.capacityMinutes,
+                    )}
                   />
                 </div>
               ))}
