@@ -32,6 +32,27 @@ def test_web_command_is_registered() -> None:
     assert args.port == 9876
 
 
+def test_planned_event_recurrence_until_accepts_utc_z_suffix() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.planned_events import _create_input
+    from lifeos_web.schemas import PlannedEventCreate
+
+    payload = PlannedEventCreate(
+        title="Daily focus",
+        start_time=datetime(2026, 6, 16, 16, 0, tzinfo=timezone.utc),
+        is_recurring=True,
+        recurrence_pattern={
+            "frequency": "daily",
+            "until": "2026-06-20T16:00:00.000Z",
+        },
+    )
+
+    parsed = _create_input(payload)
+
+    assert parsed.recurrence_until is not None
+    assert parsed.recurrence_until.isoformat() == "2026-06-20T16:00:00+00:00"
+
+
 def test_web_app_registers_core_resource_routes() -> None:
     pytest.importorskip("fastapi")
     from lifeos_web.app import app

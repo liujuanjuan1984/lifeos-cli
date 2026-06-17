@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
+from lifeos_cli.application.datetime_utils import parse_iso_datetime_input
 from lifeos_cli.application.time_preferences import to_storage_timezone
 
 _DATE_ONLY_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -60,9 +61,8 @@ def parse_datetime_or_date_value(value: str) -> datetime | date:
 
 def parse_user_datetime_value(value: str) -> datetime:
     """Parse one ISO datetime value for user-facing write arguments."""
-    normalized_value = value.removesuffix("Z") + "+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(normalized_value)
+        return parse_iso_datetime_input(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 

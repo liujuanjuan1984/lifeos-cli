@@ -10,7 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.datetime_utils import format_utc_iso
+from lifeos_cli.application.datetime_utils import format_utc_iso, parse_iso_datetime_input
 from lifeos_cli.db.services import events as event_services
 from lifeos_cli.db.services.event_support import (
     EventCreateInput,
@@ -161,7 +161,7 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
         ),
         recurrence_count=(_optional_int(recurrence.get("count")) if has_recurrence_count else None),
         recurrence_until=(
-            datetime.fromisoformat(str(recurrence["until"]))
+            parse_iso_datetime_input(str(recurrence["until"]))
             if payload.is_recurring and recurrence.get("until")
             else None
         ),
@@ -203,7 +203,7 @@ def _update_input(payload: PlannedEventUpdate) -> EventUpdateInput:
             else None
         ),
         recurrence_until=(
-            datetime.fromisoformat(str(recurrence["until"]))
+            parse_iso_datetime_input(str(recurrence["until"]))
             if payload.is_recurring is not False and recurrence.get("until")
             else None
         ),
