@@ -217,6 +217,17 @@ def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
     assert spa_response.status_code == 200
     assert spa_response.headers["cache-control"] == "no-store"
 
+    for reserved_path in ("api/v1/missing", "health/missing", "assets/missing"):
+        route_error: object | None = None
+        try:
+            asyncio.run(static_files.get_response(reserved_path, scope))
+        except Exception as exc:
+            route_error = exc
+        else:
+            pytest.fail(f"{reserved_path} should not fall back to SPA index.html")
+
+        assert getattr(route_error, "status_code", None) == 404
+
 
 def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("fastapi")

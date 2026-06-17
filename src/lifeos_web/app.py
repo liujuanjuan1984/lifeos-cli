@@ -28,6 +28,12 @@ from lifeos_web.routers import (
 )
 
 API_PREFIX = "/api/v1"
+SPA_FALLBACK_EXCLUDED_SEGMENTS = frozenset({"api", "assets", "health"})
+
+
+def _is_spa_fallback_excluded_path(path: str) -> bool:
+    first_segment = path.lstrip("/").split("/", 1)[0]
+    return first_segment in SPA_FALLBACK_EXCLUDED_SEGMENTS
 
 
 class SPAStaticFiles(StaticFiles):
@@ -37,7 +43,11 @@ class SPAStaticFiles(StaticFiles):
         try:
             response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code == 404 and "." not in Path(path).name:
+            if (
+                exc.status_code == 404
+                and "." not in Path(path).name
+                and not _is_spa_fallback_excluded_path(path)
+            ):
                 response = await super().get_response("index.html", scope)
             else:
                 raise
