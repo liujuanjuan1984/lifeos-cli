@@ -763,6 +763,31 @@ def test_cli_event_timelog_list_help_shows_shared_date_range_text(
     assert "use `--start-date/--end-date` for local-date ranges" in captured.out
 
 
+def test_cli_timelog_search_help_documents_keyword_advanced_query_entrypoint(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "search", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "Search timelogs with optional keyword, time-window, relation, and method filters." in (
+        captured.out
+    )
+    assert (
+        'lifeos timelog search --query "洗" --start-time 2026-06-16T16:00:00.000Z '
+        "--end-time 2026-06-17T15:59:59.999Z --limit 500 --count"
+    ) in captured.out
+    assert "This command reuses `timelog list` filters and tab-separated summary output." in (
+        captured.out
+    )
+    assert "`--query` does not search task or area names." in captured.out
+    assert "--limit LIMIT" in captured.out
+    assert "--count" in captured.out
+
+
 @pytest.mark.parametrize("argv", (["event", "update", "--help"], ["timelog", "update", "--help"]))
 def test_cli_event_timelog_update_help_shows_shared_clear_notes(
     argv: list[str],

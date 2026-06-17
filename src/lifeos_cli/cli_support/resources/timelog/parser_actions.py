@@ -160,7 +160,7 @@ def build_timelog_list_parser(
     timelog_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
     """Build the timelog list command."""
-    list_parser = add_documented_parser(
+    _build_timelog_query_parser(
         timelog_subparsers,
         "list",
         help_content=HelpContent(
@@ -202,56 +202,114 @@ def build_timelog_list_parser(
             ),
         ),
     )
-    list_parser.add_argument(
-        "--title-contains", help=_("common.messages.filter_by_title_substring")
+
+
+def build_timelog_search_parser(
+    timelog_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Build the timelog search command."""
+    _build_timelog_query_parser(
+        timelog_subparsers,
+        "search",
+        help_content=HelpContent(
+            summary=_("resources.timelog.parser_actions.search_timelogs"),
+            description=(
+                _(
+                    "resources.timelog.parser_actions.search_timelogs_with_keyword_time_window_relation_and_method_filters"
+                )
+                + "\n\n"
+                + _(
+                    "resources.timelog.parser_actions.search_reuses_timelog_list_filters_and_output"
+                )
+            ),
+            examples=(
+                'lifeos timelog search --query "洗" '
+                "--start-time 2026-06-16T16:00:00.000Z "
+                "--end-time 2026-06-17T15:59:59.999Z --limit 500 --count",
+                'lifeos timelog search --query "deep work" --area-name Work --without-task',
+                "lifeos timelog search --start-date 2026-04-10 "
+                "--end-date 2026-04-16 --task-id <task-id>",
+            ),
+            notes=(
+                help_message("notes.dateSelection.dateOrRange"),
+                _(
+                    "resources.timelog.parser_actions.use_start_time_end_time_as_overlap_window_not_exact_field_matches"
+                ),
+                _(
+                    "resources.timelog.parser_actions.use_query_for_lightweight_text_filtering_across_titles_and_notes"
+                ),
+                _(
+                    "resources.timelog.parser_actions.use_area_and_task_flags_for_structured_relation_filters"
+                ),
+                _(
+                    "resources.timelog.parser_actions.when_results_exist_search_prints_header_row_followed_by_tab_separated"
+                ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS)),
+                _(
+                    "common.messages.use_with_counts_to_add_relationship_count_columns_columns"
+                ).format(columns=format_summary_column_list(TIMELOG_SUMMARY_COLUMNS_WITH_COUNTS)),
+            ),
+        ),
     )
-    list_parser.add_argument(
+
+
+def _build_timelog_query_parser(
+    timelog_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+    name: str,
+    *,
+    help_content: HelpContent,
+) -> None:
+    parser = add_documented_parser(
+        timelog_subparsers,
+        name,
+        help_content=help_content,
+    )
+    _add_timelog_query_arguments(parser)
+    parser.set_defaults(handler=make_sync_handler(handle_timelog_list_async))
+
+
+def _add_timelog_query_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--title-contains", help=_("common.messages.filter_by_title_substring"))
+    parser.add_argument(
         "--notes-contains", help=_("resources.timelog.parser_actions.filter_by_notes_substring")
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--query", help=_("resources.timelog.parser_actions.search_title_and_notes_by_keyword")
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--tracking-method", help=_("resources.timelog.parser_actions.filter_by_tracking_method")
     )
-    list_parser.add_argument(
-        "--area-id", type=UUID, help=_("common.messages.filter_by_linked_area")
-    )
-    list_parser.add_argument(
+    parser.add_argument("--area-id", type=UUID, help=_("common.messages.filter_by_linked_area"))
+    parser.add_argument(
         "--area-name", help=_("resources.timelog.parser_actions.filter_by_exact_linked_area_name")
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--without-area",
         action="store_true",
         help=_("resources.timelog.parser_actions.filter_timelogs_without_linked_area"),
     )
-    list_parser.add_argument(
-        "--task-id", type=UUID, help=_("common.messages.filter_by_linked_task")
-    )
-    list_parser.add_argument(
+    parser.add_argument("--task-id", type=UUID, help=_("common.messages.filter_by_linked_task"))
+    parser.add_argument(
         "--without-task",
         action="store_true",
         help=_("resources.timelog.parser_actions.filter_timelogs_without_linked_task"),
     )
-    list_parser.add_argument(
-        "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person")
-    )
-    list_parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
-    list_parser.add_argument(
+    parser.add_argument("--person-id", type=UUID, help=_("common.messages.filter_by_linked_person"))
+    parser.add_argument("--tag-id", type=UUID, help=_("common.messages.filter_by_linked_tag"))
+    parser.add_argument(
         "--with-counts",
         action="store_true",
         help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
     add_date_range_arguments(
-        list_parser,
+        parser,
         date_help=help_message("arguments.dateSelection.repeatedDate"),
     )
     add_start_end_date_arguments(
-        list_parser,
+        parser,
         start_date_help=_("common.messages.inclusive_local_date_range_start_date"),
         end_date_help=_("common.messages.inclusive_local_date_range_end_date"),
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--start-time",
         dest="window_start",
         type=parse_datetime_or_date_value,
@@ -259,7 +317,7 @@ def build_timelog_list_parser(
             "common.messages.inclusive_time_filter_start_date_only_values_use_configured_timezone"
         ),
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--end-time",
         dest="window_end",
         type=parse_datetime_or_date_value,
@@ -267,12 +325,11 @@ def build_timelog_list_parser(
             "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
         ),
     )
-    list_parser.add_argument(
+    parser.add_argument(
         "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
-    add_include_deleted_argument(list_parser, noun="timelogs")
-    add_limit_offset_arguments(list_parser)
-    list_parser.set_defaults(handler=make_sync_handler(handle_timelog_list_async))
+    add_include_deleted_argument(parser, noun="timelogs")
+    add_limit_offset_arguments(parser)
 
 
 def build_timelog_show_parser(

@@ -13,7 +13,11 @@ from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.application.datetime_utils import format_utc_iso, normalize_storage_datetime
+from lifeos_cli.application.datetime_utils import (
+    format_utc_iso,
+    normalize_storage_datetime,
+    parse_iso_datetime_input,
+)
 from lifeos_cli.application.package_metadata import get_installed_package_version
 from lifeos_cli.config import get_database_settings, get_preferences_settings
 from lifeos_cli.db.base import Base
@@ -211,7 +215,7 @@ DELETE_ARG_NAMES: dict[str, str] = {
 
 
 def _normalize_json_datetime(value: str) -> datetime:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = parse_iso_datetime_input(value)
     return normalize_storage_datetime(parsed)
 
 

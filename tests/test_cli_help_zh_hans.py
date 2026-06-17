@@ -179,6 +179,24 @@ def test_cli_timelog_add_help_supports_zh_hans_locale_for_stdin_batch_mode(
     assert "当 datetime 省略 timezone 信息时" in captured.out
 
 
+def test_cli_timelog_search_help_supports_zh_hans_locale(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("LIFEOS_LANGUAGE", "zh-Hans")
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["timelog", "search", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert "搜索 `timelog`，可选使用关键词、时间窗口、关系和方法过滤器。" in captured.out
+    assert 'lifeos timelog search --query "洗"' in captured.out
+    assert "复用 `timelog list` 的过滤器和制表符分隔摘要输出" in captured.out
+    assert "`--query` 不搜索 task 或 area 名称" in captured.out
+
+
 @pytest.mark.parametrize(
     ("argv", "expected"),
     [

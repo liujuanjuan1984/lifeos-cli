@@ -561,6 +561,33 @@ def test_cli_parser_supports_timelog_list_search_filters() -> None:
     assert args.count is True
 
 
+def test_cli_parser_supports_timelog_search_advanced_filters() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "timelog",
+            "search",
+            "--query",
+            "洗",
+            "--start-time",
+            "2026-06-16T16:00:00.000Z",
+            "--end-time",
+            "2026-06-17T15:59:59.999Z",
+            "--limit",
+            "500",
+            "--count",
+        ]
+    )
+
+    assert args.resource == "timelog"
+    assert args.timelog_command == "search"
+    assert args.query == "洗"
+    assert args.window_start.isoformat() == "2026-06-16T16:00:00+00:00"
+    assert args.window_end.isoformat() == "2026-06-17T15:59:59.999000+00:00"
+    assert args.limit == 500
+    assert args.count is True
+
+
 def test_cli_parser_supports_task_list_person_filter() -> None:
     parser = build_parser()
     args = parser.parse_args(

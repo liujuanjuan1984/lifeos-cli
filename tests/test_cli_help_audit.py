@@ -20,6 +20,7 @@ def test_collect_help_invocations_covers_nested_parser_paths() -> None:
     assert ("note", "--help") in paths
     assert ("note", "add", "--help") in paths
     assert ("note", "batch", "update-content", "--help") in paths
+    assert ("timelog", "search", "--help") in paths
     assert ("timelog", "stats", "day", "--help") in paths
     assert ("config", "set", "--help") in paths
 

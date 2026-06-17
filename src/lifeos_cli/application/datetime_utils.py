@@ -23,6 +23,16 @@ def normalize_storage_datetime(value: datetime | None) -> datetime | None:
     return value.replace(tzinfo=timezone.utc)
 
 
+def normalize_iso_datetime_input(value: str) -> str:
+    """Normalize accepted ISO datetime input variants before parsing."""
+    return f"{value[:-1]}+00:00" if value.endswith("Z") else value
+
+
+def parse_iso_datetime_input(value: str) -> datetime:
+    """Parse one accepted ISO datetime input string."""
+    return datetime.fromisoformat(normalize_iso_datetime_input(value))
+
+
 def format_utc_iso(value: datetime) -> str:
     """Render one stored datetime as an explicit UTC ISO string."""
     return normalize_storage_datetime(value).isoformat().replace("+00:00", "Z")

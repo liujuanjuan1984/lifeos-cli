@@ -67,6 +67,7 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
             (
                 "lifeos timelog add --help",
                 "lifeos timelog list --help",
+                "lifeos timelog search --help",
                 "lifeos timelog stats --help",
             ),
         ),

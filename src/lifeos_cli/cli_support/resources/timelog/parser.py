@@ -12,6 +12,7 @@ from lifeos_cli.cli_support.resources.timelog.parser_actions import (
     build_timelog_add_parser,
     build_timelog_delete_parser,
     build_timelog_list_parser,
+    build_timelog_search_parser,
     build_timelog_show_parser,
     build_timelog_update_parser,
 )
@@ -37,6 +38,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=(
                 "lifeos timelog add --help",
                 "lifeos timelog list --help",
+                "lifeos timelog search --help",
                 "lifeos timelog stats --help",
             ),
             notes=(
@@ -59,6 +61,7 @@ def build_timelog_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
 
     build_timelog_add_parser(timelog_subparsers)
     build_timelog_list_parser(timelog_subparsers)
+    build_timelog_search_parser(timelog_subparsers)
     build_timelog_show_parser(timelog_subparsers)
     build_timelog_update_parser(timelog_subparsers)
     build_timelog_delete_parser(timelog_subparsers)
