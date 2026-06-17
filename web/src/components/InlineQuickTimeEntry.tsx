@@ -744,9 +744,6 @@ export default function InlineQuickTimeEntry({
             <Icon name="bolt" size={20} aria-hidden />
             {t("quickTimeEntry.title")}
           </span>
-          <span className="text-sm text-base-content/70">
-            {t("quickFoodEntry.hint")}
-          </span>
         </h4>
       </div>
 
