@@ -81,11 +81,6 @@ class TimelogTemplateListInput:
     order_by: str = "position"
 
 
-def normalize_template_title(title: str) -> str:
-    """Return the normalized title key used for uniqueness checks."""
-    return validate_template_title(title).lower()
-
-
 def validate_template_title(title: str) -> str:
     """Validate and normalize a template title."""
     normalized = title.strip()
@@ -270,7 +265,7 @@ async def create_template(
 ) -> TimelogTemplateView:
     """Create a timelog quick template."""
     title = validate_template_title(payload.title)
-    title_normalized = normalize_template_title(title)
+    title_normalized = title.lower()
     await _ensure_title_available(session, title_normalized=title_normalized)
     await ensure_template_area_exists(session, payload.area_id)
     position = validate_template_position(payload.position)
@@ -318,7 +313,7 @@ async def update_template(
         if changes.title is None:
             raise TimelogTemplateValidationError("Timelog template title must not be null")
         title = validate_template_title(changes.title)
-        title_normalized = normalize_template_title(title)
+        title_normalized = title.lower()
         await _ensure_title_available(
             session,
             title_normalized=title_normalized,
