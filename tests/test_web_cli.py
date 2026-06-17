@@ -13,7 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
-from lifeos_cli.db.services.read_models import TagView, TaskSummaryView, TimelogView
+from lifeos_cli.db.services.read_models import (
+    PersonSummaryView,
+    TagView,
+    TaskSummaryView,
+    TimelogTemplateView,
+    TimelogView,
+)
 from lifeos_cli.db.services.timelog_support import (
     TimelogBatchUpdateInput,
     TimelogListInput,
@@ -36,10 +42,26 @@ def test_web_app_registers_core_resource_routes() -> None:
     pytest.importorskip("fastapi")
     from lifeos_web.app import app
 
-    route_paths = {getattr(route, "path", None) for route in app.routes}
+    route_paths: set[str] = set()
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        if path is not None:
+            route_paths.add(path)
+            continue
+        include_context = getattr(route, "include_context", None)
+        original_router = getattr(route, "original_router", None)
+        if include_context is None or original_router is None:
+            continue
+        prefix = getattr(include_context, "prefix", "") or ""
+        route_paths.update(
+            f"{prefix}{child.path}"
+            for child in original_router.routes
+            if getattr(child, "path", None) is not None
+        )
 
     assert "/api/v1/tasks/" in route_paths
     assert "/api/v1/timelogs/" in route_paths
+    assert "/api/v1/timelogs/templates/" in route_paths
     assert "/api/v1/notes/" in route_paths
     assert "/api/v1/visions/" in route_paths
     assert "/api/v1/habits/" in route_paths
@@ -240,6 +262,114 @@ def test_web_timelog_without_area_filter_maps_to_lifeos_without_area(
     assert count_filters.without_area is True
     assert list_query.filters.without_area is True
     assert response.meta["without_area"] is True
+
+
+def test_web_timelog_template_list_maps_pagination_and_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelog_templates
+
+    captured: dict[str, object] = {}
+
+    async def fake_count_templates(_session: object) -> int:
+        return 12
+
+    async def fake_list_templates(_session: object, *, query: object) -> list[object]:
+        captured["query"] = query
+        return []
+
+    monkeypatch.setattr(
+        timelog_templates.template_services,
+        "count_templates",
+        fake_count_templates,
+    )
+    monkeypatch.setattr(
+        timelog_templates.template_services,
+        "list_templates",
+        fake_list_templates,
+    )
+
+    response = asyncio.run(
+        timelog_templates.list_timelog_templates(
+            cast(AsyncSession, object()),
+            page=2,
+            size=5,
+            order_by="usage",
+        )
+    )
+
+    query = captured["query"]
+    assert isinstance(query, timelog_templates.template_services.TimelogTemplateListInput)
+    assert query.limit == 5
+    assert query.offset == 5
+    assert query.order_by == "usage"
+    assert response.pagination.total == 12
+    assert response.pagination.pages == 3
+    assert response.meta["order_by"] == "usage"
+
+
+def test_web_timelog_template_update_preserves_explicit_nulls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelog_templates
+    from lifeos_web.schemas import TimelogTemplateUpdate
+
+    template_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured: dict[str, object] = {}
+
+    async def fake_update_template(_session: object, **kwargs: object) -> TimelogTemplateView:
+        captured.update(kwargs)
+        return TimelogTemplateView(
+            id=template_id,
+            title="Focus",
+            area_id=None,
+            area_name=None,
+            area_color=None,
+            person_ids=(),
+            persons=(PersonSummaryView(id=UUID("22222222-2222-2222-2222-222222222222"), name="A"),),
+            default_duration_minutes=None,
+            position=0,
+            usage_count=0,
+            last_used_at=None,
+            created_at=datetime(2026, 6, 17, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 17, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+
+    monkeypatch.setattr(
+        timelog_templates.template_services,
+        "update_template",
+        fake_update_template,
+    )
+
+    response = asyncio.run(
+        timelog_templates.update_timelog_template(
+            template_id,
+            TimelogTemplateUpdate(area_id=None, default_duration_minutes=None),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    changes = captured["changes"]
+    assert isinstance(changes, timelog_templates.template_services.TimelogTemplateUpdateInput)
+    assert changes.area_provided is True
+    assert changes.area_id is None
+    assert changes.default_duration_minutes_provided is True
+    assert changes.default_duration_minutes is None
+    assert changes.person_ids_provided is False
+    assert response["persons"] == [
+        {
+            "id": "22222222-2222-2222-2222-222222222222",
+            "name": "A",
+            "display_name": "A",
+            "primary_nickname": "A",
+            "tags": [],
+        }
+    ]
 
 
 def test_web_timelog_without_task_filter_maps_to_lifeos_without_task(

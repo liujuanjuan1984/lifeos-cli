@@ -33,6 +33,14 @@ export const ENDPOINTS = {
     BASE: `${API_V1}/timelogs/`,
     BY_ID: (id: string) => `${API_V1}/timelogs/${id}`,
     BATCH_UPDATE: `${API_V1}/timelogs/batch-update`,
+    TEMPLATES: {
+      BASE: `${API_V1}/timelogs/templates/`,
+      BULK: `${API_V1}/timelogs/templates/bulk`,
+      BY_ID: (id: string) => `${API_V1}/timelogs/templates/${id}`,
+      REORDER: `${API_V1}/timelogs/templates/reorder`,
+      BUMP_USAGE: (id: string) =>
+        `${API_V1}/timelogs/templates/${id}/bump-usage`,
+    },
   },
   NOTES: {
     BASE: `${API_V1}/notes/`,

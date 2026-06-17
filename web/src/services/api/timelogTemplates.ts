@@ -1,10 +1,11 @@
 import type { UUID } from "@/types/primitive";
 import type { PersonSummary } from "./types/common";
 import type { ListResponse } from "@/types/pagination";
+import { http } from "./client";
+import { ENDPOINTS } from "./endpoints";
 
 export interface TimelogTemplate {
   id: UUID;
-  user_id: UUID;
   title: string;
   area_id: UUID | null;
   area_name?: string | null;
@@ -53,40 +54,37 @@ export interface TimelogTemplateReorderItem {
   position: number;
 }
 
-const unsupported = () =>
-  Promise.reject(new Error("Quick time-entry templates are not supported yet."));
-
 export const timelogTemplatesApi = {
-  list: async (params?: {
+  list: (params?: {
     page?: number;
     size?: number;
     order_by?: "position" | "usage" | "recent";
-  }): Promise<TimelogTemplatesListResponse> => ({
-    items: [],
-    pagination: {
-      page: params?.page ?? 1,
-      size: params?.size ?? 100,
-      total: 0,
-      pages: 0,
-    },
-    meta: { order_by: params?.order_by ?? null },
-  }),
-  create: (
-    _payload: TimelogTemplateCreateRequest,
-  ): Promise<TimelogTemplate> => unsupported(),
-  bulkCreate: async (
-    _items: TimelogTemplateCreateRequest[],
-  ): Promise<TimelogTemplatesListResponse> => ({
-    items: [],
-    pagination: { page: 1, size: 100, total: 0, pages: 0 },
-    meta: {},
-  }),
+  }): Promise<TimelogTemplatesListResponse> =>
+    http.get<TimelogTemplatesListResponse>(ENDPOINTS.TIMELOGS.TEMPLATES.BASE, {
+      page: params?.page,
+      size: params?.size,
+      order_by: params?.order_by,
+    }),
+  create: (payload: TimelogTemplateCreateRequest): Promise<TimelogTemplate> =>
+    http.post<TimelogTemplate>(ENDPOINTS.TIMELOGS.TEMPLATES.BASE, payload),
+  bulkCreate: (
+    items: TimelogTemplateCreateRequest[],
+  ): Promise<TimelogTemplatesListResponse> =>
+    http.post<TimelogTemplatesListResponse>(ENDPOINTS.TIMELOGS.TEMPLATES.BULK, {
+      items,
+    }),
   update: (
-    _id: UUID,
-    _payload: TimelogTemplateUpdateRequest,
-  ): Promise<TimelogTemplate> => unsupported(),
-  remove: (_id: UUID): Promise<void> => unsupported(),
-  reorder: async (_items: TimelogTemplateReorderItem[]): Promise<void> =>
-    undefined,
-  bumpUsage: (_id: UUID): Promise<TimelogTemplate> => unsupported(),
+    id: UUID,
+    payload: TimelogTemplateUpdateRequest,
+  ): Promise<TimelogTemplate> =>
+    http.patch<TimelogTemplate>(
+      ENDPOINTS.TIMELOGS.TEMPLATES.BY_ID(id),
+      payload,
+    ),
+  remove: (id: UUID): Promise<void> =>
+    http.delete<void>(ENDPOINTS.TIMELOGS.TEMPLATES.BY_ID(id)),
+  reorder: (items: TimelogTemplateReorderItem[]): Promise<void> =>
+    http.patch<void>(ENDPOINTS.TIMELOGS.TEMPLATES.REORDER, { items }),
+  bumpUsage: (id: UUID): Promise<TimelogTemplate> =>
+    http.post<TimelogTemplate>(ENDPOINTS.TIMELOGS.TEMPLATES.BUMP_USAGE(id)),
 };
