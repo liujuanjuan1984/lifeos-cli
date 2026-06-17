@@ -353,6 +353,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         preset={preset}
         tree={tree}
         entryNodes={entryNodes}
+        treeNodes={treeNodes}
         snapshots={snapshots}
         currentSnapshot={currentSnapshot}
         currentPosition={currentPosition}
@@ -360,7 +361,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
         snapshotSubmitting={createSnapshotMutation.isPending}
-        treeNodes={treeNodes}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         onPrevious={() => moveSnapshot(-1)}
@@ -537,6 +537,7 @@ function SnapshotModule({
   preset,
   tree,
   entryNodes,
+  treeNodes,
   snapshots,
   currentSnapshot,
   currentPosition,
@@ -544,7 +545,6 @@ function SnapshotModule({
   snapshotDetailLoading,
   snapshotFormVisible,
   snapshotSubmitting,
-  treeNodes,
   hasPrevious,
   hasNext,
   onPrevious,
@@ -556,6 +556,7 @@ function SnapshotModule({
   preset: PresetConfig;
   tree: FinanceTree;
   entryNodes: TreeNodeWithChildren[];
+  treeNodes: TreeNodeWithChildren[];
   snapshots: FinanceSnapshot[];
   currentSnapshot: FinanceSnapshot | null;
   currentPosition: number;
@@ -563,7 +564,6 @@ function SnapshotModule({
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
   snapshotSubmitting: boolean;
-  treeNodes: TreeNodeWithChildren[];
   hasPrevious: boolean;
   hasNext: boolean;
   onPrevious: () => void;
@@ -589,7 +589,7 @@ function SnapshotModule({
           <SnapshotFormPanel
             tree={tree}
             preset={preset}
-            entryNodes={entryNodes}
+            treeNodes={treeNodes}
             submitting={snapshotSubmitting}
             onSubmit={onCreateSnapshot}
             onCancel={onCloseSnapshotForm}
@@ -656,7 +656,7 @@ function SnapshotModule({
           <SnapshotFormPanel
             tree={tree}
             preset={preset}
-            entryNodes={entryNodes}
+            treeNodes={treeNodes}
             submitting={snapshotSubmitting}
             onSubmit={onCreateSnapshot}
             onCancel={onCloseSnapshotForm}
@@ -902,24 +902,25 @@ function FinanceNodeFormModal({
             placeholder={t("finance.tree.nodeNamePlaceholder")}
           />
         </FormField>
-        {!isEditing ? (
-          <label className="form-control">
-            <span className="label-text">{t("finance.tree.parent")}</span>
-            <select
-              className="select select-bordered select-sm"
-              value={parentId}
-              onChange={(event) => setParentId(event.target.value as UUID | "")}
-            >
-              <option value="">{t("finance.tree.root")}</option>
-              {flatNodes.map((node) => (
+        <label className="form-control">
+          <span className="label-text">{t("finance.tree.parent")}</span>
+          <select
+            className="select select-bordered select-sm"
+            value={parentId}
+            onChange={(event) => setParentId(event.target.value as UUID | "")}
+            disabled={isEditing}
+          >
+            <option value="">{t("finance.tree.root")}</option>
+            {flatNodes
+              .filter((node) => node.id !== editingNode?.id)
+              .map((node) => (
                 <option key={node.id} value={node.id}>
                   {"  ".repeat(node.depth)}
                   {node.name}
                 </option>
               ))}
-            </select>
-          </label>
-        ) : null}
+          </select>
+        </label>
         <FormField label={t("finance.tree.currency")}>
           <TextInput
             size="sm"
@@ -1112,14 +1113,14 @@ function TreeNodeRow({
 function SnapshotFormPanel({
   tree,
   preset,
-  entryNodes,
+  treeNodes,
   submitting,
   onSubmit,
   onCancel,
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
-  entryNodes: TreeNodeWithChildren[];
+  treeNodes: TreeNodeWithChildren[];
   submitting: boolean;
   onSubmit: (payload: {
     snapshot_ts?: string | null;
@@ -1139,10 +1140,18 @@ function SnapshotFormPanel({
   const [amounts, setAmounts] = useState<SnapshotAmountState>({});
   const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
+  const leafNodes = useMemo(
+    () => flattenTree(treeNodes).filter((node) => node.children.length === 0),
+    [treeNodes],
+  );
+  const aggregatedAmounts = useMemo(
+    () => buildAggregatedSnapshotAmounts(treeNodes, amounts),
+    [amounts, treeNodes],
+  );
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const entries = entryNodes.reduce<FinanceSnapshotEntryCreate[]>((acc, node) => {
+    const entries = leafNodes.reduce<FinanceSnapshotEntryCreate[]>((acc, node) => {
       const amount = amounts[node.id]?.trim();
       if (!amount) {
         return acc;
@@ -1217,59 +1226,20 @@ function SnapshotFormPanel({
           </div>
         )}
 
-        <div className="overflow-x-auto border border-base-300 rounded-lg">
-          <table className="table table-sm">
-            <thead>
-              <tr>
-                <th>{t("finance.snapshot.node")}</th>
-                <th className="w-36">{t("finance.snapshot.amount")}</th>
-                <th className="w-24">{t("finance.snapshot.currency")}</th>
-                <th>{t("finance.snapshot.note")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entryNodes.map((node) => (
-                <tr key={node.id}>
-                  <td>
-                    <div className="font-medium" style={{ paddingLeft: `${node.depth * 12}px` }}>
-                      {node.name}
-                    </div>
-                  </td>
-                  <td>
-                    <TextInput
-                      size="sm"
-                      inputMode="decimal"
-                      value={amounts[node.id] ?? ""}
-                      onChange={(event) =>
-                        setAmounts((prev) => ({ ...prev, [node.id]: event.target.value }))
-                      }
-                      placeholder="0.00"
-                    />
-                  </td>
-                  <td className="text-sm text-base-content/70">
-                    {node.currency_code || tree.primary_currency}
-                  </td>
-                  <td>
-                    <TextInput
-                      size="sm"
-                      value={notes[node.id] ?? ""}
-                      onChange={(event) =>
-                        setNotes((prev) => ({ ...prev, [node.id]: event.target.value }))
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!entryNodes.length ? (
-                <tr>
-                  <td colSpan={4} className="text-center text-base-content/60 py-6">
-                    {t("finance.snapshot.noEntryNodes")}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        <SnapshotEntryTreeTable
+          treeNodes={treeNodes}
+          amounts={amounts}
+          notes={notes}
+          aggregatedAmounts={aggregatedAmounts}
+          primaryCurrency={tree.primary_currency}
+          submitting={submitting}
+          onChangeAmount={(nodeId, value) =>
+            setAmounts((prev) => ({ ...prev, [nodeId]: value }))
+          }
+          onChangeNote={(nodeId, value) =>
+            setNotes((prev) => ({ ...prev, [nodeId]: value }))
+          }
+        />
 
         <FormField label={t("finance.snapshot.snapshotNote")}>
           <TextArea
@@ -1286,10 +1256,209 @@ function SnapshotFormPanel({
             color="primary"
             variant="solid"
             iconName="check"
-            disabled={submitting || !entryNodes.length}
+            disabled={submitting || !leafNodes.length}
           />
         </div>
       </form>
+    </div>
+  );
+}
+
+function SnapshotEntryTreeTable({
+  treeNodes,
+  amounts,
+  notes,
+  aggregatedAmounts,
+  primaryCurrency,
+  submitting,
+  onChangeAmount,
+  onChangeNote,
+}: {
+  treeNodes: TreeNodeWithChildren[];
+  amounts: SnapshotAmountState;
+  notes: SnapshotNoteState;
+  aggregatedAmounts: Record<UUID, string>;
+  primaryCurrency: string;
+  submitting: boolean;
+  onChangeAmount: (nodeId: UUID, value: string) => void;
+  onChangeNote: (nodeId: UUID, value: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
+
+  useEffect(() => {
+    const initial = new Set<UUID>();
+    includeFinanceNodeIds(treeNodes, initial);
+    setExpandedIds(initial);
+  }, [treeNodes]);
+
+  const toggleNode = (nodeId: UUID) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  const renderRows = (nodes: TreeNodeWithChildren[], depth: number): React.ReactNode[] =>
+    nodes.flatMap((node) => {
+      const hasChildren = node.children.length > 0;
+      const isExpanded = expandedIds.has(node.id);
+      const amount = amounts[node.id] ?? "";
+      const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
+      const convertedAmount = hasChildren ? aggregatedAmount : amount.trim();
+      const amountNegative = isNegativeAmount(amount);
+      const convertedNegative = isNegativeAmount(convertedAmount);
+
+      const rows: React.ReactNode[] = [
+        <tr key={node.id} className="border-base-200">
+          <td className="align-top">
+            <div
+              className="flex items-start gap-3"
+              style={{ paddingLeft: `${depth * 1.25}rem` }}
+            >
+              {hasChildren ? (
+                <ActionButton
+                  label=""
+                  iconName={isExpanded ? "chevron-down" : "chevron-right"}
+                  iconOnly
+                  size="xs"
+                  variant="ghost"
+                  shape="circle"
+                  className="mt-1 h-6 w-6 p-0"
+                  ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
+                  ariaExpanded={isExpanded}
+                  onClick={() => toggleNode(node.id)}
+                />
+              ) : (
+                <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center text-base-content/30">
+                  •
+                </span>
+              )}
+              <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <p className="truncate font-semibold text-base-content">{node.name}</p>
+                <div className="inline-flex flex-wrap items-center gap-1 text-xs text-base-content/70 sm:flex-nowrap">
+                  <span className="rounded-full bg-base-200 px-2 py-0.5">
+                    {node.currency_code || primaryCurrency}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td className="align-top text-center">
+            <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/80">
+              {(node.currency_code || primaryCurrency).toUpperCase()}
+            </span>
+          </td>
+          <td className="align-top">
+            {hasChildren ? (
+              <div
+                className={[
+                  "min-h-[2.25rem] rounded-md border border-dashed border-base-200 px-3 py-2 text-sm",
+                  isNegativeAmount(aggregatedAmount) ? "text-error" : "text-base-content/80",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {aggregatedAmount || t("finance.snapshot.autoAggregatedPlaceholder")}
+              </div>
+            ) : (
+              <TextInput
+                type="text"
+                inputMode="decimal"
+                pattern="-?[0-9]*[.,]?[0-9]*"
+                size="sm"
+                className={amountNegative ? "text-error" : "text-base-content"}
+                value={amount}
+                onChange={(event) => onChangeAmount(node.id, event.target.value)}
+                placeholder={t("finance.snapshot.balancePlaceholder")}
+                disabled={submitting}
+              />
+            )}
+          </td>
+          <td className="align-top">
+            {convertedAmount ? (
+              <span
+                className={[
+                  "inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm",
+                  convertedNegative ? "text-error" : "text-base-content/80",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {convertedAmount} {primaryCurrency}
+              </span>
+            ) : (
+              <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
+                -
+              </span>
+            )}
+          </td>
+          <td className="align-top">
+            {hasChildren ? (
+              <span className="inline-flex min-h-[2.25rem] items-center text-base-content/40">
+                -
+              </span>
+            ) : (
+              <TextInput
+                type="text"
+                size="sm"
+                value={notes[node.id] ?? ""}
+                onChange={(event) => onChangeNote(node.id, event.target.value)}
+                placeholder={t("finance.snapshot.notePlaceholder")}
+                disabled={submitting}
+              />
+            )}
+          </td>
+        </tr>,
+      ];
+
+      if (hasChildren && isExpanded) {
+        rows.push(...renderRows(node.children, depth + 1));
+      }
+
+      return rows;
+    });
+
+  return (
+    <div className="rounded-lg border border-base-200">
+      <div className="border-b border-base-200 bg-base-200/40 px-4 py-2 text-sm font-semibold text-base-content">
+        {t("finance.snapshot.tableTitle")}
+      </div>
+      {treeNodes.length ? (
+        <div className="overflow-x-auto p-3 pb-4">
+          <table className="min-w-full text-sm">
+            <thead className="bg-base-200/60 text-left text-xs uppercase text-base-content/60">
+              <tr>
+                <th className="w-[40%] min-w-[12rem] px-4 py-2">
+                  {t("finance.snapshot.node")}
+                </th>
+                <th className="w-20 px-4 py-2 text-center">
+                  {t("finance.snapshot.originalCurrency")}
+                </th>
+                <th className="min-w-[10rem] px-4 py-2">
+                  {t("finance.snapshot.originalAmount")}
+                </th>
+                <th className="min-w-[10rem] px-4 py-2">
+                  {t("finance.snapshot.convertedAmount", { currency: primaryCurrency })}
+                </th>
+                <th className="min-w-[10rem] px-4 py-2">
+                  {t("finance.snapshot.note")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>{renderRows(treeNodes, 0)}</tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="px-4 py-8 text-center text-sm text-base-content/60">
+          {t("finance.snapshot.noEntryNodes")}
+        </div>
+      )}
     </div>
   );
 }
@@ -1360,11 +1529,18 @@ function SnapshotDetail({
         <table className="table table-sm">
           <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
             <tr>
-              <th className="w-1/2 min-w-[16rem]">{t("finance.snapshot.node")}</th>
-              <th className="w-40 text-right">
-                {t("finance.snapshot.amount")} ({snapshot.primary_currency})
+              <th className="w-[40%] min-w-[12rem] px-4 py-2">
+                {t("finance.snapshot.node")}
               </th>
-              <th className="w-28">{t("finance.snapshot.currency")}</th>
+              <th className="w-20 px-4 py-2 text-center">
+                {t("finance.snapshot.originalCurrency")}
+              </th>
+              <th className="min-w-[10rem] px-4 py-2">
+                {t("finance.snapshot.originalAmount")}
+              </th>
+              <th className="min-w-[10rem] px-4 py-2">
+                {t("finance.snapshot.convertedAmount", { currency: snapshot.primary_currency })}
+              </th>
               <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
             </tr>
           </thead>
@@ -1372,8 +1548,15 @@ function SnapshotDetail({
             {visibleNodes.map((node) => {
               const hasChildren = node.children.length > 0;
               const isExpanded = expandedIds.has(node.id);
+              const originalAmount = Number(node.amount);
               const convertedAmount = Number(node.amountConverted);
-              const amountClass =
+              const originalAmountClass =
+                originalAmount > 0
+                  ? "text-success"
+                  : originalAmount < 0
+                    ? "text-error"
+                    : "text-base-content";
+              const convertedAmountClass =
                 convertedAmount > 0
                   ? "text-success"
                   : convertedAmount < 0
@@ -1416,13 +1599,20 @@ function SnapshotDetail({
                       </div>
                     </div>
                   </td>
-                  <td className="align-top text-right">
-                    <span className={`tabular-nums ${amountClass}`}>
-                      {formatMoney(node.amountConverted, snapshot.primary_currency)}
+                  <td className="align-top text-center text-base-content/70">
+                    <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/80">
+                      {(node.currencyCode || snapshot.primary_currency).toUpperCase()}
                     </span>
                   </td>
-                  <td className="align-top text-base-content/70">
-                    {node.currencyCode || snapshot.primary_currency}
+                  <td className="align-top">
+                    <span className={`tabular-nums ${originalAmountClass}`}>
+                      {node.amount || "-"}
+                    </span>
+                  </td>
+                  <td className="align-top">
+                    <span className={`tabular-nums ${convertedAmountClass}`}>
+                      {formatMoney(node.amountConverted, snapshot.primary_currency)}
+                    </span>
                   </td>
                   <td className="align-top">
                     {node.note ? (
@@ -1438,7 +1628,7 @@ function SnapshotDetail({
             })}
             {!visibleNodes.length ? (
               <tr>
-                <td colSpan={4} className="text-center text-base-content/60 py-6">
+                <td colSpan={5} className="text-center text-base-content/60 py-6">
                   {t("finance.history.noSelection")}
                 </td>
               </tr>
@@ -1456,6 +1646,7 @@ type SnapshotDisplayNode = {
   id: UUID;
   name: string;
   depth: number;
+  amount: string;
   amountConverted: string;
   currencyCode: string;
   note: string | null;
@@ -1490,6 +1681,7 @@ function buildSnapshotDisplayTree(
           id: node.id,
           name: node.name,
           depth,
+          amount: entry?.amount ?? amountConverted,
           amountConverted,
           currencyCode: entry?.currency_code ?? node.currency_code ?? "",
           note: entry?.note ?? null,
@@ -1508,6 +1700,7 @@ function buildSnapshotDisplayTree(
           id: entry.node_id,
           name: entry.node_name ?? entry.node_id,
           depth: 0,
+          amount: entry.amount,
           amountConverted: entry.amount_converted,
           currencyCode: entry.currency_code,
           note: entry.note ?? null,
@@ -1518,12 +1711,65 @@ function buildSnapshotDisplayTree(
   return roots.concat(orphanEntries);
 }
 
-function sumSnapshotNodeAmounts(nodes: SnapshotDisplayNode[]): string {
-  const total = nodes.reduce((acc, node) => {
-    const parsed = Number(node.amountConverted);
-    return Number.isFinite(parsed) ? acc + parsed : acc;
+function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>) {
+  nodes.forEach((node) => {
+    target.add(node.id);
+    if (node.children.length) {
+      includeFinanceNodeIds(node.children, target);
+    }
+  });
+}
+
+function buildAggregatedSnapshotAmounts(
+  nodes: TreeNodeWithChildren[],
+  amounts: SnapshotAmountState,
+): Record<UUID, string> {
+  const result: Record<UUID, string> = {};
+
+  const visit = (node: TreeNodeWithChildren): string => {
+    if (!node.children.length) {
+      const amount = amounts[node.id]?.trim() ?? "";
+      if (amount) {
+        result[node.id] = amount;
+      }
+      return amount;
+    }
+
+    const total = sumAmountStrings(node.children.map(visit));
+    if (total) {
+      result[node.id] = total;
+    }
+    return total;
+  };
+
+  nodes.forEach(visit);
+  return result;
+}
+
+function sumAmountStrings(values: string[]): string {
+  let hasValue = false;
+  const total = values.reduce((acc, value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return acc;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return acc;
+    }
+    hasValue = true;
+    return acc + parsed;
   }, 0);
-  return total.toString();
+  return hasValue ? total.toString() : "";
+}
+
+function sumSnapshotNodeAmounts(nodes: SnapshotDisplayNode[]): string {
+  return sumAmountStrings(nodes.map((node) => node.amountConverted));
+}
+
+function isNegativeAmount(value: string | null | undefined): boolean {
+  const numeric = Number(value ?? "");
+  return Number.isFinite(numeric) && numeric < 0;
 }
 
 function collectExpandableSnapshotNodeIds(
