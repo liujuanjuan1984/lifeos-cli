@@ -257,7 +257,7 @@ def _build_timelog_query_parser(
     name: str,
     *,
     help_content: HelpContent,
-) -> argparse.ArgumentParser:
+) -> None:
     parser = add_documented_parser(
         timelog_subparsers,
         name,
@@ -265,7 +265,6 @@ def _build_timelog_query_parser(
     )
     _add_timelog_query_arguments(parser)
     parser.set_defaults(handler=make_sync_handler(handle_timelog_list_async))
-    return parser
 
 
 def _add_timelog_query_arguments(parser: argparse.ArgumentParser) -> None:
