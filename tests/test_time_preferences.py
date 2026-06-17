@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 from lifeos_cli.application.time_preferences import (
     apply_preferred_timezone,
     get_operational_date,
+    get_utc_half_open_window_for_local_date_range,
     get_utc_window_for_local_date,
     get_week_bounds,
     to_preferred_timezone,
@@ -59,6 +60,22 @@ def test_get_utc_window_for_local_date_respects_day_start_boundary(monkeypatch, 
 
     assert window_start.isoformat() == "2026-04-10T08:00:00+00:00"
     assert window_end.isoformat() == "2026-04-11T08:00:00+00:00"
+    clear_config_cache()
+
+
+def test_get_utc_half_open_window_for_local_date_range_keeps_exclusive_end(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    install_test_config(monkeypatch=monkeypatch, tmp_path=tmp_path, include_preferences=True)
+
+    window_start, window_end = get_utc_half_open_window_for_local_date_range(
+        date(2026, 4, 10),
+        date(2026, 4, 11),
+    )
+
+    assert window_start.isoformat() == "2026-04-10T08:00:00+00:00"
+    assert window_end.isoformat() == "2026-04-12T08:00:00+00:00"
     clear_config_cache()
 
 

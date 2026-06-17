@@ -401,8 +401,11 @@ export default function InlineQuickTimeEntry({
   } = useTimelogTemplates();
   const sortedTemplates = useMemo(() => sortTemplates(templates), [templates]);
 
-  const hhmmToISO = (baseDate: Date, hhmm: string): string =>
-    hhmmOnDateToISO(baseDate, hhmm, timezone);
+  const hhmmToISO = useCallback(
+    (baseDate: Date, hhmm: string): string =>
+      hhmmOnDateToISO(baseDate, hhmm, timezone),
+    [timezone],
+  );
 
   // Human readable duration label
   const formStartTime = formData.start_time;
@@ -448,6 +451,7 @@ export default function InlineQuickTimeEntry({
     initialEndTime,
     shouldInitializeFromProps,
     setFormDataWithSync,
+    hhmmToISO,
   ]);
 
   // Focus title input when component mounts

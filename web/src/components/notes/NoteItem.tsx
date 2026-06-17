@@ -373,7 +373,7 @@ const NoteItem = React.memo<NoteItemProps>(
         default:
           return null;
       }
-    }, [associationTooltip, areaMap]);
+    }, [associationTooltip, areaMap, timezone]);
 
     // 复制笔记内容到剪贴板
     const handleCopy = async () => {
