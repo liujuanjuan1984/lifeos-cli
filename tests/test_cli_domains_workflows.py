@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import cast
 from uuid import UUID
 
@@ -278,6 +278,76 @@ def test_main_timelog_list_passes_search_filters(
         (
             "13131313-1313-1313-1313-131313131313\tmanual\t2026-04-10T13:00:00+00:00\t"
             "2026-04-10T14:00:00+00:00\t-\tDeep work"
+        ),
+        "Total timelogs: 1",
+    ]
+    clear_config_cache()
+
+
+def test_main_timelog_search_reuses_list_filters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_TIMEZONE", "UTC")
+
+    expected_start = utc_datetime(2026, 6, 16, 16, 0)
+    expected_end = datetime(2026, 6, 17, 15, 59, 59, 999000, tzinfo=timezone.utc)
+
+    async def fake_list_timelogs(_session: object, **kwargs: object) -> list[object]:
+        query = cast(timelogs.TimelogListInput, kwargs["query"])
+        assert query.filters.query == "洗"
+        assert query.filters.window_start == expected_start
+        assert query.filters.window_end == expected_end
+        assert query.limit == 500
+        assert query.offset == 0
+        return [
+            make_record(
+                id=UUID("13131313-1313-1313-1313-131313131313"),
+                deleted_at=None,
+                tracking_method="manual",
+                start_time=expected_start,
+                end_time=expected_end,
+                task_id=None,
+                linked_notes_count=0,
+                title="洗衣",
+            )
+        ]
+
+    async def fake_count_timelogs(_session: object, **kwargs: object) -> int:
+        filters = cast(timelogs.TimelogQueryFilters, kwargs["filters"])
+        assert filters.query == "洗"
+        assert filters.window_start == expected_start
+        assert filters.window_end == expected_end
+        return 1
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(timelogs, "list_timelogs", fake_list_timelogs)
+    monkeypatch.setattr(timelogs, "count_timelogs", fake_count_timelogs)
+
+    exit_code = cli.main(
+        [
+            "timelog",
+            "search",
+            "--query",
+            "洗",
+            "--start-time",
+            "2026-06-16T16:00:00.000Z",
+            "--end-time",
+            "2026-06-17T15:59:59.999Z",
+            "--limit",
+            "500",
+            "--count",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
+        "timelog_id\tstatus\tstart_time\tend_time\ttask_id\ttitle",
+        (
+            "13131313-1313-1313-1313-131313131313\tmanual\t2026-06-16T16:00:00+00:00\t"
+            "2026-06-17T15:59:59.999000+00:00\t-\t洗衣"
         ),
         "Total timelogs: 1",
     ]

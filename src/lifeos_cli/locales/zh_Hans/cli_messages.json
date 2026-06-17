@@ -657,7 +657,7 @@
         "see_lifeos_timelog_batch_help_for_bulk_update_and_delete_workflows": "批量 `update` 和 `delete` 工作流请查看 `lifeos timelog batch --help`。",
         "timelogs_can_optionally_reference_one_area_and_one_task": "`timelog` 可以选择关联一个 `area` 和一个 `task`。",
         "timelogs_represent_what_really_happened_and_how_time_was_spent": "`timelog` 代表真实发生的事情以及时间是如何被使用的。",
-        "use_list_as_primary_query_entrypoint_for_timelogs": "将 `list` 作为 `timelog` 的主要查询入口。",
+        "use_list_as_primary_query_entrypoint_for_timelogs": "使用 `list` 浏览通用 `timelog`，使用 `search` 处理关键词或高级查询。",
         "use_stats_for_timelog_stats_grouped_by_area": "使用 `stats` 查看按 `area` 分组的 `timelog` 统计。"
       },
       "parser_actions": {
@@ -685,6 +685,9 @@
         "read_quick_batch_entries_from_utf_8_text_file": "Read quick batch entries from a UTF-8 text file",
         "repeat_to_add_one_quick_batch_entry_line": "Repeat to add one quick batch-entry line",
         "repeat_to_attach_one_or_more_timelog_tags": "重复附加一个或多个 `tag`",
+        "search_reuses_timelog_list_filters_and_output": "此命令复用 `timelog list` 的过滤器和制表符分隔摘要输出。",
+        "search_timelogs": "搜索 `timelog`",
+        "search_timelogs_with_keyword_time_window_relation_and_method_filters": "搜索 `timelog`，可选使用关键词、时间窗口、关系和方法过滤器。",
         "search_title_and_notes_by_keyword": "按关键字搜索标题和 `note`",
         "show_one_timelog_with_full_metadata_and_derived_note_link_counts": "显示一个 `timelog`，其中包含完整的元数据和派生的 `note` 链接计数。",
         "show_timelog": "显示 `timelog`",
@@ -699,10 +702,12 @@
         "updated_tracking_method": "更新了追踪方法",
         "use_query_for_lightweight_text_filtering_across_titles_and_notes": "使用 `--query` 跨标题和备注做轻量级文本过滤。",
         "use_repeated_person_id_to_keep_actual_human_effort_agent_effort_and": "使用重复的 `--person-id` 来区分实际的人类工作量、代理工作量和共享工作量。",
-        "use_this_command_as_primary_query_entrypoint_for_timelogs": "使用此命令作为 `timelog` 的主要查询入口。",
+        "use_area_and_task_flags_for_structured_relation_filters": "使用 area 和 task 参数做结构化关系过滤；`--query` 不搜索 task 或 area 名称。",
+        "use_this_command_as_primary_query_entrypoint_for_timelogs": "使用此命令浏览通用 `timelog`；使用 `search` 处理关键词和高级查询工作流。",
         "use_start_time_end_time_as_overlap_window_not_exact_field_matches": "`--start-time/--end-time` 定义重叠时间窗口，不是精确匹配 `timelog` 字段；本地日期范围请使用 `--start-date/--end-date`。",
         "when_agent_records_actual_work_use_person_id_to_state_whether_effort": "当代理记录实际工作时，使用 `--person-id` 来说明该工作是否属于 `people`、代理或两者。",
         "when_quick_batch_mode_omits_first_start_time_first_row_inherits_latest": "When quick batch mode omits `--first-start-time`, the first row inherits the latest active timelog end time.",
+        "when_results_exist_search_prints_header_row_followed_by_tab_separated": "当存在结果时，`search` 命令会先输出一行表头，随后按制表符分隔输出列：{columns}。",
         "write_quick_batch_timelogs_without_interactive_confirmation_after_preview": "预览后直接写入快捷批量 `timelog`，无需交互确认"
       },
       "parser_batch": {
