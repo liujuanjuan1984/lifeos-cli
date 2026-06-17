@@ -236,7 +236,7 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
     has_recurrence_frequency = payload.is_recurring and recurrence.get("frequency")
     has_recurrence_interval = payload.is_recurring and recurrence.get("interval") is not None
     has_recurrence_count = payload.is_recurring and recurrence.get("count") is not None
-    recurrence_rule = _recurrence_rule_from_pattern(recurrence)
+    recurrence_rule = _recurrence_rule_from_pattern(recurrence) if payload.is_recurring else None
     return EventCreateInput(
         title=payload.title,
         start_time=payload.start_time,

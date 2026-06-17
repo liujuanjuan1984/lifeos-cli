@@ -120,6 +120,24 @@ def test_planned_event_rrule_preserves_advanced_recurrence_details() -> None:
     assert event_payload["rrule_string"] == "FREQ=MONTHLY;BYDAY=2MO;BYMONTH=4,5"
 
 
+def test_planned_event_create_ignores_rrule_when_not_recurring() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.planned_events import _create_input
+    from lifeos_web.schemas import PlannedEventCreate
+
+    payload = PlannedEventCreate(
+        title="One-off review",
+        start_time=datetime(2026, 4, 13, 16, 0, tzinfo=timezone.utc),
+        is_recurring=False,
+        rrule_string="FREQ=MONTHLY;BYDAY=2MO",
+    )
+
+    parsed = _create_input(payload)
+
+    assert parsed.recurrence_frequency is None
+    assert parsed.recurrence_rule is None
+
+
 def test_web_app_registers_core_resource_routes() -> None:
     pytest.importorskip("fastapi")
     from lifeos_web.app import app
