@@ -122,6 +122,12 @@ def test_parse_user_datetime_value_preserves_naive_input_shape() -> None:
     assert parsed.tzinfo is None
 
 
+def test_parse_user_datetime_value_accepts_utc_z_suffix() -> None:
+    parsed = parse_user_datetime_value("2026-06-16T16:00:00.000Z")
+
+    assert parsed.isoformat() == "2026-06-16T16:00:00+00:00"
+
+
 def test_resolve_required_date_interval_arguments_rejects_empty_input() -> None:
     try:
         resolve_required_date_interval_arguments()

@@ -60,8 +60,9 @@ def parse_datetime_or_date_value(value: str) -> datetime | date:
 
 def parse_user_datetime_value(value: str) -> datetime:
     """Parse one ISO datetime value for user-facing write arguments."""
+    normalized_value = value.removesuffix("Z") + "+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(value)
+        return datetime.fromisoformat(normalized_value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
