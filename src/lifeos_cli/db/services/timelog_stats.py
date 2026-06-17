@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.application.datetime_utils import normalize_storage_datetime
 from lifeos_cli.application.time_preferences import (
     get_operational_date,
+    get_utc_half_open_window_for_local_date_range,
     get_utc_window_for_local_date,
-    get_utc_window_for_local_date_range,
     get_week_bounds,
 )
 from lifeos_cli.config import get_preferences_settings
@@ -352,7 +352,10 @@ async def _recompute_aggregated_period(
     end_date: date,
 ) -> None:
     timezone_name = get_preferences_settings().timezone
-    window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
+    window_start, window_end = get_utc_half_open_window_for_local_date_range(
+        start_date,
+        end_date,
+    )
     report = await _collect_area_stats_for_window(
         session,
         window_start=window_start,
@@ -476,7 +479,7 @@ async def get_timelog_stats_groupby_area_for_range(
         start_date=start_date,
         end_date=end_date,
     )
-    window_start, window_end = get_utc_window_for_local_date_range(
+    window_start, window_end = get_utc_half_open_window_for_local_date_range(
         normalized_start_date,
         normalized_end_date,
     )
@@ -521,7 +524,10 @@ async def get_timelog_stats_groupby_area_for_period(
             end_date=end_date,
             rows=rows,
         )
-    window_start, window_end = get_utc_window_for_local_date_range(start_date, end_date)
+    window_start, window_end = get_utc_half_open_window_for_local_date_range(
+        start_date,
+        end_date,
+    )
     return await _collect_area_stats_for_window(
         session,
         window_start=window_start,
