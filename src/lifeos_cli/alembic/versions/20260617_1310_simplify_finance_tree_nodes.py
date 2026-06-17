@@ -20,8 +20,7 @@ def _finance_node_columns(schema_name: str | None) -> set[str]:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
     return {
-        column["name"]
-        for column in inspector.get_columns("finance_tree_nodes", schema=schema_name)
+        column["name"] for column in inspector.get_columns("finance_tree_nodes", schema=schema_name)
     }
 
 

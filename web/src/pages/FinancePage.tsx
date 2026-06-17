@@ -360,6 +360,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
         snapshotSubmitting={createSnapshotMutation.isPending}
+        treeNodes={treeNodes}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         onPrevious={() => moveSnapshot(-1)}
@@ -543,6 +544,7 @@ function SnapshotModule({
   snapshotDetailLoading,
   snapshotFormVisible,
   snapshotSubmitting,
+  treeNodes,
   hasPrevious,
   hasNext,
   onPrevious,
@@ -561,6 +563,7 @@ function SnapshotModule({
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
   snapshotSubmitting: boolean;
+  treeNodes: TreeNodeWithChildren[];
   hasPrevious: boolean;
   hasNext: boolean;
   onPrevious: () => void;
@@ -663,7 +666,7 @@ function SnapshotModule({
             <LoadingSpinner />
           </div>
         ) : snapshotDetail ? (
-          <SnapshotDetail snapshot={snapshotDetail} tree={tree} />
+          <SnapshotDetail snapshot={snapshotDetail} tree={tree} treeNodes={treeNodes} />
         ) : (
           <p className="py-4 text-sm text-base-content/70">
             {t("finance.history.noSelection")}
@@ -1294,12 +1297,43 @@ function SnapshotFormPanel({
 function SnapshotDetail({
   snapshot,
   tree,
+  treeNodes,
 }: {
   snapshot: FinanceSnapshot;
   tree: FinanceTree;
+  treeNodes: TreeNodeWithChildren[];
 }) {
   const { t } = useTranslation();
-  const entries = snapshot.entries ?? [];
+  const displayTree = useMemo(
+    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? []),
+    [snapshot.entries, treeNodes],
+  );
+  const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
+
+  useEffect(() => {
+    const expandableIds = new Set<UUID>();
+    collectExpandableSnapshotNodeIds(displayTree, expandableIds);
+    setExpandedIds(expandableIds);
+  }, [displayTree]);
+
+  const toggleNode = (nodeId: UUID) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  const visibleNodes = useMemo(
+    () => flattenVisibleSnapshotNodes(displayTree, expandedIds),
+    [displayTree, expandedIds],
+  );
+  const snapshotNote = snapshot.note?.trim() ?? "";
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1317,40 +1351,94 @@ function SnapshotDetail({
         />
       </div>
 
+      <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
+        <p className="font-medium text-base-content">{t("finance.snapshot.snapshotNote")}</p>
+        <p className="mt-1 whitespace-pre-wrap">{snapshotNote || t("common.none")}</p>
+      </div>
+
       <div className="overflow-x-auto border border-base-300 rounded-lg">
         <table className="table table-sm">
-          <thead>
+          <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
             <tr>
-              <th>{t("finance.snapshot.node")}</th>
-              <th>{t("finance.snapshot.amount")}</th>
-              <th>{t("finance.snapshot.currency")}</th>
-              <th>{t("finance.snapshot.note")}</th>
-              <th>{t("finance.snapshot.source")}</th>
+              <th className="w-1/2 min-w-[16rem]">{t("finance.snapshot.node")}</th>
+              <th className="w-40 text-right">
+                {t("finance.snapshot.amount")} ({snapshot.primary_currency})
+              </th>
+              <th className="w-28">{t("finance.snapshot.currency")}</th>
+              <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
             </tr>
           </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="font-medium">{entry.node_name ?? entry.node_id}</td>
-                <td className="tabular-nums">
-                  {formatMoney(entry.amount_converted, snapshot.primary_currency)}
-                </td>
-                <td>{entry.currency_code}</td>
-                <td>{entry.note || "-"}</td>
-                <td>
-                  <Badge
-                    tone={entry.is_auto_generated ? "info" : "neutral"}
-                    variant="outline"
-                    size="xs"
-                  >
-                    {entry.is_auto_generated ? t("finance.snapshot.auto") : t("finance.snapshot.manual")}
-                  </Badge>
-                </td>
-              </tr>
-            ))}
-            {!entries.length ? (
+          <tbody className="align-top text-sm text-base-content/80">
+            {visibleNodes.map((node) => {
+              const hasChildren = node.children.length > 0;
+              const isExpanded = expandedIds.has(node.id);
+              const convertedAmount = Number(node.amountConverted);
+              const amountClass =
+                convertedAmount > 0
+                  ? "text-success"
+                  : convertedAmount < 0
+                    ? "text-error"
+                    : "text-base-content";
+
+              return (
+                <tr key={node.id} className="border-base-200">
+                  <td className="align-top">
+                    <div
+                      className="flex items-start gap-2"
+                      style={{ paddingLeft: `${Math.min(node.depth, 6) * 1.5}rem` }}
+                    >
+                      {hasChildren ? (
+                        <ActionButton
+                          label=""
+                          iconName={isExpanded ? "chevron-down" : "chevron-right"}
+                          iconOnly
+                          size="xs"
+                          variant="ghost"
+                          color="neutral"
+                          ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
+                          ariaExpanded={isExpanded}
+                          onClick={() => toggleNode(node.id)}
+                        />
+                      ) : (
+                        <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
+                          •
+                        </span>
+                      )}
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-base-content">{node.name}</span>
+                          {node.isAutoGenerated ? (
+                            <Badge tone="info" variant="outline" size="xs">
+                              {t("finance.snapshot.auto")}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="align-top text-right">
+                    <span className={`tabular-nums ${amountClass}`}>
+                      {formatMoney(node.amountConverted, snapshot.primary_currency)}
+                    </span>
+                  </td>
+                  <td className="align-top text-base-content/70">
+                    {node.currencyCode || snapshot.primary_currency}
+                  </td>
+                  <td className="align-top">
+                    {node.note ? (
+                      <span className="block min-h-[2.25rem] text-sm text-base-content/80">
+                        {node.note}
+                      </span>
+                    ) : (
+                      <span className="text-base-content/40">-</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {!visibleNodes.length ? (
               <tr>
-                <td colSpan={5} className="text-center text-base-content/60 py-6">
+                <td colSpan={4} className="text-center text-base-content/60 py-6">
                   {t("finance.history.noSelection")}
                 </td>
               </tr>
@@ -1360,6 +1448,111 @@ function SnapshotDetail({
       </div>
     </div>
   );
+}
+
+type SnapshotEntry = NonNullable<FinanceSnapshot["entries"]>[number];
+
+type SnapshotDisplayNode = {
+  id: UUID;
+  name: string;
+  depth: number;
+  amountConverted: string;
+  currencyCode: string;
+  note: string | null;
+  isAutoGenerated: boolean;
+  children: SnapshotDisplayNode[];
+};
+
+function buildSnapshotDisplayTree(
+  treeNodes: TreeNodeWithChildren[],
+  entries: SnapshotEntry[],
+): SnapshotDisplayNode[] {
+  const entryByNodeId = new Map<UUID, SnapshotEntry>();
+  entries.forEach((entry) => {
+    entryByNodeId.set(entry.node_id, entry);
+  });
+  const usedNodeIds = new Set<UUID>();
+
+  const buildNodes = (nodes: TreeNodeWithChildren[], depth: number): SnapshotDisplayNode[] =>
+    nodes
+      .map((node) => {
+        const children = buildNodes(node.children, depth + 1);
+        const entry = entryByNodeId.get(node.id);
+        if (entry) {
+          usedNodeIds.add(node.id);
+        }
+        if (!entry && !children.length) {
+          return null;
+        }
+        const amountConverted =
+          entry?.amount_converted ?? sumSnapshotNodeAmounts(children);
+        return {
+          id: node.id,
+          name: node.name,
+          depth,
+          amountConverted,
+          currencyCode: entry?.currency_code ?? node.currency_code ?? "",
+          note: entry?.note ?? null,
+          isAutoGenerated: entry?.is_auto_generated ?? false,
+          children,
+        } satisfies SnapshotDisplayNode;
+      })
+      .filter(Boolean) as SnapshotDisplayNode[];
+
+  const roots = buildNodes(treeNodes, 0);
+  const orphanEntries = entries
+    .filter((entry) => !usedNodeIds.has(entry.node_id))
+    .map(
+      (entry) =>
+        ({
+          id: entry.node_id,
+          name: entry.node_name ?? entry.node_id,
+          depth: 0,
+          amountConverted: entry.amount_converted,
+          currencyCode: entry.currency_code,
+          note: entry.note ?? null,
+          isAutoGenerated: entry.is_auto_generated,
+          children: [],
+        }) satisfies SnapshotDisplayNode,
+    );
+  return roots.concat(orphanEntries);
+}
+
+function sumSnapshotNodeAmounts(nodes: SnapshotDisplayNode[]): string {
+  const total = nodes.reduce((acc, node) => {
+    const parsed = Number(node.amountConverted);
+    return Number.isFinite(parsed) ? acc + parsed : acc;
+  }, 0);
+  return total.toString();
+}
+
+function collectExpandableSnapshotNodeIds(
+  nodes: SnapshotDisplayNode[],
+  target: Set<UUID>,
+) {
+  nodes.forEach((node) => {
+    if (node.children.length) {
+      target.add(node.id);
+      collectExpandableSnapshotNodeIds(node.children, target);
+    }
+  });
+}
+
+function flattenVisibleSnapshotNodes(
+  nodes: SnapshotDisplayNode[],
+  expandedIds: Set<UUID>,
+): SnapshotDisplayNode[] {
+  const result: SnapshotDisplayNode[] = [];
+  const walk = (items: SnapshotDisplayNode[]) => {
+    items.forEach((node) => {
+      result.push(node);
+      if (node.children.length && expandedIds.has(node.id)) {
+        walk(node.children);
+      }
+    });
+  };
+  walk(nodes);
+  return result;
 }
 
 export default FinancePage;
