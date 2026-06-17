@@ -22,6 +22,7 @@ from lifeos_web.routers import (
     stats,
     tags,
     tasks,
+    timelog_templates,
     timelogs,
     visions,
 )
@@ -66,6 +67,7 @@ def create_app(*, static_dir: Path | None = None) -> FastAPI:
     app.include_router(habits.router, prefix=API_PREFIX)
     app.include_router(notes.router, prefix=API_PREFIX)
     app.include_router(timelogs.router, prefix=API_PREFIX)
+    app.include_router(timelog_templates.router, prefix=API_PREFIX)
     app.include_router(persons.router, prefix=API_PREFIX)
     app.include_router(areas.router, prefix=API_PREFIX)
     app.include_router(planned_events.router, prefix=API_PREFIX)

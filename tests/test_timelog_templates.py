@@ -1,0 +1,173 @@
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime, timezone
+
+import pytest
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from lifeos_cli.db.base import Base
+from lifeos_cli.db.models.area import Area
+from lifeos_cli.db.models.person import Person
+from lifeos_cli.db.models.timelog_template import TimelogTemplate
+from lifeos_cli.db.services import timelog_templates
+from lifeos_cli.db.session import configure_async_engine
+
+
+async def _create_sqlite_session_factory() -> tuple[
+    AsyncEngine,
+    async_sessionmaker[AsyncSession],
+]:
+    from lifeos_cli.db import models as db_models
+
+    assert db_models.TimelogTemplate is TimelogTemplate
+    engine = configure_async_engine(
+        create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    return engine, async_sessionmaker(engine, expire_on_commit=False, future=True)
+
+
+def test_create_template_hydrates_area_and_people() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                area = Area(name="Work", color="#123456", display_order=1)
+                person = Person(name="Alice")
+                session.add_all([area, person])
+                await session.flush()
+
+                template = await timelog_templates.create_template(
+                    session,
+                    payload=timelog_templates.TimelogTemplateCreateInput(
+                        title="Deep Work",
+                        area_id=area.id,
+                        person_ids=[person.id],
+                        default_duration_minutes=90,
+                    ),
+                )
+
+                assert template.title == "Deep Work"
+                assert template.area_id == area.id
+                assert template.area_name == "Work"
+                assert template.area_color == "#123456"
+                assert template.person_ids == (person.id,)
+                assert [summary.name for summary in template.persons] == ["Alice"]
+                assert template.default_duration_minutes == 90
+                assert template.position == 0
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+def test_create_template_rejects_duplicate_active_title() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                await timelog_templates.create_template(
+                    session,
+                    payload=timelog_templates.TimelogTemplateCreateInput(title="Focus Block"),
+                )
+
+                with pytest.raises(timelog_templates.TimelogTemplateAlreadyExistsError):
+                    await timelog_templates.create_template(
+                        session,
+                        payload=timelog_templates.TimelogTemplateCreateInput(title=" focus block "),
+                    )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+def test_update_template_can_clear_optional_fields() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                area = Area(name="Health", color="#00AA00", display_order=1)
+                person = Person(name="Coach")
+                session.add_all([area, person])
+                await session.flush()
+                template = await timelog_templates.create_template(
+                    session,
+                    payload=timelog_templates.TimelogTemplateCreateInput(
+                        title="Run",
+                        area_id=area.id,
+                        person_ids=[person.id],
+                        default_duration_minutes=30,
+                    ),
+                )
+
+                updated = await timelog_templates.update_template(
+                    session,
+                    template_id=template.id,
+                    changes=timelog_templates.TimelogTemplateUpdateInput(
+                        area_provided=True,
+                        area_id=None,
+                        person_ids_provided=True,
+                        person_ids=[],
+                        default_duration_minutes_provided=True,
+                        default_duration_minutes=None,
+                    ),
+                )
+
+                assert updated.area_id is None
+                assert updated.area_name is None
+                assert updated.person_ids == ()
+                assert updated.persons == ()
+                assert updated.default_duration_minutes is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+def test_reorder_and_bump_usage_update_templates() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                first = await timelog_templates.create_template(
+                    session,
+                    payload=timelog_templates.TimelogTemplateCreateInput(title="First"),
+                )
+                second = await timelog_templates.create_template(
+                    session,
+                    payload=timelog_templates.TimelogTemplateCreateInput(title="Second"),
+                )
+
+                await timelog_templates.reorder_templates(
+                    session,
+                    positions=[(first.id, 2), (second.id, 0)],
+                )
+                fixed_now = datetime(2026, 6, 17, 12, 0, tzinfo=timezone.utc)
+                used = await timelog_templates.bump_template_usage(
+                    session,
+                    template_id=first.id,
+                    when=fixed_now,
+                )
+                listed = await timelog_templates.list_templates(
+                    session,
+                    query=timelog_templates.TimelogTemplateListInput(order_by="position"),
+                )
+
+                assert used.usage_count == 1
+                assert used.last_used_at == fixed_now
+                assert [(item.title, item.position) for item in listed] == [
+                    ("Second", 0),
+                    ("First", 2),
+                ]
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())

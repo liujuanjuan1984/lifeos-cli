@@ -19,6 +19,7 @@ from .person import Person
 from .tag import Tag
 from .task import Task
 from .timelog import Timelog
+from .timelog_template import TimelogTemplate
 from .vision import Vision
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "Tag",
     "Task",
     "Timelog",
+    "TimelogTemplate",
     "Vision",
 ]

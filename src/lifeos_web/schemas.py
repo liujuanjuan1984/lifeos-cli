@@ -238,6 +238,49 @@ class TimelogBatchUpdate(BaseModel):
     persons: TimelogBatchPeopleUpdate | None = None
 
 
+class TimelogTemplateCreate(BaseModel):
+    """Payload for creating a timelog quick template from the Web UI."""
+
+    title: str = Field(..., min_length=1, max_length=200)
+    area_id: UUID | None = None
+    person_ids: list[UUID] | None = None
+    default_duration_minutes: int | None = Field(None, ge=1, le=1440)
+    position: int | None = Field(None, ge=0)
+    usage_count: int = Field(0, ge=0)
+    last_used_at: datetime | None = None
+
+
+class TimelogTemplateUpdate(BaseModel):
+    """Payload for updating a timelog quick template from the Web UI."""
+
+    title: str | None = Field(None, min_length=1, max_length=200)
+    area_id: UUID | None = None
+    person_ids: list[UUID] | None = None
+    default_duration_minutes: int | None = Field(None, ge=1, le=1440)
+    position: int | None = Field(None, ge=0)
+    usage_count: int | None = Field(None, ge=0)
+    last_used_at: datetime | None = None
+
+
+class TimelogTemplateReorderItem(BaseModel):
+    """One timelog template display-order update."""
+
+    id: UUID
+    position: int = Field(..., ge=0)
+
+
+class TimelogTemplateReorderRequest(BaseModel):
+    """Payload for reordering timelog quick templates."""
+
+    items: list[TimelogTemplateReorderItem] = Field(default_factory=list)
+
+
+class TimelogTemplateBulkCreateRequest(BaseModel):
+    """Payload for creating multiple timelog quick templates."""
+
+    items: list[TimelogTemplateCreate] = Field(default_factory=list)
+
+
 class PlannedEventCreate(BaseModel):
     """Frontend-compatible planned event creation payload backed by LifeOS Event records."""
 

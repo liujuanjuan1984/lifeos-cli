@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from lifeos_cli.db.models.tag import Tag
     from lifeos_cli.db.models.task import Task
     from lifeos_cli.db.models.timelog import Timelog
+    from lifeos_cli.db.models.timelog_template import TimelogTemplate
     from lifeos_cli.db.models.vision import Vision
 
 
@@ -212,6 +213,26 @@ class TimelogView:
 
 
 @dataclass(frozen=True)
+class TimelogTemplateView:
+    """Web-facing timelog quick template record."""
+
+    id: UUID
+    title: str
+    area_id: UUID | None
+    area_name: str | None
+    area_color: str | None
+    person_ids: tuple[UUID, ...]
+    persons: tuple[PersonSummaryView, ...]
+    default_duration_minutes: int | None
+    position: int
+    usage_count: int
+    last_used_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None
+
+
+@dataclass(frozen=True)
 class NoteView:
     """CLI-facing note record."""
 
@@ -403,6 +424,31 @@ def build_timelog_view(
         task=build_task_summary(timelog.task) if timelog.task else None,
         tags=tuple(build_tag_summary(tag) for tag in tags),
         people=tuple(build_person_summary(person) for person in people),
+    )
+
+
+def build_timelog_template_view(
+    template: TimelogTemplate,
+    *,
+    people: Sequence[Person] = (),
+) -> TimelogTemplateView:
+    """Build one timelog quick template view from a model and linked people."""
+    person_summaries = tuple(build_person_summary(person) for person in people)
+    return TimelogTemplateView(
+        id=template.id,
+        title=template.title,
+        area_id=template.area_id,
+        area_name=template.area.name if template.area else None,
+        area_color=template.area.color if template.area else None,
+        person_ids=tuple(person.id for person in people),
+        persons=person_summaries,
+        default_duration_minutes=template.default_duration_minutes,
+        position=template.position,
+        usage_count=template.usage_count,
+        last_used_at=template.last_used_at,
+        created_at=template.created_at,
+        updated_at=template.updated_at,
+        deleted_at=template.deleted_at,
     )
 
 
