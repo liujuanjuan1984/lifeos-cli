@@ -1423,10 +1423,19 @@
       "negative": "Negative",
       "neutral": "Neutral",
       "currency": "Currency",
-      "createNode": "Create node"
+      "createNode": "Create node",
+      "manage": "Manage tree",
+      "deleteTitle": "Delete finance node",
+      "deleteMessage": "Delete {{name}} and its child nodes?",
+      "deleteConfirm": "Delete node"
     },
     "snapshot": {
       "formTitle": "Snapshot",
+      "new": "New snapshot",
+      "selectSnapshot": "Select snapshot",
+      "previous": "Previous snapshot",
+      "next": "Next snapshot",
+      "position": "{{current}} of {{total}}",
       "snapshotTime": "Snapshot time",
       "periodStart": "Period start",
       "periodEnd": "Period end",
@@ -1438,7 +1447,8 @@
       "save": "Save snapshot",
       "noEntryNodes": "Add at least one regular node before saving a snapshot.",
       "auto": "Auto",
-      "manual": "Manual"
+      "manual": "Manual",
+      "source": "Source"
     },
     "history": {
       "title": "History",

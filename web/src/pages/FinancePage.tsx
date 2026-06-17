@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import ActionButton from "@/components/ActionButton";
+import ActionButton, { CreateNewButton } from "@/components/ActionButton";
 import Badge from "@/components/common/Badge";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
+import { FormField, TextArea, TextInput } from "@/components/forms";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { FormField, SegmentedControl, TextArea, TextInput } from "@/components/forms";
+import EnumSelect from "@/components/selects/EnumSelect";
+import ToolbarContainer from "@/components/ToolbarContainer";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { useToast } from "@/contexts/ToastContext";
+import ModalBase from "@/layouts/ModalBase";
 import PageLayout from "@/layouts/PageLayout";
 import {
   financeApi,
@@ -124,6 +128,16 @@ const flattenTree = (nodes: TreeNodeWithChildren[]): TreeNodeWithChildren[] => {
   return result;
 };
 
+function snapshotLabel(snapshot: FinanceSnapshot) {
+  if (snapshot.period_start && snapshot.period_end) {
+    return `${formatDate(snapshot.period_start)} - ${formatDate(snapshot.period_end)}`;
+  }
+  if (snapshot.snapshot_ts) {
+    return formatDateTime(snapshot.snapshot_ts);
+  }
+  return snapshot.created_at;
+}
+
 function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
@@ -141,29 +155,34 @@ function FinancePage() {
 
   return (
     <PageLayout>
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SegmentedControl
-            value={activePurpose}
-            onChange={(value) => setActivePurpose(value as FinancePurpose)}
-            options={PRESETS.map((item) => ({
-              value: item.purpose,
-              label: t(item.titleKey),
-            }))}
-            inactiveVariant="outline"
-          />
+      <ToolbarContainer className="mb-6" variant="compact" padding="sm">
+        <div className="flex flex-wrap items-center gap-2">
+          {PRESETS.map((item) => (
+            <ActionButton
+              key={item.purpose}
+              label={t(item.titleKey)}
+              onClick={() => setActivePurpose(item.purpose)}
+              color={activePurpose === item.purpose ? "primary" : "neutral"}
+              variant={activePurpose === item.purpose ? "solid" : "ghost"}
+              size="sm"
+            />
+          ))}
         </div>
-        <FinancePresetPanel key={preset.purpose} preset={preset} />
-      </div>
+      </ToolbarContainer>
+
+      <FinancePresetWorkspace key={preset.purpose} preset={preset} />
     </PageLayout>
   );
 }
 
-function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
+function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<UUID | null>(null);
+  const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
+  const [treeManagerOpen, setTreeManagerOpen] = useState(false);
+  const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
 
   const treeQuery = useQuery({
     queryKey: financeKeys.treesByPurpose(preset.purpose),
@@ -185,15 +204,22 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
     enabled: Boolean(tree?.id),
   });
 
-  const latestSnapshot = snapshotsQuery.data?.items[0] ?? null;
+  const snapshots = snapshotsQuery.data?.items ?? [];
+  const latestSnapshot = snapshots[0] ?? null;
   const detailSnapshotId = selectedSnapshotId ?? latestSnapshot?.id ?? null;
+  const currentSnapshot =
+    snapshots.find((snapshot) => snapshot.id === detailSnapshotId) ?? latestSnapshot;
+  const currentPosition = currentSnapshot
+    ? snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id) + 1
+    : 0;
+  const hasPrevious = currentPosition > 1;
+  const hasNext = currentPosition > 0 && currentPosition < snapshots.length;
+
   const selectedSnapshotQuery = useQuery({
     queryKey: financeKeys.snapshot(detailSnapshotId),
     queryFn: () => financeApi.getSnapshot(detailSnapshotId!),
     enabled: Boolean(detailSnapshotId),
   });
-
-  const selectedSnapshot = selectedSnapshotQuery.data ?? latestSnapshot;
 
   const createNodeMutation = useMutation({
     mutationFn: (payload: {
@@ -218,6 +244,7 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
     mutationFn: (nodeId: UUID) => financeApi.deleteNode(nodeId),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeDeleted"));
+      setPendingDeleteNode(null);
       await queryClient.invalidateQueries({
         queryKey: financeKeys.treesByPurpose(preset.purpose),
       });
@@ -238,6 +265,7 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
     }) => financeApi.createSnapshot(tree!.id, payload),
     onSuccess: async (snapshot) => {
       toast.showSuccess(t("finance.messages.snapshotCreated"));
+      setSnapshotFormVisible(false);
       setSelectedSnapshotId(snapshot.id);
       await queryClient.invalidateQueries({
         queryKey: financeKeys.snapshots(tree?.id ?? null),
@@ -267,85 +295,401 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
     return <ErrorDisplay error={t("finance.messages.treeMissing")} />;
   }
 
+  const selectSnapshot = (snapshotId: UUID) => {
+    setSelectedSnapshotId(snapshotId);
+    setSnapshotFormVisible(false);
+  };
+
+  const moveSnapshot = (direction: -1 | 1) => {
+    if (!currentSnapshot) return;
+    const index = snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id);
+    const next = snapshots[index + direction];
+    if (next) {
+      selectSnapshot(next.id);
+    }
+  };
+
   return (
-    <div className="space-y-5">
-      <PresetHeader preset={preset} tree={tree} latestSnapshot={latestSnapshot} />
+    <div className="space-y-6">
+      <SnapshotToolbar
+        tree={tree}
+        preset={preset}
+        snapshots={snapshots}
+        selectedSnapshotId={detailSnapshotId}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        onSelect={selectSnapshot}
+        onPrevious={() => moveSnapshot(-1)}
+        onNext={() => moveSnapshot(1)}
+        onManageTree={() => setTreeManagerOpen(true)}
+        onCreateSnapshot={() => setSnapshotFormVisible(true)}
+        createDisabled={!entryNodes.length}
+      />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_360px] gap-5 items-start">
-        <FinanceTreePanel
-          tree={tree}
-          treeNodes={treeNodes}
-          flatNodes={flatNodes}
-          preset={preset}
-          creating={createNodeMutation.isPending}
-          deletingNodeId={
-            deleteNodeMutation.variables &&
-            deleteNodeMutation.isPending
-              ? deleteNodeMutation.variables
-              : null
+      <SnapshotModule
+        preset={preset}
+        tree={tree}
+        entryNodes={entryNodes}
+        snapshots={snapshots}
+        currentSnapshot={currentSnapshot}
+        currentPosition={currentPosition}
+        snapshotDetail={selectedSnapshotQuery.data ?? null}
+        snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
+        snapshotFormVisible={snapshotFormVisible}
+        snapshotSubmitting={createSnapshotMutation.isPending}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        onPrevious={() => moveSnapshot(-1)}
+        onNext={() => moveSnapshot(1)}
+        onOpenSnapshotForm={() => setSnapshotFormVisible(true)}
+        onCloseSnapshotForm={() => setSnapshotFormVisible(false)}
+        onCreateSnapshot={(payload) => createSnapshotMutation.mutate(payload)}
+      />
+
+      <FinanceTreeManagerModal
+        isOpen={treeManagerOpen}
+        onClose={() => setTreeManagerOpen(false)}
+        tree={tree}
+        preset={preset}
+        treeNodes={treeNodes}
+        flatNodes={flatNodes}
+        creating={createNodeMutation.isPending}
+        deletingNodeId={
+          deleteNodeMutation.variables && deleteNodeMutation.isPending
+            ? deleteNodeMutation.variables
+            : null
+        }
+        onCreateNode={(payload) => createNodeMutation.mutate(payload)}
+        onDeleteNode={setPendingDeleteNode}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteNode)}
+        title={t("finance.tree.deleteTitle")}
+        message={t("finance.tree.deleteMessage", {
+          name: pendingDeleteNode?.name ?? "",
+        })}
+        confirmText={t("finance.tree.deleteConfirm")}
+        onCancel={() => setPendingDeleteNode(null)}
+        onConfirm={() => {
+          if (pendingDeleteNode) {
+            deleteNodeMutation.mutate(pendingDeleteNode.id);
           }
-          onCreateNode={(payload) => createNodeMutation.mutate(payload)}
-          onDeleteNode={(nodeId) => deleteNodeMutation.mutate(nodeId)}
-        />
-
-        <SnapshotFormPanel
-          tree={tree}
-          preset={preset}
-          entryNodes={entryNodes}
-          submitting={createSnapshotMutation.isPending}
-          onSubmit={(payload) => createSnapshotMutation.mutate(payload)}
-        />
-
-        <SnapshotHistoryPanel
-          tree={tree}
-          snapshots={snapshotsQuery.data?.items ?? []}
-          selectedSnapshot={selectedSnapshot}
-          selectedSnapshotLoading={selectedSnapshotQuery.isLoading}
-          selectedSnapshotId={detailSnapshotId}
-          onSelectSnapshot={setSelectedSnapshotId}
-        />
-      </div>
+        }}
+        loading={deleteNodeMutation.isPending}
+      />
     </div>
   );
 }
 
-function PresetHeader({
+function SnapshotToolbar({
+  tree,
+  preset,
+  snapshots,
+  selectedSnapshotId,
+  hasPrevious,
+  hasNext,
+  onSelect,
+  onPrevious,
+  onNext,
+  onManageTree,
+  onCreateSnapshot,
+  createDisabled,
+}: {
+  tree: FinanceTree;
+  preset: PresetConfig;
+  snapshots: FinanceSnapshot[];
+  selectedSnapshotId: UUID | null;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onSelect: (snapshotId: UUID) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  onManageTree: () => void;
+  onCreateSnapshot: () => void;
+  createDisabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const options = snapshots.map((snapshot) => ({
+    value: snapshot.id,
+    label: snapshotLabel(snapshot),
+  }));
+
+  return (
+    <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="primary" variant="outline" size="sm">
+            {tree.name}
+          </Badge>
+          <Badge tone="neutral" variant="outline" size="sm">
+            {tree.primary_currency}
+          </Badge>
+          <ActionButton
+            label={t("finance.tree.manage")}
+            onClick={onManageTree}
+            size="sm"
+            variant="outline"
+            iconName="settings"
+          />
+        </div>
+
+        <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
+          <ActionButton
+            label=""
+            iconName="chevron-left"
+            iconOnly
+            ariaLabel={t("finance.snapshot.previous")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onPrevious}
+            disabled={!snapshots.length || !hasPrevious}
+          />
+
+          <EnumSelect
+            value={selectedSnapshotId ?? undefined}
+            onChange={(value) => {
+              if (value) onSelect(String(value) as UUID);
+            }}
+            options={options}
+            placeholder={t("finance.snapshot.selectSnapshot")}
+            showLabel={false}
+            size="sm"
+            className="w-auto min-w-[12rem] sm:min-w-[16rem] max-w-full"
+            autoWidth
+            disabled={!options.length}
+          />
+
+          <ActionButton
+            label=""
+            iconName="chevron-right"
+            iconOnly
+            ariaLabel={t("finance.snapshot.next")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onNext}
+            disabled={!snapshots.length || !hasNext}
+          />
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <CreateNewButton
+            label={t("finance.snapshot.new")}
+            onClick={onCreateSnapshot}
+            size="sm"
+            color="primary"
+            variant="solid"
+            disabled={createDisabled}
+            ariaLabel={t("finance.snapshot.new")}
+          />
+        </div>
+      </div>
+
+      <p className="mt-3 text-sm text-base-content/70">{t(preset.descriptionKey)}</p>
+    </section>
+  );
+}
+
+function SnapshotModule({
   preset,
   tree,
-  latestSnapshot,
+  entryNodes,
+  snapshots,
+  currentSnapshot,
+  currentPosition,
+  snapshotDetail,
+  snapshotDetailLoading,
+  snapshotFormVisible,
+  snapshotSubmitting,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  onOpenSnapshotForm,
+  onCloseSnapshotForm,
+  onCreateSnapshot,
 }: {
   preset: PresetConfig;
   tree: FinanceTree;
-  latestSnapshot: FinanceSnapshot | null;
+  entryNodes: TreeNodeWithChildren[];
+  snapshots: FinanceSnapshot[];
+  currentSnapshot: FinanceSnapshot | null;
+  currentPosition: number;
+  snapshotDetail: FinanceSnapshot | null;
+  snapshotDetailLoading: boolean;
+  snapshotFormVisible: boolean;
+  snapshotSubmitting: boolean;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onOpenSnapshotForm: () => void;
+  onCloseSnapshotForm: () => void;
+  onCreateSnapshot: (payload: {
+    snapshot_ts?: string | null;
+    period_start?: string | null;
+    period_end?: string | null;
+    primary_currency?: string | null;
+    note?: string | null;
+    entries: FinanceSnapshotEntryCreate[];
+  }) => void;
 }) {
   const { t } = useTranslation();
-  const currency = tree.primary_currency;
-  return (
-    <section className="border border-base-300 bg-base-100 rounded-lg p-4">
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-semibold text-base-content">
-              {t(preset.titleKey)}
-            </h2>
-            <Badge tone="primary" variant="outline" size="sm">
-              {tree.time_mode}
-            </Badge>
-            <Badge tone="neutral" variant="outline" size="sm">
-              {currency}
-            </Badge>
-          </div>
-          <p className="text-sm text-base-content/70 max-w-3xl">
-            {t(preset.descriptionKey)}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-2 min-w-full sm:min-w-[420px]">
-          <Metric label={t("finance.metrics.positive")} value={formatMoney(latestSnapshot?.total_positive, currency)} />
-          <Metric label={t("finance.metrics.negative")} value={formatMoney(latestSnapshot?.total_negative, currency)} />
-          <Metric label={t("finance.metrics.net")} value={formatMoney(latestSnapshot?.net_amount, currency)} />
+  const hasSnapshots = snapshots.length > 0;
+
+  if (!hasSnapshots) {
+    if (snapshotFormVisible) {
+      return (
+        <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+          <SnapshotFormPanel
+            tree={tree}
+            preset={preset}
+            entryNodes={entryNodes}
+            submitting={snapshotSubmitting}
+            onSubmit={onCreateSnapshot}
+            onCancel={onCloseSnapshotForm}
+          />
+        </section>
+      );
+    }
+
+    return (
+      <div className="rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center text-sm text-base-content/70">
+        <p>{t("finance.history.empty")}</p>
+        <div className="mt-4 flex justify-center">
+          <CreateNewButton
+            label={t("finance.snapshot.new")}
+            onClick={onOpenSnapshotForm}
+            size="sm"
+            color="primary"
+            variant="solid"
+            disabled={!entryNodes.length}
+          />
         </div>
       </div>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+      <SnapshotNavigator
+        title={currentSnapshot ? snapshotLabel(currentSnapshot) : t("finance.history.noSelection")}
+        positionLabel={
+          currentPosition > 0
+            ? t("finance.snapshot.position", {
+                current: currentPosition,
+                total: snapshots.length,
+              })
+            : undefined
+        }
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        rightSlot={
+          currentSnapshot ? (
+            <div className="grid grid-cols-3 gap-2 min-w-full sm:min-w-[420px]">
+              <Metric
+                label={t("finance.metrics.positive")}
+                value={formatMoney(currentSnapshot.total_positive, tree.primary_currency)}
+              />
+              <Metric
+                label={t("finance.metrics.negative")}
+                value={formatMoney(currentSnapshot.total_negative, tree.primary_currency)}
+              />
+              <Metric
+                label={t("finance.metrics.net")}
+                value={formatMoney(currentSnapshot.net_amount, tree.primary_currency)}
+              />
+            </div>
+          ) : null
+        }
+      />
+
+      <div className="mt-4">
+        {snapshotFormVisible ? (
+          <SnapshotFormPanel
+            tree={tree}
+            preset={preset}
+            entryNodes={entryNodes}
+            submitting={snapshotSubmitting}
+            onSubmit={onCreateSnapshot}
+            onCancel={onCloseSnapshotForm}
+          />
+        ) : snapshotDetailLoading ? (
+          <div className="py-6">
+            <LoadingSpinner />
+          </div>
+        ) : snapshotDetail ? (
+          <SnapshotDetail snapshot={snapshotDetail} tree={tree} />
+        ) : (
+          <p className="py-4 text-sm text-base-content/70">
+            {t("finance.history.noSelection")}
+          </p>
+        )}
+      </div>
     </section>
+  );
+}
+
+function SnapshotNavigator({
+  title,
+  positionLabel,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  rightSlot,
+}: {
+  title: string;
+  positionLabel?: string;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  rightSlot?: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-grow flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ActionButton
+            label=""
+            iconName="chevron-left"
+            iconOnly
+            ariaLabel={t("finance.snapshot.previous")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onPrevious}
+            disabled={!hasPrevious}
+          />
+          <ActionButton
+            label=""
+            iconName="chevron-right"
+            iconOnly
+            ariaLabel={t("finance.snapshot.next")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onNext}
+            disabled={!hasNext}
+          />
+        </div>
+        <div>
+          {positionLabel ? (
+            <p className="text-xs uppercase tracking-wide text-base-content/60">
+              {positionLabel}
+            </p>
+          ) : null}
+          <p className="text-lg font-semibold text-base-content">{title}</p>
+        </div>
+      </div>
+      {rightSlot ? <div className="text-right text-sm text-base-content/70">{rightSlot}</div> : null}
+    </header>
   );
 }
 
@@ -355,27 +699,29 @@ function Metric({ label, value }: { label: string; value: string }) {
       <div className="text-xs uppercase tracking-wide text-base-content/60 truncate">
         {label}
       </div>
-      <div className="font-semibold tabular-nums text-base-content truncate">
-        {value}
-      </div>
+      <div className="font-semibold tabular-nums text-base-content truncate">{value}</div>
     </div>
   );
 }
 
-function FinanceTreePanel({
+function FinanceTreeManagerModal({
+  isOpen,
+  onClose,
   tree,
+  preset,
   treeNodes,
   flatNodes,
-  preset,
   creating,
   deletingNodeId,
   onCreateNode,
   onDeleteNode,
 }: {
+  isOpen: boolean;
+  onClose: () => void;
   tree: FinanceTree;
+  preset: PresetConfig;
   treeNodes: TreeNodeWithChildren[];
   flatNodes: TreeNodeWithChildren[];
-  preset: PresetConfig;
   creating: boolean;
   deletingNodeId: UUID | null;
   onCreateNode: (payload: {
@@ -385,7 +731,66 @@ function FinanceTreePanel({
     normal_side?: FinanceNormalSide | null;
     currency_code?: string | null;
   }) => void;
-  onDeleteNode: (nodeId: UUID) => void;
+  onDeleteNode: (node: TreeNodeWithChildren) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("finance.tree.manage")}
+      size="2xl"
+      bodyOverflow="auto"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5">
+        <section className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-base-content">{tree.name}</h3>
+            <p className="text-sm text-base-content/60">{t(`finance.${preset.purpose}.treeHint`)}</p>
+          </div>
+          <div className="max-h-[520px] overflow-y-auto pr-1 space-y-2">
+            {treeNodes.length ? (
+              treeNodes.map((node) => (
+                <TreeNodeRow
+                  key={node.id}
+                  node={node}
+                  deletingNodeId={deletingNodeId}
+                  onDeleteNode={onDeleteNode}
+                />
+              ))
+            ) : (
+              <div className="text-sm text-base-content/60">{t("finance.tree.empty")}</div>
+            )}
+          </div>
+        </section>
+
+        <FinanceNodeForm
+          tree={tree}
+          flatNodes={flatNodes}
+          creating={creating}
+          onCreateNode={onCreateNode}
+        />
+      </div>
+    </ModalBase>
+  );
+}
+
+function FinanceNodeForm({
+  tree,
+  flatNodes,
+  creating,
+  onCreateNode,
+}: {
+  tree: FinanceTree;
+  flatNodes: TreeNodeWithChildren[];
+  creating: boolean;
+  onCreateNode: (payload: {
+    name: string;
+    parent_id?: UUID | null;
+    node_kind: FinanceNodeKind;
+    normal_side?: FinanceNormalSide | null;
+    currency_code?: string | null;
+  }) => void;
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -408,96 +813,72 @@ function FinanceTreePanel({
   };
 
   return (
-    <section className="border border-base-300 bg-base-100 rounded-lg p-4 space-y-4">
-      <div>
-        <h3 className="font-semibold text-base-content">{t("finance.tree.title")}</h3>
-        <p className="text-sm text-base-content/60">{tree.name}</p>
-      </div>
-
-      <div className="max-h-[360px] overflow-y-auto pr-1 space-y-2">
-        {treeNodes.length ? (
-          treeNodes.map((node) => (
-            <TreeNodeRow
-              key={node.id}
-              node={node}
-              deletingNodeId={deletingNodeId}
-              onDeleteNode={onDeleteNode}
-            />
-          ))
-        ) : (
-          <div className="text-sm text-base-content/60">{t("finance.tree.empty")}</div>
-        )}
-      </div>
-
-      <form className="border-t border-base-300 pt-4 space-y-3" onSubmit={handleSubmit}>
-        <FormField label={t("finance.tree.addNode")}>
-          <TextInput
-            size="sm"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={t("finance.tree.nodeNamePlaceholder")}
-          />
-        </FormField>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <label className="form-control">
-            <span className="label-text">{t("finance.tree.parent")}</span>
-            <select
-              className="select select-bordered select-sm"
-              value={parentId}
-              onChange={(event) => setParentId(event.target.value as UUID | "")}
-            >
-              <option value="">{t("finance.tree.root")}</option>
-              {flatNodes.map((node) => (
-                <option key={node.id} value={node.id}>
-                  {"  ".repeat(node.depth)}
-                  {node.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-control">
-            <span className="label-text">{t("finance.tree.kind")}</span>
-            <select
-              className="select select-bordered select-sm"
-              value={nodeKind}
-              onChange={(event) => setNodeKind(event.target.value as FinanceNodeKind)}
-            >
-              <option value="regular">{t("finance.tree.regular")}</option>
-              <option value="rollup">{t("finance.tree.rollup")}</option>
-            </select>
-          </label>
-          <label className="form-control">
-            <span className="label-text">{t("finance.tree.normalSide")}</span>
-            <select
-              className="select select-bordered select-sm"
-              value={normalSide}
-              onChange={(event) => setNormalSide(event.target.value as FinanceNormalSide | "")}
-            >
-              <option value="">{t("common.none")}</option>
-              <option value="positive">{t("finance.tree.positive")}</option>
-              <option value="negative">{t("finance.tree.negative")}</option>
-              <option value="neutral">{t("finance.tree.neutral")}</option>
-            </select>
-          </label>
-          <FormField label={t("finance.tree.currency")}>
-            <TextInput
-              size="sm"
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-            />
-          </FormField>
-        </div>
-        <ActionButton
-          type="submit"
-          label={creating ? t("common.creating") : t("finance.tree.createNode")}
-          color="primary"
-          variant="solid"
-          iconName="plus"
-          disabled={creating || !name.trim()}
+    <form className="border border-base-300 rounded-lg bg-base-200/30 p-4 space-y-3" onSubmit={handleSubmit}>
+      <h3 className="font-semibold text-base-content">{t("finance.tree.addNode")}</h3>
+      <FormField label={t("finance.tree.nodeNamePlaceholder")}>
+        <TextInput
+          size="sm"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder={t("finance.tree.nodeNamePlaceholder")}
         />
-      </form>
-      <p className="text-xs text-base-content/60">{t(`finance.${preset.purpose}.treeHint`)}</p>
-    </section>
+      </FormField>
+      <label className="form-control">
+        <span className="label-text">{t("finance.tree.parent")}</span>
+        <select
+          className="select select-bordered select-sm"
+          value={parentId}
+          onChange={(event) => setParentId(event.target.value as UUID | "")}
+        >
+          <option value="">{t("finance.tree.root")}</option>
+          {flatNodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {"  ".repeat(node.depth)}
+              {node.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="form-control">
+        <span className="label-text">{t("finance.tree.kind")}</span>
+        <select
+          className="select select-bordered select-sm"
+          value={nodeKind}
+          onChange={(event) => setNodeKind(event.target.value as FinanceNodeKind)}
+        >
+          <option value="regular">{t("finance.tree.regular")}</option>
+          <option value="rollup">{t("finance.tree.rollup")}</option>
+        </select>
+      </label>
+      <label className="form-control">
+        <span className="label-text">{t("finance.tree.normalSide")}</span>
+        <select
+          className="select select-bordered select-sm"
+          value={normalSide}
+          onChange={(event) => setNormalSide(event.target.value as FinanceNormalSide | "")}
+        >
+          <option value="">{t("common.none")}</option>
+          <option value="positive">{t("finance.tree.positive")}</option>
+          <option value="negative">{t("finance.tree.negative")}</option>
+          <option value="neutral">{t("finance.tree.neutral")}</option>
+        </select>
+      </label>
+      <FormField label={t("finance.tree.currency")}>
+        <TextInput
+          size="sm"
+          value={currency}
+          onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+        />
+      </FormField>
+      <ActionButton
+        type="submit"
+        label={creating ? t("common.creating") : t("finance.tree.createNode")}
+        color="primary"
+        variant="solid"
+        iconName="plus"
+        disabled={creating || !name.trim()}
+      />
+    </form>
   );
 }
 
@@ -508,7 +889,7 @@ function TreeNodeRow({
 }: {
   node: TreeNodeWithChildren;
   deletingNodeId: UUID | null;
-  onDeleteNode: (nodeId: UUID) => void;
+  onDeleteNode: (node: TreeNodeWithChildren) => void;
 }) {
   const deleting = deletingNodeId === node.id;
   return (
@@ -535,7 +916,7 @@ function TreeNodeRow({
           variant="ghost"
           color="error"
           disabled={deleting}
-          onClick={() => onDeleteNode(node.id)}
+          onClick={() => onDeleteNode(node)}
         />
       </div>
       {node.children.map((child) => (
@@ -556,6 +937,7 @@ function SnapshotFormPanel({
   entryNodes,
   submitting,
   onSubmit,
+  onCancel,
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
@@ -569,6 +951,7 @@ function SnapshotFormPanel({
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
+  onCancel: () => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -578,14 +961,6 @@ function SnapshotFormPanel({
   const [amounts, setAmounts] = useState<SnapshotAmountState>({});
   const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
-
-  const handleAmountChange = (nodeId: UUID, value: string) => {
-    setAmounts((prev) => ({ ...prev, [nodeId]: value }));
-  };
-
-  const handleNoteChange = (nodeId: UUID, value: string) => {
-    setNotes((prev) => ({ ...prev, [nodeId]: value }));
-  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -609,10 +984,8 @@ function SnapshotFormPanel({
     }
 
     onSubmit({
-      snapshot_ts:
-        preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
-      period_start:
-        preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
+      snapshot_ts: preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
+      period_start: preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
       period_end: preset.timeMode === "period" ? dateToEndIso(periodEnd) : null,
       primary_currency: tree.primary_currency,
       note: snapshotNote || null,
@@ -624,10 +997,19 @@ function SnapshotFormPanel({
   };
 
   return (
-    <section className="border border-base-300 bg-base-100 rounded-lg p-4 space-y-4">
-      <div>
-        <h3 className="font-semibold text-base-content">{t("finance.snapshot.formTitle")}</h3>
-        <p className="text-sm text-base-content/60">{t(preset.amountLabelKey)}</p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-base-content">{t("finance.snapshot.formTitle")}</h3>
+          <p className="text-sm text-base-content/60">{t(preset.amountLabelKey)}</p>
+        </div>
+        <ActionButton
+          label={t("common.cancel")}
+          onClick={onCancel}
+          size="sm"
+          variant="ghost"
+          disabled={submitting}
+        />
       </div>
       <form className="space-y-4" onSubmit={handleSubmit}>
         {preset.timeMode === "instant" ? (
@@ -680,7 +1062,9 @@ function SnapshotFormPanel({
                       size="sm"
                       inputMode="decimal"
                       value={amounts[node.id] ?? ""}
-                      onChange={(event) => handleAmountChange(node.id, event.target.value)}
+                      onChange={(event) =>
+                        setAmounts((prev) => ({ ...prev, [node.id]: event.target.value }))
+                      }
                       placeholder="0.00"
                     />
                   </td>
@@ -691,7 +1075,9 @@ function SnapshotFormPanel({
                     <TextInput
                       size="sm"
                       value={notes[node.id] ?? ""}
-                      onChange={(event) => handleNoteChange(node.id, event.target.value)}
+                      onChange={(event) =>
+                        setNotes((prev) => ({ ...prev, [node.id]: event.target.value }))
+                      }
                     />
                   </td>
                 </tr>
@@ -726,73 +1112,7 @@ function SnapshotFormPanel({
           />
         </div>
       </form>
-    </section>
-  );
-}
-
-function SnapshotHistoryPanel({
-  tree,
-  snapshots,
-  selectedSnapshot,
-  selectedSnapshotLoading,
-  selectedSnapshotId,
-  onSelectSnapshot,
-}: {
-  tree: FinanceTree;
-  snapshots: FinanceSnapshot[];
-  selectedSnapshot: FinanceSnapshot | null;
-  selectedSnapshotLoading: boolean;
-  selectedSnapshotId: UUID | null;
-  onSelectSnapshot: (snapshotId: UUID) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <section className="border border-base-300 bg-base-100 rounded-lg p-4 space-y-4">
-      <div>
-        <h3 className="font-semibold text-base-content">{t("finance.history.title")}</h3>
-        <p className="text-sm text-base-content/60">{t("finance.history.subtitle")}</p>
-      </div>
-
-      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-        {snapshots.map((snapshot) => (
-          <button
-            type="button"
-            key={snapshot.id}
-            className={[
-              "w-full text-left rounded-md border px-3 py-2 hover:bg-base-200",
-              selectedSnapshotId === snapshot.id
-                ? "border-primary bg-primary/10"
-                : "border-base-300 bg-base-200/30",
-            ].join(" ")}
-            onClick={() => onSelectSnapshot(snapshot.id)}
-          >
-            <div className="font-medium text-sm">
-              {snapshot.period_start && snapshot.period_end
-                ? `${formatDate(snapshot.period_start)} - ${formatDate(snapshot.period_end)}`
-                : snapshot.snapshot_ts
-                  ? formatDateTime(snapshot.snapshot_ts)
-                  : snapshot.created_at}
-            </div>
-            <div className="text-xs text-base-content/60">
-              {formatMoney(snapshot.net_amount, snapshot.primary_currency)}
-            </div>
-          </button>
-        ))}
-        {!snapshots.length ? (
-          <div className="text-sm text-base-content/60">{t("finance.history.empty")}</div>
-        ) : null}
-      </div>
-
-      <div className="border-t border-base-300 pt-4">
-        {selectedSnapshotLoading ? (
-          <LoadingSpinner size="sm" />
-        ) : selectedSnapshot ? (
-          <SnapshotDetail snapshot={selectedSnapshot} tree={tree} />
-        ) : (
-          <div className="text-sm text-base-content/60">{t("finance.history.noSelection")}</div>
-        )}
-      </div>
-    </section>
+    </div>
   );
 }
 
@@ -806,43 +1126,62 @@ function SnapshotDetail({
   const { t } = useTranslation();
   const entries = snapshot.entries ?? [];
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <Metric
+          label={t("finance.metrics.positive")}
+          value={formatMoney(snapshot.total_positive, tree.primary_currency)}
+        />
+        <Metric
+          label={t("finance.metrics.negative")}
+          value={formatMoney(snapshot.total_negative, tree.primary_currency)}
+        />
         <Metric
           label={t("finance.metrics.net")}
           value={formatMoney(snapshot.net_amount, tree.primary_currency)}
         />
-        <Metric
-          label={t("finance.metrics.entries")}
-          value={String(entries.filter((entry) => !entry.is_auto_generated).length)}
-        />
       </div>
-      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="rounded-md border border-base-300 bg-base-200/30 px-3 py-2"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium truncate">
-                {entry.node_name ?? entry.node_id}
-              </span>
-              <Badge
-                tone={entry.is_auto_generated ? "info" : "neutral"}
-                variant="outline"
-                size="xs"
-              >
-                {entry.is_auto_generated ? t("finance.snapshot.auto") : t("finance.snapshot.manual")}
-              </Badge>
-            </div>
-            <div className="text-sm tabular-nums">
-              {formatMoney(entry.amount_converted, snapshot.primary_currency)}
-            </div>
-            {entry.note ? (
-              <div className="text-xs text-base-content/60 mt-1">{entry.note}</div>
+
+      <div className="overflow-x-auto border border-base-300 rounded-lg">
+        <table className="table table-sm">
+          <thead>
+            <tr>
+              <th>{t("finance.snapshot.node")}</th>
+              <th>{t("finance.snapshot.amount")}</th>
+              <th>{t("finance.snapshot.currency")}</th>
+              <th>{t("finance.snapshot.note")}</th>
+              <th>{t("finance.snapshot.source")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => (
+              <tr key={entry.id}>
+                <td className="font-medium">{entry.node_name ?? entry.node_id}</td>
+                <td className="tabular-nums">
+                  {formatMoney(entry.amount_converted, snapshot.primary_currency)}
+                </td>
+                <td>{entry.currency_code}</td>
+                <td>{entry.note || "-"}</td>
+                <td>
+                  <Badge
+                    tone={entry.is_auto_generated ? "info" : "neutral"}
+                    variant="outline"
+                    size="xs"
+                  >
+                    {entry.is_auto_generated ? t("finance.snapshot.auto") : t("finance.snapshot.manual")}
+                  </Badge>
+                </td>
+              </tr>
+            ))}
+            {!entries.length ? (
+              <tr>
+                <td colSpan={5} className="text-center text-base-content/60 py-6">
+                  {t("finance.history.noSelection")}
+                </td>
+              </tr>
             ) : null}
-          </div>
-        ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

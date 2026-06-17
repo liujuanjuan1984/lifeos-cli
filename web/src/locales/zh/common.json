@@ -1423,10 +1423,19 @@
       "negative": "负向",
       "neutral": "中性",
       "currency": "币种",
-      "createNode": "创建节点"
+      "createNode": "创建节点",
+      "manage": "管理财务树",
+      "deleteTitle": "删除财务节点",
+      "deleteMessage": "删除 {{name}} 及其子节点？",
+      "deleteConfirm": "删除节点"
     },
     "snapshot": {
       "formTitle": "快照",
+      "new": "新建快照",
+      "selectSnapshot": "选择快照",
+      "previous": "上一个快照",
+      "next": "下一个快照",
+      "position": "第 {{current}} / {{total}} 个",
       "snapshotTime": "快照时间",
       "periodStart": "周期开始",
       "periodEnd": "周期结束",
@@ -1438,7 +1447,8 @@
       "save": "保存快照",
       "noEntryNodes": "保存快照前，请先添加至少一个普通节点。",
       "auto": "自动",
-      "manual": "手动"
+      "manual": "手动",
+      "source": "来源"
     },
     "history": {
       "title": "历史",
