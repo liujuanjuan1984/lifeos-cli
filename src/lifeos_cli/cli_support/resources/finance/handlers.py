@@ -19,9 +19,7 @@ SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "period", "net_amount", "c
 
 
 def _format_tree_summary(tree: FinanceTree) -> str:
-    return (
-        f"{tree.id}\t{tree.purpose}\t{tree.time_mode}\t{tree.primary_currency}\t{tree.name}"
-    )
+    return f"{tree.id}\t{tree.purpose}\t{tree.time_mode}\t{tree.primary_currency}\t{tree.name}"
 
 
 def _format_node_summary(node: FinanceTreeNode) -> str:

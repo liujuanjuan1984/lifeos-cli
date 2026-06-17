@@ -203,13 +203,18 @@ async def list_trees(
             limit=size,
             offset=(page - 1) * size,
         )
+        total = await finance_services.count_finance_trees(
+            session,
+            purpose=purpose,
+            include_deleted=include_deleted,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _page_envelope(
         items=[_tree_payload(tree) for tree in trees],
         page=page,
         size=size,
-        total=len(trees),
+        total=total,
         meta={"purpose": purpose, "include_deleted": include_deleted},
     )
 

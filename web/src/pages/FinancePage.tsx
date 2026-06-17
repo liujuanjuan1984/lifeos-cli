@@ -185,13 +185,14 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
     enabled: Boolean(tree?.id),
   });
 
+  const latestSnapshot = snapshotsQuery.data?.items[0] ?? null;
+  const detailSnapshotId = selectedSnapshotId ?? latestSnapshot?.id ?? null;
   const selectedSnapshotQuery = useQuery({
-    queryKey: financeKeys.snapshot(selectedSnapshotId),
-    queryFn: () => financeApi.getSnapshot(selectedSnapshotId!),
-    enabled: Boolean(selectedSnapshotId),
+    queryKey: financeKeys.snapshot(detailSnapshotId),
+    queryFn: () => financeApi.getSnapshot(detailSnapshotId!),
+    enabled: Boolean(detailSnapshotId),
   });
 
-  const latestSnapshot = snapshotsQuery.data?.items[0] ?? null;
   const selectedSnapshot = selectedSnapshotQuery.data ?? latestSnapshot;
 
   const createNodeMutation = useMutation({
@@ -300,7 +301,7 @@ function FinancePresetPanel({ preset }: { preset: PresetConfig }) {
           snapshots={snapshotsQuery.data?.items ?? []}
           selectedSnapshot={selectedSnapshot}
           selectedSnapshotLoading={selectedSnapshotQuery.isLoading}
-          selectedSnapshotId={selectedSnapshotId}
+          selectedSnapshotId={detailSnapshotId}
           onSelectSnapshot={setSelectedSnapshotId}
         />
       </div>

@@ -235,12 +235,31 @@ async def list_finance_trees(
         stmt = stmt.where(FinanceTree.purpose == normalize_finance_purpose(purpose))
     if not include_deleted:
         stmt = stmt.where(FinanceTree.deleted_at.is_(None))
-    stmt = stmt.order_by(
-        FinanceTree.purpose.asc(),
-        FinanceTree.display_order.asc(),
-        FinanceTree.name.asc(),
-    ).offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(
+            FinanceTree.purpose.asc(),
+            FinanceTree.display_order.asc(),
+            FinanceTree.name.asc(),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
     return list((await session.execute(stmt)).scalars())
+
+
+async def count_finance_trees(
+    session: AsyncSession,
+    *,
+    purpose: str | None = None,
+    include_deleted: bool = False,
+) -> int:
+    """Count finance trees."""
+    stmt = select(func.count()).select_from(FinanceTree)
+    if purpose is not None:
+        stmt = stmt.where(FinanceTree.purpose == normalize_finance_purpose(purpose))
+    if not include_deleted:
+        stmt = stmt.where(FinanceTree.deleted_at.is_(None))
+    return int((await session.execute(stmt)).scalar_one())
 
 
 async def _clear_other_defaults(
@@ -530,11 +549,13 @@ async def create_finance_snapshot(
     tree = await get_finance_tree(session, tree_id=tree_id)
     if tree is None:
         raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
-    resolved_snapshot_ts, resolved_period_start, resolved_period_end = _validate_snapshot_time_fields(
-        tree=tree,
-        snapshot_ts=snapshot_ts,
-        period_start=period_start,
-        period_end=period_end,
+    resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
+        _validate_snapshot_time_fields(
+            tree=tree,
+            snapshot_ts=snapshot_ts,
+            period_start=period_start,
+            period_end=period_end,
+        )
     )
     resolved_currency = normalize_currency_code(primary_currency, fallback=tree.primary_currency)
     entry_nodes = await _load_entry_nodes(session, tree_id=tree_id, entries=entries)
@@ -645,10 +666,14 @@ async def list_finance_snapshots(
         stmt = stmt.join(FinanceTree).where(
             FinanceTree.purpose == normalize_finance_purpose(purpose)
         )
-    stmt = stmt.order_by(
-        FinanceSnapshot.snapshot_ts.desc().nullslast(),
-        FinanceSnapshot.created_at.desc(),
-    ).offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(
+            FinanceSnapshot.snapshot_ts.desc().nullslast(),
+            FinanceSnapshot.created_at.desc(),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
     return list((await session.execute(stmt)).scalars())
 
 
@@ -685,8 +710,10 @@ async def count_finance_snapshots(
     purpose: str | None = None,
 ) -> int:
     """Count finance snapshots."""
-    stmt = select(func.count()).select_from(FinanceSnapshot).where(
-        FinanceSnapshot.deleted_at.is_(None)
+    stmt = (
+        select(func.count())
+        .select_from(FinanceSnapshot)
+        .where(FinanceSnapshot.deleted_at.is_(None))
     )
     if tree_id is not None:
         stmt = stmt.where(FinanceSnapshot.tree_id == tree_id)

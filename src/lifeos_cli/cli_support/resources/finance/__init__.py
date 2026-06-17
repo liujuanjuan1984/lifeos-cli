@@ -1,2 +1,1 @@
 """Finance CLI resource."""
-

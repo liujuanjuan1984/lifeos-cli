@@ -116,7 +116,9 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=("lifeos finance tree-ensure-default --purpose balance",),
         ),
     )
-    ensure_default.add_argument("--purpose", required=True, choices=("balance", "cashflow", "custom"))
+    ensure_default.add_argument(
+        "--purpose", required=True, choices=("balance", "cashflow", "custom")
+    )
     ensure_default.add_argument("--primary-currency", default="USD")
     ensure_default.set_defaults(handler=make_sync_handler(handle_finance_tree_ensure_default_async))
 

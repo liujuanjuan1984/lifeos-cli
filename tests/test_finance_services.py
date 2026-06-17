@@ -3,7 +3,12 @@ from __future__ import annotations
 import asyncio
 from decimal import Decimal
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.services import finance
@@ -85,6 +90,41 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
 
                 assert tree.time_mode == "period"
                 assert {node.name for node in nodes} == {"Inflows", "Outflows"}
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_tree_count_matches_filters() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                custom_tree = await finance.create_finance_tree(
+                    session,
+                    name="Planning",
+                    purpose="custom",
+                    primary_currency="USD",
+                )
+                custom_tree.soft_delete()
+
+                assert await finance.count_finance_trees(session) == 1
+                assert await finance.count_finance_trees(session, purpose="balance") == 1
+                assert await finance.count_finance_trees(session, purpose="custom") == 0
+                assert (
+                    await finance.count_finance_trees(
+                        session,
+                        purpose="custom",
+                        include_deleted=True,
+                    )
+                    == 1
+                )
         finally:
             await engine.dispose()
 
