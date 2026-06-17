@@ -111,9 +111,14 @@ const PlanningPage: React.FC = () => {
 
   // Compute planning groups directly with useMemo to avoid callback dependency cycles
   const planningGroups = useMemo(() => {
-    if (!calendarAdapter || tasksForView.length === 0) {
+    if (!calendarAdapter) {
       return [];
     }
+
+    if (tasksForView.length === 0 && viewType !== "day") {
+      return [];
+    }
+
     return calendarAdapter.buildPlanningGroups(
       viewType,
       selectedDate,

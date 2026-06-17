@@ -60,7 +60,7 @@ interface DraggableTaskListProps {
   onViewNotes: (task: TaskWithSubtasks) => void;
   expandedTasks?: Set<UUID>;
   onToggleExpansion?: (taskId: UUID) => void;
-  onTasksReorder?: (reorderedTasks: TaskWithSubtasks[]) => void;
+  onTasksReorder?: (reorderedTasks: TaskWithSubtasks[]) => void | Promise<void>;
   habitTaskAssociations?: Record<UUID, Habit[]>;
   // Vision information for planning page
   visions?: Vision[];
@@ -729,34 +729,13 @@ const DraggableTaskList: React.FC<DraggableTaskListProps> = ({
 
       const reorderedSiblings = arrayMove(siblings, oldIndex, newIndex);
 
-      const taskOrders = reorderedSiblings.map(
-        (task: TaskWithSubtasks, index: number) => ({
-          id: task.id,
-          display_order: index,
-        }),
-      );
-
-      try {
-        await tasksApi.reorder(taskOrders);
-        if (onTasksReorder) {
-          const updatedTasks = hierarchyManager.updateTaskOrder(
-            tasks,
-            reorderedSiblings,
-            activeInfo.parentId,
-          );
-          onTasksReorder(updatedTasks);
-        }
-      } catch (error) {
-        logger.error("Failed to reorder tasks:", error);
-        // Even if reorder fails, we should still update the UI to maintain consistency
-        if (onTasksReorder) {
-          const updatedTasks = hierarchyManager.updateTaskOrder(
-            tasks,
-            reorderedSiblings,
-            activeInfo.parentId,
-          );
-          onTasksReorder(updatedTasks);
-        }
+      if (onTasksReorder) {
+        const updatedTasks = hierarchyManager.updateTaskOrder(
+          tasks,
+          reorderedSiblings,
+          activeInfo.parentId,
+        );
+        await onTasksReorder(updatedTasks);
       }
     },
     [hierarchyManager, onTasksReorder, tasks],
@@ -781,13 +760,13 @@ const DraggableTaskList: React.FC<DraggableTaskListProps> = ({
           // For cross-level moves, we need to reload the entire task tree
           // since the structure has changed significantly
           // Send a special signal to indicate cross-level move
-          onTasksReorder([]); // Empty array signals cross-level move
+          await onTasksReorder([]); // Empty array signals cross-level move
         }
       } catch (error) {
         logger.error("Failed to move task:", error);
         // Even if the move fails, we should still request a reload to ensure UI consistency
         if (onTasksReorder) {
-          onTasksReorder([]);
+          await onTasksReorder([]);
         }
       }
     },
