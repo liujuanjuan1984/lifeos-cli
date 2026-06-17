@@ -1424,7 +1424,12 @@
       "neutral": "Neutral",
       "currency": "Currency",
       "createNode": "Create node",
+      "createNodeTitle": "Create finance node",
+      "editNode": "Edit node",
+      "editNodeTitle": "Edit finance node",
+      "createChild": "Create child node",
       "manage": "Manage tree",
+      "manageHint": "Organize finance nodes the same way account and source trees are managed.",
       "deleteTitle": "Delete finance node",
       "deleteMessage": "Delete {{name}} and its child nodes?",
       "deleteConfirm": "Delete node"
@@ -1459,6 +1464,7 @@
     "messages": {
       "treeMissing": "Finance tree is unavailable.",
       "nodeCreated": "Finance node created",
+      "nodeUpdated": "Finance node updated",
       "nodeDeleted": "Finance node deleted",
       "snapshotCreated": "Finance snapshot saved",
       "noEntries": "Enter at least one amount before saving."

@@ -1424,7 +1424,12 @@
       "neutral": "中性",
       "currency": "币种",
       "createNode": "创建节点",
+      "createNodeTitle": "创建财务节点",
+      "editNode": "编辑节点",
+      "editNodeTitle": "编辑财务节点",
+      "createChild": "创建子节点",
       "manage": "管理财务树",
+      "manageHint": "按账户树和来源树的方式维护财务节点。",
       "deleteTitle": "删除财务节点",
       "deleteMessage": "删除 {{name}} 及其子节点？",
       "deleteConfirm": "删除节点"
@@ -1459,6 +1464,7 @@
     "messages": {
       "treeMissing": "财务树不可用。",
       "nodeCreated": "财务节点已创建",
+      "nodeUpdated": "财务节点已更新",
       "nodeDeleted": "财务节点已删除",
       "snapshotCreated": "财务快照已保存",
       "noEntries": "保存前请至少填写一个金额。"

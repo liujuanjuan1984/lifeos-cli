@@ -42,6 +42,9 @@ type TreeNodeWithChildren = FinanceTreeNode & {
 
 type SnapshotAmountState = Record<UUID, string>;
 type SnapshotNoteState = Record<UUID, string>;
+type FinanceNodeFormState =
+  | { mode: "create"; parentId?: UUID | null }
+  | { mode: "edit"; node: TreeNodeWithChildren };
 
 const PRESETS: PresetConfig[] = [
   {
@@ -182,6 +185,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<UUID | null>(null);
   const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
   const [treeManagerOpen, setTreeManagerOpen] = useState(false);
+  const [nodeFormState, setNodeFormState] = useState<FinanceNodeFormState | null>(null);
   const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
 
   const treeQuery = useQuery({
@@ -231,6 +235,31 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     }) => financeApi.createNode(tree!.id, payload),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeCreated"));
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.treesByPurpose(preset.purpose),
+      });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const updateNodeMutation = useMutation({
+    mutationFn: ({
+      nodeId,
+      payload,
+    }: {
+      nodeId: UUID;
+      payload: {
+        name?: string;
+        node_kind?: FinanceNodeKind;
+        normal_side?: FinanceNormalSide | null;
+        currency_code?: string | null;
+      };
+    }) => financeApi.updateNode(nodeId, payload),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.nodeUpdated"));
+      setNodeFormState(null);
       await queryClient.invalidateQueries({
         queryKey: financeKeys.treesByPurpose(preset.purpose),
       });
@@ -352,15 +381,32 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         tree={tree}
         preset={preset}
         treeNodes={treeNodes}
-        flatNodes={flatNodes}
-        creating={createNodeMutation.isPending}
         deletingNodeId={
           deleteNodeMutation.variables && deleteNodeMutation.isPending
             ? deleteNodeMutation.variables
             : null
         }
-        onCreateNode={(payload) => createNodeMutation.mutate(payload)}
+        onCreateRootNode={() => setNodeFormState({ mode: "create", parentId: null })}
+        onCreateChildNode={(node) => setNodeFormState({ mode: "create", parentId: node.id })}
+        onEditNode={(node) => setNodeFormState({ mode: "edit", node })}
         onDeleteNode={setPendingDeleteNode}
+      />
+
+      <FinanceNodeFormModal
+        isOpen={Boolean(nodeFormState)}
+        onClose={() => {
+          if (!createNodeMutation.isPending && !updateNodeMutation.isPending) {
+            setNodeFormState(null);
+          }
+        }}
+        tree={tree}
+        flatNodes={flatNodes}
+        formState={nodeFormState}
+        submitting={createNodeMutation.isPending || updateNodeMutation.isPending}
+        onCreateNode={(payload) => createNodeMutation.mutate(payload, {
+          onSuccess: () => setNodeFormState(null),
+        })}
+        onUpdateNode={(nodeId, payload) => updateNodeMutation.mutate({ nodeId, payload })}
       />
 
       <ConfirmDialog
@@ -710,10 +756,10 @@ function FinanceTreeManagerModal({
   tree,
   preset,
   treeNodes,
-  flatNodes,
-  creating,
   deletingNodeId,
-  onCreateNode,
+  onCreateRootNode,
+  onCreateChildNode,
+  onEditNode,
   onDeleteNode,
 }: {
   isOpen: boolean;
@@ -721,16 +767,10 @@ function FinanceTreeManagerModal({
   tree: FinanceTree;
   preset: PresetConfig;
   treeNodes: TreeNodeWithChildren[];
-  flatNodes: TreeNodeWithChildren[];
-  creating: boolean;
   deletingNodeId: UUID | null;
-  onCreateNode: (payload: {
-    name: string;
-    parent_id?: UUID | null;
-    node_kind: FinanceNodeKind;
-    normal_side?: FinanceNormalSide | null;
-    currency_code?: string | null;
-  }) => void;
+  onCreateRootNode: () => void;
+  onCreateChildNode: (node: TreeNodeWithChildren) => void;
+  onEditNode: (node: TreeNodeWithChildren) => void;
   onDeleteNode: (node: TreeNodeWithChildren) => void;
 }) {
   const { t } = useTranslation();
@@ -739,51 +779,65 @@ function FinanceTreeManagerModal({
       isOpen={isOpen}
       onClose={onClose}
       title={t("finance.tree.manage")}
-      size="2xl"
+      size="xl"
       bodyOverflow="auto"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5">
-        <section className="space-y-4">
-          <div>
-            <h3 className="font-semibold text-base-content">{tree.name}</h3>
-            <p className="text-sm text-base-content/60">{t(`finance.${preset.purpose}.treeHint`)}</p>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-base-200 bg-base-200/40 px-4 py-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-base-content truncate">{tree.name}</span>
+              <Badge tone="neutral" size="xs" variant="outline">
+                {tree.primary_currency}
+              </Badge>
+              <Badge tone="info" size="xs" variant="outline">
+                {tree.time_mode}
+              </Badge>
+            </div>
+            <p className="mt-1 text-xs text-base-content/60">{t(`finance.${preset.purpose}.treeHint`)}</p>
           </div>
-          <div className="max-h-[520px] overflow-y-auto pr-1 space-y-2">
-            {treeNodes.length ? (
-              treeNodes.map((node) => (
-                <TreeNodeRow
-                  key={node.id}
-                  node={node}
-                  deletingNodeId={deletingNodeId}
-                  onDeleteNode={onDeleteNode}
-                />
-              ))
-            ) : (
-              <div className="text-sm text-base-content/60">{t("finance.tree.empty")}</div>
-            )}
-          </div>
-        </section>
+        </div>
 
-        <FinanceNodeForm
-          tree={tree}
-          flatNodes={flatNodes}
-          creating={creating}
-          onCreateNode={onCreateNode}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-base-content/60">{t("finance.tree.manageHint")}</p>
+          <CreateNewButton
+            label={t("finance.tree.addNode")}
+            onClick={onCreateRootNode}
+            size="sm"
+            color="primary"
+            variant="solid"
+            ariaLabel={t("finance.tree.addNode")}
+          />
+        </div>
+
+        <FinanceTreeView
+          treeNodes={treeNodes}
+          deletingNodeId={deletingNodeId}
+          onCreateChildNode={onCreateChildNode}
+          onEditNode={onEditNode}
+          onDeleteNode={onDeleteNode}
         />
       </div>
     </ModalBase>
   );
 }
 
-function FinanceNodeForm({
+function FinanceNodeFormModal({
+  isOpen,
+  onClose,
   tree,
   flatNodes,
-  creating,
+  formState,
+  submitting,
   onCreateNode,
+  onUpdateNode,
 }: {
+  isOpen: boolean;
+  onClose: () => void;
   tree: FinanceTree;
   flatNodes: TreeNodeWithChildren[];
-  creating: boolean;
+  formState: FinanceNodeFormState | null;
+  submitting: boolean;
   onCreateNode: (payload: {
     name: string;
     parent_id?: UUID | null;
@@ -791,111 +845,249 @@ function FinanceNodeForm({
     normal_side?: FinanceNormalSide | null;
     currency_code?: string | null;
   }) => void;
+  onUpdateNode: (
+    nodeId: UUID,
+    payload: {
+      name?: string;
+      node_kind?: FinanceNodeKind;
+      normal_side?: FinanceNormalSide | null;
+      currency_code?: string | null;
+    },
+  ) => void;
 }) {
   const { t } = useTranslation();
+  const isEditing = formState?.mode === "edit";
+  const editingNode = isEditing ? formState.node : null;
+  const initialParentId =
+    formState?.mode === "create" ? formState.parentId ?? null : editingNode?.parent_id ?? null;
+  const initialCurrency =
+    editingNode?.currency_code ||
+    flatNodes.find((node) => node.id === initialParentId)?.currency_code ||
+    tree.primary_currency;
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<UUID | "">("");
   const [nodeKind, setNodeKind] = useState<FinanceNodeKind>("regular");
   const [normalSide, setNormalSide] = useState<FinanceNormalSide | "">("");
   const [currency, setCurrency] = useState(tree.primary_currency);
 
+  useEffect(() => {
+    if (!formState) return;
+    setName(editingNode?.name ?? "");
+    setParentId(initialParentId ?? "");
+    setNodeKind(editingNode?.node_kind ?? "regular");
+    setNormalSide(editingNode?.normal_side ?? "");
+    setCurrency(initialCurrency);
+  }, [editingNode, formState, initialCurrency, initialParentId]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    onCreateNode({
-      name,
-      parent_id: parentId || null,
+    const payload = {
+      name: name.trim(),
       node_kind: nodeKind,
       normal_side: normalSide || null,
       currency_code: currency || tree.primary_currency,
+    };
+    if (editingNode) {
+      onUpdateNode(editingNode.id, payload);
+      return;
+    }
+    onCreateNode({
+      ...payload,
+      parent_id: parentId || null,
     });
-    setName("");
   };
 
   return (
-    <form className="border border-base-300 rounded-lg bg-base-200/30 p-4 space-y-3" onSubmit={handleSubmit}>
-      <h3 className="font-semibold text-base-content">{t("finance.tree.addNode")}</h3>
-      <FormField label={t("finance.tree.nodeNamePlaceholder")}>
-        <TextInput
-          size="sm"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={t("finance.tree.nodeNamePlaceholder")}
-        />
-      </FormField>
-      <label className="form-control">
-        <span className="label-text">{t("finance.tree.parent")}</span>
-        <select
-          className="select select-bordered select-sm"
-          value={parentId}
-          onChange={(event) => setParentId(event.target.value as UUID | "")}
-        >
-          <option value="">{t("finance.tree.root")}</option>
-          {flatNodes.map((node) => (
-            <option key={node.id} value={node.id}>
-              {"  ".repeat(node.depth)}
-              {node.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="form-control">
-        <span className="label-text">{t("finance.tree.kind")}</span>
-        <select
-          className="select select-bordered select-sm"
-          value={nodeKind}
-          onChange={(event) => setNodeKind(event.target.value as FinanceNodeKind)}
-        >
-          <option value="regular">{t("finance.tree.regular")}</option>
-          <option value="rollup">{t("finance.tree.rollup")}</option>
-        </select>
-      </label>
-      <label className="form-control">
-        <span className="label-text">{t("finance.tree.normalSide")}</span>
-        <select
-          className="select select-bordered select-sm"
-          value={normalSide}
-          onChange={(event) => setNormalSide(event.target.value as FinanceNormalSide | "")}
-        >
-          <option value="">{t("common.none")}</option>
-          <option value="positive">{t("finance.tree.positive")}</option>
-          <option value="negative">{t("finance.tree.negative")}</option>
-          <option value="neutral">{t("finance.tree.neutral")}</option>
-        </select>
-      </label>
-      <FormField label={t("finance.tree.currency")}>
-        <TextInput
-          size="sm"
-          value={currency}
-          onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-        />
-      </FormField>
-      <ActionButton
-        type="submit"
-        label={creating ? t("common.creating") : t("finance.tree.createNode")}
-        color="primary"
-        variant="solid"
-        iconName="plus"
-        disabled={creating || !name.trim()}
-      />
-    </form>
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? t("finance.tree.editNodeTitle") : t("finance.tree.createNodeTitle")}
+      size="md"
+      bodyOverflow="auto"
+    >
+      <form className="space-y-3" onSubmit={handleSubmit}>
+        <FormField label={t("finance.tree.nodeNamePlaceholder")}>
+          <TextInput
+            size="sm"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t("finance.tree.nodeNamePlaceholder")}
+          />
+        </FormField>
+        {!isEditing ? (
+          <label className="form-control">
+            <span className="label-text">{t("finance.tree.parent")}</span>
+            <select
+              className="select select-bordered select-sm"
+              value={parentId}
+              onChange={(event) => setParentId(event.target.value as UUID | "")}
+            >
+              <option value="">{t("finance.tree.root")}</option>
+              {flatNodes.map((node) => (
+                <option key={node.id} value={node.id}>
+                  {"  ".repeat(node.depth)}
+                  {node.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="form-control">
+          <span className="label-text">{t("finance.tree.kind")}</span>
+          <select
+            className="select select-bordered select-sm"
+            value={nodeKind}
+            onChange={(event) => setNodeKind(event.target.value as FinanceNodeKind)}
+          >
+            <option value="regular">{t("finance.tree.regular")}</option>
+            <option value="rollup">{t("finance.tree.rollup")}</option>
+          </select>
+        </label>
+        <label className="form-control">
+          <span className="label-text">{t("finance.tree.normalSide")}</span>
+          <select
+            className="select select-bordered select-sm"
+            value={normalSide}
+            onChange={(event) => setNormalSide(event.target.value as FinanceNormalSide | "")}
+          >
+            <option value="">{t("common.none")}</option>
+            <option value="positive">{t("finance.tree.positive")}</option>
+            <option value="negative">{t("finance.tree.negative")}</option>
+            <option value="neutral">{t("finance.tree.neutral")}</option>
+          </select>
+        </label>
+        <FormField label={t("finance.tree.currency")}>
+          <TextInput
+            size="sm"
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+          />
+        </FormField>
+        <div className="flex justify-end gap-2 pt-2">
+          <ActionButton
+            type="button"
+            label={t("common.cancel")}
+            variant="ghost"
+            onClick={onClose}
+            disabled={submitting}
+          />
+          <ActionButton
+            type="submit"
+            label={
+              submitting
+                ? t("common.saving")
+                : isEditing
+                  ? t("common.save")
+                  : t("finance.tree.createNode")
+            }
+            color="primary"
+            variant="solid"
+            iconName={isEditing ? "check" : "plus"}
+            disabled={submitting || !name.trim()}
+          />
+        </div>
+      </form>
+    </ModalBase>
+  );
+}
+
+function FinanceTreeView({
+  treeNodes,
+  deletingNodeId,
+  onCreateChildNode,
+  onEditNode,
+  onDeleteNode,
+}: {
+  treeNodes: TreeNodeWithChildren[];
+  deletingNodeId: UUID | null;
+  onCreateChildNode: (node: TreeNodeWithChildren) => void;
+  onEditNode: (node: TreeNodeWithChildren) => void;
+  onDeleteNode: (node: TreeNodeWithChildren) => void;
+}) {
+  const { t } = useTranslation();
+  const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
+
+  useEffect(() => {
+    setExpandedIds(new Set(flattenTree(treeNodes).map((node) => node.id)));
+  }, [treeNodes]);
+
+  const toggleNode = (nodeId: UUID) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  if (!treeNodes.length) {
+    return (
+      <div className="rounded-lg border border-dashed border-base-300 bg-base-100 p-6 text-center text-sm text-base-content/60">
+        {t("finance.tree.empty")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[520px] overflow-y-auto pr-1">
+      <ul className="space-y-2">
+        {treeNodes.map((node) => (
+          <TreeNodeRow
+            key={node.id}
+            node={node}
+            expandedIds={expandedIds}
+            deletingNodeId={deletingNodeId}
+            onToggleNode={toggleNode}
+            onCreateChildNode={onCreateChildNode}
+            onEditNode={onEditNode}
+            onDeleteNode={onDeleteNode}
+          />
+        ))}
+      </ul>
+    </div>
   );
 }
 
 function TreeNodeRow({
   node,
+  expandedIds,
   deletingNodeId,
+  onToggleNode,
+  onCreateChildNode,
+  onEditNode,
   onDeleteNode,
 }: {
   node: TreeNodeWithChildren;
+  expandedIds: Set<UUID>;
   deletingNodeId: UUID | null;
+  onToggleNode: (nodeId: UUID) => void;
+  onCreateChildNode: (node: TreeNodeWithChildren) => void;
+  onEditNode: (node: TreeNodeWithChildren) => void;
   onDeleteNode: (node: TreeNodeWithChildren) => void;
 }) {
+  const { t } = useTranslation();
   const deleting = deletingNodeId === node.id;
+  const hasChildren = node.children.length > 0;
+  const isExpanded = expandedIds.has(node.id);
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-200/30 px-2 py-2">
-        <div className="min-w-0 flex-1" style={{ paddingLeft: `${node.depth * 12}px` }}>
+    <li>
+      <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-2 py-2 hover:border-base-300/80">
+        <ActionButton
+          label=""
+          ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
+          iconName={isExpanded ? "chevron-down" : "chevron-right"}
+          iconOnly
+          shape="square"
+          size="xs"
+          variant="ghost"
+          disabled={!hasChildren}
+          onClick={() => onToggleNode(node.id)}
+        />
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{node.name}</span>
             <Badge tone={node.node_kind === "rollup" ? "info" : "neutral"} size="xs" variant="outline">
@@ -907,8 +1099,28 @@ function TreeNodeRow({
           </div>
         </div>
         <ActionButton
+          label=""
+          ariaLabel={t("finance.tree.createChild")}
+          iconName="plus"
+          iconOnly
+          shape="square"
+          size="xs"
+          variant="ghost"
+          onClick={() => onCreateChildNode(node)}
+        />
+        <ActionButton
+          label=""
+          ariaLabel={t("finance.tree.editNode")}
+          iconName="edit"
+          iconOnly
+          shape="square"
+          size="xs"
+          variant="ghost"
+          onClick={() => onEditNode(node)}
+        />
+        <ActionButton
           label={deleting ? "..." : ""}
-          ariaLabel="Delete finance node"
+          ariaLabel={t("finance.tree.deleteConfirm")}
           iconName="trash"
           iconOnly
           shape="square"
@@ -919,15 +1131,23 @@ function TreeNodeRow({
           onClick={() => onDeleteNode(node)}
         />
       </div>
-      {node.children.map((child) => (
-        <TreeNodeRow
-          key={child.id}
-          node={child}
-          deletingNodeId={deletingNodeId}
-          onDeleteNode={onDeleteNode}
-        />
-      ))}
-    </div>
+      {hasChildren && isExpanded ? (
+        <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
+          {node.children.map((child) => (
+            <TreeNodeRow
+              key={child.id}
+              node={child}
+              expandedIds={expandedIds}
+              deletingNodeId={deletingNodeId}
+              onToggleNode={onToggleNode}
+              onCreateChildNode={onCreateChildNode}
+              onEditNode={onEditNode}
+              onDeleteNode={onDeleteNode}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
