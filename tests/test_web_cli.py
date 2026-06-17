@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services.read_models import (
+    EventView,
     PersonSummaryView,
     TagView,
     TaskSummaryView,
@@ -57,6 +58,66 @@ def test_planned_event_recurrence_until_accepts_utc_z_suffix() -> None:
 
     assert parsed.recurrence_until is not None
     assert parsed.recurrence_until.isoformat() == "2026-06-20T16:00:00+00:00"
+
+
+def test_planned_event_rrule_preserves_advanced_recurrence_details() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.planned_events import _create_input, _planned_event_payload
+    from lifeos_web.schemas import PlannedEventCreate
+
+    payload = PlannedEventCreate(
+        title="Second Monday review",
+        start_time=datetime(2026, 4, 13, 16, 0, tzinfo=timezone.utc),
+        is_recurring=True,
+        rrule_string="FREQ=MONTHLY;BYDAY=2MO;BYMONTH=4,5",
+    )
+
+    parsed = _create_input(payload)
+
+    assert parsed.recurrence_frequency == "monthly"
+    assert parsed.recurrence_rule == {
+        "bymonth": [4, 5],
+        "byweekday_ordinals": [{"weekday": "monday", "ordinal": 2}],
+    }
+
+    event_payload = _planned_event_payload(
+        EventView(
+            id=UUID("11111111-1111-1111-1111-111111111111"),
+            title="Second Monday review",
+            description=None,
+            status="planned",
+            event_type="appointment",
+            priority=0,
+            is_all_day=False,
+            start_time=datetime(2026, 4, 13, 16, 0, tzinfo=timezone.utc),
+            end_time=None,
+            recurrence_frequency="monthly",
+            recurrence_interval=1,
+            recurrence_count=None,
+            recurrence_until=None,
+            recurrence_rule={
+                "bymonth": [4, 5],
+                "byweekday_ordinals": [{"weekday": "monday", "ordinal": 2}],
+            },
+            recurrence_parent_event_id=None,
+            recurrence_instance_start=None,
+            area_id=None,
+            task_id=None,
+            created_at=datetime(2026, 4, 1, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 4, 1, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+    )
+
+    assert event_payload["recurrence_pattern"] == {
+        "frequency": "monthly",
+        "interval": 1,
+        "count": None,
+        "until": None,
+        "bymonth": [4, 5],
+        "byweekday_ordinals": [{"weekday": "monday", "ordinal": 2}],
+    }
+    assert event_payload["rrule_string"] == "FREQ=MONTHLY;BYDAY=2MO;BYMONTH=4,5"
 
 
 def test_web_app_registers_core_resource_routes() -> None:

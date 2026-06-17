@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import re
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -20,11 +22,23 @@ from lifeos_cli.db.services.event_support import (
 )
 from lifeos_cli.db.services.events import EventOccurrence
 from lifeos_cli.db.services.read_models import EventView
+from lifeos_cli.db.services.recurrence_core import normalize_recurrence_rule_details
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, PlannedEventCreate, PlannedEventUpdate
 
 router = APIRouter(prefix="/planned-events", tags=["planned-events"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+_RRULE_WEEKDAY_TO_NAME = {
+    "MO": "monday",
+    "TU": "tuesday",
+    "WE": "wednesday",
+    "TH": "thursday",
+    "FR": "friday",
+    "SA": "saturday",
+    "SU": "sunday",
+}
+_WEEKDAY_NAME_TO_RRULE = {value: key for key, value in _RRULE_WEEKDAY_TO_NAME.items()}
+_BYDAY_PATTERN = re.compile(r"^(?P<ordinal>[+-]?\d+)?(?P<weekday>MO|TU|WE|TH|FR|SA|SU)$")
 
 
 def _event_scope(value: str | None) -> str:
@@ -38,6 +52,8 @@ def _parse_rrule(rrule_string: str | None) -> dict[str, object]:
     if not rrule_string:
         return {}
     values: dict[str, object] = {}
+    byweekday: list[str] = []
+    byweekday_ordinals: list[dict[str, object]] = []
     for part in rrule_string.split(";"):
         key, separator, value = part.partition("=")
         if not separator:
@@ -52,7 +68,92 @@ def _parse_rrule(rrule_string: str | None) -> dict[str, object]:
             values["count"] = int(normalized_value)
         elif normalized_key == "UNTIL":
             values["until"] = normalized_value
+        elif normalized_key == "BYDAY":
+            for token in normalized_value.split(","):
+                match = _BYDAY_PATTERN.match(token.strip().upper())
+                if match is None:
+                    continue
+                weekday = _RRULE_WEEKDAY_TO_NAME[match.group("weekday")]
+                ordinal = match.group("ordinal")
+                if ordinal:
+                    byweekday_ordinals.append({"weekday": weekday, "ordinal": int(ordinal)})
+                else:
+                    byweekday.append(weekday)
+        elif normalized_key == "BYMONTHDAY":
+            values["bymonthday"] = [
+                int(token.strip()) for token in normalized_value.split(",") if token.strip()
+            ]
+        elif normalized_key == "BYMONTH":
+            values["bymonth"] = [
+                int(token.strip()) for token in normalized_value.split(",") if token.strip()
+            ]
+    if byweekday:
+        values["byweekday"] = byweekday
+    if byweekday_ordinals:
+        values["byweekday_ordinals"] = byweekday_ordinals
     return values
+
+
+def _recurrence_rule_from_pattern(
+    recurrence: Mapping[str, object],
+) -> dict[str, object] | None:
+    return normalize_recurrence_rule_details(
+        {
+            "byweekday": recurrence.get("byweekday"),
+            "bymonthday": recurrence.get("bymonthday"),
+            "bymonth": recurrence.get("bymonth"),
+            "byweekday_ordinals": recurrence.get("byweekday_ordinals"),
+        }
+    )
+
+
+def _recurrence_pattern(
+    source_event: EventView,
+) -> dict[str, object]:
+    recurrence_pattern: dict[str, object] = {
+        "frequency": source_event.recurrence_frequency,
+        "interval": source_event.recurrence_interval,
+        "count": source_event.recurrence_count,
+        "until": (
+            format_utc_iso(source_event.recurrence_until) if source_event.recurrence_until else None
+        ),
+    }
+    if source_event.recurrence_rule:
+        recurrence_pattern.update(source_event.recurrence_rule)
+    return recurrence_pattern
+
+
+def _rrule_string(source_event: EventView) -> str | None:
+    frequency = source_event.recurrence_frequency
+    if frequency is None:
+        return None
+    parts = [f"FREQ={frequency.upper()}"]
+    if source_event.recurrence_interval and source_event.recurrence_interval != 1:
+        parts.append(f"INTERVAL={source_event.recurrence_interval}")
+    if source_event.recurrence_count is not None:
+        parts.append(f"COUNT={source_event.recurrence_count}")
+    if source_event.recurrence_until is not None:
+        parts.append(f"UNTIL={format_utc_iso(source_event.recurrence_until)}")
+    recurrence_rule = source_event.recurrence_rule or {}
+    byday: list[str] = []
+    for weekday in recurrence_rule.get("byweekday", []):
+        byday.append(_WEEKDAY_NAME_TO_RRULE[str(weekday)])
+    for item in recurrence_rule.get("byweekday_ordinals", []):
+        if not isinstance(item, Mapping):
+            continue
+        weekday_code = _WEEKDAY_NAME_TO_RRULE[str(item["weekday"])]
+        byday.append(f"{item['ordinal']}{weekday_code}")
+    if byday:
+        parts.append(f"BYDAY={','.join(byday)}")
+    if recurrence_rule.get("bymonthday"):
+        parts.append(
+            "BYMONTHDAY=" + ",".join(str(value) for value in recurrence_rule.get("bymonthday", []))
+        )
+    if recurrence_rule.get("bymonth"):
+        parts.append(
+            "BYMONTH=" + ",".join(str(value) for value in recurrence_rule.get("bymonth", []))
+        )
+    return ";".join(parts)
 
 
 def _optional_int(value: object | None) -> int | None:
@@ -84,16 +185,7 @@ def _planned_event_payload(
     recurrence_frequency = source_event.recurrence_frequency if source_event else None
     recurrence_pattern = None
     if recurrence_frequency is not None and source_event is not None:
-        recurrence_pattern = {
-            "frequency": recurrence_frequency,
-            "interval": source_event.recurrence_interval,
-            "count": source_event.recurrence_count,
-            "until": (
-                format_utc_iso(source_event.recurrence_until)
-                if source_event.recurrence_until
-                else None
-            ),
-        }
+        recurrence_pattern = _recurrence_pattern(source_event)
     if is_occurrence:
         master_id = source_event.id if source_event else planned_event_record.id
     else:
@@ -112,7 +204,7 @@ def _planned_event_payload(
     area_id = source_event.area_id if source_event else None
     priority = source_event.priority if source_event else 0
     is_all_day = source_event.is_all_day if source_event else False
-    rrule_string = f"FREQ={recurrence_frequency.upper()}" if recurrence_frequency else None
+    rrule_string = _rrule_string(source_event) if source_event else None
     return {
         "id": str(planned_event_record.id),
         "title": planned_event_record.title,
@@ -144,6 +236,7 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
     has_recurrence_frequency = payload.is_recurring and recurrence.get("frequency")
     has_recurrence_interval = payload.is_recurring and recurrence.get("interval") is not None
     has_recurrence_count = payload.is_recurring and recurrence.get("count") is not None
+    recurrence_rule = _recurrence_rule_from_pattern(recurrence)
     return EventCreateInput(
         title=payload.title,
         start_time=payload.start_time,
@@ -165,6 +258,7 @@ def _create_input(payload: PlannedEventCreate) -> EventCreateInput:
             if payload.is_recurring and recurrence.get("until")
             else None
         ),
+        recurrence_rule=recurrence_rule,
     )
 
 
@@ -172,6 +266,8 @@ def _update_input(payload: PlannedEventUpdate) -> EventUpdateInput:
     fields = payload.model_fields_set
     recurrence = payload.recurrence_pattern or _parse_rrule(payload.rrule_string)
     clear_recurrence = "is_recurring" in fields and payload.is_recurring is False
+    recurrence_provided = "recurrence_pattern" in fields or "rrule_string" in fields
+    recurrence_rule = _recurrence_rule_from_pattern(recurrence)
     return EventUpdateInput(
         title=payload.title,
         start_time=payload.start_time,
@@ -206,6 +302,10 @@ def _update_input(payload: PlannedEventUpdate) -> EventUpdateInput:
             parse_iso_datetime_input(str(recurrence["until"]))
             if payload.is_recurring is not False and recurrence.get("until")
             else None
+        ),
+        recurrence_rule=recurrence_rule,
+        clear_recurrence_rule=(
+            recurrence_provided and payload.is_recurring is not False and recurrence_rule is None
         ),
         clear_recurrence=clear_recurrence,
     )

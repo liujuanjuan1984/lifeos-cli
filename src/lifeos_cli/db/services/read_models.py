@@ -163,6 +163,7 @@ class EventView:
     recurrence_interval: int | None
     recurrence_count: int | None
     recurrence_until: datetime | None
+    recurrence_rule: dict[str, object] | None
     recurrence_parent_event_id: UUID | None
     recurrence_instance_start: datetime | None
     area_id: UUID | None
@@ -386,6 +387,7 @@ def build_event_view(
         recurrence_interval=event.recurrence_interval,
         recurrence_count=event.recurrence_count,
         recurrence_until=event.recurrence_until,
+        recurrence_rule=event.recurrence_rule,
         recurrence_parent_event_id=event.recurrence_parent_event_id,
         recurrence_instance_start=event.recurrence_instance_start,
         area_id=event.area_id,

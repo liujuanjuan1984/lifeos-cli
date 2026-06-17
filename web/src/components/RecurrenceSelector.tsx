@@ -68,6 +68,8 @@ const OCCURRENCES = [
   { value: "-1", label: "最后一个" },
 ];
 
+const BYDAY_PATTERN = /^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/;
+
 export default function RecurrenceSelector({
   value = "",
   onChange,
@@ -119,7 +121,34 @@ export default function RecurrenceSelector({
           config.interval = parseInt(val);
           break;
         case "BYDAY":
-          config.weekdays = val.split(",");
+          {
+            const weekdays: string[] = [];
+            const ordinalDays = val
+              .split(",")
+              .map((token) => BYDAY_PATTERN.exec(token.trim()))
+              .filter((match): match is RegExpExecArray => match !== null);
+            ordinalDays.forEach((match) => {
+              const ordinal = match[1];
+              const weekday = match[2];
+              if (ordinal) {
+                config.monthWeekday = {
+                  occurrence: parseInt(ordinal, 10),
+                  weekday,
+                };
+                return;
+              }
+              weekdays.push(weekday);
+            });
+            if (weekdays.length > 0) {
+              config.weekdays = weekdays;
+            }
+          }
+          break;
+        case "BYMONTHDAY":
+          config.monthDay = parseInt(val.split(",")[0] || "1", 10);
+          break;
+        case "BYMONTH":
+          config.yearMonth = parseInt(val.split(",")[0] || "1", 10);
           break;
         // Add more parsing as needed
       }

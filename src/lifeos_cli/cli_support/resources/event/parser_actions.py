@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from uuid import UUID
 
 from lifeos_cli.cli_support.help_utils import (
@@ -31,6 +32,49 @@ from lifeos_cli.cli_support.resources.event.handlers import (
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
 from lifeos_cli.cli_support.time_args import parse_datetime_or_date_value, parse_user_datetime_value
 from lifeos_cli.i18n import cli_message as _
+
+_VALUE_SPLIT_PATTERN = re.compile(r"[\s,]+")
+
+
+def _parse_recurrence_name_list(value: str) -> list[str]:
+    """Parse one comma-separated recurrence token list."""
+    values = [part.strip() for part in _VALUE_SPLIT_PATTERN.split(value.strip()) if part.strip()]
+    if not values:
+        raise argparse.ArgumentTypeError("Expected at least one recurrence value.")
+    return values
+
+
+def _parse_recurrence_int_list(value: str) -> list[int]:
+    """Parse one comma-separated integer recurrence token list."""
+    values: list[int] = []
+    for part in _VALUE_SPLIT_PATTERN.split(value.strip()):
+        if not part.strip():
+            continue
+        try:
+            values.append(int(part))
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(
+                "Expected comma-separated integer recurrence values."
+            ) from exc
+    if not values:
+        raise argparse.ArgumentTypeError("Expected at least one integer recurrence value.")
+    return values
+
+
+def _parse_recurrence_weekday_ordinal(value: str) -> dict[str, object]:
+    """Parse one nth-weekday selector as `ordinal:weekday`."""
+    ordinal_text, separator, weekday = value.strip().partition(":")
+    if not separator:
+        raise argparse.ArgumentTypeError(
+            "Expected recurrence weekday ordinal in `ordinal:weekday` form."
+        )
+    try:
+        ordinal = int(ordinal_text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "Expected recurrence weekday ordinal to start with an integer."
+        ) from exc
+    return {"ordinal": ordinal, "weekday": weekday.strip()}
 
 
 def build_event_add_parser(
@@ -135,6 +179,29 @@ def build_event_add_parser(
         "--recurrence-until",
         type=parse_user_datetime_value,
         help=_("resources.event.parser_actions.optional_final_allowed_occurrence_start_time"),
+    )
+    add_parser.add_argument(
+        "--recurrence-weekdays",
+        type=_parse_recurrence_name_list,
+        help=_("resources.event.parser_actions.optional_recurrence_weekdays"),
+    )
+    add_parser.add_argument(
+        "--recurrence-month-days",
+        type=_parse_recurrence_int_list,
+        help=_("resources.event.parser_actions.optional_recurrence_month_days"),
+    )
+    add_parser.add_argument(
+        "--recurrence-months",
+        type=_parse_recurrence_int_list,
+        help=_("resources.event.parser_actions.optional_recurrence_months"),
+    )
+    add_parser.add_argument(
+        "--recurrence-weekday-ordinal",
+        dest="recurrence_weekday_ordinals",
+        type=_parse_recurrence_weekday_ordinal,
+        action="append",
+        default=None,
+        help=_("resources.event.parser_actions.optional_recurrence_weekday_ordinal"),
     )
     add_parser.add_argument(
         "--tag-id",
@@ -398,6 +465,34 @@ def build_event_update_parser(
         "--recurrence-until",
         type=parse_user_datetime_value,
         help=_("resources.event.parser_actions.updated_recurrence_until_datetime"),
+    )
+    update_parser.add_argument(
+        "--recurrence-weekdays",
+        type=_parse_recurrence_name_list,
+        help=_("resources.event.parser_actions.updated_recurrence_weekdays"),
+    )
+    update_parser.add_argument(
+        "--recurrence-month-days",
+        type=_parse_recurrence_int_list,
+        help=_("resources.event.parser_actions.updated_recurrence_month_days"),
+    )
+    update_parser.add_argument(
+        "--recurrence-months",
+        type=_parse_recurrence_int_list,
+        help=_("resources.event.parser_actions.updated_recurrence_months"),
+    )
+    update_parser.add_argument(
+        "--recurrence-weekday-ordinal",
+        dest="recurrence_weekday_ordinals",
+        type=_parse_recurrence_weekday_ordinal,
+        action="append",
+        default=None,
+        help=_("resources.event.parser_actions.updated_recurrence_weekday_ordinal"),
+    )
+    update_parser.add_argument(
+        "--clear-recurrence-rule",
+        action="store_true",
+        help=_("resources.event.parser_actions.remove_advanced_recurrence_rule_details"),
     )
     update_parser.add_argument(
         "--clear-recurrence",

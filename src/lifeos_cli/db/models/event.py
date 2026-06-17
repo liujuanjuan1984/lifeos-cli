@@ -6,6 +6,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     ForeignKey,
@@ -52,6 +53,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     recurrence_until: Mapped[datetime | None] = mapped_column(
         UTCDateTime(), nullable=True, index=True
     )
+    recurrence_rule: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     area_id: Mapped[UUID | None] = mapped_column(
         Uuid,
         ForeignKey("areas.id", ondelete="SET NULL"),

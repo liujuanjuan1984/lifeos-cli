@@ -21,6 +21,9 @@ from lifeos_cli.db.services.recurrence_core import (
     get_occurrence_index,
     get_occurrence_starts_in_range,
     get_previous_occurrence_start,
+    normalize_recurrence_rule_details,
+    recurrence_rule_details_to_kwargs,
+    serialize_recurrence_rule_details,
     validate_occurrence_start,
 )
 
@@ -71,6 +74,8 @@ class EventUpdateInput:
     recurrence_interval: int | None = None
     recurrence_count: int | None = None
     recurrence_until: datetime | None = None
+    recurrence_rule: dict[str, object] | None = None
+    clear_recurrence_rule: bool = False
     clear_recurrence: bool = False
 
 
@@ -94,6 +99,7 @@ class EventCreateInput:
     recurrence_interval: int | None = None
     recurrence_count: int | None = None
     recurrence_until: datetime | None = None
+    recurrence_rule: dict[str, object] | None = None
     recurrence_parent_event_id: UUID | None = None
     recurrence_instance_start: datetime | None = None
 
@@ -200,18 +206,26 @@ def validate_event_recurrence(
     recurrence_interval: int | None,
     recurrence_count: int | None,
     recurrence_until: datetime | None,
-) -> tuple[str | None, int | None, int | None, datetime | None]:
+    recurrence_rule: dict[str, object] | None = None,
+) -> tuple[str | None, int | None, int | None, datetime | None, dict[str, object] | None]:
     """Validate recurrence fields and normalize defaults."""
     if recurrence_frequency is None:
         if any(
-            value is not None for value in (recurrence_interval, recurrence_count, recurrence_until)
+            value is not None
+            for value in (
+                recurrence_interval,
+                recurrence_count,
+                recurrence_until,
+                recurrence_rule,
+            )
         ):
             raise EventValidationError(
-                "Recurrence interval, count, and until require recurrence_frequency."
+                "Recurrence interval, count, until, and rule details require recurrence_frequency."
             )
-        return None, None, None, None
+        return None, None, None, None, None
 
     try:
+        normalized_details = normalize_recurrence_rule_details(recurrence_rule)
         normalized_rule = build_series_definition(
             anchor_start=start_time,
             anchor_end=None,
@@ -219,6 +233,7 @@ def validate_event_recurrence(
             interval=recurrence_interval,
             count=recurrence_count,
             until=recurrence_until,
+            **recurrence_rule_details_to_kwargs(normalized_details),
             week_starts_on=get_preferences_settings().week_starts_on,
         ).rule
     except RecurrenceValidationError as exc:
@@ -228,6 +243,7 @@ def validate_event_recurrence(
         normalized_rule.interval,
         normalized_rule.count,
         normalized_rule.until,
+        serialize_recurrence_rule_details(normalized_rule),
     )
 
 
@@ -253,6 +269,7 @@ def _build_event_series(event: RecurringEventLike) -> SeriesDefinition:
         interval=event.recurrence_interval,
         count=event.recurrence_count,
         until=normalize_storage_datetime(event.recurrence_until),
+        **recurrence_rule_details_to_kwargs(getattr(event, "recurrence_rule", None)),
         week_starts_on=get_preferences_settings().week_starts_on,
     )
 

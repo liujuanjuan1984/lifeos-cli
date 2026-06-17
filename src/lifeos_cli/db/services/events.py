@@ -81,6 +81,7 @@ class _DerivedEventCreateOptions:
     recurrence_interval: int | None = None
     recurrence_count: int | None = None
     recurrence_until: datetime | None = None
+    recurrence_rule: dict[str, object] | None = None
     recurrence_parent_event_id: UUID | None = None
     recurrence_instance_start: datetime | None = None
 
@@ -302,7 +303,7 @@ def _resolve_event_recurrence_update(
     changes: EventUpdateInput,
     *,
     next_start_time: datetime,
-) -> tuple[str | None, int | None, int | None, datetime | None]:
+) -> tuple[str | None, int | None, int | None, datetime | None, dict[str, object] | None]:
     normalized_recurrence_until = (
         to_storage_timezone(changes.recurrence_until) if changes.recurrence_until else None
     )
@@ -334,12 +335,20 @@ def _resolve_event_recurrence_update(
         if normalized_recurrence_until is not None
         else event.recurrence_until
     )
+    next_recurrence_rule = (
+        None
+        if changes.clear_recurrence or changes.clear_recurrence_rule
+        else changes.recurrence_rule
+        if changes.recurrence_rule is not None
+        else getattr(event, "recurrence_rule", None)
+    )
     return validate_event_recurrence(
         start_time=next_start_time,
         recurrence_frequency=next_recurrence_frequency,
         recurrence_interval=next_recurrence_interval,
         recurrence_count=next_recurrence_count,
         recurrence_until=next_recurrence_until,
+        recurrence_rule=next_recurrence_rule,
     )
 
 
@@ -501,6 +510,7 @@ def _build_derived_event_create_input(
         recurrence_interval=options.recurrence_interval,
         recurrence_count=options.recurrence_count,
         recurrence_until=options.recurrence_until,
+        recurrence_rule=options.recurrence_rule,
         recurrence_parent_event_id=options.recurrence_parent_event_id,
         recurrence_instance_start=options.recurrence_instance_start,
     )
@@ -639,12 +649,14 @@ async def create_event(
         normalized_recurrence_interval,
         normalized_recurrence_count,
         normalized_recurrence_until,
+        normalized_recurrence_rule,
     ) = validate_event_recurrence(
         start_time=normalized_start_time,
         recurrence_frequency=payload.recurrence_frequency,
         recurrence_interval=payload.recurrence_interval,
         recurrence_count=payload.recurrence_count,
         recurrence_until=normalized_recurrence_until,
+        recurrence_rule=payload.recurrence_rule,
     )
     await ensure_event_area_exists(session, payload.area_id)
     await ensure_event_task_exists(session, payload.task_id)
@@ -663,6 +675,7 @@ async def create_event(
         recurrence_interval=normalized_recurrence_interval,
         recurrence_count=normalized_recurrence_count,
         recurrence_until=normalized_recurrence_until,
+        recurrence_rule=normalized_recurrence_rule,
         recurrence_parent_event_id=payload.recurrence_parent_event_id,
         recurrence_instance_start=normalized_instance_start,
     )
@@ -861,6 +874,7 @@ async def _update_event_record(
         event.recurrence_interval,
         event.recurrence_count,
         event.recurrence_until,
+        event.recurrence_rule,
     ) = _resolve_event_recurrence_update(
         event,
         changes,
@@ -887,6 +901,8 @@ def _without_event_recurrence_changes(changes: EventUpdateInput) -> EventUpdateI
         recurrence_interval=None,
         recurrence_count=None,
         recurrence_until=None,
+        recurrence_rule=None,
+        clear_recurrence_rule=False,
         clear_recurrence=False,
     )
 
@@ -1005,6 +1021,13 @@ async def _update_future_series(
         if changes.recurrence_until is not None
         else master_event.recurrence_until
     )
+    next_recurrence_rule = (
+        None
+        if changes.clear_recurrence or changes.clear_recurrence_rule
+        else changes.recurrence_rule
+        if changes.recurrence_rule is not None
+        else getattr(master_event, "recurrence_rule", None)
+    )
     return await create_event(
         session,
         payload=_build_derived_event_create_input(
@@ -1023,6 +1046,7 @@ async def _update_future_series(
                 recurrence_interval=next_recurrence_interval,
                 recurrence_count=next_recurrence_count,
                 recurrence_until=next_recurrence_until,
+                recurrence_rule=next_recurrence_rule,
             ),
         ),
     )

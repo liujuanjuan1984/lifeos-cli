@@ -28,6 +28,20 @@ EVENT_SUMMARY_COLUMNS = (
 )
 
 
+def _build_recurrence_rule_from_args(args: argparse.Namespace) -> dict[str, object] | None:
+    """Build structured recurrence rule details from CLI arguments."""
+    recurrence_rule: dict[str, object] = {}
+    if getattr(args, "recurrence_weekdays", None) is not None:
+        recurrence_rule["byweekday"] = args.recurrence_weekdays
+    if getattr(args, "recurrence_month_days", None) is not None:
+        recurrence_rule["bymonthday"] = args.recurrence_month_days
+    if getattr(args, "recurrence_months", None) is not None:
+        recurrence_rule["bymonth"] = args.recurrence_months
+    if getattr(args, "recurrence_weekday_ordinals", None) is not None:
+        recurrence_rule["byweekday_ordinals"] = args.recurrence_weekday_ordinals
+    return recurrence_rule or None
+
+
 def _format_event_summary(event: event_services.EventOccurrence | event_services.EventView) -> str:
     status = "deleted" if event.deleted_at is not None else event.status
     return (
@@ -54,6 +68,7 @@ def _format_event_detail(event: event_services.EventView) -> str:
             f"recurrence_interval: {event.recurrence_interval or '-'}",
             f"recurrence_count: {event.recurrence_count or '-'}",
             f"recurrence_until: {format_timestamp(event.recurrence_until)}",
+            f"recurrence_rule: {event.recurrence_rule or '-'}",
             f"recurrence_parent_event_id: {event.recurrence_parent_event_id or '-'}",
             f"recurrence_instance_start: {format_timestamp(event.recurrence_instance_start)}",
             f"area_id: {event.area_id or '-'}",
@@ -89,6 +104,7 @@ async def handle_event_add_async(args: argparse.Namespace) -> int:
                     recurrence_interval=args.recurrence_interval,
                     recurrence_count=args.recurrence_count,
                     recurrence_until=args.recurrence_until,
+                    recurrence_rule=_build_recurrence_rule_from_args(args),
                 ),
             )
         except (
@@ -182,10 +198,28 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
                     args.recurrence_interval,
                     args.recurrence_count,
                     args.recurrence_until,
+                    args.recurrence_weekdays,
+                    args.recurrence_month_days,
+                    args.recurrence_months,
+                    args.recurrence_weekday_ordinals,
                 )
             ),
             "--recurrence-*",
             "--clear-recurrence",
+        ),
+        (
+            args.clear_recurrence_rule
+            and any(
+                value is not None
+                for value in (
+                    args.recurrence_weekdays,
+                    args.recurrence_month_days,
+                    args.recurrence_months,
+                    args.recurrence_weekday_ordinals,
+                )
+            ),
+            "--recurrence-*",
+            "--clear-recurrence-rule",
         ),
     )
     conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
@@ -219,6 +253,8 @@ async def handle_event_update_async(args: argparse.Namespace) -> int:
                     recurrence_interval=args.recurrence_interval,
                     recurrence_count=args.recurrence_count,
                     recurrence_until=args.recurrence_until,
+                    recurrence_rule=_build_recurrence_rule_from_args(args),
+                    clear_recurrence_rule=args.clear_recurrence_rule,
                     clear_recurrence=args.clear_recurrence,
                 ),
                 scope=args.scope,
