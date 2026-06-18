@@ -124,6 +124,19 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
                 assert all(
                     asset.code != "SOL" for asset in await finance.list_finance_assets(session)
                 )
+
+                usd = next(
+                    asset
+                    for asset in await finance.list_finance_assets(session)
+                    if asset.code == "USD"
+                )
+                await finance.delete_finance_asset(session, asset_id=usd.id)
+                active_assets = await finance.list_finance_assets(session)
+                assert all(asset.code != "USD" for asset in active_assets)
+                deleted_assets = await finance.list_finance_assets(session, include_deleted=True)
+                assert any(
+                    asset.code == "USD" and asset.deleted_at is not None for asset in deleted_assets
+                )
         finally:
             await engine.dispose()
 

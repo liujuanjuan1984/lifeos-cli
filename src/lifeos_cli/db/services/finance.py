@@ -145,12 +145,8 @@ def validate_asset_name(name: str | None) -> str | None:
 
 
 async def ensure_default_finance_assets(session: AsyncSession) -> None:
-    """Create the built-in finance assets when they are missing."""
-    existing_codes = set(
-        (await session.execute(select(FinanceAsset.code).where(FinanceAsset.deleted_at.is_(None))))
-        .scalars()
-        .all()
-    )
+    """Create built-in assets only when the code has never existed."""
+    existing_codes = set((await session.execute(select(FinanceAsset.code))).scalars().all())
     for code, name, display_order in DEFAULT_FINANCE_ASSETS:
         if code in existing_codes:
             continue
