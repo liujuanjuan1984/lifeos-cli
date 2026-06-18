@@ -21,7 +21,7 @@ from lifeos_cli.db.services import finance as finance_services
 
 TREE_SUMMARY_COLUMNS = ("tree_id", "purpose", "time_mode", "currency", "name")
 SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "period", "net_amount", "currency")
-RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "currency", "source")
+RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "pairs", "source")
 
 
 def _format_tree_summary(tree: FinanceTree) -> str:
@@ -47,9 +47,12 @@ def _format_snapshot_summary(snapshot: FinanceSnapshot) -> str:
 
 
 def _format_rate_snapshot_summary(rate_snapshot: FinanceRateSnapshot) -> str:
+    pairs = ",".join(
+        f"{entry.base_currency}/{entry.quote_currency}" for entry in rate_snapshot.entries[:3]
+    )
     return (
         f"{rate_snapshot.id}\t{format_timestamp(rate_snapshot.captured_at)}\t"
-        f"{rate_snapshot.primary_currency}\t{rate_snapshot.source}"
+        f"{pairs or '-'}\t{rate_snapshot.source}"
     )
 
 
@@ -114,7 +117,6 @@ def _format_rate_snapshot_detail(rate_snapshot: FinanceRateSnapshot) -> str:
         (
             f"id: {rate_snapshot.id}",
             f"captured_at: {format_timestamp(rate_snapshot.captured_at)}",
-            f"primary_currency: {rate_snapshot.primary_currency}",
             f"source: {rate_snapshot.source}",
             f"note: {rate_snapshot.note or '-'}",
             "entries:",
@@ -142,12 +144,12 @@ def parse_snapshot_entry(value: str) -> finance_services.FinanceSnapshotEntryInp
 
 
 def parse_rate_snapshot_entry(value: str) -> finance_services.FinanceRateSnapshotEntryInput:
-    """Parse base-currency:rate[:quote-currency] CLI rate syntax."""
+    """Parse base-currency:rate:quote-currency CLI rate syntax."""
     parts = value.split(":")
-    if len(parts) not in {2, 3}:
-        raise argparse.ArgumentTypeError("Rate must use base-currency:rate[:quote-currency]")
+    if len(parts) != 3:
+        raise argparse.ArgumentTypeError("Rate must use base-currency:rate:quote-currency")
     base_currency, rate_text = parts[0], parts[1]
-    quote_currency = parts[2] if len(parts) == 3 and parts[2] else None
+    quote_currency = parts[2]
     try:
         return finance_services.FinanceRateSnapshotEntryInput(
             base_currency=base_currency,
@@ -298,7 +300,6 @@ async def handle_finance_rate_snapshot_add_async(args: argparse.Namespace) -> in
         try:
             rate_snapshot = await finance_services.create_finance_rate_snapshot(
                 session,
-                primary_currency=args.primary_currency,
                 captured_at=_storage_datetime(args.captured_at),
                 source=args.source,
                 note=args.note,
@@ -315,7 +316,6 @@ async def handle_finance_rate_snapshot_list_async(args: argparse.Namespace) -> i
         try:
             rate_snapshots = await finance_services.list_finance_rate_snapshots(
                 session,
-                primary_currency=args.primary_currency,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,

@@ -6,6 +6,18 @@ import { ENDPOINTS } from "./endpoints";
 export type FinancePurpose = "balance" | "cashflow" | "custom";
 export type FinanceTimeMode = "instant" | "period";
 
+export interface FinanceAsset {
+  id: UUID;
+  code: string;
+  name?: string | null;
+  display_order: number;
+  is_default: boolean;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
 export interface FinanceTreeNode {
   id: UUID;
   tree_id: UUID;
@@ -95,7 +107,7 @@ export interface FinanceRateSnapshotEntry {
 export interface FinanceRateSnapshot {
   id: UUID;
   captured_at: string;
-  primary_currency: string;
+  primary_currency?: string | null;
   source: string;
   note?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -150,7 +162,7 @@ export interface FinanceSnapshotUpdate {
 
 export interface FinanceRateSnapshotEntryCreate {
   base_currency: string;
-  quote_currency?: string | null;
+  quote_currency: string;
   rate: string;
   source?: string | null;
   captured_at?: string | null;
@@ -160,7 +172,6 @@ export interface FinanceRateSnapshotEntryCreate {
 
 export interface FinanceRateSnapshotCreate {
   captured_at?: string | null;
-  primary_currency: string;
   source?: string | null;
   note?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -171,16 +182,37 @@ export type FinanceTreeListResponse = ListResponse<
   FinanceTree,
   { purpose?: string | null; include_deleted?: boolean }
 >;
+export type FinanceAssetListResponse = ListResponse<
+  FinanceAsset,
+  { include_deleted?: boolean }
+>;
 export type FinanceSnapshotListResponse = ListResponse<
   FinanceSnapshot,
   { tree_id?: UUID | null }
 >;
 export type FinanceRateSnapshotListResponse = ListResponse<
   FinanceRateSnapshot,
-  { primary_currency?: string | null; include_deleted?: boolean }
+  { include_deleted?: boolean }
 >;
 
 export const financeApi = {
+  listAssets: (params: { page?: number; size?: number } = {}) =>
+    http.get<FinanceAssetListResponse>(ENDPOINTS.FINANCE.ASSETS, {
+      page: params.page ?? 1,
+      size: params.size ?? 200,
+    }),
+  createAsset: (payload: {
+    code: string;
+    name?: string | null;
+    display_order?: number;
+    is_default?: boolean;
+  }) => http.post<FinanceAsset>(ENDPOINTS.FINANCE.ASSETS, payload),
+  updateAsset: (
+    assetId: UUID,
+    payload: { code?: string; name?: string | null; display_order?: number },
+  ) => http.patch<FinanceAsset>(ENDPOINTS.FINANCE.ASSET_BY_ID(assetId), payload),
+  deleteAsset: (assetId: UUID) =>
+    http.delete<void>(ENDPOINTS.FINANCE.ASSET_BY_ID(assetId)),
   listTrees: (
     params: { purpose?: FinancePurpose; page?: number; size?: number } = {},
   ) =>
@@ -191,13 +223,10 @@ export const financeApi = {
     }),
   createTree: (payload: FinanceTreeCreate) =>
     http.post<FinanceTree>(ENDPOINTS.FINANCE.TREES, payload),
-  listRateSnapshots: (
-    params: { primary_currency?: string; page?: number; size?: number } = {},
-  ) =>
+  listRateSnapshots: (params: { page?: number; size?: number } = {}) =>
     http.get<FinanceRateSnapshotListResponse>(
       ENDPOINTS.FINANCE.RATE_SNAPSHOTS,
       {
-        primary_currency: params.primary_currency,
         page: params.page ?? 1,
         size: params.size ?? 50,
       },

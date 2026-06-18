@@ -56,6 +56,31 @@ class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         return f"FinanceTree(id={self.id!s}, purpose={self.purpose!r}, name={self.name!r})"
 
 
+class FinanceAsset(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
+    """Asset code usable by finance trees, snapshots, and exchange rates."""
+
+    __tablename__ = "finance_assets"
+    __table_args__ = (
+        Index(
+            "uq_finance_assets_code_active",
+            "code",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+        Index("ix_finance_assets_display_order", "display_order", "code"),
+    )
+
+    code: Mapped[str] = mapped_column(String(16), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"FinanceAsset(id={self.id!s}, code={self.code!r})"
+
+
 class FinanceTreeNode(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     """Hierarchical finance node shared by balance and cashflow presets."""
 
@@ -197,19 +222,13 @@ class FinanceSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixi
 
 
 class FinanceRateSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
-    """Exchange-rate set captured for one primary currency at one time."""
+    """Exchange-rate set captured at one time."""
 
     __tablename__ = "finance_rate_snapshots"
-    __table_args__ = (
-        Index(
-            "ix_finance_rate_snapshots_currency_captured",
-            "primary_currency",
-            "captured_at",
-        ),
-    )
+    __table_args__ = (Index("ix_finance_rate_snapshots_captured", "captured_at"),)
 
     captured_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
-    primary_currency: Mapped[str] = mapped_column(String(16), nullable=False)
+    primary_currency: Mapped[str | None] = mapped_column(String(16), nullable=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False, default="manual")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
@@ -223,11 +242,7 @@ class FinanceRateSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin
     snapshots = relationship("FinanceSnapshot", back_populates="rate_snapshot")
 
     def __repr__(self) -> str:
-        return (
-            "FinanceRateSnapshot("
-            f"id={self.id!s}, primary_currency={self.primary_currency!r}, "
-            f"captured_at={self.captured_at!r})"
-        )
+        return f"FinanceRateSnapshot(id={self.id!s}, captured_at={self.captured_at!r})"
 
 
 class FinanceRateSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -271,6 +286,7 @@ class FinanceRateSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDelete
 
 
 __all__ = [
+    "FinanceAsset",
     "FinanceRateSnapshot",
     "FinanceRateSnapshotEntry",
     "FinanceSnapshot",

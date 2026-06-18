@@ -116,6 +116,7 @@ export const timelogTemplatesKeys = {
 // Finance
 export const financeKeys = {
   all: ["finance"] as const,
+  assets: () => [...financeKeys.all, "assets"] as const,
   trees: () => [...financeKeys.all, "trees"] as const,
   treesByPurpose: (purpose: FinancePurpose) =>
     [...financeKeys.trees(), purpose] as const,
@@ -125,8 +126,7 @@ export const financeKeys = {
     [...financeKeys.all, "snapshots", treeId ?? ""] as const,
   snapshot: (id: UUID | null) =>
     [...financeKeys.all, "snapshot", id ?? ""] as const,
-  rateSnapshots: (primaryCurrency?: string | null) =>
-    [...financeKeys.all, "rate-snapshots", primaryCurrency ?? ""] as const,
+  rateSnapshots: () => [...financeKeys.all, "rate-snapshots"] as const,
   rateSnapshot: (id: UUID | null) =>
     [...financeKeys.all, "rate-snapshot", id ?? ""] as const,
 };

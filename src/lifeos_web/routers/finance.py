@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.db.models.finance import (
+    FinanceAsset,
     FinanceRateSnapshot,
     FinanceRateSnapshotEntry,
     FinanceSnapshot,
@@ -38,6 +39,24 @@ class FinanceTreeCreate(BaseModel):
     display_order: int = 0
     is_default: bool = False
     metadata: dict[str, Any] | None = None
+
+
+class FinanceAssetCreate(BaseModel):
+    """Payload for creating a finance asset."""
+
+    code: str
+    name: str | None = None
+    display_order: int = 1000
+    is_default: bool = False
+    metadata: dict[str, Any] | None = None
+
+
+class FinanceAssetUpdate(BaseModel):
+    """Payload for updating a finance asset."""
+
+    code: str | None = None
+    name: str | None = None
+    display_order: int | None = None
 
 
 class FinanceNodeCreate(BaseModel):
@@ -89,7 +108,7 @@ class FinanceRateSnapshotEntryCreate(BaseModel):
     """Payload for one exchange-rate entry."""
 
     base_currency: str
-    quote_currency: str | None = None
+    quote_currency: str
     rate: Decimal
     source: str | None = None
     captured_at: datetime | None = None
@@ -101,7 +120,6 @@ class FinanceRateSnapshotCreate(BaseModel):
     """Payload for creating an exchange-rate snapshot."""
 
     captured_at: datetime | None = None
-    primary_currency: str = "USD"
     source: str | None = None
     note: str | None = None
     metadata: dict[str, Any] | None = None
@@ -143,6 +161,20 @@ def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
         "created_at": node.created_at.isoformat(),
         "updated_at": node.updated_at.isoformat(),
         "deleted_at": node.deleted_at.isoformat() if node.deleted_at else None,
+    }
+
+
+def _asset_payload(asset: FinanceAsset) -> dict[str, object]:
+    return {
+        "id": str(asset.id),
+        "code": asset.code,
+        "name": asset.name,
+        "display_order": asset.display_order,
+        "is_default": asset.is_default,
+        "metadata": to_jsonable(asset.metadata_json),
+        "created_at": asset.created_at.isoformat(),
+        "updated_at": asset.updated_at.isoformat(),
+        "deleted_at": asset.deleted_at.isoformat() if asset.deleted_at else None,
     }
 
 
@@ -253,6 +285,81 @@ def _snapshot_payload(
     return payload
 
 
+@router.get("/assets", response_model=ListResponse)
+async def list_assets(
+    session: SessionDep,
+    include_deleted: bool = False,
+    page: int = Query(1, ge=1),
+    size: int = Query(200, ge=1, le=500),
+) -> ListResponse:
+    """List finance assets."""
+    assets = await finance_services.list_finance_assets(
+        session,
+        include_deleted=include_deleted,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    total = await finance_services.count_finance_assets(
+        session,
+        include_deleted=include_deleted,
+    )
+    return _page_envelope(
+        items=[_asset_payload(asset) for asset in assets],
+        page=page,
+        size=size,
+        total=total,
+        meta={"include_deleted": include_deleted},
+    )
+
+
+@router.post("/assets")
+async def create_asset(payload: FinanceAssetCreate, session: SessionDep) -> dict[str, object]:
+    """Create a finance asset."""
+    try:
+        asset = await finance_services.create_finance_asset(
+            session,
+            code=payload.code,
+            name=payload.name,
+            display_order=payload.display_order,
+            is_default=payload.is_default,
+            metadata=payload.metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _asset_payload(asset)
+
+
+@router.patch("/assets/{asset_id}")
+async def update_asset(
+    asset_id: UUID,
+    payload: FinanceAssetUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a finance asset."""
+    try:
+        asset = await finance_services.update_finance_asset(
+            session,
+            asset_id=asset_id,
+            code=payload.code,
+            name=payload.name,
+            display_order=payload.display_order,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _asset_payload(asset)
+
+
+@router.delete("/assets/{asset_id}", status_code=204)
+async def delete_asset(asset_id: UUID, session: SessionDep) -> None:
+    """Soft-delete one finance asset."""
+    try:
+        await finance_services.delete_finance_asset(session, asset_id=asset_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get("/trees", response_model=ListResponse)
 async def list_trees(
     session: SessionDep,
@@ -289,7 +396,6 @@ async def list_trees(
 @router.get("/rate-snapshots", response_model=ListResponse)
 async def list_rate_snapshots(
     session: SessionDep,
-    primary_currency: str | None = None,
     include_deleted: bool = False,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
@@ -298,14 +404,12 @@ async def list_rate_snapshots(
     try:
         rate_snapshots = await finance_services.list_finance_rate_snapshots(
             session,
-            primary_currency=primary_currency,
             include_deleted=include_deleted,
             limit=size,
             offset=(page - 1) * size,
         )
         total = await finance_services.count_finance_rate_snapshots(
             session,
-            primary_currency=primary_currency,
             include_deleted=include_deleted,
         )
     except ValueError as exc:
@@ -315,7 +419,7 @@ async def list_rate_snapshots(
         page=page,
         size=size,
         total=total,
-        meta={"primary_currency": primary_currency, "include_deleted": include_deleted},
+        meta={"include_deleted": include_deleted},
     )
 
 
@@ -329,7 +433,6 @@ async def create_rate_snapshot(
         rate_snapshot = await finance_services.create_finance_rate_snapshot(
             session,
             captured_at=payload.captured_at,
-            primary_currency=payload.primary_currency,
             source=payload.source,
             note=payload.note,
             metadata=payload.metadata,

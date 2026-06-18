@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { FormField, TextArea, TextInput } from "@/components/forms";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AssetSelect from "@/components/selects/AssetSelect";
 import EnumSelect from "@/components/selects/EnumSelect";
 import ToolbarContainer from "@/components/ToolbarContainer";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
@@ -16,6 +17,7 @@ import ModalBase from "@/layouts/ModalBase";
 import PageLayout from "@/layouts/PageLayout";
 import {
   financeApi,
+  type FinanceAsset,
   type FinancePurpose,
   type FinanceRateSnapshot,
   type FinanceRateSnapshotCreate,
@@ -142,6 +144,16 @@ function snapshotLabel(snapshot: FinanceSnapshot) {
   return snapshot.created_at;
 }
 
+function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
+  const pairs = (snapshot.entries ?? [])
+    .slice(0, 3)
+    .map((entry) => `${entry.base_currency}/${entry.quote_currency}`)
+    .join(", ");
+  return pairs
+    ? `${formatDateTime(snapshot.captured_at)} · ${pairs}`
+    : formatDateTime(snapshot.captured_at);
+}
+
 function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
@@ -187,10 +199,39 @@ function FinancePage() {
   );
 }
 
+function useFinanceAssetSource() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const assetsQuery = useQuery({
+    queryKey: financeKeys.assets(),
+    queryFn: () => financeApi.listAssets(),
+    staleTime: 60_000,
+  });
+
+  const createAssetMutation = useMutation({
+    mutationFn: (code: string) => financeApi.createAsset({ code }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  return {
+    assets: assetsQuery.data?.items ?? [],
+    assetsLoading: assetsQuery.isLoading,
+    createAsset: (code: string) => createAssetMutation.mutateAsync(code),
+  };
+}
+
 function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { assets, createAsset } = useFinanceAssetSource();
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<UUID | null>(null);
   const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
   const [treeManagerOpen, setTreeManagerOpen] = useState(false);
@@ -224,9 +265,8 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const snapshots = snapshotsQuery.data?.items ?? [];
 
   const rateSnapshotsQuery = useQuery({
-    queryKey: financeKeys.rateSnapshots(tree?.primary_currency ?? null),
-    queryFn: () => financeApi.listRateSnapshots({ primary_currency: tree!.primary_currency }),
-    enabled: Boolean(tree?.primary_currency),
+    queryKey: financeKeys.rateSnapshots(),
+    queryFn: () => financeApi.listRateSnapshots(),
   });
   const rateSnapshots = rateSnapshotsQuery.data?.items ?? [];
   const latestSnapshot = snapshots[0] ?? null;
@@ -352,7 +392,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     onSuccess: async (rateSnapshot) => {
       toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
       await queryClient.invalidateQueries({
-        queryKey: financeKeys.rateSnapshots(tree?.primary_currency ?? null),
+        queryKey: financeKeys.rateSnapshots(),
       });
       await queryClient.invalidateQueries({
         queryKey: financeKeys.rateSnapshot(rateSnapshot.id),
@@ -416,6 +456,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         entryNodes={entryNodes}
         treeNodes={treeNodes}
         rateSnapshots={rateSnapshots}
+        assets={assets}
         requiredRateCurrencies={requiredRateCurrencies}
         snapshots={snapshots}
         currentSnapshot={currentSnapshot}
@@ -439,6 +480,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onCreateRateSnapshot={(payload, options) =>
           createRateSnapshotMutation.mutate(payload, options)
         }
+        onCreateAsset={createAsset}
       />
 
       <FinanceTreeManagerModal
@@ -467,8 +509,10 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         }}
         tree={tree}
         flatNodes={flatNodes}
+        assets={assets}
         formState={nodeFormState}
         submitting={createNodeMutation.isPending || updateNodeMutation.isPending}
+        onCreateAsset={createAsset}
         onCreateNode={(payload) => createNodeMutation.mutate(payload, {
           onSuccess: () => setNodeFormState(null),
         })}
@@ -498,25 +542,34 @@ function RateSnapshotsWorkspace() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [primaryCurrency, setPrimaryCurrency] = useState("USD");
+  const { assets, createAsset } = useFinanceAssetSource();
+  const [assetCode, setAssetCode] = useState("");
+  const [assetName, setAssetName] = useState("");
+  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
+  const [editingAssetCode, setEditingAssetCode] = useState("");
+  const [editingAssetName, setEditingAssetName] = useState("");
   const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
   const [source, setSource] = useState("manual");
   const [note, setNote] = useState("");
-  const [rateRows, setRateRows] = useState([{ baseCurrency: "", rate: "" }]);
+  const [rateRows, setRateRows] = useState([
+    { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+  ]);
 
   const rateSnapshotsQuery = useQuery({
-    queryKey: financeKeys.rateSnapshots(primaryCurrency),
-    queryFn: () => financeApi.listRateSnapshots({ primary_currency: primaryCurrency }),
+    queryKey: financeKeys.rateSnapshots(),
+    queryFn: () => financeApi.listRateSnapshots(),
   });
 
   const createRateSnapshotMutation = useMutation({
     mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
-      setRateRows([{ baseCurrency: "", rate: "" }]);
+      setRateRows([
+        { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+      ]);
       setNote("");
       await queryClient.invalidateQueries({
-        queryKey: financeKeys.rateSnapshots(primaryCurrency),
+        queryKey: financeKeys.rateSnapshots(),
       });
     },
     onError: (error) => {
@@ -524,16 +577,73 @@ function RateSnapshotsWorkspace() {
     },
   });
 
+  const updateAssetMutation = useMutation({
+    mutationFn: ({
+      assetId,
+      code,
+      name,
+    }: {
+      assetId: UUID;
+      code: string;
+      name: string | null;
+    }) => financeApi.updateAsset(assetId, { code, name }),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetUpdated"));
+      setEditingAssetId(null);
+      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetDeleted"));
+      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const submitAsset = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = assetCode.trim().toUpperCase();
+    if (!code) return;
+    createAsset(code)
+      .then(async (asset) => {
+        if (assetName.trim()) {
+          await financeApi.updateAsset(asset.id, { name: assetName.trim() });
+          await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+        }
+        toast.showSuccess(t("finance.messages.assetCreated"));
+        setAssetCode("");
+        setAssetName("");
+      })
+      .catch(() => undefined);
+  };
+
   const submitRateSnapshot = (event: React.FormEvent) => {
     event.preventDefault();
     const entries = rateRows
-      .map((row) => ({
-        base_currency: row.baseCurrency.trim().toUpperCase(),
-        quote_currency: primaryCurrency.trim().toUpperCase(),
-        rate: row.rate.trim(),
-        source: source.trim() || "manual",
-      }))
-      .filter((entry) => entry.base_currency || entry.rate);
+      .map((row) => {
+        const baseAmount = Number(row.baseAmount);
+        const quoteAmount = Number(row.quoteAmount);
+        const baseCurrency = row.baseCurrency.trim().toUpperCase();
+        const quoteCurrency = row.quoteCurrency.trim().toUpperCase();
+        return {
+          base_currency: baseCurrency,
+          quote_currency: quoteCurrency,
+          rate:
+            Number.isFinite(baseAmount) && baseAmount > 0 && Number.isFinite(quoteAmount)
+              ? String(quoteAmount / baseAmount)
+              : "",
+          source: source.trim() || "manual",
+        };
+      })
+      .filter((entry) => entry.base_currency || entry.quote_currency || entry.rate);
     if (!entries.length) {
       toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
       return;
@@ -541,7 +651,13 @@ function RateSnapshotsWorkspace() {
     if (
       entries.some((entry) => {
         const numericRate = Number(entry.rate);
-        return !entry.base_currency || !Number.isFinite(numericRate) || numericRate <= 0;
+        return (
+          !entry.base_currency ||
+          !entry.quote_currency ||
+          entry.base_currency === entry.quote_currency ||
+          !Number.isFinite(numericRate) ||
+          numericRate <= 0
+        );
       })
     ) {
       toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
@@ -549,7 +665,6 @@ function RateSnapshotsWorkspace() {
     }
     createRateSnapshotMutation.mutate({
       captured_at: localDateTimeToIso(capturedAt),
-      primary_currency: primaryCurrency.trim().toUpperCase() || "USD",
       source: source.trim() || "manual",
       note: note.trim() || null,
       entries,
@@ -561,19 +676,145 @@ function RateSnapshotsWorkspace() {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+        <div className="mb-3">
+          <h3 className="font-semibold text-base-content">{t("finance.assets.title")}</h3>
+          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+        </div>
+        <form className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]" onSubmit={submitAsset}>
+          <TextInput
+            size="sm"
+            value={assetCode}
+            onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
+            placeholder={t("finance.assets.code")}
+          />
+          <TextInput
+            size="sm"
+            value={assetName}
+            onChange={(event) => setAssetName(event.target.value)}
+            placeholder={t("finance.assets.name")}
+          />
+          <ActionButton
+            type="submit"
+            label={t("finance.assets.addAsset")}
+            iconName="plus"
+            size="sm"
+            color="primary"
+            variant="outline"
+            disabled={!assetCode.trim()}
+          />
+        </form>
+        <div className="mt-3 overflow-x-auto">
+          <table className="table table-sm">
+            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+              <tr>
+                <th>{t("finance.assets.code")}</th>
+                <th>{t("finance.assets.name")}</th>
+                <th className="w-24 text-right">{t("common.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((asset) => {
+                const editing = editingAssetId === asset.id;
+                return (
+                  <tr key={asset.id}>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetCode}
+                          onChange={(event) =>
+                            setEditingAssetCode(event.target.value.toUpperCase())
+                          }
+                        />
+                      ) : (
+                        <span className="font-medium">{asset.code}</span>
+                      )}
+                    </td>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetName}
+                          onChange={(event) => setEditingAssetName(event.target.value)}
+                        />
+                      ) : (
+                        asset.name || "-"
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-1">
+                        {editing ? (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="check"
+                              iconOnly
+                              size="xs"
+                              variant="ghost"
+                              ariaLabel={t("common.save")}
+                              disabled={updateAssetMutation.isPending}
+                              onClick={() =>
+                                updateAssetMutation.mutate({
+                                  assetId: asset.id,
+                                  code: editingAssetCode,
+                                  name: editingAssetName.trim() || null,
+                                })
+                              }
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="x-mark"
+                              iconOnly
+                              size="xs"
+                              variant="ghost"
+                              ariaLabel={t("common.cancel")}
+                              onClick={() => setEditingAssetId(null)}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="edit"
+                              iconOnly
+                              size="xs"
+                              variant="ghost"
+                              ariaLabel={t("common.edit")}
+                              onClick={() => {
+                                setEditingAssetId(asset.id);
+                                setEditingAssetCode(asset.code);
+                                setEditingAssetName(asset.name ?? "");
+                              }}
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="trash"
+                              iconOnly
+                              size="xs"
+                              variant="ghost"
+                              color="error"
+                              ariaLabel={t("common.delete")}
+                              disabled={deleteAssetMutation.isPending}
+                              onClick={() => deleteAssetMutation.mutate(asset.id)}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-semibold text-base-content">{t("finance.rates.title")}</h3>
             <p className="text-sm text-base-content/60">{t("finance.rates.tabDescription")}</p>
           </div>
-          <FormField label={t("finance.rates.primaryCurrency")}>
-            <TextInput
-              size="sm"
-              value={primaryCurrency}
-              onChange={(event) => setPrimaryCurrency(event.target.value.toUpperCase())}
-              className="w-28"
-            />
-          </FormField>
         </div>
 
         <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
@@ -594,41 +835,72 @@ function RateSnapshotsWorkspace() {
           </div>
 
           <div className="rounded-lg border border-base-200">
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
-              <span>{t("finance.rates.baseCurrency")}</span>
-              <span>{t("finance.rates.rateToPrimary", { primaryCurrency })}</span>
+            <div className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
+              <span>{t("finance.rates.baseAmount")}</span>
+              <span>{t("finance.rates.baseAsset")}</span>
+              <span />
+              <span>{t("finance.rates.quoteAmount")}</span>
+              <span>{t("finance.rates.quoteAsset")}</span>
               <span />
             </div>
             <div className="space-y-2 p-3">
               {rateRows.map((row, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2"
+                  className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2"
                 >
                   <TextInput
                     size="sm"
-                    value={row.baseCurrency}
+                    inputMode="decimal"
+                    value={row.baseAmount}
                     onChange={(event) =>
                       setRateRows((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, baseCurrency: event.target.value.toUpperCase() }
+                            ? { ...item, baseAmount: event.target.value }
                             : item,
                         ),
                       )
                     }
                   />
-                  <TextInput
-                    size="sm"
-                    inputMode="decimal"
-                    value={row.rate}
-                    onChange={(event) =>
+                  <AssetSelect
+                    assets={assets}
+                    value={row.baseCurrency}
+                    onChange={(assetCode) =>
                       setRateRows((current) =>
                         current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, rate: event.target.value } : item,
+                          itemIndex === index ? { ...item, baseCurrency: assetCode } : item,
                         ),
                       )
                     }
+                    onCreateAsset={createAsset}
+                    disabled={createRateSnapshotMutation.isPending}
+                  />
+                  <span className="text-center text-base-content/60">=</span>
+                  <TextInput
+                    size="sm"
+                    inputMode="decimal"
+                    value={row.quoteAmount}
+                    onChange={(event) =>
+                      setRateRows((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, quoteAmount: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <AssetSelect
+                    assets={assets}
+                    value={row.quoteCurrency}
+                    onChange={(assetCode) =>
+                      setRateRows((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, quoteCurrency: assetCode } : item,
+                        ),
+                      )
+                    }
+                    onCreateAsset={createAsset}
+                    disabled={createRateSnapshotMutation.isPending}
                   />
                   <ActionButton
                     type="button"
@@ -655,7 +927,14 @@ function RateSnapshotsWorkspace() {
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  setRateRows((current) => current.concat({ baseCurrency: "", rate: "" }))
+                  setRateRows((current) =>
+                    current.concat({
+                      baseAmount: "1",
+                      baseCurrency: "",
+                      quoteAmount: "",
+                      quoteCurrency: "",
+                    }),
+                  )
                 }
               />
             </div>
@@ -687,7 +966,6 @@ function RateSnapshotsWorkspace() {
               <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
                 <tr>
                   <th>{t("finance.rates.capturedAt")}</th>
-                  <th>{t("finance.rates.primaryCurrency")}</th>
                   <th>{t("finance.rates.source")}</th>
                   <th>{t("finance.rates.rates")}</th>
                   <th>{t("finance.rates.note")}</th>
@@ -697,7 +975,6 @@ function RateSnapshotsWorkspace() {
                 {snapshots.map((snapshot) => (
                   <tr key={snapshot.id}>
                     <td>{formatDateTime(snapshot.captured_at)}</td>
-                    <td>{snapshot.primary_currency}</td>
                     <td>{snapshot.source}</td>
                     <td>
                       <div className="flex flex-wrap gap-1">
@@ -840,6 +1117,7 @@ function SnapshotModule({
   entryNodes,
   treeNodes,
   rateSnapshots,
+  assets,
   requiredRateCurrencies,
   snapshots,
   currentSnapshot,
@@ -859,12 +1137,14 @@ function SnapshotModule({
   onCreateSnapshot,
   onUpdateSnapshotRate,
   onCreateRateSnapshot,
+  onCreateAsset,
 }: {
   preset: PresetConfig;
   tree: FinanceTree;
   entryNodes: TreeNodeWithChildren[];
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
+  assets: FinanceAsset[];
   requiredRateCurrencies: string[];
   snapshots: FinanceSnapshot[];
   currentSnapshot: FinanceSnapshot | null;
@@ -895,6 +1175,7 @@ function SnapshotModule({
     payload: FinanceRateSnapshotCreate,
     options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
   ) => void;
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
 }) {
   const { t } = useTranslation();
   const hasSnapshots = snapshots.length > 0;
@@ -908,11 +1189,13 @@ function SnapshotModule({
             preset={preset}
             treeNodes={treeNodes}
             rateSnapshots={rateSnapshots}
+            assets={assets}
             requiredRateCurrencies={requiredRateCurrencies}
             submitting={snapshotSubmitting}
             rateSnapshotSubmitting={rateSnapshotSubmitting}
             onSubmit={onCreateSnapshot}
             onCreateRateSnapshot={onCreateRateSnapshot}
+            onCreateAsset={onCreateAsset}
             onCancel={onCloseSnapshotForm}
           />
         </section>
@@ -979,11 +1262,13 @@ function SnapshotModule({
             preset={preset}
             treeNodes={treeNodes}
             rateSnapshots={rateSnapshots}
+            assets={assets}
             requiredRateCurrencies={requiredRateCurrencies}
             submitting={snapshotSubmitting}
             rateSnapshotSubmitting={rateSnapshotSubmitting}
             onSubmit={onCreateSnapshot}
             onCreateRateSnapshot={onCreateRateSnapshot}
+            onCreateAsset={onCreateAsset}
             onCancel={onCloseSnapshotForm}
           />
         ) : snapshotDetailLoading ? (
@@ -1189,8 +1474,10 @@ function FinanceNodeFormModal({
   onClose,
   tree,
   flatNodes,
+  assets,
   formState,
   submitting,
+  onCreateAsset,
   onCreateNode,
   onUpdateNode,
 }: {
@@ -1198,8 +1485,10 @@ function FinanceNodeFormModal({
   onClose: () => void;
   tree: FinanceTree;
   flatNodes: TreeNodeWithChildren[];
+  assets: FinanceAsset[];
   formState: FinanceNodeFormState | null;
   submitting: boolean;
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
   onCreateNode: (payload: {
     name: string;
     parent_id?: UUID | null;
@@ -1287,10 +1576,12 @@ function FinanceNodeFormModal({
           </select>
         </label>
         <FormField label={t("finance.tree.currency")}>
-          <TextInput
-            size="sm"
+          <AssetSelect
+            assets={assets}
             value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+            onChange={setCurrency}
+            onCreateAsset={onCreateAsset}
+            disabled={submitting}
           />
         </FormField>
         <div className="flex justify-end gap-2 pt-2">
@@ -1480,17 +1771,20 @@ function SnapshotFormPanel({
   preset,
   treeNodes,
   rateSnapshots,
+  assets,
   requiredRateCurrencies,
   submitting,
   rateSnapshotSubmitting,
   onSubmit,
   onCreateRateSnapshot,
+  onCreateAsset,
   onCancel,
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
+  assets: FinanceAsset[];
   requiredRateCurrencies: string[];
   submitting: boolean;
   rateSnapshotSubmitting: boolean;
@@ -1507,6 +1801,7 @@ function SnapshotFormPanel({
     payload: FinanceRateSnapshotCreate,
     options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
   ) => void;
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -1638,10 +1933,12 @@ function SnapshotFormPanel({
           primaryCurrency={tree.primary_currency}
           requiredCurrencies={requiredRateCurrencies}
           rateSnapshots={rateSnapshots}
+          assets={assets}
           selectedRateSnapshotId={selectedRateSnapshotId}
           submitting={rateSnapshotSubmitting}
           onSelectRateSnapshot={setSelectedRateSnapshotId}
           onCreateRateSnapshot={onCreateRateSnapshot}
+          onCreateAsset={onCreateAsset}
         />
 
         <SnapshotEntryTreeTable
@@ -1693,14 +1990,17 @@ function RateSnapshotPanel({
   primaryCurrency,
   requiredCurrencies,
   rateSnapshots,
+  assets,
   selectedRateSnapshotId,
   submitting,
   onSelectRateSnapshot,
   onCreateRateSnapshot,
+  onCreateAsset,
 }: {
   primaryCurrency: string;
   requiredCurrencies: string[];
   rateSnapshots: FinanceRateSnapshot[];
+  assets: FinanceAsset[];
   selectedRateSnapshotId: UUID | "";
   submitting: boolean;
   onSelectRateSnapshot: (rateSnapshotId: UUID | "") => void;
@@ -1708,6 +2008,7 @@ function RateSnapshotPanel({
     payload: FinanceRateSnapshotCreate,
     options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
   ) => void;
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -1724,7 +2025,7 @@ function RateSnapshotPanel({
     { value: "", label: t("finance.rates.noRateSnapshot") },
     ...rateSnapshots.map((snapshot) => ({
       value: snapshot.id,
-      label: `${formatDateTime(snapshot.captured_at)} · ${snapshot.primary_currency}`,
+      label: rateSnapshotLabel(snapshot),
     })),
   ];
 
@@ -1747,7 +2048,6 @@ function RateSnapshotPanel({
     onCreateRateSnapshot(
       {
         captured_at: localDateTimeToIso(capturedAt),
-        primary_currency: primaryCurrency,
         source: source.trim() || "manual",
         note: note.trim() || null,
         entries,
@@ -1823,6 +2123,15 @@ function RateSnapshotPanel({
               />
             </FormField>
           ))}
+          <FormField label={t("finance.rates.quoteAsset")}>
+            <AssetSelect
+              assets={assets}
+              value={primaryCurrency}
+              onChange={() => undefined}
+              onCreateAsset={onCreateAsset}
+              disabled
+            />
+          </FormField>
           <FormField label={t("finance.rates.note")}>
             <TextInput
               size="sm"
@@ -2132,7 +2441,7 @@ function SnapshotDetail({
               { value: "", label: t("finance.rates.noRateSnapshot") },
               ...rateSnapshots.map((rateSnapshot) => ({
                 value: rateSnapshot.id,
-                label: `${formatDateTime(rateSnapshot.captured_at)} · ${rateSnapshot.primary_currency}`,
+                label: rateSnapshotLabel(rateSnapshot),
               })),
             ]}
             placeholder={t("finance.rates.noRateSnapshot")}

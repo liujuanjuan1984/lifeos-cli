@@ -215,17 +215,16 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary="Create a finance exchange-rate snapshot.",
             description=(
-                "Capture exchange rates for one primary currency. Repeat --rate with "
-                "base-currency:rate[:quote-currency], where the quote defaults to "
-                "--primary-currency."
+                "Capture point-in-time exchange-rate pairs. Repeat --rate with "
+                "base-currency:rate:quote-currency, meaning 1 base-currency equals "
+                "rate quote-currency."
             ),
             examples=(
-                "lifeos finance rate-snapshot-add --primary-currency USD --rate EUR:1.08",
-                "lifeos finance rate-snapshot-add --primary-currency USD --rate ETH:3500",
+                "lifeos finance rate-snapshot-add --rate BTC:67000:USDT",
+                "lifeos finance rate-snapshot-add --rate EUR:1.08:USD --rate CNY:0.14:USD",
             ),
         ),
     )
-    rate_snapshot_add.add_argument("--primary-currency", default="USD")
     rate_snapshot_add.add_argument("--captured-at", type=parse_user_datetime_value)
     rate_snapshot_add.add_argument("--source", default="manual")
     rate_snapshot_add.add_argument("--note")
@@ -245,11 +244,10 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "rate-snapshot-list",
         help_content=HelpContent(
             summary="List finance exchange-rate snapshots.",
-            description="List stored rate snapshots, optionally filtered by primary currency.",
-            examples=("lifeos finance rate-snapshot-list --primary-currency USD",),
+            description="List stored exchange-rate snapshots.",
+            examples=("lifeos finance rate-snapshot-list",),
         ),
     )
-    rate_snapshot_list.add_argument("--primary-currency")
     add_include_deleted_argument(rate_snapshot_list, noun="finance rate snapshots")
     add_limit_offset_arguments(rate_snapshot_list)
     rate_snapshot_list.set_defaults(

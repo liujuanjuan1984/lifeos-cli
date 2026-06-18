@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from lifeos_cli.db.base import utc_now
 from lifeos_cli.db.models.finance import (
+    FinanceAsset,
     FinanceRateSnapshot,
     FinanceRateSnapshotEntry,
     FinanceSnapshot,
@@ -25,6 +26,14 @@ from lifeos_cli.db.models.finance import (
 VALID_FINANCE_PURPOSES = {"balance", "cashflow", "custom"}
 VALID_FINANCE_TIME_MODES = {"instant", "period"}
 DEFAULT_FINANCE_CURRENCY = "USD"
+DEFAULT_FINANCE_ASSETS: tuple[tuple[str, str, int], ...] = (
+    ("USD", "US Dollar", 10),
+    ("USDT", "Tether USD", 20),
+    ("CNY", "Chinese Yuan", 30),
+    ("BTC", "Bitcoin", 40),
+    ("ETH", "Ethereum", 50),
+    ("EUR", "Euro", 60),
+)
 FINANCE_AMOUNT_QUANT = Decimal("0.00000001")
 FINANCE_RATE_QUANT = Decimal("0.000000000001")
 
@@ -53,6 +62,14 @@ class FinanceRateSnapshotNotFoundError(LookupError):
     """Raised when a finance rate snapshot cannot be found."""
 
 
+class FinanceAssetNotFoundError(LookupError):
+    """Raised when a finance asset cannot be found."""
+
+
+class FinanceAssetAlreadyExistsError(ValueError):
+    """Raised when a finance asset code is already active."""
+
+
 @dataclass(frozen=True)
 class FinanceSnapshotEntryInput:
     """Writable fields for a finance snapshot entry."""
@@ -68,8 +85,8 @@ class FinanceRateSnapshotEntryInput:
     """Writable fields for one exchange-rate snapshot entry."""
 
     base_currency: str
+    quote_currency: str
     rate: Decimal
-    quote_currency: str | None = None
     source: str | None = None
     captured_at: datetime | None = None
     is_derived: bool = False
@@ -113,6 +130,162 @@ def normalize_currency_code(currency_code: str | None, *, fallback: str | None =
     if len(normalized) > 16:
         raise FinanceValidationError("Currency code must be 16 characters or fewer")
     return normalized
+
+
+def validate_asset_name(name: str | None) -> str | None:
+    """Validate and normalize an optional finance asset display name."""
+    if name is None:
+        return None
+    normalized = name.strip()
+    if not normalized:
+        return None
+    if len(normalized) > 200:
+        raise FinanceValidationError("Finance asset name must be 200 characters or fewer")
+    return normalized
+
+
+async def ensure_default_finance_assets(session: AsyncSession) -> None:
+    """Create the built-in finance assets when they are missing."""
+    existing_codes = set(
+        (await session.execute(select(FinanceAsset.code).where(FinanceAsset.deleted_at.is_(None))))
+        .scalars()
+        .all()
+    )
+    for code, name, display_order in DEFAULT_FINANCE_ASSETS:
+        if code in existing_codes:
+            continue
+        session.add(
+            FinanceAsset(
+                code=code,
+                name=name,
+                display_order=display_order,
+                is_default=True,
+            )
+        )
+    await session.flush()
+
+
+async def list_finance_assets(
+    session: AsyncSession,
+    *,
+    include_deleted: bool = False,
+    limit: int = 200,
+    offset: int = 0,
+) -> list[FinanceAsset]:
+    """List finance assets."""
+    if not include_deleted:
+        await ensure_default_finance_assets(session)
+    stmt = select(FinanceAsset)
+    if not include_deleted:
+        stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
+    stmt = stmt.order_by(FinanceAsset.display_order.asc(), FinanceAsset.code.asc())
+    stmt = stmt.offset(offset).limit(limit)
+    return list((await session.execute(stmt)).scalars())
+
+
+async def count_finance_assets(
+    session: AsyncSession,
+    *,
+    include_deleted: bool = False,
+) -> int:
+    """Count finance assets."""
+    if not include_deleted:
+        await ensure_default_finance_assets(session)
+    stmt = select(func.count()).select_from(FinanceAsset)
+    if not include_deleted:
+        stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
+    return int((await session.execute(stmt)).scalar_one())
+
+
+async def create_finance_asset(
+    session: AsyncSession,
+    *,
+    code: str,
+    name: str | None = None,
+    display_order: int = 1000,
+    is_default: bool = False,
+    metadata: dict[str, Any] | None = None,
+) -> FinanceAsset:
+    """Create a selectable finance asset."""
+    resolved_code = normalize_currency_code(code)
+    existing = (
+        await session.execute(
+            select(FinanceAsset.id).where(
+                FinanceAsset.code == resolved_code,
+                FinanceAsset.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise FinanceAssetAlreadyExistsError(f"Finance asset {resolved_code!r} already exists")
+    asset = FinanceAsset(
+        code=resolved_code,
+        name=validate_asset_name(name),
+        display_order=display_order,
+        is_default=is_default,
+        metadata_json=metadata,
+    )
+    session.add(asset)
+    await session.flush()
+    await session.refresh(asset)
+    return asset
+
+
+async def update_finance_asset(
+    session: AsyncSession,
+    *,
+    asset_id: UUID,
+    code: str | None = None,
+    name: str | None = None,
+    display_order: int | None = None,
+) -> FinanceAsset:
+    """Update a finance asset."""
+    asset = (
+        await session.execute(
+            select(FinanceAsset).where(
+                FinanceAsset.id == asset_id,
+                FinanceAsset.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if asset is None:
+        raise FinanceAssetNotFoundError(f"Finance asset {asset_id} was not found")
+    if code is not None:
+        resolved_code = normalize_currency_code(code)
+        existing = (
+            await session.execute(
+                select(FinanceAsset.id).where(
+                    FinanceAsset.code == resolved_code,
+                    FinanceAsset.deleted_at.is_(None),
+                    FinanceAsset.id != asset.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            raise FinanceAssetAlreadyExistsError(f"Finance asset {resolved_code!r} already exists")
+        asset.code = resolved_code
+    if name is not None:
+        asset.name = validate_asset_name(name)
+    if display_order is not None:
+        asset.display_order = display_order
+    await session.flush()
+    await session.refresh(asset)
+    return asset
+
+
+async def delete_finance_asset(session: AsyncSession, *, asset_id: UUID) -> None:
+    """Soft-delete one finance asset."""
+    asset = (
+        await session.execute(
+            select(FinanceAsset).where(
+                FinanceAsset.id == asset_id,
+                FinanceAsset.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if asset is None:
+        raise FinanceAssetNotFoundError(f"Finance asset {asset_id} was not found")
+    asset.soft_delete()
 
 
 def validate_tree_name(name: str) -> str:
@@ -526,20 +699,18 @@ def _rate_snapshot_source(source: str | None) -> str:
 async def create_finance_rate_snapshot(
     session: AsyncSession,
     *,
-    primary_currency: str | None = None,
     captured_at: datetime | None = None,
     source: str | None = None,
     note: str | None = None,
     entries: list[FinanceRateSnapshotEntryInput],
     metadata: dict[str, Any] | None = None,
 ) -> FinanceRateSnapshot:
-    """Create one exchange-rate snapshot for a primary currency."""
+    """Create one exchange-rate snapshot."""
     if not entries:
         raise FinanceValidationError("Finance rate snapshot requires at least one rate entry")
-    resolved_primary = normalize_currency_code(primary_currency)
     resolved_captured_at = captured_at or utc_now()
     rate_snapshot = FinanceRateSnapshot(
-        primary_currency=resolved_primary,
+        primary_currency=None,
         captured_at=resolved_captured_at,
         source=_rate_snapshot_source(source),
         note=note,
@@ -551,10 +722,9 @@ async def create_finance_rate_snapshot(
     seen_pairs: set[tuple[str, str]] = set()
     for entry_input in entries:
         base_currency = normalize_currency_code(entry_input.base_currency)
-        quote_currency = normalize_currency_code(
-            entry_input.quote_currency,
-            fallback=resolved_primary,
-        )
+        quote_currency = normalize_currency_code(entry_input.quote_currency)
+        if base_currency == quote_currency:
+            raise FinanceValidationError("Exchange-rate pair assets must be different")
         pair = (base_currency, quote_currency)
         if pair in seen_pairs:
             raise FinanceValidationError(
@@ -607,17 +777,12 @@ async def get_finance_rate_snapshot(
 async def list_finance_rate_snapshots(
     session: AsyncSession,
     *,
-    primary_currency: str | None = None,
     include_deleted: bool = False,
     limit: int = 50,
     offset: int = 0,
 ) -> list[FinanceRateSnapshot]:
     """List exchange-rate snapshots."""
     stmt = select(FinanceRateSnapshot).options(selectinload(FinanceRateSnapshot.entries))
-    if primary_currency is not None:
-        stmt = stmt.where(
-            FinanceRateSnapshot.primary_currency == normalize_currency_code(primary_currency)
-        )
     if not include_deleted:
         stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     stmt = (
@@ -638,15 +803,10 @@ async def list_finance_rate_snapshots(
 async def count_finance_rate_snapshots(
     session: AsyncSession,
     *,
-    primary_currency: str | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count exchange-rate snapshots."""
     stmt = select(func.count()).select_from(FinanceRateSnapshot)
-    if primary_currency is not None:
-        stmt = stmt.where(
-            FinanceRateSnapshot.primary_currency == normalize_currency_code(primary_currency)
-        )
     if not include_deleted:
         stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     return int((await session.execute(stmt)).scalar_one())
@@ -694,7 +854,6 @@ async def _select_rate_snapshot_for_entries(
     session: AsyncSession,
     *,
     explicit_rate_snapshot_id: UUID | None,
-    primary_currency: str,
 ) -> tuple[FinanceRateSnapshot | None, str]:
     if explicit_rate_snapshot_id is not None:
         rate_snapshot = await get_finance_rate_snapshot(
@@ -704,10 +863,6 @@ async def _select_rate_snapshot_for_entries(
         if rate_snapshot is None:
             raise FinanceRateSnapshotNotFoundError(
                 f"Finance rate snapshot {explicit_rate_snapshot_id} was not found"
-            )
-        if rate_snapshot.primary_currency != primary_currency:
-            raise FinanceValidationError(
-                "Finance rate snapshot primary currency must match the finance snapshot"
             )
         return rate_snapshot, "selected"
     return None, "none"
@@ -827,7 +982,6 @@ async def create_finance_snapshot(
     rate_snapshot, rate_snapshot_policy = await _select_rate_snapshot_for_entries(
         session,
         explicit_rate_snapshot_id=rate_snapshot_id,
-        primary_currency=resolved_currency,
     )
     snapshot = FinanceSnapshot(
         tree_id=tree_id,
@@ -1007,7 +1161,6 @@ async def update_finance_snapshot_rate_snapshot(
     rate_snapshot, rate_snapshot_policy = await _select_rate_snapshot_for_entries(
         session,
         explicit_rate_snapshot_id=rate_snapshot_id,
-        primary_currency=snapshot.primary_currency,
     )
     snapshot.rate_snapshot_id = rate_snapshot.id if rate_snapshot is not None else None
     snapshot.rate_snapshot_policy = rate_snapshot_policy

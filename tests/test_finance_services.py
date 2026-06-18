@@ -98,6 +98,38 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
     asyncio.run(run())
 
 
+def test_finance_assets_include_defaults_and_custom_assets() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                assets = await finance.list_finance_assets(session)
+                assert {"USD", "USDT", "CNY", "BTC"}.issubset({asset.code for asset in assets})
+
+                custom = await finance.create_finance_asset(
+                    session,
+                    code="sol",
+                    name="Solana",
+                )
+                assert custom.code == "SOL"
+
+                updated = await finance.update_finance_asset(
+                    session,
+                    asset_id=custom.id,
+                    name="Solana token",
+                )
+                assert updated.name == "Solana token"
+
+                await finance.delete_finance_asset(session, asset_id=custom.id)
+                assert all(
+                    asset.code != "SOL" for asset in await finance.list_finance_assets(session)
+                )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
@@ -176,7 +208,6 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
                 )
                 rate_snapshot = await finance.create_finance_rate_snapshot(
                     session,
-                    primary_currency="USD",
                     captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
                     entries=[
                         finance.FinanceRateSnapshotEntryInput(
@@ -234,7 +265,6 @@ def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
                 )
                 rate_snapshot = await finance.create_finance_rate_snapshot(
                     session,
-                    primary_currency="USD",
                     captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
                     entries=[
                         finance.FinanceRateSnapshotEntryInput(
