@@ -1406,7 +1406,8 @@
       "positive": "Positive",
       "negative": "Negative",
       "net": "Net",
-      "entries": "Entries"
+      "entries": "Entries",
+      "amountsByCurrency": "Amounts by currency"
     },
     "tree": {
       "title": "Tree",
@@ -1456,14 +1457,23 @@
       "source": "Source"
     },
     "rates": {
+      "tabTitle": "Exchange Rates",
       "title": "Exchange rates",
+      "tabDescription": "Capture point-in-time exchange-rate snapshots for later finance snapshots.",
       "required": "Required for {{currencies}} into {{primaryCurrency}}.",
       "selectSnapshot": "Select rate snapshot",
+      "noRateSnapshot": "No rate snapshot",
+      "primaryCurrency": "Primary currency",
       "capturedAt": "Captured at",
       "source": "Source",
+      "baseCurrency": "Base currency",
+      "rateToPrimary": "Rate to {{primaryCurrency}}",
       "rateLabel": "1 {{currency}} = {{primaryCurrency}}",
+      "rates": "Rates",
       "note": "Note",
-      "createSnapshot": "Create rates"
+      "addRate": "Add rate",
+      "createSnapshot": "Create rates",
+      "empty": "No exchange-rate snapshots yet."
     },
     "history": {
       "title": "History",
@@ -1478,8 +1488,8 @@
       "nodeDeleted": "Finance node deleted",
       "rateSnapshotCreated": "Rate snapshot saved",
       "snapshotCreated": "Finance snapshot saved",
+      "snapshotUpdated": "Finance snapshot updated",
       "noEntries": "Enter at least one amount before saving.",
-      "rateSnapshotRequired": "Select or create a rate snapshot before saving.",
       "rateSnapshotMissingRates": "The selected rate snapshot is missing: {{currencies}}.",
       "rateSnapshotRatesRequired": "Enter a positive rate for every required currency."
     }

@@ -1406,7 +1406,8 @@
       "positive": "正向金额",
       "negative": "负向金额",
       "net": "净额",
-      "entries": "条目"
+      "entries": "条目",
+      "amountsByCurrency": "按币种汇总"
     },
     "tree": {
       "title": "财务树",
@@ -1456,14 +1457,23 @@
       "source": "来源"
     },
     "rates": {
+      "tabTitle": "汇率快照",
       "title": "汇率快照",
+      "tabDescription": "记录某一时刻的汇率快照，供后续财务快照选择使用。",
       "required": "{{currencies}} 需要折算为 {{primaryCurrency}}。",
       "selectSnapshot": "选择汇率快照",
+      "noRateSnapshot": "不关联汇率快照",
+      "primaryCurrency": "主币种",
       "capturedAt": "采集时间",
       "source": "来源",
+      "baseCurrency": "基础币种",
+      "rateToPrimary": "折算到 {{primaryCurrency}} 的汇率",
       "rateLabel": "1 {{currency}} = {{primaryCurrency}}",
+      "rates": "汇率",
       "note": "备注",
-      "createSnapshot": "创建汇率"
+      "addRate": "添加汇率",
+      "createSnapshot": "创建汇率",
+      "empty": "暂无汇率快照。"
     },
     "history": {
       "title": "历史",
@@ -1478,8 +1488,8 @@
       "nodeDeleted": "财务节点已删除",
       "rateSnapshotCreated": "汇率快照已保存",
       "snapshotCreated": "财务快照已保存",
+      "snapshotUpdated": "财务快照已更新",
       "noEntries": "保存前请至少填写一个金额。",
-      "rateSnapshotRequired": "保存前请先选择或创建汇率快照。",
       "rateSnapshotMissingRates": "当前汇率快照缺少这些币种：{{currencies}}。",
       "rateSnapshotRatesRequired": "请为每个必需币种填写正数汇率。"
     }

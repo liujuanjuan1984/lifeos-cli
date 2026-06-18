@@ -79,6 +79,12 @@ class FinanceSnapshotCreate(BaseModel):
     entries: list[FinanceSnapshotEntryCreate] = Field(default_factory=list)
 
 
+class FinanceSnapshotUpdate(BaseModel):
+    """Payload for updating mutable finance snapshot fields."""
+
+    rate_snapshot_id: UUID | None = None
+
+
 class FinanceRateSnapshotEntryCreate(BaseModel):
     """Payload for one exchange-rate entry."""
 
@@ -529,4 +535,24 @@ async def get_snapshot(snapshot_id: UUID, session: SessionDep) -> dict[str, obje
     snapshot = await finance_services.get_finance_snapshot(session, snapshot_id=snapshot_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail=f"Finance snapshot {snapshot_id} was not found")
+    return _snapshot_payload(snapshot, include_entries=True)
+
+
+@router.patch("/snapshots/{snapshot_id}")
+async def update_snapshot(
+    snapshot_id: UUID,
+    payload: FinanceSnapshotUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update mutable finance snapshot fields."""
+    try:
+        snapshot = await finance_services.update_finance_snapshot_rate_snapshot(
+            session,
+            snapshot_id=snapshot_id,
+            rate_snapshot_id=payload.rate_snapshot_id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _snapshot_payload(snapshot, include_entries=True)

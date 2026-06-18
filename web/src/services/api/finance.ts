@@ -144,6 +144,10 @@ export interface FinanceSnapshotCreate {
   entries: FinanceSnapshotEntryCreate[];
 }
 
+export interface FinanceSnapshotUpdate {
+  rate_snapshot_id?: UUID | null;
+}
+
 export interface FinanceRateSnapshotEntryCreate {
   base_currency: string;
   quote_currency?: string | null;
@@ -234,6 +238,8 @@ export const financeApi = {
       ENDPOINTS.FINANCE.TREE_SNAPSHOTS(treeId),
       payload,
     ),
+  updateSnapshot: (snapshotId: UUID, payload: FinanceSnapshotUpdate) =>
+    http.patch<FinanceSnapshot>(ENDPOINTS.FINANCE.SNAPSHOT_BY_ID(snapshotId), payload),
   getSnapshot: (snapshotId: UUID) =>
     http.get<FinanceSnapshot>(ENDPOINTS.FINANCE.SNAPSHOT_BY_ID(snapshotId)),
 };

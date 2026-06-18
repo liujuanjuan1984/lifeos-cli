@@ -98,7 +98,7 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
     asyncio.run(run())
 
 
-def test_finance_snapshot_uses_latest_rate_snapshot_for_non_primary_currency() -> None:
+def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
@@ -120,19 +120,6 @@ def test_finance_snapshot_uses_latest_rate_snapshot_for_non_primary_currency() -
                     name="Euro account",
                     currency_code="EUR",
                 )
-                rate_snapshot = await finance.create_finance_rate_snapshot(
-                    session,
-                    primary_currency="USD",
-                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
-                    entries=[
-                        finance.FinanceRateSnapshotEntryInput(
-                            base_currency="EUR",
-                            quote_currency="USD",
-                            rate=Decimal("1.10"),
-                        )
-                    ],
-                )
-
                 snapshot = await finance.create_finance_snapshot(
                     session,
                     tree_id=tree.id,
@@ -146,11 +133,19 @@ def test_finance_snapshot_uses_latest_rate_snapshot_for_non_primary_currency() -
                     ],
                 )
 
-                assert snapshot.rate_snapshot_id == rate_snapshot.id
-                assert snapshot.rate_snapshot_policy == "latest_before_snapshot"
-                assert snapshot.net_amount == Decimal("11.00000000")
-                assert snapshot.exchange_rates is not None
-                assert snapshot.exchange_rates["rates"]["EUR"]["rate"] == "1.100000000000"
+                assert snapshot.rate_snapshot_id is None
+                assert snapshot.rate_snapshot_policy == "none"
+                assert snapshot.net_amount == Decimal("0E-8")
+                assert snapshot.exchange_rates is None
+                assert snapshot.summary is not None
+                assert snapshot.summary["aggregation_mode"] == "native_by_currency"
+                assert snapshot.summary["amounts_by_currency"]["EUR"]["net_amount"] == "10.00000000"
+                assert any(
+                    entry.node_id == assets.id
+                    and entry.currency_code == "EUR"
+                    and entry.amount == Decimal("10.00000000")
+                    for entry in snapshot.entries
+                )
         finally:
             await engine.dispose()
 
@@ -215,7 +210,7 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
     asyncio.run(run())
 
 
-def test_finance_snapshot_rejects_non_primary_currency_without_rate_snapshot() -> None:
+def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
@@ -237,23 +232,43 @@ def test_finance_snapshot_rejects_non_primary_currency_without_rate_snapshot() -
                     name="Euro account",
                     currency_code="EUR",
                 )
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    primary_currency="USD",
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="EUR",
+                            quote_currency="USD",
+                            rate=Decimal("2"),
+                        )
+                    ],
+                )
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    rate_snapshot_id=rate_snapshot.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=account.id,
+                            amount=Decimal("10"),
+                            currency_code="EUR",
+                        )
+                    ],
+                )
+                assert snapshot.net_amount == Decimal("20.00000000")
 
-                try:
-                    await finance.create_finance_snapshot(
-                        session,
-                        tree_id=tree.id,
-                        entries=[
-                            finance.FinanceSnapshotEntryInput(
-                                node_id=account.id,
-                                amount=Decimal("10"),
-                                currency_code="EUR",
-                            )
-                        ],
-                    )
-                except finance.FinanceValidationError as exc:
-                    assert "rate snapshot" in str(exc)
-                else:
-                    raise AssertionError("non-primary currency should require a rate snapshot")
+                updated = await finance.update_finance_snapshot_rate_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    rate_snapshot_id=None,
+                )
+
+                assert updated.rate_snapshot_id is None
+                assert updated.rate_snapshot_policy == "none"
+                assert updated.net_amount == Decimal("0E-8")
+                assert updated.summary is not None
+                assert updated.summary["amounts_by_currency"]["EUR"]["net_amount"] == "10.00000000"
         finally:
             await engine.dispose()
 

@@ -183,8 +183,8 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             summary="Create a finance snapshot.",
             description=(
                 "Create an instant or period snapshot. Repeat --entry with "
-                "node-id:amount[:currency]. Non-primary currencies are converted "
-                "through the selected rate snapshot or the latest prior rate snapshot."
+                "node-id:amount[:currency]. Select --rate-snapshot-id when "
+                "non-primary currencies should be converted into the primary currency."
             ),
             examples=(
                 "lifeos finance snapshot-add <tree-id> --entry <node-id>:1000:USD",

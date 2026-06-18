@@ -35,6 +35,7 @@ type PresetConfig = {
   amountLabelKey: string;
   timeMode: "instant" | "period";
 };
+type FinanceTab = FinancePurpose | "rates";
 
 type TreeNodeWithChildren = FinanceTreeNode & {
   children: TreeNodeWithChildren[];
@@ -144,7 +145,7 @@ function snapshotLabel(snapshot: FinanceSnapshot) {
 function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
-  const [activePurpose, setActivePurpose] = useState<FinancePurpose>("balance");
+  const [activeTab, setActiveTab] = useState<FinanceTab>("balance");
 
   useEffect(() => {
     setHeader({
@@ -154,26 +155,34 @@ function FinancePage() {
     return () => setHeader({ title: undefined, subtitle: undefined, actions: undefined });
   }, [setHeader, t]);
 
-  const preset = PRESETS.find((item) => item.purpose === activePurpose) ?? PRESETS[0];
+  const preset = PRESETS.find((item) => item.purpose === activeTab) ?? PRESETS[0];
+  const tabs: { id: FinanceTab; label: string }[] = [
+    ...PRESETS.map((item) => ({ id: item.purpose, label: t(item.titleKey) })),
+    { id: "rates", label: t("finance.rates.tabTitle") },
+  ];
 
   return (
     <PageLayout>
       <ToolbarContainer className="mb-6" variant="compact" padding="sm">
         <div className="flex flex-wrap items-center gap-2">
-          {PRESETS.map((item) => (
+          {tabs.map((item) => (
             <ActionButton
-              key={item.purpose}
-              label={t(item.titleKey)}
-              onClick={() => setActivePurpose(item.purpose)}
-              color={activePurpose === item.purpose ? "primary" : "neutral"}
-              variant={activePurpose === item.purpose ? "solid" : "ghost"}
+              key={item.id}
+              label={item.label}
+              onClick={() => setActiveTab(item.id)}
+              color={activeTab === item.id ? "primary" : "neutral"}
+              variant={activeTab === item.id ? "solid" : "ghost"}
               size="sm"
             />
           ))}
         </div>
       </ToolbarContainer>
 
-      <FinancePresetWorkspace key={preset.purpose} preset={preset} />
+      {activeTab === "rates" ? (
+        <RateSnapshotsWorkspace />
+      ) : (
+        <FinancePresetWorkspace key={preset.purpose} preset={preset} />
+      )}
     </PageLayout>
   );
 }
@@ -316,6 +325,28 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     },
   });
 
+  const updateSnapshotMutation = useMutation({
+    mutationFn: ({
+      snapshotId,
+      rateSnapshotId,
+    }: {
+      snapshotId: UUID;
+      rateSnapshotId: UUID | null;
+    }) => financeApi.updateSnapshot(snapshotId, { rate_snapshot_id: rateSnapshotId }),
+    onSuccess: async (snapshot) => {
+      toast.showSuccess(t("finance.messages.snapshotUpdated"));
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.snapshots(tree?.id ?? null),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.snapshot(snapshot.id),
+      });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
   const createRateSnapshotMutation = useMutation({
     mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
     onSuccess: async (rateSnapshot) => {
@@ -393,6 +424,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
         snapshotSubmitting={createSnapshotMutation.isPending}
+        snapshotUpdating={updateSnapshotMutation.isPending}
         rateSnapshotSubmitting={createRateSnapshotMutation.isPending}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
@@ -401,6 +433,9 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onOpenSnapshotForm={() => setSnapshotFormVisible(true)}
         onCloseSnapshotForm={() => setSnapshotFormVisible(false)}
         onCreateSnapshot={(payload) => createSnapshotMutation.mutate(payload)}
+        onUpdateSnapshotRate={(snapshotId, rateSnapshotId) =>
+          updateSnapshotMutation.mutate({ snapshotId, rateSnapshotId })
+        }
         onCreateRateSnapshot={(payload, options) =>
           createRateSnapshotMutation.mutate(payload, options)
         }
@@ -455,6 +490,236 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         }}
         loading={deleteNodeMutation.isPending}
       />
+    </div>
+  );
+}
+
+function RateSnapshotsWorkspace() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [primaryCurrency, setPrimaryCurrency] = useState("USD");
+  const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
+  const [source, setSource] = useState("manual");
+  const [note, setNote] = useState("");
+  const [rateRows, setRateRows] = useState([{ baseCurrency: "", rate: "" }]);
+
+  const rateSnapshotsQuery = useQuery({
+    queryKey: financeKeys.rateSnapshots(primaryCurrency),
+    queryFn: () => financeApi.listRateSnapshots({ primary_currency: primaryCurrency }),
+  });
+
+  const createRateSnapshotMutation = useMutation({
+    mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
+      setRateRows([{ baseCurrency: "", rate: "" }]);
+      setNote("");
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.rateSnapshots(primaryCurrency),
+      });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const submitRateSnapshot = (event: React.FormEvent) => {
+    event.preventDefault();
+    const entries = rateRows
+      .map((row) => ({
+        base_currency: row.baseCurrency.trim().toUpperCase(),
+        quote_currency: primaryCurrency.trim().toUpperCase(),
+        rate: row.rate.trim(),
+        source: source.trim() || "manual",
+      }))
+      .filter((entry) => entry.base_currency || entry.rate);
+    if (!entries.length) {
+      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
+      return;
+    }
+    if (
+      entries.some((entry) => {
+        const numericRate = Number(entry.rate);
+        return !entry.base_currency || !Number.isFinite(numericRate) || numericRate <= 0;
+      })
+    ) {
+      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
+      return;
+    }
+    createRateSnapshotMutation.mutate({
+      captured_at: localDateTimeToIso(capturedAt),
+      primary_currency: primaryCurrency.trim().toUpperCase() || "USD",
+      source: source.trim() || "manual",
+      note: note.trim() || null,
+      entries,
+    });
+  };
+
+  const snapshots = rateSnapshotsQuery.data?.items ?? [];
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-base-content">{t("finance.rates.title")}</h3>
+            <p className="text-sm text-base-content/60">{t("finance.rates.tabDescription")}</p>
+          </div>
+          <FormField label={t("finance.rates.primaryCurrency")}>
+            <TextInput
+              size="sm"
+              value={primaryCurrency}
+              onChange={(event) => setPrimaryCurrency(event.target.value.toUpperCase())}
+              className="w-28"
+            />
+          </FormField>
+        </div>
+
+        <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormField label={t("finance.rates.capturedAt")}>
+              <TextInput
+                type="datetime-local"
+                value={capturedAt}
+                onChange={(event) => setCapturedAt(event.target.value)}
+              />
+            </FormField>
+            <FormField label={t("finance.rates.source")}>
+              <TextInput value={source} onChange={(event) => setSource(event.target.value)} />
+            </FormField>
+            <FormField label={t("finance.rates.note")}>
+              <TextInput value={note} onChange={(event) => setNote(event.target.value)} />
+            </FormField>
+          </div>
+
+          <div className="rounded-lg border border-base-200">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
+              <span>{t("finance.rates.baseCurrency")}</span>
+              <span>{t("finance.rates.rateToPrimary", { primaryCurrency })}</span>
+              <span />
+            </div>
+            <div className="space-y-2 p-3">
+              {rateRows.map((row, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2"
+                >
+                  <TextInput
+                    size="sm"
+                    value={row.baseCurrency}
+                    onChange={(event) =>
+                      setRateRows((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, baseCurrency: event.target.value.toUpperCase() }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  <TextInput
+                    size="sm"
+                    inputMode="decimal"
+                    value={row.rate}
+                    onChange={(event) =>
+                      setRateRows((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, rate: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <ActionButton
+                    type="button"
+                    label=""
+                    iconName="trash"
+                    iconOnly
+                    size="sm"
+                    variant="ghost"
+                    color="error"
+                    ariaLabel={t("common.delete")}
+                    disabled={rateRows.length === 1}
+                    onClick={() =>
+                      setRateRows((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                  />
+                </div>
+              ))}
+              <ActionButton
+                type="button"
+                label={t("finance.rates.addRate")}
+                iconName="plus"
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  setRateRows((current) => current.concat({ baseCurrency: "", rate: "" }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <ActionButton
+              type="submit"
+              label={
+                createRateSnapshotMutation.isPending
+                  ? t("common.saving")
+                  : t("finance.rates.createSnapshot")
+              }
+              iconName="check"
+              color="primary"
+              variant="solid"
+              disabled={createRateSnapshotMutation.isPending}
+            />
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+        {rateSnapshotsQuery.isLoading ? (
+          <LoadingSpinner />
+        ) : snapshots.length ? (
+          <div className="overflow-x-auto">
+            <table className="table table-sm">
+              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                <tr>
+                  <th>{t("finance.rates.capturedAt")}</th>
+                  <th>{t("finance.rates.primaryCurrency")}</th>
+                  <th>{t("finance.rates.source")}</th>
+                  <th>{t("finance.rates.rates")}</th>
+                  <th>{t("finance.rates.note")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshots.map((snapshot) => (
+                  <tr key={snapshot.id}>
+                    <td>{formatDateTime(snapshot.captured_at)}</td>
+                    <td>{snapshot.primary_currency}</td>
+                    <td>{snapshot.source}</td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {(snapshot.entries ?? []).map((entry) => (
+                          <Badge key={entry.id} tone="neutral" variant="outline" size="xs">
+                            {entry.base_currency}/{entry.quote_currency} {entry.rate}
+                          </Badge>
+                        ))}
+                      </div>
+                    </td>
+                    <td>{snapshot.note || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
+            {t("finance.rates.empty")}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -583,6 +848,7 @@ function SnapshotModule({
   snapshotDetailLoading,
   snapshotFormVisible,
   snapshotSubmitting,
+  snapshotUpdating,
   rateSnapshotSubmitting,
   hasPrevious,
   hasNext,
@@ -591,6 +857,7 @@ function SnapshotModule({
   onOpenSnapshotForm,
   onCloseSnapshotForm,
   onCreateSnapshot,
+  onUpdateSnapshotRate,
   onCreateRateSnapshot,
 }: {
   preset: PresetConfig;
@@ -606,6 +873,7 @@ function SnapshotModule({
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
   snapshotSubmitting: boolean;
+  snapshotUpdating: boolean;
   rateSnapshotSubmitting: boolean;
   hasPrevious: boolean;
   hasNext: boolean;
@@ -622,6 +890,7 @@ function SnapshotModule({
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
+  onUpdateSnapshotRate: (snapshotId: UUID, rateSnapshotId: UUID | null) => void;
   onCreateRateSnapshot: (
     payload: FinanceRateSnapshotCreate,
     options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
@@ -722,7 +991,14 @@ function SnapshotModule({
             <LoadingSpinner />
           </div>
         ) : snapshotDetail ? (
-          <SnapshotDetail snapshot={snapshotDetail} tree={tree} treeNodes={treeNodes} />
+          <SnapshotDetail
+            snapshot={snapshotDetail}
+            tree={tree}
+            treeNodes={treeNodes}
+            rateSnapshots={rateSnapshots}
+            updating={snapshotUpdating}
+            onUpdateRateSnapshot={onUpdateSnapshotRate}
+          />
         ) : (
           <p className="py-4 text-sm text-base-content/70">
             {t("finance.history.noSelection")}
@@ -799,6 +1075,39 @@ function Metric({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="font-semibold tabular-nums text-base-content truncate">{value}</div>
+    </div>
+  );
+}
+
+function CurrencyAmountList({
+  amountsByCurrency,
+  fallbackCurrency,
+}: {
+  amountsByCurrency: Record<string, { net_amount: string }>;
+  fallbackCurrency: string;
+}) {
+  const { t } = useTranslation();
+  const entries = Object.entries(amountsByCurrency);
+  if (!entries.length) {
+    return (
+      <Metric
+        label={t("finance.metrics.net")}
+        value={formatMoney("0", fallbackCurrency)}
+      />
+    );
+  }
+  return (
+    <div className="sm:col-span-3 rounded-lg border border-base-300 bg-base-200/40 px-3 py-2">
+      <div className="text-xs uppercase tracking-wide text-base-content/60">
+        {t("finance.metrics.amountsByCurrency")}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {entries.map(([currency, totals]) => (
+          <Badge key={currency} tone="neutral" variant="outline" size="sm">
+            {formatMoney(totals.net_amount, currency)}
+          </Badge>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1231,18 +1540,13 @@ function SnapshotFormPanel({
       ),
     [amounts, conversionRates, tree.primary_currency, treeNodes],
   );
-  const needsRateSnapshot = requiredRateCurrencies.length > 0;
+  const nativeAggregatedAmounts = useMemo(
+    () => buildNativeSnapshotAmounts(treeNodes, amounts, tree.primary_currency),
+    [amounts, tree.primary_currency, treeNodes],
+  );
   const missingRateCurrencies = requiredRateCurrencies.filter(
     (currency) => !conversionRates[currency],
   );
-
-  useEffect(() => {
-    if (!needsRateSnapshot || selectedRateSnapshotId) return;
-    const latestSnapshot = rateSnapshots[0];
-    if (latestSnapshot) {
-      setSelectedRateSnapshotId(latestSnapshot.id);
-    }
-  }, [needsRateSnapshot, rateSnapshots, selectedRateSnapshotId]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -1264,11 +1568,7 @@ function SnapshotFormPanel({
       toast.showWarning(t("finance.messages.noEntries"));
       return;
     }
-    if (needsRateSnapshot && !selectedRateSnapshotId) {
-      toast.showWarning(t("finance.messages.rateSnapshotRequired"));
-      return;
-    }
-    if (needsRateSnapshot && missingRateCurrencies.length) {
+    if (selectedRateSnapshotId && missingRateCurrencies.length) {
       toast.showWarning(
         t("finance.messages.rateSnapshotMissingRates", {
           currencies: missingRateCurrencies.join(", "),
@@ -1349,8 +1649,10 @@ function SnapshotFormPanel({
           amounts={amounts}
           notes={notes}
           aggregatedAmounts={aggregatedAmounts}
+          nativeAggregatedAmounts={nativeAggregatedAmounts}
           primaryCurrency={tree.primary_currency}
           conversionRates={conversionRates}
+          hasRateSnapshot={Boolean(selectedRateSnapshotId)}
           submitting={submitting}
           onChangeAmount={(nodeId, value) =>
             setAmounts((prev) => ({ ...prev, [nodeId]: value }))
@@ -1378,8 +1680,7 @@ function SnapshotFormPanel({
             disabled={
               submitting ||
               !leafNodes.length ||
-              (needsRateSnapshot &&
-                (!selectedRateSnapshotId || missingRateCurrencies.length > 0))
+              (Boolean(selectedRateSnapshotId) && missingRateCurrencies.length > 0)
             }
           />
         </div>
@@ -1419,10 +1720,13 @@ function RateSnapshotPanel({
     return null;
   }
 
-  const options = rateSnapshots.map((snapshot) => ({
-    value: snapshot.id,
-    label: `${formatDateTime(snapshot.captured_at)} · ${snapshot.primary_currency}`,
-  }));
+  const options = [
+    { value: "", label: t("finance.rates.noRateSnapshot") },
+    ...rateSnapshots.map((snapshot) => ({
+      value: snapshot.id,
+      label: `${formatDateTime(snapshot.captured_at)} · ${snapshot.primary_currency}`,
+    })),
+  ];
 
   const createRateSnapshot = () => {
     const entries = requiredCurrencies.map((currency) => ({
@@ -1476,9 +1780,9 @@ function RateSnapshotPanel({
           options={options}
           placeholder={t("finance.rates.selectSnapshot")}
           showLabel={false}
+          includeEmptyOption
           size="sm"
           className="min-w-[14rem]"
-          disabled={!options.length}
         />
       </div>
 
@@ -1550,8 +1854,10 @@ function SnapshotEntryTreeTable({
   amounts,
   notes,
   aggregatedAmounts,
+  nativeAggregatedAmounts,
   primaryCurrency,
   conversionRates,
+  hasRateSnapshot,
   submitting,
   onChangeAmount,
   onChangeNote,
@@ -1560,8 +1866,10 @@ function SnapshotEntryTreeTable({
   amounts: SnapshotAmountState;
   notes: SnapshotNoteState;
   aggregatedAmounts: Record<UUID, string>;
+  nativeAggregatedAmounts: Record<UUID, string>;
   primaryCurrency: string;
   conversionRates: Record<string, number>;
+  hasRateSnapshot: boolean;
   submitting: boolean;
   onChangeAmount: (nodeId: UUID, value: string) => void;
   onChangeNote: (nodeId: UUID, value: string) => void;
@@ -1593,14 +1901,16 @@ function SnapshotEntryTreeTable({
       const isExpanded = expandedIds.has(node.id);
       const amount = amounts[node.id] ?? "";
       const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
-      const convertedAmount = hasChildren
-        ? aggregatedAmount
-        : convertSnapshotAmount(
-            amount,
-            node.currency_code || primaryCurrency,
-            primaryCurrency,
-            conversionRates,
-          );
+      const convertedAmount = hasRateSnapshot
+        ? hasChildren
+          ? aggregatedAmount
+          : convertSnapshotAmount(
+              amount,
+              node.currency_code || primaryCurrency,
+              primaryCurrency,
+              conversionRates,
+            )
+        : nativeAggregatedAmounts[node.id] ?? "";
       const amountNegative = isNegativeAmount(amount);
       const convertedNegative = isNegativeAmount(convertedAmount);
 
@@ -1757,16 +2067,34 @@ function SnapshotDetail({
   snapshot,
   tree,
   treeNodes,
+  rateSnapshots,
+  updating,
+  onUpdateRateSnapshot,
 }: {
   snapshot: FinanceSnapshot;
   tree: FinanceTree;
   treeNodes: TreeNodeWithChildren[];
+  rateSnapshots: FinanceRateSnapshot[];
+  updating: boolean;
+  onUpdateRateSnapshot: (snapshotId: UUID, rateSnapshotId: UUID | null) => void;
 }) {
   const { t } = useTranslation();
-  const displayTree = useMemo(
-    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? []),
-    [snapshot.entries, treeNodes],
+  const [rateSnapshotDraft, setRateSnapshotDraft] = useState<UUID | "">(
+    snapshot.rate_snapshot_id ?? "",
   );
+  const usesRateSnapshot = Boolean(snapshot.rate_snapshot_id);
+  const displayTree = useMemo(
+    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? [], usesRateSnapshot),
+    [snapshot.entries, treeNodes, usesRateSnapshot],
+  );
+  const amountsByCurrency = useMemo(
+    () => getSummaryAmountsByCurrency(snapshot.summary),
+    [snapshot.summary],
+  );
+
+  useEffect(() => {
+    setRateSnapshotDraft(snapshot.rate_snapshot_id ?? "");
+  }, [snapshot.rate_snapshot_id]);
   const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
 
   useEffect(() => {
@@ -1795,19 +2123,58 @@ function SnapshotDetail({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <Metric
-          label={t("finance.metrics.positive")}
-          value={formatMoney(snapshot.total_positive, tree.primary_currency)}
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-base-200 bg-base-200/30 p-3">
+        <FormField label={t("finance.rates.selectSnapshot")}>
+          <EnumSelect
+            value={rateSnapshotDraft || undefined}
+            onChange={(value) => setRateSnapshotDraft((value as UUID | undefined) ?? "")}
+            options={[
+              { value: "", label: t("finance.rates.noRateSnapshot") },
+              ...rateSnapshots.map((rateSnapshot) => ({
+                value: rateSnapshot.id,
+                label: `${formatDateTime(rateSnapshot.captured_at)} · ${rateSnapshot.primary_currency}`,
+              })),
+            ]}
+            placeholder={t("finance.rates.noRateSnapshot")}
+            showLabel={false}
+            includeEmptyOption
+            size="sm"
+            className="min-w-[16rem]"
+          />
+        </FormField>
+        <ActionButton
+          label={updating ? t("common.saving") : t("common.save")}
+          iconName="check"
+          size="sm"
+          color="primary"
+          variant="outline"
+          disabled={updating || rateSnapshotDraft === (snapshot.rate_snapshot_id ?? "")}
+          onClick={() => onUpdateRateSnapshot(snapshot.id, rateSnapshotDraft || null)}
         />
-        <Metric
-          label={t("finance.metrics.negative")}
-          value={formatMoney(snapshot.total_negative, tree.primary_currency)}
-        />
-        <Metric
-          label={t("finance.metrics.net")}
-          value={formatMoney(snapshot.net_amount, tree.primary_currency)}
-        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {usesRateSnapshot ? (
+          <>
+            <Metric
+              label={t("finance.metrics.positive")}
+              value={formatMoney(snapshot.total_positive, tree.primary_currency)}
+            />
+            <Metric
+              label={t("finance.metrics.negative")}
+              value={formatMoney(snapshot.total_negative, tree.primary_currency)}
+            />
+            <Metric
+              label={t("finance.metrics.net")}
+              value={formatMoney(snapshot.net_amount, tree.primary_currency)}
+            />
+          </>
+        ) : (
+          <CurrencyAmountList
+            amountsByCurrency={amountsByCurrency}
+            fallbackCurrency={snapshot.primary_currency}
+          />
+        )}
       </div>
 
       <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
@@ -1900,9 +2267,13 @@ function SnapshotDetail({
                     </span>
                   </td>
                   <td className="align-top">
-                    <span className={`tabular-nums ${convertedAmountClass}`}>
-                      {formatMoney(node.amountConverted, snapshot.primary_currency)}
-                    </span>
+                    {usesRateSnapshot ? (
+                      <span className={`tabular-nums ${convertedAmountClass}`}>
+                        {formatMoney(node.amountConverted, snapshot.primary_currency)}
+                      </span>
+                    ) : (
+                      <span className="text-base-content/40">-</span>
+                    )}
                   </td>
                   <td className="align-top">
                     {node.note ? (
@@ -1947,6 +2318,7 @@ type SnapshotDisplayNode = {
 function buildSnapshotDisplayTree(
   treeNodes: TreeNodeWithChildren[],
   entries: SnapshotEntry[],
+  useConvertedRollups: boolean,
 ): SnapshotDisplayNode[] {
   const entryByNodeId = new Map<UUID, SnapshotEntry>();
   entries.forEach((entry) => {
@@ -1966,7 +2338,7 @@ function buildSnapshotDisplayTree(
           return null;
         }
         const amountConverted =
-          entry?.amount_converted ?? sumSnapshotNodeAmounts(children);
+          entry?.amount_converted ?? (useConvertedRollups ? sumSnapshotNodeAmounts(children) : "");
         return {
           id: node.id,
           name: node.name,
@@ -1999,6 +2371,25 @@ function buildSnapshotDisplayTree(
         }) satisfies SnapshotDisplayNode,
     );
   return roots.concat(orphanEntries);
+}
+
+function getSummaryAmountsByCurrency(
+  summary?: Record<string, unknown> | null,
+): Record<string, { net_amount: string }> {
+  const rawAmounts = summary?.amounts_by_currency;
+  if (!rawAmounts || typeof rawAmounts !== "object") {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(rawAmounts as Record<string, Record<string, unknown>>).map(
+      ([currency, totals]) => [
+        currency,
+        {
+          net_amount: String(totals.net_amount ?? "0"),
+        },
+      ],
+    ),
+  );
 }
 
 function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>) {
@@ -2037,6 +2428,44 @@ function buildAggregatedSnapshotAmounts(
       result[node.id] = total;
     }
     return total;
+  };
+
+  nodes.forEach(visit);
+  return result;
+}
+
+function buildNativeSnapshotAmounts(
+  nodes: TreeNodeWithChildren[],
+  amounts: SnapshotAmountState,
+  primaryCurrency: string,
+): Record<UUID, string> {
+  const result: Record<UUID, string> = {};
+
+  const visit = (node: TreeNodeWithChildren): Map<string, number> => {
+    if (!node.children.length) {
+      const amount = amounts[node.id]?.trim() ?? "";
+      const parsed = Number(amount);
+      if (!amount || !Number.isFinite(parsed)) {
+        return new Map();
+      }
+      const currency = (node.currency_code || primaryCurrency).toUpperCase();
+      result[node.id] = `${amount} ${currency}`;
+      return new Map([[currency, parsed]]);
+    }
+
+    const totals = new Map<string, number>();
+    node.children.forEach((child) => {
+      visit(child).forEach((value, currency) => {
+        totals.set(currency, (totals.get(currency) ?? 0) + value);
+      });
+    });
+    if (totals.size) {
+      result[node.id] = Array.from(totals.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([currency, value]) => `${value} ${currency}`)
+        .join(", ");
+    }
+    return totals;
   };
 
   nodes.forEach(visit);

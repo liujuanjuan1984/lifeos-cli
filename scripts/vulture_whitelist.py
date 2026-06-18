@@ -38,6 +38,7 @@ _keep(
     list_tree_snapshots,
     create_snapshot,
     get_snapshot,
+    update_snapshot,
     get_area_order,
     set_area_order,
     reset_area_order,
