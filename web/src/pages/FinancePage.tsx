@@ -26,6 +26,17 @@ import {
   type FinanceTree,
   type FinanceTreeNode,
 } from "@/services/api/finance";
+import {
+  addFinanceRateSnapshotToListCache,
+  invalidateFinanceAssets,
+  invalidateFinanceRateSnapshot,
+  invalidateFinanceRateSnapshots,
+  invalidateFinanceSnapshot,
+  invalidateFinanceSnapshots,
+  invalidateFinanceTreeByPurpose,
+  setFinanceRateSnapshotCache,
+  setFinanceSnapshotCache,
+} from "@/services/api/cacheInvalidation/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 import { formatDate, formatDateTime } from "@/utils/datetime";
@@ -213,7 +224,7 @@ function useFinanceAssetSource() {
   const createAssetMutation = useMutation({
     mutationFn: (code: string) => financeApi.createAsset({ code }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+      await invalidateFinanceAssets(queryClient);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -293,9 +304,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     }) => financeApi.createNode(tree!.id, payload),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeCreated"));
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.treesByPurpose(preset.purpose),
-      });
+      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -316,9 +325,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeUpdated"));
       setNodeFormState(null);
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.treesByPurpose(preset.purpose),
-      });
+      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -330,9 +337,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeDeleted"));
       setPendingDeleteNode(null);
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.treesByPurpose(preset.purpose),
-      });
+      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -353,12 +358,11 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       toast.showSuccess(t("finance.messages.snapshotCreated"));
       setSnapshotFormVisible(false);
       setSelectedSnapshotId(snapshot.id);
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.snapshots(tree?.id ?? null),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.snapshot(snapshot.id),
-      });
+      setFinanceSnapshotCache(queryClient, snapshot);
+      await Promise.all([
+        invalidateFinanceSnapshots(queryClient, tree?.id ?? null),
+        invalidateFinanceSnapshot(queryClient, snapshot.id),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -375,12 +379,11 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     }) => financeApi.updateSnapshot(snapshotId, { rate_snapshot_id: rateSnapshotId }),
     onSuccess: async (snapshot) => {
       toast.showSuccess(t("finance.messages.snapshotUpdated"));
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.snapshots(tree?.id ?? null),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.snapshot(snapshot.id),
-      });
+      setFinanceSnapshotCache(queryClient, snapshot);
+      await Promise.all([
+        invalidateFinanceSnapshots(queryClient, tree?.id ?? null),
+        invalidateFinanceSnapshot(queryClient, snapshot.id),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -391,12 +394,12 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
     onSuccess: async (rateSnapshot) => {
       toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.rateSnapshots(),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.rateSnapshot(rateSnapshot.id),
-      });
+      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
+      addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
+      await Promise.all([
+        invalidateFinanceRateSnapshots(queryClient),
+        invalidateFinanceRateSnapshot(queryClient, rateSnapshot.id),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -562,15 +565,15 @@ function RateSnapshotsWorkspace() {
 
   const createRateSnapshotMutation = useMutation({
     mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
-    onSuccess: async () => {
+    onSuccess: async (rateSnapshot) => {
       toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
       setRateRows([
         { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
       ]);
       setNote("");
-      await queryClient.invalidateQueries({
-        queryKey: financeKeys.rateSnapshots(),
-      });
+      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
+      addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
+      await invalidateFinanceRateSnapshots(queryClient);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -590,7 +593,7 @@ function RateSnapshotsWorkspace() {
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.assetUpdated"));
       setEditingAssetId(null);
-      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+      await invalidateFinanceAssets(queryClient);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -601,7 +604,7 @@ function RateSnapshotsWorkspace() {
     mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.assetDeleted"));
-      await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+      await invalidateFinanceAssets(queryClient);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -616,7 +619,7 @@ function RateSnapshotsWorkspace() {
       .then(async (asset) => {
         if (assetName.trim()) {
           await financeApi.updateAsset(asset.id, { name: assetName.trim() });
-          await queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
+          await invalidateFinanceAssets(queryClient);
         }
         toast.showSuccess(t("finance.messages.assetCreated"));
         setAssetCode("");
