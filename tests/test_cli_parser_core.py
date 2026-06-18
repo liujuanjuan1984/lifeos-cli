@@ -173,8 +173,20 @@ def test_cli_parser_supports_finance_commands() -> None:
             "finance",
             "snapshot-add",
             "11111111-1111-1111-1111-111111111111",
+            "--rate-snapshot-id",
+            "33333333-3333-3333-3333-333333333333",
             "--entry",
             "22222222-2222-2222-2222-222222222222:100:USD",
+        ]
+    )
+    rate_snapshot_args = parser.parse_args(
+        [
+            "finance",
+            "rate-snapshot-add",
+            "--primary-currency",
+            "USD",
+            "--rate",
+            "EUR:1.1",
         ]
     )
 
@@ -186,6 +198,10 @@ def test_cli_parser_supports_finance_commands() -> None:
     assert str(node_args.parent_id) == "22222222-2222-2222-2222-222222222222"
     assert snapshot_args.finance_command == "snapshot-add"
     assert snapshot_args.entries[0].amount == Decimal("100")
+    assert str(snapshot_args.rate_snapshot_id) == "33333333-3333-3333-3333-333333333333"
+    assert rate_snapshot_args.finance_command == "rate-snapshot-add"
+    assert rate_snapshot_args.rates[0].base_currency == "EUR"
+    assert rate_snapshot_args.rates[0].rate == Decimal("1.1")
 
 
 def test_cli_parser_supports_timelog_stats_commands() -> None:

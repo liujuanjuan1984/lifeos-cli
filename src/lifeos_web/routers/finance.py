@@ -12,7 +12,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.db.models.finance import FinanceSnapshot, FinanceSnapshotEntry, FinanceTreeNode
+from lifeos_cli.db.models.finance import (
+    FinanceRateSnapshot,
+    FinanceRateSnapshotEntry,
+    FinanceSnapshot,
+    FinanceSnapshotEntry,
+    FinanceTreeNode,
+)
 from lifeos_cli.db.services import finance as finance_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination
@@ -58,7 +64,6 @@ class FinanceSnapshotEntryCreate(BaseModel):
     node_id: UUID
     amount: Decimal
     currency_code: str | None = None
-    amount_converted: Decimal | None = None
     note: str | None = None
 
 
@@ -69,9 +74,32 @@ class FinanceSnapshotCreate(BaseModel):
     period_start: datetime | None = None
     period_end: datetime | None = None
     primary_currency: str | None = None
-    exchange_rates: dict[str, Any] | None = None
+    rate_snapshot_id: UUID | None = None
     note: str | None = None
     entries: list[FinanceSnapshotEntryCreate] = Field(default_factory=list)
+
+
+class FinanceRateSnapshotEntryCreate(BaseModel):
+    """Payload for one exchange-rate entry."""
+
+    base_currency: str
+    quote_currency: str | None = None
+    rate: Decimal
+    source: str | None = None
+    captured_at: datetime | None = None
+    is_derived: bool = False
+    metadata: dict[str, Any] | None = None
+
+
+class FinanceRateSnapshotCreate(BaseModel):
+    """Payload for creating an exchange-rate snapshot."""
+
+    captured_at: datetime | None = None
+    primary_currency: str = "USD"
+    source: str | None = None
+    note: str | None = None
+    metadata: dict[str, Any] | None = None
+    entries: list[FinanceRateSnapshotEntryCreate] = Field(default_factory=list)
 
 
 def _page_envelope(
@@ -149,6 +177,44 @@ def _entry_payload(entry: FinanceSnapshotEntry) -> dict[str, object]:
     }
 
 
+def _rate_entry_payload(entry: FinanceRateSnapshotEntry) -> dict[str, object]:
+    return {
+        "id": str(entry.id),
+        "rate_snapshot_id": str(entry.rate_snapshot_id),
+        "base_currency": entry.base_currency,
+        "quote_currency": entry.quote_currency,
+        "rate": _decimal_str(entry.rate),
+        "source": entry.source,
+        "captured_at": entry.captured_at.isoformat() if entry.captured_at else None,
+        "is_derived": entry.is_derived,
+        "metadata": to_jsonable(entry.metadata_json),
+        "created_at": entry.created_at.isoformat(),
+        "updated_at": entry.updated_at.isoformat(),
+        "deleted_at": entry.deleted_at.isoformat() if entry.deleted_at else None,
+    }
+
+
+def _rate_snapshot_payload(
+    rate_snapshot: FinanceRateSnapshot,
+    *,
+    include_entries: bool = True,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": str(rate_snapshot.id),
+        "captured_at": rate_snapshot.captured_at.isoformat(),
+        "primary_currency": rate_snapshot.primary_currency,
+        "source": rate_snapshot.source,
+        "note": rate_snapshot.note,
+        "metadata": to_jsonable(rate_snapshot.metadata_json),
+        "created_at": rate_snapshot.created_at.isoformat(),
+        "updated_at": rate_snapshot.updated_at.isoformat(),
+        "deleted_at": rate_snapshot.deleted_at.isoformat() if rate_snapshot.deleted_at else None,
+    }
+    if include_entries:
+        payload["entries"] = [_rate_entry_payload(entry) for entry in rate_snapshot.entries]
+    return payload
+
+
 def _snapshot_payload(
     snapshot: FinanceSnapshot,
     *,
@@ -164,6 +230,8 @@ def _snapshot_payload(
         "period_start": snapshot.period_start.isoformat() if snapshot.period_start else None,
         "period_end": snapshot.period_end.isoformat() if snapshot.period_end else None,
         "primary_currency": snapshot.primary_currency,
+        "rate_snapshot_id": str(snapshot.rate_snapshot_id) if snapshot.rate_snapshot_id else None,
+        "rate_snapshot_policy": snapshot.rate_snapshot_policy,
         "total_positive": _decimal_str(snapshot.total_positive),
         "total_negative": _decimal_str(snapshot.total_negative),
         "net_amount": _decimal_str(snapshot.net_amount),
@@ -210,6 +278,89 @@ async def list_trees(
         total=total,
         meta={"purpose": purpose, "include_deleted": include_deleted},
     )
+
+
+@router.get("/rate-snapshots", response_model=ListResponse)
+async def list_rate_snapshots(
+    session: SessionDep,
+    primary_currency: str | None = None,
+    include_deleted: bool = False,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+) -> ListResponse:
+    """List exchange-rate snapshots."""
+    try:
+        rate_snapshots = await finance_services.list_finance_rate_snapshots(
+            session,
+            primary_currency=primary_currency,
+            include_deleted=include_deleted,
+            limit=size,
+            offset=(page - 1) * size,
+        )
+        total = await finance_services.count_finance_rate_snapshots(
+            session,
+            primary_currency=primary_currency,
+            include_deleted=include_deleted,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _page_envelope(
+        items=[_rate_snapshot_payload(snapshot) for snapshot in rate_snapshots],
+        page=page,
+        size=size,
+        total=total,
+        meta={"primary_currency": primary_currency, "include_deleted": include_deleted},
+    )
+
+
+@router.post("/rate-snapshots")
+async def create_rate_snapshot(
+    payload: FinanceRateSnapshotCreate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Create an exchange-rate snapshot."""
+    try:
+        rate_snapshot = await finance_services.create_finance_rate_snapshot(
+            session,
+            captured_at=payload.captured_at,
+            primary_currency=payload.primary_currency,
+            source=payload.source,
+            note=payload.note,
+            metadata=payload.metadata,
+            entries=[
+                finance_services.FinanceRateSnapshotEntryInput(
+                    base_currency=entry.base_currency,
+                    quote_currency=entry.quote_currency,
+                    rate=entry.rate,
+                    source=entry.source,
+                    captured_at=entry.captured_at,
+                    is_derived=entry.is_derived,
+                    metadata=entry.metadata,
+                )
+                for entry in payload.entries
+            ],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _rate_snapshot_payload(rate_snapshot)
+
+
+@router.get("/rate-snapshots/{rate_snapshot_id}")
+async def get_rate_snapshot(
+    rate_snapshot_id: UUID,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Load one exchange-rate snapshot."""
+    rate_snapshot = await finance_services.get_finance_rate_snapshot(
+        session,
+        rate_snapshot_id=rate_snapshot_id,
+    )
+    if rate_snapshot is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Finance rate snapshot {rate_snapshot_id} was not found",
+        )
+    return _rate_snapshot_payload(rate_snapshot)
 
 
 @router.post("/trees")
@@ -353,14 +504,13 @@ async def create_snapshot(
             period_start=payload.period_start,
             period_end=payload.period_end,
             primary_currency=payload.primary_currency,
-            exchange_rates=payload.exchange_rates,
+            rate_snapshot_id=payload.rate_snapshot_id,
             note=payload.note,
             entries=[
                 finance_services.FinanceSnapshotEntryInput(
                     node_id=entry.node_id,
                     amount=entry.amount,
                     currency_code=entry.currency_code,
-                    amount_converted=entry.amount_converted,
                     note=entry.note,
                 )
                 for entry in payload.entries

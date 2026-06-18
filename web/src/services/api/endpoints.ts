@@ -94,6 +94,8 @@ export const ENDPOINTS = {
   },
   FINANCE: {
     TREES: `${API_V1}/finance/trees`,
+    RATE_SNAPSHOTS: `${API_V1}/finance/rate-snapshots`,
+    RATE_SNAPSHOT_BY_ID: (id: string) => `${API_V1}/finance/rate-snapshots/${id}`,
     ENSURE_DEFAULT_TREE: `${API_V1}/finance/trees/ensure-default`,
     TREE_BY_ID: (id: string) => `${API_V1}/finance/trees/${id}`,
     TREE_NODES: (treeId: string) => `${API_V1}/finance/trees/${treeId}/nodes`,

@@ -63,6 +63,8 @@ export interface FinanceSnapshot {
   period_start: string | null;
   period_end: string | null;
   primary_currency: string;
+  rate_snapshot_id?: UUID | null;
+  rate_snapshot_policy: string;
   total_positive: string;
   total_negative: string;
   net_amount: string;
@@ -70,6 +72,34 @@ export interface FinanceSnapshot {
   summary?: Record<string, unknown> | null;
   note?: string | null;
   entries?: FinanceSnapshotEntry[];
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface FinanceRateSnapshotEntry {
+  id: UUID;
+  rate_snapshot_id: UUID;
+  base_currency: string;
+  quote_currency: string;
+  rate: string;
+  source?: string | null;
+  captured_at?: string | null;
+  is_derived: boolean;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface FinanceRateSnapshot {
+  id: UUID;
+  captured_at: string;
+  primary_currency: string;
+  source: string;
+  note?: string | null;
+  metadata?: Record<string, unknown> | null;
+  entries?: FinanceRateSnapshotEntry[];
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -101,7 +131,6 @@ export interface FinanceSnapshotEntryCreate {
   node_id: UUID;
   amount: string;
   currency_code?: string | null;
-  amount_converted?: string | null;
   note?: string | null;
 }
 
@@ -110,8 +139,28 @@ export interface FinanceSnapshotCreate {
   period_start?: string | null;
   period_end?: string | null;
   primary_currency?: string | null;
+  rate_snapshot_id?: UUID | null;
   note?: string | null;
   entries: FinanceSnapshotEntryCreate[];
+}
+
+export interface FinanceRateSnapshotEntryCreate {
+  base_currency: string;
+  quote_currency?: string | null;
+  rate: string;
+  source?: string | null;
+  captured_at?: string | null;
+  is_derived?: boolean;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface FinanceRateSnapshotCreate {
+  captured_at?: string | null;
+  primary_currency: string;
+  source?: string | null;
+  note?: string | null;
+  metadata?: Record<string, unknown> | null;
+  entries: FinanceRateSnapshotEntryCreate[];
 }
 
 export type FinanceTreeListResponse = ListResponse<
@@ -121,6 +170,10 @@ export type FinanceTreeListResponse = ListResponse<
 export type FinanceSnapshotListResponse = ListResponse<
   FinanceSnapshot,
   { tree_id?: UUID | null }
+>;
+export type FinanceRateSnapshotListResponse = ListResponse<
+  FinanceRateSnapshot,
+  { primary_currency?: string | null; include_deleted?: boolean }
 >;
 
 export const financeApi = {
@@ -134,6 +187,26 @@ export const financeApi = {
     }),
   createTree: (payload: FinanceTreeCreate) =>
     http.post<FinanceTree>(ENDPOINTS.FINANCE.TREES, payload),
+  listRateSnapshots: (
+    params: { primary_currency?: string; page?: number; size?: number } = {},
+  ) =>
+    http.get<FinanceRateSnapshotListResponse>(
+      ENDPOINTS.FINANCE.RATE_SNAPSHOTS,
+      {
+        primary_currency: params.primary_currency,
+        page: params.page ?? 1,
+        size: params.size ?? 50,
+      },
+    ),
+  createRateSnapshot: (payload: FinanceRateSnapshotCreate) =>
+    http.post<FinanceRateSnapshot>(
+      ENDPOINTS.FINANCE.RATE_SNAPSHOTS,
+      payload,
+    ),
+  getRateSnapshot: (rateSnapshotId: UUID) =>
+    http.get<FinanceRateSnapshot>(
+      ENDPOINTS.FINANCE.RATE_SNAPSHOT_BY_ID(rateSnapshotId),
+    ),
   ensureDefaultTree: (purpose: FinancePurpose, primaryCurrency = "USD") =>
     http.post<FinanceTree>(
       ENDPOINTS.FINANCE.ENSURE_DEFAULT_TREE,

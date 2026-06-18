@@ -11,11 +11,17 @@ from lifeos_cli.application.time_preferences import to_storage_timezone
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
 from lifeos_cli.db import session as db_session
-from lifeos_cli.db.models.finance import FinanceSnapshot, FinanceTree, FinanceTreeNode
+from lifeos_cli.db.models.finance import (
+    FinanceRateSnapshot,
+    FinanceSnapshot,
+    FinanceTree,
+    FinanceTreeNode,
+)
 from lifeos_cli.db.services import finance as finance_services
 
 TREE_SUMMARY_COLUMNS = ("tree_id", "purpose", "time_mode", "currency", "name")
 SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "period", "net_amount", "currency")
+RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "currency", "source")
 
 
 def _format_tree_summary(tree: FinanceTree) -> str:
@@ -37,6 +43,13 @@ def _format_snapshot_summary(snapshot: FinanceSnapshot) -> str:
     return (
         f"{snapshot.id}\t{snapshot.tree_id}\t{_format_snapshot_period(snapshot)}\t"
         f"{snapshot.net_amount}\t{snapshot.primary_currency}"
+    )
+
+
+def _format_rate_snapshot_summary(rate_snapshot: FinanceRateSnapshot) -> str:
+    return (
+        f"{rate_snapshot.id}\t{format_timestamp(rate_snapshot.captured_at)}\t"
+        f"{rate_snapshot.primary_currency}\t{rate_snapshot.source}"
     )
 
 
@@ -76,6 +89,8 @@ def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
             f"period_start: {format_timestamp(snapshot.period_start)}",
             f"period_end: {format_timestamp(snapshot.period_end)}",
             f"primary_currency: {snapshot.primary_currency}",
+            f"rate_snapshot_id: {snapshot.rate_snapshot_id or '-'}",
+            f"rate_snapshot_policy: {snapshot.rate_snapshot_policy}",
             f"total_positive: {snapshot.total_positive}",
             f"total_negative: {snapshot.total_negative}",
             f"net_amount: {snapshot.net_amount}",
@@ -87,22 +102,57 @@ def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
     )
 
 
-def parse_snapshot_entry(value: str) -> finance_services.FinanceSnapshotEntryInput:
-    """Parse node_id:amount[:currency[:converted]] CLI entry syntax."""
-    parts = value.split(":")
-    if len(parts) not in {2, 3, 4}:
-        raise argparse.ArgumentTypeError(
-            "Entry must use node-id:amount[:currency[:amount-converted]]"
+def _format_rate_snapshot_detail(rate_snapshot: FinanceRateSnapshot) -> str:
+    entry_lines = [
+        (
+            f"  {entry.base_currency}\t{entry.quote_currency}\t{entry.rate}\t"
+            f"{entry.source or '-'}\t{format_timestamp(entry.captured_at)}"
         )
+        for entry in rate_snapshot.entries
+    ]
+    return "\n".join(
+        (
+            f"id: {rate_snapshot.id}",
+            f"captured_at: {format_timestamp(rate_snapshot.captured_at)}",
+            f"primary_currency: {rate_snapshot.primary_currency}",
+            f"source: {rate_snapshot.source}",
+            f"note: {rate_snapshot.note or '-'}",
+            "entries:",
+            "  base_currency\tquote_currency\trate\tsource\tcaptured_at",
+            *(entry_lines or ["  -"]),
+        )
+    )
+
+
+def parse_snapshot_entry(value: str) -> finance_services.FinanceSnapshotEntryInput:
+    """Parse node_id:amount[:currency] CLI entry syntax."""
+    parts = value.split(":")
+    if len(parts) not in {2, 3}:
+        raise argparse.ArgumentTypeError("Entry must use node-id:amount[:currency]")
     node_id_text, amount_text = parts[0], parts[1]
     currency_code = parts[2] if len(parts) >= 3 and parts[2] else None
-    converted_text = parts[3] if len(parts) == 4 and parts[3] else None
     try:
         return finance_services.FinanceSnapshotEntryInput(
             node_id=UUID(node_id_text),
             amount=Decimal(amount_text),
             currency_code=currency_code,
-            amount_converted=Decimal(converted_text) if converted_text is not None else None,
+        )
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def parse_rate_snapshot_entry(value: str) -> finance_services.FinanceRateSnapshotEntryInput:
+    """Parse base-currency:rate[:quote-currency] CLI rate syntax."""
+    parts = value.split(":")
+    if len(parts) not in {2, 3}:
+        raise argparse.ArgumentTypeError("Rate must use base-currency:rate[:quote-currency]")
+    base_currency, rate_text = parts[0], parts[1]
+    quote_currency = parts[2] if len(parts) == 3 and parts[2] else None
+    try:
+        return finance_services.FinanceRateSnapshotEntryInput(
+            base_currency=base_currency,
+            rate=Decimal(rate_text),
+            quote_currency=quote_currency,
         )
     except ValueError as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
@@ -233,12 +283,67 @@ async def handle_finance_snapshot_add_async(args: argparse.Namespace) -> int:
                 period_start=_storage_datetime(args.period_start),
                 period_end=_storage_datetime(args.period_end),
                 primary_currency=args.primary_currency,
+                rate_snapshot_id=args.rate_snapshot_id,
                 note=args.note,
                 entries=list(args.entries),
             )
         except (LookupError, ValueError) as exc:
             return cli_handler_utils.print_cli_error(exc)
     print(f"Created finance snapshot {snapshot.id}")
+    return 0
+
+
+async def handle_finance_rate_snapshot_add_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            rate_snapshot = await finance_services.create_finance_rate_snapshot(
+                session,
+                primary_currency=args.primary_currency,
+                captured_at=_storage_datetime(args.captured_at),
+                source=args.source,
+                note=args.note,
+                entries=list(args.rates),
+            )
+        except ValueError as exc:
+            return cli_handler_utils.print_cli_error(exc)
+    print(f"Created finance rate snapshot {rate_snapshot.id}")
+    return 0
+
+
+async def handle_finance_rate_snapshot_list_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            rate_snapshots = await finance_services.list_finance_rate_snapshots(
+                session,
+                primary_currency=args.primary_currency,
+                include_deleted=args.include_deleted,
+                limit=args.limit,
+                offset=args.offset,
+            )
+        except ValueError as exc:
+            return cli_handler_utils.print_cli_error(exc)
+    print_summary_rows(
+        items=rate_snapshots,
+        columns=RATE_SNAPSHOT_SUMMARY_COLUMNS,
+        row_formatter=_format_rate_snapshot_summary,
+        empty_message="No finance rate snapshots found.",
+    )
+    return 0
+
+
+async def handle_finance_rate_snapshot_show_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        rate_snapshot = await finance_services.get_finance_rate_snapshot(
+            session,
+            rate_snapshot_id=args.rate_snapshot_id,
+            include_deleted=args.include_deleted,
+        )
+    if rate_snapshot is None:
+        return cli_handler_utils.print_missing_record_error(
+            "Finance rate snapshot",
+            args.rate_snapshot_id,
+        )
+    print(_format_rate_snapshot_detail(rate_snapshot))
     return 0
 
 

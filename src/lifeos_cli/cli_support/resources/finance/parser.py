@@ -18,6 +18,9 @@ from lifeos_cli.cli_support.resources.finance.handlers import (
     handle_finance_node_add_async,
     handle_finance_node_delete_async,
     handle_finance_node_update_async,
+    handle_finance_rate_snapshot_add_async,
+    handle_finance_rate_snapshot_list_async,
+    handle_finance_rate_snapshot_show_async,
     handle_finance_snapshot_add_async,
     handle_finance_snapshot_list_async,
     handle_finance_snapshot_show_async,
@@ -25,6 +28,7 @@ from lifeos_cli.cli_support.resources.finance.handlers import (
     handle_finance_tree_ensure_default_async,
     handle_finance_tree_list_async,
     handle_finance_tree_show_async,
+    parse_rate_snapshot_entry,
     parse_snapshot_entry,
 )
 from lifeos_cli.cli_support.runtime_utils import make_sync_handler
@@ -46,6 +50,7 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=(
                 "lifeos finance tree-add --help",
                 "lifeos finance node-add --help",
+                "lifeos finance rate-snapshot-add --help",
                 "lifeos finance snapshot-add --help",
             ),
             notes=(
@@ -178,7 +183,8 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             summary="Create a finance snapshot.",
             description=(
                 "Create an instant or period snapshot. Repeat --entry with "
-                "node-id:amount[:currency[:amount-converted]]."
+                "node-id:amount[:currency]. Non-primary currencies are converted "
+                "through the selected rate snapshot or the latest prior rate snapshot."
             ),
             examples=(
                 "lifeos finance snapshot-add <tree-id> --entry <node-id>:1000:USD",
@@ -192,6 +198,7 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
     snapshot_add.add_argument("--period-start", type=parse_user_datetime_value)
     snapshot_add.add_argument("--period-end", type=parse_user_datetime_value)
     snapshot_add.add_argument("--primary-currency")
+    snapshot_add.add_argument("--rate-snapshot-id", type=UUID)
     snapshot_add.add_argument("--note")
     snapshot_add.add_argument(
         "--entry",
@@ -201,6 +208,68 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         required=True,
     )
     snapshot_add.set_defaults(handler=make_sync_handler(handle_finance_snapshot_add_async))
+
+    rate_snapshot_add = add_documented_parser(
+        finance_subparsers,
+        "rate-snapshot-add",
+        help_content=HelpContent(
+            summary="Create a finance exchange-rate snapshot.",
+            description=(
+                "Capture exchange rates for one primary currency. Repeat --rate with "
+                "base-currency:rate[:quote-currency], where the quote defaults to "
+                "--primary-currency."
+            ),
+            examples=(
+                "lifeos finance rate-snapshot-add --primary-currency USD --rate EUR:1.08",
+                "lifeos finance rate-snapshot-add --primary-currency USD --rate ETH:3500",
+            ),
+        ),
+    )
+    rate_snapshot_add.add_argument("--primary-currency", default="USD")
+    rate_snapshot_add.add_argument("--captured-at", type=parse_user_datetime_value)
+    rate_snapshot_add.add_argument("--source", default="manual")
+    rate_snapshot_add.add_argument("--note")
+    rate_snapshot_add.add_argument(
+        "--rate",
+        dest="rates",
+        action="append",
+        type=parse_rate_snapshot_entry,
+        required=True,
+    )
+    rate_snapshot_add.set_defaults(
+        handler=make_sync_handler(handle_finance_rate_snapshot_add_async)
+    )
+
+    rate_snapshot_list = add_documented_parser(
+        finance_subparsers,
+        "rate-snapshot-list",
+        help_content=HelpContent(
+            summary="List finance exchange-rate snapshots.",
+            description="List stored rate snapshots, optionally filtered by primary currency.",
+            examples=("lifeos finance rate-snapshot-list --primary-currency USD",),
+        ),
+    )
+    rate_snapshot_list.add_argument("--primary-currency")
+    add_include_deleted_argument(rate_snapshot_list, noun="finance rate snapshots")
+    add_limit_offset_arguments(rate_snapshot_list)
+    rate_snapshot_list.set_defaults(
+        handler=make_sync_handler(handle_finance_rate_snapshot_list_async)
+    )
+
+    rate_snapshot_show = add_documented_parser(
+        finance_subparsers,
+        "rate-snapshot-show",
+        help_content=HelpContent(
+            summary="Show a finance exchange-rate snapshot.",
+            description="Show one rate snapshot and its exchange-rate entries.",
+            examples=("lifeos finance rate-snapshot-show 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    rate_snapshot_show.add_argument("rate_snapshot_id", type=UUID)
+    add_include_deleted_argument(rate_snapshot_show, noun="finance rate snapshots")
+    rate_snapshot_show.set_defaults(
+        handler=make_sync_handler(handle_finance_rate_snapshot_show_async)
+    )
 
     snapshot_list = add_documented_parser(
         finance_subparsers,

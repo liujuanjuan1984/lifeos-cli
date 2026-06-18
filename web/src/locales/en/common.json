@@ -1455,6 +1455,16 @@
       "manual": "Manual",
       "source": "Source"
     },
+    "rates": {
+      "title": "Exchange rates",
+      "required": "Required for {{currencies}} into {{primaryCurrency}}.",
+      "selectSnapshot": "Select rate snapshot",
+      "capturedAt": "Captured at",
+      "source": "Source",
+      "rateLabel": "1 {{currency}} = {{primaryCurrency}}",
+      "note": "Note",
+      "createSnapshot": "Create rates"
+    },
     "history": {
       "title": "History",
       "subtitle": "Review saved snapshots and their entries.",
@@ -1466,8 +1476,12 @@
       "nodeCreated": "Finance node created",
       "nodeUpdated": "Finance node updated",
       "nodeDeleted": "Finance node deleted",
+      "rateSnapshotCreated": "Rate snapshot saved",
       "snapshotCreated": "Finance snapshot saved",
-      "noEntries": "Enter at least one amount before saving."
+      "noEntries": "Enter at least one amount before saving.",
+      "rateSnapshotRequired": "Select or create a rate snapshot before saving.",
+      "rateSnapshotMissingRates": "The selected rate snapshot is missing: {{currencies}}.",
+      "rateSnapshotRatesRequired": "Enter a positive rate for every required currency."
     }
   },
   "modules": {

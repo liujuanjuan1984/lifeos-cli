@@ -1455,6 +1455,16 @@
       "manual": "手动",
       "source": "来源"
     },
+    "rates": {
+      "title": "汇率快照",
+      "required": "{{currencies}} 需要折算为 {{primaryCurrency}}。",
+      "selectSnapshot": "选择汇率快照",
+      "capturedAt": "采集时间",
+      "source": "来源",
+      "rateLabel": "1 {{currency}} = {{primaryCurrency}}",
+      "note": "备注",
+      "createSnapshot": "创建汇率"
+    },
     "history": {
       "title": "历史",
       "subtitle": "查看已保存快照及其条目。",
@@ -1466,8 +1476,12 @@
       "nodeCreated": "财务节点已创建",
       "nodeUpdated": "财务节点已更新",
       "nodeDeleted": "财务节点已删除",
+      "rateSnapshotCreated": "汇率快照已保存",
       "snapshotCreated": "财务快照已保存",
-      "noEntries": "保存前请至少填写一个金额。"
+      "noEntries": "保存前请至少填写一个金额。",
+      "rateSnapshotRequired": "保存前请先选择或创建汇率快照。",
+      "rateSnapshotMissingRates": "当前汇率快照缺少这些币种：{{currencies}}。",
+      "rateSnapshotRatesRequired": "请为每个必需币种填写正数汇率。"
     }
   },
   "modules": {

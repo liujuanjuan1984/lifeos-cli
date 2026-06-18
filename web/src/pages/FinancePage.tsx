@@ -17,6 +17,8 @@ import PageLayout from "@/layouts/PageLayout";
 import {
   financeApi,
   type FinancePurpose,
+  type FinanceRateSnapshot,
+  type FinanceRateSnapshotCreate,
   type FinanceSnapshot,
   type FinanceSnapshotEntryCreate,
   type FinanceTree,
@@ -199,6 +201,10 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     () => flatNodes.filter((node) => node.children_count === 0),
     [flatNodes],
   );
+  const requiredRateCurrencies = useMemo(
+    () => getRequiredRateCurrencies(entryNodes, tree?.primary_currency ?? ""),
+    [entryNodes, tree?.primary_currency],
+  );
 
   const snapshotsQuery = useQuery({
     queryKey: financeKeys.snapshots(tree?.id ?? null),
@@ -207,6 +213,13 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   });
 
   const snapshots = snapshotsQuery.data?.items ?? [];
+
+  const rateSnapshotsQuery = useQuery({
+    queryKey: financeKeys.rateSnapshots(tree?.primary_currency ?? null),
+    queryFn: () => financeApi.listRateSnapshots({ primary_currency: tree!.primary_currency }),
+    enabled: Boolean(tree?.primary_currency),
+  });
+  const rateSnapshots = rateSnapshotsQuery.data?.items ?? [];
   const latestSnapshot = snapshots[0] ?? null;
   const detailSnapshotId = selectedSnapshotId ?? latestSnapshot?.id ?? null;
   const currentSnapshot =
@@ -283,6 +296,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       period_start?: string | null;
       period_end?: string | null;
       primary_currency?: string | null;
+      rate_snapshot_id?: UUID | null;
       note?: string | null;
       entries: FinanceSnapshotEntryCreate[];
     }) => financeApi.createSnapshot(tree!.id, payload),
@@ -295,6 +309,22 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       });
       await queryClient.invalidateQueries({
         queryKey: financeKeys.snapshot(snapshot.id),
+      });
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const createRateSnapshotMutation = useMutation({
+    mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
+    onSuccess: async (rateSnapshot) => {
+      toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.rateSnapshots(tree?.primary_currency ?? null),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.rateSnapshot(rateSnapshot.id),
       });
     },
     onError: (error) => {
@@ -354,6 +384,8 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         tree={tree}
         entryNodes={entryNodes}
         treeNodes={treeNodes}
+        rateSnapshots={rateSnapshots}
+        requiredRateCurrencies={requiredRateCurrencies}
         snapshots={snapshots}
         currentSnapshot={currentSnapshot}
         currentPosition={currentPosition}
@@ -361,6 +393,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
         snapshotSubmitting={createSnapshotMutation.isPending}
+        rateSnapshotSubmitting={createRateSnapshotMutation.isPending}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         onPrevious={() => moveSnapshot(-1)}
@@ -368,6 +401,9 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onOpenSnapshotForm={() => setSnapshotFormVisible(true)}
         onCloseSnapshotForm={() => setSnapshotFormVisible(false)}
         onCreateSnapshot={(payload) => createSnapshotMutation.mutate(payload)}
+        onCreateRateSnapshot={(payload, options) =>
+          createRateSnapshotMutation.mutate(payload, options)
+        }
       />
 
       <FinanceTreeManagerModal
@@ -538,6 +574,8 @@ function SnapshotModule({
   tree,
   entryNodes,
   treeNodes,
+  rateSnapshots,
+  requiredRateCurrencies,
   snapshots,
   currentSnapshot,
   currentPosition,
@@ -545,6 +583,7 @@ function SnapshotModule({
   snapshotDetailLoading,
   snapshotFormVisible,
   snapshotSubmitting,
+  rateSnapshotSubmitting,
   hasPrevious,
   hasNext,
   onPrevious,
@@ -552,11 +591,14 @@ function SnapshotModule({
   onOpenSnapshotForm,
   onCloseSnapshotForm,
   onCreateSnapshot,
+  onCreateRateSnapshot,
 }: {
   preset: PresetConfig;
   tree: FinanceTree;
   entryNodes: TreeNodeWithChildren[];
   treeNodes: TreeNodeWithChildren[];
+  rateSnapshots: FinanceRateSnapshot[];
+  requiredRateCurrencies: string[];
   snapshots: FinanceSnapshot[];
   currentSnapshot: FinanceSnapshot | null;
   currentPosition: number;
@@ -564,6 +606,7 @@ function SnapshotModule({
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
   snapshotSubmitting: boolean;
+  rateSnapshotSubmitting: boolean;
   hasPrevious: boolean;
   hasNext: boolean;
   onPrevious: () => void;
@@ -575,9 +618,14 @@ function SnapshotModule({
     period_start?: string | null;
     period_end?: string | null;
     primary_currency?: string | null;
+    rate_snapshot_id?: UUID | null;
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
+  onCreateRateSnapshot: (
+    payload: FinanceRateSnapshotCreate,
+    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
+  ) => void;
 }) {
   const { t } = useTranslation();
   const hasSnapshots = snapshots.length > 0;
@@ -590,8 +638,12 @@ function SnapshotModule({
             tree={tree}
             preset={preset}
             treeNodes={treeNodes}
+            rateSnapshots={rateSnapshots}
+            requiredRateCurrencies={requiredRateCurrencies}
             submitting={snapshotSubmitting}
+            rateSnapshotSubmitting={rateSnapshotSubmitting}
             onSubmit={onCreateSnapshot}
+            onCreateRateSnapshot={onCreateRateSnapshot}
             onCancel={onCloseSnapshotForm}
           />
         </section>
@@ -657,8 +709,12 @@ function SnapshotModule({
             tree={tree}
             preset={preset}
             treeNodes={treeNodes}
+            rateSnapshots={rateSnapshots}
+            requiredRateCurrencies={requiredRateCurrencies}
             submitting={snapshotSubmitting}
+            rateSnapshotSubmitting={rateSnapshotSubmitting}
             onSubmit={onCreateSnapshot}
+            onCreateRateSnapshot={onCreateRateSnapshot}
             onCancel={onCloseSnapshotForm}
           />
         ) : snapshotDetailLoading ? (
@@ -1114,22 +1170,34 @@ function SnapshotFormPanel({
   tree,
   preset,
   treeNodes,
+  rateSnapshots,
+  requiredRateCurrencies,
   submitting,
+  rateSnapshotSubmitting,
   onSubmit,
+  onCreateRateSnapshot,
   onCancel,
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
   treeNodes: TreeNodeWithChildren[];
+  rateSnapshots: FinanceRateSnapshot[];
+  requiredRateCurrencies: string[];
   submitting: boolean;
+  rateSnapshotSubmitting: boolean;
   onSubmit: (payload: {
     snapshot_ts?: string | null;
     period_start?: string | null;
     period_end?: string | null;
     primary_currency?: string | null;
+    rate_snapshot_id?: UUID | null;
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
+  onCreateRateSnapshot: (
+    payload: FinanceRateSnapshotCreate,
+    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
+  ) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -1140,14 +1208,41 @@ function SnapshotFormPanel({
   const [amounts, setAmounts] = useState<SnapshotAmountState>({});
   const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
+  const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | "">("");
   const leafNodes = useMemo(
     () => flattenTree(treeNodes).filter((node) => node.children.length === 0),
     [treeNodes],
   );
-  const aggregatedAmounts = useMemo(
-    () => buildAggregatedSnapshotAmounts(treeNodes, amounts),
-    [amounts, treeNodes],
+  const selectedRateSnapshot = useMemo(
+    () => rateSnapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? null,
+    [rateSnapshots, selectedRateSnapshotId],
   );
+  const conversionRates = useMemo(
+    () => buildConversionRateMap(selectedRateSnapshot, tree.primary_currency),
+    [selectedRateSnapshot, tree.primary_currency],
+  );
+  const aggregatedAmounts = useMemo(
+    () =>
+      buildAggregatedSnapshotAmounts(
+        treeNodes,
+        amounts,
+        tree.primary_currency,
+        conversionRates,
+      ),
+    [amounts, conversionRates, tree.primary_currency, treeNodes],
+  );
+  const needsRateSnapshot = requiredRateCurrencies.length > 0;
+  const missingRateCurrencies = requiredRateCurrencies.filter(
+    (currency) => !conversionRates[currency],
+  );
+
+  useEffect(() => {
+    if (!needsRateSnapshot || selectedRateSnapshotId) return;
+    const latestSnapshot = rateSnapshots[0];
+    if (latestSnapshot) {
+      setSelectedRateSnapshotId(latestSnapshot.id);
+    }
+  }, [needsRateSnapshot, rateSnapshots, selectedRateSnapshotId]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -1169,12 +1264,25 @@ function SnapshotFormPanel({
       toast.showWarning(t("finance.messages.noEntries"));
       return;
     }
+    if (needsRateSnapshot && !selectedRateSnapshotId) {
+      toast.showWarning(t("finance.messages.rateSnapshotRequired"));
+      return;
+    }
+    if (needsRateSnapshot && missingRateCurrencies.length) {
+      toast.showWarning(
+        t("finance.messages.rateSnapshotMissingRates", {
+          currencies: missingRateCurrencies.join(", "),
+        }),
+      );
+      return;
+    }
 
     onSubmit({
       snapshot_ts: preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
       period_start: preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
       period_end: preset.timeMode === "period" ? dateToEndIso(periodEnd) : null,
       primary_currency: tree.primary_currency,
+      rate_snapshot_id: selectedRateSnapshotId || null,
       note: snapshotNote || null,
       entries,
     });
@@ -1226,12 +1334,23 @@ function SnapshotFormPanel({
           </div>
         )}
 
+        <RateSnapshotPanel
+          primaryCurrency={tree.primary_currency}
+          requiredCurrencies={requiredRateCurrencies}
+          rateSnapshots={rateSnapshots}
+          selectedRateSnapshotId={selectedRateSnapshotId}
+          submitting={rateSnapshotSubmitting}
+          onSelectRateSnapshot={setSelectedRateSnapshotId}
+          onCreateRateSnapshot={onCreateRateSnapshot}
+        />
+
         <SnapshotEntryTreeTable
           treeNodes={treeNodes}
           amounts={amounts}
           notes={notes}
           aggregatedAmounts={aggregatedAmounts}
           primaryCurrency={tree.primary_currency}
+          conversionRates={conversionRates}
           submitting={submitting}
           onChangeAmount={(nodeId, value) =>
             setAmounts((prev) => ({ ...prev, [nodeId]: value }))
@@ -1256,10 +1375,172 @@ function SnapshotFormPanel({
             color="primary"
             variant="solid"
             iconName="check"
-            disabled={submitting || !leafNodes.length}
+            disabled={
+              submitting ||
+              !leafNodes.length ||
+              (needsRateSnapshot &&
+                (!selectedRateSnapshotId || missingRateCurrencies.length > 0))
+            }
           />
         </div>
       </form>
+    </div>
+  );
+}
+
+function RateSnapshotPanel({
+  primaryCurrency,
+  requiredCurrencies,
+  rateSnapshots,
+  selectedRateSnapshotId,
+  submitting,
+  onSelectRateSnapshot,
+  onCreateRateSnapshot,
+}: {
+  primaryCurrency: string;
+  requiredCurrencies: string[];
+  rateSnapshots: FinanceRateSnapshot[];
+  selectedRateSnapshotId: UUID | "";
+  submitting: boolean;
+  onSelectRateSnapshot: (rateSnapshotId: UUID | "") => void;
+  onCreateRateSnapshot: (
+    payload: FinanceRateSnapshotCreate,
+    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
+  ) => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
+  const [source, setSource] = useState("manual");
+  const [note, setNote] = useState("");
+  const [rates, setRates] = useState<Record<string, string>>({});
+
+  if (!requiredCurrencies.length) {
+    return null;
+  }
+
+  const options = rateSnapshots.map((snapshot) => ({
+    value: snapshot.id,
+    label: `${formatDateTime(snapshot.captured_at)} · ${snapshot.primary_currency}`,
+  }));
+
+  const createRateSnapshot = () => {
+    const entries = requiredCurrencies.map((currency) => ({
+      base_currency: currency,
+      quote_currency: primaryCurrency,
+      rate: rates[currency]?.trim() ?? "",
+      source: source.trim() || "manual",
+    }));
+    if (
+      entries.some((entry) => {
+        const numericRate = Number(entry.rate);
+        return !entry.rate || !Number.isFinite(numericRate) || numericRate <= 0;
+      })
+    ) {
+      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
+      return;
+    }
+    onCreateRateSnapshot(
+      {
+        captured_at: localDateTimeToIso(capturedAt),
+        primary_currency: primaryCurrency,
+        source: source.trim() || "manual",
+        note: note.trim() || null,
+        entries,
+      },
+      {
+        onSuccess: (rateSnapshot) => {
+          onSelectRateSnapshot(rateSnapshot.id);
+          setRates({});
+          setNote("");
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="rounded-lg border border-base-200 bg-base-200/30 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="font-semibold text-base-content">{t("finance.rates.title")}</h4>
+          <p className="text-sm text-base-content/60">
+            {t("finance.rates.required", {
+              currencies: requiredCurrencies.join(", "),
+              primaryCurrency,
+            })}
+          </p>
+        </div>
+        <EnumSelect
+          value={selectedRateSnapshotId || undefined}
+          onChange={(value) => onSelectRateSnapshot((value as UUID | undefined) ?? "")}
+          options={options}
+          placeholder={t("finance.rates.selectSnapshot")}
+          showLabel={false}
+          size="sm"
+          className="min-w-[14rem]"
+          disabled={!options.length}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <FormField label={t("finance.rates.capturedAt")}>
+            <TextInput
+              type="datetime-local"
+              size="sm"
+              value={capturedAt}
+              onChange={(event) => setCapturedAt(event.target.value)}
+              disabled={submitting}
+            />
+          </FormField>
+          <FormField label={t("finance.rates.source")}>
+            <TextInput
+              size="sm"
+              value={source}
+              onChange={(event) => setSource(event.target.value)}
+              disabled={submitting}
+            />
+          </FormField>
+          {requiredCurrencies.map((currency) => (
+            <FormField
+              key={currency}
+              label={t("finance.rates.rateLabel", { currency, primaryCurrency })}
+            >
+              <TextInput
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                size="sm"
+                value={rates[currency] ?? ""}
+                onChange={(event) =>
+                  setRates((prev) => ({ ...prev, [currency]: event.target.value }))
+                }
+                disabled={submitting}
+              />
+            </FormField>
+          ))}
+          <FormField label={t("finance.rates.note")}>
+            <TextInput
+              size="sm"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              disabled={submitting}
+            />
+          </FormField>
+        </div>
+        <div className="flex items-end justify-end">
+          <ActionButton
+            type="button"
+            label={submitting ? t("common.saving") : t("finance.rates.createSnapshot")}
+            iconName="plus"
+            color="primary"
+            variant="outline"
+            size="sm"
+            onClick={createRateSnapshot}
+            disabled={submitting}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -1270,6 +1551,7 @@ function SnapshotEntryTreeTable({
   notes,
   aggregatedAmounts,
   primaryCurrency,
+  conversionRates,
   submitting,
   onChangeAmount,
   onChangeNote,
@@ -1279,6 +1561,7 @@ function SnapshotEntryTreeTable({
   notes: SnapshotNoteState;
   aggregatedAmounts: Record<UUID, string>;
   primaryCurrency: string;
+  conversionRates: Record<string, number>;
   submitting: boolean;
   onChangeAmount: (nodeId: UUID, value: string) => void;
   onChangeNote: (nodeId: UUID, value: string) => void;
@@ -1310,7 +1593,14 @@ function SnapshotEntryTreeTable({
       const isExpanded = expandedIds.has(node.id);
       const amount = amounts[node.id] ?? "";
       const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
-      const convertedAmount = hasChildren ? aggregatedAmount : amount.trim();
+      const convertedAmount = hasChildren
+        ? aggregatedAmount
+        : convertSnapshotAmount(
+            amount,
+            node.currency_code || primaryCurrency,
+            primaryCurrency,
+            conversionRates,
+          );
       const amountNegative = isNegativeAmount(amount);
       const convertedNegative = isNegativeAmount(convertedAmount);
 
@@ -1723,16 +2013,23 @@ function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>)
 function buildAggregatedSnapshotAmounts(
   nodes: TreeNodeWithChildren[],
   amounts: SnapshotAmountState,
+  primaryCurrency: string,
+  conversionRates: Record<string, number>,
 ): Record<UUID, string> {
   const result: Record<UUID, string> = {};
 
   const visit = (node: TreeNodeWithChildren): string => {
     if (!node.children.length) {
-      const amount = amounts[node.id]?.trim() ?? "";
-      if (amount) {
-        result[node.id] = amount;
+      const convertedAmount = convertSnapshotAmount(
+        amounts[node.id] ?? "",
+        node.currency_code || primaryCurrency,
+        primaryCurrency,
+        conversionRates,
+      );
+      if (convertedAmount) {
+        result[node.id] = convertedAmount;
       }
-      return amount;
+      return convertedAmount;
     }
 
     const total = sumAmountStrings(node.children.map(visit));
@@ -1744,6 +2041,66 @@ function buildAggregatedSnapshotAmounts(
 
   nodes.forEach(visit);
   return result;
+}
+
+function getRequiredRateCurrencies(
+  nodes: TreeNodeWithChildren[],
+  primaryCurrency: string,
+): string[] {
+  const normalizedPrimary = primaryCurrency.toUpperCase();
+  return Array.from(
+    new Set(
+      nodes
+        .map((node) => (node.currency_code || normalizedPrimary).toUpperCase())
+        .filter((currency) => currency && currency !== normalizedPrimary),
+    ),
+  ).sort();
+}
+
+function buildConversionRateMap(
+  rateSnapshot: FinanceRateSnapshot | null,
+  primaryCurrency: string,
+): Record<string, number> {
+  const normalizedPrimary = primaryCurrency.toUpperCase();
+  const result: Record<string, number> = { [normalizedPrimary]: 1 };
+  (rateSnapshot?.entries ?? []).forEach((entry) => {
+    const baseCurrency = entry.base_currency.toUpperCase();
+    const quoteCurrency = entry.quote_currency.toUpperCase();
+    const rate = Number(entry.rate);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      return;
+    }
+    if (quoteCurrency === normalizedPrimary) {
+      result[baseCurrency] = rate;
+    }
+    if (baseCurrency === normalizedPrimary) {
+      result[quoteCurrency] = 1 / rate;
+    }
+  });
+  return result;
+}
+
+function convertSnapshotAmount(
+  amount: string,
+  currencyCode: string,
+  primaryCurrency: string,
+  conversionRates: Record<string, number>,
+): string {
+  const trimmed = amount.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+  const currency = currencyCode.toUpperCase();
+  const primary = primaryCurrency.toUpperCase();
+  const rate = currency === primary ? 1 : conversionRates[currency];
+  if (!Number.isFinite(rate)) {
+    return "";
+  }
+  return (parsed * rate).toString();
 }
 
 function sumAmountStrings(values: string[]): string {

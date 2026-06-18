@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import (
@@ -91,6 +92,168 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
 
                 assert tree.time_mode == "period"
                 assert {node.name for node in nodes} == {"Inflows", "Outflows"}
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_snapshot_uses_latest_rate_snapshot_for_non_primary_currency() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                account = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Euro account",
+                    currency_code="EUR",
+                )
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    primary_currency="USD",
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="EUR",
+                            quote_currency="USD",
+                            rate=Decimal("1.10"),
+                        )
+                    ],
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    snapshot_ts=datetime(2026, 6, 2, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=account.id,
+                            amount=Decimal("10"),
+                            currency_code="EUR",
+                        )
+                    ],
+                )
+
+                assert snapshot.rate_snapshot_id == rate_snapshot.id
+                assert snapshot.rate_snapshot_policy == "latest_before_snapshot"
+                assert snapshot.net_amount == Decimal("11.00000000")
+                assert snapshot.exchange_rates is not None
+                assert snapshot.exchange_rates["rates"]["EUR"]["rate"] == "1.100000000000"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                account = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Euro account",
+                    currency_code="EUR",
+                )
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    primary_currency="USD",
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="USD",
+                            quote_currency="EUR",
+                            rate=Decimal("0.8"),
+                        )
+                    ],
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    rate_snapshot_id=rate_snapshot.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=account.id,
+                            amount=Decimal("8"),
+                            currency_code="EUR",
+                        )
+                    ],
+                )
+
+                assert snapshot.rate_snapshot_policy == "selected"
+                assert snapshot.net_amount == Decimal("10.00000000")
+                assert snapshot.exchange_rates is not None
+                assert snapshot.exchange_rates["rates"]["EUR"]["derived"] is True
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_snapshot_rejects_non_primary_currency_without_rate_snapshot() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                account = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Euro account",
+                    currency_code="EUR",
+                )
+
+                try:
+                    await finance.create_finance_snapshot(
+                        session,
+                        tree_id=tree.id,
+                        entries=[
+                            finance.FinanceSnapshotEntryInput(
+                                node_id=account.id,
+                                amount=Decimal("10"),
+                                currency_code="EUR",
+                            )
+                        ],
+                    )
+                except finance.FinanceValidationError as exc:
+                    assert "rate snapshot" in str(exc)
+                else:
+                    raise AssertionError("non-primary currency should require a rate snapshot")
         finally:
             await engine.dispose()
 

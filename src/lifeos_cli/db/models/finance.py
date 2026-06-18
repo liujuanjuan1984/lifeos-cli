@@ -115,6 +115,7 @@ class FinanceSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
     __table_args__ = (
         Index("ix_finance_snapshots_tree_ts", "tree_id", "snapshot_ts"),
         Index("ix_finance_snapshots_tree_period", "tree_id", "period_start", "period_end"),
+        Index("ix_finance_snapshots_rate_snapshot", "rate_snapshot_id"),
     )
 
     tree_id: Mapped[UUID] = mapped_column(
@@ -123,10 +124,17 @@ class FinanceSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
         nullable=False,
         index=True,
     )
+    rate_snapshot_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("finance_rate_snapshots.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     snapshot_ts: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_start: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_end: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     primary_currency: Mapped[str] = mapped_column(String(16), nullable=False)
+    rate_snapshot_policy: Mapped[str] = mapped_column(String(32), nullable=False, default="none")
     total_positive: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=0)
     total_negative: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=0)
     net_amount: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=0)
@@ -135,6 +143,7 @@ class FinanceSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     tree = relationship("FinanceTree", back_populates="snapshots")
+    rate_snapshot = relationship("FinanceRateSnapshot", back_populates="snapshots")
     entries = relationship(
         "FinanceSnapshotEntry",
         back_populates="snapshot",
@@ -187,7 +196,83 @@ class FinanceSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixi
         return f"FinanceSnapshotEntry(id={self.id!s}, node_id={self.node_id!s})"
 
 
+class FinanceRateSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
+    """Exchange-rate set captured for one primary currency at one time."""
+
+    __tablename__ = "finance_rate_snapshots"
+    __table_args__ = (
+        Index(
+            "ix_finance_rate_snapshots_currency_captured",
+            "primary_currency",
+            "captured_at",
+        ),
+    )
+
+    captured_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    primary_currency: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="manual")
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
+
+    entries = relationship(
+        "FinanceRateSnapshotEntry",
+        back_populates="rate_snapshot",
+        cascade="all, delete-orphan",
+        order_by="FinanceRateSnapshotEntry.base_currency",
+    )
+    snapshots = relationship("FinanceSnapshot", back_populates="rate_snapshot")
+
+    def __repr__(self) -> str:
+        return (
+            "FinanceRateSnapshot("
+            f"id={self.id!s}, primary_currency={self.primary_currency!r}, "
+            f"captured_at={self.captured_at!r})"
+        )
+
+
+class FinanceRateSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
+    """One exchange-rate pair inside a rate snapshot."""
+
+    __tablename__ = "finance_rate_snapshot_entries"
+    __table_args__ = (
+        Index(
+            "uq_finance_rate_snapshot_entries_pair_active",
+            "rate_snapshot_id",
+            "base_currency",
+            "quote_currency",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+        Index("ix_finance_rate_snapshot_entries_base", "base_currency"),
+    )
+
+    rate_snapshot_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("finance_rate_snapshots.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    base_currency: Mapped[str] = mapped_column(String(16), nullable=False)
+    quote_currency: Mapped[str] = mapped_column(String(16), nullable=False)
+    rate: Mapped[Decimal] = mapped_column(Numeric(28, 12), nullable=False)
+    source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    captured_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    is_derived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
+
+    rate_snapshot = relationship("FinanceRateSnapshot", back_populates="entries")
+
+    def __repr__(self) -> str:
+        return (
+            "FinanceRateSnapshotEntry("
+            f"id={self.id!s}, pair={self.base_currency}/{self.quote_currency})"
+        )
+
+
 __all__ = [
+    "FinanceRateSnapshot",
+    "FinanceRateSnapshotEntry",
     "FinanceSnapshot",
     "FinanceSnapshotEntry",
     "FinanceTree",
