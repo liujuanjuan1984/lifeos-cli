@@ -2102,11 +2102,7 @@ function SnapshotFormPanel({
             color="primary"
             variant="solid"
             iconName="check"
-            disabled={
-              submitting ||
-              !leafNodes.length ||
-              (Boolean(selectedRateSnapshotId) && missingRateCurrencies.length > 0)
-            }
+            disabled={submitting || !leafNodes.length}
           />
         </div>
       </form>
