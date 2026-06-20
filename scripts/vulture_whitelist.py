@@ -43,6 +43,7 @@ _keep(
     create_snapshot,
     get_snapshot,
     update_snapshot,
+    delete_snapshot,
     get_area_order,
     set_area_order,
     reset_area_order,

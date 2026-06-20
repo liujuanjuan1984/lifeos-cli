@@ -7,6 +7,7 @@ import {
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
+  removeFinanceSnapshotCache,
   setFinanceRateSnapshotCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
@@ -19,14 +20,17 @@ import { financeKeys } from "@/services/api/queryKeys";
 
 describe("finance cache invalidation helpers", () => {
   let invalidateQueriesMock: ReturnType<typeof vi.fn>;
+  let removeQueriesMock: ReturnType<typeof vi.fn>;
   let setQueryDataMock: ReturnType<typeof vi.fn>;
   let queryClient: QueryClient;
 
   beforeEach(() => {
     invalidateQueriesMock = vi.fn().mockResolvedValue(undefined);
+    removeQueriesMock = vi.fn();
     setQueryDataMock = vi.fn();
     queryClient = {
       invalidateQueries: invalidateQueriesMock,
+      removeQueries: removeQueriesMock,
       setQueryData: setQueryDataMock,
     } as unknown as QueryClient;
   });
@@ -71,6 +75,15 @@ describe("finance cache invalidation helpers", () => {
       financeKeys.rateSnapshot("rate-snapshot-1"),
       rateSnapshot,
     );
+  });
+
+  it("removes snapshot detail cache", () => {
+    removeFinanceSnapshotCache(queryClient, "snapshot-1");
+
+    expect(removeQueriesMock).toHaveBeenCalledWith({
+      queryKey: financeKeys.snapshot("snapshot-1"),
+      exact: true,
+    });
   });
 
   it("prepends new rate snapshots into the cached rate snapshot list", () => {

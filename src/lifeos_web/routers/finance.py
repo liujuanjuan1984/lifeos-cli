@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,7 +101,13 @@ class FinanceSnapshotCreate(BaseModel):
 class FinanceSnapshotUpdate(BaseModel):
     """Payload for updating mutable finance snapshot fields."""
 
+    snapshot_ts: datetime | None = None
+    period_start: datetime | None = None
+    period_end: datetime | None = None
+    primary_currency: str | None = None
     rate_snapshot_id: UUID | None = None
+    note: str | None = None
+    entries: list[FinanceSnapshotEntryCreate] | None = None
 
 
 class FinanceRateSnapshotEntryCreate(BaseModel):
@@ -614,7 +620,6 @@ async def create_snapshot(
             period_end=payload.period_end,
             primary_currency=payload.primary_currency,
             rate_snapshot_id=payload.rate_snapshot_id,
-            note=payload.note,
             entries=[
                 finance_services.FinanceSnapshotEntryInput(
                     node_id=entry.node_id,
@@ -648,14 +653,47 @@ async def update_snapshot(
     session: SessionDep,
 ) -> dict[str, object]:
     """Update mutable finance snapshot fields."""
+    provided_fields = payload.model_fields_set
     try:
-        snapshot = await finance_services.update_finance_snapshot_rate_snapshot(
+        snapshot = await finance_services.update_finance_snapshot(
             session,
             snapshot_id=snapshot_id,
+            snapshot_ts=payload.snapshot_ts,
+            period_start=payload.period_start,
+            period_end=payload.period_end,
+            primary_currency=payload.primary_currency,
             rate_snapshot_id=payload.rate_snapshot_id,
+            entries=[
+                finance_services.FinanceSnapshotEntryInput(
+                    node_id=entry.node_id,
+                    amount=entry.amount,
+                    currency_code=entry.currency_code,
+                    note=entry.note,
+                )
+                for entry in payload.entries
+            ]
+            if payload.entries is not None
+            else None,
+            update_time_fields=bool(
+                {"snapshot_ts", "period_start", "period_end"} & provided_fields
+            ),
+            update_primary_currency="primary_currency" in provided_fields,
+            update_rate_snapshot="rate_snapshot_id" in provided_fields,
+            note=payload.note,
+            update_note="note" in provided_fields,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _snapshot_payload(snapshot, include_entries=True)
+
+
+@router.delete("/snapshots/{snapshot_id}", status_code=204)
+async def delete_snapshot(snapshot_id: UUID, session: SessionDep) -> Response:
+    """Delete a finance snapshot."""
+    try:
+        await finance_services.delete_finance_snapshot(session, snapshot_id=snapshot_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=204)

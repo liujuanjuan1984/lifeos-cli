@@ -29,11 +29,11 @@ import {
 import {
   addFinanceRateSnapshotToListCache,
   invalidateFinanceAssets,
-  invalidateFinanceRateSnapshot,
   invalidateFinanceRateSnapshots,
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
+  removeFinanceSnapshotCache,
   setFinanceRateSnapshotCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
@@ -88,6 +88,20 @@ const nowDateTimeLocal = () => {
 const localDateTimeToIso = (value: string) => {
   if (!value) return null;
   return new Date(value).toISOString();
+};
+
+const isoToDateTimeLocal = (value?: string | null) => {
+  if (!value) return nowDateTimeLocal();
+  const date = new Date(value);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
+const isoToDateInput = (value?: string | null) => {
+  if (!value) return todayDate();
+  const date = new Date(value);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
 };
 
 const dateToStartIso = (value: string) => {
@@ -245,9 +259,11 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const { assets, createAsset } = useFinanceAssetSource();
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<UUID | null>(null);
   const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
+  const [snapshotFormMode, setSnapshotFormMode] = useState<"create" | "edit">("create");
   const [treeManagerOpen, setTreeManagerOpen] = useState(false);
   const [nodeFormState, setNodeFormState] = useState<FinanceNodeFormState | null>(null);
   const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
+  const [pendingDeleteSnapshot, setPendingDeleteSnapshot] = useState<FinanceSnapshot | null>(null);
 
   const treeQuery = useQuery({
     queryKey: financeKeys.treesByPurpose(preset.purpose),
@@ -372,13 +388,24 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const updateSnapshotMutation = useMutation({
     mutationFn: ({
       snapshotId,
-      rateSnapshotId,
+      payload,
     }: {
       snapshotId: UUID;
-      rateSnapshotId: UUID | null;
-    }) => financeApi.updateSnapshot(snapshotId, { rate_snapshot_id: rateSnapshotId }),
+      payload: {
+        snapshot_ts?: string | null;
+        period_start?: string | null;
+        period_end?: string | null;
+        primary_currency?: string | null;
+        rate_snapshot_id?: UUID | null;
+        note?: string | null;
+        entries: FinanceSnapshotEntryCreate[];
+      };
+    }) => financeApi.updateSnapshot(snapshotId, payload),
     onSuccess: async (snapshot) => {
       toast.showSuccess(t("finance.messages.snapshotUpdated"));
+      setSnapshotFormVisible(false);
+      setSnapshotFormMode("create");
+      setSelectedSnapshotId(snapshot.id);
       setFinanceSnapshotCache(queryClient, snapshot);
       await Promise.all([
         invalidateFinanceSnapshots(queryClient, tree?.id ?? null),
@@ -390,16 +417,16 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     },
   });
 
-  const createRateSnapshotMutation = useMutation({
-    mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
-    onSuccess: async (rateSnapshot) => {
-      toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
-      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
-      addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
-      await Promise.all([
-        invalidateFinanceRateSnapshots(queryClient),
-        invalidateFinanceRateSnapshot(queryClient, rateSnapshot.id),
-      ]);
+  const deleteSnapshotMutation = useMutation({
+    mutationFn: (snapshotId: UUID) => financeApi.deleteSnapshot(snapshotId),
+    onSuccess: async (_result, snapshotId) => {
+      toast.showSuccess(t("finance.messages.snapshotDeleted"));
+      setPendingDeleteSnapshot(null);
+      setSnapshotFormVisible(false);
+      setSnapshotFormMode("create");
+      setSelectedSnapshotId(null);
+      removeFinanceSnapshotCache(queryClient, snapshotId);
+      await invalidateFinanceSnapshots(queryClient, tree?.id ?? null);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -425,6 +452,22 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const selectSnapshot = (snapshotId: UUID) => {
     setSelectedSnapshotId(snapshotId);
     setSnapshotFormVisible(false);
+    setSnapshotFormMode("create");
+  };
+
+  const openCreateSnapshotForm = () => {
+    setSnapshotFormMode("create");
+    setSnapshotFormVisible(true);
+  };
+
+  const openEditSnapshotForm = () => {
+    setSnapshotFormMode("edit");
+    setSnapshotFormVisible(true);
+  };
+
+  const closeSnapshotForm = () => {
+    setSnapshotFormVisible(false);
+    setSnapshotFormMode("create");
   };
 
   const moveSnapshot = (direction: -1 | 1) => {
@@ -449,7 +492,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onPrevious={() => moveSnapshot(-1)}
         onNext={() => moveSnapshot(1)}
         onManageTree={() => setTreeManagerOpen(true)}
-        onCreateSnapshot={() => setSnapshotFormVisible(true)}
+        onCreateSnapshot={openCreateSnapshotForm}
         createDisabled={!entryNodes.length}
       />
 
@@ -459,7 +502,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         entryNodes={entryNodes}
         treeNodes={treeNodes}
         rateSnapshots={rateSnapshots}
-        assets={assets}
         requiredRateCurrencies={requiredRateCurrencies}
         snapshots={snapshots}
         currentSnapshot={currentSnapshot}
@@ -467,23 +509,22 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDetail={selectedSnapshotQuery.data ?? null}
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
+        snapshotFormMode={snapshotFormMode}
         snapshotSubmitting={createSnapshotMutation.isPending}
         snapshotUpdating={updateSnapshotMutation.isPending}
-        rateSnapshotSubmitting={createRateSnapshotMutation.isPending}
+        snapshotDeleting={deleteSnapshotMutation.isPending}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
         onPrevious={() => moveSnapshot(-1)}
         onNext={() => moveSnapshot(1)}
-        onOpenSnapshotForm={() => setSnapshotFormVisible(true)}
-        onCloseSnapshotForm={() => setSnapshotFormVisible(false)}
+        onOpenSnapshotForm={openCreateSnapshotForm}
+        onEditSnapshot={openEditSnapshotForm}
+        onDeleteSnapshot={setPendingDeleteSnapshot}
+        onCloseSnapshotForm={closeSnapshotForm}
         onCreateSnapshot={(payload) => createSnapshotMutation.mutate(payload)}
-        onUpdateSnapshotRate={(snapshotId, rateSnapshotId) =>
-          updateSnapshotMutation.mutate({ snapshotId, rateSnapshotId })
+        onUpdateSnapshot={(snapshotId, payload) =>
+          updateSnapshotMutation.mutate({ snapshotId, payload })
         }
-        onCreateRateSnapshot={(payload, options) =>
-          createRateSnapshotMutation.mutate(payload, options)
-        }
-        onCreateAsset={createAsset}
       />
 
       <FinanceTreeManagerModal
@@ -536,6 +577,22 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
           }
         }}
         loading={deleteNodeMutation.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteSnapshot)}
+        title={t("finance.snapshot.deleteTitle")}
+        message={t("finance.snapshot.deleteMessage", {
+          name: pendingDeleteSnapshot ? snapshotLabel(pendingDeleteSnapshot) : "",
+        })}
+        confirmText={t("finance.snapshot.deleteConfirm")}
+        onCancel={() => setPendingDeleteSnapshot(null)}
+        onConfirm={() => {
+          if (pendingDeleteSnapshot) {
+            deleteSnapshotMutation.mutate(pendingDeleteSnapshot.id);
+          }
+        }}
+        loading={deleteSnapshotMutation.isPending}
       />
     </div>
   );
@@ -1120,7 +1177,6 @@ function SnapshotModule({
   entryNodes,
   treeNodes,
   rateSnapshots,
-  assets,
   requiredRateCurrencies,
   snapshots,
   currentSnapshot,
@@ -1128,26 +1184,26 @@ function SnapshotModule({
   snapshotDetail,
   snapshotDetailLoading,
   snapshotFormVisible,
+  snapshotFormMode,
   snapshotSubmitting,
   snapshotUpdating,
-  rateSnapshotSubmitting,
+  snapshotDeleting,
   hasPrevious,
   hasNext,
   onPrevious,
   onNext,
   onOpenSnapshotForm,
+  onEditSnapshot,
+  onDeleteSnapshot,
   onCloseSnapshotForm,
   onCreateSnapshot,
-  onUpdateSnapshotRate,
-  onCreateRateSnapshot,
-  onCreateAsset,
+  onUpdateSnapshot,
 }: {
   preset: PresetConfig;
   tree: FinanceTree;
   entryNodes: TreeNodeWithChildren[];
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
-  assets: FinanceAsset[];
   requiredRateCurrencies: string[];
   snapshots: FinanceSnapshot[];
   currentSnapshot: FinanceSnapshot | null;
@@ -1155,14 +1211,17 @@ function SnapshotModule({
   snapshotDetail: FinanceSnapshot | null;
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
+  snapshotFormMode: "create" | "edit";
   snapshotSubmitting: boolean;
   snapshotUpdating: boolean;
-  rateSnapshotSubmitting: boolean;
+  snapshotDeleting: boolean;
   hasPrevious: boolean;
   hasNext: boolean;
   onPrevious: () => void;
   onNext: () => void;
   onOpenSnapshotForm: () => void;
+  onEditSnapshot: () => void;
+  onDeleteSnapshot: (snapshot: FinanceSnapshot) => void;
   onCloseSnapshotForm: () => void;
   onCreateSnapshot: (payload: {
     snapshot_ts?: string | null;
@@ -1173,12 +1232,18 @@ function SnapshotModule({
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
-  onUpdateSnapshotRate: (snapshotId: UUID, rateSnapshotId: UUID | null) => void;
-  onCreateRateSnapshot: (
-    payload: FinanceRateSnapshotCreate,
-    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
+  onUpdateSnapshot: (
+    snapshotId: UUID,
+    payload: {
+      snapshot_ts?: string | null;
+      period_start?: string | null;
+      period_end?: string | null;
+      primary_currency?: string | null;
+      rate_snapshot_id?: UUID | null;
+      note?: string | null;
+      entries: FinanceSnapshotEntryCreate[];
+    },
   ) => void;
-  onCreateAsset: (code: string) => Promise<FinanceAsset>;
 }) {
   const { t } = useTranslation();
   const hasSnapshots = snapshots.length > 0;
@@ -1192,13 +1257,10 @@ function SnapshotModule({
             preset={preset}
             treeNodes={treeNodes}
             rateSnapshots={rateSnapshots}
-            assets={assets}
             requiredRateCurrencies={requiredRateCurrencies}
             submitting={snapshotSubmitting}
-            rateSnapshotSubmitting={rateSnapshotSubmitting}
+            mode="create"
             onSubmit={onCreateSnapshot}
-            onCreateRateSnapshot={onCreateRateSnapshot}
-            onCreateAsset={onCreateAsset}
             onCancel={onCloseSnapshotForm}
           />
         </section>
@@ -1240,18 +1302,27 @@ function SnapshotModule({
         onNext={onNext}
         rightSlot={
           currentSnapshot ? (
-            <div className="grid grid-cols-3 gap-2 min-w-full sm:min-w-[420px]">
-              <Metric
-                label={t("finance.metrics.positive")}
-                value={formatMoney(currentSnapshot.total_positive, tree.primary_currency)}
+            <div className="flex justify-end gap-2">
+              <ActionButton
+                label=""
+                iconName="edit"
+                iconOnly
+                ariaLabel={t("finance.snapshot.edit")}
+                size="sm"
+                variant="ghost"
+                onClick={onEditSnapshot}
+                disabled={snapshotDetailLoading || snapshotDeleting}
               />
-              <Metric
-                label={t("finance.metrics.negative")}
-                value={formatMoney(currentSnapshot.total_negative, tree.primary_currency)}
-              />
-              <Metric
-                label={t("finance.metrics.net")}
-                value={formatMoney(currentSnapshot.net_amount, tree.primary_currency)}
+              <ActionButton
+                label=""
+                iconName="trash"
+                iconOnly
+                ariaLabel={t("finance.snapshot.delete")}
+                size="sm"
+                variant="ghost"
+                color="error"
+                onClick={() => onDeleteSnapshot(currentSnapshot)}
+                disabled={snapshotDeleting}
               />
             </div>
           ) : null
@@ -1260,20 +1331,32 @@ function SnapshotModule({
 
       <div className="mt-4">
         {snapshotFormVisible ? (
-          <SnapshotFormPanel
-            tree={tree}
-            preset={preset}
-            treeNodes={treeNodes}
-            rateSnapshots={rateSnapshots}
-            assets={assets}
-            requiredRateCurrencies={requiredRateCurrencies}
-            submitting={snapshotSubmitting}
-            rateSnapshotSubmitting={rateSnapshotSubmitting}
-            onSubmit={onCreateSnapshot}
-            onCreateRateSnapshot={onCreateRateSnapshot}
-            onCreateAsset={onCreateAsset}
-            onCancel={onCloseSnapshotForm}
-          />
+          snapshotFormMode === "edit" && snapshotDetailLoading ? (
+            <div className="py-6">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <SnapshotFormPanel
+              tree={tree}
+              preset={preset}
+              treeNodes={treeNodes}
+              rateSnapshots={rateSnapshots}
+              requiredRateCurrencies={requiredRateCurrencies}
+              submitting={
+                snapshotFormMode === "edit" ? snapshotUpdating : snapshotSubmitting
+              }
+              mode={snapshotFormMode}
+              initialSnapshot={snapshotFormMode === "edit" ? snapshotDetail : null}
+              onSubmit={(payload) => {
+                if (snapshotFormMode === "edit" && snapshotDetail) {
+                  onUpdateSnapshot(snapshotDetail.id, payload);
+                  return;
+                }
+                onCreateSnapshot(payload);
+              }}
+              onCancel={onCloseSnapshotForm}
+            />
+          )
         ) : snapshotDetailLoading ? (
           <div className="py-6">
             <LoadingSpinner />
@@ -1283,9 +1366,6 @@ function SnapshotModule({
             snapshot={snapshotDetail}
             tree={tree}
             treeNodes={treeNodes}
-            rateSnapshots={rateSnapshots}
-            updating={snapshotUpdating}
-            onUpdateRateSnapshot={onUpdateSnapshotRate}
           />
         ) : (
           <p className="py-4 text-sm text-base-content/70">
@@ -1774,23 +1854,21 @@ function SnapshotFormPanel({
   preset,
   treeNodes,
   rateSnapshots,
-  assets,
   requiredRateCurrencies,
   submitting,
-  rateSnapshotSubmitting,
+  mode,
+  initialSnapshot,
   onSubmit,
-  onCreateRateSnapshot,
-  onCreateAsset,
   onCancel,
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
-  assets: FinanceAsset[];
   requiredRateCurrencies: string[];
   submitting: boolean;
-  rateSnapshotSubmitting: boolean;
+  mode: "create" | "edit";
+  initialSnapshot?: FinanceSnapshot | null;
   onSubmit: (payload: {
     snapshot_ts?: string | null;
     period_start?: string | null;
@@ -1800,11 +1878,6 @@ function SnapshotFormPanel({
     note?: string | null;
     entries: FinanceSnapshotEntryCreate[];
   }) => void;
-  onCreateRateSnapshot: (
-    payload: FinanceRateSnapshotCreate,
-    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
-  ) => void;
-  onCreateAsset: (code: string) => Promise<FinanceAsset>;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -1846,6 +1919,35 @@ function SnapshotFormPanel({
     (currency) => !conversionRates[currency],
   );
 
+  useEffect(() => {
+    if (mode !== "edit" || !initialSnapshot) {
+      setSnapshotTs(nowDateTimeLocal());
+      setPeriodStart(todayDate().slice(0, 8) + "01");
+      setPeriodEnd(todayDate());
+      setAmounts({});
+      setNotes({});
+      setSnapshotNote("");
+      setSelectedRateSnapshotId("");
+      return;
+    }
+
+    setSnapshotTs(isoToDateTimeLocal(initialSnapshot.snapshot_ts));
+    setPeriodStart(isoToDateInput(initialSnapshot.period_start));
+    setPeriodEnd(isoToDateInput(initialSnapshot.period_end));
+    setSnapshotNote(initialSnapshot.note ?? "");
+    setSelectedRateSnapshotId(initialSnapshot.rate_snapshot_id ?? "");
+    const nextAmounts: SnapshotAmountState = {};
+    const nextNotes: SnapshotNoteState = {};
+    (initialSnapshot.entries ?? [])
+      .filter((entry) => !entry.is_auto_generated)
+      .forEach((entry) => {
+        nextAmounts[entry.node_id] = entry.amount;
+        nextNotes[entry.node_id] = entry.note ?? "";
+      });
+    setAmounts(nextAmounts);
+    setNotes(nextNotes);
+  }, [initialSnapshot, mode]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const entries = leafNodes.reduce<FinanceSnapshotEntryCreate[]>((acc, node) => {
@@ -1884,16 +1986,21 @@ function SnapshotFormPanel({
       note: snapshotNote || null,
       entries,
     });
-    setAmounts({});
-    setNotes({});
-    setSnapshotNote("");
+    if (mode === "create") {
+      setAmounts({});
+      setNotes({});
+      setSnapshotNote("");
+      setSelectedRateSnapshotId("");
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-base-content">{t("finance.snapshot.formTitle")}</h3>
+          <h3 className="font-semibold text-base-content">
+            {mode === "edit" ? t("finance.snapshot.editTitle") : t("finance.snapshot.formTitle")}
+          </h3>
           <p className="text-sm text-base-content/60">{t(preset.amountLabelKey)}</p>
         </div>
         <ActionButton
@@ -1932,16 +2039,12 @@ function SnapshotFormPanel({
           </div>
         )}
 
-        <RateSnapshotPanel
+        <RateSnapshotSelectPanel
           primaryCurrency={tree.primary_currency}
           requiredCurrencies={requiredRateCurrencies}
           rateSnapshots={rateSnapshots}
-          assets={assets}
           selectedRateSnapshotId={selectedRateSnapshotId}
-          submitting={rateSnapshotSubmitting}
           onSelectRateSnapshot={setSelectedRateSnapshotId}
-          onCreateRateSnapshot={onCreateRateSnapshot}
-          onCreateAsset={onCreateAsset}
         />
 
         <SnapshotEntryTreeTable
@@ -1989,41 +2092,20 @@ function SnapshotFormPanel({
   );
 }
 
-function RateSnapshotPanel({
+function RateSnapshotSelectPanel({
   primaryCurrency,
   requiredCurrencies,
   rateSnapshots,
-  assets,
   selectedRateSnapshotId,
-  submitting,
   onSelectRateSnapshot,
-  onCreateRateSnapshot,
-  onCreateAsset,
 }: {
   primaryCurrency: string;
   requiredCurrencies: string[];
   rateSnapshots: FinanceRateSnapshot[];
-  assets: FinanceAsset[];
   selectedRateSnapshotId: UUID | "";
-  submitting: boolean;
   onSelectRateSnapshot: (rateSnapshotId: UUID | "") => void;
-  onCreateRateSnapshot: (
-    payload: FinanceRateSnapshotCreate,
-    options?: { onSuccess?: (rateSnapshot: FinanceRateSnapshot) => void },
-  ) => void;
-  onCreateAsset: (code: string) => Promise<FinanceAsset>;
 }) {
   const { t } = useTranslation();
-  const toast = useToast();
-  const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
-  const [source, setSource] = useState("manual");
-  const [note, setNote] = useState("");
-  const [rates, setRates] = useState<Record<string, string>>({});
-
-  if (!requiredCurrencies.length) {
-    return null;
-  }
-
   const options = [
     { value: "", label: t("finance.rates.noRateSnapshot") },
     ...rateSnapshots.map((snapshot) => ({
@@ -2032,49 +2114,18 @@ function RateSnapshotPanel({
     })),
   ];
 
-  const createRateSnapshot = () => {
-    const entries = requiredCurrencies.map((currency) => ({
-      base_currency: currency,
-      quote_currency: primaryCurrency,
-      rate: rates[currency]?.trim() ?? "",
-      source: source.trim() || "manual",
-    }));
-    if (
-      entries.some((entry) => {
-        const numericRate = Number(entry.rate);
-        return !entry.rate || !Number.isFinite(numericRate) || numericRate <= 0;
-      })
-    ) {
-      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
-      return;
-    }
-    onCreateRateSnapshot(
-      {
-        captured_at: localDateTimeToIso(capturedAt),
-        source: source.trim() || "manual",
-        note: note.trim() || null,
-        entries,
-      },
-      {
-        onSuccess: (rateSnapshot) => {
-          onSelectRateSnapshot(rateSnapshot.id);
-          setRates({});
-          setNote("");
-        },
-      },
-    );
-  };
-
   return (
     <div className="rounded-lg border border-base-200 bg-base-200/30 p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h4 className="font-semibold text-base-content">{t("finance.rates.title")}</h4>
           <p className="text-sm text-base-content/60">
-            {t("finance.rates.required", {
-              currencies: requiredCurrencies.join(", "),
-              primaryCurrency,
-            })}
+            {requiredCurrencies.length
+              ? t("finance.rates.required", {
+                  currencies: requiredCurrencies.join(", "),
+                  primaryCurrency,
+                })
+              : t("finance.rates.optional")}
           </p>
         </div>
         <EnumSelect
@@ -2087,75 +2138,6 @@ function RateSnapshotPanel({
           size="sm"
           className="min-w-[14rem]"
         />
-      </div>
-
-      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <FormField label={t("finance.rates.capturedAt")}>
-            <TextInput
-              type="datetime-local"
-              size="sm"
-              value={capturedAt}
-              onChange={(event) => setCapturedAt(event.target.value)}
-              disabled={submitting}
-            />
-          </FormField>
-          <FormField label={t("finance.rates.source")}>
-            <TextInput
-              size="sm"
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-              disabled={submitting}
-            />
-          </FormField>
-          {requiredCurrencies.map((currency) => (
-            <FormField
-              key={currency}
-              label={t("finance.rates.rateLabel", { currency, primaryCurrency })}
-            >
-              <TextInput
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                size="sm"
-                value={rates[currency] ?? ""}
-                onChange={(event) =>
-                  setRates((prev) => ({ ...prev, [currency]: event.target.value }))
-                }
-                disabled={submitting}
-              />
-            </FormField>
-          ))}
-          <FormField label={t("finance.rates.quoteAsset")}>
-            <AssetSelect
-              assets={assets}
-              value={primaryCurrency}
-              onChange={() => undefined}
-              onCreateAsset={onCreateAsset}
-              disabled
-            />
-          </FormField>
-          <FormField label={t("finance.rates.note")}>
-            <TextInput
-              size="sm"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              disabled={submitting}
-            />
-          </FormField>
-        </div>
-        <div className="flex items-end justify-end">
-          <ActionButton
-            type="button"
-            label={submitting ? t("common.saving") : t("finance.rates.createSnapshot")}
-            iconName="plus"
-            color="primary"
-            variant="outline"
-            size="sm"
-            onClick={createRateSnapshot}
-            disabled={submitting}
-          />
-        </div>
       </div>
     </div>
   );
@@ -2379,21 +2361,12 @@ function SnapshotDetail({
   snapshot,
   tree,
   treeNodes,
-  rateSnapshots,
-  updating,
-  onUpdateRateSnapshot,
 }: {
   snapshot: FinanceSnapshot;
   tree: FinanceTree;
   treeNodes: TreeNodeWithChildren[];
-  rateSnapshots: FinanceRateSnapshot[];
-  updating: boolean;
-  onUpdateRateSnapshot: (snapshotId: UUID, rateSnapshotId: UUID | null) => void;
 }) {
   const { t } = useTranslation();
-  const [rateSnapshotDraft, setRateSnapshotDraft] = useState<UUID | "">(
-    snapshot.rate_snapshot_id ?? "",
-  );
   const usesRateSnapshot = Boolean(snapshot.rate_snapshot_id);
   const displayTree = useMemo(
     () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? [], usesRateSnapshot),
@@ -2404,9 +2377,6 @@ function SnapshotDetail({
     [snapshot.summary],
   );
 
-  useEffect(() => {
-    setRateSnapshotDraft(snapshot.rate_snapshot_id ?? "");
-  }, [snapshot.rate_snapshot_id]);
   const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
 
   useEffect(() => {
@@ -2435,36 +2405,6 @@ function SnapshotDetail({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-base-200 bg-base-200/30 p-3">
-        <FormField label={t("finance.rates.selectSnapshot")}>
-          <EnumSelect
-            value={rateSnapshotDraft || undefined}
-            onChange={(value) => setRateSnapshotDraft((value as UUID | undefined) ?? "")}
-            options={[
-              { value: "", label: t("finance.rates.noRateSnapshot") },
-              ...rateSnapshots.map((rateSnapshot) => ({
-                value: rateSnapshot.id,
-                label: rateSnapshotLabel(rateSnapshot),
-              })),
-            ]}
-            placeholder={t("finance.rates.noRateSnapshot")}
-            showLabel={false}
-            includeEmptyOption
-            size="sm"
-            className="min-w-[16rem]"
-          />
-        </FormField>
-        <ActionButton
-          label={updating ? t("common.saving") : t("common.save")}
-          iconName="check"
-          size="sm"
-          color="primary"
-          variant="outline"
-          disabled={updating || rateSnapshotDraft === (snapshot.rate_snapshot_id ?? "")}
-          onClick={() => onUpdateRateSnapshot(snapshot.id, rateSnapshotDraft || null)}
-        />
-      </div>
-
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {usesRateSnapshot ? (
           <>

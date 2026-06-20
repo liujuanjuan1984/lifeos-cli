@@ -949,54 +949,32 @@ def _build_summary(
     }
 
 
-async def create_finance_snapshot(
+async def _rebuild_finance_snapshot_entries(
     session: AsyncSession,
     *,
-    tree_id: UUID,
+    snapshot: FinanceSnapshot,
+    tree: FinanceTree,
     entries: list[FinanceSnapshotEntryInput],
-    snapshot_ts: datetime | None = None,
-    period_start: datetime | None = None,
-    period_end: datetime | None = None,
-    primary_currency: str | None = None,
-    rate_snapshot_id: UUID | None = None,
-    note: str | None = None,
+    rate_snapshot: FinanceRateSnapshot | None,
 ) -> FinanceSnapshot:
-    """Create a finance snapshot and roll up aggregate nodes."""
-    tree = await get_finance_tree(session, tree_id=tree_id)
-    if tree is None:
-        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
-    resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
-        _validate_snapshot_time_fields(
-            tree=tree,
-            snapshot_ts=snapshot_ts,
-            period_start=period_start,
-            period_end=period_end,
+    """Replace snapshot entries and recompute derived snapshot totals."""
+    existing_entries = list(
+        (
+            await session.execute(
+                select(FinanceSnapshotEntry).where(
+                    FinanceSnapshotEntry.snapshot_id == snapshot.id,
+                    FinanceSnapshotEntry.deleted_at.is_(None),
+                )
+            )
         )
+        .scalars()
+        .all()
     )
-    resolved_currency = normalize_currency_code(primary_currency, fallback=tree.primary_currency)
-    entry_nodes = await _load_entry_nodes(session, tree_id=tree_id, entries=entries)
-    rate_snapshot, rate_snapshot_policy = await _select_rate_snapshot_for_entries(
-        session,
-        explicit_rate_snapshot_id=rate_snapshot_id,
-    )
-    snapshot = FinanceSnapshot(
-        tree_id=tree_id,
-        rate_snapshot_id=rate_snapshot.id if rate_snapshot is not None else None,
-        snapshot_ts=resolved_snapshot_ts,
-        period_start=resolved_period_start,
-        period_end=resolved_period_end,
-        primary_currency=resolved_currency,
-        rate_snapshot_policy=rate_snapshot_policy,
-        total_positive=Decimal("0"),
-        total_negative=Decimal("0"),
-        net_amount=Decimal("0"),
-        exchange_rates=None,
-        summary={},
-        note=note,
-    )
-    session.add(snapshot)
+    for existing_entry in existing_entries:
+        await session.delete(existing_entry)
     await session.flush()
 
+    entry_nodes = await _load_entry_nodes(session, tree_id=tree.id, entries=entries)
     snapshot_entries: list[FinanceSnapshotEntry] = []
     entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
     used_rates: dict[str, tuple[Decimal, bool, FinanceRateSnapshotEntry | None]] = {}
@@ -1005,15 +983,15 @@ async def create_finance_snapshot(
         amount = _decimal(entry_input.amount)
         currency_code = normalize_currency_code(
             entry_input.currency_code,
-            fallback=node.currency_code or resolved_currency,
+            fallback=node.currency_code or snapshot.primary_currency,
         )
         if rate_snapshot is not None:
             rate, derived, source_entry = _resolve_rate(
                 rate_snapshot,
                 base_currency=currency_code,
-                quote_currency=resolved_currency,
+                quote_currency=snapshot.primary_currency,
             )
-            if currency_code != resolved_currency:
+            if currency_code != snapshot.primary_currency:
                 used_rates[currency_code] = (rate, derived, source_entry)
         else:
             rate = Decimal("1")
@@ -1031,8 +1009,8 @@ async def create_finance_snapshot(
         snapshot_entries.append(entry)
         entry_by_node_id[node.id] = entry
 
-    rollup_nodes = await _load_rollup_nodes(session, tree_id=tree_id)
-    all_nodes = {node.id: node for node in await list_finance_nodes(session, tree_id=tree_id)}
+    rollup_nodes = await _load_rollup_nodes(session, tree_id=tree.id)
+    all_nodes = {node.id: node for node in await list_finance_nodes(session, tree_id=tree.id)}
     for rollup_node in rollup_nodes:
         if rollup_node.id in entry_by_node_id:
             continue
@@ -1060,23 +1038,18 @@ async def create_finance_snapshot(
                 amount_converted=amount,
                 is_auto_generated=True,
             )
-            session.add(entry)
-            snapshot_entries.append(entry)
-            entry_by_node_id[rollup_node.id] = entry
-            continue
-        amount_converted = sum(
-            (entry.amount_converted for entry in descendant_entries),
-            Decimal("0"),
-        )
-        amount_converted = _quantize_amount(amount_converted)
-        entry = FinanceSnapshotEntry(
-            snapshot_id=snapshot.id,
-            node_id=rollup_node.id,
-            amount=amount_converted,
-            currency_code=resolved_currency,
-            amount_converted=amount_converted,
-            is_auto_generated=True,
-        )
+        else:
+            amount_converted = _quantize_amount(
+                sum((entry.amount_converted for entry in descendant_entries), Decimal("0"))
+            )
+            entry = FinanceSnapshotEntry(
+                snapshot_id=snapshot.id,
+                node_id=rollup_node.id,
+                amount=amount_converted,
+                currency_code=snapshot.primary_currency,
+                amount_converted=amount_converted,
+                is_auto_generated=True,
+            )
         session.add(entry)
         snapshot_entries.append(entry)
         entry_by_node_id[rollup_node.id] = entry
@@ -1085,32 +1058,97 @@ async def create_finance_snapshot(
     total_source_entries = (
         manual_entries
         if rate_snapshot is not None
-        else [entry for entry in manual_entries if entry.currency_code == resolved_currency]
+        else [entry for entry in manual_entries if entry.currency_code == snapshot.primary_currency]
     )
-    snapshot.total_positive = sum(
-        (entry.amount_converted for entry in total_source_entries if entry.amount_converted > 0),
-        Decimal("0"),
+    snapshot.total_positive = _quantize_amount(
+        sum(
+            (
+                entry.amount_converted
+                for entry in total_source_entries
+                if entry.amount_converted > 0
+            ),
+            Decimal("0"),
+        )
     )
-    snapshot.total_positive = _quantize_amount(snapshot.total_positive)
-    snapshot.total_negative = sum(
-        (entry.amount_converted for entry in total_source_entries if entry.amount_converted < 0),
-        Decimal("0"),
+    snapshot.total_negative = _quantize_amount(
+        sum(
+            (
+                entry.amount_converted
+                for entry in total_source_entries
+                if entry.amount_converted < 0
+            ),
+            Decimal("0"),
+        )
     )
-    snapshot.total_negative = _quantize_amount(snapshot.total_negative)
     snapshot.net_amount = _quantize_amount(snapshot.total_positive + snapshot.total_negative)
     snapshot.exchange_rates = _rate_usage_payload(
-        primary_currency=resolved_currency,
+        primary_currency=snapshot.primary_currency,
         rate_snapshot=rate_snapshot,
         used_rates=used_rates,
     )
     snapshot.summary = _build_summary(
         snapshot_entries,
-        primary_currency=resolved_currency,
+        primary_currency=snapshot.primary_currency,
         rate_snapshot=rate_snapshot,
     )
     await session.flush()
     await session.refresh(snapshot)
     return await get_finance_snapshot(session, snapshot_id=snapshot.id) or snapshot
+
+
+async def create_finance_snapshot(
+    session: AsyncSession,
+    *,
+    tree_id: UUID,
+    entries: list[FinanceSnapshotEntryInput],
+    snapshot_ts: datetime | None = None,
+    period_start: datetime | None = None,
+    period_end: datetime | None = None,
+    primary_currency: str | None = None,
+    rate_snapshot_id: UUID | None = None,
+    note: str | None = None,
+) -> FinanceSnapshot:
+    """Create a finance snapshot and roll up aggregate nodes."""
+    tree = await get_finance_tree(session, tree_id=tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
+    resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
+        _validate_snapshot_time_fields(
+            tree=tree,
+            snapshot_ts=snapshot_ts,
+            period_start=period_start,
+            period_end=period_end,
+        )
+    )
+    resolved_currency = normalize_currency_code(primary_currency, fallback=tree.primary_currency)
+    rate_snapshot, rate_snapshot_policy = await _select_rate_snapshot_for_entries(
+        session,
+        explicit_rate_snapshot_id=rate_snapshot_id,
+    )
+    snapshot = FinanceSnapshot(
+        tree_id=tree_id,
+        rate_snapshot_id=rate_snapshot.id if rate_snapshot is not None else None,
+        snapshot_ts=resolved_snapshot_ts,
+        period_start=resolved_period_start,
+        period_end=resolved_period_end,
+        primary_currency=resolved_currency,
+        rate_snapshot_policy=rate_snapshot_policy,
+        total_positive=Decimal("0"),
+        total_negative=Decimal("0"),
+        net_amount=Decimal("0"),
+        exchange_rates=None,
+        summary={},
+        note=note,
+    )
+    session.add(snapshot)
+    await session.flush()
+    return await _rebuild_finance_snapshot_entries(
+        session,
+        snapshot=snapshot,
+        tree=tree,
+        entries=entries,
+        rate_snapshot=rate_snapshot,
+    )
 
 
 async def list_finance_snapshots(
@@ -1151,125 +1189,104 @@ async def update_finance_snapshot_rate_snapshot(
     rate_snapshot_id: UUID | None,
 ) -> FinanceSnapshot:
     """Change a snapshot's exchange-rate snapshot and recompute derived amounts."""
+    return await update_finance_snapshot(
+        session,
+        snapshot_id=snapshot_id,
+        rate_snapshot_id=rate_snapshot_id,
+        update_rate_snapshot=True,
+    )
+
+
+async def update_finance_snapshot(
+    session: AsyncSession,
+    *,
+    snapshot_id: UUID,
+    entries: list[FinanceSnapshotEntryInput] | None = None,
+    snapshot_ts: datetime | None = None,
+    period_start: datetime | None = None,
+    period_end: datetime | None = None,
+    primary_currency: str | None = None,
+    rate_snapshot_id: UUID | None = None,
+    note: str | None = None,
+    update_time_fields: bool = False,
+    update_primary_currency: bool = False,
+    update_rate_snapshot: bool = False,
+    update_note: bool = False,
+) -> FinanceSnapshot:
+    """Update a finance snapshot and recompute derived amounts when needed."""
     snapshot = await get_finance_snapshot(session, snapshot_id=snapshot_id)
     if snapshot is None:
         raise FinanceTreeNotFoundError(f"Finance snapshot {snapshot_id} was not found")
+    tree = snapshot.tree or await get_finance_tree(session, tree_id=snapshot.tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {snapshot.tree_id} was not found")
+
+    if update_time_fields:
+        resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
+            _validate_snapshot_time_fields(
+                tree=tree,
+                snapshot_ts=snapshot_ts,
+                period_start=period_start,
+                period_end=period_end,
+            )
+        )
+        snapshot.snapshot_ts = resolved_snapshot_ts
+        snapshot.period_start = resolved_period_start
+        snapshot.period_end = resolved_period_end
+
+    if update_primary_currency:
+        snapshot.primary_currency = normalize_currency_code(
+            primary_currency,
+            fallback=tree.primary_currency,
+        )
+
+    if update_note:
+        snapshot.note = note
+
+    resolved_rate_snapshot_id = (
+        rate_snapshot_id if update_rate_snapshot else snapshot.rate_snapshot_id
+    )
     rate_snapshot, rate_snapshot_policy = await _select_rate_snapshot_for_entries(
         session,
-        explicit_rate_snapshot_id=rate_snapshot_id,
+        explicit_rate_snapshot_id=resolved_rate_snapshot_id,
     )
     snapshot.rate_snapshot_id = rate_snapshot.id if rate_snapshot is not None else None
     snapshot.rate_snapshot_policy = rate_snapshot_policy
 
-    manual_entries = [entry for entry in snapshot.entries if not entry.is_auto_generated]
-    auto_entries = [entry for entry in snapshot.entries if entry.is_auto_generated]
-    for entry in auto_entries:
-        await session.delete(entry)
-    await session.flush()
-
-    used_rates: dict[str, tuple[Decimal, bool, FinanceRateSnapshotEntry | None]] = {}
-    entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
-    for entry in manual_entries:
-        if rate_snapshot is not None:
-            rate, derived, source_entry = _resolve_rate(
-                rate_snapshot,
-                base_currency=entry.currency_code,
-                quote_currency=snapshot.primary_currency,
+    rebuild_entries = entries
+    if rebuild_entries is None:
+        rebuild_entries = [
+            FinanceSnapshotEntryInput(
+                node_id=entry.node_id,
+                amount=entry.amount,
+                currency_code=entry.currency_code,
+                note=entry.note,
             )
-            if entry.currency_code != snapshot.primary_currency:
-                used_rates[entry.currency_code] = (rate, derived, source_entry)
-        else:
-            rate = Decimal("1")
-        entry.amount_converted = _quantize_amount(entry.amount * rate)
-        entry_by_node_id[entry.node_id] = entry
-
-    snapshot_entries = list(manual_entries)
-    rollup_nodes = await _load_rollup_nodes(session, tree_id=snapshot.tree_id)
-    all_nodes = {
-        node.id: node for node in await list_finance_nodes(session, tree_id=snapshot.tree_id)
-    }
-    for rollup_node in rollup_nodes:
-        if rollup_node.id in entry_by_node_id:
-            continue
-        descendant_entries = [
-            entry
-            for node_id, entry in entry_by_node_id.items()
-            if all_nodes.get(node_id) is not None
-            and all_nodes[node_id].path.startswith(f"{rollup_node.path}/")
+            for entry in snapshot.entries
+            if not entry.is_auto_generated
         ]
-        if not descendant_entries:
-            continue
-        if rate_snapshot is None:
-            descendant_currencies = {entry.currency_code for entry in descendant_entries}
-            if len(descendant_currencies) != 1:
-                continue
-            rollup_currency = next(iter(descendant_currencies))
-            amount = _quantize_amount(
-                sum((entry.amount for entry in descendant_entries), Decimal("0"))
-            )
-            rollup_entry = FinanceSnapshotEntry(
-                snapshot_id=snapshot.id,
-                node_id=rollup_node.id,
-                amount=amount,
-                currency_code=rollup_currency,
-                amount_converted=amount,
-                is_auto_generated=True,
-            )
-        else:
-            amount_converted = _quantize_amount(
-                sum((entry.amount_converted for entry in descendant_entries), Decimal("0"))
-            )
-            rollup_entry = FinanceSnapshotEntry(
-                snapshot_id=snapshot.id,
-                node_id=rollup_node.id,
-                amount=amount_converted,
-                currency_code=snapshot.primary_currency,
-                amount_converted=amount_converted,
-                is_auto_generated=True,
-            )
-        session.add(rollup_entry)
-        snapshot_entries.append(rollup_entry)
-        entry_by_node_id[rollup_node.id] = rollup_entry
+    return await _rebuild_finance_snapshot_entries(
+        session,
+        snapshot=snapshot,
+        tree=tree,
+        entries=rebuild_entries,
+        rate_snapshot=rate_snapshot,
+    )
 
-    total_source_entries = (
-        manual_entries
-        if rate_snapshot is not None
-        else [entry for entry in manual_entries if entry.currency_code == snapshot.primary_currency]
-    )
-    snapshot.total_positive = _quantize_amount(
-        sum(
-            (
-                entry.amount_converted
-                for entry in total_source_entries
-                if entry.amount_converted > 0
-            ),
-            Decimal("0"),
-        )
-    )
-    snapshot.total_negative = _quantize_amount(
-        sum(
-            (
-                entry.amount_converted
-                for entry in total_source_entries
-                if entry.amount_converted < 0
-            ),
-            Decimal("0"),
-        )
-    )
-    snapshot.net_amount = _quantize_amount(snapshot.total_positive + snapshot.total_negative)
-    snapshot.exchange_rates = _rate_usage_payload(
-        primary_currency=snapshot.primary_currency,
-        rate_snapshot=rate_snapshot,
-        used_rates=used_rates,
-    )
-    snapshot.summary = _build_summary(
-        snapshot_entries,
-        primary_currency=snapshot.primary_currency,
-        rate_snapshot=rate_snapshot,
-    )
+
+async def delete_finance_snapshot(
+    session: AsyncSession,
+    *,
+    snapshot_id: UUID,
+) -> None:
+    """Soft-delete a finance snapshot and its entries."""
+    snapshot = await get_finance_snapshot(session, snapshot_id=snapshot_id)
+    if snapshot is None:
+        raise FinanceTreeNotFoundError(f"Finance snapshot {snapshot_id} was not found")
+    for entry in snapshot.entries:
+        entry.soft_delete()
+    snapshot.soft_delete()
     await session.flush()
-    await session.refresh(snapshot)
-    return await get_finance_snapshot(session, snapshot_id=snapshot.id) or snapshot
 
 
 async def get_finance_snapshot(

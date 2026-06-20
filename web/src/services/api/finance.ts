@@ -157,7 +157,13 @@ export interface FinanceSnapshotCreate {
 }
 
 export interface FinanceSnapshotUpdate {
+  snapshot_ts?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  primary_currency?: string | null;
   rate_snapshot_id?: UUID | null;
+  note?: string | null;
+  entries?: FinanceSnapshotEntryCreate[];
 }
 
 export interface FinanceRateSnapshotEntryCreate {
@@ -269,6 +275,8 @@ export const financeApi = {
     ),
   updateSnapshot: (snapshotId: UUID, payload: FinanceSnapshotUpdate) =>
     http.patch<FinanceSnapshot>(ENDPOINTS.FINANCE.SNAPSHOT_BY_ID(snapshotId), payload),
+  deleteSnapshot: (snapshotId: UUID) =>
+    http.delete<void>(ENDPOINTS.FINANCE.SNAPSHOT_BY_ID(snapshotId)),
   getSnapshot: (snapshotId: UUID) =>
     http.get<FinanceSnapshot>(ENDPOINTS.FINANCE.SNAPSHOT_BY_ID(snapshotId)),
 };

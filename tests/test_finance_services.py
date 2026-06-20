@@ -318,6 +318,78 @@ def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
     asyncio.run(run())
 
 
+def test_finance_snapshot_can_be_updated_and_deleted() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="cashflow",
+                    primary_currency="USD",
+                )
+                inflows = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Inflows"
+                )
+                salary = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=inflows.id,
+                    name="Salary",
+                    currency_code="USD",
+                )
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    period_start=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    period_end=datetime(2026, 6, 30, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=salary.id,
+                            amount=Decimal("100"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+
+                updated = await finance.update_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    period_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
+                    period_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
+                    note="July cashflow",
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=salary.id,
+                            amount=Decimal("125"),
+                            currency_code="USD",
+                            note="Updated salary",
+                        )
+                    ],
+                    update_time_fields=True,
+                    update_note=True,
+                )
+
+                assert updated.period_start == datetime(2026, 7, 1, tzinfo=timezone.utc)
+                assert updated.period_end == datetime(2026, 7, 31, tzinfo=timezone.utc)
+                assert updated.note == "July cashflow"
+                assert updated.net_amount == Decimal("125.00000000")
+                manual_entries = [entry for entry in updated.entries if not entry.is_auto_generated]
+                assert len(manual_entries) == 1
+                assert manual_entries[0].note == "Updated salary"
+
+                await finance.delete_finance_snapshot(session, snapshot_id=snapshot.id)
+
+                assert await finance.get_finance_snapshot(session, snapshot_id=snapshot.id) is None
+                assert await finance.count_finance_snapshots(session, tree_id=tree.id) == 0
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_tree_count_matches_filters() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()

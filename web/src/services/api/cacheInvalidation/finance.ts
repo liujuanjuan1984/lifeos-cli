@@ -49,6 +49,16 @@ export const setFinanceSnapshotCache = (
   queryClient.setQueryData(financeKeys.snapshot(snapshot.id), snapshot);
 };
 
+export const removeFinanceSnapshotCache = (
+  queryClient: QueryClient,
+  snapshotId: UUID,
+) => {
+  queryClient.removeQueries({
+    queryKey: financeKeys.snapshot(snapshotId),
+    exact: true,
+  });
+};
+
 export const invalidateFinanceRateSnapshots = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: financeKeys.rateSnapshots() });
 
