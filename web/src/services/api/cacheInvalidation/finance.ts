@@ -5,6 +5,7 @@ import {
   type FinanceRateSnapshot,
   type FinanceRateSnapshotListResponse,
   type FinanceSnapshot,
+  type FinanceSnapshotListResponse,
 } from "@/services/api/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
@@ -47,6 +48,29 @@ export const setFinanceSnapshotCache = (
   snapshot: FinanceSnapshot,
 ) => {
   queryClient.setQueryData(financeKeys.snapshot(snapshot.id), snapshot);
+};
+
+export const removeFinanceSnapshotFromListCache = (
+  queryClient: QueryClient,
+  treeId: UUID | null,
+  snapshotId: UUID,
+) => {
+  queryClient.setQueryData<FinanceSnapshotListResponse>(
+    financeKeys.snapshots(treeId),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== snapshotId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
 };
 
 export const removeFinanceSnapshotCache = (

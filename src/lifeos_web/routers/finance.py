@@ -516,7 +516,7 @@ async def ensure_default_tree(
 
 
 @router.get("/trees/{tree_id}")
-async def get_tree(tree_id: UUID, session: SessionDep) -> dict[str, object]:
+async def get_finance_tree(tree_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load one finance tree with nodes."""
     tree = await finance_services.get_finance_tree_with_nodes(session, tree_id=tree_id)
     if tree is None:
@@ -525,7 +525,7 @@ async def get_tree(tree_id: UUID, session: SessionDep) -> dict[str, object]:
 
 
 @router.post("/trees/{tree_id}/nodes")
-async def create_node(
+async def create_finance_node(
     tree_id: UUID,
     payload: FinanceNodeCreate,
     session: SessionDep,
@@ -549,7 +549,7 @@ async def create_node(
 
 
 @router.patch("/nodes/{node_id}")
-async def update_node(
+async def update_finance_node(
     node_id: UUID,
     payload: FinanceNodeUpdate,
     session: SessionDep,
@@ -571,7 +571,7 @@ async def update_node(
 
 
 @router.delete("/nodes/{node_id}", status_code=204)
-async def delete_node(node_id: UUID, session: SessionDep) -> None:
+async def delete_finance_node(node_id: UUID, session: SessionDep) -> None:
     """Soft-delete one finance node."""
     try:
         await finance_services.delete_finance_node(session, node_id=node_id)

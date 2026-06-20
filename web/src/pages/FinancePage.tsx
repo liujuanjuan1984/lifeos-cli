@@ -34,6 +34,7 @@ import {
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
   removeFinanceSnapshotCache,
+  removeFinanceSnapshotFromListCache,
   setFinanceRateSnapshotCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
@@ -264,6 +265,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const [nodeFormState, setNodeFormState] = useState<FinanceNodeFormState | null>(null);
   const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
   const [pendingDeleteSnapshot, setPendingDeleteSnapshot] = useState<FinanceSnapshot | null>(null);
+  const [deletedSnapshotIds, setDeletedSnapshotIds] = useState<Set<UUID>>(() => new Set());
 
   const treeQuery = useQuery({
     queryKey: financeKeys.treesByPurpose(preset.purpose),
@@ -289,7 +291,8 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     enabled: Boolean(tree?.id),
   });
 
-  const snapshots = snapshotsQuery.data?.items ?? [];
+  const rawSnapshots = snapshotsQuery.data?.items ?? [];
+  const snapshots = rawSnapshots.filter((snapshot) => !deletedSnapshotIds.has(snapshot.id));
 
   const rateSnapshotsQuery = useQuery({
     queryKey: financeKeys.rateSnapshots(),
@@ -419,16 +422,35 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   const deleteSnapshotMutation = useMutation({
     mutationFn: (snapshotId: UUID) => financeApi.deleteSnapshot(snapshotId),
-    onSuccess: async (_result, snapshotId) => {
+    onMutate: async (snapshotId) => {
+      const deletedIndex = snapshots.findIndex((snapshot) => snapshot.id === snapshotId);
+      const nextSnapshot = snapshots[deletedIndex + 1] ?? snapshots[deletedIndex - 1] ?? null;
+      await queryClient.cancelQueries({
+        queryKey: financeKeys.snapshot(snapshotId),
+        exact: true,
+      });
+      setDeletedSnapshotIds((existing) => new Set(existing).add(snapshotId));
+      if (detailSnapshotId === snapshotId) {
+        setSelectedSnapshotId(nextSnapshot?.id ?? null);
+      }
+      removeFinanceSnapshotFromListCache(queryClient, tree?.id ?? null, snapshotId);
+      removeFinanceSnapshotCache(queryClient, snapshotId);
+      return { previousSelectedSnapshotId: selectedSnapshotId };
+    },
+    onSuccess: async () => {
       toast.showSuccess(t("finance.messages.snapshotDeleted"));
       setPendingDeleteSnapshot(null);
       setSnapshotFormVisible(false);
       setSnapshotFormMode("create");
-      setSelectedSnapshotId(null);
-      removeFinanceSnapshotCache(queryClient, snapshotId);
       await invalidateFinanceSnapshots(queryClient, tree?.id ?? null);
     },
-    onError: (error) => {
+    onError: (error, snapshotId, context) => {
+      setDeletedSnapshotIds((existing) => {
+        const next = new Set(existing);
+        next.delete(snapshotId);
+        return next;
+      });
+      setSelectedSnapshotId(context?.previousSelectedSnapshotId ?? null);
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
     },
   });

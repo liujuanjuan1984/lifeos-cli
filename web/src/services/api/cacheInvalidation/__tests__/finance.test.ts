@@ -8,6 +8,7 @@ import {
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
   removeFinanceSnapshotCache,
+  removeFinanceSnapshotFromListCache,
   setFinanceRateSnapshotCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
@@ -15,6 +16,7 @@ import type {
   FinanceRateSnapshot,
   FinanceRateSnapshotListResponse,
   FinanceSnapshot,
+  FinanceSnapshotListResponse,
 } from "@/services/api/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 
@@ -84,6 +86,26 @@ describe("finance cache invalidation helpers", () => {
       queryKey: financeKeys.snapshot("snapshot-1"),
       exact: true,
     });
+  });
+
+  it("removes deleted snapshots from the cached snapshot list", () => {
+    const existing = {
+      items: [{ id: "snapshot-1" }, { id: "snapshot-2" }],
+      pagination: { page: 1, size: 50, total: 2, pages: 1 },
+      meta: { tree_id: "tree-1" },
+    } as FinanceSnapshotListResponse;
+
+    removeFinanceSnapshotFromListCache(queryClient, "tree-1", "snapshot-1");
+
+    const [, updater] = setQueryDataMock.mock.calls[0];
+    const next = updater(existing) as FinanceSnapshotListResponse;
+
+    expect(setQueryDataMock).toHaveBeenCalledWith(
+      financeKeys.snapshots("tree-1"),
+      expect.any(Function),
+    );
+    expect(next.items.map((item) => item.id)).toEqual(["snapshot-2"]);
+    expect(next.pagination.total).toBe(1);
   });
 
   it("prepends new rate snapshots into the cached rate snapshot list", () => {
