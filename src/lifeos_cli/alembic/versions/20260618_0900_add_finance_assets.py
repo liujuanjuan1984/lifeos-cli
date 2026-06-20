@@ -93,36 +93,9 @@ def upgrade() -> None:
         ],
     )
 
-    op.drop_index(
-        "ix_finance_rate_snapshots_currency_captured",
-        table_name="finance_rate_snapshots",
-        schema=schema_name,
-    )
-    with op.batch_alter_table("finance_rate_snapshots", schema=schema_name) as batch_op:
-        batch_op.alter_column("primary_currency", nullable=True, existing_type=sa.String(16))
-    op.create_index(
-        "ix_finance_rate_snapshots_captured",
-        "finance_rate_snapshots",
-        ["captured_at"],
-        schema=schema_name,
-    )
-
 
 def downgrade() -> None:
     schema_name = _schema_name()
-    op.drop_index(
-        "ix_finance_rate_snapshots_captured",
-        table_name="finance_rate_snapshots",
-        schema=schema_name,
-    )
-    with op.batch_alter_table("finance_rate_snapshots", schema=schema_name) as batch_op:
-        batch_op.alter_column("primary_currency", nullable=False, existing_type=sa.String(16))
-    op.create_index(
-        "ix_finance_rate_snapshots_currency_captured",
-        "finance_rate_snapshots",
-        ["primary_currency", "captured_at"],
-        schema=schema_name,
-    )
     op.drop_index(
         "ix_finance_assets_display_order",
         table_name="finance_assets",

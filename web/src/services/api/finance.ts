@@ -107,7 +107,6 @@ export interface FinanceRateSnapshotEntry {
 export interface FinanceRateSnapshot {
   id: UUID;
   captured_at: string;
-  primary_currency?: string | null;
   source: string;
   note?: string | null;
   metadata?: Record<string, unknown> | null;

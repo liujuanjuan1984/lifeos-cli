@@ -28,7 +28,6 @@ def upgrade() -> None:
         "finance_rate_snapshots",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("captured_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("primary_currency", sa.String(length=16), nullable=False),
         sa.Column("source", sa.String(length=64), nullable=False),
         sa.Column("note", sa.Text(), nullable=True),
         sa.Column("metadata", sa.JSON(), nullable=True),
@@ -39,9 +38,9 @@ def upgrade() -> None:
         schema=schema_name,
     )
     op.create_index(
-        "ix_finance_rate_snapshots_currency_captured",
+        "ix_finance_rate_snapshots_captured",
         "finance_rate_snapshots",
-        ["primary_currency", "captured_at"],
+        ["captured_at"],
         schema=schema_name,
     )
 
@@ -141,7 +140,7 @@ def downgrade() -> None:
     )
     op.drop_table("finance_rate_snapshot_entries", schema=schema_name)
     op.drop_index(
-        "ix_finance_rate_snapshots_currency_captured",
+        "ix_finance_rate_snapshots_captured",
         table_name="finance_rate_snapshots",
         schema=schema_name,
     )

@@ -706,7 +706,6 @@ async def create_finance_rate_snapshot(
         raise FinanceValidationError("Finance rate snapshot requires at least one rate entry")
     resolved_captured_at = captured_at or utc_now()
     rate_snapshot = FinanceRateSnapshot(
-        primary_currency=None,
         captured_at=resolved_captured_at,
         source=_rate_snapshot_source(source),
         note=note,
@@ -1180,21 +1179,6 @@ async def list_finance_snapshots(
         .limit(limit)
     )
     return list((await session.execute(stmt)).scalars())
-
-
-async def update_finance_snapshot_rate_snapshot(
-    session: AsyncSession,
-    *,
-    snapshot_id: UUID,
-    rate_snapshot_id: UUID | None,
-) -> FinanceSnapshot:
-    """Change a snapshot's exchange-rate snapshot and recompute derived amounts."""
-    return await update_finance_snapshot(
-        session,
-        snapshot_id=snapshot_id,
-        rate_snapshot_id=rate_snapshot_id,
-        update_rate_snapshot=True,
-    )
 
 
 async def update_finance_snapshot(

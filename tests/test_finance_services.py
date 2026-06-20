@@ -301,10 +301,11 @@ def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
                 )
                 assert snapshot.net_amount == Decimal("20.00000000")
 
-                updated = await finance.update_finance_snapshot_rate_snapshot(
+                updated = await finance.update_finance_snapshot(
                     session,
                     snapshot_id=snapshot.id,
                     rate_snapshot_id=None,
+                    update_rate_snapshot=True,
                 )
 
                 assert updated.rate_snapshot_id is None

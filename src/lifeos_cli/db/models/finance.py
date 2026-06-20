@@ -228,7 +228,6 @@ class FinanceRateSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin
     __table_args__ = (Index("ix_finance_rate_snapshots_captured", "captured_at"),)
 
     captured_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
-    primary_currency: Mapped[str | None] = mapped_column(String(16), nullable=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False, default="manual")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)

@@ -246,7 +246,6 @@ def _rate_snapshot_payload(
     payload: dict[str, object] = {
         "id": str(rate_snapshot.id),
         "captured_at": rate_snapshot.captured_at.isoformat(),
-        "primary_currency": rate_snapshot.primary_currency,
         "source": rate_snapshot.source,
         "note": rate_snapshot.note,
         "metadata": to_jsonable(rate_snapshot.metadata_json),
