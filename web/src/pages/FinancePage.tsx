@@ -625,6 +625,9 @@ function RateSnapshotsWorkspace() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { assets, createAsset } = useFinanceAssetSource();
+  const [assetManagerOpen, setAssetManagerOpen] = useState(false);
+  const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | null>(null);
+  const [rateFormVisible, setRateFormVisible] = useState(false);
   const [assetCode, setAssetCode] = useState("");
   const [assetName, setAssetName] = useState("");
   const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
@@ -650,6 +653,8 @@ function RateSnapshotsWorkspace() {
         { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
       ]);
       setNote("");
+      setSelectedRateSnapshotId(rateSnapshot.id);
+      setRateFormVisible(false);
       setFinanceRateSnapshotCache(queryClient, rateSnapshot);
       addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
       await invalidateFinanceRateSnapshots(queryClient);
@@ -754,331 +759,471 @@ function RateSnapshotsWorkspace() {
   };
 
   const snapshots = rateSnapshotsQuery.data?.items ?? [];
+  const currentSnapshot =
+    snapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? snapshots[0] ?? null;
+  const currentPosition = currentSnapshot
+    ? snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id) + 1
+    : 0;
+  const hasPrevious = currentPosition > 1;
+  const hasNext = currentPosition > 0 && currentPosition < snapshots.length;
+  const snapshotOptions = snapshots.map((snapshot) => ({
+    value: snapshot.id,
+    label: rateSnapshotLabel(snapshot),
+  }));
+
+  const selectRateSnapshot = (snapshotId: UUID) => {
+    setSelectedRateSnapshotId(snapshotId);
+    setRateFormVisible(false);
+  };
+
+  const moveRateSnapshot = (direction: -1 | 1) => {
+    if (!currentSnapshot) return;
+    const index = snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id);
+    const next = snapshots[index + direction];
+    if (next) {
+      selectRateSnapshot(next.id);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-        <div className="mb-3">
-          <h3 className="font-semibold text-base-content">{t("finance.assets.title")}</h3>
-          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="primary" variant="outline" size="sm">
+              {t("finance.assets.title")}
+            </Badge>
+            <Badge tone="neutral" variant="outline" size="sm">
+              {assets.length}
+            </Badge>
+            <ActionButton
+              label={t("finance.tree.manage")}
+              onClick={() => setAssetManagerOpen(true)}
+              size="sm"
+              variant="outline"
+              iconName="settings"
+            />
+          </div>
+
+          <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
+            <ActionButton
+              label=""
+              iconName="chevron-left"
+              iconOnly
+              ariaLabel={t("finance.snapshot.previous")}
+              size="sm"
+              variant="ghost"
+              shape="circle"
+              onClick={() => moveRateSnapshot(-1)}
+              disabled={!snapshots.length || !hasPrevious}
+            />
+
+            <EnumSelect
+              value={currentSnapshot?.id ?? undefined}
+              onChange={(value) => {
+                if (value) selectRateSnapshot(String(value) as UUID);
+              }}
+              options={snapshotOptions}
+              placeholder={t("finance.rates.selectSnapshot")}
+              showLabel={false}
+              size="sm"
+              className="w-auto min-w-[12rem] sm:min-w-[16rem] max-w-full"
+              autoWidth
+              disabled={!snapshotOptions.length}
+            />
+
+            <ActionButton
+              label=""
+              iconName="chevron-right"
+              iconOnly
+              ariaLabel={t("finance.snapshot.next")}
+              size="sm"
+              variant="ghost"
+              shape="circle"
+              onClick={() => moveRateSnapshot(1)}
+              disabled={!snapshots.length || !hasNext}
+            />
+          </div>
+
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <CreateNewButton
+              label={t("finance.snapshot.new")}
+              onClick={() => setRateFormVisible(true)}
+              size="sm"
+              color="primary"
+              variant="solid"
+              ariaLabel={t("finance.snapshot.new")}
+            />
+          </div>
         </div>
-        <form className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]" onSubmit={submitAsset}>
-          <TextInput
-            size="sm"
-            value={assetCode}
-            onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
-            placeholder={t("finance.assets.code")}
-          />
-          <TextInput
-            size="sm"
-            value={assetName}
-            onChange={(event) => setAssetName(event.target.value)}
-            placeholder={t("finance.assets.name")}
-          />
-          <ActionButton
-            type="submit"
-            label={t("finance.assets.addAsset")}
-            iconName="plus"
-            size="sm"
-            color="primary"
-            variant="outline"
-            disabled={!assetCode.trim()}
-          />
-        </form>
-        <div className="mt-3 overflow-x-auto">
-          <table className="table table-sm">
-            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
-              <tr>
-                <th>{t("finance.assets.code")}</th>
-                <th>{t("finance.assets.name")}</th>
-                <th className="w-24 text-right">{t("common.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((asset) => {
-                const editing = editingAssetId === asset.id;
-                return (
-                  <tr key={asset.id}>
-                    <td>
-                      {editing ? (
-                        <TextInput
-                          size="sm"
-                          value={editingAssetCode}
-                          onChange={(event) =>
-                            setEditingAssetCode(event.target.value.toUpperCase())
-                          }
-                        />
-                      ) : (
-                        <span className="font-medium">{asset.code}</span>
-                      )}
-                    </td>
-                    <td>
-                      {editing ? (
-                        <TextInput
-                          size="sm"
-                          value={editingAssetName}
-                          onChange={(event) => setEditingAssetName(event.target.value)}
-                        />
-                      ) : (
-                        asset.name || "-"
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex justify-end gap-1">
-                        {editing ? (
-                          <>
-                            <ActionButton
-                              label=""
-                              iconName="check"
-                              iconOnly
-                              size="xs"
-                              variant="ghost"
-                              ariaLabel={t("common.save")}
-                              disabled={updateAssetMutation.isPending}
-                              onClick={() =>
-                                updateAssetMutation.mutate({
-                                  assetId: asset.id,
-                                  code: editingAssetCode,
-                                  name: editingAssetName.trim() || null,
-                                })
-                              }
-                            />
-                            <ActionButton
-                              label=""
-                              iconName="x-mark"
-                              iconOnly
-                              size="xs"
-                              variant="ghost"
-                              ariaLabel={t("common.cancel")}
-                              onClick={() => setEditingAssetId(null)}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <ActionButton
-                              label=""
-                              iconName="edit"
-                              iconOnly
-                              size="xs"
-                              variant="ghost"
-                              ariaLabel={t("common.edit")}
-                              onClick={() => {
-                                setEditingAssetId(asset.id);
-                                setEditingAssetCode(asset.code);
-                                setEditingAssetName(asset.name ?? "");
-                              }}
-                            />
-                            <ActionButton
-                              label=""
-                              iconName="trash"
-                              iconOnly
-                              size="xs"
-                              variant="ghost"
-                              color="error"
-                              ariaLabel={t("common.delete")}
-                              disabled={deleteAssetMutation.isPending}
-                              onClick={() => deleteAssetMutation.mutate(asset.id)}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <p className="mt-3 text-sm text-base-content/70">{t("finance.rates.tabDescription")}</p>
       </section>
 
       <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-semibold text-base-content">{t("finance.rates.title")}</h3>
-            <p className="text-sm text-base-content/60">{t("finance.rates.tabDescription")}</p>
-          </div>
-        </div>
-
-        <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <FormField label={t("finance.rates.capturedAt")}>
-              <TextInput
-                type="datetime-local"
-                value={capturedAt}
-                onChange={(event) => setCapturedAt(event.target.value)}
-              />
-            </FormField>
-            <FormField label={t("finance.rates.source")}>
-              <TextInput value={source} onChange={(event) => setSource(event.target.value)} />
-            </FormField>
-            <FormField label={t("finance.rates.note")}>
-              <TextInput value={note} onChange={(event) => setNote(event.target.value)} />
-            </FormField>
-          </div>
-
-          <div className="rounded-lg border border-base-200">
-            <div className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
-              <span>{t("finance.rates.baseAmount")}</span>
-              <span>{t("finance.rates.baseAsset")}</span>
-              <span />
-              <span>{t("finance.rates.quoteAmount")}</span>
-              <span>{t("finance.rates.quoteAsset")}</span>
-              <span />
-            </div>
-            <div className="space-y-2 p-3">
-              {rateRows.map((row, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2"
-                >
+        {rateFormVisible ? (
+          <>
+            <SnapshotNavigator
+              title={t("finance.rates.createSnapshot")}
+              hasPrevious={false}
+              hasNext={false}
+              onPrevious={() => undefined}
+              onNext={() => undefined}
+              rightSlot={
+                <ActionButton
+                  label={t("common.cancel")}
+                  onClick={() => setRateFormVisible(false)}
+                  size="sm"
+                  variant="ghost"
+                  disabled={createRateSnapshotMutation.isPending}
+                />
+              }
+            />
+            <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <FormField label={t("finance.rates.capturedAt")}>
                   <TextInput
-                    size="sm"
-                    inputMode="decimal"
-                    value={row.baseAmount}
-                    onChange={(event) =>
-                      setRateRows((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? { ...item, baseAmount: event.target.value }
-                            : item,
-                        ),
-                      )
-                    }
+                    type="datetime-local"
+                    value={capturedAt}
+                    onChange={(event) => setCapturedAt(event.target.value)}
                   />
-                  <AssetSelect
-                    assets={assets}
-                    value={row.baseCurrency}
-                    onChange={(assetCode) =>
-                      setRateRows((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, baseCurrency: assetCode } : item,
-                        ),
-                      )
-                    }
-                    onCreateAsset={createAsset}
-                    disabled={createRateSnapshotMutation.isPending}
-                  />
-                  <span className="text-center text-base-content/60">=</span>
-                  <TextInput
-                    size="sm"
-                    inputMode="decimal"
-                    value={row.quoteAmount}
-                    onChange={(event) =>
-                      setRateRows((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, quoteAmount: event.target.value } : item,
-                        ),
-                      )
-                    }
-                  />
-                  <AssetSelect
-                    assets={assets}
-                    value={row.quoteCurrency}
-                    onChange={(assetCode) =>
-                      setRateRows((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, quoteCurrency: assetCode } : item,
-                        ),
-                      )
-                    }
-                    onCreateAsset={createAsset}
-                    disabled={createRateSnapshotMutation.isPending}
-                  />
+                </FormField>
+                <FormField label={t("finance.rates.source")}>
+                  <TextInput value={source} onChange={(event) => setSource(event.target.value)} />
+                </FormField>
+                <FormField label={t("finance.rates.note")}>
+                  <TextInput value={note} onChange={(event) => setNote(event.target.value)} />
+                </FormField>
+              </div>
+
+              <div className="rounded-lg border border-base-200">
+                <div className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
+                  <span>{t("finance.rates.baseAmount")}</span>
+                  <span>{t("finance.rates.baseAsset")}</span>
+                  <span />
+                  <span>{t("finance.rates.quoteAmount")}</span>
+                  <span>{t("finance.rates.quoteAsset")}</span>
+                  <span />
+                </div>
+                <div className="space-y-2 p-3">
+                  {rateRows.map((row, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2"
+                    >
+                      <TextInput
+                        size="sm"
+                        inputMode="decimal"
+                        value={row.baseAmount}
+                        onChange={(event) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, baseAmount: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <AssetSelect
+                        assets={assets}
+                        value={row.baseCurrency}
+                        onChange={(assetCode) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, baseCurrency: assetCode } : item,
+                            ),
+                          )
+                        }
+                        onCreateAsset={createAsset}
+                        disabled={createRateSnapshotMutation.isPending}
+                      />
+                      <span className="text-center text-base-content/60">=</span>
+                      <TextInput
+                        size="sm"
+                        inputMode="decimal"
+                        value={row.quoteAmount}
+                        onChange={(event) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, quoteAmount: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <AssetSelect
+                        assets={assets}
+                        value={row.quoteCurrency}
+                        onChange={(assetCode) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, quoteCurrency: assetCode } : item,
+                            ),
+                          )
+                        }
+                        onCreateAsset={createAsset}
+                        disabled={createRateSnapshotMutation.isPending}
+                      />
+                      <ActionButton
+                        type="button"
+                        label=""
+                        iconName="trash"
+                        iconOnly
+                        size="sm"
+                        variant="ghost"
+                        color="error"
+                        ariaLabel={t("common.delete")}
+                        disabled={rateRows.length === 1}
+                        onClick={() =>
+                          setRateRows((current) =>
+                            current.filter((_, itemIndex) => itemIndex !== index),
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
                   <ActionButton
                     type="button"
-                    label=""
-                    iconName="trash"
-                    iconOnly
+                    label={t("finance.rates.addRate")}
+                    iconName="plus"
                     size="sm"
                     variant="ghost"
-                    color="error"
-                    ariaLabel={t("common.delete")}
-                    disabled={rateRows.length === 1}
                     onClick={() =>
                       setRateRows((current) =>
-                        current.filter((_, itemIndex) => itemIndex !== index),
+                        current.concat({
+                          baseAmount: "1",
+                          baseCurrency: "",
+                          quoteAmount: "",
+                          quoteCurrency: "",
+                        }),
                       )
                     }
                   />
                 </div>
-              ))}
-              <ActionButton
-                type="button"
-                label={t("finance.rates.addRate")}
-                iconName="plus"
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  setRateRows((current) =>
-                    current.concat({
-                      baseAmount: "1",
-                      baseCurrency: "",
-                      quoteAmount: "",
-                      quoteCurrency: "",
-                    }),
-                  )
-                }
-              />
-            </div>
-          </div>
+              </div>
 
-          <div className="flex justify-end">
-            <ActionButton
-              type="submit"
-              label={
-                createRateSnapshotMutation.isPending
-                  ? t("common.saving")
-                  : t("finance.rates.createSnapshot")
-              }
-              iconName="check"
-              color="primary"
-              variant="solid"
-              disabled={createRateSnapshotMutation.isPending}
-            />
-          </div>
-        </form>
-      </section>
-
-      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-        {rateSnapshotsQuery.isLoading ? (
+              <div className="flex justify-end">
+                <ActionButton
+                  type="submit"
+                  label={
+                    createRateSnapshotMutation.isPending
+                      ? t("common.saving")
+                      : t("finance.rates.createSnapshot")
+                  }
+                  iconName="check"
+                  color="primary"
+                  variant="solid"
+                  disabled={createRateSnapshotMutation.isPending}
+                />
+              </div>
+            </form>
+          </>
+        ) : rateSnapshotsQuery.isLoading ? (
           <LoadingSpinner />
-        ) : snapshots.length ? (
-          <div className="overflow-x-auto">
-            <table className="table table-sm">
-              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
-                <tr>
-                  <th>{t("finance.rates.capturedAt")}</th>
-                  <th>{t("finance.rates.source")}</th>
-                  <th>{t("finance.rates.rates")}</th>
-                  <th>{t("finance.rates.note")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {snapshots.map((snapshot) => (
-                  <tr key={snapshot.id}>
-                    <td>{formatDateTime(snapshot.captured_at)}</td>
-                    <td>{snapshot.source}</td>
+        ) : currentSnapshot ? (
+          <>
+            <SnapshotNavigator
+              title={rateSnapshotLabel(currentSnapshot)}
+              positionLabel={
+                currentPosition > 0
+                  ? t("finance.snapshot.position", {
+                      current: currentPosition,
+                      total: snapshots.length,
+                    })
+                  : undefined
+              }
+              hasPrevious={hasPrevious}
+              hasNext={hasNext}
+              onPrevious={() => moveRateSnapshot(-1)}
+              onNext={() => moveRateSnapshot(1)}
+            />
+            <div className="overflow-x-auto">
+              <table className="table table-sm">
+                <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                  <tr>
+                    <th>{t("finance.rates.capturedAt")}</th>
+                    <th>{t("finance.rates.source")}</th>
+                    <th>{t("finance.rates.rates")}</th>
+                    <th>{t("finance.rates.note")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{formatDateTime(currentSnapshot.captured_at)}</td>
+                    <td>{currentSnapshot.source}</td>
                     <td>
                       <div className="flex flex-wrap gap-1">
-                        {(snapshot.entries ?? []).map((entry) => (
+                        {(currentSnapshot.entries ?? []).map((entry) => (
                           <Badge key={entry.id} tone="neutral" variant="outline" size="xs">
                             {entry.base_currency}/{entry.quote_currency} {entry.rate}
                           </Badge>
                         ))}
                       </div>
                     </td>
-                    <td>{snapshot.note || "-"}</td>
+                    <td>{currentSnapshot.note || "-"}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
             {t("finance.rates.empty")}
+            <div className="mt-4 flex justify-center">
+              <CreateNewButton
+                label={t("finance.snapshot.new")}
+                onClick={() => setRateFormVisible(true)}
+                size="sm"
+                color="primary"
+                variant="solid"
+              />
+            </div>
           </div>
         )}
       </section>
+
+      <ModalBase
+        isOpen={assetManagerOpen}
+        onClose={() => setAssetManagerOpen(false)}
+        title={t("finance.assets.title")}
+        size="lg"
+        bodyOverflow="auto"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+          <form
+            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
+            onSubmit={submitAsset}
+          >
+            <TextInput
+              size="sm"
+              value={assetCode}
+              onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
+              placeholder={t("finance.assets.code")}
+            />
+            <TextInput
+              size="sm"
+              value={assetName}
+              onChange={(event) => setAssetName(event.target.value)}
+              placeholder={t("finance.assets.name")}
+            />
+            <ActionButton
+              type="submit"
+              label={t("finance.assets.addAsset")}
+              iconName="plus"
+              size="sm"
+              color="primary"
+              variant="outline"
+              disabled={!assetCode.trim()}
+            />
+          </form>
+          <div className="max-h-[520px] overflow-y-auto pr-1">
+            <table className="table table-sm">
+              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                <tr>
+                  <th>{t("finance.assets.code")}</th>
+                  <th>{t("finance.assets.name")}</th>
+                  <th className="w-24 text-right">{t("common.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((asset) => {
+                  const editing = editingAssetId === asset.id;
+                  return (
+                    <tr key={asset.id}>
+                      <td>
+                        {editing ? (
+                          <TextInput
+                            size="sm"
+                            value={editingAssetCode}
+                            onChange={(event) =>
+                              setEditingAssetCode(event.target.value.toUpperCase())
+                            }
+                          />
+                        ) : (
+                          <span className="font-medium">{asset.code}</span>
+                        )}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <TextInput
+                            size="sm"
+                            value={editingAssetName}
+                            onChange={(event) => setEditingAssetName(event.target.value)}
+                          />
+                        ) : (
+                          asset.name || "-"
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          {editing ? (
+                            <>
+                              <ActionButton
+                                label=""
+                                iconName="check"
+                                iconOnly
+                                size="xs"
+                                variant="ghost"
+                                ariaLabel={t("common.save")}
+                                disabled={updateAssetMutation.isPending}
+                                onClick={() =>
+                                  updateAssetMutation.mutate({
+                                    assetId: asset.id,
+                                    code: editingAssetCode,
+                                    name: editingAssetName.trim() || null,
+                                  })
+                                }
+                              />
+                              <ActionButton
+                                label=""
+                                iconName="x-mark"
+                                iconOnly
+                                size="xs"
+                                variant="ghost"
+                                ariaLabel={t("common.cancel")}
+                                onClick={() => setEditingAssetId(null)}
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <ActionButton
+                                label=""
+                                iconName="edit"
+                                iconOnly
+                                size="xs"
+                                variant="ghost"
+                                ariaLabel={t("common.edit")}
+                                onClick={() => {
+                                  setEditingAssetId(asset.id);
+                                  setEditingAssetCode(asset.code);
+                                  setEditingAssetName(asset.name ?? "");
+                                }}
+                              />
+                              <ActionButton
+                                label=""
+                                iconName="trash"
+                                iconOnly
+                                size="xs"
+                                variant="ghost"
+                                color="error"
+                                ariaLabel={t("common.delete")}
+                                disabled={deleteAssetMutation.isPending}
+                                onClick={() => deleteAssetMutation.mutate(asset.id)}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </ModalBase>
     </div>
   );
 }
@@ -1940,6 +2085,8 @@ function SnapshotFormPanel({
   const missingRateCurrencies = requiredRateCurrencies.filter(
     (currency) => !conversionRates[currency],
   );
+  const hasCompleteRateSnapshot =
+    Boolean(selectedRateSnapshotId) && missingRateCurrencies.length === 0;
 
   useEffect(() => {
     if (mode !== "edit" || !initialSnapshot) {
@@ -1990,15 +2137,6 @@ function SnapshotFormPanel({
       toast.showWarning(t("finance.messages.noEntries"));
       return;
     }
-    if (selectedRateSnapshotId && missingRateCurrencies.length) {
-      toast.showWarning(
-        t("finance.messages.rateSnapshotMissingRates", {
-          currencies: missingRateCurrencies.join(", "),
-        }),
-      );
-      return;
-    }
-
     onSubmit({
       snapshot_ts: preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
       period_start: preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
@@ -2073,11 +2211,11 @@ function SnapshotFormPanel({
           treeNodes={treeNodes}
           amounts={amounts}
           notes={notes}
-          aggregatedAmounts={aggregatedAmounts}
+          aggregatedAmounts={hasCompleteRateSnapshot ? aggregatedAmounts : {}}
           nativeAggregatedAmounts={nativeAggregatedAmounts}
           primaryCurrency={tree.primary_currency}
           conversionRates={conversionRates}
-          hasRateSnapshot={Boolean(selectedRateSnapshotId)}
+          hasRateSnapshot={hasCompleteRateSnapshot}
           submitting={submitting}
           onChangeAmount={(nodeId, value) =>
             setAmounts((prev) => ({ ...prev, [nodeId]: value }))
@@ -2385,10 +2523,10 @@ function SnapshotDetail({
   treeNodes: TreeNodeWithChildren[];
 }) {
   const { t } = useTranslation();
-  const usesRateSnapshot = Boolean(snapshot.rate_snapshot_id);
+  const usesConvertedAggregation = getSummaryAggregationMode(snapshot.summary) === "converted";
   const displayTree = useMemo(
-    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? [], usesRateSnapshot),
-    [snapshot.entries, treeNodes, usesRateSnapshot],
+    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? [], usesConvertedAggregation),
+    [snapshot.entries, treeNodes, usesConvertedAggregation],
   );
   const amountsByCurrency = useMemo(
     () => getSummaryAmountsByCurrency(snapshot.summary),
@@ -2424,7 +2562,7 @@ function SnapshotDetail({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {usesRateSnapshot ? (
+        {usesConvertedAggregation ? (
           <>
             <Metric
               label={t("finance.metrics.positive")}
@@ -2537,7 +2675,7 @@ function SnapshotDetail({
                     </span>
                   </td>
                   <td className="align-top">
-                    {usesRateSnapshot ? (
+                    {usesConvertedAggregation ? (
                       <span className={`tabular-nums ${convertedAmountClass}`}>
                         {formatMoney(node.amountConverted, snapshot.primary_currency)}
                       </span>
@@ -2660,6 +2798,11 @@ function getSummaryAmountsByCurrency(
       ],
     ),
   );
+}
+
+function getSummaryAggregationMode(summary?: Record<string, unknown> | null): string {
+  const mode = summary?.aggregation_mode;
+  return typeof mode === "string" ? mode : "native_by_currency";
 }
 
 function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>) {

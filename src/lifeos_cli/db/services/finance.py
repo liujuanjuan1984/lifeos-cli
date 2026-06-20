@@ -845,6 +845,22 @@ def _resolve_rate(
     )
 
 
+def _find_rate(
+    rate_snapshot: FinanceRateSnapshot,
+    *,
+    base_currency: str,
+    quote_currency: str,
+) -> tuple[Decimal, bool, FinanceRateSnapshotEntry | None] | None:
+    try:
+        return _resolve_rate(
+            rate_snapshot,
+            base_currency=base_currency,
+            quote_currency=quote_currency,
+        )
+    except FinanceValidationError:
+        return None
+
+
 async def _select_rate_snapshot_for_entries(
     session: AsyncSession,
     *,
@@ -919,26 +935,37 @@ def _build_summary(
     *,
     primary_currency: str,
     rate_snapshot: FinanceRateSnapshot | None,
+    aggregation_mode: str,
+    missing_rate_currencies: set[str],
 ) -> dict[str, Any]:
     manual_entries = [entry for entry in entries if not entry.is_auto_generated]
     totals_by_currency = _build_currency_totals(manual_entries)
+    total_source_entries = (
+        manual_entries
+        if aggregation_mode == "converted"
+        else [entry for entry in manual_entries if entry.currency_code == primary_currency]
+    )
     total_positive = sum(
-        (entry.amount_converted for entry in manual_entries if entry.amount_converted > 0),
+        (entry.amount_converted for entry in total_source_entries if entry.amount_converted > 0),
         Decimal("0"),
     )
     total_negative = sum(
-        (entry.amount_converted for entry in manual_entries if entry.amount_converted < 0),
+        (entry.amount_converted for entry in total_source_entries if entry.amount_converted < 0),
         Decimal("0"),
     )
+    total_positive = _quantize_amount(total_positive)
+    total_negative = _quantize_amount(total_negative)
+    net_amount = _quantize_amount(total_positive + total_negative)
     return {
         "manual_entry_count": str(len(manual_entries)),
         "entry_count": str(len(entries)),
         "total_positive": str(total_positive),
         "total_negative": str(total_negative),
-        "net_amount": str(total_positive + total_negative),
+        "net_amount": str(net_amount),
         "primary_currency": primary_currency,
         "rate_snapshot_id": str(rate_snapshot.id) if rate_snapshot is not None else None,
-        "aggregation_mode": "converted" if rate_snapshot is not None else "native_by_currency",
+        "aggregation_mode": aggregation_mode,
+        "missing_rate_currencies": sorted(missing_rate_currencies),
         "amounts_by_currency": {
             currency: {
                 key: str(_quantize_amount(value)) for key, value in sorted(currency_totals.items())
@@ -977,6 +1004,7 @@ async def _rebuild_finance_snapshot_entries(
     snapshot_entries: list[FinanceSnapshotEntry] = []
     entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
     used_rates: dict[str, tuple[Decimal, bool, FinanceRateSnapshotEntry | None]] = {}
+    missing_rate_currencies: set[str] = set()
     for entry_input in entries:
         node = entry_nodes[entry_input.node_id]
         amount = _decimal(entry_input.amount)
@@ -985,13 +1013,19 @@ async def _rebuild_finance_snapshot_entries(
             fallback=node.currency_code or snapshot.primary_currency,
         )
         if rate_snapshot is not None:
-            rate, derived, source_entry = _resolve_rate(
+            rate_match = _find_rate(
                 rate_snapshot,
                 base_currency=currency_code,
                 quote_currency=snapshot.primary_currency,
             )
-            if currency_code != snapshot.primary_currency:
-                used_rates[currency_code] = (rate, derived, source_entry)
+            if rate_match is None:
+                rate = Decimal("1")
+                if currency_code != snapshot.primary_currency:
+                    missing_rate_currencies.add(currency_code)
+            else:
+                rate, derived, source_entry = rate_match
+                if currency_code != snapshot.primary_currency:
+                    used_rates[currency_code] = (rate, derived, source_entry)
         else:
             rate = Decimal("1")
         amount_converted = _quantize_amount(amount * rate)
@@ -1021,7 +1055,8 @@ async def _rebuild_finance_snapshot_entries(
         ]
         if not descendant_entries:
             continue
-        if rate_snapshot is None:
+        use_converted_rollups = rate_snapshot is not None and not missing_rate_currencies
+        if not use_converted_rollups:
             descendant_currencies = {entry.currency_code for entry in descendant_entries}
             if len(descendant_currencies) != 1:
                 continue
@@ -1054,9 +1089,14 @@ async def _rebuild_finance_snapshot_entries(
         entry_by_node_id[rollup_node.id] = entry
 
     manual_entries = [entry for entry in snapshot_entries if not entry.is_auto_generated]
+    aggregation_mode = (
+        "converted"
+        if rate_snapshot is not None and not missing_rate_currencies
+        else "native_by_currency"
+    )
     total_source_entries = (
         manual_entries
-        if rate_snapshot is not None
+        if aggregation_mode == "converted"
         else [entry for entry in manual_entries if entry.currency_code == snapshot.primary_currency]
     )
     snapshot.total_positive = _quantize_amount(
@@ -1089,6 +1129,8 @@ async def _rebuild_finance_snapshot_entries(
         snapshot_entries,
         primary_currency=snapshot.primary_currency,
         rate_snapshot=rate_snapshot,
+        aggregation_mode=aggregation_mode,
+        missing_rate_currencies=missing_rate_currencies,
     )
     await session.flush()
     await session.refresh(snapshot)

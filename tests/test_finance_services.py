@@ -254,6 +254,68 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
     asyncio.run(run())
 
 
+def test_finance_snapshot_with_incomplete_rate_snapshot_keeps_native_totals() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                account = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Euro account",
+                    currency_code="EUR",
+                )
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="BTC",
+                            quote_currency="USD",
+                            rate=Decimal("67000"),
+                        )
+                    ],
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    rate_snapshot_id=rate_snapshot.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=account.id,
+                            amount=Decimal("8"),
+                            currency_code="EUR",
+                        )
+                    ],
+                )
+
+                assert snapshot.rate_snapshot_id == rate_snapshot.id
+                assert snapshot.rate_snapshot_policy == "selected"
+                assert snapshot.net_amount == Decimal("0E-8")
+                assert snapshot.exchange_rates is None
+                assert snapshot.summary is not None
+                assert snapshot.summary["aggregation_mode"] == "native_by_currency"
+                assert snapshot.summary["net_amount"] == "0E-8"
+                assert snapshot.summary["missing_rate_currencies"] == ["EUR"]
+                assert snapshot.summary["amounts_by_currency"]["EUR"]["net_amount"] == "8.00000000"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
