@@ -14,12 +14,6 @@ import type {
 } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 
-import type {
-  PresetConfig,
-  SnapshotAmountState,
-  SnapshotNoteState,
-  TreeNodeWithChildren,
-} from "./types";
 import {
   dateToEndIso,
   dateToStartIso,
@@ -31,6 +25,10 @@ import {
   nowDateTimeLocal,
   rateSnapshotLabel,
   todayDate,
+  type PresetConfig,
+  type SnapshotAmountState,
+  type SnapshotNoteState,
+  type TreeNodeWithChildren,
 } from "./utils";
 
 export function SnapshotFormPanel({

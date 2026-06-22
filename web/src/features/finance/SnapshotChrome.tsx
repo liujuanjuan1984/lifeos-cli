@@ -9,8 +9,7 @@ import type { FinanceSnapshot, FinanceTree } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 import { useTranslation } from "react-i18next";
 
-import type { PresetConfig } from "./types";
-import { snapshotLabel } from "./utils";
+import { snapshotLabel, type PresetConfig } from "./utils";
 
 export function SnapshotSelectorToolbar({
   badges,

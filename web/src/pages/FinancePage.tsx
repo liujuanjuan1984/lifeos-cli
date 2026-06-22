@@ -33,17 +33,15 @@ import {
 import { financeKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 import { SnapshotDetail, SnapshotFormPanel } from "@/features/finance/SnapshotPanels";
-import type {
-  FinanceNodeFormState,
-  FinanceTab,
-  PresetConfig,
-  TreeNodeWithChildren,
-} from "@/features/finance/types";
 import {
   buildTree,
   flattenTree,
   getRequiredRateCurrencies,
   snapshotLabel,
+  type FinanceNodeFormState,
+  type FinanceTab,
+  type PresetConfig,
+  type TreeNodeWithChildren,
 } from "@/features/finance/utils";
 import { RateSnapshotsWorkspace } from "@/features/finance/RateSnapshotsWorkspace";
 import {
