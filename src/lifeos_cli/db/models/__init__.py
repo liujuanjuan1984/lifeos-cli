@@ -12,6 +12,12 @@ from .event import Event
 from .event_occurrence_exception import (
     EventOccurrenceException,
 )
+from .finance import (
+    FinanceSnapshot,
+    FinanceSnapshotEntry,
+    FinanceTree,
+    FinanceTreeNode,
+)
 from .habit import Habit
 from .habit_action import HabitAction
 from .note import Note
@@ -29,6 +35,10 @@ __all__ = [
     "DailyTimelogStatsGroupByArea",
     "Event",
     "EventOccurrenceException",
+    "FinanceSnapshot",
+    "FinanceSnapshotEntry",
+    "FinanceTree",
+    "FinanceTreeNode",
     "Habit",
     "HabitAction",
     "Note",

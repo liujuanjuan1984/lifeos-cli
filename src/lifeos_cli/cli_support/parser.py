@@ -17,6 +17,7 @@ from lifeos_cli.cli_support.help_utils import CompactSubcommandHelpFormatter, bu
 from lifeos_cli.cli_support.resources.area.parser import build_area_parser
 from lifeos_cli.cli_support.resources.data.parser import build_data_parser
 from lifeos_cli.cli_support.resources.event.parser import build_event_parser
+from lifeos_cli.cli_support.resources.finance.parser import build_finance_parser
 from lifeos_cli.cli_support.resources.habit.parser import build_habit_parser
 from lifeos_cli.cli_support.resources.habit_action.parser import build_habit_action_parser
 from lifeos_cli.cli_support.resources.note.parser import build_note_parser
@@ -210,6 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_data_parser(subparsers)
     build_area_parser(subparsers)
     build_event_parser(subparsers)
+    build_finance_parser(subparsers)
     build_schedule_parser(subparsers)
     build_tag_parser(subparsers)
     build_people_parser(subparsers)

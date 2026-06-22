@@ -93,6 +93,7 @@ The current command tree is organized around a few stable families:
 
 - planning resources such as `area`, `vision`, `task`, `note`, `people`, and `tag`
 - scheduling and tracking resources such as `event`, `schedule`, `timelog`, `habit`, and `habit-action`
+- financial reality resources such as `finance`
 - system and portability commands such as `init`, `config`, `db`, and `data`
 
 Use `lifeos <resource> --help` to enter one family and then follow the resource-level help into the action or namespace you need.
