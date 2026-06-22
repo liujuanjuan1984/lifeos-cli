@@ -1,0 +1,125 @@
+import type { FinanceRateSnapshot, FinanceSnapshot, FinanceTreeNode } from "@/services/api/finance";
+import type { UUID } from "@/types/primitive";
+import { formatDate, formatDateTime } from "@/utils/datetime";
+
+import type { TreeNodeWithChildren } from "./types";
+
+export const todayDate = () => new Date().toISOString().slice(0, 10);
+
+export const nowDateTimeLocal = () => {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
+export const localDateTimeToIso = (value: string) => {
+  if (!value) return null;
+  return new Date(value).toISOString();
+};
+
+export const isoToDateTimeLocal = (value?: string | null) => {
+  if (!value) return nowDateTimeLocal();
+  const date = new Date(value);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
+export const isoToDateInput = (value?: string | null) => {
+  if (!value) return todayDate();
+  const date = new Date(value);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
+};
+
+export const dateToStartIso = (value: string) => {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00`).toISOString();
+};
+
+export const dateToEndIso = (value: string) => {
+  if (!value) return null;
+  return new Date(`${value}T23:59:59`).toISOString();
+};
+
+export const formatMoney = (value?: string | null, currency = "") => {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) {
+    return `${value ?? "0"} ${currency}`.trim();
+  }
+  return `${numeric.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${currency}`.trim();
+};
+
+export const buildTree = (nodes: FinanceTreeNode[]): TreeNodeWithChildren[] => {
+  const sorted = [...nodes].sort((a, b) => {
+    if (a.path !== b.path) return a.path.localeCompare(b.path);
+    return a.display_order - b.display_order;
+  });
+  const map = new Map<UUID, TreeNodeWithChildren>();
+  sorted.forEach((node) => {
+    map.set(node.id, { ...node, children: [] });
+  });
+  const roots: TreeNodeWithChildren[] = [];
+  sorted.forEach((node) => {
+    const current = map.get(node.id);
+    if (!current) return;
+    if (node.parent_id && map.has(node.parent_id)) {
+      map.get(node.parent_id)?.children.push(current);
+      return;
+    }
+    roots.push(current);
+  });
+  return roots;
+};
+
+export const flattenTree = (nodes: TreeNodeWithChildren[]): TreeNodeWithChildren[] => {
+  const result: TreeNodeWithChildren[] = [];
+  const walk = (items: TreeNodeWithChildren[]) => {
+    items.forEach((item) => {
+      result.push(item);
+      walk(item.children);
+    });
+  };
+  walk(nodes);
+  return result;
+};
+
+export function snapshotLabel(snapshot: FinanceSnapshot) {
+  if (snapshot.period_start && snapshot.period_end) {
+    return `${formatDate(snapshot.period_start)} - ${formatDate(snapshot.period_end)}`;
+  }
+  if (snapshot.snapshot_ts) {
+    return formatDateTime(snapshot.snapshot_ts);
+  }
+  return snapshot.created_at;
+}
+
+export function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
+  const pairs = (snapshot.entries ?? [])
+    .slice(0, 3)
+    .map((entry) => `${entry.base_currency}/${entry.quote_currency}`)
+    .join(", ");
+  return pairs
+    ? `${formatDateTime(snapshot.captured_at)} · ${pairs}`
+    : formatDateTime(snapshot.captured_at);
+}
+
+export function rateEntryEquation(entry: NonNullable<FinanceRateSnapshot["entries"]>[number]) {
+  return `1 ${entry.base_currency} = ${entry.rate} ${entry.quote_currency}`;
+}
+
+export function getRequiredRateCurrencies(
+  nodes: TreeNodeWithChildren[],
+  primaryCurrency: string,
+): string[] {
+  const normalizedPrimary = primaryCurrency.toUpperCase();
+  return Array.from(
+    new Set(
+      nodes
+        .map((node) => (node.currency_code || normalizedPrimary).toUpperCase())
+        .filter((currency) => currency && currency !== normalizedPrimary),
+    ),
+  ).sort();
+}
