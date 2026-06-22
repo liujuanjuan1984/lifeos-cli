@@ -278,4 +278,3 @@ export function SnapshotNavigator({
     </header>
   );
 }
-
