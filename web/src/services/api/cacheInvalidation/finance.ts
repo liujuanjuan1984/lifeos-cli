@@ -43,6 +43,16 @@ export const invalidateFinanceSnapshot = (
     exact: true,
   });
 
+export const invalidateAllFinanceSnapshots = (queryClient: QueryClient) =>
+  Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: [...financeKeys.all, "snapshots"],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: [...financeKeys.all, "snapshot"],
+    }),
+  ]);
+
 export const setFinanceSnapshotCache = (
   queryClient: QueryClient,
   snapshot: FinanceSnapshot,
@@ -123,4 +133,54 @@ export const addFinanceRateSnapshotToListCache = (
       };
     },
   );
+};
+
+export const setFinanceRateSnapshotInListCache = (
+  queryClient: QueryClient,
+  rateSnapshot: FinanceRateSnapshot,
+) => {
+  queryClient.setQueryData<FinanceRateSnapshotListResponse>(
+    financeKeys.rateSnapshots(),
+    (existing) => {
+      if (!existing) return existing;
+      return {
+        ...existing,
+        items: existing.items.map((item) =>
+          item.id === rateSnapshot.id ? rateSnapshot : item,
+        ),
+      };
+    },
+  );
+};
+
+export const removeFinanceRateSnapshotFromListCache = (
+  queryClient: QueryClient,
+  rateSnapshotId: UUID,
+) => {
+  queryClient.setQueryData<FinanceRateSnapshotListResponse>(
+    financeKeys.rateSnapshots(),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== rateSnapshotId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
+};
+
+export const removeFinanceRateSnapshotCache = (
+  queryClient: QueryClient,
+  rateSnapshotId: UUID,
+) => {
+  queryClient.removeQueries({
+    queryKey: financeKeys.rateSnapshot(rateSnapshotId),
+    exact: true,
+  });
 };

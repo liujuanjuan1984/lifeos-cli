@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
@@ -91,6 +92,17 @@ class FinanceRateSnapshotEntryInput:
     captured_at: datetime | None = None
     is_derived: bool = False
     metadata: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class RateResolution:
+    """Resolved conversion rate with auditable source path metadata."""
+
+    rate: Decimal
+    derived: bool
+    source_entries: tuple[FinanceRateSnapshotEntry, ...]
+    path: tuple[str, ...]
+    source_pairs: tuple[str, ...]
 
 
 def normalize_finance_purpose(purpose: str) -> str:
@@ -714,6 +726,25 @@ async def create_finance_rate_snapshot(
     session.add(rate_snapshot)
     await session.flush()
 
+    await _create_finance_rate_snapshot_entries(
+        session,
+        rate_snapshot=rate_snapshot,
+        entries=entries,
+    )
+
+    await session.flush()
+    await session.refresh(rate_snapshot)
+    reloaded = await get_finance_rate_snapshot(session, rate_snapshot_id=rate_snapshot.id)
+    return reloaded or rate_snapshot
+
+
+async def _create_finance_rate_snapshot_entries(
+    session: AsyncSession,
+    *,
+    rate_snapshot: FinanceRateSnapshot,
+    entries: list[FinanceRateSnapshotEntryInput],
+) -> None:
+    """Add validated rate entries to one exchange-rate snapshot."""
     seen_pairs: set[tuple[str, str]] = set()
     for entry_input in entries:
         base_currency = normalize_currency_code(entry_input.base_currency)
@@ -737,11 +768,6 @@ async def create_finance_rate_snapshot(
             metadata_json=entry_input.metadata,
         )
         session.add(rate_entry)
-
-    await session.flush()
-    await session.refresh(rate_snapshot)
-    reloaded = await get_finance_rate_snapshot(session, rate_snapshot_id=rate_snapshot.id)
-    return reloaded or rate_snapshot
 
 
 async def get_finance_rate_snapshot(
@@ -807,41 +833,240 @@ async def count_finance_rate_snapshots(
     return int((await session.execute(stmt)).scalar_one())
 
 
+async def update_finance_rate_snapshot(
+    session: AsyncSession,
+    *,
+    rate_snapshot_id: UUID,
+    captured_at: datetime | None = None,
+    source: str | None = None,
+    note: str | None = None,
+    entries: list[FinanceRateSnapshotEntryInput] | None = None,
+    metadata: dict[str, Any] | None = None,
+    update_captured_at: bool = False,
+    update_source: bool = False,
+    update_note: bool = False,
+    update_entries: bool = False,
+    update_metadata: bool = False,
+) -> FinanceRateSnapshot:
+    """Update one exchange-rate snapshot and optionally replace its entries."""
+    rate_snapshot = await get_finance_rate_snapshot(
+        session,
+        rate_snapshot_id=rate_snapshot_id,
+    )
+    if rate_snapshot is None:
+        raise FinanceRateSnapshotNotFoundError(
+            f"Finance rate snapshot {rate_snapshot_id} was not found"
+        )
+
+    if update_captured_at:
+        rate_snapshot.captured_at = captured_at or utc_now()
+    if update_source:
+        rate_snapshot.source = _rate_snapshot_source(source)
+    if update_note:
+        rate_snapshot.note = note
+    if update_metadata:
+        rate_snapshot.metadata_json = metadata
+
+    if update_entries:
+        if entries is None or not entries:
+            raise FinanceValidationError("Finance rate snapshot requires at least one rate entry")
+        for entry in rate_snapshot.entries:
+            if entry.deleted_at is None:
+                entry.soft_delete()
+        await session.flush()
+        await _create_finance_rate_snapshot_entries(
+            session,
+            rate_snapshot=rate_snapshot,
+            entries=entries,
+        )
+
+    await session.flush()
+    session.expire(rate_snapshot, ["entries"])
+    reloaded = await get_finance_rate_snapshot(session, rate_snapshot_id=rate_snapshot.id)
+    resolved_rate_snapshot = reloaded or rate_snapshot
+    await _recalculate_finance_snapshots_for_rate_snapshot(
+        session,
+        rate_snapshot=resolved_rate_snapshot,
+    )
+    refreshed = await get_finance_rate_snapshot(session, rate_snapshot_id=rate_snapshot.id)
+    return refreshed or resolved_rate_snapshot
+
+
+async def delete_finance_rate_snapshot(
+    session: AsyncSession,
+    *,
+    rate_snapshot_id: UUID,
+) -> None:
+    """Soft-delete an exchange-rate snapshot and its entries."""
+    rate_snapshot = await get_finance_rate_snapshot(
+        session,
+        rate_snapshot_id=rate_snapshot_id,
+    )
+    if rate_snapshot is None:
+        raise FinanceRateSnapshotNotFoundError(
+            f"Finance rate snapshot {rate_snapshot_id} was not found"
+        )
+    await _recalculate_finance_snapshots_for_rate_snapshot(
+        session,
+        rate_snapshot=rate_snapshot,
+        clear_rate_snapshot=True,
+    )
+    for entry in rate_snapshot.entries:
+        if entry.deleted_at is None:
+            entry.soft_delete()
+    rate_snapshot.soft_delete()
+    await session.flush()
+
+
+def _manual_snapshot_entry_inputs(snapshot: FinanceSnapshot) -> list[FinanceSnapshotEntryInput]:
+    return [
+        FinanceSnapshotEntryInput(
+            node_id=entry.node_id,
+            amount=entry.amount,
+            currency_code=entry.currency_code,
+            note=entry.note,
+        )
+        for entry in sorted(snapshot.entries, key=lambda item: item.created_at)
+        if entry.deleted_at is None and not entry.is_auto_generated
+    ]
+
+
+async def _recalculate_finance_snapshots_for_rate_snapshot(
+    session: AsyncSession,
+    *,
+    rate_snapshot: FinanceRateSnapshot,
+    clear_rate_snapshot: bool = False,
+) -> None:
+    """Recompute snapshots that are linked to a changed exchange-rate snapshot."""
+    stmt = (
+        select(FinanceSnapshot)
+        .options(
+            selectinload(FinanceSnapshot.entries),
+            selectinload(FinanceSnapshot.tree),
+        )
+        .where(
+            FinanceSnapshot.rate_snapshot_id == rate_snapshot.id,
+            FinanceSnapshot.deleted_at.is_(None),
+        )
+        .order_by(FinanceSnapshot.created_at.asc())
+    )
+    snapshots = list((await session.execute(stmt)).scalars())
+    for snapshot in snapshots:
+        tree = snapshot.tree or await get_finance_tree(session, tree_id=snapshot.tree_id)
+        if tree is None:
+            raise FinanceTreeNotFoundError(f"Finance tree {snapshot.tree_id} was not found")
+        if clear_rate_snapshot:
+            snapshot.rate_snapshot_id = None
+            snapshot.rate_snapshot_policy = "none"
+            selected_rate_snapshot = None
+        else:
+            snapshot.rate_snapshot_id = rate_snapshot.id
+            snapshot.rate_snapshot_policy = "selected"
+            selected_rate_snapshot = rate_snapshot
+        await _rebuild_finance_snapshot_entries(
+            session,
+            snapshot=snapshot,
+            tree=tree,
+            entries=_manual_snapshot_entry_inputs(snapshot),
+            rate_snapshot=selected_rate_snapshot,
+        )
+
+
+def _active_rate_entries(rate_snapshot: FinanceRateSnapshot) -> list[FinanceRateSnapshotEntry]:
+    return sorted(
+        (entry for entry in rate_snapshot.entries if entry.deleted_at is None),
+        key=lambda entry: (
+            entry.base_currency,
+            entry.quote_currency,
+            entry.created_at,
+            str(entry.id),
+        ),
+    )
+
+
 def _resolve_rate(
     rate_snapshot: FinanceRateSnapshot | None,
     *,
     base_currency: str,
     quote_currency: str,
-) -> tuple[Decimal, bool, FinanceRateSnapshotEntry | None]:
-    if base_currency == quote_currency:
-        return Decimal("1"), False, None
+) -> RateResolution:
+    base = normalize_currency_code(base_currency)
+    quote = normalize_currency_code(quote_currency)
+    if base == quote:
+        return RateResolution(
+            rate=Decimal("1"),
+            derived=False,
+            source_entries=(),
+            path=(base,),
+            source_pairs=(),
+        )
     if rate_snapshot is None:
         raise FinanceValidationError(
-            f"Finance snapshot requires a rate snapshot for {base_currency}/{quote_currency}"
+            f"Finance snapshot requires a rate snapshot for {base}/{quote}"
         )
-    entries = [entry for entry in rate_snapshot.entries if entry.deleted_at is None]
-    direct = next(
-        (
-            entry
-            for entry in entries
-            if entry.base_currency == base_currency and entry.quote_currency == quote_currency
-        ),
-        None,
-    )
-    if direct is not None:
-        return _validate_rate(direct.rate), False, direct
-    inverse = next(
-        (
-            entry
-            for entry in entries
-            if entry.base_currency == quote_currency and entry.quote_currency == base_currency
-        ),
-        None,
-    )
-    if inverse is not None:
-        return Decimal("1") / _validate_rate(inverse.rate), True, inverse
+
+    graph: dict[
+        str,
+        list[tuple[str, Decimal, bool, FinanceRateSnapshotEntry, str]],
+    ] = {}
+    for entry in _active_rate_entries(rate_snapshot):
+        rate = _validate_rate(entry.rate)
+        entry_base = normalize_currency_code(entry.base_currency)
+        entry_quote = normalize_currency_code(entry.quote_currency)
+        graph.setdefault(entry_base, []).append(
+            (entry_quote, rate, False, entry, f"{entry_base}/{entry_quote}")
+        )
+        graph.setdefault(entry_quote, []).append(
+            (entry_base, Decimal("1") / rate, True, entry, f"{entry_quote}/{entry_base}")
+        )
+
+    queue: deque[
+        tuple[
+            str,
+            Decimal,
+            tuple[FinanceRateSnapshotEntry, ...],
+            tuple[str, ...],
+            tuple[str, ...],
+            bool,
+        ]
+    ] = deque([(base, Decimal("1"), (), (), (base,), False)])
+    visited = {base}
+
+    while queue:
+        currency, rate, source_entries, source_pairs, path, uses_inverse = queue.popleft()
+        for next_currency, edge_rate, edge_inverse, source_entry, source_pair in sorted(
+            graph.get(currency, []),
+            key=lambda edge: (edge[2], edge[0], edge[4]),
+        ):
+            if next_currency in visited:
+                continue
+            next_rate = rate * edge_rate
+            next_source_entries = source_entries + (source_entry,)
+            next_source_pairs = source_pairs + (source_pair,)
+            next_path = path + (next_currency,)
+            next_uses_inverse = uses_inverse or edge_inverse
+            if next_currency == quote:
+                return RateResolution(
+                    rate=next_rate,
+                    derived=next_uses_inverse or len(next_source_entries) > 1,
+                    source_entries=next_source_entries,
+                    path=next_path,
+                    source_pairs=next_source_pairs,
+                )
+            visited.add(next_currency)
+            queue.append(
+                (
+                    next_currency,
+                    next_rate,
+                    next_source_entries,
+                    next_source_pairs,
+                    next_path,
+                    next_uses_inverse,
+                )
+            )
+
     raise FinanceValidationError(
-        f"Rate snapshot {rate_snapshot.id} does not include {base_currency}/{quote_currency}"
+        f"Rate snapshot {rate_snapshot.id} does not include a path for {base}/{quote}"
     )
 
 
@@ -850,7 +1075,7 @@ def _find_rate(
     *,
     base_currency: str,
     quote_currency: str,
-) -> tuple[Decimal, bool, FinanceRateSnapshotEntry | None] | None:
+) -> RateResolution | None:
     try:
         return _resolve_rate(
             rate_snapshot,
@@ -883,7 +1108,7 @@ def _rate_usage_payload(
     *,
     primary_currency: str,
     rate_snapshot: FinanceRateSnapshot | None,
-    used_rates: dict[str, tuple[Decimal, bool, FinanceRateSnapshotEntry | None]],
+    used_rates: dict[str, RateResolution],
 ) -> dict[str, Any] | None:
     if not used_rates:
         return None
@@ -895,16 +1120,23 @@ def _rate_usage_payload(
             currency: {
                 "base_currency": currency,
                 "quote_currency": primary_currency,
-                "rate": _format_rate(rate),
-                "derived": derived,
-                "source_rate_entry_id": str(source_entry.id) if source_entry is not None else None,
-                "source_pair": (
-                    f"{source_entry.base_currency}/{source_entry.quote_currency}"
-                    if source_entry is not None
-                    else f"{currency}/{primary_currency}"
+                "rate": _format_rate(resolution.rate),
+                "derived": resolution.derived,
+                "source_rate_entry_id": (
+                    str(resolution.source_entries[0].id)
+                    if len(resolution.source_entries) == 1
+                    else None
                 ),
+                "source_pair": " -> ".join(resolution.source_pairs)
+                if resolution.source_pairs
+                else f"{currency}/{primary_currency}",
+                "source_rate_entry_ids": [
+                    str(source_entry.id) for source_entry in resolution.source_entries
+                ],
+                "source_pairs": list(resolution.source_pairs),
+                "path": list(resolution.path),
             }
-            for currency, (rate, derived, source_entry) in sorted(used_rates.items())
+            for currency, resolution in sorted(used_rates.items())
         },
     }
 
@@ -1003,7 +1235,7 @@ async def _rebuild_finance_snapshot_entries(
     entry_nodes = await _load_entry_nodes(session, tree_id=tree.id, entries=entries)
     snapshot_entries: list[FinanceSnapshotEntry] = []
     entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
-    used_rates: dict[str, tuple[Decimal, bool, FinanceRateSnapshotEntry | None]] = {}
+    used_rates: dict[str, RateResolution] = {}
     missing_rate_currencies: set[str] = set()
     for entry_input in entries:
         node = entry_nodes[entry_input.node_id]
@@ -1023,9 +1255,9 @@ async def _rebuild_finance_snapshot_entries(
                 if currency_code != snapshot.primary_currency:
                     missing_rate_currencies.add(currency_code)
             else:
-                rate, derived, source_entry = rate_match
+                rate = rate_match.rate
                 if currency_code != snapshot.primary_currency:
-                    used_rates[currency_code] = (rate, derived, source_entry)
+                    used_rates[currency_code] = rate_match
         else:
             rate = Decimal("1")
         amount_converted = _quantize_amount(amount * rate)

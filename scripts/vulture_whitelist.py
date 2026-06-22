@@ -33,6 +33,8 @@ _keep(
     list_rate_snapshots,
     create_rate_snapshot,
     get_rate_snapshot,
+    update_rate_snapshot,
+    delete_rate_snapshot,
     create_tree,
     ensure_default_tree,
     get_finance_tree,

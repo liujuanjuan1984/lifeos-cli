@@ -132,6 +132,16 @@ class FinanceRateSnapshotCreate(BaseModel):
     entries: list[FinanceRateSnapshotEntryCreate] = Field(default_factory=list)
 
 
+class FinanceRateSnapshotUpdate(BaseModel):
+    """Payload for updating mutable exchange-rate snapshot fields."""
+
+    captured_at: datetime | None = None
+    source: str | None = None
+    note: str | None = None
+    metadata: dict[str, Any] | None = None
+    entries: list[FinanceRateSnapshotEntryCreate] | None = None
+
+
 def _page_envelope(
     *,
     items: list[dict[str, object]],
@@ -475,6 +485,62 @@ async def get_rate_snapshot(
             detail=f"Finance rate snapshot {rate_snapshot_id} was not found",
         )
     return _rate_snapshot_payload(rate_snapshot)
+
+
+@router.patch("/rate-snapshots/{rate_snapshot_id}")
+async def update_rate_snapshot(
+    rate_snapshot_id: UUID,
+    payload: FinanceRateSnapshotUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update an exchange-rate snapshot."""
+    provided_fields = payload.model_fields_set
+    try:
+        rate_snapshot = await finance_services.update_finance_rate_snapshot(
+            session,
+            rate_snapshot_id=rate_snapshot_id,
+            captured_at=payload.captured_at,
+            source=payload.source,
+            note=payload.note,
+            metadata=payload.metadata,
+            entries=[
+                finance_services.FinanceRateSnapshotEntryInput(
+                    base_currency=entry.base_currency,
+                    quote_currency=entry.quote_currency,
+                    rate=entry.rate,
+                    source=entry.source,
+                    captured_at=entry.captured_at,
+                    is_derived=entry.is_derived,
+                    metadata=entry.metadata,
+                )
+                for entry in payload.entries
+            ]
+            if payload.entries is not None
+            else None,
+            update_captured_at="captured_at" in provided_fields,
+            update_source="source" in provided_fields,
+            update_note="note" in provided_fields,
+            update_metadata="metadata" in provided_fields,
+            update_entries="entries" in provided_fields,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _rate_snapshot_payload(rate_snapshot)
+
+
+@router.delete("/rate-snapshots/{rate_snapshot_id}", status_code=204)
+async def delete_rate_snapshot(rate_snapshot_id: UUID, session: SessionDep) -> Response:
+    """Delete an exchange-rate snapshot."""
+    try:
+        await finance_services.delete_finance_rate_snapshot(
+            session,
+            rate_snapshot_id=rate_snapshot_id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=204)
 
 
 @router.post("/trees")

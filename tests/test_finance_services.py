@@ -254,6 +254,160 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
     asyncio.run(run())
 
 
+def test_finance_snapshot_uses_chained_rates_and_follows_rate_snapshot_updates() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                btc = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="BTC",
+                    currency_code="BTC",
+                )
+                cny = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="CNY",
+                    currency_code="CNY",
+                )
+                usdt = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="USDT",
+                    currency_code="USDT",
+                )
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="BTC",
+                            quote_currency="USDT",
+                            rate=Decimal("64123.56"),
+                        ),
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="USDT",
+                            quote_currency="CNY",
+                            rate=Decimal("6.6"),
+                        ),
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="USDT",
+                            quote_currency="USD",
+                            rate=Decimal("0.98"),
+                        ),
+                    ],
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    rate_snapshot_id=rate_snapshot.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=btc.id,
+                            amount=Decimal("0.1"),
+                            currency_code="BTC",
+                        ),
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=cny.id,
+                            amount=Decimal("660"),
+                            currency_code="CNY",
+                        ),
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=usdt.id,
+                            amount=Decimal("100"),
+                            currency_code="USDT",
+                        ),
+                    ],
+                )
+
+                assert snapshot.summary is not None
+                assert snapshot.summary["aggregation_mode"] == "converted"
+                assert snapshot.summary["missing_rate_currencies"] == []
+                assert snapshot.net_amount == Decimal("6480.10888000")
+                assert snapshot.exchange_rates is not None
+                assert snapshot.exchange_rates["rates"]["BTC"]["path"] == [
+                    "BTC",
+                    "USDT",
+                    "USD",
+                ]
+                assert snapshot.exchange_rates["rates"]["BTC"]["derived"] is True
+                assert snapshot.exchange_rates["rates"]["CNY"]["path"] == [
+                    "CNY",
+                    "USDT",
+                    "USD",
+                ]
+                assert snapshot.exchange_rates["rates"]["CNY"]["derived"] is True
+                assert snapshot.exchange_rates["rates"]["USDT"]["path"] == ["USDT", "USD"]
+                assert snapshot.exchange_rates["rates"]["USDT"]["derived"] is False
+
+                await finance.update_finance_rate_snapshot(
+                    session,
+                    rate_snapshot_id=rate_snapshot.id,
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="BTC",
+                            quote_currency="USDT",
+                            rate=Decimal("1000"),
+                        ),
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="USDT",
+                            quote_currency="CNY",
+                            rate=Decimal("10"),
+                        ),
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="USDT",
+                            quote_currency="USD",
+                            rate=Decimal("2"),
+                        ),
+                    ],
+                    update_entries=True,
+                )
+                recalculated = await finance.get_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                )
+                assert recalculated is not None
+                assert recalculated.net_amount == Decimal("532.00000000")
+                assert recalculated.summary is not None
+                assert recalculated.summary["aggregation_mode"] == "converted"
+
+                await finance.delete_finance_rate_snapshot(
+                    session,
+                    rate_snapshot_id=rate_snapshot.id,
+                )
+                cleared = await finance.get_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                )
+                assert cleared is not None
+                assert cleared.rate_snapshot_id is None
+                assert cleared.rate_snapshot_policy == "none"
+                assert cleared.net_amount == Decimal("0E-8")
+                assert cleared.exchange_rates is None
+                assert cleared.summary is not None
+                assert cleared.summary["aggregation_mode"] == "native_by_currency"
+                assert cleared.summary["amounts_by_currency"]["BTC"]["net_amount"] == "0.10000000"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_snapshot_with_incomplete_rate_snapshot_keeps_native_totals() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
@@ -310,6 +464,78 @@ def test_finance_snapshot_with_incomplete_rate_snapshot_keeps_native_totals() ->
                 assert snapshot.summary["net_amount"] == "0E-8"
                 assert snapshot.summary["missing_rate_currencies"] == ["EUR"]
                 assert snapshot.summary["amounts_by_currency"]["EUR"]["net_amount"] == "8.00000000"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_rate_snapshot_can_be_updated_and_deleted() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                rate_snapshot = await finance.create_finance_rate_snapshot(
+                    session,
+                    captured_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    source="manual",
+                    note="Initial rates",
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="BTC",
+                            quote_currency="USD",
+                            rate=Decimal("67000"),
+                        )
+                    ],
+                )
+
+                updated = await finance.update_finance_rate_snapshot(
+                    session,
+                    rate_snapshot_id=rate_snapshot.id,
+                    captured_at=datetime(2026, 6, 2, tzinfo=timezone.utc),
+                    source="import",
+                    note="Updated rates",
+                    entries=[
+                        finance.FinanceRateSnapshotEntryInput(
+                            base_currency="ETH",
+                            quote_currency="USD",
+                            rate=Decimal("3500"),
+                        )
+                    ],
+                    update_captured_at=True,
+                    update_source=True,
+                    update_note=True,
+                    update_entries=True,
+                )
+
+                assert updated.source == "import"
+                assert updated.note == "Updated rates"
+                assert len(updated.entries) == 1
+                assert updated.entries[0].base_currency == "ETH"
+                assert updated.entries[0].quote_currency == "USD"
+                assert updated.entries[0].rate == Decimal("3500.000000000000")
+
+                await finance.delete_finance_rate_snapshot(
+                    session,
+                    rate_snapshot_id=rate_snapshot.id,
+                )
+
+                assert (
+                    await finance.get_finance_rate_snapshot(
+                        session,
+                        rate_snapshot_id=rate_snapshot.id,
+                    )
+                    is None
+                )
+                assert await finance.count_finance_rate_snapshots(session) == 0
+                deleted = await finance.get_finance_rate_snapshot(
+                    session,
+                    rate_snapshot_id=rate_snapshot.id,
+                    include_deleted=True,
+                )
+                assert deleted is not None
+                assert deleted.deleted_at is not None
+                assert all(entry.deleted_at is not None for entry in deleted.entries)
         finally:
             await engine.dispose()
 

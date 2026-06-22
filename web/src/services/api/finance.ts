@@ -183,6 +183,14 @@ export interface FinanceRateSnapshotCreate {
   entries: FinanceRateSnapshotEntryCreate[];
 }
 
+export interface FinanceRateSnapshotUpdate {
+  captured_at?: string | null;
+  source?: string | null;
+  note?: string | null;
+  metadata?: Record<string, unknown> | null;
+  entries?: FinanceRateSnapshotEntryCreate[];
+}
+
 export type FinanceTreeListResponse = ListResponse<
   FinanceTree,
   { purpose?: string | null; include_deleted?: boolean }
@@ -241,6 +249,16 @@ export const financeApi = {
       ENDPOINTS.FINANCE.RATE_SNAPSHOTS,
       payload,
     ),
+  updateRateSnapshot: (
+    rateSnapshotId: UUID,
+    payload: FinanceRateSnapshotUpdate,
+  ) =>
+    http.patch<FinanceRateSnapshot>(
+      ENDPOINTS.FINANCE.RATE_SNAPSHOT_BY_ID(rateSnapshotId),
+      payload,
+    ),
+  deleteRateSnapshot: (rateSnapshotId: UUID) =>
+    http.delete<void>(ENDPOINTS.FINANCE.RATE_SNAPSHOT_BY_ID(rateSnapshotId)),
   getRateSnapshot: (rateSnapshotId: UUID) =>
     http.get<FinanceRateSnapshot>(
       ENDPOINTS.FINANCE.RATE_SNAPSHOT_BY_ID(rateSnapshotId),

@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import ActionButton, { CreateNewButton } from "@/components/ActionButton";
+import ActionButton, {
+  CreateNewButton,
+  DeleteButton,
+  EditButton,
+} from "@/components/ActionButton";
 import Badge from "@/components/common/Badge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
@@ -21,6 +25,7 @@ import {
   type FinancePurpose,
   type FinanceRateSnapshot,
   type FinanceRateSnapshotCreate,
+  type FinanceRateSnapshotUpdate,
   type FinanceSnapshot,
   type FinanceSnapshotEntryCreate,
   type FinanceTree,
@@ -28,14 +33,18 @@ import {
 } from "@/services/api/finance";
 import {
   addFinanceRateSnapshotToListCache,
+  invalidateAllFinanceSnapshots,
   invalidateFinanceAssets,
   invalidateFinanceRateSnapshots,
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
+  removeFinanceRateSnapshotCache,
+  removeFinanceRateSnapshotFromListCache,
   removeFinanceSnapshotCache,
   removeFinanceSnapshotFromListCache,
   setFinanceRateSnapshotCache,
+  setFinanceRateSnapshotInListCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
 import { financeKeys } from "@/services/api/queryKeys";
@@ -57,6 +66,13 @@ type TreeNodeWithChildren = FinanceTreeNode & {
 
 type SnapshotAmountState = Record<UUID, string>;
 type SnapshotNoteState = Record<UUID, string>;
+type RateSnapshotFormMode = "create" | "edit";
+type RateRowState = {
+  baseAmount: string;
+  baseCurrency: string;
+  quoteAmount: string;
+  quoteCurrency: string;
+};
 type FinanceNodeFormState =
   | { mode: "create"; parentId?: UUID | null }
   | { mode: "edit"; node: TreeNodeWithChildren };
@@ -178,6 +194,10 @@ function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
   return pairs
     ? `${formatDateTime(snapshot.captured_at)} · ${pairs}`
     : formatDateTime(snapshot.captured_at);
+}
+
+function rateEntryEquation(entry: NonNullable<FinanceRateSnapshot["entries"]>[number]) {
+  return `1 ${entry.base_currency} = ${entry.rate} ${entry.quote_currency}`;
 }
 
 function FinancePage() {
@@ -628,6 +648,12 @@ function RateSnapshotsWorkspace() {
   const [assetManagerOpen, setAssetManagerOpen] = useState(false);
   const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | null>(null);
   const [rateFormVisible, setRateFormVisible] = useState(false);
+  const [rateFormMode, setRateFormMode] = useState<RateSnapshotFormMode>("create");
+  const [pendingDeleteRateSnapshot, setPendingDeleteRateSnapshot] =
+    useState<FinanceRateSnapshot | null>(null);
+  const [deletedRateSnapshotIds, setDeletedRateSnapshotIds] = useState<Set<UUID>>(
+    () => new Set(),
+  );
   const [assetCode, setAssetCode] = useState("");
   const [assetName, setAssetName] = useState("");
   const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
@@ -636,7 +662,7 @@ function RateSnapshotsWorkspace() {
   const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
   const [source, setSource] = useState("manual");
   const [note, setNote] = useState("");
-  const [rateRows, setRateRows] = useState([
+  const [rateRows, setRateRows] = useState<RateRowState[]>([
     { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
   ]);
 
@@ -655,11 +681,76 @@ function RateSnapshotsWorkspace() {
       setNote("");
       setSelectedRateSnapshotId(rateSnapshot.id);
       setRateFormVisible(false);
+      setRateFormMode("create");
       setFinanceRateSnapshotCache(queryClient, rateSnapshot);
       addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
       await invalidateFinanceRateSnapshots(queryClient);
     },
     onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const updateRateSnapshotMutation = useMutation({
+    mutationFn: ({
+      rateSnapshotId,
+      payload,
+    }: {
+      rateSnapshotId: UUID;
+      payload: FinanceRateSnapshotUpdate;
+    }) => financeApi.updateRateSnapshot(rateSnapshotId, payload),
+    onSuccess: async (rateSnapshot) => {
+      toast.showSuccess(t("finance.messages.rateSnapshotUpdated"));
+      setSelectedRateSnapshotId(rateSnapshot.id);
+      setRateFormVisible(false);
+      setRateFormMode("create");
+      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
+      setFinanceRateSnapshotInListCache(queryClient, rateSnapshot);
+      await Promise.all([
+        invalidateFinanceRateSnapshots(queryClient),
+        invalidateAllFinanceSnapshots(queryClient),
+      ]);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteRateSnapshotMutation = useMutation({
+    mutationFn: (rateSnapshotId: UUID) => financeApi.deleteRateSnapshot(rateSnapshotId),
+    onMutate: async (rateSnapshotId) => {
+      const deletedIndex = snapshots.findIndex((snapshot) => snapshot.id === rateSnapshotId);
+      const nextSnapshot = snapshots[deletedIndex + 1] ?? snapshots[deletedIndex - 1] ?? null;
+      await queryClient.cancelQueries({
+        queryKey: financeKeys.rateSnapshot(rateSnapshotId),
+        exact: true,
+      });
+      setDeletedRateSnapshotIds((existing) => new Set(existing).add(rateSnapshotId));
+      if (currentSnapshot?.id === rateSnapshotId) {
+        setSelectedRateSnapshotId(nextSnapshot?.id ?? null);
+      }
+      removeFinanceRateSnapshotFromListCache(queryClient, rateSnapshotId);
+      removeFinanceRateSnapshotCache(queryClient, rateSnapshotId);
+      return { previousSelectedRateSnapshotId: selectedRateSnapshotId };
+    },
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.rateSnapshotDeleted"));
+      setPendingDeleteRateSnapshot(null);
+      setRateFormVisible(false);
+      setRateFormMode("create");
+      await Promise.all([
+        invalidateFinanceRateSnapshots(queryClient),
+        invalidateAllFinanceSnapshots(queryClient),
+      ]);
+    },
+    onError: async (error, rateSnapshotId, context) => {
+      setDeletedRateSnapshotIds((existing) => {
+        const next = new Set(existing);
+        next.delete(rateSnapshotId);
+        return next;
+      });
+      setSelectedRateSnapshotId(context?.previousSelectedRateSnapshotId ?? null);
+      await invalidateFinanceRateSnapshots(queryClient);
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
     },
   });
@@ -750,15 +841,24 @@ function RateSnapshotsWorkspace() {
       toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
       return;
     }
-    createRateSnapshotMutation.mutate({
+    const payload = {
       captured_at: localDateTimeToIso(capturedAt),
       source: source.trim() || "manual",
       note: note.trim() || null,
       entries,
-    });
+    };
+    if (rateFormMode === "edit" && currentSnapshot) {
+      updateRateSnapshotMutation.mutate({
+        rateSnapshotId: currentSnapshot.id,
+        payload,
+      });
+      return;
+    }
+    createRateSnapshotMutation.mutate(payload);
   };
 
-  const snapshots = rateSnapshotsQuery.data?.items ?? [];
+  const rawSnapshots = rateSnapshotsQuery.data?.items ?? [];
+  const snapshots = rawSnapshots.filter((snapshot) => !deletedRateSnapshotIds.has(snapshot.id));
   const currentSnapshot =
     snapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? snapshots[0] ?? null;
   const currentPosition = currentSnapshot
@@ -774,6 +874,44 @@ function RateSnapshotsWorkspace() {
   const selectRateSnapshot = (snapshotId: UUID) => {
     setSelectedRateSnapshotId(snapshotId);
     setRateFormVisible(false);
+    setRateFormMode("create");
+  };
+
+  const resetRateSnapshotForm = () => {
+    setCapturedAt(nowDateTimeLocal());
+    setSource("manual");
+    setNote("");
+    setRateRows([
+      { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+    ]);
+  };
+
+  const openCreateRateSnapshotForm = () => {
+    resetRateSnapshotForm();
+    setRateFormMode("create");
+    setRateFormVisible(true);
+  };
+
+  const openEditRateSnapshotForm = () => {
+    if (!currentSnapshot) return;
+    setCapturedAt(isoToDateTimeLocal(currentSnapshot.captured_at));
+    setSource(currentSnapshot.source || "manual");
+    setNote(currentSnapshot.note ?? "");
+    setRateRows(
+      (currentSnapshot.entries ?? []).map((entry) => ({
+        baseAmount: "1",
+        baseCurrency: entry.base_currency,
+        quoteAmount: entry.rate,
+        quoteCurrency: entry.quote_currency,
+      })),
+    );
+    setRateFormMode("edit");
+    setRateFormVisible(true);
+  };
+
+  const closeRateSnapshotForm = () => {
+    setRateFormVisible(false);
+    setRateFormMode("create");
   };
 
   const moveRateSnapshot = (direction: -1 | 1) => {
@@ -787,83 +925,42 @@ function RateSnapshotsWorkspace() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2">
+      <SnapshotSelectorToolbar
+        badges={
+          <>
             <Badge tone="primary" variant="outline" size="sm">
               {t("finance.assets.title")}
             </Badge>
             <Badge tone="neutral" variant="outline" size="sm">
               {assets.length}
             </Badge>
-            <ActionButton
-              label={t("finance.tree.manage")}
-              onClick={() => setAssetManagerOpen(true)}
-              size="sm"
-              variant="outline"
-              iconName="settings"
-            />
-          </div>
-
-          <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
-            <ActionButton
-              label=""
-              iconName="chevron-left"
-              iconOnly
-              ariaLabel={t("finance.snapshot.previous")}
-              size="sm"
-              variant="ghost"
-              shape="circle"
-              onClick={() => moveRateSnapshot(-1)}
-              disabled={!snapshots.length || !hasPrevious}
-            />
-
-            <EnumSelect
-              value={currentSnapshot?.id ?? undefined}
-              onChange={(value) => {
-                if (value) selectRateSnapshot(String(value) as UUID);
-              }}
-              options={snapshotOptions}
-              placeholder={t("finance.rates.selectSnapshot")}
-              showLabel={false}
-              size="sm"
-              className="w-auto min-w-[12rem] sm:min-w-[16rem] max-w-full"
-              autoWidth
-              disabled={!snapshotOptions.length}
-            />
-
-            <ActionButton
-              label=""
-              iconName="chevron-right"
-              iconOnly
-              ariaLabel={t("finance.snapshot.next")}
-              size="sm"
-              variant="ghost"
-              shape="circle"
-              onClick={() => moveRateSnapshot(1)}
-              disabled={!snapshots.length || !hasNext}
-            />
-          </div>
-
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-            <CreateNewButton
-              label={t("finance.snapshot.new")}
-              onClick={() => setRateFormVisible(true)}
-              size="sm"
-              color="primary"
-              variant="solid"
-              ariaLabel={t("finance.snapshot.new")}
-            />
-          </div>
-        </div>
-        <p className="mt-3 text-sm text-base-content/70">{t("finance.rates.tabDescription")}</p>
-      </section>
+          </>
+        }
+        manageLabel={t("finance.tree.manage")}
+        manageAriaLabel={t("finance.assets.title")}
+        selectValue={currentSnapshot?.id ?? null}
+        selectOptions={snapshotOptions}
+        selectPlaceholder={t("finance.rates.selectSnapshot")}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        description={t("finance.rates.tabDescription")}
+        createLabel={t("finance.snapshot.new")}
+        onSelect={selectRateSnapshot}
+        onPrevious={() => moveRateSnapshot(-1)}
+        onNext={() => moveRateSnapshot(1)}
+        onManage={() => setAssetManagerOpen(true)}
+        onCreate={openCreateRateSnapshotForm}
+      />
 
       <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
         {rateFormVisible ? (
           <>
             <SnapshotNavigator
-              title={t("finance.rates.createSnapshot")}
+              title={
+                rateFormMode === "edit"
+                  ? t("finance.rates.editSnapshot")
+                  : t("finance.rates.createSnapshot")
+              }
               hasPrevious={false}
               hasNext={false}
               onPrevious={() => undefined}
@@ -871,10 +968,12 @@ function RateSnapshotsWorkspace() {
               rightSlot={
                 <ActionButton
                   label={t("common.cancel")}
-                  onClick={() => setRateFormVisible(false)}
+                  onClick={closeRateSnapshotForm}
                   size="sm"
                   variant="ghost"
-                  disabled={createRateSnapshotMutation.isPending}
+                  disabled={
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                  }
                 />
               }
             />
@@ -935,7 +1034,10 @@ function RateSnapshotsWorkspace() {
                           )
                         }
                         onCreateAsset={createAsset}
-                        disabled={createRateSnapshotMutation.isPending}
+                        disabled={
+                          createRateSnapshotMutation.isPending ||
+                          updateRateSnapshotMutation.isPending
+                        }
                       />
                       <span className="text-center text-base-content/60">=</span>
                       <TextInput
@@ -963,7 +1065,10 @@ function RateSnapshotsWorkspace() {
                           )
                         }
                         onCreateAsset={createAsset}
-                        disabled={createRateSnapshotMutation.isPending}
+                        disabled={
+                          createRateSnapshotMutation.isPending ||
+                          updateRateSnapshotMutation.isPending
+                        }
                       />
                       <ActionButton
                         type="button"
@@ -1007,14 +1112,18 @@ function RateSnapshotsWorkspace() {
                 <ActionButton
                   type="submit"
                   label={
-                    createRateSnapshotMutation.isPending
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
                       ? t("common.saving")
-                      : t("finance.rates.createSnapshot")
+                      : rateFormMode === "edit"
+                        ? t("finance.rates.saveSnapshot")
+                        : t("finance.rates.createSnapshot")
                   }
                   iconName="check"
                   color="primary"
                   variant="solid"
-                  disabled={createRateSnapshotMutation.isPending}
+                  disabled={
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                  }
                 />
               </div>
             </form>
@@ -1037,6 +1146,16 @@ function RateSnapshotsWorkspace() {
               hasNext={hasNext}
               onPrevious={() => moveRateSnapshot(-1)}
               onNext={() => moveRateSnapshot(1)}
+              rightSlot={
+                <SnapshotActionButtons
+                  editLabel={t("finance.rates.editSnapshot")}
+                  deleteLabel={t("finance.rates.deleteSnapshot")}
+                  disabled={deleteRateSnapshotMutation.isPending}
+                  deleteDisabled={deleteRateSnapshotMutation.isPending}
+                  onEdit={openEditRateSnapshotForm}
+                  onDelete={() => setPendingDeleteRateSnapshot(currentSnapshot)}
+                />
+              }
             />
             <div className="overflow-x-auto">
               <table className="table table-sm">
@@ -1044,25 +1163,31 @@ function RateSnapshotsWorkspace() {
                   <tr>
                     <th>{t("finance.rates.capturedAt")}</th>
                     <th>{t("finance.rates.source")}</th>
-                    <th>{t("finance.rates.rates")}</th>
+                    <th>{t("finance.rates.rate")}</th>
                     <th>{t("finance.rates.note")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>{formatDateTime(currentSnapshot.captured_at)}</td>
-                    <td>{currentSnapshot.source}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-1">
-                        {(currentSnapshot.entries ?? []).map((entry) => (
-                          <Badge key={entry.id} tone="neutral" variant="outline" size="xs">
-                            {entry.base_currency}/{entry.quote_currency} {entry.rate}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-                    <td>{currentSnapshot.note || "-"}</td>
-                  </tr>
+                  {(currentSnapshot.entries ?? []).map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{formatDateTime(entry.captured_at ?? currentSnapshot.captured_at)}</td>
+                      <td>{entry.source || currentSnapshot.source}</td>
+                      <td>
+                        <span className="font-medium tabular-nums">
+                          {rateEntryEquation(entry)}
+                        </span>
+                      </td>
+                      <td>{currentSnapshot.note || "-"}</td>
+                    </tr>
+                  ))}
+                  {!(currentSnapshot.entries ?? []).length ? (
+                    <tr>
+                      <td>{formatDateTime(currentSnapshot.captured_at)}</td>
+                      <td>{currentSnapshot.source}</td>
+                      <td className="text-base-content/40">-</td>
+                      <td>{currentSnapshot.note || "-"}</td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -1073,7 +1198,7 @@ function RateSnapshotsWorkspace() {
             <div className="mt-4 flex justify-center">
               <CreateNewButton
                 label={t("finance.snapshot.new")}
-                onClick={() => setRateFormVisible(true)}
+                onClick={openCreateRateSnapshotForm}
                 size="sm"
                 color="primary"
                 variant="solid"
@@ -1082,6 +1207,22 @@ function RateSnapshotsWorkspace() {
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteRateSnapshot)}
+        title={t("finance.rates.deleteTitle")}
+        message={t("finance.rates.deleteMessage", {
+          name: pendingDeleteRateSnapshot ? rateSnapshotLabel(pendingDeleteRateSnapshot) : "",
+        })}
+        confirmText={t("finance.rates.deleteConfirm")}
+        onCancel={() => setPendingDeleteRateSnapshot(null)}
+        onConfirm={() => {
+          if (pendingDeleteRateSnapshot) {
+            deleteRateSnapshotMutation.mutate(pendingDeleteRateSnapshot.id);
+          }
+        }}
+        loading={deleteRateSnapshotMutation.isPending}
+      />
 
       <ModalBase
         isOpen={assetManagerOpen}
@@ -1164,14 +1305,14 @@ function RateSnapshotsWorkspace() {
                                 label=""
                                 iconName="check"
                                 iconOnly
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
                                 ariaLabel={t("common.save")}
-                                disabled={updateAssetMutation.isPending}
+                                disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
                                 onClick={() =>
                                   updateAssetMutation.mutate({
                                     assetId: asset.id,
-                                    code: editingAssetCode,
+                                    code: editingAssetCode.trim().toUpperCase(),
                                     name: editingAssetName.trim() || null,
                                   })
                                 }
@@ -1180,7 +1321,7 @@ function RateSnapshotsWorkspace() {
                                 label=""
                                 iconName="x-mark"
                                 iconOnly
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
                                 ariaLabel={t("common.cancel")}
                                 onClick={() => setEditingAssetId(null)}
@@ -1192,7 +1333,7 @@ function RateSnapshotsWorkspace() {
                                 label=""
                                 iconName="edit"
                                 iconOnly
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
                                 ariaLabel={t("common.edit")}
                                 onClick={() => {
@@ -1205,11 +1346,11 @@ function RateSnapshotsWorkspace() {
                                 label=""
                                 iconName="trash"
                                 iconOnly
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
                                 color="error"
                                 ariaLabel={t("common.delete")}
-                                disabled={deleteAssetMutation.isPending}
+                                disabled={asset.is_default || deleteAssetMutation.isPending}
                                 onClick={() => deleteAssetMutation.mutate(asset.id)}
                               />
                             </>
@@ -1225,6 +1366,115 @@ function RateSnapshotsWorkspace() {
         </div>
       </ModalBase>
     </div>
+  );
+}
+function SnapshotSelectorToolbar({
+  badges,
+  manageLabel,
+  manageAriaLabel,
+  selectValue,
+  selectOptions,
+  selectPlaceholder,
+  hasPrevious,
+  hasNext,
+  description,
+  createLabel,
+  createDisabled,
+  onSelect,
+  onPrevious,
+  onNext,
+  onManage,
+  onCreate,
+}: {
+  badges: React.ReactNode;
+  manageLabel: string;
+  manageAriaLabel?: string;
+  selectValue?: UUID | null;
+  selectOptions: { value: UUID; label: string }[];
+  selectPlaceholder: string;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  description: string;
+  createLabel: string;
+  createDisabled?: boolean;
+  onSelect: (snapshotId: UUID) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  onManage: () => void;
+  onCreate: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {badges}
+          <ActionButton
+            label={manageLabel}
+            onClick={onManage}
+            size="sm"
+            variant="outline"
+            iconName="settings"
+            ariaLabel={manageAriaLabel ?? manageLabel}
+          />
+        </div>
+
+        <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
+          <ActionButton
+            label=""
+            iconName="chevron-left"
+            iconOnly
+            ariaLabel={t("finance.snapshot.previous")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onPrevious}
+            disabled={!selectOptions.length || !hasPrevious}
+          />
+
+          <EnumSelect
+            value={selectValue ?? undefined}
+            onChange={(value) => {
+              if (value) onSelect(String(value) as UUID);
+            }}
+            options={selectOptions}
+            placeholder={selectPlaceholder}
+            showLabel={false}
+            size="sm"
+            className="w-auto min-w-[12rem] sm:min-w-[16rem] max-w-full"
+            autoWidth
+            disabled={!selectOptions.length}
+          />
+
+          <ActionButton
+            label=""
+            iconName="chevron-right"
+            iconOnly
+            ariaLabel={t("finance.snapshot.next")}
+            size="sm"
+            variant="ghost"
+            shape="circle"
+            onClick={onNext}
+            disabled={!selectOptions.length || !hasNext}
+          />
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <CreateNewButton
+            label={createLabel}
+            onClick={onCreate}
+            size="sm"
+            color="primary"
+            variant="solid"
+            disabled={createDisabled}
+            ariaLabel={createLabel}
+          />
+        </div>
+      </div>
+
+      <p className="mt-3 text-sm text-base-content/70">{description}</p>
+    </section>
   );
 }
 
@@ -1262,79 +1512,67 @@ function SnapshotToolbar({
   }));
 
   return (
-    <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+    <SnapshotSelectorToolbar
+      badges={
+        <>
           <Badge tone="primary" variant="outline" size="sm">
             {tree.name}
           </Badge>
           <Badge tone="neutral" variant="outline" size="sm">
             {tree.primary_currency}
           </Badge>
-          <ActionButton
-            label={t("finance.tree.manage")}
-            onClick={onManageTree}
-            size="sm"
-            variant="outline"
-            iconName="settings"
-          />
-        </div>
+        </>
+      }
+      manageLabel={t("finance.tree.manage")}
+      selectValue={selectedSnapshotId}
+      selectOptions={options}
+      selectPlaceholder={t("finance.snapshot.selectSnapshot")}
+      hasPrevious={hasPrevious}
+      hasNext={hasNext}
+      description={t(preset.descriptionKey)}
+      createLabel={t("finance.snapshot.new")}
+      createDisabled={createDisabled}
+      onSelect={onSelect}
+      onPrevious={onPrevious}
+      onNext={onNext}
+      onManage={onManageTree}
+      onCreate={onCreateSnapshot}
+    />
+  );
+}
 
-        <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
-          <ActionButton
-            label=""
-            iconName="chevron-left"
-            iconOnly
-            ariaLabel={t("finance.snapshot.previous")}
-            size="sm"
-            variant="ghost"
-            shape="circle"
-            onClick={onPrevious}
-            disabled={!snapshots.length || !hasPrevious}
-          />
-
-          <EnumSelect
-            value={selectedSnapshotId ?? undefined}
-            onChange={(value) => {
-              if (value) onSelect(String(value) as UUID);
-            }}
-            options={options}
-            placeholder={t("finance.snapshot.selectSnapshot")}
-            showLabel={false}
-            size="sm"
-            className="w-auto min-w-[12rem] sm:min-w-[16rem] max-w-full"
-            autoWidth
-            disabled={!options.length}
-          />
-
-          <ActionButton
-            label=""
-            iconName="chevron-right"
-            iconOnly
-            ariaLabel={t("finance.snapshot.next")}
-            size="sm"
-            variant="ghost"
-            shape="circle"
-            onClick={onNext}
-            disabled={!snapshots.length || !hasNext}
-          />
-        </div>
-
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-          <CreateNewButton
-            label={t("finance.snapshot.new")}
-            onClick={onCreateSnapshot}
-            size="sm"
-            color="primary"
-            variant="solid"
-            disabled={createDisabled}
-            ariaLabel={t("finance.snapshot.new")}
-          />
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm text-base-content/70">{t(preset.descriptionKey)}</p>
-    </section>
+function SnapshotActionButtons({
+  editLabel,
+  deleteLabel,
+  disabled,
+  deleteDisabled,
+  onEdit,
+  onDelete,
+}: {
+  editLabel: string;
+  deleteLabel: string;
+  disabled?: boolean;
+  deleteDisabled?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex justify-end gap-2">
+      <EditButton
+        onClick={onEdit}
+        size="sm"
+        variant="ghost"
+        ariaLabel={editLabel}
+        disabled={disabled}
+      />
+      <DeleteButton
+        onClick={onDelete}
+        size="sm"
+        variant="ghost"
+        ariaLabel={deleteLabel}
+        disabled={deleteDisabled ?? disabled}
+      />
+    </div>
   );
 }
 
@@ -1469,29 +1707,14 @@ function SnapshotModule({
         onNext={onNext}
         rightSlot={
           currentSnapshot ? (
-            <div className="flex justify-end gap-2">
-              <ActionButton
-                label=""
-                iconName="edit"
-                iconOnly
-                ariaLabel={t("finance.snapshot.edit")}
-                size="sm"
-                variant="ghost"
-                onClick={onEditSnapshot}
-                disabled={snapshotDetailLoading || snapshotDeleting}
-              />
-              <ActionButton
-                label=""
-                iconName="trash"
-                iconOnly
-                ariaLabel={t("finance.snapshot.delete")}
-                size="sm"
-                variant="ghost"
-                color="error"
-                onClick={() => onDeleteSnapshot(currentSnapshot)}
-                disabled={snapshotDeleting}
-              />
-            </div>
+            <SnapshotActionButtons
+              editLabel={t("finance.snapshot.edit")}
+              deleteLabel={t("finance.snapshot.delete")}
+              disabled={snapshotDetailLoading || snapshotDeleting}
+              deleteDisabled={snapshotDeleting}
+              onEdit={onEditSnapshot}
+              onDelete={() => onDeleteSnapshot(currentSnapshot)}
+            />
           ) : null
         }
       />
@@ -2440,7 +2663,7 @@ function SnapshotEntryTreeTable({
                   .filter(Boolean)
                   .join(" ")}
               >
-                {convertedAmount} {primaryCurrency}
+                {hasRateSnapshot ? `${convertedAmount} ${primaryCurrency}` : convertedAmount}
               </span>
             ) : (
               <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
