@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import json
+import re
+from pathlib import Path
+
 import pytest
 
 from lifeos_cli.cli import build_parser
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_cli_task_help_supports_zh_hans_locale(
@@ -65,7 +71,7 @@ def test_cli_top_level_help_supports_zh_hans_argparse_scaffolding(
     assert "people" in captured.out and "管理 `people` 和关系" in captured.out
     assert "timelog" in captured.out and "管理 `timelog`" in captured.out
     assert (
-        "Welcome bug reports and suggestions through https://github.com/liujuanjuan1984/lifeos-cli."
+        "欢迎通过 https://github.com/liujuanjuan1984/lifeos-cli 提交问题报告和建议。"
         in captured.out
     )
 
@@ -139,7 +145,7 @@ def test_cli_event_add_help_keeps_long_option_invocation_with_summary(
 
     assert any(
         "--recurrence-frequency RECURRENCE_FREQUENCY" in line
-        and "可选的 recurrence frequency：daily、weekly、monthly 或" in line
+        and "可选的重复频率：daily、weekly、monthly 或" in line
         for line in captured.out.splitlines()
     )
 
@@ -173,10 +179,50 @@ def test_cli_timelog_add_help_supports_zh_hans_locale_for_stdin_batch_mode(
 
     captured = capsys.readouterr()
 
-    assert "从标准输入读取快捷批量条目" in captured.out
+    assert "从标准输入读取快捷批量行，使用与 `--entry` 相同的时间规则" in captured.out
+    assert "`HHMM Title` 表示 `HHMM` 是片段结束时间，不是开始时间" in captured.out
+    assert "`--entry`、`--stdin` 和 `--file` 使用同一套解析规则" in captured.out
     assert "预览后直接写入快捷批量 `timelog`，无需交互确认" in captured.out
-    assert "并在输入来自 `--stdin` 或提供 `--yes` 时跳过提示" in captured.out
-    assert "当 datetime 省略 timezone 信息时" in captured.out
+    assert "并在输入来自 `--stdin` 或提供 `--yes` 时跳过确认" in captured.out
+    assert "当日期时间省略时区信息时" in captured.out
+    assert "Create one actual time record" not in captured.out
+    assert "Repeat to add one quick batch-entry line" not in captured.out
+
+
+@pytest.mark.parametrize(
+    "catalog_path",
+    [
+        PROJECT_ROOT / "src/lifeos_cli/locales/zh_Hans/cli_messages.json",
+        PROJECT_ROOT / "src/lifeos_cli/locales/zh_Hans/cli_help.json",
+    ],
+)
+def test_zh_hans_catalogs_do_not_contain_untranslated_english_prose(
+    catalog_path: Path,
+) -> None:
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    untranslated: list[tuple[str, str]] = []
+
+    def walk(value: object, path: str = "") -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{path}.{key}" if path else key)
+            return
+        if not isinstance(value, str):
+            return
+        without_literals = re.sub(r"`[^`]+`", " ", value)
+        without_literals = re.sub(r"https?://\S+", " ", without_literals)
+        without_literals = re.sub(r"\{[^}]+\}", " ", without_literals)
+        has_chinese = re.search(r"[\u4e00-\u9fff]", value) is not None
+        has_english = re.search(r"[A-Za-z]{4,}", without_literals) is not None
+        has_english_phrase = (
+            re.search(r"\b[A-Za-z]{4,}\s+[A-Za-z]{4,}\b", without_literals) is not None
+        )
+        if (has_english and not has_chinese) or has_english_phrase:
+            untranslated.append((path, value))
+
+    walk(catalog)
+
+    assert untranslated == []
 
 
 def test_cli_timelog_search_help_supports_zh_hans_locale(

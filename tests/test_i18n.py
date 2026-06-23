@@ -23,7 +23,7 @@ def test_keyed_message_reads_locale_json_catalog(monkeypatch: pytest.MonkeyPatch
 
     assert (
         keyed_message("cli_help", "notes.datetime.configuredTimezone")
-        == "当 datetime 省略 timezone 信息时，会先使用 configured timezone 解释该值，再转换为 UTC。"
+        == "当日期时间省略时区信息时，会先使用当前配置的时区解释该值，再转换为 UTC。"
     )
 
 
