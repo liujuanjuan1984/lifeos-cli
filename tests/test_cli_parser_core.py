@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 import pytest
@@ -149,6 +150,57 @@ def test_cli_parser_supports_data_commands() -> None:
     assert batch_update_args.target == "task"
     assert batch_delete_args.data_command == "batch-delete"
     assert batch_delete_args.target == "event"
+
+
+def test_cli_parser_supports_finance_commands() -> None:
+    parser = build_parser()
+
+    tree_args = parser.parse_args(
+        ["finance", "tree-add", "Balance Sheet", "--purpose", "balance", "--default"]
+    )
+    node_args = parser.parse_args(
+        [
+            "finance",
+            "node-add",
+            "11111111-1111-1111-1111-111111111111",
+            "Checking",
+            "--parent-id",
+            "22222222-2222-2222-2222-222222222222",
+        ]
+    )
+    snapshot_args = parser.parse_args(
+        [
+            "finance",
+            "snapshot-add",
+            "11111111-1111-1111-1111-111111111111",
+            "--rate-snapshot-id",
+            "33333333-3333-3333-3333-333333333333",
+            "--entry",
+            "22222222-2222-2222-2222-222222222222:100:USD",
+        ]
+    )
+    rate_snapshot_args = parser.parse_args(
+        [
+            "finance",
+            "rate-snapshot-add",
+            "--rate",
+            "EUR:1.1:USD",
+        ]
+    )
+
+    assert tree_args.resource == "finance"
+    assert tree_args.finance_command == "tree-add"
+    assert tree_args.purpose == "balance"
+    assert tree_args.default is True
+    assert node_args.finance_command == "node-add"
+    assert str(node_args.parent_id) == "22222222-2222-2222-2222-222222222222"
+    assert snapshot_args.finance_command == "snapshot-add"
+    assert snapshot_args.entries[0].amount == Decimal("100")
+    assert str(snapshot_args.rate_snapshot_id) == "33333333-3333-3333-3333-333333333333"
+    assert rate_snapshot_args.finance_command == "rate-snapshot-add"
+    assert rate_snapshot_args.rates[0].base_currency == "EUR"
+    assert rate_snapshot_args.rates[0].quote_currency == "USD"
+    assert rate_snapshot_args.rates[0].rate == Decimal("1.1")
 
 
 def test_cli_parser_supports_timelog_stats_commands() -> None:

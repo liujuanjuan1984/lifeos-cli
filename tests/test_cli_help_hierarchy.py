@@ -47,6 +47,14 @@ def test_main_note_without_action_prints_resource_help(capsys) -> None:
                 "lifeos habit-action log --help",
             ),
         ),
+        (
+            "finance",
+            (
+                "lifeos finance tree-add --help",
+                "lifeos finance node-add --help",
+                "lifeos finance snapshot-add --help",
+            ),
+        ),
         ("note", ("lifeos note add --help", "lifeos note list --help", "lifeos note batch --help")),
         (
             "people",

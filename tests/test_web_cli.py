@@ -168,6 +168,7 @@ def test_web_app_registers_core_resource_routes() -> None:
     assert "/api/v1/habits/habit-task-associations/" in route_paths
     assert "/api/v1/persons/" in route_paths
     assert "/api/v1/tags/" in route_paths
+    assert "/api/v1/finance/trees" in route_paths
 
 
 def test_web_tasks_list_uses_count_for_pagination_and_query(
@@ -295,6 +296,17 @@ def test_web_static_assets_disable_cache(tmp_path: Path) -> None:
     assert asset_response.headers["cache-control"] == "no-store"
     assert spa_response.status_code == 200
     assert spa_response.headers["cache-control"] == "no-store"
+
+    for reserved_path in ("api/v1/missing", "health/missing", "assets/missing"):
+        route_error: object | None = None
+        try:
+            asyncio.run(static_files.get_response(reserved_path, scope))
+        except Exception as exc:
+            route_error = exc
+        else:
+            pytest.fail(f"{reserved_path} should not fall back to SPA index.html")
+
+        assert getattr(route_error, "status_code", None) == 404
 
 
 def test_web_server_preflights_configured_database_driver(monkeypatch: pytest.MonkeyPatch) -> None:

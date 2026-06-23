@@ -1,0 +1,776 @@
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+
+import ActionButton, { CreateNewButton } from "@/components/ActionButton";
+import Badge from "@/components/common/Badge";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { FormField, TextInput } from "@/components/forms";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import AssetSelect from "@/components/selects/AssetSelect";
+import { useToast } from "@/contexts/ToastContext";
+import ModalBase from "@/layouts/ModalBase";
+import {
+  financeApi,
+  type FinanceRateSnapshot,
+  type FinanceRateSnapshotCreate,
+  type FinanceRateSnapshotUpdate,
+} from "@/services/api/finance";
+import {
+  addFinanceRateSnapshotToListCache,
+  invalidateAllFinanceSnapshots,
+  invalidateFinanceAssets,
+  invalidateFinanceRateSnapshots,
+  removeFinanceRateSnapshotCache,
+  removeFinanceRateSnapshotFromListCache,
+  setFinanceRateSnapshotCache,
+  setFinanceRateSnapshotInListCache,
+} from "@/services/api/cacheInvalidation/finance";
+import { financeKeys } from "@/services/api/queryKeys";
+import type { UUID } from "@/types/primitive";
+import { formatDateTime } from "@/utils/datetime";
+
+import {
+  SnapshotActionButtons,
+  SnapshotNavigator,
+  SnapshotSelectorToolbar,
+} from "./SnapshotChrome";
+import {
+  isoToDateTimeLocal,
+  localDateTimeToIso,
+  nowDateTimeLocal,
+  rateEntryEquation,
+  rateSnapshotLabel,
+  type RateRowState,
+  type RateSnapshotFormMode,
+} from "./utils";
+import { useFinanceAssetSource } from "./useFinanceAssetSource";
+
+export function RateSnapshotsWorkspace() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { assets, createAsset } = useFinanceAssetSource();
+  const [assetManagerOpen, setAssetManagerOpen] = useState(false);
+  const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | null>(null);
+  const [rateFormVisible, setRateFormVisible] = useState(false);
+  const [rateFormMode, setRateFormMode] = useState<RateSnapshotFormMode>("create");
+  const [pendingDeleteRateSnapshot, setPendingDeleteRateSnapshot] =
+    useState<FinanceRateSnapshot | null>(null);
+  const [deletedRateSnapshotIds, setDeletedRateSnapshotIds] = useState<Set<UUID>>(
+    () => new Set(),
+  );
+  const [assetCode, setAssetCode] = useState("");
+  const [assetName, setAssetName] = useState("");
+  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
+  const [editingAssetCode, setEditingAssetCode] = useState("");
+  const [editingAssetName, setEditingAssetName] = useState("");
+  const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
+  const [source, setSource] = useState("manual");
+  const [note, setNote] = useState("");
+  const [rateRows, setRateRows] = useState<RateRowState[]>([
+    { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+  ]);
+
+  const rateSnapshotsQuery = useQuery({
+    queryKey: financeKeys.rateSnapshots(),
+    queryFn: () => financeApi.listRateSnapshots(),
+  });
+
+  const createRateSnapshotMutation = useMutation({
+    mutationFn: (payload: FinanceRateSnapshotCreate) => financeApi.createRateSnapshot(payload),
+    onSuccess: async (rateSnapshot) => {
+      toast.showSuccess(t("finance.messages.rateSnapshotCreated"));
+      setRateRows([
+        { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+      ]);
+      setNote("");
+      setSelectedRateSnapshotId(rateSnapshot.id);
+      setRateFormVisible(false);
+      setRateFormMode("create");
+      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
+      addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);
+      await invalidateFinanceRateSnapshots(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const updateRateSnapshotMutation = useMutation({
+    mutationFn: ({
+      rateSnapshotId,
+      payload,
+    }: {
+      rateSnapshotId: UUID;
+      payload: FinanceRateSnapshotUpdate;
+    }) => financeApi.updateRateSnapshot(rateSnapshotId, payload),
+    onSuccess: async (rateSnapshot) => {
+      toast.showSuccess(t("finance.messages.rateSnapshotUpdated"));
+      setSelectedRateSnapshotId(rateSnapshot.id);
+      setRateFormVisible(false);
+      setRateFormMode("create");
+      setFinanceRateSnapshotCache(queryClient, rateSnapshot);
+      setFinanceRateSnapshotInListCache(queryClient, rateSnapshot);
+      await Promise.all([
+        invalidateFinanceRateSnapshots(queryClient),
+        invalidateAllFinanceSnapshots(queryClient),
+      ]);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteRateSnapshotMutation = useMutation({
+    mutationFn: (rateSnapshotId: UUID) => financeApi.deleteRateSnapshot(rateSnapshotId),
+    onMutate: async (rateSnapshotId) => {
+      const deletedIndex = snapshots.findIndex((snapshot) => snapshot.id === rateSnapshotId);
+      const nextSnapshot = snapshots[deletedIndex + 1] ?? snapshots[deletedIndex - 1] ?? null;
+      await queryClient.cancelQueries({
+        queryKey: financeKeys.rateSnapshot(rateSnapshotId),
+        exact: true,
+      });
+      setDeletedRateSnapshotIds((existing) => new Set(existing).add(rateSnapshotId));
+      if (currentSnapshot?.id === rateSnapshotId) {
+        setSelectedRateSnapshotId(nextSnapshot?.id ?? null);
+      }
+      removeFinanceRateSnapshotFromListCache(queryClient, rateSnapshotId);
+      removeFinanceRateSnapshotCache(queryClient, rateSnapshotId);
+      return { previousSelectedRateSnapshotId: selectedRateSnapshotId };
+    },
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.rateSnapshotDeleted"));
+      setPendingDeleteRateSnapshot(null);
+      setRateFormVisible(false);
+      setRateFormMode("create");
+      await Promise.all([
+        invalidateFinanceRateSnapshots(queryClient),
+        invalidateAllFinanceSnapshots(queryClient),
+      ]);
+    },
+    onError: async (error, rateSnapshotId, context) => {
+      setDeletedRateSnapshotIds((existing) => {
+        const next = new Set(existing);
+        next.delete(rateSnapshotId);
+        return next;
+      });
+      setSelectedRateSnapshotId(context?.previousSelectedRateSnapshotId ?? null);
+      await invalidateFinanceRateSnapshots(queryClient);
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const updateAssetMutation = useMutation({
+    mutationFn: ({
+      assetId,
+      code,
+      name,
+    }: {
+      assetId: UUID;
+      code: string;
+      name: string | null;
+    }) => financeApi.updateAsset(assetId, { code, name }),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetUpdated"));
+      setEditingAssetId(null);
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetDeleted"));
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const submitAsset = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = assetCode.trim().toUpperCase();
+    if (!code) return;
+    createAsset(code)
+      .then(async (asset) => {
+        if (assetName.trim()) {
+          await financeApi.updateAsset(asset.id, { name: assetName.trim() });
+          await invalidateFinanceAssets(queryClient);
+        }
+        toast.showSuccess(t("finance.messages.assetCreated"));
+        setAssetCode("");
+        setAssetName("");
+      })
+      .catch(() => undefined);
+  };
+
+  const submitRateSnapshot = (event: React.FormEvent) => {
+    event.preventDefault();
+    const entries = rateRows
+      .map((row) => {
+        const baseAmount = Number(row.baseAmount);
+        const quoteAmount = Number(row.quoteAmount);
+        const baseCurrency = row.baseCurrency.trim().toUpperCase();
+        const quoteCurrency = row.quoteCurrency.trim().toUpperCase();
+        return {
+          base_currency: baseCurrency,
+          quote_currency: quoteCurrency,
+          rate:
+            Number.isFinite(baseAmount) && baseAmount > 0 && Number.isFinite(quoteAmount)
+              ? String(quoteAmount / baseAmount)
+              : "",
+          source: source.trim() || "manual",
+        };
+      })
+      .filter((entry) => entry.base_currency || entry.quote_currency || entry.rate);
+    if (!entries.length) {
+      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
+      return;
+    }
+    if (
+      entries.some((entry) => {
+        const numericRate = Number(entry.rate);
+        return (
+          !entry.base_currency ||
+          !entry.quote_currency ||
+          entry.base_currency === entry.quote_currency ||
+          !Number.isFinite(numericRate) ||
+          numericRate <= 0
+        );
+      })
+    ) {
+      toast.showWarning(t("finance.messages.rateSnapshotRatesRequired"));
+      return;
+    }
+    const payload = {
+      captured_at: localDateTimeToIso(capturedAt),
+      source: source.trim() || "manual",
+      note: note.trim() || null,
+      entries,
+    };
+    if (rateFormMode === "edit" && currentSnapshot) {
+      updateRateSnapshotMutation.mutate({
+        rateSnapshotId: currentSnapshot.id,
+        payload,
+      });
+      return;
+    }
+    createRateSnapshotMutation.mutate(payload);
+  };
+
+  const rawSnapshots = rateSnapshotsQuery.data?.items ?? [];
+  const snapshots = rawSnapshots.filter((snapshot) => !deletedRateSnapshotIds.has(snapshot.id));
+  const currentSnapshot =
+    snapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? snapshots[0] ?? null;
+  const currentPosition = currentSnapshot
+    ? snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id) + 1
+    : 0;
+  const hasPrevious = currentPosition > 1;
+  const hasNext = currentPosition > 0 && currentPosition < snapshots.length;
+  const snapshotOptions = snapshots.map((snapshot) => ({
+    value: snapshot.id,
+    label: rateSnapshotLabel(snapshot),
+  }));
+
+  const selectRateSnapshot = (snapshotId: UUID) => {
+    setSelectedRateSnapshotId(snapshotId);
+    setRateFormVisible(false);
+    setRateFormMode("create");
+  };
+
+  const resetRateSnapshotForm = () => {
+    setCapturedAt(nowDateTimeLocal());
+    setSource("manual");
+    setNote("");
+    setRateRows([
+      { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
+    ]);
+  };
+
+  const openCreateRateSnapshotForm = () => {
+    resetRateSnapshotForm();
+    setRateFormMode("create");
+    setRateFormVisible(true);
+  };
+
+  const openEditRateSnapshotForm = () => {
+    if (!currentSnapshot) return;
+    setCapturedAt(isoToDateTimeLocal(currentSnapshot.captured_at));
+    setSource(currentSnapshot.source || "manual");
+    setNote(currentSnapshot.note ?? "");
+    setRateRows(
+      (currentSnapshot.entries ?? []).map((entry) => ({
+        baseAmount: "1",
+        baseCurrency: entry.base_currency,
+        quoteAmount: entry.rate,
+        quoteCurrency: entry.quote_currency,
+      })),
+    );
+    setRateFormMode("edit");
+    setRateFormVisible(true);
+  };
+
+  const closeRateSnapshotForm = () => {
+    setRateFormVisible(false);
+    setRateFormMode("create");
+  };
+
+  const moveRateSnapshot = (direction: -1 | 1) => {
+    if (!currentSnapshot) return;
+    const index = snapshots.findIndex((snapshot) => snapshot.id === currentSnapshot.id);
+    const next = snapshots[index + direction];
+    if (next) {
+      selectRateSnapshot(next.id);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <SnapshotSelectorToolbar
+        badges={
+          <>
+            <Badge tone="primary" variant="outline" size="sm">
+              {t("finance.assets.title")}
+            </Badge>
+            <Badge tone="neutral" variant="outline" size="sm">
+              {assets.length}
+            </Badge>
+          </>
+        }
+        manageLabel={t("finance.tree.manage")}
+        manageAriaLabel={t("finance.assets.title")}
+        selectValue={currentSnapshot?.id ?? null}
+        selectOptions={snapshotOptions}
+        selectPlaceholder={t("finance.rates.selectSnapshot")}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        description={t("finance.rates.tabDescription")}
+        createLabel={t("finance.snapshot.new")}
+        onSelect={selectRateSnapshot}
+        onPrevious={() => moveRateSnapshot(-1)}
+        onNext={() => moveRateSnapshot(1)}
+        onManage={() => setAssetManagerOpen(true)}
+        onCreate={openCreateRateSnapshotForm}
+      />
+
+      <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+        {rateFormVisible ? (
+          <>
+            <SnapshotNavigator
+              title={
+                rateFormMode === "edit"
+                  ? t("finance.rates.editSnapshot")
+                  : t("finance.rates.createSnapshot")
+              }
+              hasPrevious={false}
+              hasNext={false}
+              onPrevious={() => undefined}
+              onNext={() => undefined}
+              rightSlot={
+                <ActionButton
+                  label={t("common.cancel")}
+                  onClick={closeRateSnapshotForm}
+                  size="sm"
+                  variant="ghost"
+                  disabled={
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                  }
+                />
+              }
+            />
+            <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <FormField label={t("finance.rates.capturedAt")}>
+                  <TextInput
+                    type="datetime-local"
+                    value={capturedAt}
+                    onChange={(event) => setCapturedAt(event.target.value)}
+                  />
+                </FormField>
+                <FormField label={t("finance.rates.source")}>
+                  <TextInput value={source} onChange={(event) => setSource(event.target.value)} />
+                </FormField>
+                <FormField label={t("finance.rates.note")}>
+                  <TextInput value={note} onChange={(event) => setNote(event.target.value)} />
+                </FormField>
+              </div>
+
+              <div className="rounded-lg border border-base-200">
+                <div className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
+                  <span>{t("finance.rates.baseAmount")}</span>
+                  <span>{t("finance.rates.baseAsset")}</span>
+                  <span />
+                  <span>{t("finance.rates.quoteAmount")}</span>
+                  <span>{t("finance.rates.quoteAsset")}</span>
+                  <span />
+                </div>
+                <div className="space-y-2 p-3">
+                  {rateRows.map((row, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2"
+                    >
+                      <TextInput
+                        size="sm"
+                        inputMode="decimal"
+                        value={row.baseAmount}
+                        onChange={(event) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, baseAmount: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <AssetSelect
+                        assets={assets}
+                        value={row.baseCurrency}
+                        onChange={(assetCode) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, baseCurrency: assetCode } : item,
+                            ),
+                          )
+                        }
+                        onCreateAsset={createAsset}
+                        disabled={
+                          createRateSnapshotMutation.isPending ||
+                          updateRateSnapshotMutation.isPending
+                        }
+                      />
+                      <span className="text-center text-base-content/60">=</span>
+                      <TextInput
+                        size="sm"
+                        inputMode="decimal"
+                        value={row.quoteAmount}
+                        onChange={(event) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, quoteAmount: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <AssetSelect
+                        assets={assets}
+                        value={row.quoteCurrency}
+                        onChange={(assetCode) =>
+                          setRateRows((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, quoteCurrency: assetCode } : item,
+                            ),
+                          )
+                        }
+                        onCreateAsset={createAsset}
+                        disabled={
+                          createRateSnapshotMutation.isPending ||
+                          updateRateSnapshotMutation.isPending
+                        }
+                      />
+                      <ActionButton
+                        type="button"
+                        label=""
+                        iconName="trash"
+                        iconOnly
+                        size="sm"
+                        variant="ghost"
+                        color="error"
+                        ariaLabel={t("common.delete")}
+                        disabled={rateRows.length === 1}
+                        onClick={() =>
+                          setRateRows((current) =>
+                            current.filter((_, itemIndex) => itemIndex !== index),
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                  <ActionButton
+                    type="button"
+                    label={t("finance.rates.addRate")}
+                    iconName="plus"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setRateRows((current) =>
+                        current.concat({
+                          baseAmount: "1",
+                          baseCurrency: "",
+                          quoteAmount: "",
+                          quoteCurrency: "",
+                        }),
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <ActionButton
+                  type="submit"
+                  label={
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                      ? t("common.saving")
+                      : rateFormMode === "edit"
+                        ? t("finance.rates.saveSnapshot")
+                        : t("finance.rates.createSnapshot")
+                  }
+                  iconName="check"
+                  color="primary"
+                  variant="solid"
+                  disabled={
+                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                  }
+                />
+              </div>
+            </form>
+          </>
+        ) : rateSnapshotsQuery.isLoading ? (
+          <LoadingSpinner />
+        ) : currentSnapshot ? (
+          <>
+            <SnapshotNavigator
+              title={rateSnapshotLabel(currentSnapshot)}
+              positionLabel={
+                currentPosition > 0
+                  ? t("finance.snapshot.position", {
+                      current: currentPosition,
+                      total: snapshots.length,
+                    })
+                  : undefined
+              }
+              hasPrevious={hasPrevious}
+              hasNext={hasNext}
+              onPrevious={() => moveRateSnapshot(-1)}
+              onNext={() => moveRateSnapshot(1)}
+              rightSlot={
+                <SnapshotActionButtons
+                  editLabel={t("finance.rates.editSnapshot")}
+                  deleteLabel={t("finance.rates.deleteSnapshot")}
+                  disabled={deleteRateSnapshotMutation.isPending}
+                  deleteDisabled={deleteRateSnapshotMutation.isPending}
+                  onEdit={openEditRateSnapshotForm}
+                  onDelete={() => setPendingDeleteRateSnapshot(currentSnapshot)}
+                />
+              }
+            />
+            <div className="overflow-x-auto">
+              <table className="table table-sm">
+                <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                  <tr>
+                    <th>{t("finance.rates.capturedAt")}</th>
+                    <th>{t("finance.rates.source")}</th>
+                    <th>{t("finance.rates.rate")}</th>
+                    <th>{t("finance.rates.note")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(currentSnapshot.entries ?? []).map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{formatDateTime(entry.captured_at ?? currentSnapshot.captured_at)}</td>
+                      <td>{entry.source || currentSnapshot.source}</td>
+                      <td>
+                        <span className="font-medium tabular-nums">
+                          {rateEntryEquation(entry)}
+                        </span>
+                      </td>
+                      <td>{currentSnapshot.note || "-"}</td>
+                    </tr>
+                  ))}
+                  {!(currentSnapshot.entries ?? []).length ? (
+                    <tr>
+                      <td>{formatDateTime(currentSnapshot.captured_at)}</td>
+                      <td>{currentSnapshot.source}</td>
+                      <td className="text-base-content/40">-</td>
+                      <td>{currentSnapshot.note || "-"}</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
+            {t("finance.rates.empty")}
+            <div className="mt-4 flex justify-center">
+              <CreateNewButton
+                label={t("finance.snapshot.new")}
+                onClick={openCreateRateSnapshotForm}
+                size="sm"
+                color="primary"
+                variant="solid"
+              />
+            </div>
+          </div>
+        )}
+      </section>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteRateSnapshot)}
+        title={t("finance.rates.deleteTitle")}
+        message={t("finance.rates.deleteMessage", {
+          name: pendingDeleteRateSnapshot ? rateSnapshotLabel(pendingDeleteRateSnapshot) : "",
+        })}
+        confirmText={t("finance.rates.deleteConfirm")}
+        onCancel={() => setPendingDeleteRateSnapshot(null)}
+        onConfirm={() => {
+          if (pendingDeleteRateSnapshot) {
+            deleteRateSnapshotMutation.mutate(pendingDeleteRateSnapshot.id);
+          }
+        }}
+        loading={deleteRateSnapshotMutation.isPending}
+      />
+
+      <ModalBase
+        isOpen={assetManagerOpen}
+        onClose={() => setAssetManagerOpen(false)}
+        title={t("finance.assets.title")}
+        size="lg"
+        bodyOverflow="auto"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+          <form
+            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
+            onSubmit={submitAsset}
+          >
+            <TextInput
+              size="sm"
+              value={assetCode}
+              onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
+              placeholder={t("finance.assets.code")}
+            />
+            <TextInput
+              size="sm"
+              value={assetName}
+              onChange={(event) => setAssetName(event.target.value)}
+              placeholder={t("finance.assets.name")}
+            />
+            <ActionButton
+              type="submit"
+              label={t("finance.assets.addAsset")}
+              iconName="plus"
+              size="sm"
+              color="primary"
+              variant="outline"
+              disabled={!assetCode.trim()}
+            />
+          </form>
+          <div className="max-h-[520px] overflow-y-auto pr-1">
+            <table className="table table-sm">
+              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                <tr>
+                  <th>{t("finance.assets.code")}</th>
+                  <th>{t("finance.assets.name")}</th>
+                  <th className="w-24 text-right">{t("common.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((asset) => {
+                  const editing = editingAssetId === asset.id;
+                  return (
+                    <tr key={asset.id}>
+                      <td>
+                        {editing ? (
+                          <TextInput
+                            size="sm"
+                            value={editingAssetCode}
+                            onChange={(event) =>
+                              setEditingAssetCode(event.target.value.toUpperCase())
+                            }
+                          />
+                        ) : (
+                          <span className="font-medium">{asset.code}</span>
+                        )}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <TextInput
+                            size="sm"
+                            value={editingAssetName}
+                            onChange={(event) => setEditingAssetName(event.target.value)}
+                          />
+                        ) : (
+                          asset.name || "-"
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          {editing ? (
+                            <>
+                              <ActionButton
+                                label=""
+                                iconName="check"
+                                iconOnly
+                                size="sm"
+                                variant="ghost"
+                                ariaLabel={t("common.save")}
+                                disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
+                                onClick={() =>
+                                  updateAssetMutation.mutate({
+                                    assetId: asset.id,
+                                    code: editingAssetCode.trim().toUpperCase(),
+                                    name: editingAssetName.trim() || null,
+                                  })
+                                }
+                              />
+                              <ActionButton
+                                label=""
+                                iconName="x-mark"
+                                iconOnly
+                                size="sm"
+                                variant="ghost"
+                                ariaLabel={t("common.cancel")}
+                                onClick={() => setEditingAssetId(null)}
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <ActionButton
+                                label=""
+                                iconName="edit"
+                                iconOnly
+                                size="sm"
+                                variant="ghost"
+                                ariaLabel={t("common.edit")}
+                                onClick={() => {
+                                  setEditingAssetId(asset.id);
+                                  setEditingAssetCode(asset.code);
+                                  setEditingAssetName(asset.name ?? "");
+                                }}
+                              />
+                              <ActionButton
+                                label=""
+                                iconName="trash"
+                                iconOnly
+                                size="sm"
+                                variant="ghost"
+                                color="error"
+                                ariaLabel={t("common.delete")}
+                                disabled={asset.is_default || deleteAssetMutation.isPending}
+                                onClick={() => deleteAssetMutation.mutate(asset.id)}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </ModalBase>
+    </div>
+  );
+}

@@ -22,6 +22,7 @@ import { Route as AuthenticatedPeopleRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedHabitsRouteImport } from './routes/_authenticated/habits'
+import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedConfigRouteImport } from './routes/_authenticated/config'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 
@@ -89,6 +90,11 @@ const AuthenticatedHabitsRoute = AuthenticatedHabitsRouteImport.update({
   path: '/habits',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedConfigRoute = AuthenticatedConfigRouteImport.update({
   id: '/config',
   path: '/config',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/config': typeof AuthenticatedConfigRoute
+  '/finance': typeof AuthenticatedFinanceRoute
   '/habits': typeof AuthenticatedHabitsRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/notes': typeof AuthenticatedNotesRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/config': typeof AuthenticatedConfigRoute
+  '/finance': typeof AuthenticatedFinanceRoute
   '/habits': typeof AuthenticatedHabitsRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/notes': typeof AuthenticatedNotesRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/config': typeof AuthenticatedConfigRoute
+  '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/habits': typeof AuthenticatedHabitsRoute
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calendar'
     | '/config'
+    | '/finance'
     | '/habits'
     | '/insights'
     | '/notes'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calendar'
     | '/config'
+    | '/finance'
     | '/habits'
     | '/insights'
     | '/notes'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/calendar'
     | '/_authenticated/config'
+    | '/_authenticated/finance'
     | '/_authenticated/habits'
     | '/_authenticated/insights'
     | '/_authenticated/notes'
@@ -300,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHabitsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/finance': {
+      id: '/_authenticated/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof AuthenticatedFinanceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/config': {
       id: '/_authenticated/config'
       path: '/config'
@@ -320,6 +339,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedConfigRoute: typeof AuthenticatedConfigRoute
+  AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedHabitsRoute: typeof AuthenticatedHabitsRoute
   AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
@@ -336,6 +356,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedConfigRoute: AuthenticatedConfigRoute,
+  AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedHabitsRoute: AuthenticatedHabitsRoute,
   AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,

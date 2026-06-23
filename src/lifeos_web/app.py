@@ -13,6 +13,7 @@ from starlette.types import Scope
 
 from lifeos_web.routers import (
     areas,
+    finance,
     habits,
     health,
     notes,
@@ -28,6 +29,12 @@ from lifeos_web.routers import (
 )
 
 API_PREFIX = "/api/v1"
+SPA_FALLBACK_EXCLUDED_SEGMENTS = frozenset({"api", "assets", "health"})
+
+
+def _is_spa_fallback_excluded_path(path: str) -> bool:
+    first_segment = path.lstrip("/").split("/", 1)[0]
+    return first_segment in SPA_FALLBACK_EXCLUDED_SEGMENTS
 
 
 class SPAStaticFiles(StaticFiles):
@@ -37,7 +44,11 @@ class SPAStaticFiles(StaticFiles):
         try:
             response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code == 404 and "." not in Path(path).name:
+            if (
+                exc.status_code == 404
+                and "." not in Path(path).name
+                and not _is_spa_fallback_excluded_path(path)
+            ):
                 response = await super().get_response("index.html", scope)
             else:
                 raise
@@ -70,6 +81,7 @@ def create_app(*, static_dir: Path | None = None) -> FastAPI:
     app.include_router(timelog_templates.router, prefix=API_PREFIX)
     app.include_router(persons.router, prefix=API_PREFIX)
     app.include_router(areas.router, prefix=API_PREFIX)
+    app.include_router(finance.router, prefix=API_PREFIX)
     app.include_router(planned_events.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
     app.include_router(tags.router, prefix=API_PREFIX)
