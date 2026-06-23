@@ -206,6 +206,7 @@ def test_main_event_add_passes_recurrence_fields(
         assert payload.recurrence_frequency == "daily"
         assert payload.recurrence_interval == 2
         assert payload.recurrence_count == 5
+        assert payload.recurrence_rule == {"byweekday": ["monday", "wednesday", "friday"]}
         return make_record(id=UUID("34343434-3434-3434-3434-343434343434"))
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -224,6 +225,8 @@ def test_main_event_add_passes_recurrence_fields(
             "2",
             "--recurrence-count",
             "5",
+            "--recurrence-weekdays",
+            "monday,wednesday,friday",
         ]
     )
     captured = capsys.readouterr()

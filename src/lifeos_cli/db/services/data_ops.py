@@ -902,6 +902,7 @@ def _batch_update_event_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         "recurrence_interval",
         "recurrence_count",
         "recurrence_until",
+        "recurrence_rule",
     ):
         if field in payload and payload[field] is not None:
             change_kwargs[field] = payload[field]
@@ -915,6 +916,8 @@ def _batch_update_event_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     change_kwargs.update(_null_means_clear(payload, field="person_ids", clear_flag="clear_people"))
     if "recurrence_frequency" in payload and payload["recurrence_frequency"] is None:
         change_kwargs["clear_recurrence"] = True
+    if "recurrence_rule" in payload and payload["recurrence_rule"] is None:
+        change_kwargs["clear_recurrence_rule"] = True
     return {
         "event_id": UUID(str(payload["id"])),
         "changes": events.EventUpdateInput(**change_kwargs),

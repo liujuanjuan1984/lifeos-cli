@@ -313,6 +313,14 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
             "2",
             "--recurrence-count",
             "5",
+            "--recurrence-weekdays",
+            "monday,wednesday,friday",
+            "--recurrence-month-days",
+            "1,15,-1",
+            "--recurrence-months",
+            "1,6,12",
+            "--recurrence-weekday-ordinal",
+            "2:monday",
         ]
     )
 
@@ -321,6 +329,10 @@ def test_cli_parser_supports_event_recurrence_add_flags() -> None:
     assert args.recurrence_frequency == "daily"
     assert args.recurrence_interval == 2
     assert args.recurrence_count == 5
+    assert args.recurrence_weekdays == ["monday", "wednesday", "friday"]
+    assert args.recurrence_month_days == [1, 15, -1]
+    assert args.recurrence_months == [1, 6, 12]
+    assert args.recurrence_weekday_ordinals == [{"ordinal": 2, "weekday": "monday"}]
 
 
 def test_cli_parser_supports_event_monthly_recurrence_add_flags() -> None:
