@@ -691,8 +691,10 @@ def test_cli_timelog_add_help_describes_quick_batch_mode(capsys) -> None:
 
     assert '--entry "0700 Breakfast" --entry "0830 Deep work"' in captured.out
     assert "lifeos timelog add --stdin" in captured.out
-    assert "always previews the parsed rows" in captured.out
-    assert "skips the prompt when input comes from `--stdin`" in captured.out
+    assert "`HHMM Title` means `HHMM` is the segment end time, not the start time" in captured.out
+    assert "uses the same parsing rules for `--entry`, `--stdin`, and `--file`" in captured.out
+    assert "Rows are previewed before writing by default" in captured.out
+    assert "the prompt is skipped for `--stdin` or `--yes`" in captured.out
     assert "latest active timelog end time" in captured.out
     assert "configured timezone is used before the value is converted to UTC" in captured.out
 
