@@ -10,9 +10,10 @@ export interface Note {
   content: string;
   created_at: string;
   updated_at: string;
-  persons?: PersonSummary[];
+  people?: PersonSummary[];
   tags?: Tag[];
-  task?: TaskSummary;
+  task?: TaskSummary | null;
+  tasks?: TaskSummary[];
   timelogs?: NoteTimelogSummary[];
   ingest_job?: NoteIngestJobSummary | null;
 }
@@ -35,13 +36,16 @@ export interface TaskSummary {
   content: string;
   status: string;
   vision_id: UUID;
-  parent_task_id?: UUID;
-  priority: number;
-  estimated_effort?: number;
-  notes_count: number;
-  actual_effort_total: number;
-  created_at: string;
-  updated_at: string;
+  parent_task_id?: UUID | null;
+  priority?: number | null;
+  estimated_effort?: number | null;
+  notes_count?: number;
+  actual_effort_total?: number | null;
+  actual_effort_self?: number | null;
+  planning_cycle_type?: string | null;
+  planning_cycle_start_date?: string | null;
+  created_at?: string;
+  updated_at?: string;
   vision_summary?: NoteVisionSummary | null;
   parent_summary?: TaskParentSummary | null;
 }

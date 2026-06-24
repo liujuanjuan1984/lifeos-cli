@@ -219,9 +219,9 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
           {notes.map((note) => {
             const associations: NoteCardAssociation[] = [];
 
-            if (note.persons && note.persons.length > 0) {
+            if (note.people && note.people.length > 0) {
               associations.push(
-                ...note.persons.map((person) => ({
+                ...note.people.map((person) => ({
                   id: `person-${person.id}`,
                   type: "person" as const,
                   label: `@${person.display_name ?? person.name}`,

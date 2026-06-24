@@ -154,9 +154,9 @@ const NoteItem = React.memo<NoteItemProps>(
       return t("notes.timelogChipDefault");
     };
 
-    if (note.persons && note.persons.length > 0) {
+    if (note.people && note.people.length > 0) {
       associations.push(
-        ...note.persons.map((p) => {
+        ...note.people.map((p) => {
           const id = `person-${p.id}`;
           const payload: NoteAssociationTooltipPayload = {
             type: "person",

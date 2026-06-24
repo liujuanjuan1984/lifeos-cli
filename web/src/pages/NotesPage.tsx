@@ -233,21 +233,9 @@ function NotesPage() {
       id?: UUID;
       content: string;
       createdAt: Date;
-      persons?: PersonSummary[];
+      people?: PersonSummary[];
       tags?: Tag[];
-      task?: {
-        id: UUID;
-        content: string;
-        status: string;
-        vision_id: UUID;
-        parent_task_id?: UUID;
-        priority: number;
-        estimated_effort?: number;
-        notes_count: number;
-        actual_effort_total: number;
-        created_at: string;
-        updated_at: string;
-      };
+      task?: ApiNote["task"];
     }): ApiNote | null => {
       if (!n.id) return null;
       return {
@@ -255,7 +243,7 @@ function NotesPage() {
         content: n.content,
         created_at: n.createdAt.toISOString(),
         updated_at: n.createdAt.toISOString(),
-        persons: n.persons,
+        people: n.people,
         tags: n.tags,
         task: n.task,
       };
@@ -268,7 +256,7 @@ function NotesPage() {
       id?: UUID;
       content: string;
       createdAt: Date;
-      persons?: PersonSummary[];
+      people?: PersonSummary[];
       tags?: Tag[];
       task?: ApiNote["task"];
     }) => {

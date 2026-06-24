@@ -41,7 +41,7 @@ export function useNoteFilters(
     }
     if (selectedFilterPersons.length === 1) {
       return notes.filter((note) =>
-        note.persons?.some(
+        note.people?.some(
           (person) => person.id === selectedFilterPersons[0].id,
         ),
       );

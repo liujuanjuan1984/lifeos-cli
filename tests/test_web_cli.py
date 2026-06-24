@@ -15,7 +15,9 @@ from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services.read_models import (
     EventView,
+    NoteView,
     PersonSummaryView,
+    TagSummaryView,
     TagView,
     TaskSummaryView,
     TimelogTemplateView,
@@ -1181,6 +1183,97 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
         "task_ids": [task_id],
         "timelog_ids": [timelog_id],
     }
+
+
+def test_web_note_payload_exposes_primary_task_for_notes_page() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.notes import _note_payload
+
+    task = TaskSummaryView(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        vision_id=UUID("44444444-4444-4444-4444-444444444444"),
+        parent_task_id=None,
+        content="Investigate note association",
+        status="todo",
+    )
+    tag = TagSummaryView(
+        id=UUID("66666666-6666-6666-6666-666666666666"),
+        name="research",
+    )
+    person = PersonSummaryView(
+        id=UUID("77777777-7777-7777-7777-777777777777"),
+        name="Alice",
+    )
+    note = NoteView(
+        id=UUID("55555555-5555-5555-5555-555555555555"),
+        content="Capture context",
+        created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        deleted_at=None,
+        tags=(tag,),
+        people=(person,),
+        tasks=(task,),
+    )
+
+    payload = _note_payload(note)
+
+    assert payload["tasks"] == [
+        {
+            "id": str(task.id),
+            "vision_id": str(task.vision_id),
+            "parent_task_id": None,
+            "content": "Investigate note association",
+            "status": "todo",
+        }
+    ]
+    assert payload["task"] == payload["tasks"][0]
+    assert payload["tags"] == [
+        {
+            "id": str(tag.id),
+            "name": "research",
+            "entity_type": "note",
+            "category": "general",
+            "description": None,
+            "color": None,
+            "created_at": "",
+            "updated_at": "",
+        }
+    ]
+    assert payload["people"] == [
+        {
+            "id": str(person.id),
+            "name": "Alice",
+            "display_name": "Alice",
+            "primary_nickname": "Alice",
+            "birth_date": None,
+            "location": None,
+            "tags": [],
+        }
+    ]
+    assert "persons" not in payload
+
+
+def test_web_note_payload_uses_null_primary_task_without_association() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.notes import _note_payload
+
+    note = NoteView(
+        id=UUID("55555555-5555-5555-5555-555555555555"),
+        content="Capture context",
+        created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        deleted_at=None,
+    )
+
+    payload = _note_payload(note)
+
+    assert payload["tasks"] == []
+    assert payload["task"] is None
+    assert payload["people"] == []
+    assert "persons" not in payload
+    assert payload["tags"] == []
 
 
 def test_web_timezone_preference_persists_to_cli_config(
