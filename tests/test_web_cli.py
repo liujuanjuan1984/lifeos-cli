@@ -463,7 +463,13 @@ def test_web_timelog_template_update_preserves_explicit_nulls(
     response = asyncio.run(
         timelog_templates.update_timelog_template(
             template_id,
-            TimelogTemplateUpdate(area_id=None, default_duration_minutes=None),
+            TimelogTemplateUpdate(
+                title=None,
+                area_id=None,
+                default_duration_minutes=None,
+                position=None,
+                usage_count=None,
+            ),
             cast(AsyncSession, object()),
         )
     )
