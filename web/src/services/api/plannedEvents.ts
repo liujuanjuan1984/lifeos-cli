@@ -24,7 +24,7 @@ export interface PlannedEvent {
   is_instance?: boolean;
   master_event_id?: UUID;
   instance_id?: UUID;
-  persons?: PersonSummary[];
+  people?: PersonSummary[];
 }
 
 interface PlannedEventListMeta {

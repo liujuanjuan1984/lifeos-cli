@@ -25,7 +25,7 @@ const createTask = (
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
   deleted_at: null,
-  persons: [],
+  people: [],
   subtasks: overrides.subtasks ?? [],
   completion_percentage: overrides.completion_percentage ?? 0,
   depth: overrides.depth ?? 0,

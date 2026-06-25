@@ -227,7 +227,7 @@ def _planned_event_payload(
         "is_instance": is_occurrence and recurrence_frequency is not None,
         "master_event_id": str(master_id) if master_id else None,
         "instance_id": str(planned_event_record.id) if is_occurrence else None,
-        "persons": _people(source_event) if source_event else [],
+        "people": _people(source_event) if source_event else [],
     }
 
 

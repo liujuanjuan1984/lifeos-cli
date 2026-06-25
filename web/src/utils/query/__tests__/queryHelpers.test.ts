@@ -26,7 +26,7 @@ const createTask = (overrides?: Partial<Task>): Task => ({
   created_at: overrides?.created_at ?? new Date().toISOString(),
   updated_at: overrides?.updated_at ?? new Date().toISOString(),
   deleted_at: overrides?.deleted_at ?? null,
-  persons: overrides?.persons ?? [],
+  people: overrides?.people ?? [],
   planning_cycle_type: overrides?.planning_cycle_type ?? null,
   planning_cycle_days: overrides?.planning_cycle_days ?? null,
   planning_cycle_start_date: overrides?.planning_cycle_start_date ?? null,

@@ -12,10 +12,58 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import notes as note_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, NoteCreate, NoteUpdate, Pagination
-from lifeos_web.serialization import to_jsonable, to_jsonable_dict
+from lifeos_web.serialization import to_jsonable_dict
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def _note_tag_payload(tag: object) -> dict[str, object]:
+    """Return a frontend-compatible tag summary for note associations."""
+    if not isinstance(tag, dict):
+        return {}
+    return {
+        "id": tag.get("id"),
+        "name": tag.get("name"),
+        "entity_type": tag.get("entity_type") or "note",
+        "category": tag.get("category") or "general",
+        "description": tag.get("description"),
+        "color": tag.get("color"),
+        "created_at": tag.get("created_at") or "",
+        "updated_at": tag.get("updated_at") or "",
+    }
+
+
+def _note_person_payload(person: object) -> dict[str, object]:
+    """Return a frontend-compatible person summary for note associations."""
+    if not isinstance(person, dict):
+        return {}
+    name = str(person.get("name") or "")
+    display_name = str(person.get("display_name") or name)
+    return {
+        "id": person.get("id"),
+        "name": person.get("name"),
+        "display_name": display_name,
+        "primary_nickname": person.get("primary_nickname") or display_name,
+        "birth_date": person.get("birth_date"),
+        "location": person.get("location"),
+        "tags": person.get("tags") if isinstance(person.get("tags"), list) else [],
+    }
+
+
+def _note_payload(note: object) -> dict[str, object]:
+    """Return a Web UI-compatible note payload."""
+    payload = to_jsonable_dict(note)
+    tags = payload.get("tags")
+    if isinstance(tags, list):
+        payload["tags"] = [_note_tag_payload(tag) for tag in tags]
+    people = payload.get("people")
+    payload["people"] = (
+        [_note_person_payload(person) for person in people] if isinstance(people, list) else []
+    )
+    tasks = payload.get("tasks")
+    payload["task"] = tasks[0] if isinstance(tasks, list) and tasks else None
+    return payload
 
 
 @router.get("/", response_model=ListResponse)
@@ -53,7 +101,7 @@ async def list_notes(
             offset=offset,
         )
     )
-    items = [to_jsonable(row) for row in rows]
+    items = [_note_payload(row) for row in rows]
     return ListResponse(
         items=items,
         pagination=Pagination(
@@ -89,7 +137,7 @@ async def create_note(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(note)
+    return _note_payload(note)
 
 
 @router.patch("/{note_id}")
@@ -118,7 +166,7 @@ async def update_note(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return to_jsonable_dict(note)
+    return _note_payload(note)
 
 
 @router.delete("/{note_id}", status_code=204)

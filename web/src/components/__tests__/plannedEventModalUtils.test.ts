@@ -26,7 +26,7 @@ const baseEvent: PlannedEvent = {
   is_instance: true,
   master_event_id: "event-1",
   instance_id: "instance-1",
-  persons: [
+  people: [
     {
       id: "person-1",
       display_name: "Alice",

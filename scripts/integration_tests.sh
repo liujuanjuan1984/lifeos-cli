@@ -12,5 +12,5 @@ if [ -z "${LIFEOS_TEST_DATABASE_URL:-}" ]; then
   exit 3
 fi
 
-uv sync --extra dev --extra postgres --frozen
+uv sync --extra dev --extra web --extra postgres --frozen
 uv run pytest -m integration tests/test_cli_integration_*.py

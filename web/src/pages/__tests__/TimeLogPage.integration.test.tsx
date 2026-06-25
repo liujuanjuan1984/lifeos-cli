@@ -246,7 +246,7 @@ const createTimelog = (
   extra_data: overrides.extra_data ?? null,
   created_at: overrides.created_at ?? "2025-01-01T00:00:00Z",
   updated_at: overrides.updated_at ?? "2025-01-01T01:30:00Z",
-  persons: overrides.persons ?? [],
+  people: overrides.people ?? [],
   task: overrides.task ?? null,
 });
 

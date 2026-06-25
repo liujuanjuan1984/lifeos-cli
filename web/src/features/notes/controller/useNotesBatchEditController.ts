@@ -9,7 +9,7 @@ import {
 } from "@/services/api/notes";
 import type { UUID } from "@/types/primitive";
 
-type BatchMode = "tags" | "persons" | "task" | "content";
+type BatchMode = "tags" | "people" | "task" | "content";
 type TagMode = "add" | "replace";
 type PersonMode = "add" | "replace";
 type TaskMode = "replace" | "clear";
@@ -86,7 +86,7 @@ export function useNotesBatchEditController({
           mode: tagMode,
           tag_ids: selectedTagIds,
         };
-      } else if (mode === "persons") {
+      } else if (mode === "people") {
         if (personMode === "add" && selectedPersonIds.length === 0) {
           showError(
             t("notes.batchEdit.title"),
@@ -94,7 +94,7 @@ export function useNotesBatchEditController({
           );
           return;
         }
-        payload.persons = {
+        payload.people = {
           mode: personMode,
           person_ids: selectedPersonIds,
         };

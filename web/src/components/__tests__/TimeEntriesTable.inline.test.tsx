@@ -44,7 +44,7 @@ const buildPlaceholderEntry = (): ProcessedEntry => ({
   tracking_method: "manual",
   created_at: baseDate.toISOString(),
   updated_at: baseDate.toISOString(),
-  persons: [],
+  people: [],
   tags: [],
   extra_data: null,
   task: null,
@@ -62,7 +62,7 @@ const buildActualEntry = (): ProcessedEntry => ({
   tracking_method: "manual",
   created_at: "2026-04-14T05:41:48.498Z",
   updated_at: "2026-04-14T05:41:48.498Z",
-  persons: [],
+  people: [],
   tags: [],
   extra_data: null,
   task: null,
@@ -127,7 +127,7 @@ describe("TimeEntriesTable inline entry sessions", () => {
       tracking_method: "manual",
       created_at: baseDate.toISOString(),
       updated_at: baseDate.toISOString(),
-      persons: [],
+      people: [],
     } as unknown as TimelogWithEnergyResponse;
 
     await act(async () => {

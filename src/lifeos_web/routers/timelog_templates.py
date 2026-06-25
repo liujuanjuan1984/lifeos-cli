@@ -41,7 +41,7 @@ def _template_payload(template: TimelogTemplateView) -> dict[str, object]:
     if not isinstance(payload, dict):
         raise TypeError("Timelog template serialization did not produce a dictionary.")
     payload["person_ids"] = [str(person_id) for person_id in template.person_ids]
-    payload["persons"] = [_person_payload(person) for person in template.persons]
+    payload["people"] = [_person_payload(person) for person in template.people]
     return payload
 
 

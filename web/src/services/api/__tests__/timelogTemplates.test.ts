@@ -48,7 +48,7 @@ describe("timelogTemplatesApi", () => {
             title: "Focus",
             area_id: null,
             person_ids: [],
-            persons: [],
+            people: [],
             position: 0,
             usage_count: 0,
             created_at: "2026-06-17T12:00:00Z",

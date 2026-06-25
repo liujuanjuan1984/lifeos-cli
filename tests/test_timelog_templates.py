@@ -59,7 +59,7 @@ def test_create_template_hydrates_area_and_people() -> None:
                 assert template.area_name == "Work"
                 assert template.area_color == "#123456"
                 assert template.person_ids == (person.id,)
-                assert [summary.name for summary in template.persons] == ["Alice"]
+                assert [summary.name for summary in template.people] == ["Alice"]
                 assert template.default_duration_minutes == 90
                 assert template.position == 0
         finally:
@@ -124,7 +124,7 @@ def test_update_template_can_clear_optional_fields() -> None:
                 assert updated.area_id is None
                 assert updated.area_name is None
                 assert updated.person_ids == ()
-                assert updated.persons == ()
+                assert updated.people == ()
                 assert updated.default_duration_minutes is None
         finally:
             await engine.dispose()

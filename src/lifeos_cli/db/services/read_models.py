@@ -223,7 +223,7 @@ class TimelogTemplateView:
     area_name: str | None
     area_color: str | None
     person_ids: tuple[UUID, ...]
-    persons: tuple[PersonSummaryView, ...]
+    people: tuple[PersonSummaryView, ...]
     default_duration_minutes: int | None
     position: int
     usage_count: int
@@ -443,7 +443,7 @@ def build_timelog_template_view(
         area_name=template.area.name if template.area else None,
         area_color=template.area.color if template.area else None,
         person_ids=tuple(person.id for person in people),
-        persons=person_summaries,
+        people=person_summaries,
         default_duration_minutes=template.default_duration_minutes,
         position=template.position,
         usage_count=template.usage_count,

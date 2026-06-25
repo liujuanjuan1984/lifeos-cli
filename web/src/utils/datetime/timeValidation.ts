@@ -28,7 +28,7 @@ export interface PlaceholderEntry {
   notes?: string | null;
   tags?: string[] | null;
   extra_data?: Record<string, unknown> | null;
-  persons?: never[]; // Placeholder entries don't have persons
+  people?: never[]; // Placeholder entries don't have people
   isPlaceholder: true;
 }
 
@@ -178,7 +178,7 @@ function generatePlaceholderEntries(
         notes: null,
         tags: null,
         extra_data: null,
-        persons: [],
+        people: [],
         isPlaceholder: true,
       });
     }
@@ -211,7 +211,7 @@ function generatePlaceholderEntries(
         notes: null,
         tags: null,
         extra_data: null,
-        persons: [],
+        people: [],
         isPlaceholder: true,
       });
     }
@@ -244,7 +244,7 @@ function generatePlaceholderEntries(
         notes: null,
         tags: null,
         extra_data: null,
-        persons: [],
+        people: [],
         isPlaceholder: true,
       });
     }
@@ -263,7 +263,7 @@ function generatePlaceholderEntries(
       notes: null,
       tags: null,
       extra_data: null,
-      persons: [],
+      people: [],
       isPlaceholder: true,
     });
   }

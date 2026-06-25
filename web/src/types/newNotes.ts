@@ -7,8 +7,9 @@ export interface Note {
   id: UUID;
   content: string;
   createdAt: Date;
-  persons?: PersonSummary[];
+  people?: PersonSummary[];
   tags?: Tag[];
-  task?: TaskSummary;
+  task?: TaskSummary | null;
+  tasks?: TaskSummary[];
   timelogs?: NoteTimelogSummary[];
 }

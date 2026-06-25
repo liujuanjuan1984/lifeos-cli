@@ -59,7 +59,7 @@ const QuickTemplateEditorModal = ({
           personIds:
             initialTemplate.person_ids && initialTemplate.person_ids.length > 0
               ? initialTemplate.person_ids
-              : (initialTemplate.persons?.map((person) => person.id) ?? []),
+              : (initialTemplate.people?.map((person) => person.id) ?? []),
           durationText: initialTemplate.default_duration_minutes
             ? String(initialTemplate.default_duration_minutes)
             : "",

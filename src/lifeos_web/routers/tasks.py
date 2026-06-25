@@ -66,7 +66,7 @@ def _task_tree_payload(task: Any) -> dict[str, object]:
         "created_at": task.created_at.isoformat(),
         "updated_at": task.updated_at.isoformat(),
         "deleted_at": task.deleted_at.isoformat() if task.deleted_at else None,
-        "persons": to_jsonable(task.people),
+        "people": to_jsonable(task.people),
         "subtasks": [_task_tree_payload(subtask) for subtask in task.subtasks],
         "completion_percentage": task.completion_percentage,
         "depth": task.depth,

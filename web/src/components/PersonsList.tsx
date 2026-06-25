@@ -3,7 +3,7 @@ import type { PersonSummary } from "@/services/api";
 import { Icon } from "./icons";
 
 interface PersonsListProps {
-  persons?: PersonSummary[] | null;
+  people?: PersonSummary[] | null;
   className?: string;
   inline?: boolean; // inline pill style vs stacked rows
   showIcon?: boolean; // show leading icon
@@ -13,7 +13,7 @@ interface PersonsListProps {
 }
 
 const PersonsListComponent: React.FC<PersonsListProps> = ({
-  persons,
+  people,
   className,
   inline = false,
   showIcon = true,
@@ -21,7 +21,7 @@ const PersonsListComponent: React.FC<PersonsListProps> = ({
   renderItem,
   emptyText = "-",
 }) => {
-  const list = Array.isArray(persons) ? persons : [];
+  const list = Array.isArray(people) ? people : [];
   if (list.length === 0) {
     return (
       <span
@@ -90,8 +90,8 @@ const PersonsListComponent: React.FC<PersonsListProps> = ({
 };
 
 const PersonsList = React.memo(PersonsListComponent, (prev, next) => {
-  const prevIds = (prev.persons || []).map((p) => p.id).join(",");
-  const nextIds = (next.persons || []).map((p) => p.id).join(",");
+  const prevIds = (prev.people || []).map((p) => p.id).join(",");
+  const nextIds = (next.people || []).map((p) => p.id).join(",");
   return (
     prevIds === nextIds &&
     prev.className === next.className &&

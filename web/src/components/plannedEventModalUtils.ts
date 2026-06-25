@@ -82,7 +82,7 @@ export const buildPlannedEventFormData = ({
       status: plannedEvent.status,
       tags: plannedEvent.tags ? [...plannedEvent.tags] : [],
       extra_data: plannedEvent.extra_data ?? undefined,
-      person_ids: plannedEvent.persons?.map((person) => person.id) || [],
+      person_ids: plannedEvent.people?.map((person) => person.id) || [],
     };
   }
 
