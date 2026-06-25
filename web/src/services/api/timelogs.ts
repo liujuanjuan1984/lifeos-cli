@@ -44,7 +44,7 @@ export interface Timelog {
   extra_data?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-  persons?: PersonSummary[];
+  people?: PersonSummary[];
   // Preferred single associated task summary
   task?: TimelogTaskSummary | null;
   linked_notes?: NoteSummary[];
@@ -318,8 +318,8 @@ export const timelogsApi = {
 
   batchUpdate: (params: {
     timelog_ids: UUID[];
-    update_type: "persons" | "title" | "task" | "area";
-    persons?: {
+    update_type: "people" | "title" | "task" | "area";
+    people?: {
       mode: "add" | "replace" | "clear";
       person_ids: UUID[];
     };

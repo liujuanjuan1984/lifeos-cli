@@ -17,7 +17,7 @@ export interface Vision {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
-  persons?: PersonSummary[];
+  people?: PersonSummary[];
   // Optional aggregated minutes for display (if backend adds later)
   total_actual_effort?: number | null;
 }

@@ -444,7 +444,7 @@ def test_web_timelog_template_update_preserves_explicit_nulls(
             area_name=None,
             area_color=None,
             person_ids=(),
-            persons=(PersonSummaryView(id=UUID("22222222-2222-2222-2222-222222222222"), name="A"),),
+            people=(PersonSummaryView(id=UUID("22222222-2222-2222-2222-222222222222"), name="A"),),
             default_duration_minutes=None,
             position=0,
             usage_count=0,
@@ -475,7 +475,7 @@ def test_web_timelog_template_update_preserves_explicit_nulls(
     assert changes.default_duration_minutes_provided is True
     assert changes.default_duration_minutes is None
     assert changes.person_ids_provided is False
-    assert response["persons"] == [
+    assert response["people"] == [
         {
             "id": "22222222-2222-2222-2222-222222222222",
             "name": "A",

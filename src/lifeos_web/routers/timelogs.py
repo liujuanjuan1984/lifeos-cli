@@ -252,18 +252,18 @@ async def batch_update_timelogs(
             area_id=payload.area.area_id,
             clear_area=payload.area.area_id is None,
         )
-    elif payload.update_type == "persons":
-        if payload.persons is None:
+    elif payload.update_type == "people":
+        if payload.people is None:
             raise HTTPException(status_code=400, detail="Person update payload is required")
-        if payload.persons.mode == "add":
+        if payload.people.mode == "add":
             return await _batch_add_timelog_people(
                 session,
                 timelog_ids=payload.timelog_ids,
-                person_ids=payload.persons.person_ids,
+                person_ids=payload.people.person_ids,
             )
         changes = TimelogUpdateInput(
-            person_ids=payload.persons.person_ids,
-            clear_people=payload.persons.mode == "clear",
+            person_ids=payload.people.person_ids,
+            clear_people=payload.people.mode == "clear",
         )
     else:
         raise HTTPException(

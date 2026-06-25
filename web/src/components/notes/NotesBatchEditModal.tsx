@@ -21,7 +21,7 @@ interface NotesBatchEditModalProps {
   availableTasks: { id: UUID; name: string }[];
 }
 
-type BatchMode = "tags" | "persons" | "task" | "content";
+type BatchMode = "tags" | "people" | "task" | "content";
 
 type TagMode = "add" | "replace";
 
@@ -151,9 +151,9 @@ const NotesBatchEditModal = ({
           />
           <ActionButton
             label={t("notes.batchEdit.mode.persons")}
-            onClick={() => setMode("persons")}
-            color={mode === "persons" ? "primary" : "neutral"}
-            variant={mode === "persons" ? "outline" : "ghost"}
+            onClick={() => setMode("people")}
+            color={mode === "people" ? "primary" : "neutral"}
+            variant={mode === "people" ? "outline" : "ghost"}
           />
           <ActionButton
             label={t("notes.batchEdit.mode.task")}
@@ -195,7 +195,7 @@ const NotesBatchEditModal = ({
           </div>
         )}
 
-        {mode === "persons" && (
+        {mode === "people" && (
           <div className="space-y-4">
             <ActionButtonGroup>
               <ActionButton

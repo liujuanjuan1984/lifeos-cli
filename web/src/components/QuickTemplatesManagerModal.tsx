@@ -163,8 +163,8 @@ const QuickTemplatesManagerModal = ({
                   ? `${template.default_duration_minutes} ${t("quickTemplatesManager.minutes")}`
                   : t("common.none");
                 const personLabel =
-                  template.persons && template.persons.length > 0
-                    ? template.persons
+                  template.people && template.people.length > 0
+                    ? template.people
                         .map((person) => person.display_name)
                         .join(", ")
                     : t("common.none");

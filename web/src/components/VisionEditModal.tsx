@@ -67,7 +67,7 @@ const VisionEditModal: React.FC<VisionEditModalProps> = ({
         setFormData({
           name: vision.name,
           description: vision.description || "",
-          person_ids: vision.persons?.map((person) => person.id) || [],
+          person_ids: vision.people?.map((person) => person.id) || [],
           area_id: vision.area_id ?? undefined,
           status: vision.status,
           experience_rate_per_hour: vision.experience_rate_per_hour,

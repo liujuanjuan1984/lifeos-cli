@@ -120,7 +120,7 @@ const buildProcessedEntry = (
 ): ProcessedEntry => {
   const startIso = convertToUtcIso(row.date, row.startTime, timezone);
   const endIso = convertToUtcIso(row.endDate, row.endTime, timezone);
-  const persons = row.personIds.map((id) => {
+  const people = row.personIds.map((id) => {
     const uuid = id as UUID;
     return (
       personLookup.get(uuid) || {
@@ -157,7 +157,7 @@ const buildProcessedEntry = (
     extra_data: { sourceLine: row.sourceLineNumber },
     created_at: startIso,
     updated_at: endIso,
-    persons,
+    people,
     task,
     linked_notes: [],
     validationResult: {
@@ -231,7 +231,7 @@ const buildDraftTimelog = (
   const startIso = convertToUtcIso(row.date, row.startTime, timezone);
   const endIso = convertToUtcIso(row.endDate, row.endTime, timezone);
   const nowIso = new Date().toISOString();
-  const persons = row.personIds.map((id) => {
+  const people = row.personIds.map((id) => {
     const uuid = id as UUID;
     return (
       personLookup.get(uuid) || {
@@ -269,7 +269,7 @@ const buildDraftTimelog = (
     extra_data: { sourceLine: row.sourceLineNumber },
     created_at: nowIso,
     updated_at: nowIso,
-    persons,
+    people,
     task,
     linked_notes: [],
   };

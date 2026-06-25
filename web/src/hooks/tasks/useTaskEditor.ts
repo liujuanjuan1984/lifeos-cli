@@ -35,7 +35,7 @@ export interface TaskEditResultPayload {
     planning_cycle_type?: string | null;
     planning_cycle_days?: number | null;
     planning_cycle_start_date?: string | null;
-    persons?: TaskWithSubtasks["persons"];
+    people?: TaskWithSubtasks["people"];
   };
   structureChanged?: boolean;
   visionChanged?: boolean;
@@ -157,7 +157,7 @@ export function useTaskEditor(
         priority: task.priority,
         display_order: task.display_order,
         parent_task_id: task.parent_task_id,
-        person_ids: task.persons?.map((person) => person.id) || [],
+        person_ids: task.people?.map((person) => person.id) || [],
         planning_cycle_type:
           task.planning_cycle_type === "undefined" || !task.planning_cycle_type
             ? undefined
@@ -646,8 +646,7 @@ export function useTaskEditor(
                   planning_cycle_days: formData.planning_cycle_days || null,
                   planning_cycle_start_date:
                     formData.planning_cycle_start_date || null,
-                  persons:
-                    latestUpdatedTask?.persons ?? task.persons ?? undefined,
+                  people: latestUpdatedTask?.people ?? task.people ?? undefined,
                 },
                 structureChanged:
                   visionChanged ||
@@ -699,7 +698,7 @@ export function useTaskEditor(
                   planning_cycle_days: formData.planning_cycle_days || null,
                   planning_cycle_start_date:
                     formData.planning_cycle_start_date || null,
-                  persons: updatedTask.persons ?? task.persons ?? undefined,
+                  people: updatedTask.people ?? task.people ?? undefined,
                 },
                 structureChanged:
                   (task.parent_task_id || null) !==

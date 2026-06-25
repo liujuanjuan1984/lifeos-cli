@@ -63,13 +63,13 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
     if (entityType === "task" && task) {
       return deriveNoteAssociationDefaults({
         task,
-        persons: task.persons,
+        people: task.people,
       });
     }
     if (entityType === "timelog" && timelog) {
       return deriveNoteAssociationDefaults({
         task: timelog.task,
-        persons: timelog.persons,
+        people: timelog.people,
       });
     }
     return null;

@@ -23,7 +23,7 @@ interface BatchEditModalProps {
   onSuccess: () => void | Promise<void>;
 }
 
-type EditMode = "persons" | "title" | "task" | "area";
+type EditMode = "people" | "title" | "task" | "area";
 
 const BatchEditModal: React.FC<BatchEditModalProps> = ({
   isOpen,
@@ -33,7 +33,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [editMode, setEditMode] = useState<EditMode>("persons");
+  const [editMode, setEditMode] = useState<EditMode>("people");
   const [loading, setLoading] = useState(false);
   const [personMode, setPersonMode] = useState<"add" | "replace" | "clear">(
     "replace",
@@ -119,7 +119,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         const updateParams: {
           timelog_ids: UUID[];
           update_type: EditMode;
-          persons?: { mode: "add" | "replace" | "clear"; person_ids: UUID[] };
+          people?: { mode: "add" | "replace" | "clear"; person_ids: UUID[] };
           title?: {
             mode: "replace" | "find_replace";
             value: string;
@@ -132,9 +132,9 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
           update_type: editMode,
         };
 
-        if (editMode === "persons") {
+        if (editMode === "people") {
           if (personMode === "clear") {
-            updateParams.persons = { mode: "clear", person_ids: [] };
+            updateParams.people = { mode: "clear", person_ids: [] };
           } else if (selectedPersonIds.length === 0) {
             showError(
               t("batchEdit.title"),
@@ -143,7 +143,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
             setLoading(false);
             return;
           } else {
-            updateParams.persons = {
+            updateParams.people = {
               mode: personMode,
               person_ids: selectedPersonIds,
             };
@@ -290,7 +290,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
 
   const handleClose = useCallback(() => {
     if (!loading) {
-      setEditMode("persons");
+      setEditMode("people");
       setPersonMode("replace");
       setSelectedPersonIds([]);
       setTitleMode("replace");
@@ -352,8 +352,8 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         <div className="flex gap-2">
           <ToggleButton
             label={t("batchEdit.editType.persons")}
-            active={editMode === "persons"}
-            onClick={() => setEditMode("persons")}
+            active={editMode === "people"}
+            onClick={() => setEditMode("people")}
           />
           <ToggleButton
             label={t("batchEdit.editType.title")}
@@ -376,7 +376,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
       {/* Content Section */}
       <div className="bg-base-100 rounded-lg p-4 mb-6 ">
         {/* Persons Edit Mode */}
-        {editMode === "persons" && (
+        {editMode === "people" && (
           <div className="space-y-4">
             <div>
               <label className="block text-base font-medium text-base-content mb-2">

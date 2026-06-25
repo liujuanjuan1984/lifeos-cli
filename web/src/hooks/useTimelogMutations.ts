@@ -238,8 +238,8 @@ export function useTimelogMutations() {
   const batchUpdateMutation = useMutation({
     mutationFn: (params: {
       timelog_ids: UUID[];
-      update_type: "persons" | "title" | "task" | "area";
-      persons?: {
+      update_type: "people" | "title" | "task" | "area";
+      people?: {
         mode: "add" | "replace" | "clear";
         person_ids: UUID[];
       };

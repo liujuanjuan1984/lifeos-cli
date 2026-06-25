@@ -109,7 +109,7 @@ const TimeLogPage = () => {
     if (!activeTimelogForNotes) return null;
     return deriveNoteAssociationDefaults({
       task: activeTimelogForNotes.task,
-      persons: activeTimelogForNotes.persons,
+      people: activeTimelogForNotes.people,
     });
   }, [activeTimelogForNotes]);
 

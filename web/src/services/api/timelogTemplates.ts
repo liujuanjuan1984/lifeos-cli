@@ -11,7 +11,7 @@ export interface TimelogTemplate {
   area_name?: string | null;
   area_color?: string | null;
   person_ids: UUID[];
-  persons: PersonSummary[];
+  people: PersonSummary[];
   default_duration_minutes?: number | null;
   position: number;
   usage_count: number;

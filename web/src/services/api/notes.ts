@@ -164,9 +164,9 @@ interface NoteBatchContentUpdatePayload {
 
 export interface NoteBatchUpdatePayload {
   note_ids: UUID[];
-  operation: "tags" | "persons" | "task" | "content";
+  operation: "tags" | "people" | "task" | "content";
   tags?: NoteBatchTagUpdatePayload;
-  persons?: NoteBatchPersonUpdatePayload;
+  people?: NoteBatchPersonUpdatePayload;
   task?: NoteBatchTaskUpdatePayload;
   content?: NoteBatchContentUpdatePayload;
 }

@@ -49,7 +49,7 @@ const buildEntry = (
     created_at: overrides.created_at ?? "2025-10-10T00:00:00.000Z",
     updated_at: overrides.updated_at ?? "2025-10-10T00:00:00.000Z",
     isPlaceholder: overrides.isPlaceholder,
-    persons: overrides.persons,
+    people: overrides.people,
     validationResult: overrides.validationResult,
     notes: overrides.notes,
     tags: overrides.tags,
