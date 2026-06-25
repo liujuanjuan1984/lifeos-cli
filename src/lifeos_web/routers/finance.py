@@ -89,6 +89,7 @@ class FinanceSnapshotEntryCreate(BaseModel):
 class FinanceSnapshotCreate(BaseModel):
     """Payload for creating a finance snapshot."""
 
+    title: str | None = None
     snapshot_ts: datetime | None = None
     period_start: datetime | None = None
     period_end: datetime | None = None
@@ -101,6 +102,7 @@ class FinanceSnapshotCreate(BaseModel):
 class FinanceSnapshotUpdate(BaseModel):
     """Payload for updating mutable finance snapshot fields."""
 
+    title: str | None = None
     snapshot_ts: datetime | None = None
     period_start: datetime | None = None
     period_end: datetime | None = None
@@ -159,7 +161,7 @@ def _page_envelope(
 
 
 def _decimal_str(value: Decimal | None) -> str | None:
-    return None if value is None else str(value)
+    return None if value is None else format(value, "f")
 
 
 def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
@@ -279,6 +281,7 @@ def _snapshot_payload(
         "tree_name": snapshot.tree.name if snapshot.tree else None,
         "purpose": snapshot.tree.purpose if snapshot.tree else None,
         "time_mode": snapshot.tree.time_mode if snapshot.tree else None,
+        "title": snapshot.title,
         "snapshot_ts": snapshot.snapshot_ts.isoformat() if snapshot.snapshot_ts else None,
         "period_start": snapshot.period_start.isoformat() if snapshot.period_start else None,
         "period_end": snapshot.period_end.isoformat() if snapshot.period_end else None,
@@ -680,11 +683,13 @@ async def create_snapshot(
         snapshot = await finance_services.create_finance_snapshot(
             session,
             tree_id=tree_id,
+            title=payload.title,
             snapshot_ts=payload.snapshot_ts,
             period_start=payload.period_start,
             period_end=payload.period_end,
             primary_currency=payload.primary_currency,
             rate_snapshot_id=payload.rate_snapshot_id,
+            note=payload.note,
             entries=[
                 finance_services.FinanceSnapshotEntryInput(
                     node_id=entry.node_id,
@@ -723,6 +728,7 @@ async def update_snapshot(
         snapshot = await finance_services.update_finance_snapshot(
             session,
             snapshot_id=snapshot_id,
+            title=payload.title,
             snapshot_ts=payload.snapshot_ts,
             period_start=payload.period_start,
             period_end=payload.period_end,
@@ -739,6 +745,7 @@ async def update_snapshot(
             ]
             if payload.entries is not None
             else None,
+            update_title="title" in provided_fields,
             update_time_fields=bool(
                 {"snapshot_ts", "period_start", "period_end"} & provided_fields
             ),

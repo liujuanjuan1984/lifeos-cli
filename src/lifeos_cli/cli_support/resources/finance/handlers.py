@@ -20,7 +20,7 @@ from lifeos_cli.db.models.finance import (
 from lifeos_cli.db.services import finance as finance_services
 
 TREE_SUMMARY_COLUMNS = ("tree_id", "purpose", "time_mode", "currency", "name")
-SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "period", "net_amount", "currency")
+SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "title", "period", "net_amount", "currency")
 RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "pairs", "source")
 
 
@@ -39,10 +39,15 @@ def _format_snapshot_period(snapshot: FinanceSnapshot) -> str:
     return format_timestamp(snapshot.snapshot_ts)
 
 
+def _format_decimal(value: Decimal) -> str:
+    return format(value, "f")
+
+
 def _format_snapshot_summary(snapshot: FinanceSnapshot) -> str:
     return (
-        f"{snapshot.id}\t{snapshot.tree_id}\t{_format_snapshot_period(snapshot)}\t"
-        f"{snapshot.net_amount}\t{snapshot.primary_currency}"
+        f"{snapshot.id}\t{snapshot.tree_id}\t{snapshot.title or '-'}\t"
+        f"{_format_snapshot_period(snapshot)}\t"
+        f"{_format_decimal(snapshot.net_amount)}\t{snapshot.primary_currency}"
     )
 
 
@@ -79,7 +84,8 @@ def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
     entry_lines = [
         (
             f"  {entry.node_id}\t{entry.node.name if entry.node else '-'}\t"
-            f"{entry.amount}\t{entry.currency_code}\t{entry.amount_converted}\t"
+            f"{_format_decimal(entry.amount)}\t{entry.currency_code}\t"
+            f"{_format_decimal(entry.amount_converted)}\t"
             f"{'auto' if entry.is_auto_generated else 'manual'}"
         )
         for entry in snapshot.entries
@@ -88,15 +94,16 @@ def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
         (
             f"id: {snapshot.id}",
             f"tree_id: {snapshot.tree_id}",
+            f"title: {snapshot.title or '-'}",
             f"snapshot_ts: {format_timestamp(snapshot.snapshot_ts)}",
             f"period_start: {format_timestamp(snapshot.period_start)}",
             f"period_end: {format_timestamp(snapshot.period_end)}",
             f"primary_currency: {snapshot.primary_currency}",
             f"rate_snapshot_id: {snapshot.rate_snapshot_id or '-'}",
             f"rate_snapshot_policy: {snapshot.rate_snapshot_policy}",
-            f"total_positive: {snapshot.total_positive}",
-            f"total_negative: {snapshot.total_negative}",
-            f"net_amount: {snapshot.net_amount}",
+            f"total_positive: {_format_decimal(snapshot.total_positive)}",
+            f"total_negative: {_format_decimal(snapshot.total_negative)}",
+            f"net_amount: {_format_decimal(snapshot.net_amount)}",
             f"note: {snapshot.note or '-'}",
             "entries:",
             "  node_id\tname\tamount\tcurrency\tconverted\tsource",
@@ -281,6 +288,7 @@ async def handle_finance_snapshot_add_async(args: argparse.Namespace) -> int:
             snapshot = await finance_services.create_finance_snapshot(
                 session,
                 tree_id=args.tree_id,
+                title=args.title,
                 snapshot_ts=_storage_datetime(args.snapshot_ts),
                 period_start=_storage_datetime(args.period_start),
                 period_end=_storage_datetime(args.period_end),

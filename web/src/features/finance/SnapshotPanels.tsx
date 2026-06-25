@@ -52,6 +52,7 @@ export function SnapshotFormPanel({
   mode: "create" | "edit";
   initialSnapshot?: FinanceSnapshot | null;
   onSubmit: (payload: {
+    title?: string | null;
     snapshot_ts?: string | null;
     period_start?: string | null;
     period_end?: string | null;
@@ -67,6 +68,7 @@ export function SnapshotFormPanel({
   const [snapshotTs, setSnapshotTs] = useState(nowDateTimeLocal());
   const [periodStart, setPeriodStart] = useState(todayDate().slice(0, 8) + "01");
   const [periodEnd, setPeriodEnd] = useState(todayDate());
+  const [title, setTitle] = useState("");
   const [amounts, setAmounts] = useState<SnapshotAmountState>({});
   const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
@@ -108,6 +110,7 @@ export function SnapshotFormPanel({
       setSnapshotTs(nowDateTimeLocal());
       setPeriodStart(todayDate().slice(0, 8) + "01");
       setPeriodEnd(todayDate());
+      setTitle("");
       setAmounts({});
       setNotes({});
       setSnapshotNote("");
@@ -118,6 +121,7 @@ export function SnapshotFormPanel({
     setSnapshotTs(isoToDateTimeLocal(initialSnapshot.snapshot_ts));
     setPeriodStart(isoToDateInput(initialSnapshot.period_start));
     setPeriodEnd(isoToDateInput(initialSnapshot.period_end));
+    setTitle(initialSnapshot.title ?? "");
     setSnapshotNote(initialSnapshot.note ?? "");
     setSelectedRateSnapshotId(initialSnapshot.rate_snapshot_id ?? "");
     const nextAmounts: SnapshotAmountState = {};
@@ -153,6 +157,7 @@ export function SnapshotFormPanel({
       return;
     }
     onSubmit({
+      title: title.trim() || null,
       snapshot_ts: preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
       period_start: preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
       period_end: preset.timeMode === "period" ? dateToEndIso(periodEnd) : null,
@@ -162,6 +167,7 @@ export function SnapshotFormPanel({
       entries,
     });
     if (mode === "create") {
+      setTitle("");
       setAmounts({});
       setNotes({});
       setSnapshotNote("");
@@ -187,6 +193,15 @@ export function SnapshotFormPanel({
         />
       </div>
       <form className="space-y-4" onSubmit={handleSubmit}>
+        <FormField label={t("finance.snapshot.title")}>
+          <TextInput
+            type="text"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={t("finance.snapshot.titlePlaceholder")}
+          />
+        </FormField>
+
         {preset.timeMode === "instant" ? (
           <FormField label={t("finance.snapshot.snapshotTime")}>
             <TextInput

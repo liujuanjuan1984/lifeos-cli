@@ -155,6 +155,7 @@ class FinanceSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
         nullable=True,
         index=True,
     )
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     snapshot_ts: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_start: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_end: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.services import finance
+from lifeos_web.routers.finance import _decimal_str
 
 
 async def _create_sqlite_session_factory() -> tuple[
@@ -76,6 +77,69 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
             await engine.dispose()
 
     asyncio.run(run())
+
+
+def test_finance_snapshot_title_can_be_created_updated_and_cleared() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                checking = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Checking",
+                    currency_code="USD",
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    title="June net worth",
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=checking.id,
+                            amount=Decimal("100"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+                assert snapshot.title == "June net worth"
+
+                updated = await finance.update_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    title="Updated net worth",
+                    update_title=True,
+                )
+                assert updated.title == "Updated net worth"
+
+                cleared = await finance.update_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    title=" ",
+                    update_title=True,
+                )
+                assert cleared.title is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
+    assert _decimal_str(Decimal("0E-8")) == "0.00000000"
+    assert _decimal_str(Decimal("1250.50000000")) == "1250.50000000"
 
 
 def test_cashflow_default_tree_uses_period_time_mode() -> None:

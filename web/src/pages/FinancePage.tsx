@@ -21,8 +21,11 @@ import {
   type FinanceSnapshot,
   type FinanceSnapshotEntryCreate,
   type FinanceTree,
+  type FinanceTreeCreate,
+  type FinanceTreeListResponse,
 } from "@/services/api/finance";
 import {
+  invalidateFinanceTree,
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   invalidateFinanceTreeByPurpose,
@@ -122,14 +125,24 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
   const [snapshotFormMode, setSnapshotFormMode] = useState<"create" | "edit">("create");
   const [treeManagerOpen, setTreeManagerOpen] = useState(false);
+  const [treeCreateOpen, setTreeCreateOpen] = useState(false);
+  const [selectedTreeId, setSelectedTreeId] = useState<UUID | null>(null);
   const [nodeFormState, setNodeFormState] = useState<FinanceNodeFormState | null>(null);
   const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
   const [pendingDeleteSnapshot, setPendingDeleteSnapshot] = useState<FinanceSnapshot | null>(null);
   const [deletedSnapshotIds, setDeletedSnapshotIds] = useState<Set<UUID>>(() => new Set());
 
-  const treeQuery = useQuery({
+  const treesQuery = useQuery({
     queryKey: financeKeys.treesByPurpose(preset.purpose),
-    queryFn: () => financeApi.ensureDefaultTree(preset.purpose),
+    queryFn: () => financeApi.listTrees({ purpose: preset.purpose }),
+    staleTime: 60_000,
+  });
+
+  const trees = useMemo(() => treesQuery.data?.items ?? [], [treesQuery.data?.items]);
+  const treeQuery = useQuery({
+    queryKey: financeKeys.tree(selectedTreeId),
+    queryFn: () => financeApi.getTree(selectedTreeId!),
+    enabled: Boolean(selectedTreeId),
     staleTime: 60_000,
   });
 
@@ -175,6 +188,60 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     enabled: Boolean(detailSnapshotId),
   });
 
+  useEffect(() => {
+    if (treesQuery.isLoading) {
+      return;
+    }
+    if (!trees.length) {
+      setSelectedTreeId(null);
+      setSelectedSnapshotId(null);
+      return;
+    }
+    if (selectedTreeId && trees.some((item) => item.id === selectedTreeId)) {
+      return;
+    }
+    const defaultTree = trees.find((item) => item.is_default) ?? trees[0];
+    setSelectedTreeId(defaultTree.id);
+    setSelectedSnapshotId(null);
+    setSnapshotFormVisible(false);
+    setSnapshotFormMode("create");
+  }, [selectedTreeId, trees, treesQuery.isLoading]);
+
+  const createTreeMutation = useMutation({
+    mutationFn: (payload: FinanceTreeCreate) => financeApi.createTree(payload),
+    onSuccess: async (createdTree) => {
+      toast.showSuccess(t("finance.messages.treeCreated"));
+      setTreeCreateOpen(false);
+      queryClient.setQueryData<FinanceTreeListResponse>(
+        financeKeys.treesByPurpose(preset.purpose),
+        (existing) => {
+          if (!existing) return existing;
+          const alreadyPresent = existing.items.some((item) => item.id === createdTree.id);
+          return {
+            ...existing,
+            items: [
+              createdTree,
+              ...existing.items.filter((item) => item.id !== createdTree.id),
+            ],
+            pagination: {
+              ...existing.pagination,
+              total: existing.pagination.total + (alreadyPresent ? 0 : 1),
+            },
+          };
+        },
+      );
+      setSelectedTreeId(createdTree.id);
+      setSelectedSnapshotId(null);
+      await Promise.all([
+        invalidateFinanceTreeByPurpose(queryClient, preset.purpose),
+        invalidateFinanceTree(queryClient, createdTree.id),
+      ]);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
   const createNodeMutation = useMutation({
     mutationFn: (payload: {
       name: string;
@@ -183,7 +250,10 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     }) => financeApi.createNode(tree!.id, payload),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeCreated"));
-      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
+      await Promise.all([
+        invalidateFinanceTree(queryClient, tree?.id ?? null),
+        invalidateFinanceTreeByPurpose(queryClient, preset.purpose),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -204,7 +274,10 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeUpdated"));
       setNodeFormState(null);
-      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
+      await Promise.all([
+        invalidateFinanceTree(queryClient, tree?.id ?? null),
+        invalidateFinanceTreeByPurpose(queryClient, preset.purpose),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -216,7 +289,10 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.nodeDeleted"));
       setPendingDeleteNode(null);
-      await invalidateFinanceTreeByPurpose(queryClient, preset.purpose);
+      await Promise.all([
+        invalidateFinanceTree(queryClient, tree?.id ?? null),
+        invalidateFinanceTreeByPurpose(queryClient, preset.purpose),
+      ]);
     },
     onError: (error) => {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
@@ -225,6 +301,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   const createSnapshotMutation = useMutation({
     mutationFn: (payload: {
+      title?: string | null;
       snapshot_ts?: string | null;
       period_start?: string | null;
       period_end?: string | null;
@@ -255,6 +332,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     }: {
       snapshotId: UUID;
       payload: {
+        title?: string | null;
         snapshot_ts?: string | null;
         period_start?: string | null;
         period_end?: string | null;
@@ -315,20 +393,63 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     },
   });
 
-  if (treeQuery.isLoading) {
+  if (treesQuery.isLoading || (selectedTreeId && treeQuery.isLoading)) {
     return <LoadingSpinner />;
   }
 
-  if (treeQuery.error) {
+  if (treesQuery.error || treeQuery.error) {
+    const error = treesQuery.error ?? treeQuery.error;
     return (
       <ErrorDisplay
-        error={treeQuery.error instanceof Error ? treeQuery.error.message : String(treeQuery.error)}
+        error={error instanceof Error ? error.message : String(error)}
       />
     );
   }
 
   if (!tree) {
-    return <ErrorDisplay error={t("finance.messages.treeMissing")} />;
+    return (
+      <div className="space-y-6">
+        <FinanceTreeSelector
+          preset={preset}
+          trees={trees}
+          selectedTreeId={selectedTreeId}
+          onSelectTree={(treeId) => {
+            setSelectedTreeId(treeId);
+            setSelectedSnapshotId(null);
+            setSnapshotFormVisible(false);
+            setSnapshotFormMode("create");
+          }}
+          onCreateTree={() => setTreeCreateOpen(true)}
+          onManageTree={() => setTreeManagerOpen(true)}
+          manageDisabled
+        />
+        <div className="rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center text-sm text-base-content/70">
+          <p>{t("finance.tree.noTrees")}</p>
+          <div className="mt-4 flex justify-center">
+            <CreateNewButton
+              label={t("finance.tree.createTree")}
+              onClick={() => setTreeCreateOpen(true)}
+              size="sm"
+              color="primary"
+              variant="solid"
+            />
+          </div>
+        </div>
+        <FinanceTreeCreateModal
+          isOpen={treeCreateOpen}
+          onClose={() => {
+            if (!createTreeMutation.isPending) {
+              setTreeCreateOpen(false);
+            }
+          }}
+          preset={preset}
+          assets={assets}
+          submitting={createTreeMutation.isPending}
+          onCreateAsset={createAsset}
+          onSubmit={(payload) => createTreeMutation.mutate(payload)}
+        />
+      </div>
+    );
   }
 
   const selectSnapshot = (snapshotId: UUID) => {
@@ -363,6 +484,20 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   return (
     <div className="space-y-6">
+      <FinanceTreeSelector
+        preset={preset}
+        trees={trees}
+        selectedTreeId={tree.id}
+        onSelectTree={(treeId) => {
+          setSelectedTreeId(treeId);
+          setSelectedSnapshotId(null);
+          setSnapshotFormVisible(false);
+          setSnapshotFormMode("create");
+        }}
+        onCreateTree={() => setTreeCreateOpen(true)}
+        onManageTree={() => setTreeManagerOpen(true)}
+      />
+
       <SnapshotToolbar
         tree={tree}
         preset={preset}
@@ -373,7 +508,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onSelect={selectSnapshot}
         onPrevious={() => moveSnapshot(-1)}
         onNext={() => moveSnapshot(1)}
-        onManageTree={() => setTreeManagerOpen(true)}
         onCreateSnapshot={openCreateSnapshotForm}
         createDisabled={!entryNodes.length}
       />
@@ -424,6 +558,20 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         onCreateChildNode={(node) => setNodeFormState({ mode: "create", parentId: node.id })}
         onEditNode={(node) => setNodeFormState({ mode: "edit", node })}
         onDeleteNode={setPendingDeleteNode}
+      />
+
+      <FinanceTreeCreateModal
+        isOpen={treeCreateOpen}
+        onClose={() => {
+          if (!createTreeMutation.isPending) {
+            setTreeCreateOpen(false);
+          }
+        }}
+        preset={preset}
+        assets={assets}
+        submitting={createTreeMutation.isPending}
+        onCreateAsset={createAsset}
+        onSubmit={(payload) => createTreeMutation.mutate(payload)}
       />
 
       <FinanceNodeFormModal
@@ -480,6 +628,166 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   );
 }
 
+function FinanceTreeSelector({
+  preset,
+  trees,
+  selectedTreeId,
+  manageDisabled,
+  onSelectTree,
+  onCreateTree,
+  onManageTree,
+}: {
+  preset: PresetConfig;
+  trees: FinanceTree[];
+  selectedTreeId: UUID | null;
+  manageDisabled?: boolean;
+  onSelectTree: (treeId: UUID) => void;
+  onCreateTree: () => void;
+  onManageTree: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-[14rem] flex-1">
+          <label className="form-control">
+            <span className="label-text">{t("finance.tree.selectTree")}</span>
+            <select
+              className="select select-bordered select-sm"
+              value={selectedTreeId ?? ""}
+              onChange={(event) => {
+                if (event.target.value) {
+                  onSelectTree(event.target.value as UUID);
+                }
+              }}
+              disabled={!trees.length}
+            >
+              {!trees.length ? (
+                <option value="">{t("finance.tree.noTrees")}</option>
+              ) : null}
+              {trees.map((tree) => (
+                <option key={tree.id} value={tree.id}>
+                  {tree.name}
+                  {tree.is_default ? ` · ${t("finance.tree.default")}` : ""}
+                  {` · ${tree.primary_currency}`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-6">
+          <CreateNewButton
+            label={t("finance.tree.createTree")}
+            onClick={onCreateTree}
+            size="sm"
+            color="primary"
+            variant="solid"
+          />
+          <ActionButton
+            label={t("finance.tree.manage")}
+            onClick={onManageTree}
+            size="sm"
+            variant="outline"
+            iconName="settings"
+            disabled={manageDisabled || !selectedTreeId}
+          />
+        </div>
+      </div>
+      <p className="mt-3 text-sm text-base-content/70">{t(`finance.${preset.purpose}.treeHint`)}</p>
+    </section>
+  );
+}
+
+function FinanceTreeCreateModal({
+  isOpen,
+  onClose,
+  preset,
+  assets,
+  submitting,
+  onCreateAsset,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  preset: PresetConfig;
+  assets: FinanceAsset[];
+  submitting: boolean;
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
+  onSubmit: (payload: FinanceTreeCreate) => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [primaryCurrency, setPrimaryCurrency] = useState("USD");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName("");
+    setPrimaryCurrency("USD");
+  }, [isOpen, preset.purpose]);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    onSubmit({
+      name: trimmedName,
+      purpose: preset.purpose,
+      time_mode: preset.timeMode,
+      primary_currency: primaryCurrency,
+      display_order: 1000,
+      is_default: false,
+    });
+  };
+
+  return (
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("finance.tree.createTreeTitle")}
+      size="md"
+      bodyOverflow="auto"
+    >
+      <form className="space-y-3" onSubmit={handleSubmit}>
+        <FormField label={t("finance.tree.treeName")}>
+          <TextInput
+            size="sm"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t("finance.tree.treeNamePlaceholder")}
+            disabled={submitting}
+          />
+        </FormField>
+        <FormField label={t("finance.tree.primaryCurrency")}>
+          <AssetSelect
+            assets={assets}
+            value={primaryCurrency}
+            onChange={setPrimaryCurrency}
+            onCreateAsset={onCreateAsset}
+            disabled={submitting}
+          />
+        </FormField>
+        <div className="flex justify-end gap-2 pt-2">
+          <ActionButton
+            type="button"
+            label={t("common.cancel")}
+            variant="ghost"
+            onClick={onClose}
+            disabled={submitting}
+          />
+          <ActionButton
+            type="submit"
+            label={submitting ? t("common.saving") : t("finance.tree.createTree")}
+            color="primary"
+            variant="solid"
+            iconName="plus"
+            disabled={submitting || !name.trim()}
+          />
+        </div>
+      </form>
+    </ModalBase>
+  );
+}
+
 function SnapshotModule({
   preset,
   tree,
@@ -533,6 +841,7 @@ function SnapshotModule({
   onDeleteSnapshot: (snapshot: FinanceSnapshot) => void;
   onCloseSnapshotForm: () => void;
   onCreateSnapshot: (payload: {
+    title?: string | null;
     snapshot_ts?: string | null;
     period_start?: string | null;
     period_end?: string | null;
@@ -544,6 +853,7 @@ function SnapshotModule({
   onUpdateSnapshot: (
     snapshotId: UUID,
     payload: {
+      title?: string | null;
       snapshot_ts?: string | null;
       period_start?: string | null;
       period_end?: string | null;

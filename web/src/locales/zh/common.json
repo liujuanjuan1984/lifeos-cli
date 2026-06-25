@@ -1421,6 +1421,14 @@
     "tree": {
       "title": "财务树",
       "empty": "暂无节点。",
+      "noTrees": "暂无财务树。",
+      "selectTree": "财务树",
+      "createTree": "创建财务树",
+      "createTreeTitle": "创建财务树",
+      "treeName": "财务树名称",
+      "treeNamePlaceholder": "为这套财务树命名",
+      "primaryCurrency": "主资产",
+      "default": "默认",
       "addNode": "添加节点",
       "nodeNamePlaceholder": "节点名称",
       "parent": "父节点",
@@ -1440,6 +1448,8 @@
     "snapshot": {
       "formTitle": "快照",
       "editTitle": "编辑快照",
+      "title": "快照标题",
+      "titlePlaceholder": "可选展示标题",
       "new": "新建快照",
       "edit": "编辑快照",
       "delete": "删除快照",
@@ -1509,6 +1519,7 @@
     },
     "messages": {
       "treeMissing": "财务树不可用。",
+      "treeCreated": "财务树已创建",
       "nodeCreated": "财务节点已创建",
       "nodeUpdated": "财务节点已更新",
       "nodeDeleted": "财务节点已删除",

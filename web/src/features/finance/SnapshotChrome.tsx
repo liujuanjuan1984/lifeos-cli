@@ -30,7 +30,7 @@ export function SnapshotSelectorToolbar({
   onCreate,
 }: {
   badges: React.ReactNode;
-  manageLabel: string;
+  manageLabel?: string;
   manageAriaLabel?: string;
   selectValue?: UUID | null;
   selectOptions: { value: UUID; label: string }[];
@@ -43,7 +43,7 @@ export function SnapshotSelectorToolbar({
   onSelect: (snapshotId: UUID) => void;
   onPrevious: () => void;
   onNext: () => void;
-  onManage: () => void;
+  onManage?: () => void;
   onCreate: () => void;
 }) {
   const { t } = useTranslation();
@@ -53,14 +53,16 @@ export function SnapshotSelectorToolbar({
       <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         <div className="flex flex-wrap items-center gap-2">
           {badges}
-          <ActionButton
-            label={manageLabel}
-            onClick={onManage}
-            size="sm"
-            variant="outline"
-            iconName="settings"
-            ariaLabel={manageAriaLabel ?? manageLabel}
-          />
+          {manageLabel && onManage ? (
+            <ActionButton
+              label={manageLabel}
+              onClick={onManage}
+              size="sm"
+              variant="outline"
+              iconName="settings"
+              ariaLabel={manageAriaLabel ?? manageLabel}
+            />
+          ) : null}
         </div>
 
         <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
@@ -131,7 +133,6 @@ export function SnapshotToolbar({
   onSelect,
   onPrevious,
   onNext,
-  onManageTree,
   onCreateSnapshot,
   createDisabled,
 }: {
@@ -144,7 +145,6 @@ export function SnapshotToolbar({
   onSelect: (snapshotId: UUID) => void;
   onPrevious: () => void;
   onNext: () => void;
-  onManageTree: () => void;
   onCreateSnapshot: () => void;
   createDisabled: boolean;
 }) {
@@ -166,7 +166,6 @@ export function SnapshotToolbar({
           </Badge>
         </>
       }
-      manageLabel={t("finance.tree.manage")}
       selectValue={selectedSnapshotId}
       selectOptions={options}
       selectPlaceholder={t("finance.snapshot.selectSnapshot")}
@@ -178,7 +177,6 @@ export function SnapshotToolbar({
       onSelect={onSelect}
       onPrevious={onPrevious}
       onNext={onNext}
-      onManage={onManageTree}
       onCreate={onCreateSnapshot}
     />
   );

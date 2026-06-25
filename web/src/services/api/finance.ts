@@ -71,6 +71,7 @@ export interface FinanceSnapshot {
   tree_name?: string | null;
   purpose?: FinancePurpose | null;
   time_mode?: FinanceTimeMode | null;
+  title?: string | null;
   snapshot_ts: string | null;
   period_start: string | null;
   period_end: string | null;
@@ -146,6 +147,7 @@ export interface FinanceSnapshotEntryCreate {
 }
 
 export interface FinanceSnapshotCreate {
+  title?: string | null;
   snapshot_ts?: string | null;
   period_start?: string | null;
   period_end?: string | null;
@@ -156,6 +158,7 @@ export interface FinanceSnapshotCreate {
 }
 
 export interface FinanceSnapshotUpdate {
+  title?: string | null;
   snapshot_ts?: string | null;
   period_start?: string | null;
   period_end?: string | null;

@@ -120,6 +120,10 @@ export const flattenTree = (nodes: TreeNodeWithChildren[]): TreeNodeWithChildren
 };
 
 export function snapshotLabel(snapshot: FinanceSnapshot) {
+  const title = snapshot.title?.trim();
+  if (title) {
+    return title;
+  }
   if (snapshot.period_start && snapshot.period_end) {
     return `${formatDate(snapshot.period_start)} - ${formatDate(snapshot.period_end)}`;
   }

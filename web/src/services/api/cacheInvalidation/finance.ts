@@ -26,6 +26,15 @@ export const invalidateFinanceTreeByPurpose = (
     queryKey: financeKeys.treesByPurpose(purpose),
   });
 
+export const invalidateFinanceTree = (
+  queryClient: QueryClient,
+  treeId: UUID | null,
+) =>
+  queryClient.invalidateQueries({
+    queryKey: financeKeys.tree(treeId),
+    exact: true,
+  });
+
 export const invalidateFinanceSnapshots = (
   queryClient: QueryClient,
   treeId: UUID | null,

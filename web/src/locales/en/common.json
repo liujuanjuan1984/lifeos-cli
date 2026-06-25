@@ -1421,6 +1421,14 @@
     "tree": {
       "title": "Tree",
       "empty": "No nodes yet.",
+      "noTrees": "No finance trees yet.",
+      "selectTree": "Finance tree",
+      "createTree": "Create tree",
+      "createTreeTitle": "Create finance tree",
+      "treeName": "Tree name",
+      "treeNamePlaceholder": "Name this finance tree",
+      "primaryCurrency": "Primary asset",
+      "default": "Default",
       "addNode": "Add node",
       "nodeNamePlaceholder": "Node name",
       "parent": "Parent",
@@ -1440,6 +1448,8 @@
     "snapshot": {
       "formTitle": "Snapshot",
       "editTitle": "Edit snapshot",
+      "title": "Snapshot title",
+      "titlePlaceholder": "Optional display title",
       "new": "New snapshot",
       "edit": "Edit snapshot",
       "delete": "Delete snapshot",
@@ -1509,6 +1519,7 @@
     },
     "messages": {
       "treeMissing": "Finance tree is unavailable.",
+      "treeCreated": "Finance tree created",
       "nodeCreated": "Finance node created",
       "nodeUpdated": "Finance node updated",
       "nodeDeleted": "Finance node deleted",

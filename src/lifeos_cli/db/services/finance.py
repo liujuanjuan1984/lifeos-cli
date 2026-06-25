@@ -316,6 +316,18 @@ def validate_node_name(name: str) -> str:
     return normalized
 
 
+def validate_snapshot_title(title: str | None) -> str | None:
+    """Validate and normalize an optional finance snapshot display title."""
+    if title is None:
+        return None
+    normalized = title.strip()
+    if not normalized:
+        return None
+    if len(normalized) > 200:
+        raise FinanceValidationError("Finance snapshot title must be 200 characters or fewer")
+    return normalized
+
+
 async def _ensure_tree_name_available(
     session: AsyncSession,
     *,
@@ -1374,6 +1386,7 @@ async def create_finance_snapshot(
     *,
     tree_id: UUID,
     entries: list[FinanceSnapshotEntryInput],
+    title: str | None = None,
     snapshot_ts: datetime | None = None,
     period_start: datetime | None = None,
     period_end: datetime | None = None,
@@ -1401,6 +1414,7 @@ async def create_finance_snapshot(
     snapshot = FinanceSnapshot(
         tree_id=tree_id,
         rate_snapshot_id=rate_snapshot.id if rate_snapshot is not None else None,
+        title=validate_snapshot_title(title),
         snapshot_ts=resolved_snapshot_ts,
         period_start=resolved_period_start,
         period_end=resolved_period_end,
@@ -1460,12 +1474,14 @@ async def update_finance_snapshot(
     *,
     snapshot_id: UUID,
     entries: list[FinanceSnapshotEntryInput] | None = None,
+    title: str | None = None,
     snapshot_ts: datetime | None = None,
     period_start: datetime | None = None,
     period_end: datetime | None = None,
     primary_currency: str | None = None,
     rate_snapshot_id: UUID | None = None,
     note: str | None = None,
+    update_title: bool = False,
     update_time_fields: bool = False,
     update_primary_currency: bool = False,
     update_rate_snapshot: bool = False,
@@ -1478,6 +1494,9 @@ async def update_finance_snapshot(
     tree = snapshot.tree or await get_finance_tree(session, tree_id=snapshot.tree_id)
     if tree is None:
         raise FinanceTreeNotFoundError(f"Finance tree {snapshot.tree_id} was not found")
+
+    if update_title:
+        snapshot.title = validate_snapshot_title(title)
 
     if update_time_fields:
         resolved_snapshot_ts, resolved_period_start, resolved_period_end = (

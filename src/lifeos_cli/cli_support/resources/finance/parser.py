@@ -184,16 +184,19 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             description=(
                 "Create an instant or period snapshot. Repeat --entry with "
                 "node-id:amount[:currency]. Select --rate-snapshot-id when "
-                "non-primary currencies should be converted into the primary currency."
+                "non-primary currencies should be converted into the primary currency. "
+                "Use --title for an optional display label."
             ),
             examples=(
-                "lifeos finance snapshot-add <tree-id> --entry <node-id>:1000:USD",
+                'lifeos finance snapshot-add <tree-id> --title "June net worth" '
+                "--entry <node-id>:1000:USD",
                 "lifeos finance snapshot-add <tree-id> --period-start 2026-06-01T00:00:00 "
                 "--period-end 2026-06-30T23:59:59 --entry <node-id>:-120:USD",
             ),
         ),
     )
     snapshot_add.add_argument("tree_id", type=UUID)
+    snapshot_add.add_argument("--title")
     snapshot_add.add_argument("--snapshot-ts", type=parse_user_datetime_value)
     snapshot_add.add_argument("--period-start", type=parse_user_datetime_value)
     snapshot_add.add_argument("--period-end", type=parse_user_datetime_value)
