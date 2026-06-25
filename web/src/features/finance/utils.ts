@@ -1,4 +1,5 @@
 import type {
+  FinanceAsset,
   FinancePurpose,
   FinanceRateSnapshot,
   FinanceSnapshot,
@@ -74,15 +75,48 @@ export const dateToEndIso = (value: string) => {
   return new Date(`${value}T23:59:59`).toISOString();
 };
 
-export const formatMoney = (value?: string | null, currency = "") => {
+export const assetDecimalPlaces = (assets: FinanceAsset[], currency = "") => {
+  const normalized = currency.toUpperCase();
+  const places = assets.find((asset) => asset.code === normalized)?.decimal_places ?? 2;
+  return Math.min(8, Math.max(0, places));
+};
+
+export const formatNumberForAsset = (
+  value: number,
+  currency: string,
+  assets: FinanceAsset[] = [],
+) =>
+  value.toLocaleString(undefined, {
+    useGrouping: false,
+    minimumFractionDigits: assetDecimalPlaces(assets, currency),
+    maximumFractionDigits: assetDecimalPlaces(assets, currency),
+  });
+
+export const formatAmountForAsset = (
+  value: string,
+  currency: string,
+  assets: FinanceAsset[] = [],
+) => {
+  if (!value.trim()) {
+    return value;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return value;
+  }
+  return formatNumberForAsset(numeric, currency, assets);
+};
+
+export const formatMoney = (
+  value?: string | null,
+  currency = "",
+  assets: FinanceAsset[] = [],
+) => {
   const numeric = Number(value ?? 0);
   if (!Number.isFinite(numeric)) {
     return `${value ?? "0"} ${currency}`.trim();
   }
-  return `${numeric.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} ${currency}`.trim();
+  return `${formatNumberForAsset(numeric, currency, assets)} ${currency}`.trim();
 };
 
 export const buildTree = (nodes: FinanceTreeNode[]): TreeNodeWithChildren[] => {

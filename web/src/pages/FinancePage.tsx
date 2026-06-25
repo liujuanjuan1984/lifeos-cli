@@ -515,6 +515,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       <SnapshotModule
         preset={preset}
         tree={tree}
+        assets={assets}
         entryNodes={entryNodes}
         treeNodes={treeNodes}
         rateSnapshots={rateSnapshots}
@@ -791,6 +792,7 @@ function FinanceTreeCreateModal({
 function SnapshotModule({
   preset,
   tree,
+  assets,
   entryNodes,
   treeNodes,
   rateSnapshots,
@@ -818,6 +820,7 @@ function SnapshotModule({
 }: {
   preset: PresetConfig;
   tree: FinanceTree;
+  assets: FinanceAsset[];
   entryNodes: TreeNodeWithChildren[];
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
@@ -874,6 +877,7 @@ function SnapshotModule({
           <SnapshotFormPanel
             tree={tree}
             preset={preset}
+            assets={assets}
             treeNodes={treeNodes}
             rateSnapshots={rateSnapshots}
             requiredRateCurrencies={requiredRateCurrencies}
@@ -943,6 +947,7 @@ function SnapshotModule({
             <SnapshotFormPanel
               tree={tree}
               preset={preset}
+              assets={assets}
               treeNodes={treeNodes}
               rateSnapshots={rateSnapshots}
               requiredRateCurrencies={requiredRateCurrencies}
@@ -969,6 +974,7 @@ function SnapshotModule({
           <SnapshotDetail
             snapshot={snapshotDetail}
             tree={tree}
+            assets={assets}
             treeNodes={treeNodes}
           />
         ) : (

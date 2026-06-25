@@ -10,6 +10,7 @@ export interface FinanceAsset {
   id: UUID;
   code: string;
   name?: string | null;
+  decimal_places: number;
   display_order: number;
   is_default: boolean;
   metadata?: Record<string, unknown> | null;
@@ -220,12 +221,18 @@ export const financeApi = {
   createAsset: (payload: {
     code: string;
     name?: string | null;
+    decimal_places?: number;
     display_order?: number;
     is_default?: boolean;
   }) => http.post<FinanceAsset>(ENDPOINTS.FINANCE.ASSETS, payload),
   updateAsset: (
     assetId: UUID,
-    payload: { code?: string; name?: string | null; display_order?: number },
+    payload: {
+      code?: string;
+      name?: string | null;
+      decimal_places?: number;
+      display_order?: number;
+    },
   ) => http.patch<FinanceAsset>(ENDPOINTS.FINANCE.ASSET_BY_ID(assetId), payload),
   deleteAsset: (assetId: UUID) =>
     http.delete<void>(ENDPOINTS.FINANCE.ASSET_BY_ID(assetId)),

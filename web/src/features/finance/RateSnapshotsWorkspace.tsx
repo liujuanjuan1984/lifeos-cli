@@ -62,9 +62,11 @@ export function RateSnapshotsWorkspace() {
   );
   const [assetCode, setAssetCode] = useState("");
   const [assetName, setAssetName] = useState("");
+  const [assetDecimalPlaces, setAssetDecimalPlaces] = useState("2");
   const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
   const [editingAssetCode, setEditingAssetCode] = useState("");
   const [editingAssetName, setEditingAssetName] = useState("");
+  const [editingAssetDecimalPlaces, setEditingAssetDecimalPlaces] = useState("2");
   const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
   const [source, setSource] = useState("manual");
   const [note, setNote] = useState("");
@@ -166,11 +168,13 @@ export function RateSnapshotsWorkspace() {
       assetId,
       code,
       name,
+      decimalPlaces,
     }: {
       assetId: UUID;
       code: string;
       name: string | null;
-    }) => financeApi.updateAsset(assetId, { code, name }),
+      decimalPlaces: number;
+    }) => financeApi.updateAsset(assetId, { code, name, decimal_places: decimalPlaces }),
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.assetUpdated"));
       setEditingAssetId(null);
@@ -196,17 +200,22 @@ export function RateSnapshotsWorkspace() {
     event.preventDefault();
     const code = assetCode.trim().toUpperCase();
     if (!code) return;
-    createAsset(code)
-      .then(async (asset) => {
-        if (assetName.trim()) {
-          await financeApi.updateAsset(asset.id, { name: assetName.trim() });
-          await invalidateFinanceAssets(queryClient);
-        }
+    financeApi
+      .createAsset({
+        code,
+        name: assetName.trim() || null,
+        decimal_places: parseDecimalPlaces(assetDecimalPlaces),
+      })
+      .then(async () => {
+        await invalidateFinanceAssets(queryClient);
         toast.showSuccess(t("finance.messages.assetCreated"));
         setAssetCode("");
         setAssetName("");
+        setAssetDecimalPlaces("2");
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+      });
   };
 
   const submitRateSnapshot = (event: React.FormEvent) => {
@@ -640,7 +649,7 @@ export function RateSnapshotsWorkspace() {
         <div className="space-y-4">
           <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
           <form
-            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto]"
             onSubmit={submitAsset}
           >
             <TextInput
@@ -654,6 +663,16 @@ export function RateSnapshotsWorkspace() {
               value={assetName}
               onChange={(event) => setAssetName(event.target.value)}
               placeholder={t("finance.assets.name")}
+            />
+            <TextInput
+              type="number"
+              min={0}
+              max={8}
+              step={1}
+              size="sm"
+              value={assetDecimalPlaces}
+              onChange={(event) => setAssetDecimalPlaces(event.target.value)}
+              placeholder={t("finance.assets.decimalPlaces")}
             />
             <ActionButton
               type="submit"
@@ -671,6 +690,7 @@ export function RateSnapshotsWorkspace() {
                 <tr>
                   <th>{t("finance.assets.code")}</th>
                   <th>{t("finance.assets.name")}</th>
+                  <th>{t("finance.assets.decimalPlaces")}</th>
                   <th className="w-24 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
@@ -704,6 +724,23 @@ export function RateSnapshotsWorkspace() {
                         )}
                       </td>
                       <td>
+                        {editing ? (
+                          <TextInput
+                            type="number"
+                            min={0}
+                            max={8}
+                            step={1}
+                            size="sm"
+                            value={editingAssetDecimalPlaces}
+                            onChange={(event) =>
+                              setEditingAssetDecimalPlaces(event.target.value)
+                            }
+                          />
+                        ) : (
+                          asset.decimal_places
+                        )}
+                      </td>
+                      <td>
                         <div className="flex justify-end gap-1">
                           {editing ? (
                             <>
@@ -720,6 +757,7 @@ export function RateSnapshotsWorkspace() {
                                     assetId: asset.id,
                                     code: editingAssetCode.trim().toUpperCase(),
                                     name: editingAssetName.trim() || null,
+                                    decimalPlaces: parseDecimalPlaces(editingAssetDecimalPlaces),
                                   })
                                 }
                               />
@@ -746,6 +784,7 @@ export function RateSnapshotsWorkspace() {
                                   setEditingAssetId(asset.id);
                                   setEditingAssetCode(asset.code);
                                   setEditingAssetName(asset.name ?? "");
+                                  setEditingAssetDecimalPlaces(String(asset.decimal_places));
                                 }}
                               />
                               <ActionButton
@@ -773,4 +812,12 @@ export function RateSnapshotsWorkspace() {
       </ModalBase>
     </div>
   );
+}
+
+function parseDecimalPlaces(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return 2;
+  }
+  return Math.min(8, Math.max(0, parsed));
 }

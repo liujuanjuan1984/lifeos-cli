@@ -1414,6 +1414,7 @@
       "description": "Manage selectable assets used by finance trees, snapshots, and exchange rates.",
       "code": "Asset",
       "name": "Name",
+      "decimalPlaces": "Decimal places",
       "selectAsset": "Select asset",
       "createAsset": "Create {{code}}",
       "addAsset": "Add asset"

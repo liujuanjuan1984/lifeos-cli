@@ -12,6 +12,7 @@ from lifeos_cli.cli_support import handler_utils as cli_handler_utils
 from lifeos_cli.cli_support.output_utils import format_timestamp, print_summary_rows
 from lifeos_cli.db import session as db_session
 from lifeos_cli.db.models.finance import (
+    FinanceAsset,
     FinanceRateSnapshot,
     FinanceSnapshot,
     FinanceTree,
@@ -19,9 +20,14 @@ from lifeos_cli.db.models.finance import (
 )
 from lifeos_cli.db.services import finance as finance_services
 
+ASSET_SUMMARY_COLUMNS = ("asset_id", "code", "decimal_places", "name")
 TREE_SUMMARY_COLUMNS = ("tree_id", "purpose", "time_mode", "currency", "name")
 SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "title", "period", "net_amount", "currency")
 RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "pairs", "source")
+
+
+def _format_asset_summary(asset: FinanceAsset) -> str:
+    return f"{asset.id}\t{asset.code}\t{asset.decimal_places}\t{asset.name or '-'}"
 
 
 def _format_tree_summary(tree: FinanceTree) -> str:
@@ -39,15 +45,32 @@ def _format_snapshot_period(snapshot: FinanceSnapshot) -> str:
     return format_timestamp(snapshot.snapshot_ts)
 
 
-def _format_decimal(value: Decimal) -> str:
-    return format(value, "f")
+def _format_decimal(
+    value: Decimal,
+    *,
+    currency_code: str,
+    decimal_places_by_code: dict[str, int],
+) -> str:
+    return finance_services.format_asset_amount(
+        value,
+        currency_code=currency_code,
+        decimal_places_by_code=decimal_places_by_code,
+    )
 
 
-def _format_snapshot_summary(snapshot: FinanceSnapshot) -> str:
+def _format_snapshot_summary(
+    snapshot: FinanceSnapshot,
+    *,
+    decimal_places_by_code: dict[str, int],
+) -> str:
+    net_amount = _format_decimal(
+        snapshot.net_amount,
+        currency_code=snapshot.primary_currency,
+        decimal_places_by_code=decimal_places_by_code,
+    )
     return (
         f"{snapshot.id}\t{snapshot.tree_id}\t{snapshot.title or '-'}\t"
-        f"{_format_snapshot_period(snapshot)}\t"
-        f"{_format_decimal(snapshot.net_amount)}\t{snapshot.primary_currency}"
+        f"{_format_snapshot_period(snapshot)}\t{net_amount}\t{snapshot.primary_currency}"
     )
 
 
@@ -80,16 +103,43 @@ def _format_tree_detail(tree: FinanceTree, nodes: list[FinanceTreeNode]) -> str:
     )
 
 
-def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
-    entry_lines = [
-        (
+def _format_snapshot_detail(
+    snapshot: FinanceSnapshot,
+    *,
+    decimal_places_by_code: dict[str, int],
+) -> str:
+    entry_lines = []
+    for entry in snapshot.entries:
+        amount = _format_decimal(
+            entry.amount,
+            currency_code=entry.currency_code,
+            decimal_places_by_code=decimal_places_by_code,
+        )
+        amount_converted = _format_decimal(
+            entry.amount_converted,
+            currency_code=snapshot.primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        )
+        entry_lines.append(
             f"  {entry.node_id}\t{entry.node.name if entry.node else '-'}\t"
-            f"{_format_decimal(entry.amount)}\t{entry.currency_code}\t"
-            f"{_format_decimal(entry.amount_converted)}\t"
+            f"{amount}\t{entry.currency_code}\t{amount_converted}\t"
             f"{'auto' if entry.is_auto_generated else 'manual'}"
         )
-        for entry in snapshot.entries
-    ]
+    total_positive = _format_decimal(
+        snapshot.total_positive,
+        currency_code=snapshot.primary_currency,
+        decimal_places_by_code=decimal_places_by_code,
+    )
+    total_negative = _format_decimal(
+        snapshot.total_negative,
+        currency_code=snapshot.primary_currency,
+        decimal_places_by_code=decimal_places_by_code,
+    )
+    net_amount = _format_decimal(
+        snapshot.net_amount,
+        currency_code=snapshot.primary_currency,
+        decimal_places_by_code=decimal_places_by_code,
+    )
     return "\n".join(
         (
             f"id: {snapshot.id}",
@@ -101,9 +151,9 @@ def _format_snapshot_detail(snapshot: FinanceSnapshot) -> str:
             f"primary_currency: {snapshot.primary_currency}",
             f"rate_snapshot_id: {snapshot.rate_snapshot_id or '-'}",
             f"rate_snapshot_policy: {snapshot.rate_snapshot_policy}",
-            f"total_positive: {_format_decimal(snapshot.total_positive)}",
-            f"total_negative: {_format_decimal(snapshot.total_negative)}",
-            f"net_amount: {_format_decimal(snapshot.net_amount)}",
+            f"total_positive: {total_positive}",
+            f"total_negative: {total_negative}",
+            f"net_amount: {net_amount}",
             f"note: {snapshot.note or '-'}",
             "entries:",
             "  node_id\tname\tamount\tcurrency\tconverted\tsource",
@@ -171,6 +221,66 @@ def _storage_datetime(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     return to_storage_timezone(value)
+
+
+async def handle_finance_asset_list_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        assets = await finance_services.list_finance_assets(
+            session,
+            include_deleted=args.include_deleted,
+            limit=args.limit,
+            offset=args.offset,
+        )
+    print_summary_rows(
+        items=assets,
+        columns=ASSET_SUMMARY_COLUMNS,
+        row_formatter=_format_asset_summary,
+        empty_message="No finance assets found.",
+    )
+    return 0
+
+
+async def handle_finance_asset_add_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            asset = await finance_services.create_finance_asset(
+                session,
+                code=args.code,
+                name=args.name,
+                decimal_places=args.decimal_places,
+                display_order=args.display_order,
+            )
+        except ValueError as exc:
+            return cli_handler_utils.print_cli_error(exc)
+    print(f"Created finance asset {asset.id}")
+    return 0
+
+
+async def handle_finance_asset_update_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            asset = await finance_services.update_finance_asset(
+                session,
+                asset_id=args.asset_id,
+                code=args.code,
+                name=args.name,
+                decimal_places=args.decimal_places,
+                display_order=args.display_order,
+            )
+        except (LookupError, ValueError) as exc:
+            return cli_handler_utils.print_cli_error(exc)
+    print(f"Updated finance asset {asset.id}")
+    return 0
+
+
+async def handle_finance_asset_delete_async(args: argparse.Namespace) -> int:
+    async with db_session.session_scope() as session:
+        try:
+            await finance_services.delete_finance_asset(session, asset_id=args.asset_id)
+        except LookupError as exc:
+            return cli_handler_utils.print_cli_error(exc)
+    print(f"Soft-deleted finance asset {args.asset_id}")
+    return 0
 
 
 async def handle_finance_tree_add_async(args: argparse.Namespace) -> int:
@@ -367,10 +477,15 @@ async def handle_finance_snapshot_list_async(args: argparse.Namespace) -> int:
             )
         except ValueError as exc:
             return cli_handler_utils.print_cli_error(exc)
+        assets = await finance_services.list_finance_assets(session)
+    decimal_places_by_code = {asset.code: asset.decimal_places for asset in assets}
     print_summary_rows(
         items=snapshots,
         columns=SNAPSHOT_SUMMARY_COLUMNS,
-        row_formatter=_format_snapshot_summary,
+        row_formatter=lambda snapshot: _format_snapshot_summary(
+            snapshot,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
         empty_message="No finance snapshots found.",
     )
     return 0
@@ -383,7 +498,14 @@ async def handle_finance_snapshot_show_async(args: argparse.Namespace) -> int:
             snapshot_id=args.snapshot_id,
             include_deleted=args.include_deleted,
         )
+        assets = await finance_services.list_finance_assets(session)
     if snapshot is None:
         return cli_handler_utils.print_missing_record_error("Finance snapshot", args.snapshot_id)
-    print(_format_snapshot_detail(snapshot))
+    decimal_places_by_code = {asset.code: asset.decimal_places for asset in assets}
+    print(
+        _format_snapshot_detail(
+            snapshot,
+            decimal_places_by_code=decimal_places_by_code,
+        )
+    )
     return 0

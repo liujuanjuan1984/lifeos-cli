@@ -7,6 +7,7 @@ import { FormField, TextArea, TextInput } from "@/components/forms";
 import EnumSelect from "@/components/selects/EnumSelect";
 import { useToast } from "@/contexts/ToastContext";
 import type {
+  FinanceAsset,
   FinanceRateSnapshot,
   FinanceSnapshot,
   FinanceSnapshotEntryCreate,
@@ -17,8 +18,11 @@ import type { UUID } from "@/types/primitive";
 import {
   dateToEndIso,
   dateToStartIso,
+  assetDecimalPlaces,
   flattenTree,
+  formatAmountForAsset,
   formatMoney,
+  formatNumberForAsset,
   isoToDateInput,
   isoToDateTimeLocal,
   localDateTimeToIso,
@@ -34,6 +38,7 @@ import {
 export function SnapshotFormPanel({
   tree,
   preset,
+  assets,
   treeNodes,
   rateSnapshots,
   requiredRateCurrencies,
@@ -45,6 +50,7 @@ export function SnapshotFormPanel({
 }: {
   tree: FinanceTree;
   preset: PresetConfig;
+  assets: FinanceAsset[];
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
   requiredRateCurrencies: string[];
@@ -92,12 +98,13 @@ export function SnapshotFormPanel({
         amounts,
         tree.primary_currency,
         conversionRates,
+        assets,
       ),
-    [amounts, conversionRates, tree.primary_currency, treeNodes],
+    [amounts, assets, conversionRates, tree.primary_currency, treeNodes],
   );
   const nativeAggregatedAmounts = useMemo(
-    () => buildNativeSnapshotAmounts(treeNodes, amounts, tree.primary_currency),
-    [amounts, tree.primary_currency, treeNodes],
+    () => buildNativeSnapshotAmounts(treeNodes, amounts, tree.primary_currency, assets),
+    [amounts, assets, tree.primary_currency, treeNodes],
   );
   const missingRateCurrencies = requiredRateCurrencies.filter(
     (currency) => !conversionRates[currency],
@@ -145,7 +152,7 @@ export function SnapshotFormPanel({
       }
       acc.push({
         node_id: node.id,
-        amount,
+        amount: amount.replace(",", "."),
         currency_code: node.currency_code || tree.primary_currency,
         note: notes[node.id]?.trim() || null,
       });
@@ -245,6 +252,7 @@ export function SnapshotFormPanel({
           nativeAggregatedAmounts={nativeAggregatedAmounts}
           primaryCurrency={tree.primary_currency}
           conversionRates={conversionRates}
+          assets={assets}
           hasRateSnapshot={hasCompleteRateSnapshot}
           submitting={submitting}
           onChangeAmount={(nodeId, value) =>
@@ -337,6 +345,7 @@ function SnapshotEntryTreeTable({
   nativeAggregatedAmounts,
   primaryCurrency,
   conversionRates,
+  assets,
   hasRateSnapshot,
   submitting,
   onChangeAmount,
@@ -349,6 +358,7 @@ function SnapshotEntryTreeTable({
   nativeAggregatedAmounts: Record<UUID, string>;
   primaryCurrency: string;
   conversionRates: Record<string, number>;
+  assets: FinanceAsset[];
   hasRateSnapshot: boolean;
   submitting: boolean;
   onChangeAmount: (nodeId: UUID, value: string) => void;
@@ -380,15 +390,17 @@ function SnapshotEntryTreeTable({
       const hasChildren = node.children.length > 0;
       const isExpanded = expandedIds.has(node.id);
       const amount = amounts[node.id] ?? "";
+      const nodeCurrency = node.currency_code || primaryCurrency;
       const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
       const convertedAmount = hasRateSnapshot
         ? hasChildren
           ? aggregatedAmount
           : convertSnapshotAmount(
               amount,
-              node.currency_code || primaryCurrency,
+              nodeCurrency,
               primaryCurrency,
               conversionRates,
+              assets,
             )
         : nativeAggregatedAmounts[node.id] ?? "";
       const amountNegative = isNegativeAmount(amount);
@@ -423,7 +435,7 @@ function SnapshotEntryTreeTable({
                 <p className="truncate font-semibold text-base-content">{node.name}</p>
                 <div className="inline-flex flex-wrap items-center gap-1 text-xs text-base-content/70 sm:flex-nowrap">
                   <span className="rounded-full bg-base-200 px-2 py-0.5">
-                    {node.currency_code || primaryCurrency}
+                    {nodeCurrency}
                   </span>
                 </div>
               </div>
@@ -431,7 +443,7 @@ function SnapshotEntryTreeTable({
           </td>
           <td className="align-top text-center">
             <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/80">
-              {(node.currency_code || primaryCurrency).toUpperCase()}
+              {nodeCurrency.toUpperCase()}
             </span>
           </td>
           <td className="align-top">
@@ -450,7 +462,7 @@ function SnapshotEntryTreeTable({
               <TextInput
                 type="text"
                 inputMode="decimal"
-                pattern="-?[0-9]*[.,]?[0-9]*"
+                pattern={amountInputPattern(assetDecimalPlaces(assets, nodeCurrency))}
                 size="sm"
                 className={amountNegative ? "text-error" : "text-base-content"}
                 value={amount}
@@ -557,9 +569,11 @@ function Metric({ label, value }: { label: string; value: string }) {
 function CurrencyAmountList({
   amountsByCurrency,
   fallbackCurrency,
+  assets,
 }: {
   amountsByCurrency: Record<string, { net_amount: string }>;
   fallbackCurrency: string;
+  assets: FinanceAsset[];
 }) {
   const { t } = useTranslation();
   const entries = Object.entries(amountsByCurrency);
@@ -567,7 +581,7 @@ function CurrencyAmountList({
     return (
       <Metric
         label={t("finance.metrics.net")}
-        value={formatMoney("0", fallbackCurrency)}
+        value={formatMoney("0", fallbackCurrency, assets)}
       />
     );
   }
@@ -579,7 +593,7 @@ function CurrencyAmountList({
       <div className="mt-2 flex flex-wrap gap-2">
         {entries.map(([currency, totals]) => (
           <Badge key={currency} tone="neutral" variant="outline" size="sm">
-            {formatMoney(totals.net_amount, currency)}
+            {formatMoney(totals.net_amount, currency, assets)}
           </Badge>
         ))}
       </div>
@@ -590,17 +604,26 @@ function CurrencyAmountList({
 export function SnapshotDetail({
   snapshot,
   tree,
+  assets,
   treeNodes,
 }: {
   snapshot: FinanceSnapshot;
   tree: FinanceTree;
+  assets: FinanceAsset[];
   treeNodes: TreeNodeWithChildren[];
 }) {
   const { t } = useTranslation();
   const usesConvertedAggregation = getSummaryAggregationMode(snapshot.summary) === "converted";
   const displayTree = useMemo(
-    () => buildSnapshotDisplayTree(treeNodes, snapshot.entries ?? [], usesConvertedAggregation),
-    [snapshot.entries, treeNodes, usesConvertedAggregation],
+    () =>
+      buildSnapshotDisplayTree(
+        treeNodes,
+        snapshot.entries ?? [],
+        usesConvertedAggregation,
+        snapshot.primary_currency,
+        assets,
+      ),
+    [assets, snapshot.entries, snapshot.primary_currency, treeNodes, usesConvertedAggregation],
   );
   const amountsByCurrency = useMemo(
     () => getSummaryAmountsByCurrency(snapshot.summary),
@@ -640,21 +663,22 @@ export function SnapshotDetail({
           <>
             <Metric
               label={t("finance.metrics.positive")}
-              value={formatMoney(snapshot.total_positive, tree.primary_currency)}
+              value={formatMoney(snapshot.total_positive, tree.primary_currency, assets)}
             />
             <Metric
               label={t("finance.metrics.negative")}
-              value={formatMoney(snapshot.total_negative, tree.primary_currency)}
+              value={formatMoney(snapshot.total_negative, tree.primary_currency, assets)}
             />
             <Metric
               label={t("finance.metrics.net")}
-              value={formatMoney(snapshot.net_amount, tree.primary_currency)}
+              value={formatMoney(snapshot.net_amount, tree.primary_currency, assets)}
             />
           </>
         ) : (
           <CurrencyAmountList
             amountsByCurrency={amountsByCurrency}
             fallbackCurrency={snapshot.primary_currency}
+            assets={assets}
           />
         )}
       </div>
@@ -687,8 +711,8 @@ export function SnapshotDetail({
             {visibleNodes.map((node) => {
               const hasChildren = node.children.length > 0;
               const isExpanded = expandedIds.has(node.id);
-              const originalAmount = Number(node.amount);
-              const convertedAmount = Number(node.amountConverted);
+              const originalAmount = parseDisplayAmount(node.amount);
+              const convertedAmount = parseDisplayAmount(node.amountConverted);
               const originalAmountClass =
                 originalAmount > 0
                   ? "text-success"
@@ -751,7 +775,7 @@ export function SnapshotDetail({
                   <td className="align-top">
                     {usesConvertedAggregation ? (
                       <span className={`tabular-nums ${convertedAmountClass}`}>
-                        {formatMoney(node.amountConverted, snapshot.primary_currency)}
+                        {formatMoney(node.amountConverted, snapshot.primary_currency, assets)}
                       </span>
                     ) : (
                       <span className="text-base-content/40">-</span>
@@ -801,6 +825,8 @@ function buildSnapshotDisplayTree(
   treeNodes: TreeNodeWithChildren[],
   entries: SnapshotEntry[],
   useConvertedRollups: boolean,
+  primaryCurrency: string,
+  assets: FinanceAsset[],
 ): SnapshotDisplayNode[] {
   const entryByNodeId = new Map<UUID, SnapshotEntry>();
   entries.forEach((entry) => {
@@ -820,14 +846,16 @@ function buildSnapshotDisplayTree(
           return null;
         }
         const amountConverted =
-          entry?.amount_converted ?? (useConvertedRollups ? sumSnapshotNodeAmounts(children) : "");
+          entry?.amount_converted ??
+          (useConvertedRollups ? sumSnapshotNodeAmounts(children, primaryCurrency, assets) : "");
+        const currencyCode = entry?.currency_code ?? node.currency_code ?? primaryCurrency;
         return {
           id: node.id,
           name: node.name,
           depth,
-          amount: entry?.amount ?? amountConverted,
+          amount: entry?.amount ?? formatAmountForAsset(amountConverted, currencyCode, assets),
           amountConverted,
-          currencyCode: entry?.currency_code ?? node.currency_code ?? "",
+          currencyCode,
           note: entry?.note ?? null,
           isAutoGenerated: entry?.is_auto_generated ?? false,
           children,
@@ -893,6 +921,7 @@ function buildAggregatedSnapshotAmounts(
   amounts: SnapshotAmountState,
   primaryCurrency: string,
   conversionRates: Record<string, number>,
+  assets: FinanceAsset[],
 ): Record<UUID, string> {
   const result: Record<UUID, string> = {};
 
@@ -903,6 +932,7 @@ function buildAggregatedSnapshotAmounts(
         node.currency_code || primaryCurrency,
         primaryCurrency,
         conversionRates,
+        assets,
       );
       if (convertedAmount) {
         result[node.id] = convertedAmount;
@@ -910,7 +940,7 @@ function buildAggregatedSnapshotAmounts(
       return convertedAmount;
     }
 
-    const total = sumAmountStrings(node.children.map(visit));
+    const total = sumAmountStrings(node.children.map(visit), primaryCurrency, assets);
     if (total) {
       result[node.id] = total;
     }
@@ -925,6 +955,7 @@ function buildNativeSnapshotAmounts(
   nodes: TreeNodeWithChildren[],
   amounts: SnapshotAmountState,
   primaryCurrency: string,
+  assets: FinanceAsset[],
 ): Record<UUID, string> {
   const result: Record<UUID, string> = {};
 
@@ -936,7 +967,7 @@ function buildNativeSnapshotAmounts(
         return new Map();
       }
       const currency = (node.currency_code || primaryCurrency).toUpperCase();
-      result[node.id] = `${amount} ${currency}`;
+      result[node.id] = `${formatAmountForAsset(amount, currency, assets)} ${currency}`;
       return new Map([[currency, parsed]]);
     }
 
@@ -949,7 +980,7 @@ function buildNativeSnapshotAmounts(
     if (totals.size) {
       result[node.id] = Array.from(totals.entries())
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([currency, value]) => `${value} ${currency}`)
+        .map(([currency, value]) => `${formatNumberForAsset(value, currency, assets)} ${currency}`)
         .join(", ");
     }
     return totals;
@@ -987,12 +1018,13 @@ function convertSnapshotAmount(
   currencyCode: string,
   primaryCurrency: string,
   conversionRates: Record<string, number>,
+  assets: FinanceAsset[],
 ): string {
   const trimmed = amount.trim();
   if (!trimmed) {
     return "";
   }
-  const parsed = Number(trimmed);
+  const parsed = parseDisplayAmount(trimmed);
   if (!Number.isFinite(parsed)) {
     return "";
   }
@@ -1002,33 +1034,59 @@ function convertSnapshotAmount(
   if (!Number.isFinite(rate)) {
     return "";
   }
-  return (parsed * rate).toString();
+  return formatNumberForAsset(parsed * rate, primary, assets);
 }
 
-function sumAmountStrings(values: string[]): string {
+function sumAmountStrings(
+  values: string[],
+  currencyCode?: string,
+  assets: FinanceAsset[] = [],
+): string {
   let hasValue = false;
   const total = values.reduce((acc, value) => {
     const trimmed = value.trim();
     if (!trimmed) {
       return acc;
     }
-    const parsed = Number(trimmed);
+    const parsed = parseDisplayAmount(trimmed);
     if (!Number.isFinite(parsed)) {
       return acc;
     }
     hasValue = true;
     return acc + parsed;
   }, 0);
-  return hasValue ? total.toString() : "";
+  if (!hasValue) {
+    return "";
+  }
+  return currencyCode ? formatNumberForAsset(total, currencyCode, assets) : total.toString();
 }
 
-function sumSnapshotNodeAmounts(nodes: SnapshotDisplayNode[]): string {
-  return sumAmountStrings(nodes.map((node) => node.amountConverted));
+function sumSnapshotNodeAmounts(
+  nodes: SnapshotDisplayNode[],
+  primaryCurrency: string,
+  assets: FinanceAsset[],
+): string {
+  return sumAmountStrings(
+    nodes.map((node) => node.amountConverted),
+    primaryCurrency,
+    assets,
+  );
 }
 
 function isNegativeAmount(value: string | null | undefined): boolean {
-  const numeric = Number(value ?? "");
+  const numeric = parseDisplayAmount(value ?? "");
   return Number.isFinite(numeric) && numeric < 0;
+}
+
+function parseDisplayAmount(value: string): number {
+  return Number(value.replace(",", "."));
+}
+
+function amountInputPattern(decimalPlaces: number): string {
+  if (decimalPlaces <= 0) {
+    return "-?[0-9]*";
+  }
+  return `-?[0-9]*[.,]?[0-9]{0,${decimalPlaces}}`;
 }
 
 function collectExpandableSnapshotNodeIds(

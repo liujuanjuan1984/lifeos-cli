@@ -27,6 +27,8 @@ from lifeos_cli.db.models.finance import (
 VALID_FINANCE_PURPOSES = {"balance", "cashflow", "custom"}
 VALID_FINANCE_TIME_MODES = {"instant", "period"}
 DEFAULT_FINANCE_CURRENCY = "USD"
+DEFAULT_FINANCE_ASSET_DECIMAL_PLACES = 2
+MAX_FINANCE_ASSET_DECIMAL_PLACES = 8
 DEFAULT_FINANCE_ASSETS: tuple[tuple[str, str, int], ...] = (
     ("USD", "US Dollar", 10),
     ("USDT", "Tether USD", 20),
@@ -156,6 +158,41 @@ def validate_asset_name(name: str | None) -> str | None:
     return normalized
 
 
+def validate_asset_decimal_places(decimal_places: int | None = None) -> int:
+    """Validate asset display and input precision."""
+    resolved = DEFAULT_FINANCE_ASSET_DECIMAL_PLACES if decimal_places is None else decimal_places
+    if resolved < 0 or resolved > MAX_FINANCE_ASSET_DECIMAL_PLACES:
+        raise FinanceValidationError("Finance asset decimal places must be between 0 and 8")
+    return resolved
+
+
+def decimal_quant_for_places(decimal_places: int) -> Decimal:
+    """Return the Decimal quantum for a given number of fractional places."""
+    if decimal_places <= 0:
+        return Decimal("1")
+    return Decimal("1").scaleb(-decimal_places)
+
+
+def format_decimal_places(value: Decimal, decimal_places: int) -> str:
+    """Format a decimal with fixed places and no scientific notation."""
+    return format(value.quantize(decimal_quant_for_places(decimal_places)), "f")
+
+
+def format_asset_amount(
+    value: Decimal,
+    *,
+    currency_code: str | None,
+    decimal_places_by_code: dict[str, int] | None = None,
+) -> str:
+    """Format an amount using the precision configured for its asset."""
+    normalized = normalize_currency_code(currency_code)
+    decimal_places = (decimal_places_by_code or {}).get(
+        normalized,
+        DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
+    )
+    return format_decimal_places(value, decimal_places)
+
+
 async def ensure_default_finance_assets(session: AsyncSession) -> None:
     """Create built-in assets only when the code has never existed."""
     existing_codes = set((await session.execute(select(FinanceAsset.code))).scalars().all())
@@ -166,6 +203,7 @@ async def ensure_default_finance_assets(session: AsyncSession) -> None:
             FinanceAsset(
                 code=code,
                 name=name,
+                decimal_places=DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
                 display_order=display_order,
                 is_default=True,
             )
@@ -210,6 +248,7 @@ async def create_finance_asset(
     *,
     code: str,
     name: str | None = None,
+    decimal_places: int | None = None,
     display_order: int = 1000,
     is_default: bool = False,
     metadata: dict[str, Any] | None = None,
@@ -229,6 +268,7 @@ async def create_finance_asset(
     asset = FinanceAsset(
         code=resolved_code,
         name=validate_asset_name(name),
+        decimal_places=validate_asset_decimal_places(decimal_places),
         display_order=display_order,
         is_default=is_default,
         metadata_json=metadata,
@@ -245,6 +285,7 @@ async def update_finance_asset(
     asset_id: UUID,
     code: str | None = None,
     name: str | None = None,
+    decimal_places: int | None = None,
     display_order: int | None = None,
 ) -> FinanceAsset:
     """Update a finance asset."""
@@ -274,6 +315,8 @@ async def update_finance_asset(
         asset.code = resolved_code
     if name is not None:
         asset.name = validate_asset_name(name)
+    if decimal_places is not None:
+        asset.decimal_places = validate_asset_decimal_places(decimal_places)
     if display_order is not None:
         asset.display_order = display_order
     await session.flush()
@@ -694,6 +737,38 @@ def _decimal(value: Decimal | int | str) -> Decimal:
 
 def _quantize_amount(value: Decimal) -> Decimal:
     return value.quantize(FINANCE_AMOUNT_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _validate_amount_precision(
+    value: Decimal,
+    *,
+    currency_code: str,
+    decimal_places: int,
+) -> Decimal:
+    quantum = decimal_quant_for_places(decimal_places)
+    quantized = value.quantize(quantum, rounding=ROUND_HALF_UP)
+    if value != quantized:
+        raise FinanceValidationError(
+            f"Finance amount for {currency_code} supports at most {decimal_places} decimal places"
+        )
+    return quantized
+
+
+async def _load_asset_decimal_places(
+    session: AsyncSession,
+    *,
+    currency_codes: set[str],
+) -> dict[str, int]:
+    if not currency_codes:
+        return {}
+    stmt = select(FinanceAsset).where(
+        FinanceAsset.code.in_(currency_codes),
+        FinanceAsset.deleted_at.is_(None),
+    )
+    return {
+        asset.code: validate_asset_decimal_places(asset.decimal_places)
+        for asset in (await session.execute(stmt)).scalars()
+    }
 
 
 def _format_rate(value: Decimal) -> str:
@@ -1245,16 +1320,33 @@ async def _rebuild_finance_snapshot_entries(
     await session.flush()
 
     entry_nodes = await _load_entry_nodes(session, tree_id=tree.id, entries=entries)
+    normalized_inputs: list[tuple[FinanceSnapshotEntryInput, FinanceTreeNode, Decimal, str]] = []
+    entry_currency_codes: set[str] = {snapshot.primary_currency}
+    for entry_input in entries:
+        node = entry_nodes[entry_input.node_id]
+        currency_code = normalize_currency_code(
+            entry_input.currency_code,
+            fallback=node.currency_code or snapshot.primary_currency,
+        )
+        amount = _decimal(entry_input.amount)
+        normalized_inputs.append((entry_input, node, amount, currency_code))
+        entry_currency_codes.add(currency_code)
+    decimal_places_by_code = await _load_asset_decimal_places(
+        session,
+        currency_codes=entry_currency_codes,
+    )
     snapshot_entries: list[FinanceSnapshotEntry] = []
     entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
     used_rates: dict[str, RateResolution] = {}
     missing_rate_currencies: set[str] = set()
-    for entry_input in entries:
-        node = entry_nodes[entry_input.node_id]
-        amount = _decimal(entry_input.amount)
-        currency_code = normalize_currency_code(
-            entry_input.currency_code,
-            fallback=node.currency_code or snapshot.primary_currency,
+    for entry_input, node, amount, currency_code in normalized_inputs:
+        amount = _validate_amount_precision(
+            amount,
+            currency_code=currency_code,
+            decimal_places=decimal_places_by_code.get(
+                currency_code,
+                DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
+            ),
         )
         if rate_snapshot is not None:
             rate_match = _find_rate(

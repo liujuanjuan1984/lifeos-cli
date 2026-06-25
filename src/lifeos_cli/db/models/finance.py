@@ -73,6 +73,7 @@ class FinanceAsset(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base)
 
     code: Mapped[str] = mapped_column(String(16), nullable=False)
     name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    decimal_places: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)

@@ -46,6 +46,7 @@ class FinanceAssetCreate(BaseModel):
 
     code: str
     name: str | None = None
+    decimal_places: int | None = None
     display_order: int = 1000
     is_default: bool = False
     metadata: dict[str, Any] | None = None
@@ -56,6 +57,7 @@ class FinanceAssetUpdate(BaseModel):
 
     code: str | None = None
     name: str | None = None
+    decimal_places: int | None = None
     display_order: int | None = None
 
 
@@ -164,6 +166,72 @@ def _decimal_str(value: Decimal | None) -> str | None:
     return None if value is None else format(value, "f")
 
 
+def _decimal_places_for(
+    currency_code: str | None,
+    decimal_places_by_code: dict[str, int],
+) -> int:
+    if currency_code is None:
+        return finance_services.DEFAULT_FINANCE_ASSET_DECIMAL_PLACES
+    normalized = finance_services.normalize_currency_code(currency_code)
+    return decimal_places_by_code.get(
+        normalized,
+        finance_services.DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
+    )
+
+
+def _asset_decimal_str(
+    value: Decimal | None,
+    *,
+    currency_code: str | None,
+    decimal_places_by_code: dict[str, int],
+) -> str | None:
+    if value is None:
+        return None
+    return finance_services.format_decimal_places(
+        value,
+        _decimal_places_for(currency_code, decimal_places_by_code),
+    )
+
+
+def _summary_payload(
+    summary: dict[str, Any] | None,
+    *,
+    primary_currency: str,
+    decimal_places_by_code: dict[str, int],
+) -> dict[str, Any] | None:
+    payload = to_jsonable(summary)
+    if not isinstance(payload, dict):
+        return payload
+    for key in ("total_positive", "total_negative", "net_amount"):
+        if key in payload:
+            payload[key] = _asset_decimal_str(
+                Decimal(str(payload[key])),
+                currency_code=primary_currency,
+                decimal_places_by_code=decimal_places_by_code,
+            )
+    raw_amounts_by_currency = payload.get("amounts_by_currency")
+    if isinstance(raw_amounts_by_currency, dict):
+        payload["amounts_by_currency"] = {
+            currency: {
+                key: _asset_decimal_str(
+                    Decimal(str(value)),
+                    currency_code=currency,
+                    decimal_places_by_code=decimal_places_by_code,
+                )
+                for key, value in totals.items()
+            }
+            if isinstance(totals, dict)
+            else totals
+            for currency, totals in raw_amounts_by_currency.items()
+        }
+    return payload
+
+
+async def _finance_asset_decimal_places(session: AsyncSession) -> dict[str, int]:
+    assets = await finance_services.list_finance_assets(session)
+    return {asset.code: asset.decimal_places for asset in assets}
+
+
 def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
     return {
         "id": str(node.id),
@@ -187,6 +255,7 @@ def _asset_payload(asset: FinanceAsset) -> dict[str, object]:
         "id": str(asset.id),
         "code": asset.code,
         "name": asset.name,
+        "decimal_places": asset.decimal_places,
         "display_order": asset.display_order,
         "is_default": asset.is_default,
         "metadata": to_jsonable(asset.metadata_json),
@@ -215,16 +284,29 @@ def _tree_payload(tree, *, nodes: list[FinanceTreeNode] | None = None) -> dict[s
     return payload
 
 
-def _entry_payload(entry: FinanceSnapshotEntry) -> dict[str, object]:
+def _entry_payload(
+    entry: FinanceSnapshotEntry,
+    *,
+    primary_currency: str,
+    decimal_places_by_code: dict[str, int],
+) -> dict[str, object]:
     return {
         "id": str(entry.id),
         "snapshot_id": str(entry.snapshot_id),
         "node_id": str(entry.node_id),
         "node_name": entry.node.name if entry.node else None,
         "node_path": entry.node.path if entry.node else None,
-        "amount": _decimal_str(entry.amount),
+        "amount": _asset_decimal_str(
+            entry.amount,
+            currency_code=entry.currency_code,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
         "currency_code": entry.currency_code,
-        "amount_converted": _decimal_str(entry.amount_converted),
+        "amount_converted": _asset_decimal_str(
+            entry.amount_converted,
+            currency_code=primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
         "note": entry.note,
         "is_auto_generated": entry.is_auto_generated,
         "created_at": entry.created_at.isoformat(),
@@ -273,6 +355,7 @@ def _rate_snapshot_payload(
 def _snapshot_payload(
     snapshot: FinanceSnapshot,
     *,
+    decimal_places_by_code: dict[str, int],
     include_entries: bool = False,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
@@ -288,18 +371,41 @@ def _snapshot_payload(
         "primary_currency": snapshot.primary_currency,
         "rate_snapshot_id": str(snapshot.rate_snapshot_id) if snapshot.rate_snapshot_id else None,
         "rate_snapshot_policy": snapshot.rate_snapshot_policy,
-        "total_positive": _decimal_str(snapshot.total_positive),
-        "total_negative": _decimal_str(snapshot.total_negative),
-        "net_amount": _decimal_str(snapshot.net_amount),
+        "total_positive": _asset_decimal_str(
+            snapshot.total_positive,
+            currency_code=snapshot.primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
+        "total_negative": _asset_decimal_str(
+            snapshot.total_negative,
+            currency_code=snapshot.primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
+        "net_amount": _asset_decimal_str(
+            snapshot.net_amount,
+            currency_code=snapshot.primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
         "exchange_rates": to_jsonable(snapshot.exchange_rates),
-        "summary": to_jsonable(snapshot.summary),
+        "summary": _summary_payload(
+            snapshot.summary,
+            primary_currency=snapshot.primary_currency,
+            decimal_places_by_code=decimal_places_by_code,
+        ),
         "note": snapshot.note,
         "created_at": snapshot.created_at.isoformat(),
         "updated_at": snapshot.updated_at.isoformat(),
         "deleted_at": snapshot.deleted_at.isoformat() if snapshot.deleted_at else None,
     }
     if include_entries:
-        payload["entries"] = [_entry_payload(entry) for entry in snapshot.entries]
+        payload["entries"] = [
+            _entry_payload(
+                entry,
+                primary_currency=snapshot.primary_currency,
+                decimal_places_by_code=decimal_places_by_code,
+            )
+            for entry in snapshot.entries
+        ]
     return payload
 
 
@@ -338,6 +444,7 @@ async def create_asset(payload: FinanceAssetCreate, session: SessionDep) -> dict
             session,
             code=payload.code,
             name=payload.name,
+            decimal_places=payload.decimal_places,
             display_order=payload.display_order,
             is_default=payload.is_default,
             metadata=payload.metadata,
@@ -360,6 +467,7 @@ async def update_asset(
             asset_id=asset_id,
             code=payload.code,
             name=payload.name,
+            decimal_places=payload.decimal_places,
             display_order=payload.display_order,
         )
     except LookupError as exc:
@@ -656,6 +764,7 @@ async def list_tree_snapshots(
     size: int = Query(50, ge=1, le=200),
 ) -> ListResponse:
     """List snapshots for one finance tree."""
+    decimal_places_by_code = await _finance_asset_decimal_places(session)
     snapshots = await finance_services.list_finance_snapshots(
         session,
         tree_id=tree_id,
@@ -664,7 +773,10 @@ async def list_tree_snapshots(
     )
     total = await finance_services.count_finance_snapshots(session, tree_id=tree_id)
     return _page_envelope(
-        items=[_snapshot_payload(snapshot) for snapshot in snapshots],
+        items=[
+            _snapshot_payload(snapshot, decimal_places_by_code=decimal_places_by_code)
+            for snapshot in snapshots
+        ],
         page=page,
         size=size,
         total=total,
@@ -704,7 +816,12 @@ async def create_snapshot(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _snapshot_payload(snapshot, include_entries=True)
+    decimal_places_by_code = await _finance_asset_decimal_places(session)
+    return _snapshot_payload(
+        snapshot,
+        decimal_places_by_code=decimal_places_by_code,
+        include_entries=True,
+    )
 
 
 @router.get("/snapshots/{snapshot_id}")
@@ -713,7 +830,12 @@ async def get_snapshot(snapshot_id: UUID, session: SessionDep) -> dict[str, obje
     snapshot = await finance_services.get_finance_snapshot(session, snapshot_id=snapshot_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail=f"Finance snapshot {snapshot_id} was not found")
-    return _snapshot_payload(snapshot, include_entries=True)
+    decimal_places_by_code = await _finance_asset_decimal_places(session)
+    return _snapshot_payload(
+        snapshot,
+        decimal_places_by_code=decimal_places_by_code,
+        include_entries=True,
+    )
 
 
 @router.patch("/snapshots/{snapshot_id}")
@@ -758,7 +880,12 @@ async def update_snapshot(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _snapshot_payload(snapshot, include_entries=True)
+    decimal_places_by_code = await _finance_asset_decimal_places(session)
+    return _snapshot_payload(
+        snapshot,
+        decimal_places_by_code=decimal_places_by_code,
+        include_entries=True,
+    )
 
 
 @router.delete("/snapshots/{snapshot_id}", status_code=204)

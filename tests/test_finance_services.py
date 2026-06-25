@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import pytest
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
 
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.services import finance
-from lifeos_web.routers.finance import _decimal_str
+from lifeos_web.routers.finance import _asset_decimal_str, _decimal_str
 
 
 async def _create_sqlite_session_factory() -> tuple[
@@ -140,6 +141,22 @@ def test_finance_snapshot_title_can_be_created_updated_and_cleared() -> None:
 def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
     assert _decimal_str(Decimal("0E-8")) == "0.00000000"
     assert _decimal_str(Decimal("1250.50000000")) == "1250.50000000"
+    assert (
+        _asset_decimal_str(
+            Decimal("37916.37000000"),
+            currency_code="CNY",
+            decimal_places_by_code={"CNY": 2},
+        )
+        == "37916.37"
+    )
+    assert (
+        _asset_decimal_str(
+            Decimal("0E-8"),
+            currency_code="BTC",
+            decimal_places_by_code={"BTC": 8},
+        )
+        == "0.00000000"
+    )
 
 
 def test_cashflow_default_tree_uses_period_time_mode() -> None:
@@ -169,20 +186,25 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
             async with session_factory() as session:
                 assets = await finance.list_finance_assets(session)
                 assert {"USD", "USDT", "CNY", "BTC"}.issubset({asset.code for asset in assets})
+                assert all(asset.decimal_places == 2 for asset in assets)
 
                 custom = await finance.create_finance_asset(
                     session,
                     code="sol",
                     name="Solana",
+                    decimal_places=8,
                 )
                 assert custom.code == "SOL"
+                assert custom.decimal_places == 8
 
                 updated = await finance.update_finance_asset(
                     session,
                     asset_id=custom.id,
                     name="Solana token",
+                    decimal_places=4,
                 )
                 assert updated.name == "Solana token"
+                assert updated.decimal_places == 4
 
                 await finance.delete_finance_asset(session, asset_id=custom.id)
                 assert all(
@@ -201,6 +223,67 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
                 assert any(
                     asset.code == "USD" and asset.deleted_at is not None for asset in deleted_assets
                 )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_snapshot_amount_precision_follows_asset() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="BTC",
+                )
+                btc = next(
+                    asset
+                    for asset in await finance.list_finance_assets(session)
+                    if asset.code == "BTC"
+                )
+                await finance.update_finance_asset(
+                    session,
+                    asset_id=btc.id,
+                    decimal_places=8,
+                )
+                nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
+                assets = next(node for node in nodes if node.name == "Assets")
+                wallet = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Wallet",
+                    currency_code="BTC",
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("0.12345678"),
+                            currency_code="BTC",
+                        )
+                    ],
+                )
+                assert snapshot.net_amount == Decimal("0.12345678")
+
+                with pytest.raises(finance.FinanceValidationError):
+                    await finance.create_finance_snapshot(
+                        session,
+                        tree_id=tree.id,
+                        entries=[
+                            finance.FinanceSnapshotEntryInput(
+                                node_id=wallet.id,
+                                amount=Decimal("0.123456789"),
+                                currency_code="BTC",
+                            )
+                        ],
+                    )
         finally:
             await engine.dispose()
 

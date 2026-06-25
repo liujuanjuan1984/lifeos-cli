@@ -1414,6 +1414,7 @@
       "description": "维护财务树、快照和汇率可选择的资产。",
       "code": "资产",
       "name": "名称",
+      "decimalPlaces": "小数位数",
       "selectAsset": "选择资产",
       "createAsset": "创建 {{code}}",
       "addAsset": "添加资产"

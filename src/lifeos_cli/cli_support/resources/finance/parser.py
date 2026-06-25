@@ -15,6 +15,10 @@ from lifeos_cli.cli_support.parser_common import (
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.finance.handlers import (
+    handle_finance_asset_add_async,
+    handle_finance_asset_delete_async,
+    handle_finance_asset_list_async,
+    handle_finance_asset_update_async,
     handle_finance_node_add_async,
     handle_finance_node_delete_async,
     handle_finance_node_update_async,
@@ -48,6 +52,7 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "same underlying tree and snapshot model."
             ),
             examples=(
+                "lifeos finance asset-list",
                 "lifeos finance tree-add --help",
                 "lifeos finance node-add --help",
                 "lifeos finance rate-snapshot-add --help",
@@ -64,6 +69,68 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         title="actions",
         metavar="action",
     )
+
+    asset_list = add_documented_parser(
+        finance_subparsers,
+        "asset-list",
+        help_content=HelpContent(
+            summary="List finance assets.",
+            description="List active finance assets and their display/input precision.",
+            examples=("lifeos finance asset-list",),
+        ),
+    )
+    add_include_deleted_argument(asset_list, noun="finance assets")
+    add_limit_offset_arguments(asset_list)
+    asset_list.set_defaults(handler=make_sync_handler(handle_finance_asset_list_async))
+
+    asset_add = add_documented_parser(
+        finance_subparsers,
+        "asset-add",
+        help_content=HelpContent(
+            summary="Create a finance asset.",
+            description=(
+                "Create a selectable asset code. Decimal places control amount input "
+                "validation and display formatting, from 0 to 8 places."
+            ),
+            examples=(
+                'lifeos finance asset-add BTC --name "Bitcoin" --decimal-places 8',
+                'lifeos finance asset-add CNY --name "Chinese Yuan"',
+            ),
+        ),
+    )
+    asset_add.add_argument("code")
+    asset_add.add_argument("--name")
+    asset_add.add_argument("--decimal-places", type=int, default=2)
+    asset_add.add_argument("--display-order", type=int, default=1000)
+    asset_add.set_defaults(handler=make_sync_handler(handle_finance_asset_add_async))
+
+    asset_update = add_documented_parser(
+        finance_subparsers,
+        "asset-update",
+        help_content=HelpContent(
+            summary="Update a finance asset.",
+            description="Update mutable finance asset fields, including decimal-place precision.",
+            examples=("lifeos finance asset-update <asset-id> --decimal-places 8",),
+        ),
+    )
+    asset_update.add_argument("asset_id", type=UUID)
+    asset_update.add_argument("--code")
+    asset_update.add_argument("--name")
+    asset_update.add_argument("--decimal-places", type=int)
+    asset_update.add_argument("--display-order", type=int)
+    asset_update.set_defaults(handler=make_sync_handler(handle_finance_asset_update_async))
+
+    asset_delete = add_documented_parser(
+        finance_subparsers,
+        "asset-delete",
+        help_content=HelpContent(
+            summary="Delete a finance asset.",
+            description="Soft-delete a finance asset.",
+            examples=("lifeos finance asset-delete 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    asset_delete.add_argument("asset_id", type=UUID)
+    asset_delete.set_defaults(handler=make_sync_handler(handle_finance_asset_delete_async))
 
     tree_add = add_documented_parser(
         finance_subparsers,
