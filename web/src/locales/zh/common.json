@@ -1407,7 +1407,10 @@
       "negative": "负向金额",
       "net": "净额",
       "entries": "条目",
-      "amountsByCurrency": "按币种汇总"
+      "amountsByCurrency": "按币种汇总",
+      "assetSummary": "资产汇总",
+      "convertTo": "换算为 {{currency}}",
+      "totalValue": "总值"
     },
     "assets": {
       "title": "资产列表",

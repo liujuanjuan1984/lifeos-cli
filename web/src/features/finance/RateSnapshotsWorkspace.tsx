@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import ActionButton, { CreateNewButton } from "@/components/ActionButton";
-import Badge from "@/components/common/Badge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FormField, TextInput } from "@/components/forms";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -341,16 +340,6 @@ export function RateSnapshotsWorkspace() {
   return (
     <div className="space-y-6">
       <SnapshotSelectorToolbar
-        badges={
-          <>
-            <Badge tone="primary" variant="outline" size="sm">
-              {t("finance.assets.title")}
-            </Badge>
-            <Badge tone="neutral" variant="outline" size="sm">
-              {assets.length}
-            </Badge>
-          </>
-        }
         manageLabel={t("finance.tree.manage")}
         manageAriaLabel={t("finance.assets.title")}
         selectValue={currentSnapshot?.id ?? null}
@@ -358,7 +347,6 @@ export function RateSnapshotsWorkspace() {
         selectPlaceholder={t("finance.rates.selectSnapshot")}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
-        description={t("finance.rates.tabDescription")}
         createLabel={t("finance.snapshot.new")}
         onSelect={selectRateSnapshot}
         onPrevious={() => moveRateSnapshot(-1)}

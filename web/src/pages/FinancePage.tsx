@@ -95,6 +95,12 @@ function FinancePage() {
     { id: "rates", label: t("finance.rates.tabTitle") },
     { id: "trees", label: t("finance.tree.tabTitle") },
   ];
+  const activeDescription =
+    activeTab === "rates"
+      ? t("finance.rates.tabDescription")
+      : activeTab === "trees"
+        ? t("finance.tree.tabDescription")
+        : t(preset.descriptionKey);
   const renderTab = (item: { id: FinanceTab; label: string }) => (
     <ActionButton
       key={item.id}
@@ -115,6 +121,7 @@ function FinancePage() {
             {managementTabs.map(renderTab)}
           </div>
         </div>
+        <p className="mt-2 text-sm text-base-content/70">{activeDescription}</p>
       </ToolbarContainer>
 
       {activeTab === "rates" ? (
@@ -377,9 +384,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   return (
     <div className="space-y-6">
       <SnapshotToolbar
-        preset={preset}
         snapshots={snapshots}
-        currentSnapshot={currentSnapshot}
         selectedSnapshotId={detailSnapshotId}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
@@ -628,22 +633,11 @@ function FinanceTreesWorkspace() {
   return (
     <div className="space-y-6">
       <SnapshotSelectorToolbar
-        badges={
-          <>
-            <Badge tone="primary" variant="outline" size="sm">
-              {t("finance.tree.tabTitle")}
-            </Badge>
-            <Badge tone="neutral" variant="outline" size="sm">
-              {trees.length}
-            </Badge>
-          </>
-        }
         selectValue={currentTree?.id ?? null}
         selectOptions={treeOptions}
         selectPlaceholder={t("finance.tree.selectTree")}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
-        description={t("finance.tree.tabDescription")}
         createLabel={t("finance.tree.createTree")}
         onSelect={selectTree}
         onPrevious={() => moveTree(-1)}
@@ -1125,7 +1119,6 @@ function SnapshotModule({
         ) : snapshotDetail ? (
           <SnapshotDetail
             snapshot={snapshotDetail}
-            tree={tree}
             assets={assets}
             treeNodes={treeNodes}
           />

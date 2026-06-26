@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ActionButton from "@/components/ActionButton";
-import Badge from "@/components/common/Badge";
 import { FormField, TextArea, TextInput } from "@/components/forms";
 import EnumSelect from "@/components/selects/EnumSelect";
 import { useToast } from "@/contexts/ToastContext";
@@ -110,6 +109,10 @@ export function SnapshotFormPanel({
   );
   const nativeAggregatedAmounts = useMemo(
     () => buildNativeSnapshotAmounts(treeNodes, amounts, tree.primary_currency, assets),
+    [amounts, assets, tree.primary_currency, treeNodes],
+  );
+  const nativeSummaryRows = useMemo(
+    () => buildNativeCurrencySummaryRows(treeNodes, amounts, tree.primary_currency, assets),
     [amounts, assets, tree.primary_currency, treeNodes],
   );
   const missingRateCurrencies = requiredRateCurrencies.filter(
@@ -271,6 +274,22 @@ export function SnapshotFormPanel({
           onSelectRateSnapshot={setSelectedRateSnapshotId}
         />
 
+        <AssetSummaryPanel
+          rows={nativeSummaryRows}
+          primaryCurrency={tree.primary_currency}
+          assets={assets}
+          rateSnapshotLabelText={
+            selectedRateSnapshot
+              ? rateSnapshotLabel(selectedRateSnapshot)
+              : t("finance.rates.noRateSnapshot")
+          }
+          rateInfoByCurrency={buildRateInfoFromConversionRates(
+            conversionRates,
+            tree.primary_currency,
+          )}
+          showConversions
+        />
+
         <SnapshotEntryTreeTable
           treeNodes={treeNodes}
           amounts={amounts}
@@ -419,6 +438,7 @@ function SnapshotEntryTreeTable({
       const amount = amounts[node.id] ?? "";
       const nodeCurrency = node.currency_code || primaryCurrency;
       const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
+      const nativeAggregatedAmount = nativeAggregatedAmounts[node.id] ?? "";
       const convertedAmount = hasRateSnapshot
         ? hasChildren
           ? aggregatedAmount
@@ -432,6 +452,7 @@ function SnapshotEntryTreeTable({
         : nativeAggregatedAmounts[node.id] ?? "";
       const amountNegative = isNegativeAmount(amount);
       const convertedNegative = isNegativeAmount(convertedAmount);
+      const nativeAggregatedNegative = isNegativeAmount(nativeAggregatedAmount);
 
       const rows: React.ReactNode[] = [
         <tr key={node.id} className="border-base-200">
@@ -460,11 +481,6 @@ function SnapshotEntryTreeTable({
               )}
               <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <p className="truncate font-semibold text-base-content">{node.name}</p>
-                <div className="inline-flex flex-wrap items-center gap-1 text-xs text-base-content/70 sm:flex-nowrap">
-                  <span className="rounded-full bg-base-200 px-2 py-0.5">
-                    {nodeCurrency}
-                  </span>
-                </div>
               </div>
             </div>
           </td>
@@ -478,12 +494,12 @@ function SnapshotEntryTreeTable({
               <div
                 className={[
                   "min-h-[2.25rem] rounded-md border border-dashed border-base-200 px-3 py-2 text-sm",
-                  isNegativeAmount(aggregatedAmount) ? "text-error" : "text-base-content/80",
+                  nativeAggregatedNegative ? "text-error" : "text-base-content/80",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
-                {aggregatedAmount || t("finance.snapshot.autoAggregatedPlaceholder")}
+                {nativeAggregatedAmount || "-"}
               </div>
             ) : (
               <TextInput
@@ -582,47 +598,130 @@ function SnapshotEntryTreeTable({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border border-base-300 rounded-lg bg-base-200/40 px-3 py-2 min-w-0">
-      <div className="text-xs uppercase tracking-wide text-base-content/60 truncate">
-        {label}
-      </div>
-      <div className="font-semibold tabular-nums text-base-content truncate">{value}</div>
-    </div>
-  );
-}
+type AssetSummaryRow = {
+  currency: string;
+  amount: string;
+  numericAmount: number;
+};
 
-function CurrencyAmountList({
-  amountsByCurrency,
-  fallbackCurrency,
+type RateInfo = {
+  baseCurrency: string;
+  quoteCurrency: string;
+  rate: string;
+  sourcePairs: string[];
+  path: string[];
+};
+
+function AssetSummaryPanel({
+  rows,
+  primaryCurrency,
   assets,
+  rateSnapshotLabelText,
+  rateInfoByCurrency,
+  showConversions,
 }: {
-  amountsByCurrency: Record<string, { net_amount: string }>;
-  fallbackCurrency: string;
+  rows: AssetSummaryRow[];
+  primaryCurrency: string;
   assets: FinanceAsset[];
+  rateSnapshotLabelText: string;
+  rateInfoByCurrency: Record<string, RateInfo>;
+  showConversions: boolean;
 }) {
   const { t } = useTranslation();
-  const entries = Object.entries(amountsByCurrency);
-  if (!entries.length) {
-    return (
-      <Metric
-        label={t("finance.metrics.net")}
-        value={formatMoney("0", fallbackCurrency, assets)}
-      />
-    );
-  }
+  const summaryRows = rows.length
+    ? rows
+    : [
+        {
+          currency: primaryCurrency.toUpperCase(),
+          amount: formatNumberForAsset(0, primaryCurrency, assets),
+          numericAmount: 0,
+        },
+      ];
+  const convertedRows = summaryRows.map((row) => {
+    const rateInfo =
+      row.currency === primaryCurrency.toUpperCase()
+        ? {
+            baseCurrency: row.currency,
+            quoteCurrency: primaryCurrency.toUpperCase(),
+            rate: "1",
+            sourcePairs: [],
+            path: [row.currency],
+          }
+        : rateInfoByCurrency[row.currency];
+    const rate = rateInfo ? Number(rateInfo.rate) : Number.NaN;
+    const convertedValue =
+      showConversions && Number.isFinite(rate) ? row.numericAmount * rate : null;
+    return {
+      ...row,
+      rateInfo,
+      convertedValue,
+      convertedAmount:
+        convertedValue === null
+          ? ""
+          : formatNumberForAsset(convertedValue, primaryCurrency, assets),
+    };
+  });
+  const canShowTotal = convertedRows.every((row) => row.convertedValue !== null);
+  const totalValue = canShowTotal
+    ? convertedRows.reduce((sum, row) => sum + (row.convertedValue ?? 0), 0)
+    : null;
+
   return (
-    <div className="sm:col-span-3 rounded-lg border border-base-300 bg-base-200/40 px-3 py-2">
-      <div className="text-xs uppercase tracking-wide text-base-content/60">
-        {t("finance.metrics.amountsByCurrency")}
+    <div className="rounded-lg border border-base-300 bg-base-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 px-3 py-2">
+        <h4 className="font-semibold text-base-content">{t("finance.metrics.assetSummary")}</h4>
+        <span className="text-right text-sm text-base-content/70">
+          {t("finance.rates.tabTitle")}
+          <span className="ml-2 text-base-content">{rateSnapshotLabelText}</span>
+        </span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {entries.map(([currency, totals]) => (
-          <Badge key={currency} tone="neutral" variant="outline" size="sm">
-            {formatMoney(totals.net_amount, currency, assets)}
-          </Badge>
-        ))}
+      <div className="overflow-x-auto">
+        <table className="table table-sm">
+          <thead className="bg-base-200/50 text-xs uppercase text-base-content/60">
+            <tr>
+              <th>{t("finance.snapshot.currency")}</th>
+              <th className="text-right">{t("finance.snapshot.amount")}</th>
+              <th className="text-right">{t("finance.rates.rate")}</th>
+              <th className="text-right">
+                {t("finance.metrics.convertTo", { currency: primaryCurrency })}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {convertedRows.map((row) => (
+              <tr key={row.currency}>
+                <td className="font-medium">{row.currency}</td>
+                <td className="text-right tabular-nums">{row.amount}</td>
+                <td className="text-right tabular-nums">
+                  {row.rateInfo ? (
+                    <span title={rateInfoTooltip(row.rateInfo)}>
+                      {formatRateDisplay(row.rateInfo.rate)}
+                    </span>
+                  ) : (
+                    <span className="text-base-content/40">-</span>
+                  )}
+                </td>
+                <td className="text-right tabular-nums">
+                  {row.convertedAmount ? (
+                    `${row.convertedAmount} ${primaryCurrency}`
+                  ) : (
+                    <span className="text-base-content/40">-</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-end gap-3 border-t border-base-200 px-3 py-2">
+        <span className="text-sm font-medium text-base-content/70">
+          {t("finance.metrics.totalValue")}
+        </span>
+        <span className="font-semibold tabular-nums text-base-content">
+          {totalValue === null
+            ? "-"
+            : `${formatNumberForAsset(totalValue, primaryCurrency, assets)} ${primaryCurrency}`}
+        </span>
       </div>
     </div>
   );
@@ -630,12 +729,10 @@ function CurrencyAmountList({
 
 export function SnapshotDetail({
   snapshot,
-  tree,
   assets,
   treeNodes,
 }: {
   snapshot: FinanceSnapshot;
-  tree: FinanceTree;
   assets: FinanceAsset[];
   treeNodes: TreeNodeWithChildren[];
 }) {
@@ -653,8 +750,17 @@ export function SnapshotDetail({
     [assets, snapshot.entries, snapshot.primary_currency, treeNodes, usesConvertedAggregation],
   );
   const amountsByCurrency = useMemo(
-    () => getSummaryAmountsByCurrency(snapshot.summary),
-    [snapshot.summary],
+    () =>
+      buildSummaryRowsFromAmountsByCurrency(
+        getSummaryAmountsByCurrency(snapshot.summary),
+        snapshot.primary_currency,
+        assets,
+      ),
+    [assets, snapshot.primary_currency, snapshot.summary],
+  );
+  const rateInfoByCurrency = useMemo(
+    () => getExchangeRateInfoByCurrency(snapshot.exchange_rates),
+    [snapshot.exchange_rates],
   );
 
   const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
@@ -685,30 +791,18 @@ export function SnapshotDetail({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {usesConvertedAggregation ? (
-          <>
-            <Metric
-              label={t("finance.metrics.positive")}
-              value={formatMoney(snapshot.total_positive, tree.primary_currency, assets)}
-            />
-            <Metric
-              label={t("finance.metrics.negative")}
-              value={formatMoney(snapshot.total_negative, tree.primary_currency, assets)}
-            />
-            <Metric
-              label={t("finance.metrics.net")}
-              value={formatMoney(snapshot.net_amount, tree.primary_currency, assets)}
-            />
-          </>
-        ) : (
-          <CurrencyAmountList
-            amountsByCurrency={amountsByCurrency}
-            fallbackCurrency={snapshot.primary_currency}
-            assets={assets}
-          />
-        )}
-      </div>
+      <AssetSummaryPanel
+        rows={amountsByCurrency}
+        primaryCurrency={snapshot.primary_currency}
+        assets={assets}
+        rateSnapshotLabelText={
+          snapshot.rate_snapshot_id
+            ? snapshot.rate_snapshot_id
+            : t("finance.rates.noRateSnapshot")
+        }
+        rateInfoByCurrency={rateInfoByCurrency}
+        showConversions
+      />
 
       <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
         <p className="font-medium text-base-content">{t("finance.snapshot.snapshotNote")}</p>
@@ -778,14 +872,7 @@ export function SnapshotDetail({
                         </span>
                       )}
                       <div className="min-w-0 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-base-content">{node.name}</span>
-                          {node.isAutoGenerated ? (
-                            <Badge tone="info" variant="outline" size="xs">
-                              {t("finance.snapshot.auto")}
-                            </Badge>
-                          ) : null}
-                        </div>
+                        <span className="font-medium text-base-content">{node.name}</span>
                       </div>
                     </div>
                   </td>
@@ -929,9 +1016,133 @@ function getSummaryAmountsByCurrency(
   );
 }
 
+function buildSummaryRowsFromAmountsByCurrency(
+  amountsByCurrency: Record<string, { net_amount: string }>,
+  fallbackCurrency: string,
+  assets: FinanceAsset[],
+): AssetSummaryRow[] {
+  const rows = Object.entries(amountsByCurrency).map(([currency, totals]) => {
+    const normalizedCurrency = currency.toUpperCase();
+    const numericAmount = parseDisplayAmount(totals.net_amount);
+    return {
+      currency: normalizedCurrency,
+      amount: formatAmountForAsset(totals.net_amount, normalizedCurrency, assets),
+      numericAmount: Number.isFinite(numericAmount) ? numericAmount : 0,
+    };
+  });
+  if (rows.length) {
+    return rows.sort((left, right) => left.currency.localeCompare(right.currency));
+  }
+  return [
+    {
+      currency: fallbackCurrency.toUpperCase(),
+      amount: formatNumberForAsset(0, fallbackCurrency, assets),
+      numericAmount: 0,
+    },
+  ];
+}
+
+function buildNativeCurrencySummaryRows(
+  nodes: TreeNodeWithChildren[],
+  amounts: SnapshotAmountState,
+  primaryCurrency: string,
+  assets: FinanceAsset[],
+): AssetSummaryRow[] {
+  const totals = new Map<string, number>();
+  const visit = (node: TreeNodeWithChildren) => {
+    if (!node.children.length) {
+      const amount = amounts[node.id]?.trim() ?? "";
+      if (!amount) {
+        return;
+      }
+      const parsed = parseDisplayAmount(amount);
+      if (!Number.isFinite(parsed)) {
+        return;
+      }
+      const currency = (node.currency_code || primaryCurrency).toUpperCase();
+      totals.set(currency, (totals.get(currency) ?? 0) + parsed);
+      return;
+    }
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return Array.from(totals.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([currency, value]) => ({
+      currency,
+      amount: formatNumberForAsset(value, currency, assets),
+      numericAmount: value,
+    }));
+}
+
 function getSummaryAggregationMode(summary?: Record<string, unknown> | null): string {
   const mode = summary?.aggregation_mode;
   return typeof mode === "string" ? mode : "native_by_currency";
+}
+
+function buildRateInfoFromConversionRates(
+  conversionRates: Record<string, number>,
+  primaryCurrency: string,
+): Record<string, RateInfo> {
+  const primary = primaryCurrency.toUpperCase();
+  return Object.fromEntries(
+    Object.entries(conversionRates)
+      .filter(([, rate]) => Number.isFinite(rate) && rate > 0)
+      .map(([currency, rate]) => {
+        const normalizedCurrency = currency.toUpperCase();
+        return [
+          normalizedCurrency,
+          {
+            baseCurrency: normalizedCurrency,
+            quoteCurrency: primary,
+            rate: String(rate),
+            sourcePairs: [],
+            path: normalizedCurrency === primary ? [primary] : [normalizedCurrency, primary],
+          } satisfies RateInfo,
+        ];
+      }),
+  );
+}
+
+function getExchangeRateInfoByCurrency(
+  exchangeRates?: Record<string, unknown> | null,
+): Record<string, RateInfo> {
+  const rates = exchangeRates?.rates;
+  if (!rates || typeof rates !== "object") {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(rates as Record<string, Record<string, unknown>>).map(
+      ([currency, value]) => [
+        currency.toUpperCase(),
+        {
+          baseCurrency: String(value.base_currency ?? currency).toUpperCase(),
+          quoteCurrency: String(value.quote_currency ?? "").toUpperCase(),
+          rate: String(value.rate ?? ""),
+          sourcePairs: Array.isArray(value.source_pairs)
+            ? value.source_pairs.map((pair) => String(pair))
+            : [],
+          path: Array.isArray(value.path) ? value.path.map((item) => String(item)) : [],
+        } satisfies RateInfo,
+      ],
+    ),
+  );
+}
+
+function rateInfoTooltip(rateInfo: RateInfo): string {
+  const primaryLine = `1 ${rateInfo.baseCurrency} = ${formatRateDisplay(rateInfo.rate)} ${
+    rateInfo.quoteCurrency
+  }`;
+  const sourceLines = rateInfo.sourcePairs.map((pair) => pair.replace("/", " = "));
+  const pathLine = rateInfo.path.length ? rateInfo.path.join(" -> ") : "";
+  return [primaryLine, ...sourceLines, pathLine].filter(Boolean).join("\n");
+}
+
+function formatRateDisplay(rate: string): string {
+  if (!rate.includes(".")) {
+    return rate;
+  }
+  return rate.replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>) {

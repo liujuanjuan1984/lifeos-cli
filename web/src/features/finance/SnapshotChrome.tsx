@@ -3,13 +3,12 @@ import ActionButton, {
   DeleteButton,
   EditButton,
 } from "@/components/ActionButton";
-import Badge from "@/components/common/Badge";
 import EnumSelect from "@/components/selects/EnumSelect";
 import type { FinanceSnapshot } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 import { useTranslation } from "react-i18next";
 
-import { snapshotLabel, type PresetConfig } from "./utils";
+import { snapshotLabel } from "./utils";
 
 export function SnapshotSelectorToolbar({
   badges,
@@ -29,7 +28,7 @@ export function SnapshotSelectorToolbar({
   onManage,
   onCreate,
 }: {
-  badges: React.ReactNode;
+  badges?: React.ReactNode;
   manageLabel?: string;
   manageAriaLabel?: string;
   selectValue?: UUID | null;
@@ -37,7 +36,7 @@ export function SnapshotSelectorToolbar({
   selectPlaceholder: string;
   hasPrevious: boolean;
   hasNext: boolean;
-  description: string;
+  description?: string;
   createLabel: string;
   createDisabled?: boolean;
   onSelect: (snapshotId: UUID) => void;
@@ -51,19 +50,21 @@ export function SnapshotSelectorToolbar({
   return (
     <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {badges}
-          {manageLabel && onManage ? (
-            <ActionButton
-              label={manageLabel}
-              onClick={onManage}
-              size="sm"
-              variant="outline"
-              iconName="settings"
-              ariaLabel={manageAriaLabel ?? manageLabel}
-            />
-          ) : null}
-        </div>
+        {badges || (manageLabel && onManage) ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {badges}
+            {manageLabel && onManage ? (
+              <ActionButton
+                label={manageLabel}
+                onClick={onManage}
+                size="sm"
+                variant="outline"
+                iconName="settings"
+                ariaLabel={manageAriaLabel ?? manageLabel}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
           <ActionButton
@@ -118,15 +119,13 @@ export function SnapshotSelectorToolbar({
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-base-content/70">{description}</p>
+      {description ? <p className="mt-3 text-sm text-base-content/70">{description}</p> : null}
     </section>
   );
 }
 
 export function SnapshotToolbar({
-  preset,
   snapshots,
-  currentSnapshot,
   selectedSnapshotId,
   hasPrevious,
   hasNext,
@@ -136,9 +135,7 @@ export function SnapshotToolbar({
   onCreateSnapshot,
   createDisabled,
 }: {
-  preset: PresetConfig;
   snapshots: FinanceSnapshot[];
-  currentSnapshot: FinanceSnapshot | null;
   selectedSnapshotId: UUID | null;
   hasPrevious: boolean;
   hasNext: boolean;
@@ -158,24 +155,11 @@ export function SnapshotToolbar({
 
   return (
     <SnapshotSelectorToolbar
-      badges={
-        <>
-          <Badge tone="primary" variant="outline" size="sm">
-            {t(preset.titleKey)}
-          </Badge>
-          {currentSnapshot?.tree_name ? (
-            <Badge tone="neutral" variant="outline" size="sm">
-              {currentSnapshot.tree_name}
-            </Badge>
-          ) : null}
-        </>
-      }
       selectValue={selectedSnapshotId}
       selectOptions={options}
       selectPlaceholder={t("finance.snapshot.selectSnapshot")}
       hasPrevious={hasPrevious}
       hasNext={hasNext}
-      description={t(preset.descriptionKey)}
       createLabel={t("finance.snapshot.new")}
       createDisabled={createDisabled}
       onSelect={onSelect}

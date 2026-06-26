@@ -1407,7 +1407,10 @@
       "negative": "Negative",
       "net": "Net",
       "entries": "Entries",
-      "amountsByCurrency": "Amounts by currency"
+      "amountsByCurrency": "Amounts by currency",
+      "assetSummary": "Asset summary",
+      "convertTo": "Convert to {{currency}}",
+      "totalValue": "Total value"
     },
     "assets": {
       "title": "Assets",
