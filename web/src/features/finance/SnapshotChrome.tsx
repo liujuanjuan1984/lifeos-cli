@@ -9,9 +9,6 @@ import { useTranslation } from "react-i18next";
 import { snapshotLabel } from "./utils";
 
 export function SnapshotSelectorToolbar({
-  badges,
-  manageLabel,
-  manageAriaLabel,
   selectValue,
   selectOptions,
   selectPlaceholder,
@@ -23,12 +20,8 @@ export function SnapshotSelectorToolbar({
   onSelect,
   onPrevious,
   onNext,
-  onManage,
   onCreate,
 }: {
-  badges?: React.ReactNode;
-  manageLabel?: string;
-  manageAriaLabel?: string;
   selectValue?: UUID | null;
   selectOptions: { value: UUID; label: string }[];
   selectPlaceholder: string;
@@ -40,7 +33,6 @@ export function SnapshotSelectorToolbar({
   onSelect: (snapshotId: UUID) => void;
   onPrevious: () => void;
   onNext: () => void;
-  onManage?: () => void;
   onCreate: () => void;
 }) {
   const { t } = useTranslation();
@@ -95,17 +87,6 @@ export function SnapshotSelectorToolbar({
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {badges}
-          {manageLabel && onManage ? (
-            <ActionButton
-              label={manageLabel}
-              onClick={onManage}
-              size="sm"
-              variant="outline"
-              iconName="settings"
-              ariaLabel={manageAriaLabel ?? manageLabel}
-            />
-          ) : null}
           <CreateNewButton
             label={createLabel}
             onClick={onCreate}

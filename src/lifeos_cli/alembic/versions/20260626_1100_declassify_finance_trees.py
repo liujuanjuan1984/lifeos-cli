@@ -18,7 +18,72 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _schema_name() -> str | None:
+    context = op.get_context()
+    return context.version_table_schema
+
+
+def _quote_identifier(identifier: str) -> str:
+    return '"' + identifier.replace('"', '""') + '"'
+
+
+def _qualified_table_name(table_name: str) -> str:
+    schema_name = _schema_name()
+    if schema_name is None:
+        return _quote_identifier(table_name)
+    return f"{_quote_identifier(schema_name)}.{_quote_identifier(table_name)}"
+
+
+def _assert_active_tree_names_are_unique() -> None:
+    bind = op.get_bind()
+    finance_trees = _qualified_table_name("finance_trees")
+    duplicate_rows = bind.execute(
+        text(
+            f"""
+            SELECT name, COUNT(*) AS tree_count
+            FROM {finance_trees}
+            WHERE deleted_at IS NULL
+            GROUP BY name
+            HAVING COUNT(*) > 1
+            ORDER BY name
+            """
+        )
+    ).mappings()
+    duplicates = [f"{row['name']} ({row['tree_count']})" for row in duplicate_rows]
+    if duplicates:
+        names = ", ".join(duplicates)
+        raise RuntimeError(
+            "Active finance tree names must be globally unique before applying "
+            f"revision 20260626_1100: {names}"
+        )
+
+
+def _normalize_active_default_tree() -> None:
+    bind = op.get_bind()
+    finance_trees = _qualified_table_name("finance_trees")
+    default_rows = list(
+        bind.execute(
+            text(
+                f"""
+                SELECT id
+                FROM {finance_trees}
+                WHERE deleted_at IS NULL AND is_default = :is_default
+                ORDER BY display_order ASC, created_at ASC, id ASC
+                """
+            ),
+            {"is_default": True},
+        ).mappings()
+    )
+    for row in default_rows[1:]:
+        bind.execute(
+            text(f"UPDATE {finance_trees} SET is_default = :is_default WHERE id = :tree_id"),
+            {"is_default": False, "tree_id": row["id"]},
+        )
+
+
 def upgrade() -> None:
+    _assert_active_tree_names_are_unique()
+    _normalize_active_default_tree()
     op.drop_index("ix_finance_trees_purpose_default", table_name="finance_trees")
     op.drop_index("uq_finance_trees_purpose_name_active", table_name="finance_trees")
     op.create_index(

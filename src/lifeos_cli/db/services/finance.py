@@ -436,7 +436,6 @@ async def get_finance_tree_with_nodes(
 async def list_finance_trees(
     session: AsyncSession,
     *,
-    purpose: str | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -459,7 +458,6 @@ async def list_finance_trees(
 async def count_finance_trees(
     session: AsyncSession,
     *,
-    purpose: str | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count finance trees."""
@@ -487,8 +485,6 @@ async def create_finance_tree(
     session: AsyncSession,
     *,
     name: str,
-    purpose: str = "custom",
-    time_mode: str | None = None,
     primary_currency: str | None = None,
     display_order: int = 0,
     is_default: bool = False,
@@ -1747,11 +1743,9 @@ async def count_finance_snapshots(
 async def ensure_default_finance_tree(
     session: AsyncSession,
     *,
-    purpose: str = "custom",
     primary_currency: str | None = None,
 ) -> FinanceTree:
     """Ensure one global default finance tree exists."""
-    normalize_finance_purpose(purpose)
     stmt = (
         select(FinanceTree)
         .where(

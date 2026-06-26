@@ -33,7 +33,6 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
@@ -70,7 +69,7 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
                 await session.commit()
 
             async with session_factory() as session:
-                trees = await finance.list_finance_trees(session, purpose="balance")
+                trees = await finance.list_finance_trees(session)
                 assert len(trees) == 1
                 assert trees[0].id == tree.id
         finally:
@@ -86,7 +85,6 @@ def test_finance_snapshot_title_can_be_created_updated_and_cleared() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -144,7 +142,6 @@ def test_default_finance_tree_is_global() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="cashflow",
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
@@ -154,7 +151,6 @@ def test_default_finance_tree_is_global() -> None:
 
                 same_tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="CNY",
                 )
                 assert same_tree.id == tree.id
@@ -172,13 +168,11 @@ def test_finance_tree_update_delete_and_report_snapshot_listing() -> None:
                 first_tree = await finance.create_finance_tree(
                     session,
                     name="Primary balance",
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 second_tree = await finance.create_finance_tree(
                     session,
                     name="Secondary balance",
-                    purpose="balance",
                     primary_currency="CNY",
                 )
                 updated_tree = await finance.update_finance_tree(
@@ -252,7 +246,6 @@ def test_finance_tree_update_delete_and_report_snapshot_listing() -> None:
                 disposable_tree = await finance.create_finance_tree(
                     session,
                     name="Disposable cashflow",
-                    purpose="cashflow",
                     primary_currency="USD",
                 )
                 await finance.delete_finance_tree(session, tree_id=disposable_tree.id)
@@ -320,7 +313,6 @@ def test_finance_snapshot_amount_precision_follows_asset() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="BTC",
                 )
                 btc = next(
@@ -381,7 +373,6 @@ def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -435,7 +426,6 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -492,7 +482,6 @@ def test_finance_snapshot_uses_chained_rates_and_follows_rate_snapshot_updates()
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -646,7 +635,6 @@ def test_finance_snapshot_with_incomplete_rate_snapshot_keeps_native_totals() ->
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -780,7 +768,6 @@ def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -845,7 +832,6 @@ def test_finance_snapshot_can_be_updated_and_deleted() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="cashflow",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -910,31 +896,26 @@ def test_finance_snapshot_can_be_updated_and_deleted() -> None:
     asyncio.run(run())
 
 
-def test_finance_tree_count_matches_filters() -> None:
+def test_finance_tree_count_respects_deleted_scope() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
             async with session_factory() as session:
                 await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 custom_tree = await finance.create_finance_tree(
                     session,
                     name="Planning",
-                    purpose="custom",
                     primary_currency="USD",
                 )
                 custom_tree.soft_delete()
 
                 assert await finance.count_finance_trees(session) == 1
-                assert await finance.count_finance_trees(session, purpose="balance") == 1
-                assert await finance.count_finance_trees(session, purpose="custom") == 1
                 assert (
                     await finance.count_finance_trees(
                         session,
-                        purpose="custom",
                         include_deleted=True,
                     )
                     == 2
@@ -952,7 +933,6 @@ def test_finance_node_delete_soft_deletes_descendants() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
