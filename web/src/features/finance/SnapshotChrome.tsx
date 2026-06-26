@@ -47,12 +47,14 @@ export function SnapshotSelectorToolbar({
 
   return (
     <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         {description ? (
-          <p className="min-w-[14rem] flex-1 text-sm text-base-content/70">{description}</p>
-        ) : null}
+          <p className="min-w-0 text-sm text-base-content/70">{description}</p>
+        ) : (
+          <span aria-hidden="true" />
+        )}
 
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap sm:gap-2">
+        <div className="flex min-w-0 items-center justify-center gap-1 whitespace-nowrap sm:gap-2">
           <ActionButton
             label=""
             iconName="chevron-left"
@@ -92,7 +94,7 @@ export function SnapshotSelectorToolbar({
           />
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {badges}
           {manageLabel && onManage ? (
             <ActionButton

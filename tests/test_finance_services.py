@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import (
 
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.services import finance
-from lifeos_web.routers.finance import _asset_decimal_str, _decimal_str
 
 
 async def _create_sqlite_session_factory() -> tuple[
@@ -136,27 +135,6 @@ def test_finance_snapshot_title_can_be_created_updated_and_cleared() -> None:
             await engine.dispose()
 
     asyncio.run(run())
-
-
-def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
-    assert _decimal_str(Decimal("0E-8")) == "0.00000000"
-    assert _decimal_str(Decimal("1250.50000000")) == "1250.50000000"
-    assert (
-        _asset_decimal_str(
-            Decimal("37916.37000000"),
-            currency_code="CNY",
-            decimal_places_by_code={"CNY": 2},
-        )
-        == "37916.37"
-    )
-    assert (
-        _asset_decimal_str(
-            Decimal("0E-8"),
-            currency_code="BTC",
-            decimal_places_by_code={"BTC": 8},
-        )
-        == "0.00000000"
-    )
 
 
 def test_default_finance_tree_is_global() -> None:

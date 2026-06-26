@@ -51,7 +51,6 @@ export function RateSnapshotsWorkspace() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { assets, createAsset } = useFinanceAssetSource();
-  const [assetManagerOpen, setAssetManagerOpen] = useState(false);
   const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | null>(null);
   const [rateFormVisible, setRateFormVisible] = useState(false);
   const [rateFormMode, setRateFormMode] = useState<RateSnapshotFormMode>("create");
@@ -60,13 +59,6 @@ export function RateSnapshotsWorkspace() {
   const [deletedRateSnapshotIds, setDeletedRateSnapshotIds] = useState<Set<UUID>>(
     () => new Set(),
   );
-  const [assetCode, setAssetCode] = useState("");
-  const [assetName, setAssetName] = useState("");
-  const [assetDecimalPlaces, setAssetDecimalPlaces] = useState("2");
-  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
-  const [editingAssetCode, setEditingAssetCode] = useState("");
-  const [editingAssetName, setEditingAssetName] = useState("");
-  const [editingAssetDecimalPlaces, setEditingAssetDecimalPlaces] = useState("2");
   const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
   const [source, setSource] = useState("manual");
   const [note, setNote] = useState("");
@@ -163,61 +155,6 @@ export function RateSnapshotsWorkspace() {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
     },
   });
-
-  const updateAssetMutation = useMutation({
-    mutationFn: ({
-      assetId,
-      code,
-      name,
-      decimalPlaces,
-    }: {
-      assetId: UUID;
-      code: string;
-      name: string | null;
-      decimalPlaces: number;
-    }) => financeApi.updateAsset(assetId, { code, name, decimal_places: decimalPlaces }),
-    onSuccess: async () => {
-      toast.showSuccess(t("finance.messages.assetUpdated"));
-      setEditingAssetId(null);
-      await invalidateFinanceAssets(queryClient);
-    },
-    onError: (error) => {
-      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
-    },
-  });
-
-  const deleteAssetMutation = useMutation({
-    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
-    onSuccess: async () => {
-      toast.showSuccess(t("finance.messages.assetDeleted"));
-      await invalidateFinanceAssets(queryClient);
-    },
-    onError: (error) => {
-      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
-    },
-  });
-
-  const submitAsset = (event: React.FormEvent) => {
-    event.preventDefault();
-    const code = assetCode.trim().toUpperCase();
-    if (!code) return;
-    financeApi
-      .createAsset({
-        code,
-        name: assetName.trim() || null,
-        decimal_places: parseDecimalPlaces(assetDecimalPlaces),
-      })
-      .then(async () => {
-        await invalidateFinanceAssets(queryClient);
-        toast.showSuccess(t("finance.messages.assetCreated"));
-        setAssetCode("");
-        setAssetName("");
-        setAssetDecimalPlaces("2");
-      })
-      .catch((error) => {
-        toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
-      });
-  };
 
   const submitRateSnapshot = (event: React.FormEvent) => {
     event.preventDefault();
@@ -343,8 +280,6 @@ export function RateSnapshotsWorkspace() {
     <div className="space-y-6">
       <SnapshotSelectorToolbar
         description={t("finance.rates.tabDescription")}
-        manageLabel={t("finance.assets.manage")}
-        manageAriaLabel={t("finance.assets.title")}
         selectValue={currentSnapshot?.id ?? null}
         selectOptions={snapshotOptions}
         selectPlaceholder={t("finance.rates.selectSnapshot")}
@@ -354,7 +289,6 @@ export function RateSnapshotsWorkspace() {
         onSelect={selectRateSnapshot}
         onPrevious={() => moveRateSnapshot(-1)}
         onNext={() => moveRateSnapshot(1)}
-        onManage={() => setAssetManagerOpen(true)}
         onCreate={openCreateRateSnapshotForm}
       />
 
@@ -619,179 +553,252 @@ export function RateSnapshotsWorkspace() {
         }}
         loading={deleteRateSnapshotMutation.isPending}
       />
-
-      <ModalBase
-        isOpen={assetManagerOpen}
-        onClose={() => setAssetManagerOpen(false)}
-        title={t("finance.assets.title")}
-        size="lg"
-        bodyOverflow="auto"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
-          <form
-            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto]"
-            onSubmit={submitAsset}
-          >
-            <TextInput
-              size="sm"
-              value={assetCode}
-              onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
-              placeholder={t("finance.assets.code")}
-            />
-            <TextInput
-              size="sm"
-              value={assetName}
-              onChange={(event) => setAssetName(event.target.value)}
-              placeholder={t("finance.assets.name")}
-            />
-            <TextInput
-              type="number"
-              min={0}
-              max={8}
-              step={1}
-              size="sm"
-              value={assetDecimalPlaces}
-              onChange={(event) => setAssetDecimalPlaces(event.target.value)}
-              placeholder={t("finance.assets.decimalPlaces")}
-            />
-            <ActionButton
-              type="submit"
-              label={t("finance.assets.addAsset")}
-              iconName="plus"
-              size="sm"
-              color="primary"
-              variant="outline"
-              disabled={!assetCode.trim()}
-            />
-          </form>
-          <div className="max-h-[520px] overflow-y-auto pr-1">
-            <table className="table table-sm">
-              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
-                <tr>
-                  <th>{t("finance.assets.code")}</th>
-                  <th>{t("finance.assets.name")}</th>
-                  <th>{t("finance.assets.decimalPlaces")}</th>
-                  <th className="w-24 text-right">{t("common.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assets.map((asset) => {
-                  const editing = editingAssetId === asset.id;
-                  return (
-                    <tr key={asset.id}>
-                      <td>
-                        {editing ? (
-                          <TextInput
-                            size="sm"
-                            value={editingAssetCode}
-                            onChange={(event) =>
-                              setEditingAssetCode(event.target.value.toUpperCase())
-                            }
-                          />
-                        ) : (
-                          <span className="font-medium">{asset.code}</span>
-                        )}
-                      </td>
-                      <td>
-                        {editing ? (
-                          <TextInput
-                            size="sm"
-                            value={editingAssetName}
-                            onChange={(event) => setEditingAssetName(event.target.value)}
-                          />
-                        ) : (
-                          asset.name || "-"
-                        )}
-                      </td>
-                      <td>
-                        {editing ? (
-                          <TextInput
-                            type="number"
-                            min={0}
-                            max={8}
-                            step={1}
-                            size="sm"
-                            value={editingAssetDecimalPlaces}
-                            onChange={(event) =>
-                              setEditingAssetDecimalPlaces(event.target.value)
-                            }
-                          />
-                        ) : (
-                          asset.decimal_places
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex justify-end gap-1">
-                          {editing ? (
-                            <>
-                              <ActionButton
-                                label=""
-                                iconName="check"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.save")}
-                                disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
-                                onClick={() =>
-                                  updateAssetMutation.mutate({
-                                    assetId: asset.id,
-                                    code: editingAssetCode.trim().toUpperCase(),
-                                    name: editingAssetName.trim() || null,
-                                    decimalPlaces: parseDecimalPlaces(editingAssetDecimalPlaces),
-                                  })
-                                }
-                              />
-                              <ActionButton
-                                label=""
-                                iconName="x-mark"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.cancel")}
-                                onClick={() => setEditingAssetId(null)}
-                              />
-                            </>
-                          ) : (
-                            <>
-                              <ActionButton
-                                label=""
-                                iconName="edit"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.edit")}
-                                onClick={() => {
-                                  setEditingAssetId(asset.id);
-                                  setEditingAssetCode(asset.code);
-                                  setEditingAssetName(asset.name ?? "");
-                                  setEditingAssetDecimalPlaces(String(asset.decimal_places));
-                                }}
-                              />
-                              <ActionButton
-                                label=""
-                                iconName="trash"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                color="error"
-                                ariaLabel={t("common.delete")}
-                                disabled={asset.is_default || deleteAssetMutation.isPending}
-                                onClick={() => deleteAssetMutation.mutate(asset.id)}
-                              />
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </ModalBase>
     </div>
+  );
+}
+
+export function FinanceAssetManagerModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { assets } = useFinanceAssetSource();
+  const [assetCode, setAssetCode] = useState("");
+  const [assetName, setAssetName] = useState("");
+  const [assetDecimalPlaces, setAssetDecimalPlaces] = useState("2");
+  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
+  const [editingAssetCode, setEditingAssetCode] = useState("");
+  const [editingAssetName, setEditingAssetName] = useState("");
+  const [editingAssetDecimalPlaces, setEditingAssetDecimalPlaces] = useState("2");
+
+  const updateAssetMutation = useMutation({
+    mutationFn: ({
+      assetId,
+      code,
+      name,
+      decimalPlaces,
+    }: {
+      assetId: UUID;
+      code: string;
+      name: string | null;
+      decimalPlaces: number;
+    }) => financeApi.updateAsset(assetId, { code, name, decimal_places: decimalPlaces }),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetUpdated"));
+      setEditingAssetId(null);
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetDeleted"));
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const submitAsset = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = assetCode.trim().toUpperCase();
+    if (!code) return;
+    financeApi
+      .createAsset({
+        code,
+        name: assetName.trim() || null,
+        decimal_places: parseDecimalPlaces(assetDecimalPlaces),
+      })
+      .then(async () => {
+        await invalidateFinanceAssets(queryClient);
+        toast.showSuccess(t("finance.messages.assetCreated"));
+        setAssetCode("");
+        setAssetName("");
+        setAssetDecimalPlaces("2");
+      })
+      .catch((error) => {
+        toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+      });
+  };
+
+  return (
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("finance.assets.title")}
+      size="lg"
+      bodyOverflow="auto"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+        <form
+          className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto]"
+          onSubmit={submitAsset}
+        >
+          <TextInput
+            size="sm"
+            value={assetCode}
+            onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
+            placeholder={t("finance.assets.code")}
+          />
+          <TextInput
+            size="sm"
+            value={assetName}
+            onChange={(event) => setAssetName(event.target.value)}
+            placeholder={t("finance.assets.name")}
+          />
+          <TextInput
+            type="number"
+            min={0}
+            max={8}
+            step={1}
+            size="sm"
+            value={assetDecimalPlaces}
+            onChange={(event) => setAssetDecimalPlaces(event.target.value)}
+            placeholder={t("finance.assets.decimalPlaces")}
+          />
+          <ActionButton
+            type="submit"
+            label={t("finance.assets.addAsset")}
+            iconName="plus"
+            size="sm"
+            color="primary"
+            variant="outline"
+            disabled={!assetCode.trim()}
+          />
+        </form>
+        <div className="max-h-[520px] overflow-y-auto pr-1">
+          <table className="table table-sm">
+            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+              <tr>
+                <th>{t("finance.assets.code")}</th>
+                <th>{t("finance.assets.name")}</th>
+                <th>{t("finance.assets.decimalPlaces")}</th>
+                <th className="w-24 text-right">{t("common.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((asset) => {
+                const editing = editingAssetId === asset.id;
+                return (
+                  <tr key={asset.id}>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetCode}
+                          onChange={(event) => setEditingAssetCode(event.target.value.toUpperCase())}
+                        />
+                      ) : (
+                        <span className="font-medium">{asset.code}</span>
+                      )}
+                    </td>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetName}
+                          onChange={(event) => setEditingAssetName(event.target.value)}
+                        />
+                      ) : (
+                        asset.name || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          type="number"
+                          min={0}
+                          max={8}
+                          step={1}
+                          size="sm"
+                          value={editingAssetDecimalPlaces}
+                          onChange={(event) => setEditingAssetDecimalPlaces(event.target.value)}
+                        />
+                      ) : (
+                        asset.decimal_places
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-1">
+                        {editing ? (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="check"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.save")}
+                              disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
+                              onClick={() =>
+                                updateAssetMutation.mutate({
+                                  assetId: asset.id,
+                                  code: editingAssetCode.trim().toUpperCase(),
+                                  name: editingAssetName.trim() || null,
+                                  decimalPlaces: parseDecimalPlaces(editingAssetDecimalPlaces),
+                                })
+                              }
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="x-mark"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.cancel")}
+                              onClick={() => setEditingAssetId(null)}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="edit"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.edit")}
+                              onClick={() => {
+                                setEditingAssetId(asset.id);
+                                setEditingAssetCode(asset.code);
+                                setEditingAssetName(asset.name ?? "");
+                                setEditingAssetDecimalPlaces(String(asset.decimal_places));
+                              }}
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="trash"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              color="error"
+                              ariaLabel={t("common.delete")}
+                              disabled={asset.is_default || deleteAssetMutation.isPending}
+                              onClick={() => deleteAssetMutation.mutate(asset.id)}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ModalBase>
   );
 }
 

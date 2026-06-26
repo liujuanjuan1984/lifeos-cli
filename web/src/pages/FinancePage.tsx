@@ -44,7 +44,10 @@ import {
   type PresetConfig,
   type TreeNodeWithChildren,
 } from "@/features/finance/utils";
-import { RateSnapshotsWorkspace } from "@/features/finance/RateSnapshotsWorkspace";
+import {
+  FinanceAssetManagerModal,
+  RateSnapshotsWorkspace,
+} from "@/features/finance/RateSnapshotsWorkspace";
 import {
   SnapshotActionButtons,
   SnapshotNavigator,
@@ -72,6 +75,7 @@ function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
   const [activeTab, setActiveTab] = useState<FinanceTab>("balance");
+  const [assetManagerOpen, setAssetManagerOpen] = useState(false);
 
   useEffect(() => {
     setHeader({
@@ -111,6 +115,14 @@ function FinancePage() {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {managementTabs.map(renderTab)}
+            <ActionButton
+              label={t("finance.assets.manage")}
+              iconName="settings"
+              onClick={() => setAssetManagerOpen(true)}
+              size="sm"
+              variant="outline"
+              className="shrink-0 px-3"
+            />
           </div>
         </div>
       </ToolbarContainer>
@@ -122,6 +134,10 @@ function FinancePage() {
       ) : (
         <FinancePresetWorkspace key={preset.purpose} preset={preset} />
       )}
+      <FinanceAssetManagerModal
+        isOpen={assetManagerOpen}
+        onClose={() => setAssetManagerOpen(false)}
+      />
     </PageLayout>
   );
 }
