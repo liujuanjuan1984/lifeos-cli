@@ -1409,6 +1409,8 @@
       "entries": "条目",
       "amountsByCurrency": "按币种汇总",
       "assetSummary": "资产汇总",
+      "summary": "汇总",
+      "details": "详情",
       "convertTo": "换算为 {{currency}}",
       "totalValue": "总值"
     },
@@ -1474,6 +1476,7 @@
       "snapshotTime": "快照时间",
       "periodStart": "周期开始",
       "periodEnd": "周期结束",
+      "settlementCurrency": "结算资产",
       "tableTitle": "录入财务条目",
       "node": "节点",
       "amount": "金额",

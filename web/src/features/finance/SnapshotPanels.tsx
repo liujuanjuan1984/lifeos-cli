@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import ActionButton from "@/components/ActionButton";
 import { FormField, TextArea, TextInput } from "@/components/forms";
+import AssetSelect from "@/components/selects/AssetSelect";
 import EnumSelect from "@/components/selects/EnumSelect";
 import { useToast } from "@/contexts/ToastContext";
 import type {
@@ -22,6 +23,7 @@ import {
   formatAmountForAsset,
   formatMoney,
   formatNumberForAsset,
+  getRequiredRateCurrencies,
   isoToDateInput,
   isoToDateTimeLocal,
   localDateTimeToIso,
@@ -38,12 +40,12 @@ export function SnapshotFormPanel({
   tree,
   preset,
   assets,
+  onCreateAsset,
   treeOptions,
   selectedTreeId,
   onSelectTree,
   treeNodes,
   rateSnapshots,
-  requiredRateCurrencies,
   submitting,
   mode,
   initialSnapshot,
@@ -53,12 +55,12 @@ export function SnapshotFormPanel({
   tree: FinanceTree;
   preset: PresetConfig;
   assets: FinanceAsset[];
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
   treeOptions: FinanceTree[];
   selectedTreeId: UUID | null;
   onSelectTree: (treeId: UUID) => void;
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
-  requiredRateCurrencies: string[];
   submitting: boolean;
   mode: "create" | "edit";
   initialSnapshot?: FinanceSnapshot | null;
@@ -84,28 +86,33 @@ export function SnapshotFormPanel({
   const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
   const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | "">("");
+  const [settlementCurrency, setSettlementCurrency] = useState(tree.primary_currency);
   const leafNodes = useMemo(
     () => flattenTree(treeNodes).filter((node) => node.children.length === 0),
     [treeNodes],
+  );
+  const requiredSettlementCurrencies = useMemo(
+    () => getRequiredRateCurrencies(leafNodes, settlementCurrency),
+    [leafNodes, settlementCurrency],
   );
   const selectedRateSnapshot = useMemo(
     () => rateSnapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? null,
     [rateSnapshots, selectedRateSnapshotId],
   );
   const conversionRates = useMemo(
-    () => buildConversionRateMap(selectedRateSnapshot, tree.primary_currency),
-    [selectedRateSnapshot, tree.primary_currency],
+    () => buildConversionRateMap(selectedRateSnapshot, settlementCurrency),
+    [selectedRateSnapshot, settlementCurrency],
   );
   const aggregatedAmounts = useMemo(
     () =>
       buildAggregatedSnapshotAmounts(
         treeNodes,
         amounts,
-        tree.primary_currency,
+        settlementCurrency,
         conversionRates,
         assets,
       ),
-    [amounts, assets, conversionRates, tree.primary_currency, treeNodes],
+    [amounts, assets, conversionRates, settlementCurrency, treeNodes],
   );
   const nativeAggregatedAmounts = useMemo(
     () => buildNativeSnapshotAmounts(treeNodes, amounts, tree.primary_currency, assets),
@@ -115,7 +122,7 @@ export function SnapshotFormPanel({
     () => buildNativeCurrencySummaryRows(treeNodes, amounts, tree.primary_currency, assets),
     [amounts, assets, tree.primary_currency, treeNodes],
   );
-  const missingRateCurrencies = requiredRateCurrencies.filter(
+  const missingRateCurrencies = requiredSettlementCurrencies.filter(
     (currency) => !conversionRates[currency],
   );
   const hasCompleteRateSnapshot =
@@ -131,6 +138,7 @@ export function SnapshotFormPanel({
       setNotes({});
       setSnapshotNote("");
       setSelectedRateSnapshotId("");
+      setSettlementCurrency(tree.primary_currency);
       return;
     }
 
@@ -140,6 +148,7 @@ export function SnapshotFormPanel({
     setTitle(initialSnapshot.title ?? "");
     setSnapshotNote(initialSnapshot.note ?? "");
     setSelectedRateSnapshotId(initialSnapshot.rate_snapshot_id ?? "");
+    setSettlementCurrency(initialSnapshot.primary_currency || tree.primary_currency);
     const nextAmounts: SnapshotAmountState = {};
     const nextNotes: SnapshotNoteState = {};
     (initialSnapshot.entries ?? [])
@@ -150,7 +159,13 @@ export function SnapshotFormPanel({
       });
     setAmounts(nextAmounts);
     setNotes(nextNotes);
-  }, [initialSnapshot, mode]);
+  }, [initialSnapshot, mode, tree.primary_currency]);
+
+  useEffect(() => {
+    if (mode === "create") {
+      setSettlementCurrency(tree.primary_currency);
+    }
+  }, [mode, tree.primary_currency]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -177,7 +192,7 @@ export function SnapshotFormPanel({
       snapshot_ts: preset.timeMode === "instant" ? localDateTimeToIso(snapshotTs) : null,
       period_start: preset.timeMode === "period" ? dateToStartIso(periodStart) : null,
       period_end: preset.timeMode === "period" ? dateToEndIso(periodEnd) : null,
-      primary_currency: tree.primary_currency,
+      primary_currency: settlementCurrency,
       rate_snapshot_id: selectedRateSnapshotId || null,
       note: snapshotNote || null,
       entries,
@@ -192,24 +207,39 @@ export function SnapshotFormPanel({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-semibold text-base-content">
-            {mode === "edit" ? t("finance.snapshot.editTitle") : t("finance.snapshot.formTitle")}
-          </h3>
-          <p className="text-sm text-base-content/60">{t(preset.amountLabelKey)}</p>
-        </div>
-        <ActionButton
-          label={t("common.cancel")}
-          onClick={onCancel}
-          size="sm"
-          variant="ghost"
-          disabled={submitting}
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <TextInput
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder={t("finance.snapshot.titlePlaceholder")}
+          aria-label={t("finance.snapshot.title")}
+          className="max-w-xl text-lg font-semibold"
         />
+        <div className="flex justify-end gap-2">
+          <ActionButton
+            type="button"
+            label={t("common.cancel")}
+            iconName="x-mark"
+            onClick={onCancel}
+            size="sm"
+            variant="ghost"
+            disabled={submitting}
+          />
+          <ActionButton
+            type="submit"
+            label={submitting ? t("common.saving") : t("common.save")}
+            color="primary"
+            variant="solid"
+            iconName="check"
+            disabled={submitting || !leafNodes.length}
+          />
+        </div>
       </div>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <FormField label={t("finance.tree.selectTree")}>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <InlineFinanceField label={t("finance.tree.selectTree")}>
           <select
             className="select select-bordered select-sm w-full"
             value={selectedTreeId ?? tree.id}
@@ -228,55 +258,61 @@ export function SnapshotFormPanel({
               </option>
             ))}
           </select>
-        </FormField>
-
-        <FormField label={t("finance.snapshot.title")}>
-          <TextInput
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder={t("finance.snapshot.titlePlaceholder")}
-          />
-        </FormField>
+        </InlineFinanceField>
 
         {preset.timeMode === "instant" ? (
-          <FormField label={t("finance.snapshot.snapshotTime")}>
+          <InlineFinanceField label={t("finance.snapshot.snapshotTime")}>
             <TextInput
               type="datetime-local"
               value={snapshotTs}
               onChange={(event) => setSnapshotTs(event.target.value)}
+              disabled={mode === "edit" || submitting}
             />
-          </FormField>
+          </InlineFinanceField>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={t("finance.snapshot.periodStart")}>
+          <>
+            <InlineFinanceField label={t("finance.snapshot.periodStart")}>
               <TextInput
                 type="date"
                 value={periodStart}
                 onChange={(event) => setPeriodStart(event.target.value)}
+                disabled={mode === "edit" || submitting}
               />
-            </FormField>
-            <FormField label={t("finance.snapshot.periodEnd")}>
+            </InlineFinanceField>
+            <InlineFinanceField label={t("finance.snapshot.periodEnd")}>
               <TextInput
                 type="date"
                 value={periodEnd}
                 onChange={(event) => setPeriodEnd(event.target.value)}
+                disabled={mode === "edit" || submitting}
               />
-            </FormField>
-          </div>
+            </InlineFinanceField>
+          </>
         )}
 
+        <InlineFinanceField label={t("finance.snapshot.settlementCurrency")}>
+          <AssetSelect
+            assets={assets}
+            value={settlementCurrency}
+            onChange={setSettlementCurrency}
+            onCreateAsset={onCreateAsset}
+            disabled={submitting}
+          />
+        </InlineFinanceField>
+
         <RateSnapshotSelectPanel
-          primaryCurrency={tree.primary_currency}
-          requiredCurrencies={requiredRateCurrencies}
+          primaryCurrency={settlementCurrency}
+          requiredCurrencies={requiredSettlementCurrencies}
           rateSnapshots={rateSnapshots}
           selectedRateSnapshotId={selectedRateSnapshotId}
           onSelectRateSnapshot={setSelectedRateSnapshotId}
         />
+      </div>
 
+      <div className="space-y-3">
         <AssetSummaryPanel
           rows={nativeSummaryRows}
-          primaryCurrency={tree.primary_currency}
+          primaryCurrency={settlementCurrency}
           assets={assets}
           rateSnapshotLabelText={
             selectedRateSnapshot
@@ -285,8 +321,11 @@ export function SnapshotFormPanel({
           }
           rateInfoByCurrency={buildRateInfoFromConversionRates(
             conversionRates,
-            tree.primary_currency,
+            settlementCurrency,
           )}
+          rateSnapshotTooltip={
+            selectedRateSnapshot ? rateSnapshotTooltip(selectedRateSnapshot, assets) : ""
+          }
           showConversions
         />
 
@@ -296,7 +335,7 @@ export function SnapshotFormPanel({
           notes={notes}
           aggregatedAmounts={hasCompleteRateSnapshot ? aggregatedAmounts : {}}
           nativeAggregatedAmounts={nativeAggregatedAmounts}
-          primaryCurrency={tree.primary_currency}
+          primaryCurrency={settlementCurrency}
           conversionRates={conversionRates}
           assets={assets}
           hasRateSnapshot={hasCompleteRateSnapshot}
@@ -308,27 +347,31 @@ export function SnapshotFormPanel({
             setNotes((prev) => ({ ...prev, [nodeId]: value }))
           }
         />
+      </div>
 
-        <FormField label={t("finance.snapshot.snapshotNote")}>
-          <TextArea
-            value={snapshotNote}
-            onChange={(event) => setSnapshotNote(event.target.value)}
-            resize="y"
-          />
-        </FormField>
+      <FormField label={t("finance.snapshot.snapshotNote")}>
+        <TextArea
+          value={snapshotNote}
+          onChange={(event) => setSnapshotNote(event.target.value)}
+          resize="y"
+        />
+      </FormField>
+    </form>
+  );
+}
 
-        <div className="flex justify-end">
-          <ActionButton
-            type="submit"
-            label={submitting ? t("common.saving") : t("finance.snapshot.save")}
-            color="primary"
-            variant="solid"
-            iconName="check"
-            disabled={submitting || !leafNodes.length}
-          />
-        </div>
-      </form>
-    </div>
+function InlineFinanceField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="grid items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <span className="text-sm font-medium text-base-content/70">{label}</span>
+      <div className="min-w-0">{children}</div>
+    </label>
   );
 }
 
@@ -355,19 +398,8 @@ function RateSnapshotSelectPanel({
   ];
 
   return (
-    <div className="rounded-lg border border-base-200 bg-base-200/30 p-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h4 className="font-semibold text-base-content">{t("finance.rates.title")}</h4>
-          <p className="text-sm text-base-content/60">
-            {requiredCurrencies.length
-              ? t("finance.rates.required", {
-                  currencies: requiredCurrencies.join(", "),
-                  primaryCurrency,
-                })
-              : t("finance.rates.optional")}
-          </p>
-        </div>
+    <InlineFinanceField label={t("finance.rates.title")}>
+      <div className="flex flex-wrap items-center gap-3">
         <EnumSelect
           value={selectedRateSnapshotId || undefined}
           onChange={(value) => onSelectRateSnapshot((value as UUID | undefined) ?? "")}
@@ -378,8 +410,16 @@ function RateSnapshotSelectPanel({
           size="sm"
           className="min-w-[14rem]"
         />
+        <span className="text-sm text-base-content/60">
+            {requiredCurrencies.length
+              ? t("finance.rates.required", {
+                  currencies: requiredCurrencies.join(", "),
+                  primaryCurrency,
+                })
+              : t("finance.rates.optional")}
+        </span>
       </div>
-    </div>
+    </InlineFinanceField>
   );
 }
 
@@ -485,9 +525,7 @@ function SnapshotEntryTreeTable({
             </div>
           </td>
           <td className="align-top text-center">
-            <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/80">
-              {nodeCurrency.toUpperCase()}
-            </span>
+            <span className="text-base-content/70">{nodeCurrency.toUpperCase()}</span>
           </td>
           <td className="align-top">
             {hasChildren ? (
@@ -617,6 +655,7 @@ function AssetSummaryPanel({
   primaryCurrency,
   assets,
   rateSnapshotLabelText,
+  rateSnapshotTooltip,
   rateInfoByCurrency,
   showConversions,
 }: {
@@ -624,6 +663,7 @@ function AssetSummaryPanel({
   primaryCurrency: string;
   assets: FinanceAsset[];
   rateSnapshotLabelText: string;
+  rateSnapshotTooltip?: string;
   rateInfoByCurrency: Record<string, RateInfo>;
   showConversions: boolean;
 }) {
@@ -670,10 +710,13 @@ function AssetSummaryPanel({
     <div className="rounded-lg border border-base-300 bg-base-100">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 px-3 py-2">
         <h4 className="font-semibold text-base-content">{t("finance.metrics.assetSummary")}</h4>
-        <span className="text-right text-sm text-base-content/70">
+        <span className="text-right text-sm text-base-content/70" title={rateSnapshotTooltip}>
           {t("finance.rates.tabTitle")}
           <span className="ml-2 text-base-content">{rateSnapshotLabelText}</span>
         </span>
+      </div>
+      <div className="px-3 pt-3 text-sm font-semibold text-base-content">
+        {t("finance.metrics.summary")}
       </div>
       <div className="overflow-x-auto">
         <table className="table table-sm">
@@ -694,8 +737,12 @@ function AssetSummaryPanel({
                 <td className="text-right tabular-nums">{row.amount}</td>
                 <td className="text-right tabular-nums">
                   {row.rateInfo ? (
-                    <span title={rateInfoTooltip(row.rateInfo)}>
-                      {formatRateDisplay(row.rateInfo.rate)}
+                    <span title={rateInfoTooltip(row.rateInfo, assets)}>
+                      {formatAmountForAsset(
+                        row.rateInfo.rate,
+                        row.rateInfo.quoteCurrency,
+                        assets,
+                      )}
                     </span>
                   ) : (
                     <span className="text-base-content/40">-</span>
@@ -731,10 +778,12 @@ export function SnapshotDetail({
   snapshot,
   assets,
   treeNodes,
+  rateSnapshots,
 }: {
   snapshot: FinanceSnapshot;
   assets: FinanceAsset[];
   treeNodes: TreeNodeWithChildren[];
+  rateSnapshots: FinanceRateSnapshot[];
 }) {
   const { t } = useTranslation();
   const usesConvertedAggregation = getSummaryAggregationMode(snapshot.summary) === "converted";
@@ -788,6 +837,7 @@ export function SnapshotDetail({
     [displayTree, expandedIds],
   );
   const snapshotNote = snapshot.note?.trim() ?? "";
+  const rateSnapshot = rateSnapshots.find((item) => item.id === snapshot.rate_snapshot_id) ?? null;
 
   return (
     <div className="space-y-4">
@@ -796,127 +846,131 @@ export function SnapshotDetail({
         primaryCurrency={snapshot.primary_currency}
         assets={assets}
         rateSnapshotLabelText={
-          snapshot.rate_snapshot_id
-            ? snapshot.rate_snapshot_id
-            : t("finance.rates.noRateSnapshot")
+          rateSnapshot ? rateSnapshotLabel(rateSnapshot) : t("finance.rates.noRateSnapshot")
         }
+        rateSnapshotTooltip={rateSnapshot ? rateSnapshotTooltip(rateSnapshot, assets) : ""}
         rateInfoByCurrency={rateInfoByCurrency}
         showConversions
       />
 
-      <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
-        <p className="font-medium text-base-content">{t("finance.snapshot.snapshotNote")}</p>
-        <p className="mt-1 whitespace-pre-wrap">{snapshotNote || t("common.none")}</p>
-      </div>
+      <div className="rounded-lg border border-base-300">
+        <div className="border-b border-base-200 px-3 py-2 text-sm font-semibold text-base-content">
+          {t("finance.metrics.details")}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="table table-sm">
+            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+              <tr>
+                <th className="w-[40%] min-w-[12rem] px-4 py-2">
+                  {t("finance.snapshot.node")}
+                </th>
+                <th className="w-20 px-4 py-2 text-center">
+                  {t("finance.snapshot.originalCurrency")}
+                </th>
+                <th className="min-w-[10rem] px-4 py-2">
+                  {t("finance.snapshot.originalAmount")}
+                </th>
+                <th className="min-w-[10rem] px-4 py-2">
+                  {t("finance.snapshot.convertedAmount", { currency: snapshot.primary_currency })}
+                </th>
+                <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
+              </tr>
+            </thead>
+            <tbody className="align-top text-sm text-base-content/80">
+              {visibleNodes.map((node) => {
+                const hasChildren = node.children.length > 0;
+                const isExpanded = expandedIds.has(node.id);
+                const originalAmount = parseDisplayAmount(node.amount);
+                const convertedAmount = parseDisplayAmount(node.amountConverted);
+                const originalAmountClass =
+                  originalAmount > 0
+                    ? "text-success"
+                    : originalAmount < 0
+                      ? "text-error"
+                      : "text-base-content";
+                const convertedAmountClass =
+                  convertedAmount > 0
+                    ? "text-success"
+                    : convertedAmount < 0
+                      ? "text-error"
+                      : "text-base-content";
 
-      <div className="overflow-x-auto border border-base-300 rounded-lg">
-        <table className="table table-sm">
-          <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
-            <tr>
-              <th className="w-[40%] min-w-[12rem] px-4 py-2">
-                {t("finance.snapshot.node")}
-              </th>
-              <th className="w-20 px-4 py-2 text-center">
-                {t("finance.snapshot.originalCurrency")}
-              </th>
-              <th className="min-w-[10rem] px-4 py-2">
-                {t("finance.snapshot.originalAmount")}
-              </th>
-              <th className="min-w-[10rem] px-4 py-2">
-                {t("finance.snapshot.convertedAmount", { currency: snapshot.primary_currency })}
-              </th>
-              <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
-            </tr>
-          </thead>
-          <tbody className="align-top text-sm text-base-content/80">
-            {visibleNodes.map((node) => {
-              const hasChildren = node.children.length > 0;
-              const isExpanded = expandedIds.has(node.id);
-              const originalAmount = parseDisplayAmount(node.amount);
-              const convertedAmount = parseDisplayAmount(node.amountConverted);
-              const originalAmountClass =
-                originalAmount > 0
-                  ? "text-success"
-                  : originalAmount < 0
-                    ? "text-error"
-                    : "text-base-content";
-              const convertedAmountClass =
-                convertedAmount > 0
-                  ? "text-success"
-                  : convertedAmount < 0
-                    ? "text-error"
-                    : "text-base-content";
-
-              return (
-                <tr key={node.id} className="border-base-200">
-                  <td className="align-top">
-                    <div
-                      className="flex items-start gap-2"
-                      style={{ paddingLeft: `${Math.min(node.depth, 6) * 1.5}rem` }}
-                    >
-                      {hasChildren ? (
-                        <ActionButton
-                          label=""
-                          iconName={isExpanded ? "chevron-down" : "chevron-right"}
-                          iconOnly
-                          size="xs"
-                          variant="ghost"
-                          color="neutral"
-                          ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
-                          ariaExpanded={isExpanded}
-                          onClick={() => toggleNode(node.id)}
-                        />
-                      ) : (
-                        <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
-                          •
-                        </span>
-                      )}
-                      <div className="min-w-0 space-y-1">
-                        <span className="font-medium text-base-content">{node.name}</span>
+                return (
+                  <tr key={node.id} className="border-base-200">
+                    <td className="align-top">
+                      <div
+                        className="flex items-start gap-2"
+                        style={{ paddingLeft: `${Math.min(node.depth, 6) * 1.5}rem` }}
+                      >
+                        {hasChildren ? (
+                          <ActionButton
+                            label=""
+                            iconName={isExpanded ? "chevron-down" : "chevron-right"}
+                            iconOnly
+                            size="xs"
+                            variant="ghost"
+                            color="neutral"
+                            ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
+                            ariaExpanded={isExpanded}
+                            onClick={() => toggleNode(node.id)}
+                          />
+                        ) : (
+                          <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
+                            •
+                          </span>
+                        )}
+                        <div className="min-w-0 space-y-1">
+                          <span className="font-medium text-base-content">{node.name}</span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="align-top text-center text-base-content/70">
-                    <span className="inline-flex min-w-[3rem] justify-center rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/80">
+                    </td>
+                    <td className="align-top text-center text-base-content/70">
                       {(node.currencyCode || snapshot.primary_currency).toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="align-top">
-                    <span className={`tabular-nums ${originalAmountClass}`}>
-                      {node.amount || "-"}
-                    </span>
-                  </td>
-                  <td className="align-top">
-                    {usesConvertedAggregation ? (
-                      <span className={`tabular-nums ${convertedAmountClass}`}>
-                        {formatMoney(node.amountConverted, snapshot.primary_currency, assets)}
+                    </td>
+                    <td className="align-top">
+                      <span className={`tabular-nums ${originalAmountClass}`}>
+                        {node.amount || "-"}
                       </span>
-                    ) : (
-                      <span className="text-base-content/40">-</span>
-                    )}
-                  </td>
-                  <td className="align-top">
-                    {node.note ? (
-                      <span className="block min-h-[2.25rem] text-sm text-base-content/80">
-                        {node.note}
-                      </span>
-                    ) : (
-                      <span className="text-base-content/40">-</span>
-                    )}
+                    </td>
+                    <td className="align-top">
+                      {usesConvertedAggregation ? (
+                        <span className={`tabular-nums ${convertedAmountClass}`}>
+                          {formatMoney(node.amountConverted, snapshot.primary_currency, assets)}
+                        </span>
+                      ) : (
+                        <span className="text-base-content/40">-</span>
+                      )}
+                    </td>
+                    <td className="align-top">
+                      {node.note ? (
+                        <span className="block min-h-[2.25rem] text-sm text-base-content/80">
+                          {node.note}
+                        </span>
+                      ) : (
+                        <span className="text-base-content/40">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {!visibleNodes.length ? (
+                <tr>
+                  <td colSpan={5} className="text-center text-base-content/60 py-6">
+                    {t("finance.history.noSelection")}
                   </td>
                 </tr>
-              );
-            })}
-            {!visibleNodes.length ? (
-              <tr>
-                <td colSpan={5} className="text-center text-base-content/60 py-6">
-                  {t("finance.history.noSelection")}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {snapshotNote ? (
+        <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
+          <p className="font-medium text-base-content">{t("finance.snapshot.note")}</p>
+          <p className="mt-1 whitespace-pre-wrap">{snapshotNote}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1129,8 +1183,12 @@ function getExchangeRateInfoByCurrency(
   );
 }
 
-function rateInfoTooltip(rateInfo: RateInfo): string {
-  const primaryLine = `1 ${rateInfo.baseCurrency} = ${formatRateDisplay(rateInfo.rate)} ${
+function rateInfoTooltip(rateInfo: RateInfo, assets: FinanceAsset[]): string {
+  const primaryLine = `1 ${rateInfo.baseCurrency} = ${formatAmountForAsset(
+    rateInfo.rate,
+    rateInfo.quoteCurrency,
+    assets,
+  )} ${
     rateInfo.quoteCurrency
   }`;
   const sourceLines = rateInfo.sourcePairs.map((pair) => pair.replace("/", " = "));
@@ -1138,11 +1196,13 @@ function rateInfoTooltip(rateInfo: RateInfo): string {
   return [primaryLine, ...sourceLines, pathLine].filter(Boolean).join("\n");
 }
 
-function formatRateDisplay(rate: string): string {
-  if (!rate.includes(".")) {
-    return rate;
-  }
-  return rate.replace(/0+$/, "").replace(/\.$/, "");
+function rateSnapshotTooltip(snapshot: FinanceRateSnapshot, assets: FinanceAsset[]): string {
+  const lines = (snapshot.entries ?? []).map((entry) => {
+    const baseAmount = formatAmountForAsset("1", entry.base_currency, assets);
+    const quoteAmount = formatAmountForAsset(entry.rate, entry.quote_currency, assets);
+    return `${baseAmount} ${entry.base_currency} = ${quoteAmount} ${entry.quote_currency}`;
+  });
+  return lines.length ? lines.join("\n") : rateSnapshotLabel(snapshot);
 }
 
 function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>) {

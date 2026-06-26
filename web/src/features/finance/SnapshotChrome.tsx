@@ -1,7 +1,5 @@
 import ActionButton, {
   CreateNewButton,
-  DeleteButton,
-  EditButton,
 } from "@/components/ActionButton";
 import EnumSelect from "@/components/selects/EnumSelect";
 import type { FinanceSnapshot } from "@/services/api/finance";
@@ -187,17 +185,22 @@ export function SnapshotActionButtons({
 }) {
   return (
     <div className="flex justify-end gap-2">
-      <EditButton
+      <ActionButton
+        label={editLabel}
+        iconName="edit"
         onClick={onEdit}
         size="sm"
         variant="ghost"
         ariaLabel={editLabel}
         disabled={disabled}
       />
-      <DeleteButton
+      <ActionButton
+        label={deleteLabel}
+        iconName="trash"
         onClick={onDelete}
         size="sm"
         variant="ghost"
+        color="error"
         ariaLabel={deleteLabel}
         disabled={deleteDisabled ?? disabled}
       />
@@ -208,55 +211,30 @@ export function SnapshotActionButtons({
 export function SnapshotNavigator({
   title,
   positionLabel,
-  hasPrevious,
-  hasNext,
-  onPrevious,
-  onNext,
   rightSlot,
 }: {
-  title: string;
+  title: React.ReactNode;
   positionLabel?: string;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
+  onPrevious?: () => void;
+  onNext?: () => void;
   rightSlot?: React.ReactNode;
 }) {
-  const { t } = useTranslation();
   return (
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-grow flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <ActionButton
-            label=""
-            iconName="chevron-left"
-            iconOnly
-            ariaLabel={t("finance.snapshot.previous")}
-            size="sm"
-            variant="ghost"
-            shape="circle"
-            onClick={onPrevious}
-            disabled={!hasPrevious}
-          />
-          <ActionButton
-            label=""
-            iconName="chevron-right"
-            iconOnly
-            ariaLabel={t("finance.snapshot.next")}
-            size="sm"
-            variant="ghost"
-            shape="circle"
-            onClick={onNext}
-            disabled={!hasNext}
-          />
-        </div>
         <div>
           {positionLabel ? (
             <p className="text-xs uppercase tracking-wide text-base-content/60">
               {positionLabel}
             </p>
           ) : null}
-          <p className="text-lg font-semibold text-base-content">{title}</p>
+          {typeof title === "string" ? (
+            <p className="text-lg font-semibold text-base-content">{title}</p>
+          ) : (
+            title
+          )}
         </div>
       </div>
       {rightSlot ? <div className="text-right text-sm text-base-content/70">{rightSlot}</div> : null}

@@ -14,6 +14,7 @@ import {
   type FinanceRateSnapshot,
   type FinanceRateSnapshotCreate,
   type FinanceRateSnapshotUpdate,
+  type FinanceAsset,
 } from "@/services/api/finance";
 import {
   addFinanceRateSnapshotToListCache,
@@ -38,7 +39,7 @@ import {
   isoToDateTimeLocal,
   localDateTimeToIso,
   nowDateTimeLocal,
-  rateEntryEquation,
+  formatAmountForAsset,
   rateSnapshotLabel,
   type RateRowState,
   type RateSnapshotFormMode,
@@ -72,6 +73,7 @@ export function RateSnapshotsWorkspace() {
   const [rateRows, setRateRows] = useState<RateRowState[]>([
     { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
   ]);
+  const rateSnapshotFormId = "finance-rate-snapshot-form";
 
   const rateSnapshotsQuery = useQuery({
     queryKey: financeKeys.rateSnapshots(),
@@ -369,18 +371,36 @@ export function RateSnapshotsWorkspace() {
               onPrevious={() => undefined}
               onNext={() => undefined}
               rightSlot={
-                <ActionButton
-                  label={t("common.cancel")}
-                  onClick={closeRateSnapshotForm}
-                  size="sm"
-                  variant="ghost"
-                  disabled={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                  }
-                />
+                <div className="flex justify-end gap-2">
+                  <ActionButton
+                    label={t("common.cancel")}
+                    iconName="x-mark"
+                    onClick={closeRateSnapshotForm}
+                    size="sm"
+                    variant="ghost"
+                    disabled={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    }
+                  />
+                  <ActionButton
+                    type="submit"
+                    form={rateSnapshotFormId}
+                    label={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                        ? t("common.saving")
+                        : t("common.save")
+                    }
+                    iconName="check"
+                    color="primary"
+                    variant="solid"
+                    disabled={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    }
+                  />
+                </div>
               }
             />
-            <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
+            <form id={rateSnapshotFormId} className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <FormField label={t("finance.rates.capturedAt")}>
                   <TextInput
@@ -510,25 +530,6 @@ export function RateSnapshotsWorkspace() {
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <ActionButton
-                  type="submit"
-                  label={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                      ? t("common.saving")
-                      : rateFormMode === "edit"
-                        ? t("finance.rates.saveSnapshot")
-                        : t("finance.rates.createSnapshot")
-                  }
-                  iconName="check"
-                  color="primary"
-                  variant="solid"
-                  disabled={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                  }
-                />
-              </div>
             </form>
           </>
         ) : rateSnapshotsQuery.isLoading ? (
@@ -536,7 +537,11 @@ export function RateSnapshotsWorkspace() {
         ) : currentSnapshot ? (
           <>
             <SnapshotNavigator
-              title={rateSnapshotLabel(currentSnapshot)}
+              title={
+                <span title={formatRateSnapshotTooltip(currentSnapshot, assets)}>
+                  {rateSnapshotLabel(currentSnapshot)}
+                </span>
+              }
               positionLabel={
                 currentPosition > 0
                   ? t("finance.snapshot.position", {
@@ -567,7 +572,6 @@ export function RateSnapshotsWorkspace() {
                     <th>{t("finance.rates.capturedAt")}</th>
                     <th>{t("finance.rates.source")}</th>
                     <th>{t("finance.rates.rate")}</th>
-                    <th>{t("finance.rates.note")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -577,10 +581,9 @@ export function RateSnapshotsWorkspace() {
                       <td>{entry.source || currentSnapshot.source}</td>
                       <td>
                         <span className="font-medium tabular-nums">
-                          {rateEntryEquation(entry)}
+                          {formatRateEntryEquation(entry, assets)}
                         </span>
                       </td>
-                      <td>{currentSnapshot.note || "-"}</td>
                     </tr>
                   ))}
                   {!(currentSnapshot.entries ?? []).length ? (
@@ -588,12 +591,17 @@ export function RateSnapshotsWorkspace() {
                       <td>{formatDateTime(currentSnapshot.captured_at)}</td>
                       <td>{currentSnapshot.source}</td>
                       <td className="text-base-content/40">-</td>
-                      <td>{currentSnapshot.note || "-"}</td>
                     </tr>
                   ) : null}
                 </tbody>
               </table>
             </div>
+            {currentSnapshot.note ? (
+              <div className="mt-4 rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
+                <p className="font-medium text-base-content">{t("finance.rates.note")}</p>
+                <p className="mt-1 whitespace-pre-wrap">{currentSnapshot.note}</p>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
@@ -808,4 +816,23 @@ function parseDecimalPlaces(value: string): number {
     return 2;
   }
   return Math.min(8, Math.max(0, parsed));
+}
+
+function formatRateEntryEquation(
+  entry: NonNullable<FinanceRateSnapshot["entries"]>[number],
+  assets: FinanceAsset[],
+) {
+  return `${formatAmountForAsset("1", entry.base_currency, assets)} ${
+    entry.base_currency
+  } = ${formatAmountForAsset(entry.rate, entry.quote_currency, assets)} ${entry.quote_currency}`;
+}
+
+function formatRateSnapshotTooltip(
+  snapshot: FinanceRateSnapshot,
+  assets: FinanceAsset[],
+) {
+  const lines = (snapshot.entries ?? []).map((entry) =>
+    formatRateEntryEquation(entry, assets),
+  );
+  return lines.length ? lines.join("\n") : rateSnapshotLabel(snapshot);
 }

@@ -1409,6 +1409,8 @@
       "entries": "Entries",
       "amountsByCurrency": "Amounts by currency",
       "assetSummary": "Asset summary",
+      "summary": "Summary",
+      "details": "Details",
       "convertTo": "Convert to {{currency}}",
       "totalValue": "Total value"
     },
@@ -1474,6 +1476,7 @@
       "snapshotTime": "Snapshot time",
       "periodStart": "Period start",
       "periodEnd": "Period end",
+      "settlementCurrency": "Settlement asset",
       "tableTitle": "Record finance entries",
       "node": "Node",
       "amount": "Amount",
