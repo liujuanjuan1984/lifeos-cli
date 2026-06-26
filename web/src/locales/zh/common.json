@@ -1413,6 +1413,7 @@
     "assets": {
       "title": "资产列表",
       "description": "维护财务树、快照和汇率可选择的资产。",
+      "manage": "资产管理",
       "code": "资产",
       "name": "名称",
       "decimalPlaces": "小数位数",

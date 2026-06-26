@@ -168,7 +168,6 @@ export function snapshotLabel(snapshot: FinanceSnapshot) {
 
 export function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
   const pairs = (snapshot.entries ?? [])
-    .slice(0, 3)
     .map((entry) => `${entry.base_currency}/${entry.quote_currency}`)
     .join(", ");
   return pairs

@@ -103,6 +103,10 @@ export function SnapshotFormPanel({
     () => buildConversionRateMap(selectedRateSnapshot, settlementCurrency),
     [selectedRateSnapshot, settlementCurrency],
   );
+  const rateInfoByCurrency = useMemo(
+    () => buildRateInfoFromRateSnapshot(selectedRateSnapshot, settlementCurrency),
+    [selectedRateSnapshot, settlementCurrency],
+  );
   const aggregatedAmounts = useMemo(
     () =>
       buildAggregatedSnapshotAmounts(
@@ -301,8 +305,6 @@ export function SnapshotFormPanel({
         </InlineFinanceField>
 
         <RateSnapshotSelectPanel
-          primaryCurrency={settlementCurrency}
-          requiredCurrencies={requiredSettlementCurrencies}
           rateSnapshots={rateSnapshots}
           selectedRateSnapshotId={selectedRateSnapshotId}
           onSelectRateSnapshot={setSelectedRateSnapshotId}
@@ -319,10 +321,7 @@ export function SnapshotFormPanel({
               ? rateSnapshotLabel(selectedRateSnapshot)
               : t("finance.rates.noRateSnapshot")
           }
-          rateInfoByCurrency={buildRateInfoFromConversionRates(
-            conversionRates,
-            settlementCurrency,
-          )}
+          rateInfoByCurrency={rateInfoByCurrency}
           rateSnapshotTooltip={
             selectedRateSnapshot ? rateSnapshotTooltip(selectedRateSnapshot, assets) : ""
           }
@@ -376,14 +375,10 @@ function InlineFinanceField({
 }
 
 function RateSnapshotSelectPanel({
-  primaryCurrency,
-  requiredCurrencies,
   rateSnapshots,
   selectedRateSnapshotId,
   onSelectRateSnapshot,
 }: {
-  primaryCurrency: string;
-  requiredCurrencies: string[];
   rateSnapshots: FinanceRateSnapshot[];
   selectedRateSnapshotId: UUID | "";
   onSelectRateSnapshot: (rateSnapshotId: UUID | "") => void;
@@ -410,14 +405,6 @@ function RateSnapshotSelectPanel({
           size="sm"
           className="min-w-[14rem]"
         />
-        <span className="text-sm text-base-content/60">
-            {requiredCurrencies.length
-              ? t("finance.rates.required", {
-                  currencies: requiredCurrencies.join(", "),
-                  primaryCurrency,
-                })
-              : t("finance.rates.optional")}
-        </span>
       </div>
     </InlineFinanceField>
   );
@@ -563,7 +550,7 @@ function SnapshotEntryTreeTable({
                   .filter(Boolean)
                   .join(" ")}
               >
-                {hasRateSnapshot ? `${convertedAmount} ${primaryCurrency}` : convertedAmount}
+                {convertedAmount}
               </span>
             ) : (
               <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
@@ -1134,28 +1121,47 @@ function getSummaryAggregationMode(summary?: Record<string, unknown> | null): st
   return typeof mode === "string" ? mode : "native_by_currency";
 }
 
-function buildRateInfoFromConversionRates(
-  conversionRates: Record<string, number>,
+function buildRateInfoFromRateSnapshot(
+  rateSnapshot: FinanceRateSnapshot | null,
   primaryCurrency: string,
 ): Record<string, RateInfo> {
   const primary = primaryCurrency.toUpperCase();
-  return Object.fromEntries(
-    Object.entries(conversionRates)
-      .filter(([, rate]) => Number.isFinite(rate) && rate > 0)
-      .map(([currency, rate]) => {
-        const normalizedCurrency = currency.toUpperCase();
-        return [
-          normalizedCurrency,
-          {
-            baseCurrency: normalizedCurrency,
-            quoteCurrency: primary,
-            rate: String(rate),
-            sourcePairs: [],
-            path: normalizedCurrency === primary ? [primary] : [normalizedCurrency, primary],
-          } satisfies RateInfo,
-        ];
-      }),
-  );
+  const result: Record<string, RateInfo> = {
+    [primary]: {
+      baseCurrency: primary,
+      quoteCurrency: primary,
+      rate: "1",
+      sourcePairs: [],
+      path: [primary],
+    },
+  };
+  (rateSnapshot?.entries ?? []).forEach((entry) => {
+    const baseCurrency = entry.base_currency.toUpperCase();
+    const quoteCurrency = entry.quote_currency.toUpperCase();
+    const rate = Number(entry.rate);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      return;
+    }
+    if (quoteCurrency === primary) {
+      result[baseCurrency] = {
+        baseCurrency,
+        quoteCurrency,
+        rate: entry.rate,
+        sourcePairs: [`${baseCurrency}/${quoteCurrency}`],
+        path: [baseCurrency, quoteCurrency],
+      };
+    }
+    if (baseCurrency === primary) {
+      result[quoteCurrency] = {
+        baseCurrency: quoteCurrency,
+        quoteCurrency: primary,
+        rate: String(1 / rate),
+        sourcePairs: [`${baseCurrency}/${quoteCurrency}`],
+        path: [quoteCurrency, baseCurrency],
+      };
+    }
+  });
+  return result;
 }
 
 function getExchangeRateInfoByCurrency(
@@ -1265,7 +1271,7 @@ function buildNativeSnapshotAmounts(
         return new Map();
       }
       const currency = (node.currency_code || primaryCurrency).toUpperCase();
-      result[node.id] = `${formatAmountForAsset(amount, currency, assets)} ${currency}`;
+      result[node.id] = formatAmountForAsset(amount, currency, assets);
       return new Map([[currency, parsed]]);
     }
 
@@ -1278,7 +1284,7 @@ function buildNativeSnapshotAmounts(
     if (totals.size) {
       result[node.id] = Array.from(totals.entries())
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([currency, value]) => `${formatNumberForAsset(value, currency, assets)} ${currency}`)
+        .map(([currency, value]) => formatNumberForAsset(value, currency, assets))
         .join(", ");
     }
     return totals;

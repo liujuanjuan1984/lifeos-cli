@@ -1413,6 +1413,7 @@
     "assets": {
       "title": "Assets",
       "description": "Manage selectable assets used by finance trees, snapshots, and exchange rates.",
+      "manage": "Manage assets",
       "code": "Asset",
       "name": "Name",
       "decimalPlaces": "Decimal places",

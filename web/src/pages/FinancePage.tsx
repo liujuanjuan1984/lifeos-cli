@@ -104,15 +104,18 @@ function FinancePage() {
       color={activeTab === item.id ? "primary" : "neutral"}
       variant={activeTab === item.id ? "solid" : "ghost"}
       size="sm"
+      className="min-w-0 max-w-28 shrink px-2 sm:max-w-none sm:px-3"
     />
   );
 
   return (
     <PageLayout>
       <ToolbarContainer className="mb-6" variant="compact" padding="sm">
-        <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
-          <div className="flex flex-nowrap items-center gap-2">{reportTabs.map(renderTab)}</div>
-          <div className="ml-auto flex flex-nowrap items-center gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="flex min-w-0 flex-nowrap items-center gap-2">
+            {reportTabs.map(renderTab)}
+          </div>
+          <div className="flex min-w-0 flex-nowrap items-center justify-end gap-2">
             {managementTabs.map(renderTab)}
           </div>
         </div>
@@ -710,7 +713,6 @@ function FinanceTreesWorkspace() {
             />
             <div className="mt-4">
               <FinanceTreeManagerPanel
-                tree={tree}
                 treeNodes={treeNodes}
                 deletingNodeId={
                   deleteNodeMutation.variables && deleteNodeMutation.isPending
@@ -1062,7 +1064,6 @@ function SnapshotModule({
 }
 
 function FinanceTreeManagerPanel({
-  tree,
   treeNodes,
   deletingNodeId,
   onCreateRootNode,
@@ -1070,7 +1071,6 @@ function FinanceTreeManagerPanel({
   onEditNode,
   onDeleteNode,
 }: {
-  tree: FinanceTree;
   treeNodes: TreeNodeWithChildren[];
   deletingNodeId: UUID | null;
   onCreateRootNode: () => void;
@@ -1081,12 +1081,6 @@ function FinanceTreeManagerPanel({
   const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-base-200 bg-base-200/40 px-4 py-2">
-        <div className="min-w-0">
-          <span className="font-semibold text-base-content truncate">{tree.name}</span>
-        </div>
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-base-content/60">{t("finance.tree.manageHint")}</p>
         <CreateNewButton
