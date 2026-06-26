@@ -48,23 +48,11 @@ export function SnapshotSelectorToolbar({
   return (
     <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        {badges || (manageLabel && onManage) ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {badges}
-            {manageLabel && onManage ? (
-              <ActionButton
-                label={manageLabel}
-                onClick={onManage}
-                size="sm"
-                variant="outline"
-                iconName="settings"
-                ariaLabel={manageAriaLabel ?? manageLabel}
-              />
-            ) : null}
-          </div>
+        {description ? (
+          <p className="min-w-[14rem] flex-1 text-sm text-base-content/70">{description}</p>
         ) : null}
 
-        <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2 min-w-0 whitespace-nowrap">
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap sm:gap-2">
           <ActionButton
             label=""
             iconName="chevron-left"
@@ -105,6 +93,17 @@ export function SnapshotSelectorToolbar({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {badges}
+          {manageLabel && onManage ? (
+            <ActionButton
+              label={manageLabel}
+              onClick={onManage}
+              size="sm"
+              variant="outline"
+              iconName="settings"
+              ariaLabel={manageAriaLabel ?? manageLabel}
+            />
+          ) : null}
           <CreateNewButton
             label={createLabel}
             onClick={onCreate}
@@ -116,13 +115,12 @@ export function SnapshotSelectorToolbar({
           />
         </div>
       </div>
-
-      {description ? <p className="mt-3 text-sm text-base-content/70">{description}</p> : null}
     </section>
   );
 }
 
 export function SnapshotToolbar({
+  description,
   snapshots,
   selectedSnapshotId,
   hasPrevious,
@@ -133,6 +131,7 @@ export function SnapshotToolbar({
   onCreateSnapshot,
   createDisabled,
 }: {
+  description?: string;
   snapshots: FinanceSnapshot[];
   selectedSnapshotId: UUID | null;
   hasPrevious: boolean;
@@ -153,6 +152,7 @@ export function SnapshotToolbar({
 
   return (
     <SnapshotSelectorToolbar
+      description={description}
       selectValue={selectedSnapshotId}
       selectOptions={options}
       selectPlaceholder={t("finance.snapshot.selectSnapshot")}

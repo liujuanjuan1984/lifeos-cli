@@ -90,12 +90,6 @@ function FinancePage() {
     { id: "rates", label: t("finance.rates.tabTitle") },
     { id: "trees", label: t("finance.tree.tabTitle") },
   ];
-  const activeDescription =
-    activeTab === "rates"
-      ? t("finance.rates.tabDescription")
-      : activeTab === "trees"
-        ? t("finance.tree.tabDescription")
-        : t(preset.descriptionKey);
   const renderTab = (item: { id: FinanceTab; label: string }) => (
     <ActionButton
       key={item.id}
@@ -104,24 +98,21 @@ function FinancePage() {
       color={activeTab === item.id ? "primary" : "neutral"}
       variant={activeTab === item.id ? "solid" : "ghost"}
       size="sm"
-      className="min-w-0 max-w-28 shrink px-2 sm:max-w-none sm:px-3"
+      className="shrink-0 px-3"
     />
   );
 
   return (
     <PageLayout>
       <ToolbarContainer className="mb-6" variant="compact" padding="sm">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="flex min-w-0 flex-nowrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {reportTabs.map(renderTab)}
           </div>
-          <div className="flex min-w-0 flex-nowrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {managementTabs.map(renderTab)}
           </div>
         </div>
-        <p className="mt-3 w-full text-left text-sm text-base-content/70">
-          {activeDescription}
-        </p>
       </ToolbarContainer>
 
       {activeTab === "rates" ? (
@@ -374,6 +365,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   return (
     <div className="space-y-6">
       <SnapshotToolbar
+        description={t(preset.descriptionKey)}
         snapshots={snapshots}
         selectedSnapshotId={detailSnapshotId}
         hasPrevious={hasPrevious}
@@ -616,6 +608,7 @@ function FinanceTreesWorkspace() {
   return (
     <div className="space-y-6">
       <SnapshotSelectorToolbar
+        description={t("finance.tree.tabDescription")}
         selectValue={currentTree?.id ?? null}
         selectOptions={treeOptions}
         selectPlaceholder={t("finance.tree.selectTree")}
@@ -1357,11 +1350,9 @@ function TreeNodeRow({
           disabled={!hasChildren}
           onClick={() => onToggleNode(node.id)}
         />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-medium truncate">{node.name}</span>
-          </div>
-          <div className="text-xs text-base-content/60 truncate">{node.currency_code || "-"}</div>
+        <div className="min-w-0 flex flex-1 items-center gap-2">
+          <span className="font-medium truncate">{node.name}</span>
+          <span className="shrink-0 text-xs text-base-content/60">{node.currency_code || "-"}</span>
         </div>
         <ActionButton
           label=""

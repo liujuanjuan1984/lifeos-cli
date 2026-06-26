@@ -342,6 +342,7 @@ export function RateSnapshotsWorkspace() {
   return (
     <div className="space-y-6">
       <SnapshotSelectorToolbar
+        description={t("finance.rates.tabDescription")}
         manageLabel={t("finance.assets.manage")}
         manageAriaLabel={t("finance.assets.title")}
         selectValue={currentSnapshot?.id ?? null}
