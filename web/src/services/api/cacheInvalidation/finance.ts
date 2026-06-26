@@ -18,14 +18,6 @@ const prependUnique = <TItem extends { id: UUID }>(
 export const invalidateFinanceAssets = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
 
-export const invalidateFinanceTreeByPurpose = (
-  queryClient: QueryClient,
-  purpose: FinancePurpose,
-) =>
-  queryClient.invalidateQueries({
-    queryKey: financeKeys.treesByPurpose(purpose),
-  });
-
 export const invalidateFinanceTree = (
   queryClient: QueryClient,
   treeId: UUID | null,

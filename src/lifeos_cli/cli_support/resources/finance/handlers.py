@@ -21,7 +21,7 @@ from lifeos_cli.db.models.finance import (
 from lifeos_cli.db.services import finance as finance_services
 
 ASSET_SUMMARY_COLUMNS = ("asset_id", "code", "decimal_places", "name")
-TREE_SUMMARY_COLUMNS = ("tree_id", "purpose", "time_mode", "currency", "name")
+TREE_SUMMARY_COLUMNS = ("tree_id", "currency", "name")
 SNAPSHOT_SUMMARY_COLUMNS = ("snapshot_id", "tree_id", "title", "period", "net_amount", "currency")
 RATE_SNAPSHOT_SUMMARY_COLUMNS = ("rate_snapshot_id", "captured_at", "pairs", "source")
 
@@ -31,7 +31,7 @@ def _format_asset_summary(asset: FinanceAsset) -> str:
 
 
 def _format_tree_summary(tree: FinanceTree) -> str:
-    return f"{tree.id}\t{tree.purpose}\t{tree.time_mode}\t{tree.primary_currency}\t{tree.name}"
+    return f"{tree.id}\t{tree.primary_currency}\t{tree.name}"
 
 
 def _format_node_summary(node: FinanceTreeNode) -> str:
@@ -90,8 +90,6 @@ def _format_tree_detail(tree: FinanceTree, nodes: list[FinanceTreeNode]) -> str:
         (
             f"id: {tree.id}",
             f"name: {tree.name}",
-            f"purpose: {tree.purpose}",
-            f"time_mode: {tree.time_mode}",
             f"primary_currency: {tree.primary_currency}",
             f"is_default: {tree.is_default}",
             f"display_order: {tree.display_order}",
@@ -289,8 +287,6 @@ async def handle_finance_tree_add_async(args: argparse.Namespace) -> int:
             tree = await finance_services.create_finance_tree(
                 session,
                 name=args.name,
-                purpose=args.purpose,
-                time_mode=args.time_mode,
                 primary_currency=args.primary_currency,
                 display_order=args.display_order,
                 is_default=args.default,
@@ -306,7 +302,6 @@ async def handle_finance_tree_list_async(args: argparse.Namespace) -> int:
         try:
             trees = await finance_services.list_finance_trees(
                 session,
-                purpose=args.purpose,
                 include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
@@ -340,7 +335,6 @@ async def handle_finance_tree_ensure_default_async(args: argparse.Namespace) -> 
         try:
             tree = await finance_services.ensure_default_finance_tree(
                 session,
-                purpose=args.purpose,
                 primary_currency=args.primary_currency,
             )
         except ValueError as exc:

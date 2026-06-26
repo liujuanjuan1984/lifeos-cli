@@ -1392,15 +1392,11 @@
     "subtitle": "Track financial reality through one unified tree and snapshot system.",
     "balance": {
       "title": "Balance Sheet",
-      "description": "Capture point-in-time asset, liability, and net-worth snapshots.",
-      "amountLabel": "Enter balances as of the selected moment.",
-      "treeHint": "Use groups such as assets and liabilities, then add account-like leaf nodes underneath."
+      "description": "Capture point-in-time asset, liability, and net-worth snapshots."
     },
     "cashflow": {
       "title": "Cashflow",
-      "description": "Capture income and spending over a period with the same tree and snapshot model.",
-      "amountLabel": "Enter inflows as positive amounts and outflows as negative amounts.",
-      "treeHint": "Use groups such as inflows and outflows, then add source-like leaf nodes underneath."
+      "description": "Capture income and spending over a period with the same tree and snapshot model."
     },
     "metrics": {
       "positive": "Positive",
@@ -1435,10 +1431,8 @@
       "createTreeTitle": "Create finance tree",
       "treeName": "Tree name",
       "treeNamePlaceholder": "Name this finance tree",
-      "purpose": "Type",
       "primaryCurrency": "Primary asset",
       "default": "Default",
-      "custom": "Custom",
       "editTree": "Edit finance tree",
       "saveTree": "Save finance tree",
       "deleteTree": "Delete finance tree",

@@ -73,7 +73,7 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
             async with session_factory() as session:
                 trees = await finance.list_finance_trees(session, purpose="balance")
                 assert len(trees) == 1
-                assert trees[0].time_mode == "instant"
+                assert trees[0].id == tree.id
         finally:
             await engine.dispose()
 
@@ -159,7 +159,7 @@ def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
     )
 
 
-def test_cashflow_default_tree_uses_period_time_mode() -> None:
+def test_default_finance_tree_is_global() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
@@ -171,15 +171,22 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
 
-                assert tree.time_mode == "period"
-                assert {node.name for node in nodes} == {"Inflows", "Outflows"}
+                assert tree.name == "Finance"
+                assert {node.name for node in nodes} == {"Assets", "Liabilities"}
+
+                same_tree = await finance.ensure_default_finance_tree(
+                    session,
+                    purpose="balance",
+                    primary_currency="CNY",
+                )
+                assert same_tree.id == tree.id
         finally:
             await engine.dispose()
 
     asyncio.run(run())
 
 
-def test_finance_tree_update_delete_and_purpose_snapshot_listing() -> None:
+def test_finance_tree_update_delete_and_report_snapshot_listing() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
@@ -236,12 +243,30 @@ def test_finance_tree_update_delete_and_purpose_snapshot_listing() -> None:
                         )
                     ],
                 )
+                period_snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=updated_tree.id,
+                    period_start=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    period_end=datetime(2026, 6, 30, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("20"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
 
                 balance_snapshots = await finance.list_finance_snapshots(
                     session,
                     purpose="balance",
                 )
                 assert [item.id for item in balance_snapshots] == [snapshot.id]
+                cashflow_snapshots = await finance.list_finance_snapshots(
+                    session,
+                    purpose="cashflow",
+                )
+                assert [item.id for item in cashflow_snapshots] == [period_snapshot.id]
 
                 with pytest.raises(finance.FinanceValidationError):
                     await finance.delete_finance_tree(session, tree_id=updated_tree.id)
@@ -845,15 +870,15 @@ def test_finance_snapshot_can_be_updated_and_deleted() -> None:
                     purpose="cashflow",
                     primary_currency="USD",
                 )
-                inflows = next(
+                assets = next(
                     node
                     for node in await finance.list_finance_nodes(session, tree_id=tree.id)
-                    if node.name == "Inflows"
+                    if node.name == "Assets"
                 )
                 salary = await finance.create_finance_node(
                     session,
                     tree_id=tree.id,
-                    parent_id=inflows.id,
+                    parent_id=assets.id,
                     name="Salary",
                     currency_code="USD",
                 )
@@ -927,14 +952,14 @@ def test_finance_tree_count_matches_filters() -> None:
 
                 assert await finance.count_finance_trees(session) == 1
                 assert await finance.count_finance_trees(session, purpose="balance") == 1
-                assert await finance.count_finance_trees(session, purpose="custom") == 0
+                assert await finance.count_finance_trees(session, purpose="custom") == 1
                 assert (
                     await finance.count_finance_trees(
                         session,
                         purpose="custom",
                         include_deleted=True,
                     )
-                    == 1
+                    == 2
                 )
         finally:
             await engine.dispose()

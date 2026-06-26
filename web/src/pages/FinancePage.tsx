@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import ActionButton, { CreateNewButton } from "@/components/ActionButton";
-import Badge from "@/components/common/Badge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { FormField, TextInput } from "@/components/forms";
@@ -29,7 +28,6 @@ import {
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   invalidateFinanceSnapshotsByPurpose,
-  invalidateFinanceTreeByPurpose,
   removeFinanceSnapshotCache,
   removeFinanceSnapshotFromListCache,
   setFinanceSnapshotCache,
@@ -60,14 +58,12 @@ const PRESETS: PresetConfig[] = [
     purpose: "balance",
     titleKey: "finance.balance.title",
     descriptionKey: "finance.balance.description",
-    amountLabelKey: "finance.balance.amountLabel",
     timeMode: "instant",
   },
   {
     purpose: "cashflow",
     titleKey: "finance.cashflow.title",
     descriptionKey: "finance.cashflow.description",
-    amountLabelKey: "finance.cashflow.amountLabel",
     timeMode: "period",
   },
 ];
@@ -114,9 +110,9 @@ function FinancePage() {
   return (
     <PageLayout>
       <ToolbarContainer className="mb-6" variant="compact" padding="sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">{reportTabs.map(renderTab)}</div>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+          <div className="flex flex-nowrap items-center gap-2">{reportTabs.map(renderTab)}</div>
+          <div className="ml-auto flex flex-nowrap items-center gap-2">
             {managementTabs.map(renderTab)}
           </div>
         </div>
@@ -149,8 +145,8 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const [deletedSnapshotIds, setDeletedSnapshotIds] = useState<Set<UUID>>(() => new Set());
 
   const treesQuery = useQuery({
-    queryKey: financeKeys.treesByPurpose(preset.purpose),
-    queryFn: () => financeApi.listTrees({ purpose: preset.purpose }),
+    queryKey: financeKeys.trees(),
+    queryFn: () => financeApi.listTrees(),
     staleTime: 60_000,
   });
 
@@ -395,7 +391,6 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         rateSnapshots={rateSnapshots}
         snapshots={snapshots}
         currentSnapshot={currentSnapshot}
-        currentPosition={currentPosition}
         snapshotDetail={selectedSnapshotQuery.data ?? null}
         snapshotDetailLoading={selectedSnapshotQuery.isLoading || selectedSnapshotQuery.isFetching}
         snapshotFormVisible={snapshotFormVisible}
@@ -475,7 +470,7 @@ function FinanceTreesWorkspace() {
   const hasNext = currentPosition > 0 && currentPosition < trees.length;
   const treeOptions = trees.map((item) => ({
     value: item.id,
-    label: `${item.name} · ${item.purpose} · ${item.primary_currency}`,
+    label: `${item.name} · ${item.primary_currency}`,
   }));
 
   useEffect(() => {
@@ -487,9 +482,6 @@ function FinanceTreesWorkspace() {
   const invalidateTreeLists = async (treeToInvalidate?: FinanceTree | null) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: financeKeys.trees() }),
-      treeToInvalidate
-        ? invalidateFinanceTreeByPurpose(queryClient, treeToInvalidate.purpose)
-        : Promise.resolve(),
       treeToInvalidate
         ? invalidateFinanceTree(queryClient, treeToInvalidate.id)
         : Promise.resolve(),
@@ -645,10 +637,6 @@ function FinanceTreesWorkspace() {
                   ? t("finance.tree.editTree")
                   : t("finance.tree.createTree")
               }
-              hasPrevious={false}
-              hasNext={false}
-              onPrevious={() => undefined}
-              onNext={() => undefined}
               rightSlot={
                 <div className="flex justify-end gap-2">
                   <ActionButton
@@ -706,18 +694,6 @@ function FinanceTreesWorkspace() {
           <>
             <SnapshotNavigator
               title={tree.name}
-              positionLabel={
-                currentPosition > 0
-                  ? t("finance.snapshot.position", {
-                      current: currentPosition,
-                      total: trees.length,
-                    })
-                  : undefined
-              }
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              onPrevious={() => moveTree(-1)}
-              onNext={() => moveTree(1)}
               rightSlot={
                 <SnapshotActionButtons
                   editLabel={t("finance.tree.editTree")}
@@ -832,20 +808,17 @@ function FinanceTreeFormPanel({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
-  const [purpose, setPurpose] = useState<FinanceTree["purpose"]>("balance");
   const [primaryCurrency, setPrimaryCurrency] = useState("USD");
   const [isDefault, setIsDefault] = useState(false);
 
   useEffect(() => {
     if (mode === "edit" && initialTree) {
       setName(initialTree.name);
-      setPurpose(initialTree.purpose);
       setPrimaryCurrency(initialTree.primary_currency);
       setIsDefault(initialTree.is_default);
       return;
     }
     setName("");
-    setPurpose("balance");
     setPrimaryCurrency("USD");
     setIsDefault(false);
   }, [initialTree, mode]);
@@ -854,11 +827,8 @@ function FinanceTreeFormPanel({
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    const preset = PRESETS.find((item) => item.purpose === purpose);
     onSubmit({
       name: trimmedName,
-      purpose,
-      time_mode: preset?.timeMode ?? "instant",
       primary_currency: primaryCurrency,
       display_order: initialTree?.display_order ?? 1000,
       is_default: isDefault,
@@ -867,7 +837,7 @@ function FinanceTreeFormPanel({
 
   return (
     <form id={formId} className="mt-4 space-y-3" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField label={t("finance.tree.treeName")}>
           <TextInput
             size="sm"
@@ -876,21 +846,6 @@ function FinanceTreeFormPanel({
             placeholder={t("finance.tree.treeNamePlaceholder")}
             disabled={submitting}
           />
-        </FormField>
-        <FormField label={t("finance.tree.purpose")}>
-          <select
-            className="select select-bordered select-sm w-full"
-            value={purpose}
-            onChange={(event) => setPurpose(event.target.value as FinanceTree["purpose"])}
-            disabled={mode === "edit" || submitting}
-          >
-            {PRESETS.map((preset) => (
-              <option key={preset.purpose} value={preset.purpose}>
-                {t(preset.titleKey)}
-              </option>
-            ))}
-            <option value="custom">{t("finance.tree.custom")}</option>
-          </select>
         </FormField>
         <FormField label={t("finance.tree.primaryCurrency")}>
           <AssetSelect
@@ -925,7 +880,6 @@ function SnapshotModule({
   rateSnapshots,
   snapshots,
   currentSnapshot,
-  currentPosition,
   snapshotDetail,
   snapshotDetailLoading,
   snapshotFormVisible,
@@ -951,7 +905,6 @@ function SnapshotModule({
   rateSnapshots: FinanceRateSnapshot[];
   snapshots: FinanceSnapshot[];
   currentSnapshot: FinanceSnapshot | null;
-  currentPosition: number;
   snapshotDetail: FinanceSnapshot | null;
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
@@ -1070,14 +1023,6 @@ function SnapshotModule({
         <>
           <SnapshotNavigator
             title={currentSnapshot ? snapshotLabel(currentSnapshot) : t("finance.history.noSelection")}
-            positionLabel={
-              currentPosition > 0
-                ? t("finance.snapshot.position", {
-                    current: currentPosition,
-                    total: snapshots.length,
-                  })
-                : undefined
-            }
             rightSlot={
               currentSnapshot ? (
                 <SnapshotActionButtons
@@ -1138,18 +1083,7 @@ function FinanceTreeManagerPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-base-200 bg-base-200/40 px-4 py-2">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-base-content truncate">{tree.name}</span>
-            <Badge tone="neutral" size="xs" variant="outline">
-              {tree.primary_currency}
-            </Badge>
-            <Badge tone="info" size="xs" variant="outline">
-              {tree.time_mode}
-            </Badge>
-          </div>
-          <p className="mt-1 text-xs text-base-content/60">
-            {t(`finance.${tree.purpose}.treeHint`)}
-          </p>
+          <span className="font-semibold text-base-content truncate">{tree.name}</span>
         </div>
       </div>
 

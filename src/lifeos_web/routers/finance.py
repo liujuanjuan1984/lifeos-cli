@@ -33,8 +33,6 @@ class FinanceTreeCreate(BaseModel):
     """Payload for creating a finance tree."""
 
     name: str
-    purpose: str = "custom"
-    time_mode: str | None = None
     primary_currency: str = "USD"
     display_order: int = 0
     is_default: bool = False
@@ -279,8 +277,6 @@ def _tree_payload(tree, *, nodes: list[FinanceTreeNode] | None = None) -> dict[s
     payload: dict[str, object] = {
         "id": str(tree.id),
         "name": tree.name,
-        "purpose": tree.purpose,
-        "time_mode": tree.time_mode,
         "primary_currency": tree.primary_currency,
         "display_order": tree.display_order,
         "is_default": tree.is_default,
@@ -362,18 +358,25 @@ def _rate_snapshot_payload(
     return payload
 
 
+def _snapshot_report_view(snapshot: FinanceSnapshot) -> tuple[str, str]:
+    if snapshot.period_start is not None and snapshot.period_end is not None:
+        return "cashflow", "period"
+    return "balance", "instant"
+
+
 def _snapshot_payload(
     snapshot: FinanceSnapshot,
     *,
     decimal_places_by_code: dict[str, int],
     include_entries: bool = False,
 ) -> dict[str, object]:
+    purpose, time_mode = _snapshot_report_view(snapshot)
     payload: dict[str, object] = {
         "id": str(snapshot.id),
         "tree_id": str(snapshot.tree_id),
         "tree_name": snapshot.tree.name if snapshot.tree else None,
-        "purpose": snapshot.tree.purpose if snapshot.tree else None,
-        "time_mode": snapshot.tree.time_mode if snapshot.tree else None,
+        "purpose": purpose,
+        "time_mode": time_mode,
         "title": snapshot.title,
         "snapshot_ts": snapshot.snapshot_ts.isoformat() if snapshot.snapshot_ts else None,
         "period_start": snapshot.period_start.isoformat() if snapshot.period_start else None,
@@ -499,7 +502,6 @@ async def delete_asset(asset_id: UUID, session: SessionDep) -> None:
 @router.get("/trees", response_model=ListResponse)
 async def list_trees(
     session: SessionDep,
-    purpose: str | None = None,
     include_deleted: bool = False,
     page: int = Query(1, ge=1),
     size: int = Query(100, ge=1, le=500),
@@ -508,14 +510,12 @@ async def list_trees(
     try:
         trees = await finance_services.list_finance_trees(
             session,
-            purpose=purpose,
             include_deleted=include_deleted,
             limit=size,
             offset=(page - 1) * size,
         )
         total = await finance_services.count_finance_trees(
             session,
-            purpose=purpose,
             include_deleted=include_deleted,
         )
     except ValueError as exc:
@@ -525,7 +525,7 @@ async def list_trees(
         page=page,
         size=size,
         total=total,
-        meta={"purpose": purpose, "include_deleted": include_deleted},
+        meta={"include_deleted": include_deleted},
     )
 
 
@@ -671,8 +671,6 @@ async def create_tree(payload: FinanceTreeCreate, session: SessionDep) -> dict[s
         tree = await finance_services.create_finance_tree(
             session,
             name=payload.name,
-            purpose=payload.purpose,
-            time_mode=payload.time_mode,
             primary_currency=payload.primary_currency,
             display_order=payload.display_order,
             is_default=payload.is_default,
@@ -724,14 +722,12 @@ async def delete_tree(tree_id: UUID, session: SessionDep) -> Response:
 @router.post("/trees/ensure-default")
 async def ensure_default_tree(
     session: SessionDep,
-    purpose: str = Query(...),
     primary_currency: str | None = None,
 ) -> dict[str, object]:
-    """Ensure the requested preset tree exists."""
+    """Ensure the global default finance tree exists."""
     try:
         tree = await finance_services.ensure_default_finance_tree(
             session,
-            purpose=purpose,
             primary_currency=primary_currency,
         )
         nodes = await finance_services.list_finance_nodes(session, tree_id=tree.id)

@@ -210,11 +210,9 @@ export function SnapshotActionButtons({
 
 export function SnapshotNavigator({
   title,
-  positionLabel,
   rightSlot,
 }: {
   title: React.ReactNode;
-  positionLabel?: string;
   hasPrevious?: boolean;
   hasNext?: boolean;
   onPrevious?: () => void;
@@ -225,11 +223,6 @@ export function SnapshotNavigator({
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-grow flex-wrap items-center gap-3">
         <div>
-          {positionLabel ? (
-            <p className="text-xs uppercase tracking-wide text-base-content/60">
-              {positionLabel}
-            </p>
-          ) : null}
           {typeof title === "string" ? (
             <p className="text-lg font-semibold text-base-content">{title}</p>
           ) : (

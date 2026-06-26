@@ -366,10 +366,6 @@ export function RateSnapshotsWorkspace() {
                   ? t("finance.rates.editSnapshot")
                   : t("finance.rates.createSnapshot")
               }
-              hasPrevious={false}
-              hasNext={false}
-              onPrevious={() => undefined}
-              onNext={() => undefined}
               rightSlot={
                 <div className="flex justify-end gap-2">
                   <ActionButton
@@ -542,18 +538,6 @@ export function RateSnapshotsWorkspace() {
                   {rateSnapshotLabel(currentSnapshot)}
                 </span>
               }
-              positionLabel={
-                currentPosition > 0
-                  ? t("finance.snapshot.position", {
-                      current: currentPosition,
-                      total: snapshots.length,
-                    })
-                  : undefined
-              }
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              onPrevious={() => moveRateSnapshot(-1)}
-              onNext={() => moveRateSnapshot(1)}
               rightSlot={
                 <SnapshotActionButtons
                   editLabel={t("finance.rates.editSnapshot")}

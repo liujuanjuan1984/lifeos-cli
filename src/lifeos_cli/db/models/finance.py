@@ -15,19 +15,18 @@ from lifeos_cli.db.types import UTCDateTime
 
 
 class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
-    """Reusable finance tree for balance, cashflow, or custom snapshots."""
+    """Reusable finance tree for any finance snapshot view."""
 
     __tablename__ = "finance_trees"
     __table_args__ = (
         Index(
-            "uq_finance_trees_purpose_name_active",
-            "purpose",
+            "uq_finance_trees_name_active",
             "name",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
-        Index("ix_finance_trees_purpose_default", "purpose", "is_default"),
+        Index("ix_finance_trees_default", "is_default"),
         Index("ix_finance_trees_display_order", "display_order"),
     )
 
@@ -53,7 +52,7 @@ class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
 
     def __repr__(self) -> str:
-        return f"FinanceTree(id={self.id!s}, purpose={self.purpose!r}, name={self.name!r})"
+        return f"FinanceTree(id={self.id!s}, name={self.name!r})"
 
 
 class FinanceAsset(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):

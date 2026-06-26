@@ -6,7 +6,6 @@ import {
   invalidateFinanceAssets,
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
-  invalidateFinanceTreeByPurpose,
   removeFinanceSnapshotCache,
   removeFinanceSnapshotFromListCache,
   setFinanceRateSnapshotCache,
@@ -45,14 +44,10 @@ describe("finance cache invalidation helpers", () => {
     });
   });
 
-  it("invalidates purpose trees and snapshot scopes", () => {
-    invalidateFinanceTreeByPurpose(queryClient, "balance");
+  it("invalidates snapshot scopes", () => {
     invalidateFinanceSnapshots(queryClient, "tree-1");
     invalidateFinanceSnapshot(queryClient, "snapshot-1");
 
-    expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: financeKeys.treesByPurpose("balance"),
-    });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: financeKeys.snapshots("tree-1"),
     });

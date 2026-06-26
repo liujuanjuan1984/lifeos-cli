@@ -1392,15 +1392,11 @@
     "subtitle": "用统一的财务树与快照系统记录真实财务状态。",
     "balance": {
       "title": "资产负债表",
-      "description": "记录某一时刻的资产、负债与净值快照。",
-      "amountLabel": "填写所选时刻的余额。",
-      "treeHint": "用资产、负债等分组组织节点，再在其下添加具体账户或资产节点。"
+      "description": "记录某一时刻的资产、负债与净值快照。"
     },
     "cashflow": {
       "title": "现金流",
-      "description": "用同一套树与快照模型记录某个周期内的收入与支出。",
-      "amountLabel": "流入填写正数，流出填写负数。",
-      "treeHint": "用流入、流出等分组组织节点，再在其下添加具体来源或支出节点。"
+      "description": "用同一套树与快照模型记录某个周期内的收入与支出。"
     },
     "metrics": {
       "positive": "正向金额",
@@ -1435,10 +1431,8 @@
       "createTreeTitle": "创建财务树",
       "treeName": "财务树名称",
       "treeNamePlaceholder": "为这套财务树命名",
-      "purpose": "类型",
       "primaryCurrency": "主资产",
       "default": "默认",
-      "custom": "自定义",
       "editTree": "编辑财务树",
       "saveTree": "保存财务树",
       "deleteTree": "删除财务树",

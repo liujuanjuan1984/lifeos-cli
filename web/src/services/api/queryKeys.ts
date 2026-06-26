@@ -118,8 +118,6 @@ export const financeKeys = {
   all: ["finance"] as const,
   assets: () => [...financeKeys.all, "assets"] as const,
   trees: () => [...financeKeys.all, "trees"] as const,
-  treesByPurpose: (purpose: FinancePurpose) =>
-    [...financeKeys.trees(), purpose] as const,
   tree: (id: UUID | null) =>
     [...financeKeys.trees(), "detail", id ?? ""] as const,
   snapshots: (treeId: UUID | null) =>

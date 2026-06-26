@@ -12,7 +12,6 @@ export type PresetConfig = {
   purpose: FinancePurpose;
   titleKey: string;
   descriptionKey: string;
-  amountLabelKey: string;
   timeMode: "instant" | "period";
 };
 

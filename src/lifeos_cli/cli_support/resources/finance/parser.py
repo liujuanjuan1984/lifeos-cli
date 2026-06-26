@@ -47,9 +47,8 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary="Manage unified finance trees and snapshots.",
             description=(
-                "Create finance trees, nodes, and snapshots for balance-sheet, cashflow, "
-                "or custom financial tracking. Balance and cashflow are presets over the "
-                "same underlying tree and snapshot model."
+                "Create finance trees, nodes, and snapshots for balance-sheet and cashflow "
+                "views. Finance trees are reusable structures and are not tied to a report type."
             ),
             examples=(
                 "lifeos finance asset-list",
@@ -59,8 +58,8 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
                 "lifeos finance snapshot-add --help",
             ),
             notes=(
-                "Use `purpose=balance` for instant net-worth snapshots.",
-                "Use `purpose=cashflow` for period income and spending snapshots.",
+                "Instant snapshots appear in the balance-sheet view.",
+                "Period snapshots appear in the cashflow view.",
             ),
         ),
     )
@@ -137,16 +136,14 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "tree-add",
         help_content=HelpContent(
             summary="Create a finance tree.",
-            description="Create one unified finance tree for balance, cashflow, or custom use.",
+            description="Create one reusable finance tree for any finance snapshot view.",
             examples=(
-                'lifeos finance tree-add "Balance Sheet" --purpose balance --time-mode instant',
-                'lifeos finance tree-add "Cashflow" --purpose cashflow --time-mode period',
+                'lifeos finance tree-add "Personal Finance" --primary-currency USD',
+                'lifeos finance tree-add "Investments" --primary-currency BTC --default',
             ),
         ),
     )
     tree_add.add_argument("name")
-    tree_add.add_argument("--purpose", default="custom", choices=("balance", "cashflow", "custom"))
-    tree_add.add_argument("--time-mode", choices=("instant", "period"))
     tree_add.add_argument("--primary-currency", default="USD")
     tree_add.add_argument("--display-order", type=int, default=0)
     tree_add.add_argument("--default", action="store_true")
@@ -157,11 +154,10 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "tree-list",
         help_content=HelpContent(
             summary="List finance trees.",
-            description="List active finance trees, optionally filtered by purpose.",
-            examples=("lifeos finance tree-list", "lifeos finance tree-list --purpose balance"),
+            description="List active finance trees.",
+            examples=("lifeos finance tree-list",),
         ),
     )
-    tree_list.add_argument("--purpose", choices=("balance", "cashflow", "custom"))
     add_include_deleted_argument(tree_list, noun="finance trees")
     add_limit_offset_arguments(tree_list)
     tree_list.set_defaults(handler=make_sync_handler(handle_finance_tree_list_async))
@@ -183,13 +179,10 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         finance_subparsers,
         "tree-ensure-default",
         help_content=HelpContent(
-            summary="Ensure a preset finance tree exists.",
-            description="Create the default balance or cashflow tree if it does not exist.",
-            examples=("lifeos finance tree-ensure-default --purpose balance",),
+            summary="Ensure a default finance tree exists.",
+            description="Create the global default finance tree if it does not exist.",
+            examples=("lifeos finance tree-ensure-default",),
         ),
-    )
-    ensure_default.add_argument(
-        "--purpose", required=True, choices=("balance", "cashflow", "custom")
     )
     ensure_default.add_argument("--primary-currency", default="USD")
     ensure_default.set_defaults(handler=make_sync_handler(handle_finance_tree_ensure_default_async))
@@ -344,7 +337,11 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "snapshot-list",
         help_content=HelpContent(
             summary="List finance snapshots.",
-            description="List finance snapshots by tree or purpose.",
+            description=(
+                "List finance snapshots by tree or report view. The --purpose flag is a "
+                "legacy view filter: balance selects instant snapshots, cashflow selects "
+                "period snapshots."
+            ),
             examples=(
                 "lifeos finance snapshot-list --purpose balance",
                 "lifeos finance snapshot-list --tree-id <tree-id>",
