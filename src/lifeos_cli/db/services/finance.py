@@ -547,6 +547,65 @@ async def create_finance_tree(
     return tree
 
 
+async def update_finance_tree(
+    session: AsyncSession,
+    *,
+    tree_id: UUID,
+    name: str | None = None,
+    primary_currency: str | None = None,
+    display_order: int | None = None,
+    is_default: bool | None = None,
+    metadata: dict[str, Any] | None = None,
+    update_metadata: bool = False,
+) -> FinanceTree:
+    """Update mutable finance tree fields."""
+    tree = await get_finance_tree(session, tree_id=tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
+
+    if name is not None:
+        resolved_name = validate_tree_name(name)
+        if resolved_name != tree.name:
+            await _ensure_tree_name_available(
+                session,
+                purpose=tree.purpose,
+                name=resolved_name,
+                excluding_tree_id=tree.id,
+            )
+            tree.name = resolved_name
+    if primary_currency is not None:
+        tree.primary_currency = normalize_currency_code(primary_currency)
+    if display_order is not None:
+        tree.display_order = display_order
+    if is_default is not None:
+        tree.is_default = is_default
+        if is_default:
+            await _clear_other_defaults(session, purpose=tree.purpose, default_tree=tree)
+    if update_metadata:
+        tree.metadata_json = metadata
+
+    await session.flush()
+    await session.refresh(tree)
+    return tree
+
+
+async def delete_finance_tree(
+    session: AsyncSession,
+    *,
+    tree_id: UUID,
+) -> None:
+    """Soft-delete a finance tree that has no active snapshots."""
+    tree = await get_finance_tree_with_nodes(session, tree_id=tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
+    if await count_finance_snapshots(session, tree_id=tree.id):
+        raise FinanceValidationError("Finance tree cannot be deleted while it has snapshots")
+    for node in tree.nodes:
+        node.soft_delete()
+    tree.soft_delete()
+    await session.flush()
+
+
 async def _get_node_model(
     session: AsyncSession,
     *,

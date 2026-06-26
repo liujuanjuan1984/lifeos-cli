@@ -43,6 +43,14 @@ export const invalidateFinanceSnapshots = (
     queryKey: financeKeys.snapshots(treeId),
   });
 
+export const invalidateFinanceSnapshotsByPurpose = (
+  queryClient: QueryClient,
+  purpose: FinancePurpose,
+) =>
+  queryClient.invalidateQueries({
+    queryKey: financeKeys.snapshotsByPurpose(purpose),
+  });
+
 export const invalidateFinanceSnapshot = (
   queryClient: QueryClient,
   snapshotId: UUID,

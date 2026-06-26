@@ -1420,6 +1420,8 @@
       "addAsset": "添加资产"
     },
     "tree": {
+      "tabTitle": "财务树",
+      "tabDescription": "维护资产负债表和现金流使用的财务树。",
       "title": "财务树",
       "empty": "暂无节点。",
       "noTrees": "暂无财务树。",
@@ -1428,8 +1430,13 @@
       "createTreeTitle": "创建财务树",
       "treeName": "财务树名称",
       "treeNamePlaceholder": "为这套财务树命名",
+      "purpose": "类型",
       "primaryCurrency": "主资产",
       "default": "默认",
+      "custom": "自定义",
+      "editTree": "编辑财务树",
+      "saveTree": "保存财务树",
+      "deleteTree": "删除财务树",
       "addNode": "添加节点",
       "nodeNamePlaceholder": "节点名称",
       "parent": "父节点",
@@ -1444,7 +1451,10 @@
       "manageHint": "按账户树和来源树的方式维护财务节点。",
       "deleteTitle": "删除财务节点",
       "deleteMessage": "删除 {{name}} 及其子节点？",
-      "deleteConfirm": "删除节点"
+      "deleteConfirm": "删除节点",
+      "deleteTreeTitle": "删除财务树",
+      "deleteTreeMessage": "删除 {{name}}？已有快照的财务树不能删除。",
+      "deleteTreeConfirm": "删除财务树"
     },
     "snapshot": {
       "formTitle": "快照",
@@ -1521,6 +1531,8 @@
     "messages": {
       "treeMissing": "财务树不可用。",
       "treeCreated": "财务树已创建",
+      "treeUpdated": "财务树已更新",
+      "treeDeleted": "财务树已删除",
       "nodeCreated": "财务节点已创建",
       "nodeUpdated": "财务节点已更新",
       "nodeDeleted": "财务节点已删除",

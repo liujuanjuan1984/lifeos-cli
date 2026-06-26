@@ -41,6 +41,16 @@ class FinanceTreeCreate(BaseModel):
     metadata: dict[str, Any] | None = None
 
 
+class FinanceTreeUpdate(BaseModel):
+    """Payload for updating a finance tree."""
+
+    name: str | None = None
+    primary_currency: str | None = None
+    display_order: int | None = None
+    is_default: bool | None = None
+    metadata: dict[str, Any] | None = None
+
+
 class FinanceAssetCreate(BaseModel):
     """Payload for creating a finance asset."""
 
@@ -673,6 +683,44 @@ async def create_tree(payload: FinanceTreeCreate, session: SessionDep) -> dict[s
     return _tree_payload(tree)
 
 
+@router.patch("/trees/{tree_id}")
+async def update_tree(
+    tree_id: UUID,
+    payload: FinanceTreeUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Update a finance tree."""
+    provided_fields = payload.model_fields_set
+    try:
+        tree = await finance_services.update_finance_tree(
+            session,
+            tree_id=tree_id,
+            name=payload.name,
+            primary_currency=payload.primary_currency,
+            display_order=payload.display_order,
+            is_default=payload.is_default,
+            metadata=payload.metadata,
+            update_metadata="metadata" in provided_fields,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _tree_payload(tree)
+
+
+@router.delete("/trees/{tree_id}", status_code=204)
+async def delete_tree(tree_id: UUID, session: SessionDep) -> Response:
+    """Delete a finance tree."""
+    try:
+        await finance_services.delete_finance_tree(session, tree_id=tree_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return Response(status_code=204)
+
+
 @router.post("/trees/ensure-default")
 async def ensure_default_tree(
     session: SessionDep,
@@ -821,6 +869,37 @@ async def create_snapshot(
         snapshot,
         decimal_places_by_code=decimal_places_by_code,
         include_entries=True,
+    )
+
+
+@router.get("/snapshots", response_model=ListResponse)
+async def list_snapshots(
+    session: SessionDep,
+    purpose: str | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+) -> ListResponse:
+    """List finance snapshots across trees."""
+    try:
+        snapshots = await finance_services.list_finance_snapshots(
+            session,
+            purpose=purpose,
+            limit=size,
+            offset=(page - 1) * size,
+        )
+        total = await finance_services.count_finance_snapshots(session, purpose=purpose)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    decimal_places_by_code = await _finance_asset_decimal_places(session)
+    return _page_envelope(
+        items=[
+            _snapshot_payload(snapshot, decimal_places_by_code=decimal_places_by_code)
+            for snapshot in snapshots
+        ],
+        page=page,
+        size=size,
+        total=total,
+        meta={"purpose": purpose},
     )
 
 

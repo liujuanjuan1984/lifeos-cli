@@ -16,7 +16,7 @@ export type PresetConfig = {
   timeMode: "instant" | "period";
 };
 
-export type FinanceTab = FinancePurpose | "rates";
+export type FinanceTab = FinancePurpose | "rates" | "trees";
 
 export type TreeNodeWithChildren = FinanceTreeNode & {
   children: TreeNodeWithChildren[];

@@ -1420,6 +1420,8 @@
       "addAsset": "Add asset"
     },
     "tree": {
+      "tabTitle": "Finance Trees",
+      "tabDescription": "Manage the finance trees used by balance sheets and cashflow snapshots.",
       "title": "Tree",
       "empty": "No nodes yet.",
       "noTrees": "No finance trees yet.",
@@ -1428,8 +1430,13 @@
       "createTreeTitle": "Create finance tree",
       "treeName": "Tree name",
       "treeNamePlaceholder": "Name this finance tree",
+      "purpose": "Type",
       "primaryCurrency": "Primary asset",
       "default": "Default",
+      "custom": "Custom",
+      "editTree": "Edit finance tree",
+      "saveTree": "Save finance tree",
+      "deleteTree": "Delete finance tree",
       "addNode": "Add node",
       "nodeNamePlaceholder": "Node name",
       "parent": "Parent",
@@ -1444,7 +1451,10 @@
       "manageHint": "Organize finance nodes the same way account and source trees are managed.",
       "deleteTitle": "Delete finance node",
       "deleteMessage": "Delete {{name}} and its child nodes?",
-      "deleteConfirm": "Delete node"
+      "deleteConfirm": "Delete node",
+      "deleteTreeTitle": "Delete finance tree",
+      "deleteTreeMessage": "Delete {{name}}? Finance trees with snapshots cannot be deleted.",
+      "deleteTreeConfirm": "Delete finance tree"
     },
     "snapshot": {
       "formTitle": "Snapshot",
@@ -1521,6 +1531,8 @@
     "messages": {
       "treeMissing": "Finance tree is unavailable.",
       "treeCreated": "Finance tree created",
+      "treeUpdated": "Finance tree updated",
+      "treeDeleted": "Finance tree deleted",
       "nodeCreated": "Finance node created",
       "nodeUpdated": "Finance node updated",
       "nodeDeleted": "Finance node deleted",

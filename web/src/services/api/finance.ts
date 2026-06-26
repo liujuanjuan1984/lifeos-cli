@@ -127,6 +127,13 @@ export interface FinanceTreeCreate {
   is_default?: boolean;
 }
 
+export interface FinanceTreeUpdate {
+  name?: string;
+  primary_currency?: string;
+  display_order?: number;
+  is_default?: boolean;
+}
+
 export interface FinanceNodeCreate {
   name: string;
   parent_id?: UUID | null;
@@ -246,6 +253,10 @@ export const financeApi = {
     }),
   createTree: (payload: FinanceTreeCreate) =>
     http.post<FinanceTree>(ENDPOINTS.FINANCE.TREES, payload),
+  updateTree: (treeId: UUID, payload: FinanceTreeUpdate) =>
+    http.patch<FinanceTree>(ENDPOINTS.FINANCE.TREE_BY_ID(treeId), payload),
+  deleteTree: (treeId: UUID) =>
+    http.delete<void>(ENDPOINTS.FINANCE.TREE_BY_ID(treeId)),
   listRateSnapshots: (params: { page?: number; size?: number } = {}) =>
     http.get<FinanceRateSnapshotListResponse>(
       ENDPOINTS.FINANCE.RATE_SNAPSHOTS,
@@ -294,6 +305,11 @@ export const financeApi = {
     http.get<FinanceSnapshotListResponse>(
       ENDPOINTS.FINANCE.TREE_SNAPSHOTS(treeId),
       { page, size },
+    ),
+  listSnapshotsByPurpose: (purpose: FinancePurpose, page = 1, size = 50) =>
+    http.get<FinanceSnapshotListResponse>(
+      ENDPOINTS.FINANCE.SNAPSHOTS,
+      { purpose, page, size },
     ),
   createSnapshot: (treeId: UUID, payload: FinanceSnapshotCreate) =>
     http.post<FinanceSnapshot>(

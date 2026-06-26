@@ -5,7 +5,7 @@ import ActionButton, {
 } from "@/components/ActionButton";
 import Badge from "@/components/common/Badge";
 import EnumSelect from "@/components/selects/EnumSelect";
-import type { FinanceSnapshot, FinanceTree } from "@/services/api/finance";
+import type { FinanceSnapshot } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 import { useTranslation } from "react-i18next";
 
@@ -124,9 +124,9 @@ export function SnapshotSelectorToolbar({
 }
 
 export function SnapshotToolbar({
-  tree,
   preset,
   snapshots,
+  currentSnapshot,
   selectedSnapshotId,
   hasPrevious,
   hasNext,
@@ -136,9 +136,9 @@ export function SnapshotToolbar({
   onCreateSnapshot,
   createDisabled,
 }: {
-  tree: FinanceTree;
   preset: PresetConfig;
   snapshots: FinanceSnapshot[];
+  currentSnapshot: FinanceSnapshot | null;
   selectedSnapshotId: UUID | null;
   hasPrevious: boolean;
   hasNext: boolean;
@@ -151,7 +151,9 @@ export function SnapshotToolbar({
   const { t } = useTranslation();
   const options = snapshots.map((snapshot) => ({
     value: snapshot.id,
-    label: snapshotLabel(snapshot),
+    label: snapshot.tree_name
+      ? `${snapshotLabel(snapshot)} · ${snapshot.tree_name}`
+      : snapshotLabel(snapshot),
   }));
 
   return (
@@ -159,11 +161,13 @@ export function SnapshotToolbar({
       badges={
         <>
           <Badge tone="primary" variant="outline" size="sm">
-            {tree.name}
+            {t(preset.titleKey)}
           </Badge>
-          <Badge tone="neutral" variant="outline" size="sm">
-            {tree.primary_currency}
-          </Badge>
+          {currentSnapshot?.tree_name ? (
+            <Badge tone="neutral" variant="outline" size="sm">
+              {currentSnapshot.tree_name}
+            </Badge>
+          ) : null}
         </>
       }
       selectValue={selectedSnapshotId}

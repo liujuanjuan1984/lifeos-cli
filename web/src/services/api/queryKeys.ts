@@ -124,6 +124,8 @@ export const financeKeys = {
     [...financeKeys.trees(), "detail", id ?? ""] as const,
   snapshots: (treeId: UUID | null) =>
     [...financeKeys.all, "snapshots", treeId ?? ""] as const,
+  snapshotsByPurpose: (purpose: FinancePurpose) =>
+    [...financeKeys.all, "snapshots", "purpose", purpose] as const,
   snapshot: (id: UUID | null) =>
     [...financeKeys.all, "snapshot", id ?? ""] as const,
   rateSnapshots: () => [...financeKeys.all, "rate-snapshots"] as const,

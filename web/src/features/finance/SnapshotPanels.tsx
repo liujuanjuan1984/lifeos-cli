@@ -39,6 +39,9 @@ export function SnapshotFormPanel({
   tree,
   preset,
   assets,
+  treeOptions,
+  selectedTreeId,
+  onSelectTree,
   treeNodes,
   rateSnapshots,
   requiredRateCurrencies,
@@ -51,6 +54,9 @@ export function SnapshotFormPanel({
   tree: FinanceTree;
   preset: PresetConfig;
   assets: FinanceAsset[];
+  treeOptions: FinanceTree[];
+  selectedTreeId: UUID | null;
+  onSelectTree: (treeId: UUID) => void;
   treeNodes: TreeNodeWithChildren[];
   rateSnapshots: FinanceRateSnapshot[];
   requiredRateCurrencies: string[];
@@ -200,6 +206,27 @@ export function SnapshotFormPanel({
         />
       </div>
       <form className="space-y-4" onSubmit={handleSubmit}>
+        <FormField label={t("finance.tree.selectTree")}>
+          <select
+            className="select select-bordered select-sm w-full"
+            value={selectedTreeId ?? tree.id}
+            onChange={(event) => {
+              if (event.target.value) {
+                onSelectTree(event.target.value as UUID);
+              }
+            }}
+            disabled={mode === "edit" || submitting}
+          >
+            {treeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+                {option.is_default ? ` · ${t("finance.tree.default")}` : ""}
+                {` · ${option.primary_currency}`}
+              </option>
+            ))}
+          </select>
+        </FormField>
+
         <FormField label={t("finance.snapshot.title")}>
           <TextInput
             type="text"

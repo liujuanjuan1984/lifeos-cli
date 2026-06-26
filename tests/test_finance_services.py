@@ -179,6 +179,87 @@ def test_cashflow_default_tree_uses_period_time_mode() -> None:
     asyncio.run(run())
 
 
+def test_finance_tree_update_delete_and_purpose_snapshot_listing() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                first_tree = await finance.create_finance_tree(
+                    session,
+                    name="Primary balance",
+                    purpose="balance",
+                    primary_currency="USD",
+                )
+                second_tree = await finance.create_finance_tree(
+                    session,
+                    name="Secondary balance",
+                    purpose="balance",
+                    primary_currency="CNY",
+                )
+                updated_tree = await finance.update_finance_tree(
+                    session,
+                    tree_id=second_tree.id,
+                    name="Brokerage balance",
+                    primary_currency="USD",
+                    is_default=True,
+                )
+                assert updated_tree.name == "Brokerage balance"
+                assert updated_tree.primary_currency == "USD"
+                assert updated_tree.is_default is True
+
+                reloaded_first = await finance.get_finance_tree(session, tree_id=first_tree.id)
+                assert reloaded_first is not None
+                assert reloaded_first.is_default is False
+
+                assets = await finance.create_finance_node(
+                    session,
+                    tree_id=updated_tree.id,
+                    parent_id=None,
+                    name="Assets",
+                    currency_code="USD",
+                )
+                wallet = await finance.create_finance_node(
+                    session,
+                    tree_id=updated_tree.id,
+                    parent_id=assets.id,
+                    name="Wallet",
+                    currency_code="USD",
+                )
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=updated_tree.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("10"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+
+                balance_snapshots = await finance.list_finance_snapshots(
+                    session,
+                    purpose="balance",
+                )
+                assert [item.id for item in balance_snapshots] == [snapshot.id]
+
+                with pytest.raises(finance.FinanceValidationError):
+                    await finance.delete_finance_tree(session, tree_id=updated_tree.id)
+
+                disposable_tree = await finance.create_finance_tree(
+                    session,
+                    name="Disposable cashflow",
+                    purpose="cashflow",
+                    primary_currency="USD",
+                )
+                await finance.delete_finance_tree(session, tree_id=disposable_tree.id)
+                assert (await finance.get_finance_tree(session, tree_id=disposable_tree.id)) is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_assets_include_defaults_and_custom_assets() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
