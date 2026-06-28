@@ -24,7 +24,6 @@ from lifeos_cli.db.models.finance import (
     FinanceTreeNode,
 )
 
-VALID_FINANCE_PURPOSES = {"balance", "cashflow", "custom"}
 DEFAULT_FINANCE_CURRENCY = "USD"
 DEFAULT_FINANCE_ASSET_DECIMAL_PLACES = 2
 MAX_FINANCE_ASSET_DECIMAL_PLACES = 8
@@ -104,15 +103,6 @@ class RateResolution:
     source_entries: tuple[FinanceRateSnapshotEntry, ...]
     path: tuple[str, ...]
     source_pairs: tuple[str, ...]
-
-
-def normalize_finance_purpose(purpose: str) -> str:
-    """Validate and normalize a finance tree purpose."""
-    normalized = purpose.strip().lower()
-    if normalized not in VALID_FINANCE_PURPOSES:
-        allowed = ", ".join(sorted(VALID_FINANCE_PURPOSES))
-        raise FinanceValidationError(f"Finance purpose must be one of: {allowed}")
-    return normalized
 
 
 def normalize_currency_code(currency_code: str | None, *, fallback: str | None = None) -> str:
@@ -495,8 +485,6 @@ async def create_finance_tree(
     await _ensure_tree_name_available(session, name=resolved_name)
     tree = FinanceTree(
         name=resolved_name,
-        purpose="custom",
-        time_mode="instant",
         primary_currency=normalize_currency_code(primary_currency),
         display_order=display_order,
         is_default=is_default,
@@ -1553,27 +1541,10 @@ async def create_finance_snapshot(
     )
 
 
-def _filter_snapshot_stmt_by_purpose(stmt, purpose: str):
-    """Apply legacy report-view filtering to a snapshot query."""
-    resolved_purpose = normalize_finance_purpose(purpose)
-    if resolved_purpose == "balance":
-        return stmt.where(
-            FinanceSnapshot.period_start.is_(None),
-            FinanceSnapshot.period_end.is_(None),
-        )
-    if resolved_purpose == "cashflow":
-        return stmt.where(
-            FinanceSnapshot.period_start.is_not(None),
-            FinanceSnapshot.period_end.is_not(None),
-        )
-    return stmt
-
-
 async def list_finance_snapshots(
     session: AsyncSession,
     *,
     tree_id: UUID | None = None,
-    purpose: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[FinanceSnapshot]:
@@ -1585,8 +1556,6 @@ async def list_finance_snapshots(
     )
     if tree_id is not None:
         stmt = stmt.where(FinanceSnapshot.tree_id == tree_id)
-    if purpose is not None:
-        stmt = _filter_snapshot_stmt_by_purpose(stmt, purpose)
     stmt = (
         stmt.order_by(
             FinanceSnapshot.snapshot_ts.desc().nullslast(),
@@ -1725,7 +1694,6 @@ async def count_finance_snapshots(
     session: AsyncSession,
     *,
     tree_id: UUID | None = None,
-    purpose: str | None = None,
 ) -> int:
     """Count finance snapshots."""
     stmt = (
@@ -1735,8 +1703,6 @@ async def count_finance_snapshots(
     )
     if tree_id is not None:
         stmt = stmt.where(FinanceSnapshot.tree_id == tree_id)
-    if purpose is not None:
-        stmt = _filter_snapshot_stmt_by_purpose(stmt, purpose)
     return int((await session.execute(stmt)).scalar_one())
 
 

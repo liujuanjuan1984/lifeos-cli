@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import text
 
@@ -86,6 +87,9 @@ def upgrade() -> None:
     _normalize_active_default_tree()
     op.drop_index("ix_finance_trees_purpose_default", table_name="finance_trees")
     op.drop_index("uq_finance_trees_purpose_name_active", table_name="finance_trees")
+    with op.batch_alter_table("finance_trees", schema=_schema_name()) as batch_op:
+        batch_op.drop_column("time_mode")
+        batch_op.drop_column("purpose")
     op.create_index(
         "uq_finance_trees_name_active",
         "finance_trees",
@@ -100,6 +104,15 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_finance_trees_default", table_name="finance_trees")
     op.drop_index("uq_finance_trees_name_active", table_name="finance_trees")
+    with op.batch_alter_table("finance_trees", schema=_schema_name()) as batch_op:
+        batch_op.add_column(
+            sa.Column("purpose", sa.String(length=20), nullable=False, server_default="custom"),
+        )
+        batch_op.add_column(
+            sa.Column("time_mode", sa.String(length=20), nullable=False, server_default="instant"),
+        )
+        batch_op.alter_column("purpose", server_default=None)
+        batch_op.alter_column("time_mode", server_default=None)
     op.create_index(
         "uq_finance_trees_purpose_name_active",
         "finance_trees",

@@ -31,8 +31,6 @@ class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    purpose: Mapped[str] = mapped_column(String(20), nullable=False, default="custom")
-    time_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="instant")
     primary_currency: Mapped[str] = mapped_column(String(16), nullable=False, default="USD")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

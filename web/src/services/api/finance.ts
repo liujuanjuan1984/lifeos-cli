@@ -3,9 +3,6 @@ import type { UUID } from "@/types/primitive";
 import { http } from "./client";
 import { ENDPOINTS } from "./endpoints";
 
-export type FinancePurpose = "balance" | "cashflow" | "custom";
-export type FinanceTimeMode = "instant" | "period";
-
 export interface FinanceAsset {
   id: UUID;
   code: string;
@@ -68,8 +65,6 @@ export interface FinanceSnapshot {
   id: UUID;
   tree_id: UUID;
   tree_name?: string | null;
-  purpose?: FinancePurpose | null;
-  time_mode?: FinanceTimeMode | null;
   title?: string | null;
   snapshot_ts: string | null;
   period_start: string | null;
@@ -300,11 +295,11 @@ export const financeApi = {
       ENDPOINTS.FINANCE.TREE_SNAPSHOTS(treeId),
       { page, size },
     ),
-  listSnapshotsByPurpose: (purpose: FinancePurpose, page = 1, size = 50) =>
-    http.get<FinanceSnapshotListResponse>(
-      ENDPOINTS.FINANCE.SNAPSHOTS,
-      { purpose, page, size },
-    ),
+  listAllSnapshots: (page = 1, size = 200) =>
+    http.get<FinanceSnapshotListResponse>(ENDPOINTS.FINANCE.SNAPSHOTS, {
+      page,
+      size,
+    }),
   createSnapshot: (treeId: UUID, payload: FinanceSnapshotCreate) =>
     http.post<FinanceSnapshot>(
       ENDPOINTS.FINANCE.TREE_SNAPSHOTS(treeId),

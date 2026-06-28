@@ -229,16 +229,8 @@ def test_finance_tree_update_delete_and_report_snapshot_listing() -> None:
                     ],
                 )
 
-                balance_snapshots = await finance.list_finance_snapshots(
-                    session,
-                    purpose="balance",
-                )
-                assert [item.id for item in balance_snapshots] == [snapshot.id]
-                cashflow_snapshots = await finance.list_finance_snapshots(
-                    session,
-                    purpose="cashflow",
-                )
-                assert [item.id for item in cashflow_snapshots] == [period_snapshot.id]
+                snapshots = await finance.list_finance_snapshots(session)
+                assert {item.id for item in snapshots} == {snapshot.id, period_snapshot.id}
 
                 with pytest.raises(finance.FinanceValidationError):
                     await finance.delete_finance_tree(session, tree_id=updated_tree.id)

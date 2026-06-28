@@ -1,6 +1,5 @@
 import type {
   FinanceAsset,
-  FinancePurpose,
   FinanceRateSnapshot,
   FinanceSnapshot,
   FinanceTreeNode,
@@ -9,13 +8,13 @@ import type { UUID } from "@/types/primitive";
 import { formatDate, formatDateTime } from "@/utils/datetime";
 
 export type PresetConfig = {
-  purpose: FinancePurpose;
+  report: "balance" | "cashflow";
   titleKey: string;
   descriptionKey: string;
   timeMode: "instant" | "period";
 };
 
-export type FinanceTab = FinancePurpose | "rates" | "trees";
+export type FinanceTab = PresetConfig["report"] | "rates" | "trees";
 
 export type TreeNodeWithChildren = FinanceTreeNode & {
   children: TreeNodeWithChildren[];

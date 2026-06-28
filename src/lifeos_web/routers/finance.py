@@ -358,25 +358,16 @@ def _rate_snapshot_payload(
     return payload
 
 
-def _snapshot_report_view(snapshot: FinanceSnapshot) -> tuple[str, str]:
-    if snapshot.period_start is not None and snapshot.period_end is not None:
-        return "cashflow", "period"
-    return "balance", "instant"
-
-
 def _snapshot_payload(
     snapshot: FinanceSnapshot,
     *,
     decimal_places_by_code: dict[str, int],
     include_entries: bool = False,
 ) -> dict[str, object]:
-    purpose, time_mode = _snapshot_report_view(snapshot)
     payload: dict[str, object] = {
         "id": str(snapshot.id),
         "tree_id": str(snapshot.tree_id),
         "tree_name": snapshot.tree.name if snapshot.tree else None,
-        "purpose": purpose,
-        "time_mode": time_mode,
         "title": snapshot.title,
         "snapshot_ts": snapshot.snapshot_ts.isoformat() if snapshot.snapshot_ts else None,
         "period_start": snapshot.period_start.isoformat() if snapshot.period_start else None,
@@ -871,21 +862,16 @@ async def create_snapshot(
 @router.get("/snapshots", response_model=ListResponse)
 async def list_snapshots(
     session: SessionDep,
-    purpose: str | None = None,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
 ) -> ListResponse:
     """List finance snapshots across trees."""
-    try:
-        snapshots = await finance_services.list_finance_snapshots(
-            session,
-            purpose=purpose,
-            limit=size,
-            offset=(page - 1) * size,
-        )
-        total = await finance_services.count_finance_snapshots(session, purpose=purpose)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    snapshots = await finance_services.list_finance_snapshots(
+        session,
+        limit=size,
+        offset=(page - 1) * size,
+    )
+    total = await finance_services.count_finance_snapshots(session)
     decimal_places_by_code = await _finance_asset_decimal_places(session)
     return _page_envelope(
         items=[
@@ -895,7 +881,6 @@ async def list_snapshots(
         page=page,
         size=size,
         total=total,
-        meta={"purpose": purpose},
     )
 
 

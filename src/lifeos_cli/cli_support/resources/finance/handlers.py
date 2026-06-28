@@ -465,7 +465,6 @@ async def handle_finance_snapshot_list_async(args: argparse.Namespace) -> int:
             snapshots = await finance_services.list_finance_snapshots(
                 session,
                 tree_id=args.tree_id,
-                purpose=args.purpose,
                 limit=args.limit,
                 offset=args.offset,
             )

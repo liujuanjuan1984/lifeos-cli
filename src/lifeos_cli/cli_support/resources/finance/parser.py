@@ -337,19 +337,14 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "snapshot-list",
         help_content=HelpContent(
             summary="List finance snapshots.",
-            description=(
-                "List finance snapshots by tree or report view. The --purpose flag is a "
-                "legacy view filter: balance selects instant snapshots, cashflow selects "
-                "period snapshots."
-            ),
+            description="List finance snapshots across all trees or for one tree.",
             examples=(
-                "lifeos finance snapshot-list --purpose balance",
+                "lifeos finance snapshot-list",
                 "lifeos finance snapshot-list --tree-id <tree-id>",
             ),
         ),
     )
     snapshot_list.add_argument("--tree-id", type=UUID)
-    snapshot_list.add_argument("--purpose", choices=("balance", "cashflow", "custom"))
     add_limit_offset_arguments(snapshot_list)
     snapshot_list.set_defaults(handler=make_sync_handler(handle_finance_snapshot_list_async))
 

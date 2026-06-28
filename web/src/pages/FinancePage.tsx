@@ -24,10 +24,10 @@ import {
   type FinanceTreeUpdate,
 } from "@/services/api/finance";
 import {
+  invalidateAllFinanceSnapshotLists,
   invalidateFinanceTree,
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
-  invalidateFinanceSnapshotsByPurpose,
   removeFinanceSnapshotCache,
   removeFinanceSnapshotFromListCache,
   setFinanceSnapshotCache,
@@ -58,13 +58,13 @@ import { useFinanceAssetSource } from "@/features/finance/useFinanceAssetSource"
 
 const PRESETS: PresetConfig[] = [
   {
-    purpose: "balance",
+    report: "balance",
     titleKey: "finance.balance.title",
     descriptionKey: "finance.balance.description",
     timeMode: "instant",
   },
   {
-    purpose: "cashflow",
+    report: "cashflow",
     titleKey: "finance.cashflow.title",
     descriptionKey: "finance.cashflow.description",
     timeMode: "period",
@@ -85,9 +85,9 @@ function FinancePage() {
     return () => setHeader({ title: undefined, subtitle: undefined, actions: undefined });
   }, [setHeader, t]);
 
-  const preset = PRESETS.find((item) => item.purpose === activeTab) ?? PRESETS[0];
+  const preset = PRESETS.find((item) => item.report === activeTab) ?? PRESETS[0];
   const reportTabs: { id: FinanceTab; label: string }[] = PRESETS.map((item) => ({
-    id: item.purpose,
+    id: item.report,
     label: t(item.titleKey),
   }));
   const managementTabs: { id: FinanceTab; label: string }[] = [
@@ -132,7 +132,7 @@ function FinancePage() {
       ) : activeTab === "trees" ? (
         <FinanceTreesWorkspace />
       ) : (
-        <FinancePresetWorkspace key={preset.purpose} preset={preset} />
+        <FinancePresetWorkspace key={preset.report} preset={preset} />
       )}
       <FinanceAssetManagerModal
         isOpen={assetManagerOpen}
@@ -162,11 +162,15 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   const trees = useMemo(() => treesQuery.data?.items ?? [], [treesQuery.data?.items]);
   const snapshotsQuery = useQuery({
-    queryKey: financeKeys.snapshotsByPurpose(preset.purpose),
-    queryFn: () => financeApi.listSnapshotsByPurpose(preset.purpose),
+    queryKey: financeKeys.allSnapshots(),
+    queryFn: () => financeApi.listAllSnapshots(),
   });
 
-  const rawSnapshots = snapshotsQuery.data?.items ?? [];
+  const rawSnapshots = (snapshotsQuery.data?.items ?? []).filter((snapshot) =>
+    preset.timeMode === "period"
+      ? Boolean(snapshot.period_start && snapshot.period_end)
+      : !snapshot.period_start && !snapshot.period_end,
+  );
   const snapshots = rawSnapshots.filter((snapshot) => !deletedSnapshotIds.has(snapshot.id));
   const latestSnapshot = snapshots[0] ?? null;
   const detailSnapshotId = selectedSnapshotId ?? latestSnapshot?.id ?? null;
@@ -244,7 +248,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       setFinanceSnapshotCache(queryClient, snapshot);
       await Promise.all([
         invalidateFinanceSnapshots(queryClient, snapshot.tree_id),
-        invalidateFinanceSnapshotsByPurpose(queryClient, preset.purpose),
+        invalidateAllFinanceSnapshotLists(queryClient),
         invalidateFinanceSnapshot(queryClient, snapshot.id),
       ]);
     },
@@ -278,7 +282,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       setFinanceSnapshotCache(queryClient, snapshot);
       await Promise.all([
         invalidateFinanceSnapshots(queryClient, snapshot.tree_id),
-        invalidateFinanceSnapshotsByPurpose(queryClient, preset.purpose),
+        invalidateAllFinanceSnapshotLists(queryClient),
         invalidateFinanceSnapshot(queryClient, snapshot.id),
       ]);
     },
@@ -309,7 +313,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
       setPendingDeleteSnapshot(null);
       setSnapshotFormVisible(false);
       setSnapshotFormMode("create");
-      await invalidateFinanceSnapshotsByPurpose(queryClient, preset.purpose);
+      await invalidateAllFinanceSnapshotLists(queryClient);
     },
     onError: (error, snapshotId, context) => {
       setDeletedSnapshotIds((existing) => {

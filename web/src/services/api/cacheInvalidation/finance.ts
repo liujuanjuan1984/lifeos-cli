@@ -1,7 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import {
-  type FinancePurpose,
   type FinanceRateSnapshot,
   type FinanceRateSnapshotListResponse,
   type FinanceSnapshot,
@@ -35,12 +34,9 @@ export const invalidateFinanceSnapshots = (
     queryKey: financeKeys.snapshots(treeId),
   });
 
-export const invalidateFinanceSnapshotsByPurpose = (
-  queryClient: QueryClient,
-  purpose: FinancePurpose,
-) =>
+export const invalidateAllFinanceSnapshotLists = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
-    queryKey: financeKeys.snapshotsByPurpose(purpose),
+    queryKey: financeKeys.allSnapshots(),
   });
 
 export const invalidateFinanceSnapshot = (
@@ -55,7 +51,7 @@ export const invalidateFinanceSnapshot = (
 export const invalidateAllFinanceSnapshots = (queryClient: QueryClient) =>
   Promise.all([
     queryClient.invalidateQueries({
-      queryKey: [...financeKeys.all, "snapshots"],
+      queryKey: financeKeys.allSnapshots(),
     }),
     queryClient.invalidateQueries({
       queryKey: [...financeKeys.all, "snapshot"],
