@@ -174,10 +174,6 @@ export function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
     : formatDateTime(snapshot.captured_at);
 }
 
-export function rateEntryEquation(entry: NonNullable<FinanceRateSnapshot["entries"]>[number]) {
-  return `1 ${entry.base_currency} = ${entry.rate} ${entry.quote_currency}`;
-}
-
 export function getRequiredRateCurrencies(
   nodes: TreeNodeWithChildren[],
   primaryCurrency: string,

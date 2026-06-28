@@ -55,7 +55,6 @@ import {
   SnapshotActionButtons,
   SnapshotNavigator,
   SnapshotSelectorToolbar,
-  SnapshotToolbar,
 } from "@/features/finance/SnapshotChrome";
 import { useFinanceAssetSource } from "@/features/finance/useFinanceAssetSource";
 
@@ -184,6 +183,12 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     : 0;
   const hasPrevious = currentPosition > 1;
   const hasNext = currentPosition > 0 && currentPosition < snapshots.length;
+  const snapshotOptions = snapshots.map((snapshot) => ({
+    value: snapshot.id,
+    label: snapshot.tree_name
+      ? `${snapshotLabel(snapshot)} · ${snapshot.tree_name}`
+      : snapshotLabel(snapshot),
+  }));
   const activeTreeId = snapshotFormVisible
     ? selectedTreeId
     : currentSnapshot?.tree_id ?? selectedTreeId;
@@ -388,17 +393,19 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   return (
     <div className="space-y-6">
-      <SnapshotToolbar
+      <SnapshotSelectorToolbar
         description={t(preset.descriptionKey)}
-        snapshots={snapshots}
-        selectedSnapshotId={detailSnapshotId}
+        selectValue={detailSnapshotId}
+        selectOptions={snapshotOptions}
+        selectPlaceholder={t("finance.snapshot.selectSnapshot")}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
+        createLabel={t("finance.snapshot.new")}
+        createDisabled={!trees.length}
         onSelect={selectSnapshot}
         onPrevious={() => moveSnapshot(-1)}
         onNext={() => moveSnapshot(1)}
-        onCreateSnapshot={openCreateSnapshotForm}
-        createDisabled={!trees.length}
+        onCreate={openCreateSnapshotForm}
       />
 
       <SnapshotModule

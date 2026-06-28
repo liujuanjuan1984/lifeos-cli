@@ -2,11 +2,8 @@ import ActionButton, {
   CreateNewButton,
 } from "@/components/ActionButton";
 import EnumSelect from "@/components/selects/EnumSelect";
-import type { FinanceSnapshot } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 import { useTranslation } from "react-i18next";
-
-import { snapshotLabel } from "./utils";
 
 export function SnapshotSelectorToolbar({
   selectValue,
@@ -102,55 +99,6 @@ export function SnapshotSelectorToolbar({
   );
 }
 
-export function SnapshotToolbar({
-  description,
-  snapshots,
-  selectedSnapshotId,
-  hasPrevious,
-  hasNext,
-  onSelect,
-  onPrevious,
-  onNext,
-  onCreateSnapshot,
-  createDisabled,
-}: {
-  description?: string;
-  snapshots: FinanceSnapshot[];
-  selectedSnapshotId: UUID | null;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  onSelect: (snapshotId: UUID) => void;
-  onPrevious: () => void;
-  onNext: () => void;
-  onCreateSnapshot: () => void;
-  createDisabled: boolean;
-}) {
-  const { t } = useTranslation();
-  const options = snapshots.map((snapshot) => ({
-    value: snapshot.id,
-    label: snapshot.tree_name
-      ? `${snapshotLabel(snapshot)} · ${snapshot.tree_name}`
-      : snapshotLabel(snapshot),
-  }));
-
-  return (
-    <SnapshotSelectorToolbar
-      description={description}
-      selectValue={selectedSnapshotId}
-      selectOptions={options}
-      selectPlaceholder={t("finance.snapshot.selectSnapshot")}
-      hasPrevious={hasPrevious}
-      hasNext={hasNext}
-      createLabel={t("finance.snapshot.new")}
-      createDisabled={createDisabled}
-      onSelect={onSelect}
-      onPrevious={onPrevious}
-      onNext={onNext}
-      onCreate={onCreateSnapshot}
-    />
-  );
-}
-
 export function SnapshotActionButtons({
   editLabel,
   deleteLabel,
@@ -196,10 +144,6 @@ export function SnapshotNavigator({
   rightSlot,
 }: {
   title: React.ReactNode;
-  hasPrevious?: boolean;
-  hasNext?: boolean;
-  onPrevious?: () => void;
-  onNext?: () => void;
   rightSlot?: React.ReactNode;
 }) {
   return (
