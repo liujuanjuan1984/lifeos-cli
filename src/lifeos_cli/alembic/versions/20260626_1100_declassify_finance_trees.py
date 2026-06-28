@@ -1,7 +1,7 @@
-"""Declassify finance tree indexes.
+"""Update finance snapshot, asset precision, and tree shape.
 
 Revision ID: 20260626_1100
-Revises: 20260625_1000
+Revises: 20260617_1400
 Create Date: 2026-06-26 11:00:00.000000
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 from sqlalchemy import text
 
 revision: str = "20260626_1100"
-down_revision: str | Sequence[str] | None = "20260625_1000"
+down_revision: str | Sequence[str] | None = "20260617_1400"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -83,11 +83,26 @@ def _normalize_active_default_tree() -> None:
 
 
 def upgrade() -> None:
+    schema_name = _schema_name()
+    with op.batch_alter_table("finance_snapshots", schema=schema_name) as batch_op:
+        batch_op.add_column(sa.Column("title", sa.String(length=200), nullable=True))
+    with op.batch_alter_table("finance_assets", schema=schema_name) as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "decimal_places",
+                sa.Integer(),
+                nullable=False,
+                server_default="2",
+            )
+        )
+    with op.batch_alter_table("finance_assets", schema=schema_name) as batch_op:
+        batch_op.alter_column("decimal_places", server_default=None)
+
     _assert_active_tree_names_are_unique()
     _normalize_active_default_tree()
     op.drop_index("ix_finance_trees_purpose_default", table_name="finance_trees")
     op.drop_index("uq_finance_trees_purpose_name_active", table_name="finance_trees")
-    with op.batch_alter_table("finance_trees", schema=_schema_name()) as batch_op:
+    with op.batch_alter_table("finance_trees", schema=schema_name) as batch_op:
         batch_op.drop_column("time_mode")
         batch_op.drop_column("purpose")
     op.create_index(
@@ -102,9 +117,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    schema_name = _schema_name()
     op.drop_index("ix_finance_trees_default", table_name="finance_trees")
     op.drop_index("uq_finance_trees_name_active", table_name="finance_trees")
-    with op.batch_alter_table("finance_trees", schema=_schema_name()) as batch_op:
+    with op.batch_alter_table("finance_trees", schema=schema_name) as batch_op:
         batch_op.add_column(
             sa.Column("purpose", sa.String(length=20), nullable=False, server_default="custom"),
         )
@@ -126,3 +142,7 @@ def downgrade() -> None:
         "finance_trees",
         ["purpose", "is_default"],
     )
+    with op.batch_alter_table("finance_assets", schema=schema_name) as batch_op:
+        batch_op.drop_column("decimal_places")
+    with op.batch_alter_table("finance_snapshots", schema=schema_name) as batch_op:
+        batch_op.drop_column("title")
