@@ -50,6 +50,7 @@ export default function AssetSelect({
         id: normalizedValue,
         code: normalizedValue,
         name: null,
+        decimal_places: 2,
         display_order: 0,
         is_default: false,
         created_at: "",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -39,6 +40,30 @@ def test_web_command_is_registered() -> None:
     assert args.resource == "web"
     assert args.web_command == "serve"
     assert args.port == 9876
+
+
+def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.finance import _asset_decimal_str, _decimal_str
+
+    assert _decimal_str(Decimal("0E-8")) == "0.00000000"
+    assert _decimal_str(Decimal("1250.50000000")) == "1250.50000000"
+    assert (
+        _asset_decimal_str(
+            Decimal("37916.37000000"),
+            currency_code="CNY",
+            decimal_places_by_code={"CNY": 2},
+        )
+        == "37916.37"
+    )
+    assert (
+        _asset_decimal_str(
+            Decimal("0E-8"),
+            currency_code="BTC",
+            decimal_places_by_code={"BTC": 8},
+        )
+        == "0.00000000"
+    )
 
 
 def test_planned_event_recurrence_until_accepts_utc_z_suffix() -> None:

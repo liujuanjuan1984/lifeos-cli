@@ -24,9 +24,9 @@ from lifeos_cli.db.models.finance import (
     FinanceTreeNode,
 )
 
-VALID_FINANCE_PURPOSES = {"balance", "cashflow", "custom"}
-VALID_FINANCE_TIME_MODES = {"instant", "period"}
 DEFAULT_FINANCE_CURRENCY = "USD"
+DEFAULT_FINANCE_ASSET_DECIMAL_PLACES = 2
+MAX_FINANCE_ASSET_DECIMAL_PLACES = 8
 DEFAULT_FINANCE_ASSETS: tuple[tuple[str, str, int], ...] = (
     ("USD", "US Dollar", 10),
     ("USDT", "Tether USD", 20),
@@ -48,7 +48,7 @@ class FinanceTreeNotFoundError(LookupError):
 
 
 class FinanceTreeAlreadyExistsError(ValueError):
-    """Raised when a finance tree name is already used for a purpose."""
+    """Raised when a finance tree name is already used."""
 
 
 class FinanceTreeNodeNotFoundError(LookupError):
@@ -105,32 +105,6 @@ class RateResolution:
     source_pairs: tuple[str, ...]
 
 
-def normalize_finance_purpose(purpose: str) -> str:
-    """Validate and normalize a finance tree purpose."""
-    normalized = purpose.strip().lower()
-    if normalized not in VALID_FINANCE_PURPOSES:
-        allowed = ", ".join(sorted(VALID_FINANCE_PURPOSES))
-        raise FinanceValidationError(f"Finance purpose must be one of: {allowed}")
-    return normalized
-
-
-def normalize_finance_time_mode(time_mode: str) -> str:
-    """Validate and normalize a finance snapshot time mode."""
-    normalized = time_mode.strip().lower()
-    if normalized not in VALID_FINANCE_TIME_MODES:
-        allowed = ", ".join(sorted(VALID_FINANCE_TIME_MODES))
-        raise FinanceValidationError(f"Finance time mode must be one of: {allowed}")
-    return normalized
-
-
-def default_time_mode_for_purpose(purpose: str) -> str:
-    """Return the default time mode for a finance purpose."""
-    normalized = normalize_finance_purpose(purpose)
-    if normalized == "cashflow":
-        return "period"
-    return "instant"
-
-
 def normalize_currency_code(currency_code: str | None, *, fallback: str | None = None) -> str:
     """Normalize a currency or asset code."""
     candidate = currency_code if currency_code is not None else fallback
@@ -156,6 +130,41 @@ def validate_asset_name(name: str | None) -> str | None:
     return normalized
 
 
+def validate_asset_decimal_places(decimal_places: int | None = None) -> int:
+    """Validate asset display and input precision."""
+    resolved = DEFAULT_FINANCE_ASSET_DECIMAL_PLACES if decimal_places is None else decimal_places
+    if resolved < 0 or resolved > MAX_FINANCE_ASSET_DECIMAL_PLACES:
+        raise FinanceValidationError("Finance asset decimal places must be between 0 and 8")
+    return resolved
+
+
+def decimal_quant_for_places(decimal_places: int) -> Decimal:
+    """Return the Decimal quantum for a given number of fractional places."""
+    if decimal_places <= 0:
+        return Decimal("1")
+    return Decimal("1").scaleb(-decimal_places)
+
+
+def format_decimal_places(value: Decimal, decimal_places: int) -> str:
+    """Format a decimal with fixed places and no scientific notation."""
+    return format(value.quantize(decimal_quant_for_places(decimal_places)), "f")
+
+
+def format_asset_amount(
+    value: Decimal,
+    *,
+    currency_code: str | None,
+    decimal_places_by_code: dict[str, int] | None = None,
+) -> str:
+    """Format an amount using the precision configured for its asset."""
+    normalized = normalize_currency_code(currency_code)
+    decimal_places = (decimal_places_by_code or {}).get(
+        normalized,
+        DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
+    )
+    return format_decimal_places(value, decimal_places)
+
+
 async def ensure_default_finance_assets(session: AsyncSession) -> None:
     """Create built-in assets only when the code has never existed."""
     existing_codes = set((await session.execute(select(FinanceAsset.code))).scalars().all())
@@ -166,6 +175,7 @@ async def ensure_default_finance_assets(session: AsyncSession) -> None:
             FinanceAsset(
                 code=code,
                 name=name,
+                decimal_places=DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
                 display_order=display_order,
                 is_default=True,
             )
@@ -210,6 +220,7 @@ async def create_finance_asset(
     *,
     code: str,
     name: str | None = None,
+    decimal_places: int | None = None,
     display_order: int = 1000,
     is_default: bool = False,
     metadata: dict[str, Any] | None = None,
@@ -229,6 +240,7 @@ async def create_finance_asset(
     asset = FinanceAsset(
         code=resolved_code,
         name=validate_asset_name(name),
+        decimal_places=validate_asset_decimal_places(decimal_places),
         display_order=display_order,
         is_default=is_default,
         metadata_json=metadata,
@@ -245,6 +257,7 @@ async def update_finance_asset(
     asset_id: UUID,
     code: str | None = None,
     name: str | None = None,
+    decimal_places: int | None = None,
     display_order: int | None = None,
 ) -> FinanceAsset:
     """Update a finance asset."""
@@ -274,6 +287,8 @@ async def update_finance_asset(
         asset.code = resolved_code
     if name is not None:
         asset.name = validate_asset_name(name)
+    if decimal_places is not None:
+        asset.decimal_places = validate_asset_decimal_places(decimal_places)
     if display_order is not None:
         asset.display_order = display_order
     await session.flush()
@@ -316,15 +331,25 @@ def validate_node_name(name: str) -> str:
     return normalized
 
 
+def validate_snapshot_title(title: str | None) -> str | None:
+    """Validate and normalize an optional finance snapshot display title."""
+    if title is None:
+        return None
+    normalized = title.strip()
+    if not normalized:
+        return None
+    if len(normalized) > 200:
+        raise FinanceValidationError("Finance snapshot title must be 200 characters or fewer")
+    return normalized
+
+
 async def _ensure_tree_name_available(
     session: AsyncSession,
     *,
-    purpose: str,
     name: str,
     excluding_tree_id: UUID | None = None,
 ) -> None:
     stmt = select(FinanceTree.id).where(
-        FinanceTree.purpose == purpose,
         FinanceTree.name == name,
         FinanceTree.deleted_at.is_(None),
     )
@@ -332,9 +357,7 @@ async def _ensure_tree_name_available(
         stmt = stmt.where(FinanceTree.id != excluding_tree_id)
     existing_id = (await session.execute(stmt.limit(1))).scalar_one_or_none()
     if existing_id is not None:
-        raise FinanceTreeAlreadyExistsError(
-            f"Finance tree named {name!r} already exists for purpose {purpose!r}"
-        )
+        raise FinanceTreeAlreadyExistsError(f"Finance tree named {name!r} already exists")
 
 
 async def _ensure_node_name_available(
@@ -403,20 +426,16 @@ async def get_finance_tree_with_nodes(
 async def list_finance_trees(
     session: AsyncSession,
     *,
-    purpose: str | None = None,
     include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[FinanceTree]:
     """List finance trees."""
     stmt = select(FinanceTree)
-    if purpose is not None:
-        stmt = stmt.where(FinanceTree.purpose == normalize_finance_purpose(purpose))
     if not include_deleted:
         stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     stmt = (
         stmt.order_by(
-            FinanceTree.purpose.asc(),
             FinanceTree.display_order.asc(),
             FinanceTree.name.asc(),
         )
@@ -429,13 +448,10 @@ async def list_finance_trees(
 async def count_finance_trees(
     session: AsyncSession,
     *,
-    purpose: str | None = None,
     include_deleted: bool = False,
 ) -> int:
     """Count finance trees."""
     stmt = select(func.count()).select_from(FinanceTree)
-    if purpose is not None:
-        stmt = stmt.where(FinanceTree.purpose == normalize_finance_purpose(purpose))
     if not include_deleted:
         stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     return int((await session.execute(stmt)).scalar_one())
@@ -444,11 +460,9 @@ async def count_finance_trees(
 async def _clear_other_defaults(
     session: AsyncSession,
     *,
-    purpose: str,
     default_tree: FinanceTree,
 ) -> None:
     stmt = select(FinanceTree).where(
-        FinanceTree.purpose == purpose,
         FinanceTree.deleted_at.is_(None),
         FinanceTree.is_default.is_(True),
     )
@@ -461,24 +475,16 @@ async def create_finance_tree(
     session: AsyncSession,
     *,
     name: str,
-    purpose: str = "custom",
-    time_mode: str | None = None,
     primary_currency: str | None = None,
     display_order: int = 0,
     is_default: bool = False,
     metadata: dict[str, Any] | None = None,
 ) -> FinanceTree:
     """Create a finance tree."""
-    resolved_purpose = normalize_finance_purpose(purpose)
-    resolved_time_mode = normalize_finance_time_mode(
-        time_mode or default_time_mode_for_purpose(resolved_purpose)
-    )
     resolved_name = validate_tree_name(name)
-    await _ensure_tree_name_available(session, purpose=resolved_purpose, name=resolved_name)
+    await _ensure_tree_name_available(session, name=resolved_name)
     tree = FinanceTree(
         name=resolved_name,
-        purpose=resolved_purpose,
-        time_mode=resolved_time_mode,
         primary_currency=normalize_currency_code(primary_currency),
         display_order=display_order,
         is_default=is_default,
@@ -486,10 +492,68 @@ async def create_finance_tree(
     )
     session.add(tree)
     if is_default:
-        await _clear_other_defaults(session, purpose=resolved_purpose, default_tree=tree)
+        await _clear_other_defaults(session, default_tree=tree)
     await session.flush()
     await session.refresh(tree)
     return tree
+
+
+async def update_finance_tree(
+    session: AsyncSession,
+    *,
+    tree_id: UUID,
+    name: str | None = None,
+    primary_currency: str | None = None,
+    display_order: int | None = None,
+    is_default: bool | None = None,
+    metadata: dict[str, Any] | None = None,
+    update_metadata: bool = False,
+) -> FinanceTree:
+    """Update mutable finance tree fields."""
+    tree = await get_finance_tree(session, tree_id=tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
+
+    if name is not None:
+        resolved_name = validate_tree_name(name)
+        if resolved_name != tree.name:
+            await _ensure_tree_name_available(
+                session,
+                name=resolved_name,
+                excluding_tree_id=tree.id,
+            )
+            tree.name = resolved_name
+    if primary_currency is not None:
+        tree.primary_currency = normalize_currency_code(primary_currency)
+    if display_order is not None:
+        tree.display_order = display_order
+    if is_default is not None:
+        tree.is_default = is_default
+        if is_default:
+            await _clear_other_defaults(session, default_tree=tree)
+    if update_metadata:
+        tree.metadata_json = metadata
+
+    await session.flush()
+    await session.refresh(tree)
+    return tree
+
+
+async def delete_finance_tree(
+    session: AsyncSession,
+    *,
+    tree_id: UUID,
+) -> None:
+    """Soft-delete a finance tree that has no active snapshots."""
+    tree = await get_finance_tree_with_nodes(session, tree_id=tree_id)
+    if tree is None:
+        raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
+    if await count_finance_snapshots(session, tree_id=tree.id):
+        raise FinanceValidationError("Finance tree cannot be deleted while it has snapshots")
+    for node in tree.nodes:
+        node.soft_delete()
+    tree.soft_delete()
+    await session.flush()
 
 
 async def _get_node_model(
@@ -622,18 +686,21 @@ async def delete_finance_node(session: AsyncSession, *, node_id: UUID) -> None:
 
 def _validate_snapshot_time_fields(
     *,
-    tree: FinanceTree,
     snapshot_ts: datetime | None,
     period_start: datetime | None,
     period_end: datetime | None,
 ) -> tuple[datetime | None, datetime | None, datetime | None]:
-    if tree.time_mode == "instant":
-        return snapshot_ts or utc_now(), None, None
-    if period_start is None or period_end is None:
-        raise FinanceValidationError("Period finance snapshots require period_start and period_end")
-    if period_end < period_start:
-        raise FinanceValidationError("Finance snapshot period_end must be after period_start")
-    return snapshot_ts or utc_now(), period_start, period_end
+    has_period_start = period_start is not None
+    has_period_end = period_end is not None
+    if has_period_start or has_period_end:
+        if period_start is None or period_end is None:
+            raise FinanceValidationError(
+                "Period finance snapshots require period_start and period_end"
+            )
+        if period_end < period_start:
+            raise FinanceValidationError("Finance snapshot period_end must be after period_start")
+        return snapshot_ts or utc_now(), period_start, period_end
+    return snapshot_ts or utc_now(), None, None
 
 
 async def _load_entry_nodes(
@@ -682,6 +749,38 @@ def _decimal(value: Decimal | int | str) -> Decimal:
 
 def _quantize_amount(value: Decimal) -> Decimal:
     return value.quantize(FINANCE_AMOUNT_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _validate_amount_precision(
+    value: Decimal,
+    *,
+    currency_code: str,
+    decimal_places: int,
+) -> Decimal:
+    quantum = decimal_quant_for_places(decimal_places)
+    quantized = value.quantize(quantum, rounding=ROUND_HALF_UP)
+    if value != quantized:
+        raise FinanceValidationError(
+            f"Finance amount for {currency_code} supports at most {decimal_places} decimal places"
+        )
+    return quantized
+
+
+async def _load_asset_decimal_places(
+    session: AsyncSession,
+    *,
+    currency_codes: set[str],
+) -> dict[str, int]:
+    if not currency_codes:
+        return {}
+    stmt = select(FinanceAsset).where(
+        FinanceAsset.code.in_(currency_codes),
+        FinanceAsset.deleted_at.is_(None),
+    )
+    return {
+        asset.code: validate_asset_decimal_places(asset.decimal_places)
+        for asset in (await session.execute(stmt)).scalars()
+    }
 
 
 def _format_rate(value: Decimal) -> str:
@@ -1233,16 +1332,33 @@ async def _rebuild_finance_snapshot_entries(
     await session.flush()
 
     entry_nodes = await _load_entry_nodes(session, tree_id=tree.id, entries=entries)
+    normalized_inputs: list[tuple[FinanceSnapshotEntryInput, FinanceTreeNode, Decimal, str]] = []
+    entry_currency_codes: set[str] = {snapshot.primary_currency}
+    for entry_input in entries:
+        node = entry_nodes[entry_input.node_id]
+        currency_code = normalize_currency_code(
+            entry_input.currency_code,
+            fallback=node.currency_code or snapshot.primary_currency,
+        )
+        amount = _decimal(entry_input.amount)
+        normalized_inputs.append((entry_input, node, amount, currency_code))
+        entry_currency_codes.add(currency_code)
+    decimal_places_by_code = await _load_asset_decimal_places(
+        session,
+        currency_codes=entry_currency_codes,
+    )
     snapshot_entries: list[FinanceSnapshotEntry] = []
     entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
     used_rates: dict[str, RateResolution] = {}
     missing_rate_currencies: set[str] = set()
-    for entry_input in entries:
-        node = entry_nodes[entry_input.node_id]
-        amount = _decimal(entry_input.amount)
-        currency_code = normalize_currency_code(
-            entry_input.currency_code,
-            fallback=node.currency_code or snapshot.primary_currency,
+    for entry_input, node, amount, currency_code in normalized_inputs:
+        amount = _validate_amount_precision(
+            amount,
+            currency_code=currency_code,
+            decimal_places=decimal_places_by_code.get(
+                currency_code,
+                DEFAULT_FINANCE_ASSET_DECIMAL_PLACES,
+            ),
         )
         if rate_snapshot is not None:
             rate_match = _find_rate(
@@ -1374,6 +1490,7 @@ async def create_finance_snapshot(
     *,
     tree_id: UUID,
     entries: list[FinanceSnapshotEntryInput],
+    title: str | None = None,
     snapshot_ts: datetime | None = None,
     period_start: datetime | None = None,
     period_end: datetime | None = None,
@@ -1387,7 +1504,6 @@ async def create_finance_snapshot(
         raise FinanceTreeNotFoundError(f"Finance tree {tree_id} was not found")
     resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
         _validate_snapshot_time_fields(
-            tree=tree,
             snapshot_ts=snapshot_ts,
             period_start=period_start,
             period_end=period_end,
@@ -1401,6 +1517,7 @@ async def create_finance_snapshot(
     snapshot = FinanceSnapshot(
         tree_id=tree_id,
         rate_snapshot_id=rate_snapshot.id if rate_snapshot is not None else None,
+        title=validate_snapshot_title(title),
         snapshot_ts=resolved_snapshot_ts,
         period_start=resolved_period_start,
         period_end=resolved_period_end,
@@ -1428,7 +1545,6 @@ async def list_finance_snapshots(
     session: AsyncSession,
     *,
     tree_id: UUID | None = None,
-    purpose: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[FinanceSnapshot]:
@@ -1440,10 +1556,6 @@ async def list_finance_snapshots(
     )
     if tree_id is not None:
         stmt = stmt.where(FinanceSnapshot.tree_id == tree_id)
-    if purpose is not None:
-        stmt = stmt.join(FinanceTree).where(
-            FinanceTree.purpose == normalize_finance_purpose(purpose)
-        )
     stmt = (
         stmt.order_by(
             FinanceSnapshot.snapshot_ts.desc().nullslast(),
@@ -1460,12 +1572,14 @@ async def update_finance_snapshot(
     *,
     snapshot_id: UUID,
     entries: list[FinanceSnapshotEntryInput] | None = None,
+    title: str | None = None,
     snapshot_ts: datetime | None = None,
     period_start: datetime | None = None,
     period_end: datetime | None = None,
     primary_currency: str | None = None,
     rate_snapshot_id: UUID | None = None,
     note: str | None = None,
+    update_title: bool = False,
     update_time_fields: bool = False,
     update_primary_currency: bool = False,
     update_rate_snapshot: bool = False,
@@ -1479,10 +1593,12 @@ async def update_finance_snapshot(
     if tree is None:
         raise FinanceTreeNotFoundError(f"Finance tree {snapshot.tree_id} was not found")
 
+    if update_title:
+        snapshot.title = validate_snapshot_title(title)
+
     if update_time_fields:
         resolved_snapshot_ts, resolved_period_start, resolved_period_end = (
             _validate_snapshot_time_fields(
-                tree=tree,
                 snapshot_ts=snapshot_ts,
                 period_start=period_start,
                 period_end=period_end,
@@ -1578,7 +1694,6 @@ async def count_finance_snapshots(
     session: AsyncSession,
     *,
     tree_id: UUID | None = None,
-    purpose: str | None = None,
 ) -> int:
     """Count finance snapshots."""
     stmt = (
@@ -1588,25 +1703,18 @@ async def count_finance_snapshots(
     )
     if tree_id is not None:
         stmt = stmt.where(FinanceSnapshot.tree_id == tree_id)
-    if purpose is not None:
-        stmt = stmt.join(FinanceTree).where(
-            FinanceTree.purpose == normalize_finance_purpose(purpose)
-        )
     return int((await session.execute(stmt)).scalar_one())
 
 
 async def ensure_default_finance_tree(
     session: AsyncSession,
     *,
-    purpose: str,
     primary_currency: str | None = None,
 ) -> FinanceTree:
-    """Ensure a default balance or cashflow tree exists."""
-    resolved_purpose = normalize_finance_purpose(purpose)
+    """Ensure one global default finance tree exists."""
     stmt = (
         select(FinanceTree)
         .where(
-            FinanceTree.purpose == resolved_purpose,
             FinanceTree.is_default.is_(True),
             FinanceTree.deleted_at.is_(None),
         )
@@ -1615,57 +1723,22 @@ async def ensure_default_finance_tree(
     existing = (await session.execute(stmt)).scalar_one_or_none()
     if existing is not None:
         return existing
-    if resolved_purpose == "balance":
-        tree = await create_finance_tree(
-            session,
-            name="Balance Sheet",
-            purpose="balance",
-            time_mode="instant",
-            primary_currency=primary_currency,
-            display_order=0,
-            is_default=True,
-        )
-        await create_finance_node(
-            session,
-            tree_id=tree.id,
-            name="Assets",
-            display_order=0,
-        )
-        await create_finance_node(
-            session,
-            tree_id=tree.id,
-            name="Liabilities",
-            display_order=1,
-        )
-        return tree
-    if resolved_purpose == "cashflow":
-        tree = await create_finance_tree(
-            session,
-            name="Cashflow",
-            purpose="cashflow",
-            time_mode="period",
-            primary_currency=primary_currency,
-            display_order=1,
-            is_default=True,
-        )
-        await create_finance_node(
-            session,
-            tree_id=tree.id,
-            name="Inflows",
-            display_order=0,
-        )
-        await create_finance_node(
-            session,
-            tree_id=tree.id,
-            name="Outflows",
-            display_order=1,
-        )
-        return tree
-    return await create_finance_tree(
+    tree = await create_finance_tree(
         session,
         name="Finance",
-        purpose="custom",
-        time_mode="instant",
         primary_currency=primary_currency,
         is_default=True,
     )
+    await create_finance_node(
+        session,
+        tree_id=tree.id,
+        name="Assets",
+        display_order=0,
+    )
+    await create_finance_node(
+        session,
+        tree_id=tree.id,
+        name="Liabilities",
+        display_order=1,
+    )
+    return tree

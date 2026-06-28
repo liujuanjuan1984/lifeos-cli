@@ -1,11 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import {
-  type FinancePurpose,
   type FinanceRateSnapshot,
   type FinanceRateSnapshotListResponse,
   type FinanceSnapshot,
   type FinanceSnapshotListResponse,
+  type FinanceTreeListResponse,
 } from "@/services/api/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
@@ -18,13 +18,46 @@ const prependUnique = <TItem extends { id: UUID }>(
 export const invalidateFinanceAssets = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: financeKeys.assets() });
 
-export const invalidateFinanceTreeByPurpose = (
+export const invalidateFinanceTree = (
   queryClient: QueryClient,
-  purpose: FinancePurpose,
+  treeId: UUID | null,
 ) =>
   queryClient.invalidateQueries({
-    queryKey: financeKeys.treesByPurpose(purpose),
+    queryKey: financeKeys.tree(treeId),
+    exact: true,
   });
+
+export const removeFinanceTreeFromListCache = (
+  queryClient: QueryClient,
+  treeId: UUID,
+) => {
+  queryClient.setQueryData<FinanceTreeListResponse>(
+    financeKeys.trees(),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== treeId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
+};
+
+export const removeFinanceTreeCache = (
+  queryClient: QueryClient,
+  treeId: UUID,
+) => {
+  queryClient.removeQueries({
+    queryKey: financeKeys.tree(treeId),
+    exact: true,
+  });
+};
 
 export const invalidateFinanceSnapshots = (
   queryClient: QueryClient,
@@ -32,6 +65,11 @@ export const invalidateFinanceSnapshots = (
 ) =>
   queryClient.invalidateQueries({
     queryKey: financeKeys.snapshots(treeId),
+  });
+
+export const invalidateAllFinanceSnapshotLists = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({
+    queryKey: financeKeys.allSnapshots(),
   });
 
 export const invalidateFinanceSnapshot = (
@@ -46,7 +84,7 @@ export const invalidateFinanceSnapshot = (
 export const invalidateAllFinanceSnapshots = (queryClient: QueryClient) =>
   Promise.all([
     queryClient.invalidateQueries({
-      queryKey: [...financeKeys.all, "snapshots"],
+      queryKey: financeKeys.allSnapshots(),
     }),
     queryClient.invalidateQueries({
       queryKey: [...financeKeys.all, "snapshot"],
@@ -83,6 +121,28 @@ export const removeFinanceSnapshotFromListCache = (
   );
 };
 
+export const removeFinanceSnapshotFromAllListCache = (
+  queryClient: QueryClient,
+  snapshotId: UUID,
+) => {
+  queryClient.setQueryData<FinanceSnapshotListResponse>(
+    financeKeys.allSnapshots(),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== snapshotId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
+};
+
 export const removeFinanceSnapshotCache = (
   queryClient: QueryClient,
   snapshotId: UUID,
@@ -95,15 +155,6 @@ export const removeFinanceSnapshotCache = (
 
 export const invalidateFinanceRateSnapshots = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: financeKeys.rateSnapshots() });
-
-export const invalidateFinanceRateSnapshot = (
-  queryClient: QueryClient,
-  rateSnapshotId: UUID,
-) =>
-  queryClient.invalidateQueries({
-    queryKey: financeKeys.rateSnapshot(rateSnapshotId),
-    exact: true,
-  });
 
 export const setFinanceRateSnapshotCache = (
   queryClient: QueryClient,

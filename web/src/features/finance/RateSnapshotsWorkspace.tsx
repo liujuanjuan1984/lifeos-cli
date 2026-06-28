@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import ActionButton, { CreateNewButton } from "@/components/ActionButton";
-import Badge from "@/components/common/Badge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FormField, TextInput } from "@/components/forms";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -15,6 +14,7 @@ import {
   type FinanceRateSnapshot,
   type FinanceRateSnapshotCreate,
   type FinanceRateSnapshotUpdate,
+  type FinanceAsset,
 } from "@/services/api/finance";
 import {
   addFinanceRateSnapshotToListCache,
@@ -39,7 +39,7 @@ import {
   isoToDateTimeLocal,
   localDateTimeToIso,
   nowDateTimeLocal,
-  rateEntryEquation,
+  formatAmountForAsset,
   rateSnapshotLabel,
   type RateRowState,
   type RateSnapshotFormMode,
@@ -51,7 +51,6 @@ export function RateSnapshotsWorkspace() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { assets, createAsset } = useFinanceAssetSource();
-  const [assetManagerOpen, setAssetManagerOpen] = useState(false);
   const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | null>(null);
   const [rateFormVisible, setRateFormVisible] = useState(false);
   const [rateFormMode, setRateFormMode] = useState<RateSnapshotFormMode>("create");
@@ -60,17 +59,13 @@ export function RateSnapshotsWorkspace() {
   const [deletedRateSnapshotIds, setDeletedRateSnapshotIds] = useState<Set<UUID>>(
     () => new Set(),
   );
-  const [assetCode, setAssetCode] = useState("");
-  const [assetName, setAssetName] = useState("");
-  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
-  const [editingAssetCode, setEditingAssetCode] = useState("");
-  const [editingAssetName, setEditingAssetName] = useState("");
   const [capturedAt, setCapturedAt] = useState(nowDateTimeLocal());
   const [source, setSource] = useState("manual");
   const [note, setNote] = useState("");
   const [rateRows, setRateRows] = useState<RateRowState[]>([
     { baseAmount: "1", baseCurrency: "BTC", quoteAmount: "", quoteCurrency: "USDT" },
   ]);
+  const rateSnapshotFormId = "finance-rate-snapshot-form";
 
   const rateSnapshotsQuery = useQuery({
     queryKey: financeKeys.rateSnapshots(),
@@ -160,54 +155,6 @@ export function RateSnapshotsWorkspace() {
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
     },
   });
-
-  const updateAssetMutation = useMutation({
-    mutationFn: ({
-      assetId,
-      code,
-      name,
-    }: {
-      assetId: UUID;
-      code: string;
-      name: string | null;
-    }) => financeApi.updateAsset(assetId, { code, name }),
-    onSuccess: async () => {
-      toast.showSuccess(t("finance.messages.assetUpdated"));
-      setEditingAssetId(null);
-      await invalidateFinanceAssets(queryClient);
-    },
-    onError: (error) => {
-      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
-    },
-  });
-
-  const deleteAssetMutation = useMutation({
-    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
-    onSuccess: async () => {
-      toast.showSuccess(t("finance.messages.assetDeleted"));
-      await invalidateFinanceAssets(queryClient);
-    },
-    onError: (error) => {
-      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
-    },
-  });
-
-  const submitAsset = (event: React.FormEvent) => {
-    event.preventDefault();
-    const code = assetCode.trim().toUpperCase();
-    if (!code) return;
-    createAsset(code)
-      .then(async (asset) => {
-        if (assetName.trim()) {
-          await financeApi.updateAsset(asset.id, { name: assetName.trim() });
-          await invalidateFinanceAssets(queryClient);
-        }
-        toast.showSuccess(t("finance.messages.assetCreated"));
-        setAssetCode("");
-        setAssetName("");
-      })
-      .catch(() => undefined);
-  };
 
   const submitRateSnapshot = (event: React.FormEvent) => {
     event.preventDefault();
@@ -332,29 +279,16 @@ export function RateSnapshotsWorkspace() {
   return (
     <div className="space-y-6">
       <SnapshotSelectorToolbar
-        badges={
-          <>
-            <Badge tone="primary" variant="outline" size="sm">
-              {t("finance.assets.title")}
-            </Badge>
-            <Badge tone="neutral" variant="outline" size="sm">
-              {assets.length}
-            </Badge>
-          </>
-        }
-        manageLabel={t("finance.tree.manage")}
-        manageAriaLabel={t("finance.assets.title")}
+        description={t("finance.rates.tabDescription")}
         selectValue={currentSnapshot?.id ?? null}
         selectOptions={snapshotOptions}
         selectPlaceholder={t("finance.rates.selectSnapshot")}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
-        description={t("finance.rates.tabDescription")}
         createLabel={t("finance.snapshot.new")}
         onSelect={selectRateSnapshot}
         onPrevious={() => moveRateSnapshot(-1)}
         onNext={() => moveRateSnapshot(1)}
-        onManage={() => setAssetManagerOpen(true)}
         onCreate={openCreateRateSnapshotForm}
       />
 
@@ -367,23 +301,37 @@ export function RateSnapshotsWorkspace() {
                   ? t("finance.rates.editSnapshot")
                   : t("finance.rates.createSnapshot")
               }
-              hasPrevious={false}
-              hasNext={false}
-              onPrevious={() => undefined}
-              onNext={() => undefined}
               rightSlot={
-                <ActionButton
-                  label={t("common.cancel")}
-                  onClick={closeRateSnapshotForm}
-                  size="sm"
-                  variant="ghost"
-                  disabled={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                  }
-                />
+                <div className="flex justify-end gap-2">
+                  <ActionButton
+                    label={t("common.cancel")}
+                    iconName="x-mark"
+                    onClick={closeRateSnapshotForm}
+                    size="sm"
+                    variant="ghost"
+                    disabled={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    }
+                  />
+                  <ActionButton
+                    type="submit"
+                    form={rateSnapshotFormId}
+                    label={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                        ? t("common.saving")
+                        : t("common.save")
+                    }
+                    iconName="check"
+                    color="primary"
+                    variant="solid"
+                    disabled={
+                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    }
+                  />
+                </div>
               }
             />
-            <form className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
+            <form id={rateSnapshotFormId} className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <FormField label={t("finance.rates.capturedAt")}>
                   <TextInput
@@ -513,25 +461,6 @@ export function RateSnapshotsWorkspace() {
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <ActionButton
-                  type="submit"
-                  label={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                      ? t("common.saving")
-                      : rateFormMode === "edit"
-                        ? t("finance.rates.saveSnapshot")
-                        : t("finance.rates.createSnapshot")
-                  }
-                  iconName="check"
-                  color="primary"
-                  variant="solid"
-                  disabled={
-                    createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                  }
-                />
-              </div>
             </form>
           </>
         ) : rateSnapshotsQuery.isLoading ? (
@@ -539,19 +468,11 @@ export function RateSnapshotsWorkspace() {
         ) : currentSnapshot ? (
           <>
             <SnapshotNavigator
-              title={rateSnapshotLabel(currentSnapshot)}
-              positionLabel={
-                currentPosition > 0
-                  ? t("finance.snapshot.position", {
-                      current: currentPosition,
-                      total: snapshots.length,
-                    })
-                  : undefined
+              title={
+                <span title={formatRateSnapshotTooltip(currentSnapshot, assets)}>
+                  {rateSnapshotLabel(currentSnapshot)}
+                </span>
               }
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              onPrevious={() => moveRateSnapshot(-1)}
-              onNext={() => moveRateSnapshot(1)}
               rightSlot={
                 <SnapshotActionButtons
                   editLabel={t("finance.rates.editSnapshot")}
@@ -570,7 +491,6 @@ export function RateSnapshotsWorkspace() {
                     <th>{t("finance.rates.capturedAt")}</th>
                     <th>{t("finance.rates.source")}</th>
                     <th>{t("finance.rates.rate")}</th>
-                    <th>{t("finance.rates.note")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -580,10 +500,9 @@ export function RateSnapshotsWorkspace() {
                       <td>{entry.source || currentSnapshot.source}</td>
                       <td>
                         <span className="font-medium tabular-nums">
-                          {rateEntryEquation(entry)}
+                          {formatRateEntryEquation(entry, assets)}
                         </span>
                       </td>
-                      <td>{currentSnapshot.note || "-"}</td>
                     </tr>
                   ))}
                   {!(currentSnapshot.entries ?? []).length ? (
@@ -591,12 +510,17 @@ export function RateSnapshotsWorkspace() {
                       <td>{formatDateTime(currentSnapshot.captured_at)}</td>
                       <td>{currentSnapshot.source}</td>
                       <td className="text-base-content/40">-</td>
-                      <td>{currentSnapshot.note || "-"}</td>
                     </tr>
                   ) : null}
                 </tbody>
               </table>
             </div>
+            {currentSnapshot.note ? (
+              <div className="mt-4 rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
+                <p className="font-medium text-base-content">{t("finance.rates.note")}</p>
+                <p className="mt-1 whitespace-pre-wrap">{currentSnapshot.note}</p>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
@@ -629,148 +553,278 @@ export function RateSnapshotsWorkspace() {
         }}
         loading={deleteRateSnapshotMutation.isPending}
       />
-
-      <ModalBase
-        isOpen={assetManagerOpen}
-        onClose={() => setAssetManagerOpen(false)}
-        title={t("finance.assets.title")}
-        size="lg"
-        bodyOverflow="auto"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
-          <form
-            className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
-            onSubmit={submitAsset}
-          >
-            <TextInput
-              size="sm"
-              value={assetCode}
-              onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
-              placeholder={t("finance.assets.code")}
-            />
-            <TextInput
-              size="sm"
-              value={assetName}
-              onChange={(event) => setAssetName(event.target.value)}
-              placeholder={t("finance.assets.name")}
-            />
-            <ActionButton
-              type="submit"
-              label={t("finance.assets.addAsset")}
-              iconName="plus"
-              size="sm"
-              color="primary"
-              variant="outline"
-              disabled={!assetCode.trim()}
-            />
-          </form>
-          <div className="max-h-[520px] overflow-y-auto pr-1">
-            <table className="table table-sm">
-              <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
-                <tr>
-                  <th>{t("finance.assets.code")}</th>
-                  <th>{t("finance.assets.name")}</th>
-                  <th className="w-24 text-right">{t("common.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assets.map((asset) => {
-                  const editing = editingAssetId === asset.id;
-                  return (
-                    <tr key={asset.id}>
-                      <td>
-                        {editing ? (
-                          <TextInput
-                            size="sm"
-                            value={editingAssetCode}
-                            onChange={(event) =>
-                              setEditingAssetCode(event.target.value.toUpperCase())
-                            }
-                          />
-                        ) : (
-                          <span className="font-medium">{asset.code}</span>
-                        )}
-                      </td>
-                      <td>
-                        {editing ? (
-                          <TextInput
-                            size="sm"
-                            value={editingAssetName}
-                            onChange={(event) => setEditingAssetName(event.target.value)}
-                          />
-                        ) : (
-                          asset.name || "-"
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex justify-end gap-1">
-                          {editing ? (
-                            <>
-                              <ActionButton
-                                label=""
-                                iconName="check"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.save")}
-                                disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
-                                onClick={() =>
-                                  updateAssetMutation.mutate({
-                                    assetId: asset.id,
-                                    code: editingAssetCode.trim().toUpperCase(),
-                                    name: editingAssetName.trim() || null,
-                                  })
-                                }
-                              />
-                              <ActionButton
-                                label=""
-                                iconName="x-mark"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.cancel")}
-                                onClick={() => setEditingAssetId(null)}
-                              />
-                            </>
-                          ) : (
-                            <>
-                              <ActionButton
-                                label=""
-                                iconName="edit"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                ariaLabel={t("common.edit")}
-                                onClick={() => {
-                                  setEditingAssetId(asset.id);
-                                  setEditingAssetCode(asset.code);
-                                  setEditingAssetName(asset.name ?? "");
-                                }}
-                              />
-                              <ActionButton
-                                label=""
-                                iconName="trash"
-                                iconOnly
-                                size="sm"
-                                variant="ghost"
-                                color="error"
-                                ariaLabel={t("common.delete")}
-                                disabled={asset.is_default || deleteAssetMutation.isPending}
-                                onClick={() => deleteAssetMutation.mutate(asset.id)}
-                              />
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </ModalBase>
     </div>
   );
+}
+
+export function FinanceAssetManagerModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { assets } = useFinanceAssetSource();
+  const [assetCode, setAssetCode] = useState("");
+  const [assetName, setAssetName] = useState("");
+  const [assetDecimalPlaces, setAssetDecimalPlaces] = useState("2");
+  const [editingAssetId, setEditingAssetId] = useState<UUID | null>(null);
+  const [editingAssetCode, setEditingAssetCode] = useState("");
+  const [editingAssetName, setEditingAssetName] = useState("");
+  const [editingAssetDecimalPlaces, setEditingAssetDecimalPlaces] = useState("2");
+
+  const updateAssetMutation = useMutation({
+    mutationFn: ({
+      assetId,
+      code,
+      name,
+      decimalPlaces,
+    }: {
+      assetId: UUID;
+      code: string;
+      name: string | null;
+      decimalPlaces: number;
+    }) => financeApi.updateAsset(assetId, { code, name, decimal_places: decimalPlaces }),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetUpdated"));
+      setEditingAssetId(null);
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: UUID) => financeApi.deleteAsset(assetId),
+    onSuccess: async () => {
+      toast.showSuccess(t("finance.messages.assetDeleted"));
+      await invalidateFinanceAssets(queryClient);
+    },
+    onError: (error) => {
+      toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+    },
+  });
+
+  const submitAsset = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = assetCode.trim().toUpperCase();
+    if (!code) return;
+    financeApi
+      .createAsset({
+        code,
+        name: assetName.trim() || null,
+        decimal_places: parseDecimalPlaces(assetDecimalPlaces),
+      })
+      .then(async () => {
+        await invalidateFinanceAssets(queryClient);
+        toast.showSuccess(t("finance.messages.assetCreated"));
+        setAssetCode("");
+        setAssetName("");
+        setAssetDecimalPlaces("2");
+      })
+      .catch((error) => {
+        toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
+      });
+  };
+
+  return (
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("finance.assets.title")}
+      size="lg"
+      bodyOverflow="auto"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+        <form
+          className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto]"
+          onSubmit={submitAsset}
+        >
+          <TextInput
+            size="sm"
+            value={assetCode}
+            onChange={(event) => setAssetCode(event.target.value.toUpperCase())}
+            placeholder={t("finance.assets.code")}
+          />
+          <TextInput
+            size="sm"
+            value={assetName}
+            onChange={(event) => setAssetName(event.target.value)}
+            placeholder={t("finance.assets.name")}
+          />
+          <TextInput
+            type="number"
+            min={0}
+            max={8}
+            step={1}
+            size="sm"
+            value={assetDecimalPlaces}
+            onChange={(event) => setAssetDecimalPlaces(event.target.value)}
+            placeholder={t("finance.assets.decimalPlaces")}
+          />
+          <ActionButton
+            type="submit"
+            label={t("finance.assets.addAsset")}
+            iconName="plus"
+            size="sm"
+            color="primary"
+            variant="outline"
+            disabled={!assetCode.trim()}
+          />
+        </form>
+        <div className="max-h-[520px] overflow-y-auto pr-1">
+          <table className="table table-sm">
+            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+              <tr>
+                <th>{t("finance.assets.code")}</th>
+                <th>{t("finance.assets.name")}</th>
+                <th>{t("finance.assets.decimalPlaces")}</th>
+                <th className="w-24 text-right">{t("common.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((asset) => {
+                const editing = editingAssetId === asset.id;
+                return (
+                  <tr key={asset.id}>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetCode}
+                          onChange={(event) => setEditingAssetCode(event.target.value.toUpperCase())}
+                        />
+                      ) : (
+                        <span className="font-medium">{asset.code}</span>
+                      )}
+                    </td>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          size="sm"
+                          value={editingAssetName}
+                          onChange={(event) => setEditingAssetName(event.target.value)}
+                        />
+                      ) : (
+                        asset.name || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editing ? (
+                        <TextInput
+                          type="number"
+                          min={0}
+                          max={8}
+                          step={1}
+                          size="sm"
+                          value={editingAssetDecimalPlaces}
+                          onChange={(event) => setEditingAssetDecimalPlaces(event.target.value)}
+                        />
+                      ) : (
+                        asset.decimal_places
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-1">
+                        {editing ? (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="check"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.save")}
+                              disabled={!editingAssetCode.trim() || updateAssetMutation.isPending}
+                              onClick={() =>
+                                updateAssetMutation.mutate({
+                                  assetId: asset.id,
+                                  code: editingAssetCode.trim().toUpperCase(),
+                                  name: editingAssetName.trim() || null,
+                                  decimalPlaces: parseDecimalPlaces(editingAssetDecimalPlaces),
+                                })
+                              }
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="x-mark"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.cancel")}
+                              onClick={() => setEditingAssetId(null)}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <ActionButton
+                              label=""
+                              iconName="edit"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              ariaLabel={t("common.edit")}
+                              onClick={() => {
+                                setEditingAssetId(asset.id);
+                                setEditingAssetCode(asset.code);
+                                setEditingAssetName(asset.name ?? "");
+                                setEditingAssetDecimalPlaces(String(asset.decimal_places));
+                              }}
+                            />
+                            <ActionButton
+                              label=""
+                              iconName="trash"
+                              iconOnly
+                              size="sm"
+                              variant="ghost"
+                              color="error"
+                              ariaLabel={t("common.delete")}
+                              disabled={asset.is_default || deleteAssetMutation.isPending}
+                              onClick={() => deleteAssetMutation.mutate(asset.id)}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ModalBase>
+  );
+}
+
+function parseDecimalPlaces(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return 2;
+  }
+  return Math.min(8, Math.max(0, parsed));
+}
+
+function formatRateEntryEquation(
+  entry: NonNullable<FinanceRateSnapshot["entries"]>[number],
+  assets: FinanceAsset[],
+) {
+  return `${formatAmountForAsset("1", entry.base_currency, assets)} ${
+    entry.base_currency
+  } = ${formatAmountForAsset(entry.rate, entry.quote_currency, assets)} ${entry.quote_currency}`;
+}
+
+function formatRateSnapshotTooltip(
+  snapshot: FinanceRateSnapshot,
+  assets: FinanceAsset[],
+) {
+  const lines = (snapshot.entries ?? []).map((entry) =>
+    formatRateEntryEquation(entry, assets),
+  );
+  return lines.length ? lines.join("\n") : rateSnapshotLabel(snapshot);
 }

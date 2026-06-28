@@ -102,6 +102,7 @@ export const ENDPOINTS = {
     TREE_BY_ID: (id: string) => `${API_V1}/finance/trees/${id}`,
     TREE_NODES: (treeId: string) => `${API_V1}/finance/trees/${treeId}/nodes`,
     NODE_BY_ID: (id: string) => `${API_V1}/finance/nodes/${id}`,
+    SNAPSHOTS: `${API_V1}/finance/snapshots`,
     TREE_SNAPSHOTS: (treeId: string) =>
       `${API_V1}/finance/trees/${treeId}/snapshots`,
     SNAPSHOT_BY_ID: (id: string) => `${API_V1}/finance/snapshots/${id}`,

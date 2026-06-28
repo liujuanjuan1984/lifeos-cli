@@ -156,7 +156,7 @@ def test_cli_parser_supports_finance_commands() -> None:
     parser = build_parser()
 
     tree_args = parser.parse_args(
-        ["finance", "tree-add", "Balance Sheet", "--purpose", "balance", "--default"]
+        ["finance", "tree-add", "Personal Finance", "--primary-currency", "USD", "--default"]
     )
     node_args = parser.parse_args(
         [
@@ -190,7 +190,7 @@ def test_cli_parser_supports_finance_commands() -> None:
 
     assert tree_args.resource == "finance"
     assert tree_args.finance_command == "tree-add"
-    assert tree_args.purpose == "balance"
+    assert tree_args.primary_currency == "USD"
     assert tree_args.default is True
     assert node_args.finance_command == "node-add"
     assert str(node_args.parent_id) == "22222222-2222-2222-2222-222222222222"

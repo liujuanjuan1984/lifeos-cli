@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import pytest
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -32,7 +33,6 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
@@ -69,29 +69,179 @@ def test_finance_default_tree_and_snapshot_rollups() -> None:
                 await session.commit()
 
             async with session_factory() as session:
-                trees = await finance.list_finance_trees(session, purpose="balance")
+                trees = await finance.list_finance_trees(session)
                 assert len(trees) == 1
-                assert trees[0].time_mode == "instant"
+                assert trees[0].id == tree.id
         finally:
             await engine.dispose()
 
     asyncio.run(run())
 
 
-def test_cashflow_default_tree_uses_period_time_mode() -> None:
+def test_finance_snapshot_title_can_be_created_updated_and_cleared() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="cashflow",
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                checking = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Checking",
+                    currency_code="USD",
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    title="June net worth",
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=checking.id,
+                            amount=Decimal("100"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+                assert snapshot.title == "June net worth"
+
+                updated = await finance.update_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    title="Updated net worth",
+                    update_title=True,
+                )
+                assert updated.title == "Updated net worth"
+
+                cleared = await finance.update_finance_snapshot(
+                    session,
+                    snapshot_id=snapshot.id,
+                    title=" ",
+                    update_title=True,
+                )
+                assert cleared.title is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_default_finance_tree_is_global() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
 
-                assert tree.time_mode == "period"
-                assert {node.name for node in nodes} == {"Inflows", "Outflows"}
+                assert tree.name == "Finance"
+                assert {node.name for node in nodes} == {"Assets", "Liabilities"}
+
+                same_tree = await finance.ensure_default_finance_tree(
+                    session,
+                    primary_currency="CNY",
+                )
+                assert same_tree.id == tree.id
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_tree_update_delete_and_report_snapshot_listing() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                first_tree = await finance.create_finance_tree(
+                    session,
+                    name="Primary balance",
+                    primary_currency="USD",
+                )
+                second_tree = await finance.create_finance_tree(
+                    session,
+                    name="Secondary balance",
+                    primary_currency="CNY",
+                )
+                updated_tree = await finance.update_finance_tree(
+                    session,
+                    tree_id=second_tree.id,
+                    name="Brokerage balance",
+                    primary_currency="USD",
+                    is_default=True,
+                )
+                assert updated_tree.name == "Brokerage balance"
+                assert updated_tree.primary_currency == "USD"
+                assert updated_tree.is_default is True
+
+                reloaded_first = await finance.get_finance_tree(session, tree_id=first_tree.id)
+                assert reloaded_first is not None
+                assert reloaded_first.is_default is False
+
+                assets = await finance.create_finance_node(
+                    session,
+                    tree_id=updated_tree.id,
+                    parent_id=None,
+                    name="Assets",
+                    currency_code="USD",
+                )
+                wallet = await finance.create_finance_node(
+                    session,
+                    tree_id=updated_tree.id,
+                    parent_id=assets.id,
+                    name="Wallet",
+                    currency_code="USD",
+                )
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=updated_tree.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("10"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+                period_snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=updated_tree.id,
+                    period_start=datetime(2026, 6, 1, tzinfo=timezone.utc),
+                    period_end=datetime(2026, 6, 30, tzinfo=timezone.utc),
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("20"),
+                            currency_code="USD",
+                        )
+                    ],
+                )
+
+                snapshots = await finance.list_finance_snapshots(session)
+                assert {item.id for item in snapshots} == {snapshot.id, period_snapshot.id}
+
+                with pytest.raises(finance.FinanceValidationError):
+                    await finance.delete_finance_tree(session, tree_id=updated_tree.id)
+
+                disposable_tree = await finance.create_finance_tree(
+                    session,
+                    name="Disposable cashflow",
+                    primary_currency="USD",
+                )
+                await finance.delete_finance_tree(session, tree_id=disposable_tree.id)
+                assert (await finance.get_finance_tree(session, tree_id=disposable_tree.id)) is None
         finally:
             await engine.dispose()
 
@@ -105,20 +255,25 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
             async with session_factory() as session:
                 assets = await finance.list_finance_assets(session)
                 assert {"USD", "USDT", "CNY", "BTC"}.issubset({asset.code for asset in assets})
+                assert all(asset.decimal_places == 2 for asset in assets)
 
                 custom = await finance.create_finance_asset(
                     session,
                     code="sol",
                     name="Solana",
+                    decimal_places=8,
                 )
                 assert custom.code == "SOL"
+                assert custom.decimal_places == 8
 
                 updated = await finance.update_finance_asset(
                     session,
                     asset_id=custom.id,
                     name="Solana token",
+                    decimal_places=4,
                 )
                 assert updated.name == "Solana token"
+                assert updated.decimal_places == 4
 
                 await finance.delete_finance_asset(session, asset_id=custom.id)
                 assert all(
@@ -143,6 +298,66 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
     asyncio.run(run())
 
 
+def test_finance_snapshot_amount_precision_follows_asset() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    primary_currency="BTC",
+                )
+                btc = next(
+                    asset
+                    for asset in await finance.list_finance_assets(session)
+                    if asset.code == "BTC"
+                )
+                await finance.update_finance_asset(
+                    session,
+                    asset_id=btc.id,
+                    decimal_places=8,
+                )
+                nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
+                assets = next(node for node in nodes if node.name == "Assets")
+                wallet = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Wallet",
+                    currency_code="BTC",
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=wallet.id,
+                            amount=Decimal("0.12345678"),
+                            currency_code="BTC",
+                        )
+                    ],
+                )
+                assert snapshot.net_amount == Decimal("0.12345678")
+
+                with pytest.raises(finance.FinanceValidationError):
+                    await finance.create_finance_snapshot(
+                        session,
+                        tree_id=tree.id,
+                        entries=[
+                            finance.FinanceSnapshotEntryInput(
+                                node_id=wallet.id,
+                                amount=Decimal("0.123456789"),
+                                currency_code="BTC",
+                            )
+                        ],
+                    )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
@@ -150,7 +365,6 @@ def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -204,7 +418,6 @@ def test_finance_snapshot_supports_explicit_inverse_rate_snapshot() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -261,7 +474,6 @@ def test_finance_snapshot_uses_chained_rates_and_follows_rate_snapshot_updates()
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -415,7 +627,6 @@ def test_finance_snapshot_with_incomplete_rate_snapshot_keeps_native_totals() ->
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -549,7 +760,6 @@ def test_finance_snapshot_rate_snapshot_can_be_cleared() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 assets = next(
@@ -614,18 +824,17 @@ def test_finance_snapshot_can_be_updated_and_deleted() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="cashflow",
                     primary_currency="USD",
                 )
-                inflows = next(
+                assets = next(
                     node
                     for node in await finance.list_finance_nodes(session, tree_id=tree.id)
-                    if node.name == "Inflows"
+                    if node.name == "Assets"
                 )
                 salary = await finance.create_finance_node(
                     session,
                     tree_id=tree.id,
-                    parent_id=inflows.id,
+                    parent_id=assets.id,
                     name="Salary",
                     currency_code="USD",
                 )
@@ -679,34 +888,29 @@ def test_finance_snapshot_can_be_updated_and_deleted() -> None:
     asyncio.run(run())
 
 
-def test_finance_tree_count_matches_filters() -> None:
+def test_finance_tree_count_respects_deleted_scope() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
         try:
             async with session_factory() as session:
                 await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 custom_tree = await finance.create_finance_tree(
                     session,
                     name="Planning",
-                    purpose="custom",
                     primary_currency="USD",
                 )
                 custom_tree.soft_delete()
 
                 assert await finance.count_finance_trees(session) == 1
-                assert await finance.count_finance_trees(session, purpose="balance") == 1
-                assert await finance.count_finance_trees(session, purpose="custom") == 0
                 assert (
                     await finance.count_finance_trees(
                         session,
-                        purpose="custom",
                         include_deleted=True,
                     )
-                    == 1
+                    == 2
                 )
         finally:
             await engine.dispose()
@@ -721,7 +925,6 @@ def test_finance_node_delete_soft_deletes_descendants() -> None:
             async with session_factory() as session:
                 tree = await finance.ensure_default_finance_tree(
                     session,
-                    purpose="balance",
                     primary_currency="USD",
                 )
                 nodes = await finance.list_finance_nodes(session, tree_id=tree.id)

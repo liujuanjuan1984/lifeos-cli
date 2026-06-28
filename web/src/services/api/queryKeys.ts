@@ -3,7 +3,6 @@
 import type { UUID } from "@/types/primitive";
 import type { NoteAdvancedSearchPayload } from "./notes";
 import type { AggregationGranularity } from "./stats";
-import type { FinancePurpose } from "./finance";
 // Notes
 export const notesKeys = {
   all: ["notes"] as const,
@@ -118,10 +117,9 @@ export const financeKeys = {
   all: ["finance"] as const,
   assets: () => [...financeKeys.all, "assets"] as const,
   trees: () => [...financeKeys.all, "trees"] as const,
-  treesByPurpose: (purpose: FinancePurpose) =>
-    [...financeKeys.trees(), purpose] as const,
   tree: (id: UUID | null) =>
     [...financeKeys.trees(), "detail", id ?? ""] as const,
+  allSnapshots: () => [...financeKeys.all, "snapshots", "all"] as const,
   snapshots: (treeId: UUID | null) =>
     [...financeKeys.all, "snapshots", treeId ?? ""] as const,
   snapshot: (id: UUID | null) =>

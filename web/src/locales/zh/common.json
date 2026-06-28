@@ -1392,35 +1392,51 @@
     "subtitle": "用统一的财务树与快照系统记录真实财务状态。",
     "balance": {
       "title": "资产负债表",
-      "description": "记录某一时刻的资产、负债与净值快照。",
-      "amountLabel": "填写所选时刻的余额。",
-      "treeHint": "用资产、负债等分组组织节点，再在其下添加具体账户或资产节点。"
+      "description": "记录某一时刻的资产、负债与净值快照。"
     },
     "cashflow": {
       "title": "现金流",
-      "description": "用同一套树与快照模型记录某个周期内的收入与支出。",
-      "amountLabel": "流入填写正数，流出填写负数。",
-      "treeHint": "用流入、流出等分组组织节点，再在其下添加具体来源或支出节点。"
+      "description": "用同一套树与快照模型记录某个周期内的收入与支出。"
     },
     "metrics": {
       "positive": "正向金额",
       "negative": "负向金额",
       "net": "净额",
       "entries": "条目",
-      "amountsByCurrency": "按币种汇总"
+      "amountsByCurrency": "按币种汇总",
+      "assetSummary": "资产汇总",
+      "summary": "汇总",
+      "details": "详情",
+      "convertTo": "换算为 {{currency}}",
+      "totalValue": "总值"
     },
     "assets": {
       "title": "资产列表",
       "description": "维护财务树、快照和汇率可选择的资产。",
+      "manage": "资产管理",
       "code": "资产",
       "name": "名称",
+      "decimalPlaces": "小数位数",
       "selectAsset": "选择资产",
       "createAsset": "创建 {{code}}",
       "addAsset": "添加资产"
     },
     "tree": {
+      "tabTitle": "财务树",
+      "tabDescription": "维护资产负债表和现金流使用的财务树。",
       "title": "财务树",
       "empty": "暂无节点。",
+      "noTrees": "暂无财务树。",
+      "selectTree": "财务树",
+      "createTree": "创建财务树",
+      "createTreeTitle": "创建财务树",
+      "treeName": "财务树名称",
+      "treeNamePlaceholder": "为这套财务树命名",
+      "primaryCurrency": "主资产",
+      "default": "默认",
+      "editTree": "编辑财务树",
+      "saveTree": "保存财务树",
+      "deleteTree": "删除财务树",
       "addNode": "添加节点",
       "nodeNamePlaceholder": "节点名称",
       "parent": "父节点",
@@ -1435,11 +1451,16 @@
       "manageHint": "按账户树和来源树的方式维护财务节点。",
       "deleteTitle": "删除财务节点",
       "deleteMessage": "删除 {{name}} 及其子节点？",
-      "deleteConfirm": "删除节点"
+      "deleteConfirm": "删除节点",
+      "deleteTreeTitle": "删除财务树",
+      "deleteTreeMessage": "删除 {{name}}？已有快照的财务树不能删除。",
+      "deleteTreeConfirm": "删除财务树"
     },
     "snapshot": {
       "formTitle": "快照",
       "editTitle": "编辑快照",
+      "title": "快照标题",
+      "titlePlaceholder": "可选展示标题",
       "new": "新建快照",
       "edit": "编辑快照",
       "delete": "删除快照",
@@ -1450,6 +1471,7 @@
       "snapshotTime": "快照时间",
       "periodStart": "周期开始",
       "periodEnd": "周期结束",
+      "settlementCurrency": "结算资产",
       "tableTitle": "录入财务条目",
       "node": "节点",
       "amount": "金额",
@@ -1509,6 +1531,9 @@
     },
     "messages": {
       "treeMissing": "财务树不可用。",
+      "treeCreated": "财务树已创建",
+      "treeUpdated": "财务树已更新",
+      "treeDeleted": "财务树已删除",
       "nodeCreated": "财务节点已创建",
       "nodeUpdated": "财务节点已更新",
       "nodeDeleted": "财务节点已删除",

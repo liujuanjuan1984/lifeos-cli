@@ -15,25 +15,22 @@ from lifeos_cli.db.types import UTCDateTime
 
 
 class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
-    """Reusable finance tree for balance, cashflow, or custom snapshots."""
+    """Reusable finance tree for any finance snapshot view."""
 
     __tablename__ = "finance_trees"
     __table_args__ = (
         Index(
-            "uq_finance_trees_purpose_name_active",
-            "purpose",
+            "uq_finance_trees_name_active",
             "name",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
-        Index("ix_finance_trees_purpose_default", "purpose", "is_default"),
+        Index("ix_finance_trees_default", "is_default"),
         Index("ix_finance_trees_display_order", "display_order"),
     )
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    purpose: Mapped[str] = mapped_column(String(20), nullable=False, default="custom")
-    time_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="instant")
     primary_currency: Mapped[str] = mapped_column(String(16), nullable=False, default="USD")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -53,7 +50,7 @@ class FinanceTree(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     )
 
     def __repr__(self) -> str:
-        return f"FinanceTree(id={self.id!s}, purpose={self.purpose!r}, name={self.name!r})"
+        return f"FinanceTree(id={self.id!s}, name={self.name!r})"
 
 
 class FinanceAsset(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -73,6 +70,7 @@ class FinanceAsset(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base)
 
     code: Mapped[str] = mapped_column(String(16), nullable=False)
     name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    decimal_places: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
@@ -155,6 +153,7 @@ class FinanceSnapshot(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Ba
         nullable=True,
         index=True,
     )
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     snapshot_ts: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_start: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     period_end: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)

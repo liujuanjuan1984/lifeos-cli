@@ -15,6 +15,10 @@ from lifeos_cli.cli_support.parser_common import (
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.finance.handlers import (
+    handle_finance_asset_add_async,
+    handle_finance_asset_delete_async,
+    handle_finance_asset_list_async,
+    handle_finance_asset_update_async,
     handle_finance_node_add_async,
     handle_finance_node_delete_async,
     handle_finance_node_update_async,
@@ -43,19 +47,19 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         help_content=HelpContent(
             summary="Manage unified finance trees and snapshots.",
             description=(
-                "Create finance trees, nodes, and snapshots for balance-sheet, cashflow, "
-                "or custom financial tracking. Balance and cashflow are presets over the "
-                "same underlying tree and snapshot model."
+                "Create finance trees, nodes, and snapshots for balance-sheet and cashflow "
+                "views. Finance trees are reusable structures and are not tied to a report type."
             ),
             examples=(
+                "lifeos finance asset-list",
                 "lifeos finance tree-add --help",
                 "lifeos finance node-add --help",
                 "lifeos finance rate-snapshot-add --help",
                 "lifeos finance snapshot-add --help",
             ),
             notes=(
-                "Use `purpose=balance` for instant net-worth snapshots.",
-                "Use `purpose=cashflow` for period income and spending snapshots.",
+                "Instant snapshots appear in the balance-sheet view.",
+                "Period snapshots appear in the cashflow view.",
             ),
         ),
     )
@@ -65,21 +69,81 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         metavar="action",
     )
 
+    asset_list = add_documented_parser(
+        finance_subparsers,
+        "asset-list",
+        help_content=HelpContent(
+            summary="List finance assets.",
+            description="List active finance assets and their display/input precision.",
+            examples=("lifeos finance asset-list",),
+        ),
+    )
+    add_include_deleted_argument(asset_list, noun="finance assets")
+    add_limit_offset_arguments(asset_list)
+    asset_list.set_defaults(handler=make_sync_handler(handle_finance_asset_list_async))
+
+    asset_add = add_documented_parser(
+        finance_subparsers,
+        "asset-add",
+        help_content=HelpContent(
+            summary="Create a finance asset.",
+            description=(
+                "Create a selectable asset code. Decimal places control amount input "
+                "validation and display formatting, from 0 to 8 places."
+            ),
+            examples=(
+                'lifeos finance asset-add BTC --name "Bitcoin" --decimal-places 8',
+                'lifeos finance asset-add CNY --name "Chinese Yuan"',
+            ),
+        ),
+    )
+    asset_add.add_argument("code")
+    asset_add.add_argument("--name")
+    asset_add.add_argument("--decimal-places", type=int, default=2)
+    asset_add.add_argument("--display-order", type=int, default=1000)
+    asset_add.set_defaults(handler=make_sync_handler(handle_finance_asset_add_async))
+
+    asset_update = add_documented_parser(
+        finance_subparsers,
+        "asset-update",
+        help_content=HelpContent(
+            summary="Update a finance asset.",
+            description="Update mutable finance asset fields, including decimal-place precision.",
+            examples=("lifeos finance asset-update <asset-id> --decimal-places 8",),
+        ),
+    )
+    asset_update.add_argument("asset_id", type=UUID)
+    asset_update.add_argument("--code")
+    asset_update.add_argument("--name")
+    asset_update.add_argument("--decimal-places", type=int)
+    asset_update.add_argument("--display-order", type=int)
+    asset_update.set_defaults(handler=make_sync_handler(handle_finance_asset_update_async))
+
+    asset_delete = add_documented_parser(
+        finance_subparsers,
+        "asset-delete",
+        help_content=HelpContent(
+            summary="Delete a finance asset.",
+            description="Soft-delete a finance asset.",
+            examples=("lifeos finance asset-delete 11111111-1111-1111-1111-111111111111",),
+        ),
+    )
+    asset_delete.add_argument("asset_id", type=UUID)
+    asset_delete.set_defaults(handler=make_sync_handler(handle_finance_asset_delete_async))
+
     tree_add = add_documented_parser(
         finance_subparsers,
         "tree-add",
         help_content=HelpContent(
             summary="Create a finance tree.",
-            description="Create one unified finance tree for balance, cashflow, or custom use.",
+            description="Create one reusable finance tree for any finance snapshot view.",
             examples=(
-                'lifeos finance tree-add "Balance Sheet" --purpose balance --time-mode instant',
-                'lifeos finance tree-add "Cashflow" --purpose cashflow --time-mode period',
+                'lifeos finance tree-add "Personal Finance" --primary-currency USD',
+                'lifeos finance tree-add "Investments" --primary-currency BTC --default',
             ),
         ),
     )
     tree_add.add_argument("name")
-    tree_add.add_argument("--purpose", default="custom", choices=("balance", "cashflow", "custom"))
-    tree_add.add_argument("--time-mode", choices=("instant", "period"))
     tree_add.add_argument("--primary-currency", default="USD")
     tree_add.add_argument("--display-order", type=int, default=0)
     tree_add.add_argument("--default", action="store_true")
@@ -90,11 +154,10 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "tree-list",
         help_content=HelpContent(
             summary="List finance trees.",
-            description="List active finance trees, optionally filtered by purpose.",
-            examples=("lifeos finance tree-list", "lifeos finance tree-list --purpose balance"),
+            description="List active finance trees.",
+            examples=("lifeos finance tree-list",),
         ),
     )
-    tree_list.add_argument("--purpose", choices=("balance", "cashflow", "custom"))
     add_include_deleted_argument(tree_list, noun="finance trees")
     add_limit_offset_arguments(tree_list)
     tree_list.set_defaults(handler=make_sync_handler(handle_finance_tree_list_async))
@@ -116,13 +179,10 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         finance_subparsers,
         "tree-ensure-default",
         help_content=HelpContent(
-            summary="Ensure a preset finance tree exists.",
-            description="Create the default balance or cashflow tree if it does not exist.",
-            examples=("lifeos finance tree-ensure-default --purpose balance",),
+            summary="Ensure a default finance tree exists.",
+            description="Create the global default finance tree if it does not exist.",
+            examples=("lifeos finance tree-ensure-default",),
         ),
-    )
-    ensure_default.add_argument(
-        "--purpose", required=True, choices=("balance", "cashflow", "custom")
     )
     ensure_default.add_argument("--primary-currency", default="USD")
     ensure_default.set_defaults(handler=make_sync_handler(handle_finance_tree_ensure_default_async))
@@ -184,16 +244,19 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             description=(
                 "Create an instant or period snapshot. Repeat --entry with "
                 "node-id:amount[:currency]. Select --rate-snapshot-id when "
-                "non-primary currencies should be converted into the primary currency."
+                "non-primary currencies should be converted into the primary currency. "
+                "Use --title for an optional display label."
             ),
             examples=(
-                "lifeos finance snapshot-add <tree-id> --entry <node-id>:1000:USD",
+                'lifeos finance snapshot-add <tree-id> --title "June net worth" '
+                "--entry <node-id>:1000:USD",
                 "lifeos finance snapshot-add <tree-id> --period-start 2026-06-01T00:00:00 "
                 "--period-end 2026-06-30T23:59:59 --entry <node-id>:-120:USD",
             ),
         ),
     )
     snapshot_add.add_argument("tree_id", type=UUID)
+    snapshot_add.add_argument("--title")
     snapshot_add.add_argument("--snapshot-ts", type=parse_user_datetime_value)
     snapshot_add.add_argument("--period-start", type=parse_user_datetime_value)
     snapshot_add.add_argument("--period-end", type=parse_user_datetime_value)
@@ -274,15 +337,14 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         "snapshot-list",
         help_content=HelpContent(
             summary="List finance snapshots.",
-            description="List finance snapshots by tree or purpose.",
+            description="List finance snapshots across all trees or for one tree.",
             examples=(
-                "lifeos finance snapshot-list --purpose balance",
+                "lifeos finance snapshot-list",
                 "lifeos finance snapshot-list --tree-id <tree-id>",
             ),
         ),
     )
     snapshot_list.add_argument("--tree-id", type=UUID)
-    snapshot_list.add_argument("--purpose", choices=("balance", "cashflow", "custom"))
     add_limit_offset_arguments(snapshot_list)
     snapshot_list.set_defaults(handler=make_sync_handler(handle_finance_snapshot_list_async))
 
