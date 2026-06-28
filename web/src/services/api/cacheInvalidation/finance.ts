@@ -5,6 +5,7 @@ import {
   type FinanceRateSnapshotListResponse,
   type FinanceSnapshot,
   type FinanceSnapshotListResponse,
+  type FinanceTreeListResponse,
 } from "@/services/api/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
@@ -25,6 +26,38 @@ export const invalidateFinanceTree = (
     queryKey: financeKeys.tree(treeId),
     exact: true,
   });
+
+export const removeFinanceTreeFromListCache = (
+  queryClient: QueryClient,
+  treeId: UUID,
+) => {
+  queryClient.setQueryData<FinanceTreeListResponse>(
+    financeKeys.trees(),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== treeId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
+};
+
+export const removeFinanceTreeCache = (
+  queryClient: QueryClient,
+  treeId: UUID,
+) => {
+  queryClient.removeQueries({
+    queryKey: financeKeys.tree(treeId),
+    exact: true,
+  });
+};
 
 export const invalidateFinanceSnapshots = (
   queryClient: QueryClient,
@@ -72,6 +105,28 @@ export const removeFinanceSnapshotFromListCache = (
 ) => {
   queryClient.setQueryData<FinanceSnapshotListResponse>(
     financeKeys.snapshots(treeId),
+    (existing) => {
+      if (!existing) return existing;
+      const nextItems = existing.items.filter((item) => item.id !== snapshotId);
+      const removedCount = existing.items.length - nextItems.length;
+      return {
+        ...existing,
+        items: nextItems,
+        pagination: {
+          ...existing.pagination,
+          total: Math.max(0, existing.pagination.total - removedCount),
+        },
+      };
+    },
+  );
+};
+
+export const removeFinanceSnapshotFromAllListCache = (
+  queryClient: QueryClient,
+  snapshotId: UUID,
+) => {
+  queryClient.setQueryData<FinanceSnapshotListResponse>(
+    financeKeys.allSnapshots(),
     (existing) => {
       if (!existing) return existing;
       const nextItems = existing.items.filter((item) => item.id !== snapshotId);

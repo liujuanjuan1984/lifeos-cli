@@ -7,7 +7,10 @@ import {
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   removeFinanceSnapshotCache,
+  removeFinanceSnapshotFromAllListCache,
   removeFinanceSnapshotFromListCache,
+  removeFinanceTreeCache,
+  removeFinanceTreeFromListCache,
   setFinanceRateSnapshotCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
@@ -16,6 +19,7 @@ import type {
   FinanceRateSnapshotListResponse,
   FinanceSnapshot,
   FinanceSnapshotListResponse,
+  FinanceTreeListResponse,
 } from "@/services/api/finance";
 import { financeKeys } from "@/services/api/queryKeys";
 
@@ -83,6 +87,35 @@ describe("finance cache invalidation helpers", () => {
     });
   });
 
+  it("removes tree detail cache", () => {
+    removeFinanceTreeCache(queryClient, "tree-1");
+
+    expect(removeQueriesMock).toHaveBeenCalledWith({
+      queryKey: financeKeys.tree("tree-1"),
+      exact: true,
+    });
+  });
+
+  it("removes deleted trees from the cached tree list", () => {
+    const existing = {
+      items: [{ id: "tree-1" }, { id: "tree-2" }],
+      pagination: { page: 1, size: 50, total: 2, pages: 1 },
+      meta: { include_deleted: false },
+    } as FinanceTreeListResponse;
+
+    removeFinanceTreeFromListCache(queryClient, "tree-1");
+
+    const [, updater] = setQueryDataMock.mock.calls[0];
+    const next = updater(existing) as FinanceTreeListResponse;
+
+    expect(setQueryDataMock).toHaveBeenCalledWith(
+      financeKeys.trees(),
+      expect.any(Function),
+    );
+    expect(next.items.map((item) => item.id)).toEqual(["tree-2"]);
+    expect(next.pagination.total).toBe(1);
+  });
+
   it("removes deleted snapshots from the cached snapshot list", () => {
     const existing = {
       items: [{ id: "snapshot-1" }, { id: "snapshot-2" }],
@@ -97,6 +130,26 @@ describe("finance cache invalidation helpers", () => {
 
     expect(setQueryDataMock).toHaveBeenCalledWith(
       financeKeys.snapshots("tree-1"),
+      expect.any(Function),
+    );
+    expect(next.items.map((item) => item.id)).toEqual(["snapshot-2"]);
+    expect(next.pagination.total).toBe(1);
+  });
+
+  it("removes deleted snapshots from the cached all-snapshot list", () => {
+    const existing = {
+      items: [{ id: "snapshot-1" }, { id: "snapshot-2" }],
+      pagination: { page: 1, size: 50, total: 2, pages: 1 },
+      meta: { tree_id: null },
+    } as FinanceSnapshotListResponse;
+
+    removeFinanceSnapshotFromAllListCache(queryClient, "snapshot-1");
+
+    const [, updater] = setQueryDataMock.mock.calls[0];
+    const next = updater(existing) as FinanceSnapshotListResponse;
+
+    expect(setQueryDataMock).toHaveBeenCalledWith(
+      financeKeys.allSnapshots(),
       expect.any(Function),
     );
     expect(next.items.map((item) => item.id)).toEqual(["snapshot-2"]);

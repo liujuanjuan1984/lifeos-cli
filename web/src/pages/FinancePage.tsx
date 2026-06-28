@@ -29,7 +29,10 @@ import {
   invalidateFinanceSnapshot,
   invalidateFinanceSnapshots,
   removeFinanceSnapshotCache,
+  removeFinanceSnapshotFromAllListCache,
   removeFinanceSnapshotFromListCache,
+  removeFinanceTreeCache,
+  removeFinanceTreeFromListCache,
   setFinanceSnapshotCache,
 } from "@/services/api/cacheInvalidation/finance";
 import { financeKeys } from "@/services/api/queryKeys";
@@ -305,6 +308,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         setSelectedSnapshotId(nextSnapshot?.id ?? null);
       }
       removeFinanceSnapshotFromListCache(queryClient, tree?.id ?? null, snapshotId);
+      removeFinanceSnapshotFromAllListCache(queryClient, snapshotId);
       removeFinanceSnapshotCache(queryClient, snapshotId);
       return { previousSelectedSnapshotId: selectedSnapshotId };
     },
@@ -460,6 +464,7 @@ function FinanceTreesWorkspace() {
   const [nodeFormState, setNodeFormState] = useState<FinanceNodeFormState | null>(null);
   const [pendingDeleteNode, setPendingDeleteNode] = useState<TreeNodeWithChildren | null>(null);
   const [pendingDeleteTree, setPendingDeleteTree] = useState<FinanceTree | null>(null);
+  const [deletedTreeIds, setDeletedTreeIds] = useState<Set<UUID>>(() => new Set());
   const treeFormId = "finance-tree-form";
 
   const treesQuery = useQuery({
@@ -467,7 +472,10 @@ function FinanceTreesWorkspace() {
     queryFn: () => financeApi.listTrees({}),
     staleTime: 60_000,
   });
-  const trees = useMemo(() => treesQuery.data?.items ?? [], [treesQuery.data?.items]);
+  const trees = useMemo(
+    () => (treesQuery.data?.items ?? []).filter((tree) => !deletedTreeIds.has(tree.id)),
+    [deletedTreeIds, treesQuery.data?.items],
+  );
   const currentTree = trees.find((tree) => tree.id === selectedTreeId) ?? trees[0] ?? null;
   const treeQuery = useQuery({
     queryKey: financeKeys.tree(currentTree?.id ?? null),
@@ -489,10 +497,19 @@ function FinanceTreesWorkspace() {
   }));
 
   useEffect(() => {
-    if (!selectedTreeId && trees.length) {
+    if (treesQuery.isLoading) {
+      return;
+    }
+    if (!trees.length) {
+      setSelectedTreeId(null);
+      setTreeFormVisible(false);
+      setTreeFormMode("create");
+      return;
+    }
+    if (!selectedTreeId || !trees.some((tree) => tree.id === selectedTreeId)) {
       setSelectedTreeId(trees[0].id);
     }
-  }, [selectedTreeId, trees]);
+  }, [selectedTreeId, trees, treesQuery.isLoading]);
 
   const invalidateTreeLists = async (treeToInvalidate?: FinanceTree | null) => {
     await Promise.all([
@@ -539,16 +556,38 @@ function FinanceTreesWorkspace() {
 
   const deleteTreeMutation = useMutation({
     mutationFn: (treeId: UUID) => financeApi.deleteTree(treeId),
+    onMutate: async (treeId) => {
+      const deletedIndex = trees.findIndex((item) => item.id === treeId);
+      const nextTree = trees[deletedIndex + 1] ?? trees[deletedIndex - 1] ?? null;
+      await queryClient.cancelQueries({
+        queryKey: financeKeys.tree(treeId),
+        exact: true,
+      });
+      setDeletedTreeIds((existing) => new Set(existing).add(treeId));
+      if (currentTree?.id === treeId) {
+        setSelectedTreeId(nextTree?.id ?? null);
+      }
+      setTreeFormVisible(false);
+      setTreeFormMode("create");
+      setNodeFormState(null);
+      setPendingDeleteNode(null);
+      removeFinanceTreeFromListCache(queryClient, treeId);
+      removeFinanceTreeCache(queryClient, treeId);
+      return { previousSelectedTreeId: selectedTreeId };
+    },
     onSuccess: async () => {
       toast.showSuccess(t("finance.messages.treeDeleted"));
-      const deletedId = pendingDeleteTree?.id;
-      const deletedIndex = trees.findIndex((item) => item.id === deletedId);
-      const nextTree = trees[deletedIndex + 1] ?? trees[deletedIndex - 1] ?? null;
       setPendingDeleteTree(null);
-      setSelectedTreeId(nextTree?.id ?? null);
-      await invalidateTreeLists(pendingDeleteTree);
+      await queryClient.invalidateQueries({ queryKey: financeKeys.trees() });
     },
-    onError: (error) => {
+    onError: async (error, treeId, context) => {
+      setDeletedTreeIds((existing) => {
+        const next = new Set(existing);
+        next.delete(treeId);
+        return next;
+      });
+      setSelectedTreeId(context?.previousSelectedTreeId ?? null);
+      await queryClient.invalidateQueries({ queryKey: financeKeys.trees() });
       toast.showError(t("common.error"), error instanceof Error ? error.message : String(error));
     },
   });
