@@ -104,8 +104,8 @@ def clear_session_cache() -> None:
     if engine is None:
         return
     try:
-        asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
     except RuntimeError:
         asyncio.run(engine.dispose())
         return
-    raise RuntimeError("clear_session_cache() cannot run inside an active event loop.")
+    loop.create_task(engine.dispose())

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from lifeos_cli.application.configuration import set_runtime_config_value
 from lifeos_cli.config import (
+    SUPPORTED_THEMES,
     ConfigurationError,
     PreferencesSettings,
     clear_config_cache,
@@ -31,38 +32,8 @@ _VISIBLE_MODULES = [
     "settings",
 ]
 
-_THEMES = [
-    "system",
-    "fresh",
-    "cupcake",
-    "bumblebee",
-    "emerald",
-    "corporate",
-    "synthwave",
-    "retro",
-    "cyberpunk",
-    "valentine",
-    "halloween",
-    "garden",
-    "forest",
-    "aqua",
-    "lofi",
-    "pastel",
-    "fantasy",
-    "wireframe",
-    "luxury",
-    "dracula",
-    "cmyk",
-    "autumn",
-    "business",
-    "acid",
-    "lemonade",
-    "night",
-    "coffee",
-    "winter",
-]
-
 _CONFIG_KEY_MAP = {
+    "appearance.theme": "preferences.theme",
     "system.timezone": "preferences.timezone",
     "visions.experience_rate_per_hour": "preferences.vision_experience_rate_per_hour",
 }
@@ -73,7 +44,6 @@ _CONFIG_ENV_KEY_MAP = {
 }
 
 _STATIC_DEFAULTS: dict[str, Any] = {
-    "appearance.theme": "system",
     "calendar.first_day_of_week": 1,
     "calendar.system": "gregorian",
     "dashboard.area_order": [],
@@ -88,7 +58,7 @@ _STATIC_DEFAULTS: dict[str, Any] = {
 
 _META: dict[str, dict[str, Any]] = {
     "appearance.theme": {
-        "allowed_values": _THEMES,
+        "allowed_values": list(SUPPORTED_THEMES),
         "description": "LifeOS Web UI theme.",
         "module": "appearance",
     },
@@ -120,6 +90,8 @@ class PreferenceUpdate(BaseModel):
 
 
 def _extract_config_preference_value(preferences: PreferencesSettings, key: str) -> Any:
+    if key == "appearance.theme":
+        return preferences.theme
     if key == "system.timezone":
         return preferences.timezone
     if key == "visions.experience_rate_per_hour":
@@ -136,7 +108,11 @@ def _sync_effective_config_preference_to_file(key: str) -> Any:
         key,
     )
     if effective_value != file_value:
-        set_runtime_config_value(key=config_key, value=str(effective_value))
+        set_runtime_config_value(
+            key=config_key,
+            value=str(effective_value),
+            refresh_runtime=False,
+        )
         effective_value = _extract_config_preference_value(get_preferences_settings(), key)
     return effective_value
 
@@ -187,7 +163,11 @@ async def set_preference(key: str, payload: PreferenceUpdate) -> dict[str, Any]:
     config_key = _CONFIG_KEY_MAP.get(key)
     if config_key is not None:
         try:
-            set_runtime_config_value(key=config_key, value=str(payload.value))
+            set_runtime_config_value(
+                key=config_key,
+                value=str(payload.value),
+                refresh_runtime=False,
+            )
         except ConfigurationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         _set_process_config_override(key, payload.value)

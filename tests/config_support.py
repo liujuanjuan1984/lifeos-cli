@@ -18,6 +18,7 @@ def write_test_config(
     day_starts_at: str = "04:00",
     week_starts_on: str = "monday",
     vision_experience_rate_per_hour: int | None = None,
+    theme: str | None = None,
 ) -> Path:
     lines: list[str] = []
     if include_database:
@@ -37,6 +38,8 @@ def write_test_config(
         )
         if vision_experience_rate_per_hour is not None:
             lines.append(f"vision_experience_rate_per_hour = {vision_experience_rate_per_hour}")
+        if theme is not None:
+            lines.append(f'theme = "{theme}"')
         lines.append("")
     config_path.write_text("\n".join(lines), encoding="utf-8")
     return config_path
@@ -56,6 +59,7 @@ def install_test_config(
     day_starts_at: str = "04:00",
     week_starts_on: str = "monday",
     vision_experience_rate_per_hour: int | None = None,
+    theme: str | None = None,
 ) -> Path:
     config_path = write_test_config(
         tmp_path / "config.toml",
@@ -69,6 +73,7 @@ def install_test_config(
         day_starts_at=day_starts_at,
         week_starts_on=week_starts_on,
         vision_experience_rate_per_hour=vision_experience_rate_per_hour,
+        theme=theme,
     )
     clear_config_cache()
     monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))

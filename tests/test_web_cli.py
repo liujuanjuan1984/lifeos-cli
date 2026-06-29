@@ -32,6 +32,11 @@ from lifeos_cli.db.services.timelog_support import (
 from tests.config_support import install_test_config
 
 
+class CachedEngineSentinel:
+    async def dispose(self) -> None:
+        raise AssertionError("Web preference writes must not dispose the cached database engine")
+
+
 def test_web_command_is_registered() -> None:
     parser = build_parser()
 
@@ -1348,6 +1353,7 @@ def test_web_timezone_preference_converges_env_override_to_cli_config(
 ) -> None:
     pytest.importorskip("fastapi")
 
+    from lifeos_cli.db import session as db_session
     from lifeos_web.routers.preferences import get_preference
 
     config_path = install_test_config(
@@ -1357,6 +1363,7 @@ def test_web_timezone_preference_converges_env_override_to_cli_config(
         timezone="UTC",
     )
     monkeypatch.setenv("LIFEOS_TIMEZONE", "America/New_York")
+    monkeypatch.setattr(db_session, "_CACHED_ENGINE", CachedEngineSentinel())
     clear_config_cache()
 
     current = asyncio.run(get_preference("system.timezone"))
@@ -1423,3 +1430,35 @@ def test_web_vision_experience_preference_persists_to_cli_config(
     assert reloaded["value"] == 120
 
     assert "vision_experience_rate_per_hour = 120" in config_path.read_text(encoding="utf-8")
+
+
+def test_web_theme_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db import session as db_session
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        theme="system",
+    )
+    monkeypatch.setattr(db_session, "_CACHED_ENGINE", CachedEngineSentinel())
+
+    updated = asyncio.run(
+        set_preference(
+            "appearance.theme",
+            PreferenceUpdate(value="night", module="appearance"),
+        )
+    )
+    assert updated["value"] == "night"
+
+    clear_config_cache()
+    reloaded = asyncio.run(get_preference("appearance.theme"))
+    assert reloaded["value"] == "night"
+
+    assert 'theme = "night"' in config_path.read_text(encoding="utf-8")

@@ -33,6 +33,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "lifeos config show",
                 "lifeos config show --show-secrets",
                 "lifeos config set preferences.timezone America/Toronto",
+                "lifeos config set preferences.theme night",
             ),
             notes=(
                 _(
@@ -109,6 +110,7 @@ def build_config_parser(subparsers: argparse._SubParsersAction[argparse.Argument
                 "sqlite+aiosqlite:///$HOME/.lifeos/work.db "
                 "--show-secrets",
                 "lifeos config set preferences.vision_experience_rate_per_hour 120",
+                "lifeos config set preferences.theme night",
             ),
             notes=(
                 _(

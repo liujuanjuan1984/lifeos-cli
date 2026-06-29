@@ -10,11 +10,13 @@ from lifeos_cli.cli_support.runtime_utils import refresh_runtime_configuration
 from lifeos_cli.config import (
     DEFAULT_DATABASE_SCHEMA,
     DEFAULT_DAY_STARTS_AT,
+    DEFAULT_THEME,
     DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
     DEFAULT_WEEK_STARTS_ON,
     ConfigurationError,
     DatabaseSettings,
     PreferencesSettings,
+    clear_config_cache,
     database_policy,
     default_sqlite_database_url,
     detect_default_language,
@@ -26,6 +28,7 @@ from lifeos_cli.config import (
     validate_database_url,
     validate_day_starts_at,
     validate_language,
+    validate_theme,
     validate_timezone_name,
     validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
@@ -68,6 +71,7 @@ SUPPORTED_CONFIG_KEYS = (
     "preferences.day_starts_at",
     "preferences.week_starts_on",
     "preferences.vision_experience_rate_per_hour",
+    "preferences.theme",
 )
 
 
@@ -150,6 +154,7 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
             week_starts_on=DEFAULT_WEEK_STARTS_ON,
             vision_experience_rate_per_hour=DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR,
             config_file=config_path,
+            theme=DEFAULT_THEME,
         )
 
     timezone_value = request.timezone or current.timezone
@@ -178,6 +183,7 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
             vision_experience_rate_value
         ),
         config_file=config_path,
+        theme=validate_theme(current.theme),
     )
 
 
@@ -194,7 +200,12 @@ def persist_runtime_settings(
     return config_path
 
 
-def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
+def set_runtime_config_value(
+    *,
+    key: str,
+    value: str,
+    refresh_runtime: bool = True,
+) -> ConfigSetResult:
     """Persist one supported runtime config key and refresh caches."""
     normalized_key = key.strip()
     if normalized_key == "database.schema":
@@ -261,12 +272,20 @@ def set_runtime_config_value(*, key: str, value: str) -> ConfigSetResult:
             preferences_settings,
             vision_experience_rate_per_hour=validate_vision_experience_rate_per_hour(value),
         )
+    elif normalized_key == "preferences.theme":
+        preferences_settings = replace(
+            preferences_settings,
+            theme=validate_theme(value),
+        )
 
     written_path = write_database_settings(
         database_settings,
         preferences=preferences_settings,
     )
-    refresh_runtime_configuration()
+    if refresh_runtime:
+        refresh_runtime_configuration()
+    else:
+        clear_config_cache()
     return ConfigSetResult(
         key=normalized_key,
         config_path=written_path,
