@@ -31,7 +31,7 @@ Run the Vite frontend:
 
 ```bash
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -41,7 +41,7 @@ Vite proxies `/api` to `http://127.0.0.1:8765`.
 
 ```bash
 cd web
-npm install
+npm ci
 npm run build
 ```
 

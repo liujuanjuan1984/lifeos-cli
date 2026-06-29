@@ -39,7 +39,7 @@ For frontend changes, including npm dependency updates, also run:
 bash ./scripts/web_validate.sh
 ```
 
-The frontend validation entrypoint installs the locked npm workspace, builds the Vite app, runs ESLint, and executes the Vitest suite.
+The frontend validation entrypoint installs the locked npm workspace, builds the Vite app, runs ESLint, and executes the Vitest suite. Use the npm version declared by `web/package.json` when updating `web/package-lock.json`, and prefer `npm ci` for local validation runs that should not rewrite the lockfile.
 
 If you change CI, packaging metadata, or compatibility declarations, also validate the relevant interpreter targets explicitly. Examples:
 
