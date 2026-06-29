@@ -40,10 +40,13 @@ import type { UUID } from "@/types/primitive";
 import { SnapshotDetail, SnapshotFormPanel } from "@/features/finance/SnapshotPanels";
 import {
   buildTree,
+  DEFAULT_FINANCE_TAB,
+  FINANCE_TOOLBAR_ORDER,
   flattenTree,
   snapshotLabel,
   type FinanceNodeFormState,
   type FinanceTab,
+  type FinanceToolbarTab,
   type PresetConfig,
   type TreeNodeWithChildren,
 } from "@/features/finance/utils";
@@ -73,10 +76,14 @@ const PRESETS: PresetConfig[] = [
   },
 ];
 
+const REPORT_TITLE_KEYS = Object.fromEntries(
+  PRESETS.map((item) => [item.report, item.titleKey] as const),
+) as Record<PresetConfig["report"], string>;
+
 function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
-  const [activeTab, setActiveTab] = useState<FinanceTab>("balance");
+  const [activeTab, setActiveTab] = useState<FinanceTab>(DEFAULT_FINANCE_TAB);
   const [assetManagerOpen, setAssetManagerOpen] = useState(false);
 
   useEffect(() => {
@@ -88,44 +95,51 @@ function FinancePage() {
   }, [setHeader, t]);
 
   const preset = PRESETS.find((item) => item.report === activeTab) ?? PRESETS[0];
-  const reportTabs: { id: FinanceTab; label: string }[] = PRESETS.map((item) => ({
-    id: item.report,
-    label: t(item.titleKey),
-  }));
-  const managementTabs: { id: FinanceTab; label: string }[] = [
-    { id: "rates", label: t("finance.rates.tabTitle") },
-    { id: "trees", label: t("finance.tree.tabTitle") },
-  ];
-  const renderTab = (item: { id: FinanceTab; label: string }) => (
+  const toolbarLabel = (tab: FinanceToolbarTab) => {
+    switch (tab) {
+      case "assets":
+        return t("finance.assets.manage");
+      case "trees":
+        return t("finance.tree.tabTitle");
+      case "rates":
+        return t("finance.rates.tabTitle");
+      default:
+        return t(REPORT_TITLE_KEYS[tab]);
+    }
+  };
+  const renderTab = (tab: FinanceTab) => (
     <ActionButton
-      key={item.id}
-      label={item.label}
-      onClick={() => setActiveTab(item.id)}
-      color={activeTab === item.id ? "primary" : "neutral"}
-      variant={activeTab === item.id ? "solid" : "ghost"}
+      key={tab}
+      label={toolbarLabel(tab)}
+      onClick={() => setActiveTab(tab)}
+      color={activeTab === tab ? "primary" : "neutral"}
+      variant={activeTab === tab ? "solid" : "ghost"}
       size="sm"
       className="shrink-0 px-3"
     />
   );
+  const renderToolbarItem = (tab: FinanceToolbarTab) => {
+    if (tab === "assets") {
+      return (
+        <ActionButton
+          key={tab}
+          label={toolbarLabel(tab)}
+          iconName="settings"
+          onClick={() => setAssetManagerOpen(true)}
+          size="sm"
+          variant="outline"
+          className="shrink-0 px-3"
+        />
+      );
+    }
+    return renderTab(tab);
+  };
 
   return (
     <PageLayout>
       <ToolbarContainer className="mb-6" variant="compact" padding="sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {reportTabs.map(renderTab)}
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {managementTabs.map(renderTab)}
-            <ActionButton
-              label={t("finance.assets.manage")}
-              iconName="settings"
-              onClick={() => setAssetManagerOpen(true)}
-              size="sm"
-              variant="outline"
-              className="shrink-0 px-3"
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {FINANCE_TOOLBAR_ORDER.map(renderToolbarItem)}
         </div>
       </ToolbarContainer>
 
