@@ -94,9 +94,25 @@ The current command tree is organized around a few stable families:
 - planning resources such as `area`, `vision`, `task`, `note`, `people`, and `tag`
 - scheduling and tracking resources such as `event`, `schedule`, `timelog`, `habit`, and `habit-action`
 - financial reality resources such as `finance`
-- system and portability commands such as `init`, `config`, `db`, and `data`
+- system, Web, and portability commands such as `init`, `config`, `db`, `web`, and `data`
 
 Use `lifeos <resource> --help` to enter one family and then follow the resource-level help into the action or namespace you need.
+
+## Help Review
+
+The CLI help tree is broad enough that manual spot checks are not sufficient for release review. Use the help audit script when reviewing command documentation:
+
+```bash
+uv run python scripts/audit_cli_help.py
+```
+
+The script walks the parser tree, executes every discovered `--help` invocation, and renders a Markdown report with command output and failures. Use `--path-prefix` for focused reviews such as:
+
+```bash
+uv run python scripts/audit_cli_help.py --path-prefix "timelog stats"
+```
+
+Localized help should be reviewed through the same command surface by setting the runtime language preference or `LIFEOS_LANGUAGE`.
 
 ## Safety Model
 

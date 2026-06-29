@@ -246,6 +246,52 @@
         "when_both_start_time_and_end_time_are_given_overlapping_events_are": "`--start-time/--end-time` 定义重叠时间窗口，不是精确匹配 `event` 字段；本地日期范围请使用 `--start-date/--end-date`。"
       }
     },
+    "finance": {
+      "parser": {
+        "add_finance_tree_node": "添加 `finance tree` 节点。",
+        "add_node_to_finance_tree": "向 `finance tree` 添加节点。保存 snapshot 时，含子节点的节点会自动汇总。",
+        "capture_point_in_time_exchange_rate_pairs": "记录某一时点的汇率对。重复使用 --rate，格式为 base-currency:rate:quote-currency，表示 1 个 base-currency 等于 rate 个 quote-currency。",
+        "create_exchange_rate_snapshot": "创建 finance 汇率 snapshot。",
+        "create_finance_asset": "创建 `finance asset`。",
+        "create_finance_snapshot": "创建 `finance snapshot`。",
+        "create_finance_tree": "创建 `finance tree`。",
+        "create_finance_trees_nodes_and_snapshots": "创建用于资产负债表和现金流视图的 `finance tree`、node 和 snapshot。`finance tree` 是可复用结构，不绑定到某一种报表类型。",
+        "create_global_default_finance_tree_if_missing": "当全局默认 `finance tree` 不存在时创建它。",
+        "create_instant_or_period_snapshot": "创建即时或区间 snapshot。重复使用 --entry，格式为 node-id:amount[:currency]。当非主币种需要换算到主币种时，选择 --rate-snapshot-id。使用 --title 设置可选展示标题。",
+        "create_reusable_finance_tree": "创建一个可用于任意 `finance snapshot` 视图的可复用 `finance tree`。",
+        "create_selectable_asset_code": "创建一个可选择的 `asset code`。`decimal places` 控制金额输入校验和显示格式，范围为 0 到 8 位。",
+        "delete_finance_asset": "删除 `finance asset`。",
+        "delete_finance_node": "删除 `finance node`。",
+        "ensure_default_finance_tree_exists": "确保默认 `finance tree` 存在。",
+        "finance_assets": "`finance asset`",
+        "finance_rate_snapshots": "finance 汇率 snapshot",
+        "finance_snapshots": "`finance snapshot`",
+        "finance_trees": "`finance tree`",
+        "instant_snapshots_appear_in_balance_sheet_view": "即时 snapshot 会出现在资产负债表视图中。",
+        "list_active_finance_assets_and_their_precision": "列出活动 `finance asset` 及其显示/输入精度。",
+        "list_active_finance_trees": "列出活动 `finance tree`。",
+        "list_exchange_rate_snapshots": "列出 finance 汇率 snapshot。",
+        "list_finance_assets": "列出 `finance asset`。",
+        "list_finance_snapshots": "列出 `finance snapshot`。",
+        "list_finance_snapshots_across_trees": "列出所有 tree 或某个 tree 下的 `finance snapshot`。",
+        "list_finance_trees": "列出 `finance tree`。",
+        "list_stored_exchange_rate_snapshots": "列出已存储的汇率 snapshot。",
+        "manage_unified_finance_trees_and_snapshots": "管理统一 `finance tree` 和 snapshot。",
+        "period_snapshots_appear_in_cashflow_view": "区间 snapshot 会出现在现金流视图中。",
+        "show_exchange_rate_snapshot": "显示 finance 汇率 snapshot。",
+        "show_finance_snapshot": "显示 `finance snapshot`。",
+        "show_finance_tree": "显示 `finance tree`。",
+        "show_one_finance_snapshot_with_entries": "显示一个 `finance snapshot` 及其所有 entry 金额。",
+        "show_one_finance_tree_and_node_hierarchy": "显示一个 `finance tree` 及其 node 层级。",
+        "show_one_rate_snapshot_and_entries": "显示一个汇率 snapshot 及其汇率 entry。",
+        "soft_delete_finance_asset": "软删除 `finance asset`。",
+        "soft_delete_finance_node": "软删除 `finance node`。",
+        "update_finance_asset": "更新 `finance asset`。",
+        "update_finance_node": "更新 `finance node`。",
+        "update_mutable_finance_asset_fields": "更新可变的 `finance asset` 字段，包括 decimal-place 精度。",
+        "update_mutable_node_fields": "更新可变 node 字段，不改变 tree 归属。"
+      }
+    },
     "habit": {
       "parser": {
         "cadence_cycles_can_be_daily_weekly_monthly_or_yearly_while_habit_action": "cadence 周期可以是 daily、weekly、monthly 或 yearly，而 `habit-action` 实例仍然按日期记录。",
@@ -877,6 +923,18 @@
       "use_ping_to_validate_current_connection_settings_without_changing_schema": "使用 `ping` 验证当前连接设置，不改变 schema。",
       "use_this_before_db_upgrade_when_you_first_need_to_confirm_target": "当你需要先确认目标数据库时，请在 `db upgrade` 前使用此命令。",
       "use_upgrade_when_configured_database_schema_needs_to_catch_up_with_code": "当已配置数据库的 schema 需要追上当前代码时，请使用 `upgrade`。"
+    },
+    "web_commands": {
+      "bind_host": "绑定 host。",
+      "bind_port": "绑定 port。",
+      "enable_uvicorn_reload": "启用 `uvicorn` reload。",
+      "install_optional_web_dependencies": "使用 `lifeos-cli[web]` 安装可选 Web 依赖。如果已配置数据库是 PostgreSQL，请同时安装 `lifeos-cli[web,postgres]`。",
+      "run_local_lifeos_web_service": "基于 `lifeos init` 和 `lifeos config` 配置的数据库运行本地 LifeOS Web 服务。",
+      "run_optional_local_web_api": "运行可选的本地 Web API。",
+      "serve_built_frontend_directory": "服务已构建的前端目录，例如 `web/dist`。",
+      "serve_local_web_api": "服务本地 Web API，可选挂载已构建的前端资源。",
+      "start_fastapi_server_bound_to_localhost": "启动默认绑定到 localhost 的 FastAPI 服务。",
+      "use_vite_during_frontend_development": "前端开发时使用 `web/` 下的 Vite。传入 `--static-dir web/dist` 可以服务已构建的 `checkout UI`。使用 uv 且数据库为 PostgreSQL 时，请搭配 `--extra web --extra postgres` 运行。"
     },
     "init_commands": {
       "configuration_is_written_to_config_lifeos_config_toml_by_default": "默认情况下，配置写入 ~/.lifeos/config.toml。",
