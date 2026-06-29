@@ -35,7 +35,38 @@ DEFAULT_LANGUAGE = "en"
 DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
 DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
+DEFAULT_THEME = "system"
 MAX_VISION_EXPERIENCE_RATE_PER_HOUR = 3600
+SUPPORTED_THEMES = (
+    "system",
+    "fresh",
+    "cupcake",
+    "bumblebee",
+    "emerald",
+    "corporate",
+    "synthwave",
+    "retro",
+    "cyberpunk",
+    "valentine",
+    "halloween",
+    "garden",
+    "forest",
+    "aqua",
+    "lofi",
+    "pastel",
+    "fantasy",
+    "wireframe",
+    "luxury",
+    "dracula",
+    "cmyk",
+    "autumn",
+    "business",
+    "acid",
+    "lemonade",
+    "night",
+    "coffee",
+    "winter",
+)
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LANGUAGE_TAG_PATTERN = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 _DAY_STARTS_AT_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
@@ -258,6 +289,15 @@ def validate_vision_experience_rate_per_hour(value: int | str) -> int:
     return normalized
 
 
+def validate_theme(value: str) -> str:
+    """Validate the preferred Web UI theme."""
+    normalized = value.strip()
+    if normalized not in SUPPORTED_THEMES:
+        supported = ", ".join(SUPPORTED_THEMES)
+        raise ConfigurationError(f"Preference `theme` must be one of: {supported}.")
+    return normalized
+
+
 def _parse_bool(value: str) -> bool:
     normalized = value.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
@@ -299,6 +339,7 @@ def _render_preferences_table(settings: PreferencesSettings) -> str:
             f"day_starts_at = {_serialize_toml_string(settings.day_starts_at)}",
             f"week_starts_on = {_serialize_toml_string(settings.week_starts_on)}",
             f"vision_experience_rate_per_hour = {settings.vision_experience_rate_per_hour}",
+            f"theme = {_serialize_toml_string(settings.theme)}",
         )
     )
 
@@ -482,6 +523,7 @@ class PreferencesSettings:
     week_starts_on: str
     vision_experience_rate_per_hour: int
     config_file: Path
+    theme: str = DEFAULT_THEME
 
     @classmethod
     def from_env(
@@ -505,6 +547,7 @@ class PreferencesSettings:
         file_day_starts_at = preference_values.get("day_starts_at")
         file_week_starts_on = preference_values.get("week_starts_on")
         file_vision_experience_rate = preference_values.get("vision_experience_rate_per_hour")
+        file_theme = preference_values.get("theme")
 
         timezone_value = source.get("LIFEOS_TIMEZONE") if include_overrides else None
         if timezone_value is None and isinstance(file_timezone, str):
@@ -539,6 +582,9 @@ class PreferencesSettings:
             vision_experience_rate_value
         )
 
+        theme_value = file_theme if isinstance(file_theme, str) else DEFAULT_THEME
+        theme = validate_theme(theme_value)
+
         return cls(
             timezone=timezone_value,
             language=language_value,
@@ -546,6 +592,7 @@ class PreferencesSettings:
             week_starts_on=week_starts_on_value,
             vision_experience_rate_per_hour=vision_experience_rate,
             config_file=config_path,
+            theme=theme,
         )
 
 

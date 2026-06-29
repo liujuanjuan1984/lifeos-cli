@@ -1,8 +1,11 @@
 import json
+import re
 from pathlib import Path
 from typing import Any, cast
 
 import yaml  # type: ignore[import-untyped]
+
+from lifeos_cli.config import SUPPORTED_THEMES
 
 GITIGNORE_TEXT = Path(".gitignore").read_text()
 DEPENDABOT_CONFIG = yaml.safe_load(Path(".github/dependabot.yml").read_text())
@@ -20,6 +23,7 @@ FRONTEND_DEPENDENCY_AUDIT_WORKFLOW = yaml.safe_load(
 VALIDATE_WORKFLOW = yaml.safe_load(Path(".github/workflows/validate.yml").read_text())
 VULTURE_WHITELIST_TEXT = Path("scripts/vulture_whitelist.py").read_text()
 LOAD_LOCAL_ENV_TEXT = Path("scripts/load_local_env.sh").read_text()
+WEB_THEME_TEXT = Path("web/src/theme.ts").read_text()
 
 
 def _non_comment_shell_lines(text: str) -> list[str]:
@@ -51,6 +55,16 @@ def _flatten_json_catalog_keys(catalog: dict[str, Any]) -> dict[str, str]:
     return flattened
 
 
+def _extract_frontend_available_themes() -> tuple[str, ...]:
+    match = re.search(
+        r"export const AVAILABLE_THEMES: AppTheme\[] = \[(?P<body>.*?)\];",
+        WEB_THEME_TEXT,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    return tuple(re.findall(r'"([^"]+)"', match.group("body")))
+
+
 DOCTOR_COMMANDS = _non_comment_shell_lines(DOCTOR_TEXT)
 DEPENDENCY_HEALTH_COMMANDS = _non_comment_shell_lines(DEPENDENCY_HEALTH_TEXT)
 WEB_DEPENDENCY_HEALTH_COMMANDS = _non_comment_shell_lines(WEB_DEPENDENCY_HEALTH_TEXT)
@@ -79,6 +93,10 @@ def test_dependabot_configuration_keeps_backend_and_frontend_updates_separate() 
     assert npm_entry["groups"]["web-runtime"]["patterns"] == ["*"]
     assert npm_entry["groups"]["web-tooling"]["dependency-type"] == "development"
     assert npm_entry["groups"]["web-tooling"]["patterns"] == ["*"]
+
+
+def test_backend_theme_preferences_match_frontend_theme_options() -> None:
+    assert SUPPORTED_THEMES == _extract_frontend_available_themes()
 
 
 def test_dependency_scripts_keep_separate_scopes() -> None:
