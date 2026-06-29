@@ -566,6 +566,43 @@ def test_main_config_set_ignores_runtime_env_overrides_when_persisting(
     clear_config_cache()
 
 
+def test_main_config_set_updates_theme(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "America/Toronto"',
+                'language = "zh-Hans"',
+                'day_starts_at = "04:00"',
+                'week_starts_on = "sunday"',
+                "vision_experience_rate_per_hour = 90",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    clear_config_cache()
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+
+    exit_code = cli.main(["config", "set", "preferences.theme", "night"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Updated key: preferences.theme" in captured.out
+    assert "Preference theme: night" in captured.out
+    assert 'theme = "night"' in config_path.read_text(encoding="utf-8")
+    clear_config_cache()
+
+
 def test_main_init_can_repair_invalid_existing_config(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

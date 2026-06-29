@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
@@ -19,6 +20,24 @@ def test_clear_session_cache_disposes_cached_engine(
     monkeypatch.setattr(db_session, "_CACHED_ENGINE", fake_engine)
 
     db_session.clear_session_cache()
+
+    dispose.assert_awaited_once()
+    assert db_session._CACHED_ENGINE is None
+
+
+def test_clear_session_cache_disposes_cached_engine_inside_active_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispose = AsyncMock()
+    fake_engine = SimpleNamespace(dispose=dispose)
+
+    async def run_clear() -> None:
+        monkeypatch.setattr(db_session, "_CACHED_ENGINE", fake_engine)
+
+        db_session.clear_session_cache()
+        await asyncio.sleep(0)
+
+    asyncio.run(run_clear())
 
     dispose.assert_awaited_once()
     assert db_session._CACHED_ENGINE is None

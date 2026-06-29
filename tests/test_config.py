@@ -24,6 +24,7 @@ from lifeos_cli.config import (
     validate_database_url,
     validate_day_starts_at,
     validate_language,
+    validate_theme,
     validate_timezone_name,
     validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
@@ -159,6 +160,7 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
                 'day_starts_at = "04:00"',
                 'week_starts_on = "sunday"',
                 "vision_experience_rate_per_hour = 90",
+                'theme = "night"',
                 "",
             )
         ),
@@ -172,6 +174,7 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
     assert settings.vision_experience_rate_per_hour == 90
+    assert settings.theme == "night"
 
 
 def test_preferences_settings_can_ignore_env_overrides(tmp_path: Path) -> None:
@@ -208,6 +211,7 @@ def test_preferences_settings_can_ignore_env_overrides(tmp_path: Path) -> None:
     assert settings.day_starts_at == "04:00"
     assert settings.week_starts_on == "sunday"
     assert settings.vision_experience_rate_per_hour == 90
+    assert settings.theme == "system"
 
 
 def test_preferences_settings_rejects_invalid_vision_experience_rate(tmp_path: Path) -> None:
@@ -485,6 +489,18 @@ def test_validate_vision_experience_rate_per_hour_rejects_invalid_values() -> No
         raise AssertionError("invalid vision experience rate should fail")
 
 
+def test_validate_theme_rejects_invalid_values() -> None:
+    assert validate_theme("night") == "night"
+
+    try:
+        validate_theme("unknown")
+    except ConfigurationError as exc:
+        assert "Preference `theme`" in str(exc)
+        assert "system" in str(exc)
+    else:
+        raise AssertionError("invalid theme should fail")
+
+
 def test_parse_boolean_value_rejects_invalid_values() -> None:
     assert parse_boolean_value("true", field_name="Config key `database.echo`") is True
     assert parse_boolean_value("0", field_name="Config key `database.echo`") is False
@@ -522,6 +538,7 @@ def test_write_database_settings_can_write_preferences_without_database_url(tmp_
     assert "url =" not in content
     assert 'schema = "lifeos"' in content
     assert 'timezone = "America/Toronto"' in content
+    assert 'theme = "system"' in content
 
 
 def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
@@ -550,6 +567,7 @@ def test_write_database_settings_persists_toml(tmp_path: Path) -> None:
     assert 'url = "postgresql+psycopg://db-user:<db-password>@localhost:5432/lifeos"' in content
     assert 'timezone = "America/Toronto"' in content
     assert "vision_experience_rate_per_hour = 90" in content
+    assert 'theme = "system"' in content
 
 
 def test_write_database_settings_preserves_other_top_level_sections(tmp_path: Path) -> None:
@@ -689,6 +707,38 @@ def test_set_runtime_config_value_updates_sqlite_url_within_same_backend(
     content = config_path.read_text(encoding="utf-8")
     assert 'url = "sqlite+aiosqlite:///tmp/new-lifeos.db"' in content
     assert "schema =" not in content
+
+
+def test_set_runtime_config_value_updates_theme_preference(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    result = set_runtime_config_value(key="preferences.theme", value="night")
+
+    assert result.preferences_settings.theme == "night"
+    assert 'theme = "night"' in config_path.read_text(encoding="utf-8")
 
 
 def test_build_database_settings_uses_injected_prompts(

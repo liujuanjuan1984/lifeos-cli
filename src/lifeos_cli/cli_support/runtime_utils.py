@@ -68,6 +68,7 @@ def format_config_summary(
         f"Preference week starts on: {preferences_settings.week_starts_on}",
         "Preference vision experience rate per hour: "
         f"{preferences_settings.vision_experience_rate_per_hour}",
+        f"Preference theme: {preferences_settings.theme}",
         "Agent payload rule: use the preference language for human-authored titles, "
         "descriptions, and note content unless the human explicitly asks for another language.",
     ]
