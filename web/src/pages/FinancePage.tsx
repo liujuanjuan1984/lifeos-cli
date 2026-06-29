@@ -40,6 +40,7 @@ import type { UUID } from "@/types/primitive";
 import { SnapshotDetail, SnapshotFormPanel } from "@/features/finance/SnapshotPanels";
 import {
   buildTree,
+  DEFAULT_FINANCE_TAB,
   FINANCE_TOOLBAR_ORDER,
   flattenTree,
   snapshotLabel,
@@ -82,7 +83,7 @@ const REPORT_TITLE_KEYS = Object.fromEntries(
 function FinancePage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
-  const [activeTab, setActiveTab] = useState<FinanceTab>("balance");
+  const [activeTab, setActiveTab] = useState<FinanceTab>(DEFAULT_FINANCE_TAB);
   const [assetManagerOpen, setAssetManagerOpen] = useState(false);
 
   useEffect(() => {
