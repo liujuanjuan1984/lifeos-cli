@@ -10,6 +10,7 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_help_parser,
     add_documented_parser,
 )
+from lifeos_cli.i18n import cli_message as _
 
 
 def run_web_serve(args: argparse.Namespace) -> int:
@@ -31,47 +32,49 @@ def build_web_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         subparsers,
         "web",
         help_content=HelpContent(
-            summary="Run the optional local Web API.",
-            description=(
-                "Run the local LifeOS Web service against the database configured by "
-                "`lifeos init` and `lifeos config`."
-            ),
+            summary=_("system.web_commands.run_optional_local_web_api"),
+            description=(_("system.web_commands.run_local_lifeos_web_service")),
             examples=("lifeos web serve", "lifeos web serve --port 8765"),
-            notes=(
-                "Install the optional Web dependencies with `lifeos-cli[web]`. "
-                "If your configured database is PostgreSQL, install both extras with "
-                "`lifeos-cli[web,postgres]`.",
-            ),
+            notes=(_("system.web_commands.install_optional_web_dependencies"),),
         ),
     )
     web_subparsers = web_parser.add_subparsers(
         dest="web_command",
-        title="actions",
-        metavar="action",
+        title=_("common.messages.actions"),
+        metavar=_("common.messages.action"),
     )
     serve_parser = add_documented_parser(
         web_subparsers,
         "serve",
         help_content=HelpContent(
-            summary="Serve the local Web API, optionally with built frontend assets.",
-            description="Start a FastAPI server bound to localhost by default.",
+            summary=_("system.web_commands.serve_local_web_api"),
+            description=_("system.web_commands.start_fastapi_server_bound_to_localhost"),
             examples=(
                 "lifeos web serve",
                 "lifeos web serve --host 127.0.0.1 --port 8765",
                 "lifeos web serve --static-dir web/dist",
             ),
-            notes=(
-                "Use `web/` with Vite during frontend development. "
-                "Pass `--static-dir web/dist` to serve a built checkout UI. "
-                "With uv and a PostgreSQL database, run with `--extra web --extra postgres`.",
-            ),
+            notes=(_("system.web_commands.use_vite_during_frontend_development"),),
         ),
     )
-    serve_parser.add_argument("--host", default="127.0.0.1", help="Bind host.")
-    serve_parser.add_argument("--port", type=int, default=8765, help="Bind port.")
-    serve_parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload.")
+    serve_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=_("system.web_commands.bind_host"),
+    )
+    serve_parser.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help=_("system.web_commands.bind_port"),
+    )
+    serve_parser.add_argument(
+        "--reload",
+        action="store_true",
+        help=_("system.web_commands.enable_uvicorn_reload"),
+    )
     serve_parser.add_argument(
         "--static-dir",
-        help="Serve a built frontend directory such as web/dist.",
+        help=_("system.web_commands.serve_built_frontend_directory"),
     )
     serve_parser.set_defaults(handler=run_web_serve)

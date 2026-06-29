@@ -11,26 +11,69 @@
 ╚══════╝╚═╝╚═╝     ╚══════╝ ╚═════╝ ╚══════╝
 ```
 
-`lifeos-cli` is a terminal-native LifeOS for people who want one structured system for intentions, plans, execution, reflection, and reality.
+`lifeos-cli` is a terminal-native, local-first LifeOS for quantified-self workflows. It gives one structured system for intentions, plans, execution, relationships, money, reflection, and measured reality.
+
+The product surface is already broad and deep: a typed Python CLI as the primary interface, SQLite and PostgreSQL backends, Alembic migrations, a local FastAPI service, and a first-party React Web UI for human browser workflows over the same configured LifeOS database. The CLI is designed to be both human-usable and agent-friendly, with stable command grammar, help-first documentation, identifier-driven flows, and predictable text output.
 
 ## Why It Exists
 
-Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in another, notes somewhere else, and actual time spent disappears into scattered logs.
-
-That makes it unnecessarily hard to answer practical questions such as:
+Most personal systems fragment life into disconnected tools. Tasks live in one place, calendars in another, notes somewhere else, and actual time spent disappears into scattered logs. That makes it hard to answer practical questions:
 
 - What did I intend to do?
 - What actually happened?
 - What did I spend time on?
 - Which routines are real versus aspirational?
 - Which people, projects, and priorities am I actually serving?
+- How do my plans, time, habits, notes, relationships, and finances connect?
 
-It gives structure to both sides of life:
+`lifeos-cli` treats a personal operating system as both a planning graph and an evidence ledger:
 
-- intention: visions, tasks, habits, and planned events
-- reality: notes, timelogs, completed habit actions, and relationship records
+- intention: areas, visions, tasks, habits, planned events, and finance structures
+- reality: timelogs, habit actions, notes, relationship records, finance snapshots, and aggregate stats
 
-The goal is not just storage, but one CLI interface for self-management, reflection, and automation.
+The goal is not just storage. The goal is a coherent command and API surface that humans and agents can use to capture life as it happens, inspect it later, and automate repeatable self-management workflows.
+
+## Current Capability Map
+
+The implemented system covers the main quantified-self loop from planning to evidence to review.
+
+| Area | Current support |
+| --- | --- |
+| Life structure | `area` records for durable life domains, with display ordering, color/icon metadata, active state, and soft deletion. |
+| Direction | `vision` records with status, area ownership, task trees, stats, experience points, task-effort synchronization, and harvest flow. |
+| Execution | Hierarchical `task` records with parent/child structure, planning-cycle fields, status updates, subtree and hierarchy views, reorder/move support, and aggregate stats. |
+| Calendar intent | Planned `event` records with appointment/timeblock/deadline types, all-day support, recurrence rules, instance-scoped recurring updates/deletes, task/area/person/tag links, and bounded expansion. |
+| Daily schedule | `schedule` day and range views that aggregate planned events, planning-cycle tasks, and habit actions, including overdue unfinished task and habit-action roll-forward behavior. |
+| Routines | `habit` records with daily/weekly/monthly/yearly cadence, weekday/weekend controls, task links, stats, and on-demand `habit-action` materialization. |
+| Time reality | `timelog` records with date and datetime entry modes, quick batch entry, list/search filters, relationship links, batch update/delete, templates, and area-based stats. |
+| Notes and reflection | `note` records with inline/stdin/file capture, search, full-content display, bulk content replacement, soft delete, and associations to tasks, visions, events, people, timelogs, and tags. |
+| Relationships | `people` records with relationship metadata, birthday/anniversary dates, tags, related activities, anniversaries, and links from events, notes, and timelogs. |
+| Taxonomy | `tag` records with category/entity-type metadata and association counts across supported resources. |
+| Finance | Assets, reusable finance trees, nodes, instant and period snapshots, exchange-rate snapshots, default tree bootstrapping, and balance-sheet/cashflow style data modeling. |
+| Data portability | Canonical JSON/JSONL export/import, full bundle backup/restore, dry-run validation, row-level errors, and machine-oriented batch update/delete. |
+| Configuration | Persistent database and preference configuration, including timezone, language, day boundary, week boundary, theme, and default vision experience rate. |
+| Local Web API | FastAPI routers for health, tasks, visions, habits, notes, timelogs, timelog templates, people, areas, finance, planned events, stats, tags, and preferences. |
+| Web UI | A first-party Vite/React workspace for visions, habits, planning, timelog, finance, insights/stats, schedule/calendar, notes, people, and settings. |
+
+## Interfaces
+
+The terminal-native CLI is the primary product interface and command reference:
+
+```bash
+lifeos --help
+lifeos <resource> --help
+lifeos <resource> <action> --help
+```
+
+The command shape is intentionally stable:
+
+```text
+lifeos <resource> <action> [arguments] [options]
+```
+
+This shape is intentionally friendly to both humans and agents. Humans get explicit, discoverable commands; agents get deterministic help, stable identifiers, compact tabular list output, and labeled detail output.
+
+The local Web UI is the human browser interface for the same LifeOS data. It is first-party and intentionally local: the Web API and UI use the same configured database as the CLI and are not a separate hosted service.
 
 ## Getting Started
 
@@ -46,14 +89,13 @@ Install PostgreSQL support only when you need it:
 uv tool install --upgrade "lifeos-cli[postgres]"
 ```
 
-Install the optional local Web API dependencies when you want browser or HTTP access
-backed by the same configured LifeOS database:
+Install the optional local Web API and Web UI runtime dependencies when you want human browser access or HTTP access backed by the same configured LifeOS database:
 
 ```bash
 uv tool install --upgrade "lifeos-cli[web]"
 ```
 
-`lifeos-cli` supports both SQLite and PostgreSQL.
+`lifeos-cli` supports SQLite and PostgreSQL.
 
 - SQLite is the low-friction option for local, single-user setups.
 - PostgreSQL remains the schema-capable backend for managed deployments.
@@ -66,23 +108,43 @@ lifeos init
 
 For local-first use, `lifeos init` can bootstrap SQLite without requiring a separate database service. Use `lifeos init --help` for backend-specific defaults and examples.
 
-You can run that step yourself, or ask an agent that can run terminal commands to do it for you.
-
-See the available command surface:
+Inspect and adjust runtime preferences:
 
 ```bash
-lifeos --help
+lifeos config show
+lifeos config set preferences.timezone America/Toronto
+lifeos config set preferences.language zh-Hans
+lifeos config set preferences.day_starts_at 04:00
+lifeos config set preferences.week_starts_on monday
 ```
 
-Start the local Web API server:
+## Common CLI Workflows
+
+```bash
+lifeos area add "Health" --color "#16A34A" --icon heart
+lifeos vision add "Build a stronger health baseline" --area-id <area-id>
+lifeos task add "Train three times this week" --vision-id <vision-id> --planning-cycle-type week --planning-cycle-days 7 --planning-cycle-start-date 2026-04-13
+lifeos event add "Strength training" --start-time 2026-04-13T18:00:00 --end-time 2026-04-13T19:00:00 --task-id <task-id>
+lifeos schedule show --date 2026-04-13
+lifeos timelog add "Workout" --start-time 2026-04-13T18:00:00 --end-time 2026-04-13T19:00:00 --task-id <task-id>
+lifeos habit add "Morning mobility" --start-date 2026-04-01 --duration-days 100 --cadence-frequency daily
+lifeos habit-action log --habit-id <habit-id> --date 2026-04-13 --status done
+lifeos note add "Energy was higher after sleeping earlier." --task-id <task-id>
+lifeos finance tree-ensure-default
+lifeos data export all --output lifeos-bundle.zip
+```
+
+For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md). Command-specific facts belong in CLI help, not in repository-level docs.
+
+## Local Web UI
+
+Start the local Web API server for browser access:
 
 ```bash
 lifeos web serve
 ```
 
-`lifeos web serve` does not install, build, or bundle the frontend workspace from
-PyPI. To serve a built checkout UI from the same process, build `web/` and pass
-its output directory explicitly:
+`lifeos web serve` does not install, build, or bundle the frontend workspace from PyPI. To serve the human Web UI from the same process in a source checkout, build `web/` and pass its output directory explicitly:
 
 ```bash
 lifeos web serve --static-dir web/dist
@@ -94,8 +156,7 @@ If your configured database URL uses PostgreSQL, install or run with both option
 uv run --extra web --extra postgres lifeos web serve
 ```
 
-During frontend development, run the Vite app in `web/` and proxy API requests to
-the local Web API:
+During frontend development, run the human-facing Vite app in `web/` and proxy API requests to the local Web API:
 
 ```bash
 cd web
@@ -103,27 +164,9 @@ npm install
 npm run dev
 ```
 
-Inspect and adjust runtime preferences:
+See [web/README.md](web/README.md) for frontend workspace details.
 
-```bash
-lifeos config show
-lifeos config set preferences.timezone America/Toronto
-lifeos config set preferences.language zh-Hans
-```
-
-Common commands:
-
-```bash
-lifeos schedule show --date 2026-04-13
-lifeos task list
-lifeos note add "Capture today's key decisions"
-lifeos timelog list --date 2026-04-13
-lifeos finance tree-ensure-default --purpose balance
-```
-
-For complete CLI usage, workflows, and output conventions, see [docs/cli.md](docs/cli.md).
-
-## Agent Use (Recommended)
+## Agent Use
 
 Any agent runtime that can execute terminal commands and inspect command output can operate the same CLI. That includes Codex, OpenCode, Swival, Claude Code, Cursor, Gemini CLI, OpenClaw, or your own setup.
 
@@ -132,30 +175,22 @@ Any agent runtime that can execute terminal commands and inspect command output 
 - identifier-driven discovery flows built around `list` and `show`
 - compact summary output for lists and labeled output for record detail views
 - entity-specific primary-key headers such as `task_id`, `vision_id`, and `event_id`
+- persisted language preference so agents can match human-authored payload language
+- data import/export commands for machine-generated cleanup, migration, and backup flows
 
-## Current Scope
+## Development Validation
 
-The current system already covers the core building blocks of a practical LifeOS:
+For repository changes, run the primary validation entrypoint:
 
-- notes
-- areas
-- tags
-- people
-- visions
-- tasks
-- habits and habit actions
-- events
-- timelogs
-- finance trees and snapshots
+```bash
+bash ./scripts/doctor.sh
+```
 
-Cross-cutting capabilities:
+For CLI documentation review, the help audit script executes the parser tree and renders a Markdown report:
 
-- a `schedule` read model that aggregates tasks, habit actions, and planned events into day and range views
-- recurring event expansion and recurring habit cadence support, including on-demand habit-action materialization
-- generic note associations across tasks, visions, events, people, timelogs, and tags
-- a unified finance tree and snapshot model for balance-sheet, cashflow, and custom financial records
-- persisted runtime configuration for database access plus preferences such as timezone, language, day boundary, week boundary, and vision experience defaults
-- localized CLI help and stable summary-table output for direct human use and agent consumption
+```bash
+uv run python scripts/audit_cli_help.py
+```
 
 ## Project Policies
 
