@@ -23,7 +23,6 @@ import {
   formatAmountForAsset,
   formatMoney,
   formatNumberForAsset,
-  getRequiredRateCurrencies,
   isoToDateInput,
   isoToDateTimeLocal,
   localDateTimeToIso,
@@ -32,7 +31,6 @@ import {
   todayDate,
   type PresetConfig,
   type SnapshotAmountState,
-  type SnapshotNoteState,
   type TreeNodeWithChildren,
 } from "./utils";
 
@@ -83,17 +81,16 @@ export function SnapshotFormPanel({
   const [periodEnd, setPeriodEnd] = useState(todayDate());
   const [title, setTitle] = useState("");
   const [amounts, setAmounts] = useState<SnapshotAmountState>({});
-  const [notes, setNotes] = useState<SnapshotNoteState>({});
   const [snapshotNote, setSnapshotNote] = useState("");
   const [selectedRateSnapshotId, setSelectedRateSnapshotId] = useState<UUID | "">("");
   const [settlementCurrency, setSettlementCurrency] = useState(tree.primary_currency);
-  const leafNodes = useMemo(
-    () => flattenTree(treeNodes).filter((node) => node.children.length === 0),
+  const flatNodes = useMemo(
+    () => flattenTree(treeNodes),
     [treeNodes],
   );
   const requiredSettlementCurrencies = useMemo(
-    () => getRequiredRateCurrencies(leafNodes, settlementCurrency),
-    [leafNodes, settlementCurrency],
+    () => getRequiredHoldingRateCurrencies(amounts, settlementCurrency),
+    [amounts, settlementCurrency],
   );
   const selectedRateSnapshot = useMemo(
     () => rateSnapshots.find((snapshot) => snapshot.id === selectedRateSnapshotId) ?? null,
@@ -139,7 +136,6 @@ export function SnapshotFormPanel({
       setPeriodEnd(todayDate());
       setTitle("");
       setAmounts({});
-      setNotes({});
       setSnapshotNote("");
       setSelectedRateSnapshotId("");
       setSettlementCurrency(tree.primary_currency);
@@ -154,15 +150,20 @@ export function SnapshotFormPanel({
     setSelectedRateSnapshotId(initialSnapshot.rate_snapshot_id ?? "");
     setSettlementCurrency(initialSnapshot.primary_currency || tree.primary_currency);
     const nextAmounts: SnapshotAmountState = {};
-    const nextNotes: SnapshotNoteState = {};
     (initialSnapshot.entries ?? [])
       .filter((entry) => !entry.is_auto_generated)
       .forEach((entry) => {
-        nextAmounts[entry.node_id] = entry.amount;
-        nextNotes[entry.node_id] = entry.note ?? "";
+        nextAmounts[entry.node_id] = [
+          ...(nextAmounts[entry.node_id] ?? []),
+          {
+            id: entry.id,
+            currencyCode: entry.currency_code,
+            amount: entry.amount,
+            note: entry.note ?? "",
+          },
+        ];
       });
     setAmounts(nextAmounts);
-    setNotes(nextNotes);
   }, [initialSnapshot, mode, tree.primary_currency]);
 
   useEffect(() => {
@@ -173,20 +174,35 @@ export function SnapshotFormPanel({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const entries = leafNodes.reduce<FinanceSnapshotEntryCreate[]>((acc, node) => {
-      const amount = amounts[node.id]?.trim();
-      if (!amount) {
-        return acc;
-      }
-      acc.push({
-        node_id: node.id,
-        amount: amount.replace(",", "."),
-        currency_code: node.currency_code || tree.primary_currency,
-        note: notes[node.id]?.trim() || null,
+    let hasHoldingWithoutAsset = false;
+    const entryNodes = flatNodes.filter(
+      (node) => !node.children.length || (amounts[node.id] ?? []).length > 0,
+    );
+    const entries = entryNodes.reduce<FinanceSnapshotEntryCreate[]>((acc, node) => {
+      (amounts[node.id] ?? []).forEach((holding) => {
+        const amount = holding.amount.trim();
+        if (!amount) {
+          return;
+        }
+        const currencyCode = normalizeHoldingCurrency(holding.currencyCode);
+        if (!currencyCode) {
+          hasHoldingWithoutAsset = true;
+          return;
+        }
+        acc.push({
+          node_id: node.id,
+          amount: amount.replace(",", "."),
+          currency_code: currencyCode,
+          note: holding.note.trim() || null,
+        });
       });
       return acc;
     }, []);
 
+    if (hasHoldingWithoutAsset) {
+      toast.showWarning(t("finance.messages.holdingAssetRequired"));
+      return;
+    }
     if (!entries.length) {
       toast.showWarning(t("finance.messages.noEntries"));
       return;
@@ -204,7 +220,6 @@ export function SnapshotFormPanel({
     if (mode === "create") {
       setTitle("");
       setAmounts({});
-      setNotes({});
       setSnapshotNote("");
       setSelectedRateSnapshotId("");
     }
@@ -237,7 +252,7 @@ export function SnapshotFormPanel({
             color="primary"
             variant="solid"
             iconName="check"
-            disabled={submitting || !leafNodes.length}
+            disabled={submitting || !flatNodes.length}
           />
         </div>
       </div>
@@ -331,19 +346,22 @@ export function SnapshotFormPanel({
         <SnapshotEntryTreeTable
           treeNodes={treeNodes}
           amounts={amounts}
-          notes={notes}
           aggregatedAmounts={hasCompleteRateSnapshot ? aggregatedAmounts : {}}
           nativeAggregatedAmounts={nativeAggregatedAmounts}
           primaryCurrency={settlementCurrency}
           conversionRates={conversionRates}
           assets={assets}
+          onCreateAsset={onCreateAsset}
           hasRateSnapshot={hasCompleteRateSnapshot}
           submitting={submitting}
-          onChangeAmount={(nodeId, value) =>
-            setAmounts((prev) => ({ ...prev, [nodeId]: value }))
+          onAddHolding={(node) =>
+            setAmounts((prev) => addExtraHoldingToNode(prev, node, settlementCurrency, assets))
           }
-          onChangeNote={(nodeId, value) =>
-            setNotes((prev) => ({ ...prev, [nodeId]: value }))
+          onChangeHolding={(nodeId, holdingId, patch) =>
+            setAmounts((prev) => updateHoldingInNode(prev, nodeId, holdingId, patch))
+          }
+          onRemoveHolding={(nodeId, holdingId) =>
+            setAmounts((prev) => removeHoldingFromNode(prev, nodeId, holdingId))
           }
         />
       </div>
@@ -413,29 +431,35 @@ function RateSnapshotSelectPanel({
 function SnapshotEntryTreeTable({
   treeNodes,
   amounts,
-  notes,
   aggregatedAmounts,
   nativeAggregatedAmounts,
   primaryCurrency,
   conversionRates,
   assets,
+  onCreateAsset,
   hasRateSnapshot,
   submitting,
-  onChangeAmount,
-  onChangeNote,
+  onAddHolding,
+  onChangeHolding,
+  onRemoveHolding,
 }: {
   treeNodes: TreeNodeWithChildren[];
   amounts: SnapshotAmountState;
-  notes: SnapshotNoteState;
   aggregatedAmounts: Record<UUID, string>;
   nativeAggregatedAmounts: Record<UUID, string>;
   primaryCurrency: string;
   conversionRates: Record<string, number>;
   assets: FinanceAsset[];
+  onCreateAsset: (code: string) => Promise<FinanceAsset>;
   hasRateSnapshot: boolean;
   submitting: boolean;
-  onChangeAmount: (nodeId: UUID, value: string) => void;
-  onChangeNote: (nodeId: UUID, value: string) => void;
+  onAddHolding: (node: TreeNodeWithChildren) => void;
+  onChangeHolding: (
+    nodeId: UUID,
+    holdingId: string,
+    patch: { currencyCode?: string; amount?: string; note?: string },
+  ) => void;
+  onRemoveHolding: (nodeId: UUID, holdingId: string) => void;
 }) {
   const { t } = useTranslation();
   const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
@@ -462,27 +486,39 @@ function SnapshotEntryTreeTable({
     nodes.flatMap((node) => {
       const hasChildren = node.children.length > 0;
       const isExpanded = expandedIds.has(node.id);
-      const amount = amounts[node.id] ?? "";
-      const nodeCurrency = node.currency_code || primaryCurrency;
-      const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
+      const holdings = amounts[node.id] ?? [];
+      const defaultCurrency = normalizeHoldingCurrency(node.currency_code || primaryCurrency);
+      const defaultHolding = holdings.find(
+        (holding) => normalizeHoldingCurrency(holding.currencyCode) === defaultCurrency,
+      );
+      const extraHoldings = holdings.filter((holding) => holding.id !== defaultHolding?.id);
       const nativeAggregatedAmount = nativeAggregatedAmounts[node.id] ?? "";
-      const convertedAmount = hasRateSnapshot
-        ? hasChildren
-          ? aggregatedAmount
-          : convertSnapshotAmount(
-              amount,
-              nodeCurrency,
-              primaryCurrency,
-              conversionRates,
-              assets,
-            )
-        : nativeAggregatedAmounts[node.id] ?? "";
-      const amountNegative = isNegativeAmount(amount);
-      const convertedNegative = isNegativeAmount(convertedAmount);
+      const aggregatedAmount = aggregatedAmounts[node.id] ?? "";
+      const defaultAmount = defaultHolding?.amount ?? "";
+      const defaultConvertedAmount = hasRateSnapshot
+        ? convertSnapshotAmount(
+            defaultAmount,
+            defaultCurrency,
+            primaryCurrency,
+            conversionRates,
+            assets,
+          )
+        : "";
+      const displayConvertedAmount = hasChildren ? aggregatedAmount : defaultConvertedAmount;
+      const defaultAmountNegative = isNegativeAmount(defaultAmount);
       const nativeAggregatedNegative = isNegativeAmount(nativeAggregatedAmount);
+      const displayConvertedNegative = isNegativeAmount(displayConvertedAmount);
 
       const rows: React.ReactNode[] = [
-        <tr key={node.id} className="border-base-200">
+        <tr
+          key={node.id}
+          className={[
+            "border-base-200",
+            hasChildren ? "border-l-4 border-l-base-content/30 bg-base-200/60" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <td className="align-top">
             <div
               className="flex items-start gap-3"
@@ -512,45 +548,82 @@ function SnapshotEntryTreeTable({
             </div>
           </td>
           <td className="align-top text-center">
-            <span className="text-base-content/70">{nodeCurrency.toUpperCase()}</span>
+            <span className="inline-flex min-h-[2.25rem] items-center text-base-content/70">
+              {defaultCurrency}
+            </span>
           </td>
           <td className="align-top">
             {hasChildren ? (
-              <div
-                className={[
-                  "min-h-[2.25rem] rounded-md border border-dashed border-base-200 px-3 py-2 text-sm",
-                  nativeAggregatedNegative ? "text-error" : "text-base-content/80",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {nativeAggregatedAmount || "-"}
+              <div className="flex min-w-[12rem] items-start gap-2">
+                <div
+                  className={[
+                    "min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 text-sm",
+                    nativeAggregatedNegative ? "text-error" : "text-base-content/80",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {nativeAggregatedAmount || "-"}
+                </div>
+                <ActionButton
+                  label=""
+                  iconName="plus"
+                  iconOnly
+                  size="xs"
+                  variant="ghost"
+                  ariaLabel={t("finance.snapshot.addHolding")}
+                  disabled={submitting}
+                  onClick={() => {
+                    onAddHolding(node);
+                    setExpandedIds((current) => new Set(current).add(node.id));
+                  }}
+                />
               </div>
             ) : (
-              <TextInput
-                type="text"
-                inputMode="decimal"
-                pattern={amountInputPattern(assetDecimalPlaces(assets, nodeCurrency))}
-                size="sm"
-                className={amountNegative ? "text-error" : "text-base-content"}
-                value={amount}
-                onChange={(event) => onChangeAmount(node.id, event.target.value)}
-                placeholder={t("finance.snapshot.balancePlaceholder")}
-                disabled={submitting}
-              />
+              <div className="flex min-w-[12rem] items-start gap-2">
+                <TextInput
+                  type="text"
+                  inputMode="decimal"
+                  pattern={amountInputPattern(assetDecimalPlaces(assets, defaultCurrency))}
+                  size="sm"
+                  className={defaultAmountNegative ? "text-error" : "text-base-content"}
+                  value={defaultAmount}
+                  onChange={(event) =>
+                    onChangeHolding(node.id, defaultHolding?.id ?? "", {
+                      currencyCode: defaultCurrency,
+                      amount: event.target.value,
+                    })
+                  }
+                  placeholder={t("finance.snapshot.balancePlaceholder")}
+                  disabled={submitting}
+                />
+                <ActionButton
+                  label=""
+                  iconName="plus"
+                  iconOnly
+                  size="xs"
+                  variant="ghost"
+                  ariaLabel={t("finance.snapshot.addHolding")}
+                  disabled={submitting}
+                  onClick={() => {
+                    onAddHolding(node);
+                    setExpandedIds((current) => new Set(current).add(node.id));
+                  }}
+                />
+              </div>
             )}
           </td>
           <td className="align-top">
-            {convertedAmount ? (
+            {displayConvertedAmount ? (
               <span
                 className={[
                   "inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm",
-                  convertedNegative ? "text-error" : "text-base-content/80",
+                  displayConvertedNegative ? "text-error" : "text-base-content/80",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
-                {convertedAmount}
+                {displayConvertedAmount}
               </span>
             ) : (
               <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
@@ -567,8 +640,13 @@ function SnapshotEntryTreeTable({
               <TextInput
                 type="text"
                 size="sm"
-                value={notes[node.id] ?? ""}
-                onChange={(event) => onChangeNote(node.id, event.target.value)}
+                value={defaultHolding?.note ?? ""}
+                onChange={(event) =>
+                  onChangeHolding(node.id, defaultHolding?.id ?? "", {
+                    currencyCode: defaultCurrency,
+                    note: event.target.value,
+                  })
+                }
                 placeholder={t("finance.snapshot.notePlaceholder")}
                 disabled={submitting}
               />
@@ -576,6 +654,112 @@ function SnapshotEntryTreeTable({
           </td>
         </tr>,
       ];
+
+      if (isExpanded) {
+        (hasChildren ? holdings : extraHoldings).forEach((holding) => {
+          const holdingCurrency = normalizeHoldingCurrency(holding.currencyCode);
+          const holdingPrecisionCurrency = holdingCurrency || primaryCurrency;
+          const convertedHoldingAmount = hasRateSnapshot
+            ? holdingCurrency
+              ? convertSnapshotAmount(
+                  holding.amount,
+                  holdingCurrency,
+                  primaryCurrency,
+                  conversionRates,
+                  assets,
+                )
+              : ""
+            : "";
+          const amountNegative = isNegativeAmount(holding.amount);
+          const holdingConvertedNegative = isNegativeAmount(convertedHoldingAmount);
+          rows.push(
+            <tr
+              key={`${node.id}:${holding.id}`}
+              className="border-base-200 border-l-4 border-l-transparent bg-base-100"
+            >
+              <td className="align-top">
+                <div
+                  className="flex items-start gap-3"
+                  style={{ paddingLeft: `${(depth + 1) * 1.25}rem` }}
+                />
+              </td>
+              <td className="align-top">
+                <AssetSelect
+                  assets={assets}
+                  value={holdingCurrency}
+                  onChange={(currencyCode) =>
+                    onChangeHolding(node.id, holding.id, { currencyCode })
+                  }
+                  onCreateAsset={onCreateAsset}
+                  disabled={submitting}
+                  size="sm"
+                  className="min-w-[8rem]"
+                />
+              </td>
+              <td className="align-top">
+                <div className="flex min-w-[12rem] items-start gap-2">
+                  <TextInput
+                    type="text"
+                    inputMode="decimal"
+                    pattern={amountInputPattern(
+                      assetDecimalPlaces(assets, holdingPrecisionCurrency),
+                    )}
+                    size="sm"
+                    className={amountNegative ? "text-error" : "text-base-content"}
+                    value={holding.amount}
+                    onChange={(event) =>
+                      onChangeHolding(node.id, holding.id, { amount: event.target.value })
+                    }
+                    placeholder={t("finance.snapshot.balancePlaceholder")}
+                    disabled={submitting}
+                  />
+                  <ActionButton
+                    label=""
+                    iconName="trash"
+                    iconOnly
+                    size="xs"
+                    variant="ghost"
+                    color="error"
+                    ariaLabel={t("finance.snapshot.removeHolding")}
+                    disabled={submitting}
+                    onClick={() => onRemoveHolding(node.id, holding.id)}
+                  />
+                </div>
+              </td>
+              <td className="align-top">
+                {convertedHoldingAmount ? (
+                  <span
+                    className={[
+                      "inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm",
+                      holdingConvertedNegative ? "text-error" : "text-base-content/80",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {convertedHoldingAmount}
+                  </span>
+                ) : (
+                  <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
+                    -
+                  </span>
+                )}
+              </td>
+              <td className="align-top">
+                <TextInput
+                  type="text"
+                  size="sm"
+                  value={holding.note}
+                  onChange={(event) =>
+                    onChangeHolding(node.id, holding.id, { note: event.target.value })
+                  }
+                  placeholder={t("finance.snapshot.notePlaceholder")}
+                  disabled={submitting}
+                />
+              </td>
+            </tr>,
+          );
+        });
+      }
 
       if (hasChildren && isExpanded) {
         rows.push(...renderRows(node.children, depth + 1));
@@ -598,7 +782,7 @@ function SnapshotEntryTreeTable({
                   {t("finance.snapshot.node")}
                 </th>
                 <th className="w-20 px-4 py-2 text-center">
-                  {t("finance.snapshot.originalCurrency")}
+                  {t("finance.snapshot.asset")}
                 </th>
                 <th className="min-w-[10rem] px-4 py-2">
                   {t("finance.snapshot.originalAmount")}
@@ -692,6 +876,13 @@ function AssetSummaryPanel({
   const totalValue = canShowTotal
     ? convertedRows.reduce((sum, row) => sum + (row.convertedValue ?? 0), 0)
     : null;
+  const rowsWithShare = convertedRows.map((row) => ({
+    ...row,
+    share:
+      totalValue !== null && totalValue !== 0 && row.convertedValue !== null
+        ? formatSharePercentage(row.convertedValue / totalValue)
+        : "",
+  }));
 
   return (
     <div className="rounded-lg border border-base-300 bg-base-100">
@@ -715,10 +906,11 @@ function AssetSummaryPanel({
               <th className="text-right">
                 {t("finance.metrics.convertTo", { currency: primaryCurrency })}
               </th>
+              <th className="text-right">{t("finance.metrics.share")}</th>
             </tr>
           </thead>
           <tbody>
-            {convertedRows.map((row) => (
+            {rowsWithShare.map((row) => (
               <tr key={row.currency}>
                 <td className="font-medium">{row.currency}</td>
                 <td className="text-right tabular-nums">{row.amount}</td>
@@ -741,6 +933,9 @@ function AssetSummaryPanel({
                   ) : (
                     <span className="text-base-content/40">-</span>
                   )}
+                </td>
+                <td className="text-right tabular-nums">
+                  {row.share || <span className="text-base-content/40">-</span>}
                 </td>
               </tr>
             ))}
@@ -799,15 +994,15 @@ export function SnapshotDetail({
     [snapshot.exchange_rates],
   );
 
-  const [expandedIds, setExpandedIds] = useState<Set<UUID>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const expandableIds = new Set<UUID>();
+    const expandableIds = new Set<string>();
     collectExpandableSnapshotNodeIds(displayTree, expandableIds);
     setExpandedIds(expandableIds);
   }, [displayTree]);
 
-  const toggleNode = (nodeId: UUID) => {
+  const toggleNode = (nodeId: string) => {
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(nodeId)) {
@@ -852,7 +1047,7 @@ export function SnapshotDetail({
                   {t("finance.snapshot.node")}
                 </th>
                 <th className="w-20 px-4 py-2 text-center">
-                  {t("finance.snapshot.originalCurrency")}
+                  {t("finance.snapshot.asset")}
                 </th>
                 <th className="min-w-[10rem] px-4 py-2">
                   {t("finance.snapshot.originalAmount")}
@@ -867,6 +1062,8 @@ export function SnapshotDetail({
               {visibleNodes.map((node) => {
                 const hasChildren = node.children.length > 0;
                 const isExpanded = expandedIds.has(node.id);
+                const hasNodeLabel = node.name.trim().length > 0;
+                const isAggregateRow = hasChildren || node.isAutoGenerated;
                 const originalAmount = parseDisplayAmount(node.amount);
                 const convertedAmount = parseDisplayAmount(node.amountConverted);
                 const originalAmountClass =
@@ -883,7 +1080,15 @@ export function SnapshotDetail({
                       : "text-base-content";
 
                 return (
-                  <tr key={node.id} className="border-base-200">
+                  <tr
+                    key={node.id}
+                    className={[
+                      "border-base-200",
+                      isAggregateRow
+                        ? "border-l-4 border-l-base-content/30 bg-base-200/60"
+                        : "border-l-4 border-l-transparent",
+                    ].join(" ")}
+                  >
                     <td className="align-top">
                       <div
                         className="flex items-start gap-2"
@@ -901,13 +1106,17 @@ export function SnapshotDetail({
                             ariaExpanded={isExpanded}
                             onClick={() => toggleNode(node.id)}
                           />
-                        ) : (
+                        ) : hasNodeLabel ? (
                           <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
                             •
                           </span>
+                        ) : (
+                          <span className="inline-flex h-5 w-5 flex-shrink-0" />
                         )}
                         <div className="min-w-0 space-y-1">
-                          <span className="font-medium text-base-content">{node.name}</span>
+                          {hasNodeLabel ? (
+                            <span className="font-medium text-base-content">{node.name}</span>
+                          ) : null}
                         </div>
                       </div>
                     </td>
@@ -920,7 +1129,7 @@ export function SnapshotDetail({
                       </span>
                     </td>
                     <td className="align-top">
-                      {usesConvertedAggregation ? (
+                      {usesConvertedAggregation && node.amountConverted ? (
                         <span className={`tabular-nums ${convertedAmountClass}`}>
                           {formatMoney(node.amountConverted, snapshot.primary_currency, assets)}
                         </span>
@@ -965,7 +1174,7 @@ export function SnapshotDetail({
 type SnapshotEntry = NonNullable<FinanceSnapshot["entries"]>[number];
 
 type SnapshotDisplayNode = {
-  id: UUID;
+  id: string;
   name: string;
   depth: number;
   amount: string;
@@ -983,36 +1192,76 @@ function buildSnapshotDisplayTree(
   primaryCurrency: string,
   assets: FinanceAsset[],
 ): SnapshotDisplayNode[] {
-  const entryByNodeId = new Map<UUID, SnapshotEntry>();
+  const manualEntriesByNodeId = new Map<UUID, SnapshotEntry[]>();
+  const rollupEntriesByNodeId = new Map<UUID, SnapshotEntry[]>();
   entries.forEach((entry) => {
-    entryByNodeId.set(entry.node_id, entry);
+    const target = entry.is_auto_generated ? rollupEntriesByNodeId : manualEntriesByNodeId;
+    target.set(entry.node_id, [...(target.get(entry.node_id) ?? []), entry]);
   });
-  const usedNodeIds = new Set<UUID>();
+  const usedEntryIds = new Set<string>();
 
   const buildNodes = (nodes: TreeNodeWithChildren[], depth: number): SnapshotDisplayNode[] =>
     nodes
       .map((node) => {
-        const children = buildNodes(node.children, depth + 1);
-        const entry = entryByNodeId.get(node.id);
-        if (entry) {
-          usedNodeIds.add(node.id);
+        const childNodes = buildNodes(node.children, depth + 1);
+        const manualEntries = manualEntriesByNodeId.get(node.id) ?? [];
+        const rollupEntries = rollupEntriesByNodeId.get(node.id) ?? [];
+        const inlineSingleHolding = !childNodes.length && manualEntries.length === 1;
+        const sortedManualEntries = [...manualEntries].sort((left, right) =>
+          left.currency_code.localeCompare(right.currency_code),
+        );
+        const sortedRollupEntries = [...rollupEntries].sort((left, right) =>
+          left.currency_code.localeCompare(right.currency_code),
+        );
+        const holdingChildren = sortedManualEntries
+          .filter(() => !inlineSingleHolding)
+          .map((entry) => {
+            usedEntryIds.add(entry.id);
+            return {
+              id: `${node.id}:${entry.id}`,
+              name: "",
+              depth: depth + 1,
+              amount: entry.amount,
+              amountConverted: entry.amount_converted,
+              currencyCode: entry.currency_code,
+              note: entry.note ?? null,
+              isAutoGenerated: false,
+              children: [],
+            } satisfies SnapshotDisplayNode;
+          });
+        if (inlineSingleHolding) {
+          usedEntryIds.add(manualEntries[0].id);
         }
-        if (!entry && !children.length) {
+        const children = [...holdingChildren, ...childNodes];
+        if (!rollupEntries.length && !manualEntries.length && !children.length) {
           return null;
         }
-        const amountConverted =
-          entry?.amount_converted ??
-          (useConvertedRollups ? sumSnapshotNodeAmounts(children, primaryCurrency, assets) : "");
-        const currencyCode = entry?.currency_code ?? node.currency_code ?? primaryCurrency;
+        rollupEntries.forEach((entry) => usedEntryIds.add(entry.id));
+        const inlineEntry = inlineSingleHolding ? manualEntries[0] : null;
+        const amountConverted = useConvertedRollups
+          ? (rollupEntries[0]?.amount_converted ??
+            inlineEntry?.amount_converted ??
+            sumSnapshotNodeAmounts(children, primaryCurrency, assets))
+          : "";
+        const amount = useConvertedRollups
+          ? formatAmountForAsset(amountConverted, primaryCurrency, assets)
+          : (sortedRollupEntries.length ? sortedRollupEntries : inlineEntry ? [inlineEntry] : [])
+              .map((entry) => `${entry.amount} ${entry.currency_code}`)
+              .join(", ");
+        const currencyCode = useConvertedRollups
+          ? primaryCurrency
+          : rollupEntries.length === 1 || inlineEntry
+            ? (rollupEntries[0] ?? inlineEntry)?.currency_code ?? ""
+            : "";
         return {
           id: node.id,
           name: node.name,
           depth,
-          amount: entry?.amount ?? formatAmountForAsset(amountConverted, currencyCode, assets),
+          amount,
           amountConverted,
           currencyCode,
-          note: entry?.note ?? null,
-          isAutoGenerated: entry?.is_auto_generated ?? false,
+          note: inlineEntry?.note ?? null,
+          isAutoGenerated: rollupEntries.length > 0,
           children,
         } satisfies SnapshotDisplayNode;
       })
@@ -1020,11 +1269,11 @@ function buildSnapshotDisplayTree(
 
   const roots = buildNodes(treeNodes, 0);
   const orphanEntries = entries
-    .filter((entry) => !usedNodeIds.has(entry.node_id))
+    .filter((entry) => !usedEntryIds.has(entry.id))
     .map(
       (entry) =>
         ({
-          id: entry.node_id,
+          id: entry.id,
           name: entry.node_name ?? entry.node_id,
           depth: 0,
           amount: entry.amount,
@@ -1081,39 +1330,6 @@ function buildSummaryRowsFromAmountsByCurrency(
       numericAmount: 0,
     },
   ];
-}
-
-function buildNativeCurrencySummaryRows(
-  nodes: TreeNodeWithChildren[],
-  amounts: SnapshotAmountState,
-  primaryCurrency: string,
-  assets: FinanceAsset[],
-): AssetSummaryRow[] {
-  const totals = new Map<string, number>();
-  const visit = (node: TreeNodeWithChildren) => {
-    if (!node.children.length) {
-      const amount = amounts[node.id]?.trim() ?? "";
-      if (!amount) {
-        return;
-      }
-      const parsed = parseDisplayAmount(amount);
-      if (!Number.isFinite(parsed)) {
-        return;
-      }
-      const currency = (node.currency_code || primaryCurrency).toUpperCase();
-      totals.set(currency, (totals.get(currency) ?? 0) + parsed);
-      return;
-    }
-    node.children.forEach(visit);
-  };
-  nodes.forEach(visit);
-  return Array.from(totals.entries())
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([currency, value]) => ({
-      currency,
-      amount: formatNumberForAsset(value, currency, assets),
-      numericAmount: value,
-    }));
 }
 
 function getSummaryAggregationMode(summary?: Record<string, unknown> | null): string {
@@ -1202,6 +1418,13 @@ function rateInfoTooltip(rateInfo: RateInfo, assets: FinanceAsset[]): string {
   return [primaryLine, ...sourceLines, pathLine].filter(Boolean).join("\n");
 }
 
+function formatSharePercentage(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+  return `${(value * 100).toFixed(2)}%`;
+}
+
 function rateSnapshotTooltip(snapshot: FinanceRateSnapshot, assets: FinanceAsset[]): string {
   const lines = (snapshot.entries ?? []).map((entry) => {
     const baseAmount = formatAmountForAsset("1", entry.base_currency, assets);
@@ -1220,6 +1443,126 @@ function includeFinanceNodeIds(nodes: TreeNodeWithChildren[], target: Set<UUID>)
   });
 }
 
+function createHoldingId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `holding-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizeHoldingCurrency(currency: string): string {
+  return currency.trim().toUpperCase();
+}
+
+function nextExtraHoldingCurrency(
+  existingCurrencies: string[],
+  defaultCurrency: string,
+  assets: FinanceAsset[],
+): string {
+  const used = new Set(existingCurrencies.map(normalizeHoldingCurrency));
+  const normalizedDefault = normalizeHoldingCurrency(defaultCurrency);
+  const available = assets
+    .map((asset) => asset.code)
+    .find((assetCode) => {
+      const normalized = normalizeHoldingCurrency(assetCode);
+      return normalized !== normalizedDefault && !used.has(normalized);
+    });
+  return available ?? "";
+}
+
+function addExtraHoldingToNode(
+  current: SnapshotAmountState,
+  node: TreeNodeWithChildren,
+  primaryCurrency: string,
+  assets: FinanceAsset[],
+): SnapshotAmountState {
+  const existing = current[node.id] ?? [];
+  const currencyCode = nextExtraHoldingCurrency(
+    existing.map((holding) => holding.currencyCode),
+    node.currency_code || primaryCurrency,
+    assets,
+  );
+  return {
+    ...current,
+    [node.id]: [
+      ...existing,
+      {
+        id: createHoldingId(),
+        currencyCode,
+        amount: "",
+        note: "",
+      },
+    ],
+  };
+}
+
+function updateHoldingInNode(
+  current: SnapshotAmountState,
+  nodeId: UUID,
+  holdingId: string,
+  patch: { currencyCode?: string; amount?: string; note?: string },
+): SnapshotAmountState {
+  if (!holdingId) {
+    const created = {
+      id: createHoldingId(),
+      currencyCode: normalizeHoldingCurrency(patch.currencyCode ?? ""),
+      amount: patch.amount ?? "",
+      note: patch.note ?? "",
+    };
+    return {
+      ...current,
+      [nodeId]: [...(current[nodeId] ?? []), created],
+    };
+  }
+  return {
+    ...current,
+    [nodeId]: (current[nodeId] ?? []).map((holding) =>
+      holding.id === holdingId
+        ? {
+            ...holding,
+            ...patch,
+            currencyCode:
+              patch.currencyCode !== undefined
+                ? normalizeHoldingCurrency(patch.currencyCode)
+                : holding.currencyCode,
+          }
+        : holding,
+    ),
+  };
+}
+
+function removeHoldingFromNode(
+  current: SnapshotAmountState,
+  nodeId: UUID,
+  holdingId: string,
+): SnapshotAmountState {
+  const remaining = (current[nodeId] ?? []).filter((holding) => holding.id !== holdingId);
+  if (remaining.length) {
+    return { ...current, [nodeId]: remaining };
+  }
+  const next = { ...current };
+  delete next[nodeId];
+  return next;
+}
+
+function getRequiredHoldingRateCurrencies(
+  amounts: SnapshotAmountState,
+  settlementCurrency: string,
+): string[] {
+  const settlement = normalizeHoldingCurrency(settlementCurrency);
+  const currencies = new Set<string>();
+  Object.values(amounts).forEach((holdings) => {
+    holdings.forEach((holding) => {
+      const amount = holding.amount.trim();
+      const currency = normalizeHoldingCurrency(holding.currencyCode);
+      if (amount && currency && currency !== settlement) {
+        currencies.add(currency);
+      }
+    });
+  });
+  return Array.from(currencies).sort((left, right) => left.localeCompare(right));
+}
+
 function buildAggregatedSnapshotAmounts(
   nodes: TreeNodeWithChildren[],
   amounts: SnapshotAmountState,
@@ -1230,21 +1573,21 @@ function buildAggregatedSnapshotAmounts(
   const result: Record<UUID, string> = {};
 
   const visit = (node: TreeNodeWithChildren): string => {
-    if (!node.children.length) {
-      const convertedAmount = convertSnapshotAmount(
-        amounts[node.id] ?? "",
-        node.currency_code || primaryCurrency,
-        primaryCurrency,
-        conversionRates,
-        assets,
-      );
-      if (convertedAmount) {
-        result[node.id] = convertedAmount;
-      }
-      return convertedAmount;
+    const convertedAmounts = (amounts[node.id] ?? [])
+      .map((holding) =>
+        convertSnapshotAmount(
+          holding.amount,
+          holding.currencyCode || node.currency_code || primaryCurrency,
+          primaryCurrency,
+          conversionRates,
+          assets,
+        ),
+      )
+      .filter(Boolean);
+    if (node.children.length) {
+      convertedAmounts.push(...node.children.map(visit));
     }
-
-    const total = sumAmountStrings(node.children.map(visit), primaryCurrency, assets);
+    const total = sumAmountStrings(convertedAmounts, primaryCurrency, assets);
     if (total) {
       result[node.id] = total;
     }
@@ -1264,27 +1607,29 @@ function buildNativeSnapshotAmounts(
   const result: Record<UUID, string> = {};
 
   const visit = (node: TreeNodeWithChildren): Map<string, number> => {
-    if (!node.children.length) {
-      const amount = amounts[node.id]?.trim() ?? "";
-      const parsed = Number(amount);
-      if (!amount || !Number.isFinite(parsed)) {
-        return new Map();
-      }
-      const currency = (node.currency_code || primaryCurrency).toUpperCase();
-      result[node.id] = formatAmountForAsset(amount, currency, assets);
-      return new Map([[currency, parsed]]);
-    }
-
     const totals = new Map<string, number>();
-    node.children.forEach((child) => {
-      visit(child).forEach((value, currency) => {
-        totals.set(currency, (totals.get(currency) ?? 0) + value);
-      });
+    (amounts[node.id] ?? []).forEach((holding) => {
+      const amount = holding.amount.trim() ?? "";
+      const parsed = parseDisplayAmount(amount);
+      if (!amount || !Number.isFinite(parsed)) {
+        return;
+      }
+      const currency = normalizeHoldingCurrency(
+        holding.currencyCode || node.currency_code || primaryCurrency,
+      );
+      totals.set(currency, (totals.get(currency) ?? 0) + parsed);
     });
+    if (node.children.length) {
+      node.children.forEach((child) => {
+        visit(child).forEach((value, currency) => {
+          totals.set(currency, (totals.get(currency) ?? 0) + value);
+        });
+      });
+    }
     if (totals.size) {
       result[node.id] = Array.from(totals.entries())
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([currency, value]) => formatNumberForAsset(value, currency, assets))
+        .map(([currency, value]) => `${formatNumberForAsset(value, currency, assets)} ${currency}`)
         .join(", ");
     }
     return totals;
@@ -1292,6 +1637,37 @@ function buildNativeSnapshotAmounts(
 
   nodes.forEach(visit);
   return result;
+}
+
+function buildNativeCurrencySummaryRows(
+  nodes: TreeNodeWithChildren[],
+  amounts: SnapshotAmountState,
+  primaryCurrency: string,
+  assets: FinanceAsset[],
+): AssetSummaryRow[] {
+  const totals = new Map<string, number>();
+  const visit = (node: TreeNodeWithChildren) => {
+    (amounts[node.id] ?? []).forEach((holding) => {
+      const amount = holding.amount.trim() ?? "";
+      const parsed = parseDisplayAmount(amount);
+      if (!amount || !Number.isFinite(parsed)) {
+        return;
+      }
+      const currency = normalizeHoldingCurrency(
+        holding.currencyCode || node.currency_code || primaryCurrency,
+      );
+      totals.set(currency, (totals.get(currency) ?? 0) + parsed);
+    });
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return Array.from(totals.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([currency, value]) => ({
+      currency,
+      amount: formatNumberForAsset(value, currency, assets),
+      numericAmount: value,
+    }));
 }
 
 function buildConversionRateMap(
@@ -1395,7 +1771,7 @@ function amountInputPattern(decimalPlaces: number): string {
 
 function collectExpandableSnapshotNodeIds(
   nodes: SnapshotDisplayNode[],
-  target: Set<UUID>,
+  target: Set<string>,
 ) {
   nodes.forEach((node) => {
     if (node.children.length) {
@@ -1407,7 +1783,7 @@ function collectExpandableSnapshotNodeIds(
 
 function flattenVisibleSnapshotNodes(
   nodes: SnapshotDisplayNode[],
-  expandedIds: Set<UUID>,
+  expandedIds: Set<string>,
 ): SnapshotDisplayNode[] {
   const result: SnapshotDisplayNode[] = [];
   const walk = (items: SnapshotDisplayNode[]) => {

@@ -1408,6 +1408,7 @@
       "summary": "Summary",
       "details": "Details",
       "convertTo": "Convert to {{currency}}",
+      "share": "Share",
       "totalValue": "Total value"
     },
     "assets": {
@@ -1472,8 +1473,11 @@
       "periodStart": "Period start",
       "periodEnd": "Period end",
       "settlementCurrency": "Settlement asset",
-      "tableTitle": "Record finance entries",
+      "tableTitle": "Record account holdings",
       "node": "Node",
+      "asset": "Asset",
+      "addHolding": "Add holding",
+      "removeHolding": "Remove holding",
       "amount": "Amount",
       "currency": "Currency",
       "originalCurrency": "Original currency",
@@ -1488,7 +1492,7 @@
       "deleteTitle": "Delete snapshot",
       "deleteMessage": "Delete {{name}}?",
       "deleteConfirm": "Delete snapshot",
-      "noEntryNodes": "Add at least one leaf node before saving a snapshot.",
+      "noEntryNodes": "Add at least one finance node before saving a snapshot.",
       "auto": "Auto",
       "manual": "Manual",
       "source": "Source"
@@ -1547,6 +1551,7 @@
       "snapshotUpdated": "Finance snapshot updated",
       "snapshotDeleted": "Finance snapshot deleted",
       "noEntries": "Enter at least one amount before saving.",
+      "holdingAssetRequired": "Select or create an asset for every holding with an amount.",
       "rateSnapshotMissingRates": "The selected rate snapshot is missing: {{currencies}}.",
       "rateSnapshotRatesRequired": "Enter a positive rate for every required currency."
     }

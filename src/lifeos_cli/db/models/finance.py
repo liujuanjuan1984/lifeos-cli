@@ -185,9 +185,11 @@ class FinanceSnapshotEntry(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixi
     __tablename__ = "finance_snapshot_entries"
     __table_args__ = (
         Index(
-            "uq_finance_snapshot_entries_snapshot_node_active",
+            "uq_finance_snapshot_entries_snapshot_node_currency_auto_active",
             "snapshot_id",
             "node_id",
+            "currency_code",
+            "is_auto_generated",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),

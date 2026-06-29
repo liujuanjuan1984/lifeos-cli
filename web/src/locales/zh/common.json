@@ -1408,6 +1408,7 @@
       "summary": "汇总",
       "details": "详情",
       "convertTo": "换算为 {{currency}}",
+      "share": "占比",
       "totalValue": "总值"
     },
     "assets": {
@@ -1472,8 +1473,11 @@
       "periodStart": "周期开始",
       "periodEnd": "周期结束",
       "settlementCurrency": "结算资产",
-      "tableTitle": "录入财务条目",
+      "tableTitle": "录入账户持仓",
       "node": "节点",
+      "asset": "资产",
+      "addHolding": "添加持仓",
+      "removeHolding": "移除持仓",
       "amount": "金额",
       "currency": "币种",
       "originalCurrency": "原币种",
@@ -1488,7 +1492,7 @@
       "deleteTitle": "删除快照",
       "deleteMessage": "删除 {{name}}？",
       "deleteConfirm": "删除快照",
-      "noEntryNodes": "保存快照前，请先添加至少一个叶子节点。",
+      "noEntryNodes": "保存快照前，请先添加至少一个财务节点。",
       "auto": "自动",
       "manual": "手动",
       "source": "来源"
@@ -1547,6 +1551,7 @@
       "snapshotUpdated": "财务快照已更新",
       "snapshotDeleted": "财务快照已删除",
       "noEntries": "保存前请至少填写一个金额。",
+      "holdingAssetRequired": "请为每条已填写金额的持仓选择或创建资产。",
       "rateSnapshotMissingRates": "当前汇率快照缺少这些币种：{{currencies}}。",
       "rateSnapshotRatesRequired": "请为每个必需币种填写正数汇率。"
     }
