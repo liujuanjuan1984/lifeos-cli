@@ -15,6 +15,15 @@ export type PresetConfig = {
 };
 
 export type FinanceTab = PresetConfig["report"] | "rates" | "trees";
+export type FinanceToolbarTab = FinanceTab | "assets";
+
+export const FINANCE_TOOLBAR_ORDER = [
+  "assets",
+  "trees",
+  "rates",
+  "balance",
+  "cashflow",
+] as const satisfies readonly FinanceToolbarTab[];
 
 export type TreeNodeWithChildren = FinanceTreeNode & {
   children: TreeNodeWithChildren[];
