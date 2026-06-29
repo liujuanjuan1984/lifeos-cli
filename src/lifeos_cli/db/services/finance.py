@@ -712,10 +712,8 @@ async def _load_entry_nodes(
     if not entries:
         raise FinanceValidationError("Finance snapshot requires at least one entry")
     node_ids = [entry.node_id for entry in entries]
-    if len(set(node_ids)) != len(node_ids):
-        raise FinanceValidationError("Finance snapshot entries must reference unique nodes")
     stmt = select(FinanceTreeNode).where(
-        FinanceTreeNode.id.in_(node_ids),
+        FinanceTreeNode.id.in_(set(node_ids)),
         FinanceTreeNode.tree_id == tree_id,
         FinanceTreeNode.deleted_at.is_(None),
     )
@@ -1343,12 +1341,21 @@ async def _rebuild_finance_snapshot_entries(
         amount = _decimal(entry_input.amount)
         normalized_inputs.append((entry_input, node, amount, currency_code))
         entry_currency_codes.add(currency_code)
+    seen_entry_keys: set[tuple[UUID, str]] = set()
+    for _, node, _, currency_code in normalized_inputs:
+        entry_key = (node.id, currency_code)
+        if entry_key in seen_entry_keys:
+            raise FinanceValidationError(
+                f"Finance snapshot entries must reference unique assets per node: "
+                f"{node.name} {currency_code}"
+            )
+        seen_entry_keys.add(entry_key)
     decimal_places_by_code = await _load_asset_decimal_places(
         session,
         currency_codes=entry_currency_codes,
     )
     snapshot_entries: list[FinanceSnapshotEntry] = []
-    entry_by_node_id: dict[UUID, FinanceSnapshotEntry] = {}
+    manual_entries_by_node_id: dict[UUID, list[FinanceSnapshotEntry]] = {}
     used_rates: dict[str, RateResolution] = {}
     missing_rate_currencies: set[str] = set()
     for entry_input, node, amount, currency_code in normalized_inputs:
@@ -1388,53 +1395,59 @@ async def _rebuild_finance_snapshot_entries(
         )
         session.add(entry)
         snapshot_entries.append(entry)
-        entry_by_node_id[node.id] = entry
+        manual_entries_by_node_id.setdefault(node.id, []).append(entry)
 
     rollup_nodes = await _load_rollup_nodes(session, tree_id=tree.id)
     all_nodes = {node.id: node for node in await list_finance_nodes(session, tree_id=tree.id)}
     for rollup_node in rollup_nodes:
-        if rollup_node.id in entry_by_node_id:
-            continue
         descendant_entries = [
             entry
-            for node_id, entry in entry_by_node_id.items()
+            for node_id, node_entries in manual_entries_by_node_id.items()
+            for entry in node_entries
             if all_nodes.get(node_id) is not None
-            and all_nodes[node_id].path.startswith(f"{rollup_node.path}/")
+            and (
+                all_nodes[node_id].id == rollup_node.id
+                or all_nodes[node_id].path.startswith(f"{rollup_node.path}/")
+            )
         ]
         if not descendant_entries:
             continue
         use_converted_rollups = rate_snapshot is not None and not missing_rate_currencies
         if not use_converted_rollups:
-            descendant_currencies = {entry.currency_code for entry in descendant_entries}
-            if len(descendant_currencies) != 1:
-                continue
-            rollup_currency = next(iter(descendant_currencies))
-            amount = _quantize_amount(
-                sum((entry.amount for entry in descendant_entries), Decimal("0"))
-            )
-            entry = FinanceSnapshotEntry(
-                snapshot_id=snapshot.id,
-                node_id=rollup_node.id,
-                amount=amount,
-                currency_code=rollup_currency,
-                amount_converted=amount,
-                is_auto_generated=True,
-            )
-        else:
-            amount_converted = _quantize_amount(
-                sum((entry.amount_converted for entry in descendant_entries), Decimal("0"))
-            )
-            entry = FinanceSnapshotEntry(
-                snapshot_id=snapshot.id,
-                node_id=rollup_node.id,
-                amount=amount_converted,
-                currency_code=snapshot.primary_currency,
-                amount_converted=amount_converted,
-                is_auto_generated=True,
-            )
+            entries_by_currency: dict[str, list[FinanceSnapshotEntry]] = {}
+            for descendant_entry in descendant_entries:
+                entries_by_currency.setdefault(
+                    descendant_entry.currency_code,
+                    [],
+                ).append(descendant_entry)
+            for rollup_currency, currency_entries in sorted(entries_by_currency.items()):
+                amount = _quantize_amount(
+                    sum((entry.amount for entry in currency_entries), Decimal("0"))
+                )
+                entry = FinanceSnapshotEntry(
+                    snapshot_id=snapshot.id,
+                    node_id=rollup_node.id,
+                    amount=amount,
+                    currency_code=rollup_currency,
+                    amount_converted=amount,
+                    is_auto_generated=True,
+                )
+                session.add(entry)
+                snapshot_entries.append(entry)
+            continue
+        amount_converted = _quantize_amount(
+            sum((entry.amount_converted for entry in descendant_entries), Decimal("0"))
+        )
+        entry = FinanceSnapshotEntry(
+            snapshot_id=snapshot.id,
+            node_id=rollup_node.id,
+            amount=amount_converted,
+            currency_code=snapshot.primary_currency,
+            amount_converted=amount_converted,
+            is_auto_generated=True,
+        )
         session.add(entry)
         snapshot_entries.append(entry)
-        entry_by_node_id[rollup_node.id] = entry
 
     manual_entries = [entry for entry in snapshot_entries if not entry.is_auto_generated]
     aggregation_mode = (

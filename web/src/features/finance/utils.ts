@@ -31,8 +31,14 @@ export type TreeNodeWithChildren = FinanceTreeNode & {
   children: TreeNodeWithChildren[];
 };
 
-export type SnapshotAmountState = Record<UUID, string>;
-export type SnapshotNoteState = Record<UUID, string>;
+export type SnapshotHoldingState = {
+  id: string;
+  currencyCode: string;
+  amount: string;
+  note: string;
+};
+
+export type SnapshotAmountState = Record<UUID, SnapshotHoldingState[]>;
 
 export type RateSnapshotFormMode = "create" | "edit";
 

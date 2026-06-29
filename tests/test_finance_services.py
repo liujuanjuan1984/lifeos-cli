@@ -358,6 +358,116 @@ def test_finance_snapshot_amount_precision_follows_asset() -> None:
     asyncio.run(run())
 
 
+def test_finance_snapshot_supports_multiple_assets_under_one_account() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    primary_currency="USD",
+                )
+                nodes = await finance.list_finance_nodes(session, tree_id=tree.id)
+                assets = next(node for node in nodes if node.name == "Assets")
+                exin = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="EXIN savings",
+                    currency_code="CNY",
+                )
+
+                snapshot = await finance.create_finance_snapshot(
+                    session,
+                    tree_id=tree.id,
+                    entries=[
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=exin.id,
+                            amount=Decimal("1000"),
+                            currency_code="CNY",
+                        ),
+                        finance.FinanceSnapshotEntryInput(
+                            node_id=exin.id,
+                            amount=Decimal("50"),
+                            currency_code="USDT",
+                        ),
+                    ],
+                )
+
+                manual_entries = [
+                    entry for entry in snapshot.entries if not entry.is_auto_generated
+                ]
+                assert {(entry.node_id, entry.currency_code) for entry in manual_entries} == {
+                    (exin.id, "CNY"),
+                    (exin.id, "USDT"),
+                }
+                asset_rollups = [
+                    entry
+                    for entry in snapshot.entries
+                    if entry.node_id == assets.id and entry.is_auto_generated
+                ]
+                assert {(entry.currency_code, entry.amount) for entry in asset_rollups} == {
+                    ("CNY", Decimal("1000.00000000")),
+                    ("USDT", Decimal("50.00000000")),
+                }
+                assert snapshot.summary is not None
+                assert snapshot.summary["amounts_by_currency"]["CNY"]["net_amount"] == (
+                    "1000.00000000"
+                )
+                assert snapshot.summary["amounts_by_currency"]["USDT"]["net_amount"] == (
+                    "50.00000000"
+                )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_finance_snapshot_rejects_duplicate_asset_entries_for_one_account() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tree = await finance.ensure_default_finance_tree(
+                    session,
+                    primary_currency="USD",
+                )
+                assets = next(
+                    node
+                    for node in await finance.list_finance_nodes(session, tree_id=tree.id)
+                    if node.name == "Assets"
+                )
+                account = await finance.create_finance_node(
+                    session,
+                    tree_id=tree.id,
+                    parent_id=assets.id,
+                    name="Brokerage",
+                    currency_code="USD",
+                )
+
+                with pytest.raises(finance.FinanceValidationError):
+                    await finance.create_finance_snapshot(
+                        session,
+                        tree_id=tree.id,
+                        entries=[
+                            finance.FinanceSnapshotEntryInput(
+                                node_id=account.id,
+                                amount=Decimal("10"),
+                                currency_code="USD",
+                            ),
+                            finance.FinanceSnapshotEntryInput(
+                                node_id=account.id,
+                                amount=Decimal("20"),
+                                currency_code="usd",
+                            ),
+                        ],
+                    )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def test_finance_snapshot_without_rate_snapshot_keeps_native_currency_totals() -> None:
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
