@@ -22,6 +22,7 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.model_utils import (
+    apply_include_deleted_scope,
     load_model_by_id,
     load_view_by_id,
     soft_delete_model_by_id,
@@ -177,6 +178,7 @@ async def list_tags(
             & (person_associations.c.entity_type == "tag"),
         ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Tag.name.asc(), Tag.id.asc()).offset(offset).limit(limit)
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     tags = list((await session.execute(stmt)).scalars())
     return await _build_tag_views(session, tags)
 
@@ -193,6 +195,7 @@ async def list_tag_categories(
         stmt = stmt.where(Tag.deleted_at.is_(None))
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     rows = (await session.execute(stmt)).scalars()
     categories = {normalize_tag_category(category) for category in rows}
     categories.add("general")

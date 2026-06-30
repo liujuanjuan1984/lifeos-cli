@@ -31,6 +31,7 @@ from lifeos_cli.db.services.entity_associations import (
     set_association_links,
 )
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 from lifeos_cli.db.services.read_models import NoteView, build_note_view
 
 
@@ -152,6 +153,7 @@ def _note_query(
                 link_type="captured_from",
             )
         )
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return stmt
 
 

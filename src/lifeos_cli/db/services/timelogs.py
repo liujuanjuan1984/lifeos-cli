@@ -28,6 +28,7 @@ from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 from lifeos_cli.db.services.read_models import TimelogView, build_timelog_view
 from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
 from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby_area_after_change
@@ -118,6 +119,7 @@ async def _get_timelog_model(
     )
     if not include_deleted:
         stmt = stmt.where(Timelog.deleted_at.is_(None))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -304,7 +306,8 @@ def _apply_timelog_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
     stmt = _apply_timelog_text_filters(stmt, filters=filters)
     stmt = _apply_timelog_area_task_filters(stmt, filters=filters)
     stmt = _apply_timelog_association_filters(stmt, filters=filters)
-    return _apply_timelog_window_filters(stmt, filters=filters)
+    stmt = _apply_timelog_window_filters(stmt, filters=filters)
+    return apply_include_deleted_scope(stmt, include_deleted=filters.include_deleted)
 
 
 def _apply_timelog_text_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:

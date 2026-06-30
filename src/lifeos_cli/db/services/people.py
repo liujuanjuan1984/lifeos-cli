@@ -14,6 +14,7 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.model_utils import (
+    apply_include_deleted_scope,
     load_model_by_id,
     load_view_by_id,
     soft_delete_model_by_id,
@@ -134,6 +135,7 @@ async def list_people(
             & (tag_associations.c.entity_type == "person"),
         ).where(tag_associations.c.tag_id == tag_id)
     stmt = stmt.order_by(Person.created_at.desc(), Person.id.desc()).offset(offset).limit(limit)
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     people = list((await session.execute(stmt)).scalars())
     return await _build_people_views(session, people)
 

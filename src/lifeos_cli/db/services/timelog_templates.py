@@ -16,7 +16,10 @@ from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.timelog_template import TimelogTemplate
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
-from lifeos_cli.db.services.model_utils import ensure_optional_reference_exists
+from lifeos_cli.db.services.model_utils import (
+    apply_include_deleted_scope,
+    ensure_optional_reference_exists,
+)
 from lifeos_cli.db.services.read_models import TimelogTemplateView, build_timelog_template_view
 
 MAX_TEMPLATE_DURATION_MINUTES = 24 * 60
@@ -171,6 +174,7 @@ async def _get_template_model(
     )
     if not include_deleted:
         stmt = stmt.where(TimelogTemplate.deleted_at.is_(None))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 

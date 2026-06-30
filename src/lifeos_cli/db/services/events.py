@@ -55,6 +55,7 @@ from lifeos_cli.db.services.event_support import (
 from lifeos_cli.db.services.event_support import (
     EventTaskReferenceNotFoundError as EventTaskReferenceNotFoundError,
 )
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 from lifeos_cli.db.services.read_models import EventView, build_event_view
 
 
@@ -126,6 +127,7 @@ async def _get_event_model(
     )
     if not include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -731,6 +733,10 @@ async def list_event_occurrences(
     if not normalized_filters.include_deleted:
         master_stmt = master_stmt.where(Event.deleted_at.is_(None))
     master_stmt = _apply_event_query_filters(master_stmt, filters=normalized_filters)
+    master_stmt = apply_include_deleted_scope(
+        master_stmt,
+        include_deleted=normalized_filters.include_deleted,
+    )
     masters = list((await session.execute(master_stmt)).scalars())
     master_ids = [event.id for event in masters if event_is_recurring(event)]
     skip_map = await _load_skip_exceptions(session, master_event_ids=master_ids)
@@ -743,6 +749,10 @@ async def list_event_occurrences(
     if not normalized_filters.include_deleted:
         override_stmt = override_stmt.where(Event.deleted_at.is_(None))
     override_stmt = _apply_event_query_filters(override_stmt, filters=normalized_filters)
+    override_stmt = apply_include_deleted_scope(
+        override_stmt,
+        include_deleted=normalized_filters.include_deleted,
+    )
     overrides = list((await session.execute(override_stmt)).scalars())
     override_keys = {
         (
@@ -862,6 +872,7 @@ async def list_events(
         .offset(query.offset)
         .limit(query.limit)
     )
+    stmt = apply_include_deleted_scope(stmt, include_deleted=resolved_filters.include_deleted)
     events = list((await session.execute(stmt)).scalars())
     return list(await _build_event_views(session, events))
 

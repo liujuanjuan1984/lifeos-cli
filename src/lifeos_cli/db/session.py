@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import ORMExecuteState, Session, with_loader_criteria
 
 from lifeos_cli.config import (
     ensure_database_driver_available,
@@ -21,8 +22,26 @@ from lifeos_cli.config import (
     get_database_settings,
 )
 from lifeos_cli.db.backend_policy import backend_policy_for_drivername
+from lifeos_cli.db.base import SoftDeleteMixin
 
 _CACHED_ENGINE: AsyncEngine | None = None
+INCLUDE_DELETED_EXECUTION_OPTION = "include_deleted"
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _exclude_soft_deleted_rows_by_default(execute_state: ORMExecuteState) -> None:
+    """Apply the default user-facing soft-delete scope to ORM SELECT statements."""
+    if not execute_state.is_select:
+        return
+    if execute_state.execution_options.get(INCLUDE_DELETED_EXECUTION_OPTION, False):
+        return
+    execute_state.statement = execute_state.statement.options(
+        with_loader_criteria(
+            SoftDeleteMixin,
+            lambda model_cls: model_cls.deleted_at.is_(None),
+            include_aliases=True,
+        )
+    )
 
 
 def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:

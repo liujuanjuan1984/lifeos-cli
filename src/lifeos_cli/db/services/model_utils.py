@@ -9,8 +9,21 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.session import INCLUDE_DELETED_EXECUTION_OPTION
+
 ModelT = TypeVar("ModelT")
+StatementT = TypeVar("StatementT")
 ViewT = TypeVar("ViewT")
+
+
+def apply_include_deleted_scope(stmt: StatementT, *, include_deleted: bool) -> StatementT:
+    """Opt out of the default soft-delete query scope when explicitly requested."""
+    if include_deleted:
+        return cast(
+            StatementT,
+            cast(Any, stmt).execution_options(**{INCLUDE_DELETED_EXECUTION_OPTION: True}),
+        )
+    return stmt
 
 
 async def load_model_by_id(
@@ -24,6 +37,7 @@ async def load_model_by_id(
     stmt = select(model_cls).where(cast(Any, model_cls).id == model_id).limit(1)
     if not include_deleted:
         stmt = stmt.where(cast(Any, model_cls).deleted_at.is_(None))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 

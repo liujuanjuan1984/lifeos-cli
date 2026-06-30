@@ -26,6 +26,7 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_action_status,
     validate_habit_status,
 )
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 from lifeos_cli.db.services.read_models import HabitActionView
 from lifeos_cli.db.sql_expressions import AddDaysToDate
 
@@ -177,6 +178,7 @@ async def _load_materialized_actions_for_habits(
         HabitAction.created_at.asc(),
         HabitAction.id.asc(),
     )
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
@@ -211,6 +213,7 @@ async def _load_candidate_habits(
         start_date, end_date = action_window
         stmt = stmt.where(Habit.start_date <= end_date, _habit_end_expr() >= start_date)
     stmt = stmt.order_by(Habit.created_at.desc(), Habit.id.desc())
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
@@ -384,6 +387,7 @@ async def get_habit(
     stmt = select(Habit).where(Habit.id == habit_id).options(_active_habit_task_loader()).limit(1)
     if not include_deleted:
         stmt = stmt.where(Habit.deleted_at.is_(None))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -408,6 +412,7 @@ async def list_habits(
         include_deleted=include_deleted,
     )
     stmt = stmt.order_by(Habit.created_at.desc(), Habit.id.desc()).offset(offset).limit(limit)
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
@@ -429,6 +434,7 @@ async def count_habits(
         active_window_only=active_window_only,
         include_deleted=include_deleted,
     )
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return int((await session.execute(stmt)).scalar_one())
 
 
@@ -663,4 +669,5 @@ async def get_habit_action(
             HabitAction.deleted_at.is_(None),
             HabitAction.habit.has(Habit.deleted_at.is_(None)),
         )
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return (await session.execute(stmt)).scalar_one_or_none()

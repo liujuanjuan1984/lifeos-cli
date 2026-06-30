@@ -14,7 +14,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
-from lifeos_cli.db.services.model_utils import load_view_by_id
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope, load_view_by_id
 from lifeos_cli.db.services.read_models import (
     PersonSummaryView,
     TaskView,
@@ -207,6 +207,7 @@ def _apply_task_filters(
         normalized_query = query.strip()
         if normalized_query:
             stmt = stmt.where(Task.content.ilike(f"%{normalized_query}%"))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return stmt
 
 

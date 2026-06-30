@@ -56,6 +56,7 @@ from lifeos_cli.db.services.entity_associations import (
 )
 from lifeos_cli.db.services.entity_people import sync_entity_people
 from lifeos_cli.db.services.entity_tags import sync_entity_tags
+from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 
 SUPPORTED_DATA_RESOURCES = (
     "area",
@@ -462,6 +463,7 @@ async def export_resource_snapshot(
     if not include_deleted and "deleted_at" in spec.model.__table__.c:
         stmt = stmt.where(spec.model.deleted_at.is_(None))
     stmt = stmt.order_by(*_build_order_by_columns(spec))
+    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     rows = list((await session.execute(stmt)).scalars())
     payloads = [_serialize_model_row(spec, row) for row in rows]
 
