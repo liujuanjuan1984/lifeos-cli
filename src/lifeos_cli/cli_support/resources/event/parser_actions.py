@@ -18,7 +18,6 @@ from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_limit_offset_arguments,
     add_start_end_date_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.event.handlers import (
     EVENT_SUMMARY_COLUMNS,
@@ -318,7 +317,6 @@ def build_event_list_parser(
             "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
         ),
     )
-    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_event_list_async))
 
@@ -342,7 +340,6 @@ def build_event_show_parser(
     show_parser.add_argument(
         "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
     )
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
 

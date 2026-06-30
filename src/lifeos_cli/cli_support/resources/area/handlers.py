@@ -64,7 +64,6 @@ async def handle_area_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         areas = await area_services.list_areas(
             session,
-            include_deleted=args.include_deleted,
             include_inactive=args.include_inactive,
             limit=args.limit,
             offset=args.offset,
@@ -83,7 +82,6 @@ async def handle_area_show_async(args: argparse.Namespace) -> int:
         area = await area_services.get_area(
             session,
             area_id=args.area_id,
-            include_deleted=args.include_deleted,
         )
     if area is None:
         return cli_handler_utils.print_missing_record_error("Area", args.area_id)

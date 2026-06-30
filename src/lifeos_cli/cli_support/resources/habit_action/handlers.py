@@ -63,7 +63,6 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                 date_values=date_selection.date_values,
                 start_date=date_selection.start_date,
                 end_date=date_selection.end_date,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -75,7 +74,6 @@ async def handle_habit_action_list_async(args: argparse.Namespace) -> int:
                     date_values=date_selection.date_values,
                     start_date=date_selection.start_date,
                     end_date=date_selection.end_date,
-                    include_deleted=args.include_deleted,
                 )
                 if args.count
                 else None
@@ -101,7 +99,6 @@ async def handle_habit_action_show_async(args: argparse.Namespace) -> int:
         action = await habit_action_services.get_habit_action(
             session,
             action_id=args.action_id,
-            include_deleted=args.include_deleted,
         )
     if action is None:
         return cli_handler_utils.print_missing_record_error("Habit action", args.action_id)

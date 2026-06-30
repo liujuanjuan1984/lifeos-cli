@@ -22,7 +22,6 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.model_utils import (
-    apply_include_deleted_scope,
     load_model_by_id,
     load_view_by_id,
     soft_delete_model_by_id,
@@ -141,14 +140,12 @@ async def get_tag(
     session: AsyncSession,
     *,
     tag_id: UUID,
-    include_deleted: bool = False,
 ) -> TagView | None:
     """Load a tag by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=include_deleted,
         view_builder=_build_tag_view,
     )
 
@@ -159,14 +156,12 @@ async def list_tags(
     entity_type: str | None = None,
     category: str | None = None,
     person_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[TagView]:
     """List tags with optional filters."""
     stmt = select(Tag)
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
+    stmt = stmt.where(Tag.deleted_at.is_(None))
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
     if category is not None:
@@ -178,7 +173,6 @@ async def list_tags(
             & (person_associations.c.entity_type == "tag"),
         ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Tag.name.asc(), Tag.id.asc()).offset(offset).limit(limit)
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     tags = list((await session.execute(stmt)).scalars())
     return await _build_tag_views(session, tags)
 
@@ -187,15 +181,12 @@ async def list_tag_categories(
     session: AsyncSession,
     *,
     entity_type: str | None = None,
-    include_deleted: bool = False,
 ) -> list[str]:
     """List normalized categories present on tags."""
     stmt = select(Tag.category).distinct()
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
+    stmt = stmt.where(Tag.deleted_at.is_(None))
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     rows = (await session.execute(stmt)).scalars()
     categories = {normalize_tag_category(category) for category in rows}
     categories.add("general")
@@ -221,7 +212,6 @@ async def update_tag(
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=False,
     )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
@@ -327,7 +317,6 @@ async def bulk_update_tag_categories(
             session,
             model_cls=Tag,
             model_id=tag_id,
-            include_deleted=False,
         )
         if tag is None:
             failed_ids.append(tag_id)
@@ -383,7 +372,6 @@ async def count_tag_usage(session: AsyncSession, *, tag_id: UUID) -> int:
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=False,
     )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")

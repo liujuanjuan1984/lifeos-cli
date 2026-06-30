@@ -22,7 +22,6 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.model_utils import (
-    apply_include_deleted_scope,
     load_model_by_id,
     load_view_by_id,
     soft_delete_model_by_id,
@@ -193,14 +192,12 @@ async def get_vision(
     session: AsyncSession,
     *,
     vision_id: UUID,
-    include_deleted: bool = False,
 ) -> VisionView | None:
     """Load a vision by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=include_deleted,
         view_builder=_build_vision_view,
     )
 
@@ -211,14 +208,12 @@ async def list_visions(
     status: str | None = None,
     area_id: UUID | None = None,
     person_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[VisionView]:
     """List visions."""
     stmt = select(Vision)
-    if not include_deleted:
-        stmt = stmt.where(Vision.deleted_at.is_(None))
+    stmt = stmt.where(Vision.deleted_at.is_(None))
     if status is not None:
         stmt = stmt.where(Vision.status == validate_vision_status(status))
     if area_id is not None:
@@ -230,7 +225,6 @@ async def list_visions(
             & (person_associations.c.entity_type == "vision"),
         ).where(person_associations.c.person_id == person_id)
     stmt = stmt.order_by(Vision.created_at.desc(), Vision.id.desc()).offset(offset).limit(limit)
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     visions = list((await session.execute(stmt)).scalars())
     return await _build_vision_views(session, visions)
 
@@ -255,7 +249,6 @@ async def update_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -326,7 +319,6 @@ async def add_experience_to_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -350,7 +342,6 @@ async def sync_vision_experience(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -376,7 +367,6 @@ async def get_vision_with_tasks(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -394,7 +384,6 @@ async def get_vision_stats(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -431,7 +420,6 @@ async def harvest_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")

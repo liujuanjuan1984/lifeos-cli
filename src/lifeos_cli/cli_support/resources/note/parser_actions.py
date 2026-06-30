@@ -17,7 +17,6 @@ from lifeos_cli.cli_support.output_utils import (
 )
 from lifeos_cli.cli_support.parser_common import (
     add_limit_offset_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.note.handlers import (
     handle_note_add_async,
@@ -181,7 +180,6 @@ def build_note_list_parser(
         action="store_true",
         help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
-    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=make_sync_handler(handle_note_list_async))
 
@@ -245,7 +243,6 @@ def build_note_search_parser(
         action="store_true",
         help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
-    set_deleted_records_hidden(search_parser)
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=make_sync_handler(handle_note_search_async))
 
@@ -273,7 +270,6 @@ def build_note_show_parser(
     show_parser.add_argument(
         "note_id", type=UUID, help=_("resources.note.parser_actions.note_identifier")
     )
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_note_show_async))
 
 

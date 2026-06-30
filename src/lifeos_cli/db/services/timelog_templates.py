@@ -17,7 +17,6 @@ from lifeos_cli.db.models.timelog_template import TimelogTemplate
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.model_utils import (
-    apply_include_deleted_scope,
     ensure_optional_reference_exists,
 )
 from lifeos_cli.db.services.read_models import TimelogTemplateView, build_timelog_template_view
@@ -164,7 +163,6 @@ async def _get_template_model(
     session: AsyncSession,
     *,
     template_id: UUID,
-    include_deleted: bool = False,
 ) -> TimelogTemplate | None:
     stmt = (
         select(TimelogTemplate)
@@ -172,9 +170,7 @@ async def _get_template_model(
         .where(TimelogTemplate.id == template_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(TimelogTemplate.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(TimelogTemplate.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -206,7 +202,6 @@ async def _build_template_view(
     refreshed = await _get_template_model(
         session,
         template_id=template.id,
-        include_deleted=False,
     )
     if refreshed is not None:
         template = refreshed
@@ -308,7 +303,6 @@ async def update_template(
     template = await _get_template_model(
         session,
         template_id=template_id,
-        include_deleted=False,
     )
     if template is None:
         raise TimelogTemplateNotFoundError(f"Timelog template {template_id} was not found")
@@ -366,7 +360,6 @@ async def delete_template(session: AsyncSession, *, template_id: UUID) -> None:
     template = await _get_template_model(
         session,
         template_id=template_id,
-        include_deleted=False,
     )
     if template is None:
         raise TimelogTemplateNotFoundError(f"Timelog template {template_id} was not found")
@@ -413,7 +406,6 @@ async def bump_template_usage(
     template = await _get_template_model(
         session,
         template_id=template_id,
-        include_deleted=False,
     )
     if template is None:
         raise TimelogTemplateNotFoundError(f"Timelog template {template_id} was not found")

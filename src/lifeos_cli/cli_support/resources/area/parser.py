@@ -14,7 +14,6 @@ from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_limit_offset_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.area.handlers import (
     AREA_SUMMARY_COLUMNS,
@@ -132,7 +131,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    set_deleted_records_hidden(list_parser)
     list_parser.add_argument(
         "--include-inactive",
         action="store_true",
@@ -157,7 +155,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help=_("resources.area.parser.area_identifier"))
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_area_show_async))
 
     update_parser = add_documented_parser(

@@ -481,9 +481,8 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_sync_tags(_: object, **__: object) -> None:
@@ -627,9 +626,8 @@ def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPa
     session = SimpleNamespace(flush=AsyncMock())
     record_skip = AsyncMock()
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_get_override_event(
@@ -676,9 +674,8 @@ def test_delete_event_single_interprets_naive_instance_start_using_preferred_tim
     session = SimpleNamespace(flush=AsyncMock())
     record_skip = AsyncMock()
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_get_override_event(
@@ -1075,10 +1072,8 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert timelog_id == UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
-        assert include_deleted is False
         return timelog
 
     async def fake_sync_tags(_: object, **__: object) -> None:
@@ -1149,9 +1144,7 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object | None:
-        assert include_deleted is False
         if timelog_id == missing_id:
             return None
         return timelog
@@ -1209,9 +1202,7 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
-        assert include_deleted is False
         return timelog
 
     update_timelog = AsyncMock()

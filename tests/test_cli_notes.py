@@ -134,9 +134,7 @@ def test_main_note_show_prints_multiline_content(
         session: object,
         *,
         note_id: UUID,
-        include_deleted: bool,
     ) -> object:
-        assert include_deleted is False
         return make_record(
             id=note_id,
             content="first line\nsecond line",
@@ -170,9 +168,7 @@ def test_main_note_show_prints_extended_relations(
         session: object,
         *,
         note_id: UUID,
-        include_deleted: bool,
     ) -> object:
-        assert include_deleted is False
         return make_record(
             id=note_id,
             content="linked note",
@@ -226,7 +222,6 @@ def test_main_note_show_reports_missing_note(
         session: object,
         *,
         note_id: UUID,
-        include_deleted: bool,
     ) -> object | None:
         return None
 
@@ -248,12 +243,10 @@ def test_main_note_search_prints_matching_notes(
         session: object,
         *,
         query: str,
-        include_deleted: bool,
         limit: int,
         offset: int,
     ) -> list[object]:
         assert query == "meeting notes"
-        assert include_deleted is False
         assert limit == 100
         assert offset == 0
         return [
@@ -387,11 +380,9 @@ def test_main_note_list_prints_formatted_notes(
     async def fake_list_notes(
         session: object,
         *,
-        include_deleted: bool,
         limit: int,
         offset: int,
     ) -> list[object]:
-        assert include_deleted is False
         assert limit == 100
         assert offset == 0
         return [
@@ -430,11 +421,9 @@ def test_main_note_list_can_include_relationship_counts(
     async def fake_list_notes(
         session: object,
         *,
-        include_deleted: bool,
         limit: int,
         offset: int,
     ) -> list[object]:
-        assert include_deleted is False
         assert limit == 100
         assert offset == 0
         return [

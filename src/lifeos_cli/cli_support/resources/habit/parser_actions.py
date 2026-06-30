@@ -16,7 +16,6 @@ from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_limit_offset_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.habit.handlers import (
     HABIT_SUMMARY_COLUMNS,
@@ -201,7 +200,6 @@ def build_habit_list_parser(
     list_parser.add_argument(
         "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
-    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_habit_list_async))
 
@@ -225,7 +223,6 @@ def build_habit_show_parser(
         ),
     )
     show_parser.add_argument("habit_id", type=UUID, help=_("common.messages.habit_identifier"))
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_show_async))
 
 

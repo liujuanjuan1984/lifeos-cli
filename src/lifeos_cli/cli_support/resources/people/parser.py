@@ -14,7 +14,6 @@ from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
     add_limit_offset_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.people.handlers import (
     PERSON_SUMMARY_COLUMNS,
@@ -150,7 +149,6 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     list_parser.add_argument(
         "--tag-id", type=UUID, help=_("resources.people.parser.filter_by_tag_identifier")
     )
-    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_people_list_async))
 
@@ -169,7 +167,6 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     show_parser.add_argument(
         "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
     )
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_people_show_async))
 
     update_parser = add_documented_parser(

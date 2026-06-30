@@ -109,7 +109,7 @@ async def update_habit(
     clear_task: bool = False,
 ) -> Habit:
     """Update a habit and reconcile materialized dated actions."""
-    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
 
@@ -183,7 +183,7 @@ async def update_habit(
 
 async def delete_habit(session: AsyncSession, *, habit_id: UUID) -> None:
     """Soft-delete a habit."""
-    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
     habit.soft_delete()
@@ -212,7 +212,7 @@ async def update_habit_action(
     clear_notes: bool = False,
 ) -> HabitAction:
     """Update one habit action within the editable window."""
-    action = await get_habit_action(session, action_id=action_id, include_deleted=False)
+    action = await get_habit_action(session, action_id=action_id)
     if action is None:
         raise HabitActionNotFoundError(f"Habit action {action_id} was not found")
     today = get_operational_date()
@@ -241,7 +241,7 @@ async def update_habit_action_by_date(
     clear_notes: bool = False,
 ) -> HabitAction:
     """Update one habit action by habit and action date, materializing it if needed."""
-    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
     action = (

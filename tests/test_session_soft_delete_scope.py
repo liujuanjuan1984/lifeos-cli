@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.timelog import Timelog
-from lifeos_cli.db.session import INCLUDE_DELETED_EXECUTION_OPTION, configure_async_engine
+from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
 
 
@@ -44,18 +44,8 @@ def test_session_queries_exclude_soft_deleted_models_by_default() -> None:
 
             async with session_factory() as session:
                 areas = list((await session.execute(select(Area))).scalars())
-                all_areas = list(
-                    (
-                        await session.execute(
-                            select(Area).execution_options(
-                                **{INCLUDE_DELETED_EXECUTION_OPTION: True}
-                            )
-                        )
-                    ).scalars()
-                )
 
                 assert [area.name for area in areas] == ["Active"]
-                assert {area.name for area in all_areas} == {"Active", "Deleted"}
         finally:
             await engine.dispose()
 
@@ -83,9 +73,7 @@ def test_session_relationship_loads_exclude_soft_deleted_models_by_default() -> 
 
             async with session_factory() as session:
                 loaded = (
-                    await session.execute(
-                        select(Timelog).options(selectinload(Timelog.area))
-                    )
+                    await session.execute(select(Timelog).options(selectinload(Timelog.area)))
                 ).scalar_one()
 
                 assert loaded.area_id == area.id

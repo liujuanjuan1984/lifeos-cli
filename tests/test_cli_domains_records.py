@@ -346,9 +346,7 @@ def test_main_people_show_prints_tags(
         _session: object,
         *,
         person_id: UUID,
-        include_deleted: bool,
     ) -> object:
-        _ = include_deleted
         return make_record(
             id=person_id,
             name="Alice",

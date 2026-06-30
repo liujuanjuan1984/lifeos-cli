@@ -9,11 +9,6 @@ from lifeos_cli.cli_support.time_args import parse_date_value
 from lifeos_cli.i18n import cli_message as _
 
 
-def set_deleted_records_hidden(parser: argparse.ArgumentParser) -> None:
-    """Keep deleted records hidden for user-facing commands."""
-    parser.set_defaults(include_deleted=False)
-
-
 def add_limit_offset_arguments(
     parser: argparse.ArgumentParser,
     *,

@@ -147,7 +147,6 @@ async def handle_event_list_async(args: argparse.Namespace) -> int:
                         end_date=query.end_date,
                         window_start=query.window_start,
                         window_end=query.window_end,
-                        include_deleted=args.include_deleted,
                     ),
                     limit=args.limit,
                     offset=args.offset,
@@ -169,7 +168,6 @@ async def handle_event_show_async(args: argparse.Namespace) -> int:
         event = await event_services.get_event(
             session,
             event_id=args.event_id,
-            include_deleted=args.include_deleted,
         )
     if event is None:
         return cli_handler_utils.print_missing_record_error("Event", args.event_id)

@@ -120,7 +120,6 @@ class EventQueryFilters:
     end_date: date | None = None
     window_start: datetime | None = None
     window_end: datetime | None = None
-    include_deleted: bool = False
 
 
 @dataclass(frozen=True)

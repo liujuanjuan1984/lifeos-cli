@@ -14,7 +14,7 @@ from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.entity_people import load_people_for_entities
-from lifeos_cli.db.services.model_utils import apply_include_deleted_scope, load_view_by_id
+from lifeos_cli.db.services.model_utils import load_view_by_id
 from lifeos_cli.db.services.read_models import (
     PersonSummaryView,
     TaskView,
@@ -161,11 +161,9 @@ def _apply_task_filters(
     planning_cycle_start_date: date | None = None,
     content: str | None = None,
     query: str | None = None,
-    include_deleted: bool = False,
 ) -> Any:
     """Apply the shared task list/count filter contract."""
-    if not include_deleted:
-        stmt = stmt.where(Task.deleted_at.is_(None))
+    stmt = stmt.where(Task.deleted_at.is_(None))
     if vision_id is not None:
         stmt = stmt.where(Task.vision_id == vision_id)
     vision_ids = _parse_uuid_csv(vision_in)
@@ -207,7 +205,6 @@ def _apply_task_filters(
         normalized_query = query.strip()
         if normalized_query:
             stmt = stmt.where(Task.content.ilike(f"%{normalized_query}%"))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return stmt
 
 
@@ -235,14 +232,12 @@ async def get_task(
     session: AsyncSession,
     *,
     task_id: UUID,
-    include_deleted: bool = False,
 ) -> TaskView | None:
     """Load a task by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Task,
         model_id=task_id,
-        include_deleted=include_deleted,
         view_builder=_build_task_view,
     )
 
@@ -261,7 +256,6 @@ async def list_tasks(
     planning_cycle_start_date: date | None = None,
     content: str | None = None,
     query: str | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[TaskView]:
@@ -279,7 +273,6 @@ async def list_tasks(
         planning_cycle_start_date=planning_cycle_start_date,
         content=content,
         query=query,
-        include_deleted=include_deleted,
     )
     stmt = (
         stmt.order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
@@ -304,7 +297,6 @@ async def count_tasks(
     planning_cycle_start_date: date | None = None,
     content: str | None = None,
     query: str | None = None,
-    include_deleted: bool = False,
 ) -> int:
     """Count tasks with the same filters as ``list_tasks``."""
     stmt = _apply_task_filters(
@@ -320,7 +312,6 @@ async def count_tasks(
         planning_cycle_start_date=planning_cycle_start_date,
         content=content,
         query=query,
-        include_deleted=include_deleted,
     )
     return int((await session.execute(stmt)).scalar_one())
 

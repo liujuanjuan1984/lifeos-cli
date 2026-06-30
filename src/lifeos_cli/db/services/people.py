@@ -14,7 +14,6 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.model_utils import (
-    apply_include_deleted_scope,
     load_model_by_id,
     load_view_by_id,
     soft_delete_model_by_id,
@@ -94,14 +93,12 @@ async def get_person(
     session: AsyncSession,
     *,
     person_id: UUID,
-    include_deleted: bool = False,
 ) -> PersonView | None:
     """Load a person by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Person,
         model_id=person_id,
-        include_deleted=include_deleted,
         view_builder=_build_person_view,
     )
 
@@ -111,14 +108,12 @@ async def list_people(
     *,
     search: str | None = None,
     tag_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[PersonView]:
     """List people, optionally filtered by search or tag."""
     stmt = select(Person)
-    if not include_deleted:
-        stmt = stmt.where(Person.deleted_at.is_(None))
+    stmt = stmt.where(Person.deleted_at.is_(None))
     if search:
         pattern = f"%{search.strip()}%"
         stmt = stmt.where(
@@ -135,7 +130,6 @@ async def list_people(
             & (tag_associations.c.entity_type == "person"),
         ).where(tag_associations.c.tag_id == tag_id)
     stmt = stmt.order_by(Person.created_at.desc(), Person.id.desc()).offset(offset).limit(limit)
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     people = list((await session.execute(stmt)).scalars())
     return await _build_people_views(session, people)
 
@@ -161,7 +155,6 @@ async def update_person(
         session,
         model_cls=Person,
         model_id=person_id,
-        include_deleted=False,
     )
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")

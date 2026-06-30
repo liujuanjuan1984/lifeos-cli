@@ -9,7 +9,6 @@ from lifeos_cli.cli_support.help_utils import HelpContent, add_documented_parser
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_limit_offset_arguments,
-    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.task.handlers import (
     TASK_SUMMARY_COLUMNS,
@@ -98,7 +97,6 @@ def build_task_list_parser(
     list_parser.add_argument(
         "--content", help=_("resources.task.parser_read_models.filter_by_exact_task_content")
     )
-    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_task_list_async))
 
@@ -120,7 +118,6 @@ def build_task_show_parser(
         ),
     )
     show_parser.add_argument("task_id", type=UUID, help=_("common.messages.task_identifier"))
-    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_task_show_async))
 
 

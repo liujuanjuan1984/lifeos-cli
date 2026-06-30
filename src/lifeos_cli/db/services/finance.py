@@ -23,7 +23,6 @@ from lifeos_cli.db.models.finance import (
     FinanceTree,
     FinanceTreeNode,
 )
-from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 
 DEFAULT_FINANCE_CURRENCY = "USD"
 DEFAULT_FINANCE_ASSET_DECIMAL_PLACES = 2
@@ -40,27 +39,19 @@ FINANCE_AMOUNT_QUANT = Decimal("0.00000001")
 FINANCE_RATE_QUANT = Decimal("0.000000000001")
 
 
-def _finance_tree_nodes_loader(include_deleted: bool) -> Any:
-    if include_deleted:
-        return selectinload(FinanceTree.nodes)
+def _finance_tree_nodes_loader() -> Any:
     return selectinload(FinanceTree.nodes.and_(FinanceTreeNode.deleted_at.is_(None)))
 
 
-def _finance_node_tree_loader(include_deleted: bool) -> Any:
-    if include_deleted:
-        return selectinload(FinanceTreeNode.tree)
+def _finance_node_tree_loader() -> Any:
     return selectinload(FinanceTreeNode.tree.and_(FinanceTree.deleted_at.is_(None)))
 
 
-def _finance_node_children_loader(include_deleted: bool) -> Any:
-    if include_deleted:
-        return selectinload(FinanceTreeNode.children)
+def _finance_node_children_loader() -> Any:
     return selectinload(FinanceTreeNode.children.and_(FinanceTreeNode.deleted_at.is_(None)))
 
 
-def _finance_rate_entries_loader(include_deleted: bool) -> Any:
-    if include_deleted:
-        return selectinload(FinanceRateSnapshot.entries)
+def _finance_rate_entries_loader() -> Any:
     return selectinload(
         FinanceRateSnapshot.entries.and_(FinanceRateSnapshotEntry.deleted_at.is_(None))
     )
@@ -76,12 +67,8 @@ def _finance_snapshot_rate_loader() -> Any:
     )
 
 
-def _finance_snapshot_entries_loader(include_deleted: bool) -> Any:
-    entries = (
-        selectinload(FinanceSnapshot.entries)
-        if include_deleted
-        else selectinload(FinanceSnapshot.entries.and_(FinanceSnapshotEntry.deleted_at.is_(None)))
-    )
+def _finance_snapshot_entries_loader() -> Any:
+    entries = selectinload(FinanceSnapshot.entries.and_(FinanceSnapshotEntry.deleted_at.is_(None)))
     return entries.selectinload(
         FinanceSnapshotEntry.node.and_(FinanceTreeNode.deleted_at.is_(None))
     )
@@ -215,8 +202,7 @@ def format_asset_amount(
 
 async def ensure_default_finance_assets(session: AsyncSession) -> None:
     """Create built-in assets only when the code has never existed."""
-    stmt = apply_include_deleted_scope(select(FinanceAsset.code), include_deleted=True)
-    existing_codes = set((await session.execute(stmt)).scalars().all())
+    existing_codes = set((await session.execute(select(FinanceAsset.code))).scalars().all())
     for code, name, display_order in DEFAULT_FINANCE_ASSETS:
         if code in existing_codes:
             continue
@@ -235,34 +221,25 @@ async def ensure_default_finance_assets(session: AsyncSession) -> None:
 async def list_finance_assets(
     session: AsyncSession,
     *,
-    include_deleted: bool = False,
     limit: int = 200,
     offset: int = 0,
 ) -> list[FinanceAsset]:
     """List finance assets."""
-    if not include_deleted:
-        await ensure_default_finance_assets(session)
+    await ensure_default_finance_assets(session)
     stmt = select(FinanceAsset)
-    if not include_deleted:
-        stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
+    stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
     stmt = stmt.order_by(FinanceAsset.display_order.asc(), FinanceAsset.code.asc())
     stmt = stmt.offset(offset).limit(limit)
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
 async def count_finance_assets(
     session: AsyncSession,
-    *,
-    include_deleted: bool = False,
 ) -> int:
     """Count finance assets."""
-    if not include_deleted:
-        await ensure_default_finance_assets(session)
+    await ensure_default_finance_assets(session)
     stmt = select(func.count()).select_from(FinanceAsset)
-    if not include_deleted:
-        stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceAsset.deleted_at.is_(None))
     return int((await session.execute(stmt)).scalar_one())
 
 
@@ -442,13 +419,10 @@ async def get_finance_tree(
     session: AsyncSession,
     *,
     tree_id: UUID,
-    include_deleted: bool = False,
 ) -> FinanceTree | None:
     """Load one finance tree."""
     stmt = select(FinanceTree).where(FinanceTree.id == tree_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(FinanceTree.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -456,18 +430,15 @@ async def get_finance_tree_with_nodes(
     session: AsyncSession,
     *,
     tree_id: UUID,
-    include_deleted: bool = False,
 ) -> FinanceTree | None:
     """Load one finance tree with all nodes."""
     stmt = (
         select(FinanceTree)
-        .options(_finance_tree_nodes_loader(include_deleted))
+        .options(_finance_tree_nodes_loader())
         .where(FinanceTree.id == tree_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(FinanceTree.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     tree = (await session.execute(stmt)).scalar_one_or_none()
     if tree is None:
         return None
@@ -477,14 +448,12 @@ async def get_finance_tree_with_nodes(
 async def list_finance_trees(
     session: AsyncSession,
     *,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[FinanceTree]:
     """List finance trees."""
     stmt = select(FinanceTree)
-    if not include_deleted:
-        stmt = stmt.where(FinanceTree.deleted_at.is_(None))
+    stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     stmt = (
         stmt.order_by(
             FinanceTree.display_order.asc(),
@@ -493,20 +462,15 @@ async def list_finance_trees(
         .offset(offset)
         .limit(limit)
     )
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
 async def count_finance_trees(
     session: AsyncSession,
-    *,
-    include_deleted: bool = False,
 ) -> int:
     """Count finance trees."""
     stmt = select(func.count()).select_from(FinanceTree)
-    if not include_deleted:
-        stmt = stmt.where(FinanceTree.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceTree.deleted_at.is_(None))
     return int((await session.execute(stmt)).scalar_one())
 
 
@@ -613,20 +577,17 @@ async def _get_node_model(
     session: AsyncSession,
     *,
     node_id: UUID,
-    include_deleted: bool = False,
 ) -> FinanceTreeNode | None:
     stmt = (
         select(FinanceTreeNode)
         .options(
-            _finance_node_tree_loader(include_deleted),
-            _finance_node_children_loader(include_deleted),
+            _finance_node_tree_loader(),
+            _finance_node_children_loader(),
         )
         .where(FinanceTreeNode.id == node_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(FinanceTreeNode.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceTreeNode.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -634,14 +595,11 @@ async def list_finance_nodes(
     session: AsyncSession,
     *,
     tree_id: UUID,
-    include_deleted: bool = False,
 ) -> list[FinanceTreeNode]:
     """List finance nodes for one tree in tree order."""
     stmt = select(FinanceTreeNode).where(FinanceTreeNode.tree_id == tree_id)
-    if not include_deleted:
-        stmt = stmt.where(FinanceTreeNode.deleted_at.is_(None))
+    stmt = stmt.where(FinanceTreeNode.deleted_at.is_(None))
     stmt = stmt.order_by(FinanceTreeNode.path.asc(), FinanceTreeNode.display_order.asc())
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
@@ -929,18 +887,15 @@ async def get_finance_rate_snapshot(
     session: AsyncSession,
     *,
     rate_snapshot_id: UUID,
-    include_deleted: bool = False,
 ) -> FinanceRateSnapshot | None:
     """Load one finance rate snapshot with entries."""
     stmt = (
         select(FinanceRateSnapshot)
-        .options(_finance_rate_entries_loader(include_deleted))
+        .options(_finance_rate_entries_loader())
         .where(FinanceRateSnapshot.id == rate_snapshot_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     rate_snapshot = (await session.execute(stmt)).scalar_one_or_none()
     if rate_snapshot is None:
         return None
@@ -950,14 +905,12 @@ async def get_finance_rate_snapshot(
 async def list_finance_rate_snapshots(
     session: AsyncSession,
     *,
-    include_deleted: bool = False,
     limit: int = 50,
     offset: int = 0,
 ) -> list[FinanceRateSnapshot]:
     """List exchange-rate snapshots."""
-    stmt = select(FinanceRateSnapshot).options(_finance_rate_entries_loader(include_deleted))
-    if not include_deleted:
-        stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
+    stmt = select(FinanceRateSnapshot).options(_finance_rate_entries_loader())
+    stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     stmt = (
         stmt.order_by(
             FinanceRateSnapshot.captured_at.desc(),
@@ -966,20 +919,15 @@ async def list_finance_rate_snapshots(
         .offset(offset)
         .limit(limit)
     )
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return list((await session.execute(stmt)).scalars())
 
 
 async def count_finance_rate_snapshots(
     session: AsyncSession,
-    *,
-    include_deleted: bool = False,
 ) -> int:
     """Count exchange-rate snapshots."""
     stmt = select(func.count()).select_from(FinanceRateSnapshot)
-    if not include_deleted:
-        stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     return int((await session.execute(stmt)).scalar_one())
 
 
@@ -1091,7 +1039,7 @@ async def _recalculate_finance_snapshots_for_rate_snapshot(
     stmt = (
         select(FinanceSnapshot)
         .options(
-            _finance_snapshot_entries_loader(include_deleted=False),
+            _finance_snapshot_entries_loader(),
             _finance_snapshot_tree_loader(),
         )
         .where(
@@ -1733,7 +1681,6 @@ async def get_finance_snapshot(
     session: AsyncSession,
     *,
     snapshot_id: UUID,
-    include_deleted: bool = False,
 ) -> FinanceSnapshot | None:
     """Load one finance snapshot with entries and node metadata."""
     stmt = (
@@ -1741,14 +1688,12 @@ async def get_finance_snapshot(
         .options(
             _finance_snapshot_tree_loader(),
             _finance_snapshot_rate_loader(),
-            _finance_snapshot_entries_loader(include_deleted),
+            _finance_snapshot_entries_loader(),
         )
         .where(FinanceSnapshot.id == snapshot_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(FinanceSnapshot.deleted_at.is_(None))
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
+    stmt = stmt.where(FinanceSnapshot.deleted_at.is_(None))
     snapshot = (await session.execute(stmt)).scalar_one_or_none()
     if snapshot is None:
         return None

@@ -31,7 +31,6 @@ from lifeos_cli.db.services.entity_associations import (
     set_association_links,
 )
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
-from lifeos_cli.db.services.model_utils import apply_include_deleted_scope
 from lifeos_cli.db.services.read_models import NoteView, build_note_view
 
 
@@ -90,7 +89,6 @@ def _association_exists_clause(
 
 def _note_query(
     *,
-    include_deleted: bool,
     tag_id: UUID | None = None,
     event_id: UUID | None = None,
     person_id: UUID | None = None,
@@ -99,8 +97,7 @@ def _note_query(
     vision_id: UUID | None = None,
 ) -> Select[tuple[Note]]:
     stmt = select(Note)
-    if not include_deleted:
-        stmt = stmt.where(Note.deleted_at.is_(None))
+    stmt = stmt.where(Note.deleted_at.is_(None))
     if tag_id is not None:
         stmt = stmt.where(
             exists(
@@ -153,7 +150,6 @@ def _note_query(
                 link_type="captured_from",
             )
         )
-    stmt = apply_include_deleted_scope(stmt, include_deleted=include_deleted)
     return stmt
 
 
@@ -188,9 +184,8 @@ async def _get_note_model(
     session: AsyncSession,
     *,
     note_id: UUID,
-    include_deleted: bool,
 ) -> Note | None:
-    stmt = _note_query(include_deleted=include_deleted).where(Note.id == note_id).limit(1)
+    stmt = _note_query().where(Note.id == note_id).limit(1)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -326,10 +321,9 @@ async def get_note(
     session: AsyncSession,
     *,
     note_id: UUID,
-    include_deleted: bool = False,
 ) -> NoteView | None:
     """Fetch a note by identifier."""
-    note = await _get_note_model(session, note_id=note_id, include_deleted=include_deleted)
+    note = await _get_note_model(session, note_id=note_id)
     if note is None:
         return None
     return await _build_note_view(session, note)
@@ -338,7 +332,6 @@ async def get_note(
 async def list_notes(
     session: AsyncSession,
     *,
-    include_deleted: bool = False,
     tag_id: UUID | None = None,
     event_id: UUID | None = None,
     person_id: UUID | None = None,
@@ -351,7 +344,6 @@ async def list_notes(
     """Return notes ordered from newest to oldest."""
     stmt = (
         _note_query(
-            include_deleted=include_deleted,
             tag_id=tag_id,
             event_id=event_id,
             person_id=person_id,
@@ -370,7 +362,6 @@ async def search_notes(
     session: AsyncSession,
     *,
     query: str,
-    include_deleted: bool = False,
     tag_id: UUID | None = None,
     event_id: UUID | None = None,
     person_id: UUID | None = None,
@@ -383,7 +374,6 @@ async def search_notes(
     """Return notes whose content matches any token from the query."""
     tokens = _tokenize_search_query(query)
     stmt = _note_query(
-        include_deleted=include_deleted,
         tag_id=tag_id,
         event_id=event_id,
         person_id=person_id,
@@ -416,7 +406,7 @@ async def update_note(
     clear_timelogs: bool = False,
 ) -> NoteView:
     """Update note content and weak associations."""
-    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
+    note = await _get_note_model(session, note_id=note_id)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     if (
@@ -548,7 +538,7 @@ async def delete_note(
     note_id: UUID,
 ) -> None:
     """Soft-delete a note."""
-    note = await _get_note_model(session, note_id=note_id, include_deleted=False)
+    note = await _get_note_model(session, note_id=note_id)
     if note is None:
         raise NoteNotFoundError(f"Note {note_id} was not found")
     note.soft_delete()
@@ -572,7 +562,7 @@ async def batch_update_note_content(
 
     for note_id in deduplicate_preserving_order(note_ids):
         try:
-            note = await _get_note_model(session, note_id=note_id, include_deleted=False)
+            note = await _get_note_model(session, note_id=note_id)
             if note is None:
                 raise NoteNotFoundError(f"Note {note_id} was not found")
             replacements = _apply_content_batch_operation(
