@@ -361,6 +361,7 @@ def test_web_task_hierarchy_payload_excludes_deleted_at() -> None:
 
     assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
     assert payload["updated_at"] == "2026-06-01T13:00:00+00:00"
+    assert "actual_effort" not in payload
     assert "deleted_at" not in payload
     subtask_payload = cast(list[dict[str, object]], payload["subtasks"])[0]
     assert "deleted_at" not in subtask_payload

@@ -39,16 +39,6 @@ const matchesPerson = (person: PersonSummary, query: string) => {
   return person.tags.some((tag) => tag.name.toLowerCase().includes(normalized));
 };
 
-const extractPersonList = (payload: unknown): PersonSummary[] => {
-  if (payload && typeof payload === "object" && "items" in payload) {
-    const list = (payload as { items?: unknown }).items;
-    if (Array.isArray(list)) {
-      return list as PersonSummary[];
-    }
-  }
-  return [];
-};
-
 const PersonSelector: React.FC<PersonSelectorProps> = ({
   selectedPersonIds,
   onSelectionChange,
@@ -100,7 +90,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
       try {
         const data = await personsApi.getAll(1, 100, searchTerm.trim());
         if (!cancelled) {
-          setRemotePersons(extractPersonList(data));
+          setRemotePersons(Array.isArray(data.items) ? data.items : []);
         }
       } catch (error) {
         if (!cancelled) {

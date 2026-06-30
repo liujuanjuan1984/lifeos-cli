@@ -33,7 +33,6 @@ describe("usePlanningTasks", () => {
     planning_cycle_type: overrides.planning_cycle_type ?? null,
     planning_cycle_days: overrides.planning_cycle_days ?? null,
     planning_cycle_start_date: overrides.planning_cycle_start_date ?? null,
-    actual_effort: overrides.actual_effort ?? null,
     actual_effort_self: overrides.actual_effort_self ?? 0,
     actual_effort_total: overrides.actual_effort_total ?? 0,
     notes_count: overrides.notes_count ?? 0,

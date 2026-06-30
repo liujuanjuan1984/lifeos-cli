@@ -73,7 +73,6 @@ def _task_tree_payload(task: Any) -> dict[str, object]:
         "planning_cycle_start_date": (
             task.planning_cycle_start_date.isoformat() if task.planning_cycle_start_date else None
         ),
-        "actual_effort": task.actual_effort_total,
         "actual_effort_self": task.actual_effort_self,
         "actual_effort_total": task.actual_effort_total,
         "notes_count": 0,

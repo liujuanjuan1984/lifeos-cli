@@ -19,7 +19,6 @@ const createTask = (
   planning_cycle_days: overrides.planning_cycle_days ?? null,
   planning_cycle_start_date:
     overrides.planning_cycle_start_date ?? "2025-01-01",
-  actual_effort: null,
   actual_effort_self: 0,
   actual_effort_total: 0,
   created_at: "2025-01-01T00:00:00Z",

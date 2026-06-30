@@ -19,7 +19,6 @@ const createTask = (overrides?: Partial<Task>): Task => ({
   priority: overrides?.priority ?? 0,
   display_order: overrides?.display_order ?? 0,
   estimated_effort: overrides?.estimated_effort ?? null,
-  actual_effort: overrides?.actual_effort ?? null,
   actual_effort_self: overrides?.actual_effort_self ?? 0,
   actual_effort_total: overrides?.actual_effort_total ?? 0,
   notes_count: overrides?.notes_count ?? 0,
