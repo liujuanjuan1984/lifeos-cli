@@ -191,16 +191,6 @@ def _planned_event_payload(
     else:
         assert isinstance(planned_event_record, EventView)
         master_id = planned_event_record.recurrence_parent_event_id or planned_event_record.id
-    created_at = (
-        format_utc_iso(planned_event_record.created_at)
-        if isinstance(planned_event_record, EventView)
-        else ""
-    )
-    updated_at = (
-        format_utc_iso(planned_event_record.updated_at)
-        if isinstance(planned_event_record, EventView)
-        else ""
-    )
     area_id = source_event.area_id if source_event else None
     priority = source_event.priority if source_event else 0
     is_all_day = source_event.is_all_day if source_event else False
@@ -222,8 +212,6 @@ def _planned_event_payload(
         "status": planned_event_record.status,
         "tags": _tag_names(source_event) if source_event else [],
         "extra_data": {"event_type": planned_event_record.event_type},
-        "created_at": created_at,
-        "updated_at": updated_at,
         "is_instance": is_occurrence and recurrence_frequency is not None,
         "master_event_id": str(master_id) if master_id else None,
         "instance_id": str(planned_event_record.id) if is_occurrence else None,

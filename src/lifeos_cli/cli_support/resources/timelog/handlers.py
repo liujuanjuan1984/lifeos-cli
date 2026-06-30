@@ -324,7 +324,6 @@ async def handle_timelog_list_async(args: argparse.Namespace) -> int:
                     end_date=query.end_date,
                     window_start=query.window_start,
                     window_end=query.window_end,
-                    include_deleted=args.include_deleted,
                 ),
                 limit=args.limit,
                 offset=args.offset,
@@ -363,7 +362,6 @@ async def handle_timelog_show_async(args: argparse.Namespace) -> int:
         timelog = await timelog_services.get_timelog(
             session,
             timelog_id=args.timelog_id,
-            include_deleted=args.include_deleted,
         )
     if timelog is None:
         return cli_handler_utils.print_missing_record_error("Timelog", args.timelog_id)

@@ -140,14 +140,12 @@ async def get_tag(
     session: AsyncSession,
     *,
     tag_id: UUID,
-    include_deleted: bool = False,
 ) -> TagView | None:
     """Load a tag by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=include_deleted,
         view_builder=_build_tag_view,
     )
 
@@ -158,14 +156,12 @@ async def list_tags(
     entity_type: str | None = None,
     category: str | None = None,
     person_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[TagView]:
     """List tags with optional filters."""
     stmt = select(Tag)
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
+    stmt = stmt.where(Tag.deleted_at.is_(None))
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
     if category is not None:
@@ -185,12 +181,10 @@ async def list_tag_categories(
     session: AsyncSession,
     *,
     entity_type: str | None = None,
-    include_deleted: bool = False,
 ) -> list[str]:
     """List normalized categories present on tags."""
     stmt = select(Tag.category).distinct()
-    if not include_deleted:
-        stmt = stmt.where(Tag.deleted_at.is_(None))
+    stmt = stmt.where(Tag.deleted_at.is_(None))
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
     rows = (await session.execute(stmt)).scalars()
@@ -218,7 +212,6 @@ async def update_tag(
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=False,
     )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")
@@ -324,7 +317,6 @@ async def bulk_update_tag_categories(
             session,
             model_cls=Tag,
             model_id=tag_id,
-            include_deleted=False,
         )
         if tag is None:
             failed_ids.append(tag_id)
@@ -380,7 +372,6 @@ async def count_tag_usage(session: AsyncSession, *, tag_id: UUID) -> int:
         session,
         model_cls=Tag,
         model_id=tag_id,
-        include_deleted=False,
     )
     if tag is None:
         raise TagNotFoundError(f"Tag {tag_id} was not found")

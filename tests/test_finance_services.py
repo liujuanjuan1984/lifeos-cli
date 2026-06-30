@@ -287,11 +287,7 @@ def test_finance_assets_include_defaults_and_custom_assets() -> None:
                 )
                 await finance.delete_finance_asset(session, asset_id=usd.id)
                 active_assets = await finance.list_finance_assets(session)
-                assert all(asset.code != "USD" for asset in active_assets)
-                deleted_assets = await finance.list_finance_assets(session, include_deleted=True)
-                assert any(
-                    asset.code == "USD" and asset.deleted_at is not None for asset in deleted_assets
-                )
+                assert all(asset.deleted_at is None for asset in active_assets)
         finally:
             await engine.dispose()
 
@@ -849,14 +845,6 @@ def test_finance_rate_snapshot_can_be_updated_and_deleted() -> None:
                     is None
                 )
                 assert await finance.count_finance_rate_snapshots(session) == 0
-                deleted = await finance.get_finance_rate_snapshot(
-                    session,
-                    rate_snapshot_id=rate_snapshot.id,
-                    include_deleted=True,
-                )
-                assert deleted is not None
-                assert deleted.deleted_at is not None
-                assert all(entry.deleted_at is not None for entry in deleted.entries)
         finally:
             await engine.dispose()
 
@@ -1015,13 +1003,6 @@ def test_finance_tree_count_respects_deleted_scope() -> None:
                 custom_tree.soft_delete()
 
                 assert await finance.count_finance_trees(session) == 1
-                assert (
-                    await finance.count_finance_trees(
-                        session,
-                        include_deleted=True,
-                    )
-                    == 2
-                )
         finally:
             await engine.dispose()
 

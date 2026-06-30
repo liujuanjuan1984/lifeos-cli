@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.event import Event
@@ -155,12 +156,18 @@ async def get_target_ids_for_sources(
         return {}
     normalized_source_model = validate_association_model(source_model)
     normalized_target_model = validate_association_model(target_model)
+    source_cls = aliased(MODEL_MAP[normalized_source_model])
+    target_cls = aliased(MODEL_MAP[normalized_target_model])
     stmt = (
         select(Association.source_id, Association.target_id)
+        .join(source_cls, source_cls.id == Association.source_id)
+        .join(target_cls, target_cls.id == Association.target_id)
         .where(
             Association.source_model == normalized_source_model,
             Association.source_id.in_(source_ids),
             Association.target_model == normalized_target_model,
+            source_cls.deleted_at.is_(None),
+            target_cls.deleted_at.is_(None),
         )
         .order_by(Association.created_at.asc(), Association.id.asc())
     )
@@ -186,12 +193,18 @@ async def count_sources_for_targets(
         return {}
     normalized_source_model = validate_association_model(source_model)
     normalized_target_model = validate_association_model(target_model)
+    source_cls = aliased(MODEL_MAP[normalized_source_model])
+    target_cls = aliased(MODEL_MAP[normalized_target_model])
     stmt = (
         select(Association.target_id, func.count(Association.id))
+        .join(source_cls, source_cls.id == Association.source_id)
+        .join(target_cls, target_cls.id == Association.target_id)
         .where(
             Association.source_model == normalized_source_model,
             Association.target_model == normalized_target_model,
             Association.target_id.in_(target_ids),
+            source_cls.deleted_at.is_(None),
+            target_cls.deleted_at.is_(None),
         )
         .group_by(Association.target_id)
     )

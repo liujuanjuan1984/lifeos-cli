@@ -93,14 +93,12 @@ async def get_person(
     session: AsyncSession,
     *,
     person_id: UUID,
-    include_deleted: bool = False,
 ) -> PersonView | None:
     """Load a person by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Person,
         model_id=person_id,
-        include_deleted=include_deleted,
         view_builder=_build_person_view,
     )
 
@@ -110,14 +108,12 @@ async def list_people(
     *,
     search: str | None = None,
     tag_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[PersonView]:
     """List people, optionally filtered by search or tag."""
     stmt = select(Person)
-    if not include_deleted:
-        stmt = stmt.where(Person.deleted_at.is_(None))
+    stmt = stmt.where(Person.deleted_at.is_(None))
     if search:
         pattern = f"%{search.strip()}%"
         stmt = stmt.where(
@@ -159,7 +155,6 @@ async def update_person(
         session,
         model_cls=Person,
         model_id=person_id,
-        include_deleted=False,
     )
     if person is None:
         raise PersonNotFoundError(f"Person {person_id} was not found")

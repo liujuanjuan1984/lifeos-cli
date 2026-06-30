@@ -56,29 +56,25 @@ async def get_area(
     session: AsyncSession,
     *,
     area_id: UUID,
-    include_deleted: bool = False,
 ) -> Area | None:
     """Load an area by identifier."""
     return await load_model_by_id(
         session,
         model_cls=Area,
         model_id=area_id,
-        include_deleted=include_deleted,
     )
 
 
 async def list_areas(
     session: AsyncSession,
     *,
-    include_deleted: bool = False,
     include_inactive: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[Area]:
     """List areas in display order."""
     stmt = select(Area)
-    if not include_deleted:
-        stmt = stmt.where(Area.deleted_at.is_(None))
+    stmt = stmt.where(Area.deleted_at.is_(None))
     if not include_inactive:
         stmt = stmt.where(Area.is_active.is_(True))
     stmt = stmt.order_by(Area.display_order.asc(), Area.name.asc()).offset(offset).limit(limit)
@@ -135,7 +131,7 @@ async def update_area(
 
 async def delete_area(session: AsyncSession, *, area_id: UUID) -> None:
     """Soft-delete an area."""
-    area = await get_area(session, area_id=area_id, include_deleted=False)
+    area = await get_area(session, area_id=area_id)
     if area is None:
         raise AreaNotFoundError(f"Area {area_id} was not found")
     area.soft_delete()

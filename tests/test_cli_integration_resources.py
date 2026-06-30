@@ -439,10 +439,17 @@ def test_real_cli_core_resource_workflow(integration_context: IntegrationContext
         integration_context,
         "area",
         "list",
-        "--include-deleted",
         "--include-inactive",
     )
     assert_ok(deleted_area_result)
-    assert area_one_id in deleted_area_result.stdout
-    assert area_two_id in deleted_area_result.stdout
-    assert "deleted" in deleted_area_result.stdout
+    assert area_one_id not in deleted_area_result.stdout
+    assert area_two_id not in deleted_area_result.stdout
+
+    rejected_deleted_area_result = run_lifeos(
+        integration_context,
+        "area",
+        "list",
+        "--include-deleted",
+    )
+    assert rejected_deleted_area_result.returncode == 2
+    assert "--include-deleted" in rejected_deleted_area_result.stderr

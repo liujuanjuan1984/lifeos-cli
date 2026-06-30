@@ -18,12 +18,14 @@ async def load_model_by_id(
     *,
     model_cls: type[ModelT],
     model_id: UUID,
-    include_deleted: bool,
 ) -> ModelT | None:
     """Load one soft-deletable model by identifier."""
-    stmt = select(model_cls).where(cast(Any, model_cls).id == model_id).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(cast(Any, model_cls).deleted_at.is_(None))
+    stmt = (
+        select(model_cls)
+        .where(cast(Any, model_cls).id == model_id)
+        .where(cast(Any, model_cls).deleted_at.is_(None))
+        .limit(1)
+    )
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -32,7 +34,6 @@ async def load_view_by_id(
     *,
     model_cls: type[ModelT],
     model_id: UUID,
-    include_deleted: bool,
     view_builder: Callable[[AsyncSession, ModelT], Awaitable[ViewT]],
 ) -> ViewT | None:
     """Load one model by identifier and render it through one async view builder."""
@@ -40,7 +41,6 @@ async def load_view_by_id(
         session,
         model_cls=model_cls,
         model_id=model_id,
-        include_deleted=include_deleted,
     )
     if record is None:
         return None
@@ -59,7 +59,6 @@ async def soft_delete_model_by_id(
         session,
         model_cls=model_cls,
         model_id=model_id,
-        include_deleted=False,
     )
     if record is None:
         raise not_found_error_factory(model_id)
@@ -81,7 +80,6 @@ async def ensure_optional_reference_exists(
         session,
         model_cls=model_cls,
         model_id=model_id,
-        include_deleted=False,
     )
     if record is None:
         raise not_found_error_factory(model_id)

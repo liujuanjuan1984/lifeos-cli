@@ -21,6 +21,7 @@ from lifeos_cli.db.services.read_models import (
     TagSummaryView,
     TagView,
     TaskSummaryView,
+    TaskView,
     TimelogTemplateView,
     TimelogView,
 )
@@ -69,6 +70,556 @@ def test_web_finance_decimal_serialization_avoids_scientific_zero() -> None:
         )
         == "0.00000000"
     )
+
+
+def test_web_finance_payloads_exclude_unconsumed_audit_fields() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_cli.db.models.finance import (
+        FinanceAsset,
+        FinanceRateSnapshot,
+        FinanceSnapshot,
+        FinanceTreeNode,
+    )
+    from lifeos_web.routers.finance import (
+        _asset_payload,
+        _rate_snapshot_payload,
+        _snapshot_payload,
+        _tree_payload,
+    )
+
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+    node_id = UUID("11111111-1111-1111-1111-111111111111")
+    tree_id = UUID("22222222-2222-2222-2222-222222222222")
+    snapshot_id = UUID("33333333-3333-3333-3333-333333333333")
+    rate_snapshot_id = UUID("44444444-4444-4444-4444-444444444444")
+
+    asset_payload = _asset_payload(
+        cast(
+            FinanceAsset,
+            SimpleNamespace(
+                id=UUID("55555555-5555-5555-5555-555555555555"),
+                code="USD",
+                name="US Dollar",
+                decimal_places=2,
+                display_order=10,
+                is_default=True,
+                metadata_json={"hidden": True},
+                created_at=timestamp,
+                updated_at=timestamp,
+                deleted_at=None,
+            ),
+        )
+    )
+    assert asset_payload == {
+        "id": "55555555-5555-5555-5555-555555555555",
+        "code": "USD",
+        "name": "US Dollar",
+        "decimal_places": 2,
+        "is_default": True,
+    }
+
+    node = cast(
+        FinanceTreeNode,
+        SimpleNamespace(
+            id=node_id,
+            tree_id=tree_id,
+            parent_id=None,
+            name="Cash",
+            currency_code="USD",
+            path="0001",
+            depth=0,
+            display_order=1,
+            children_count=0,
+            metadata_json={"hidden": True},
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=None,
+        ),
+    )
+    tree_payload = _tree_payload(
+        SimpleNamespace(
+            id=tree_id,
+            name="Balance",
+            primary_currency="USD",
+            display_order=1,
+            is_default=True,
+            metadata_json={"hidden": True},
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=None,
+        ),
+        nodes=[node],
+    )
+    assert set(tree_payload) == {
+        "id",
+        "name",
+        "primary_currency",
+        "display_order",
+        "is_default",
+        "nodes",
+    }
+    assert set(cast(list[dict[str, object]], tree_payload["nodes"])[0]) == {
+        "id",
+        "parent_id",
+        "name",
+        "currency_code",
+        "path",
+        "depth",
+        "display_order",
+    }
+
+    snapshot = cast(
+        FinanceSnapshot,
+        SimpleNamespace(
+            id=snapshot_id,
+            tree_id=tree_id,
+            tree=SimpleNamespace(name="Balance"),
+            title="June",
+            snapshot_ts=timestamp,
+            period_start=None,
+            period_end=None,
+            primary_currency="USD",
+            rate_snapshot_id=rate_snapshot_id,
+            rate_snapshot_policy="selected",
+            total_positive=Decimal("1"),
+            total_negative=Decimal("0"),
+            net_amount=Decimal("1"),
+            exchange_rates={"rates": {"USD": {"rate": "1"}}},
+            summary={"amounts_by_currency": {"USD": {"net_amount": "1"}}},
+            note="detail note",
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=None,
+            entries=[
+                SimpleNamespace(
+                    id=UUID("66666666-6666-6666-6666-666666666666"),
+                    snapshot_id=snapshot_id,
+                    node_id=node_id,
+                    node=node,
+                    amount=Decimal("1"),
+                    currency_code="USD",
+                    amount_converted=Decimal("1"),
+                    note=None,
+                    is_auto_generated=False,
+                    created_at=timestamp,
+                    updated_at=timestamp,
+                    deleted_at=None,
+                )
+            ],
+        ),
+    )
+    list_snapshot_payload = _snapshot_payload(
+        snapshot,
+        decimal_places_by_code={"USD": 2},
+    )
+    assert "summary" not in list_snapshot_payload
+    assert "exchange_rates" not in list_snapshot_payload
+    assert "entries" not in list_snapshot_payload
+    assert "rate_snapshot_policy" not in list_snapshot_payload
+    detail_snapshot_payload = _snapshot_payload(
+        snapshot,
+        decimal_places_by_code={"USD": 2},
+        include_entries=True,
+    )
+    assert {"summary", "exchange_rates", "entries", "note"} <= set(detail_snapshot_payload)
+    entry_payload = cast(list[dict[str, object]], detail_snapshot_payload["entries"])[0]
+    assert "snapshot_id" not in entry_payload
+    assert "node_path" not in entry_payload
+
+    rate_snapshot_payload = _rate_snapshot_payload(
+        cast(
+            FinanceRateSnapshot,
+            SimpleNamespace(
+                id=rate_snapshot_id,
+                captured_at=timestamp,
+                source="manual",
+                note=None,
+                metadata_json={"hidden": True},
+                created_at=timestamp,
+                updated_at=timestamp,
+                deleted_at=None,
+                entries=[
+                    SimpleNamespace(
+                        id=UUID("77777777-7777-7777-7777-777777777777"),
+                        rate_snapshot_id=rate_snapshot_id,
+                        base_currency="USD",
+                        quote_currency="CNY",
+                        rate=Decimal("7.1"),
+                        source="manual",
+                        captured_at=timestamp,
+                        is_derived=False,
+                        metadata_json={"hidden": True},
+                        created_at=timestamp,
+                        updated_at=timestamp,
+                        deleted_at=None,
+                    )
+                ],
+            ),
+        )
+    )
+    assert "metadata" not in rate_snapshot_payload
+    rate_entry_payload = cast(list[dict[str, object]], rate_snapshot_payload["entries"])[0]
+    assert "rate_snapshot_id" not in rate_entry_payload
+    assert "is_derived" not in rate_entry_payload
+
+
+def test_web_routes_do_not_expose_deleted_records() -> None:
+    pytest.importorskip("fastapi")
+    from fastapi.routing import APIRoute
+
+    from lifeos_web.app import create_app
+
+    app = create_app()
+    routes_with_include_deleted = [
+        route.path
+        for route in app.routes
+        if isinstance(route, APIRoute)
+        and any(param.name == "include_deleted" for param in route.dependant.query_params)
+    ]
+
+    assert routes_with_include_deleted == []
+
+
+def test_web_vision_payload_excludes_unconsumed_audit_fields() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.visions import _vision_payload
+
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+    vision = SimpleNamespace(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        name="Portfolio",
+        description="Reduce response payloads",
+        area_id=UUID("22222222-2222-2222-2222-222222222222"),
+        status="active",
+        stage=3,
+        experience_points=42,
+        experience_rate_per_hour=120,
+        created_at=timestamp,
+        updated_at=timestamp,
+        deleted_at=timestamp,
+        people=(),
+        tasks=(SimpleNamespace(id=UUID("33333333-3333-3333-3333-333333333333")),),
+    )
+
+    payload = _vision_payload(vision)
+
+    assert set(payload) == {
+        "id",
+        "name",
+        "description",
+        "area_id",
+        "status",
+        "stage",
+        "experience_points",
+        "experience_rate_per_hour",
+        "created_at",
+        "people",
+    }
+    assert payload["created_at"] == "2026-06-01T13:00:00Z"
+    assert "updated_at" not in payload
+    assert "deleted_at" not in payload
+    assert "tasks" not in payload
+    assert "tasks" in _vision_payload(vision, include_tasks=True)
+
+
+def test_web_task_hierarchy_payload_excludes_deleted_at() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.tasks import _task_tree_payload
+
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+
+    def task_node(task_id: str, *, subtasks: tuple[object, ...] = ()) -> SimpleNamespace:
+        return SimpleNamespace(
+            id=UUID(task_id),
+            vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+            parent_task_id=None,
+            content="Audit endpoint payload",
+            description=None,
+            status="todo",
+            priority=1,
+            display_order=1,
+            estimated_effort=None,
+            planning_cycle_type=None,
+            planning_cycle_days=None,
+            planning_cycle_start_date=None,
+            actual_effort_self=0,
+            actual_effort_total=0,
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=timestamp,
+            people=(),
+            subtasks=subtasks,
+            completion_percentage=0,
+            depth=0,
+        )
+
+    payload = _task_tree_payload(
+        task_node(
+            "11111111-1111-1111-1111-111111111111",
+            subtasks=(task_node("33333333-3333-3333-3333-333333333333"),),
+        )
+    )
+
+    assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
+    assert payload["updated_at"] == "2026-06-01T13:00:00+00:00"
+    assert "actual_effort" not in payload
+    assert "deleted_at" not in payload
+    subtask_payload = cast(list[dict[str, object]], payload["subtasks"])[0]
+    assert "deleted_at" not in subtask_payload
+
+
+def test_web_task_list_basic_payload_excludes_full_task_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tasks
+
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+    task = TaskView(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+        parent_task_id=None,
+        content="Focus",
+        description="Full description",
+        status="todo",
+        priority=2,
+        display_order=3,
+        estimated_effort=45,
+        planning_cycle_type="day",
+        planning_cycle_days=1,
+        planning_cycle_start_date=date(2026, 6, 30),
+        actual_effort_self=10,
+        actual_effort_total=15,
+        created_at=timestamp,
+        updated_at=timestamp,
+        deleted_at=timestamp,
+        people=(PersonSummaryView(id=UUID("33333333-3333-3333-3333-333333333333"), name="A"),),
+    )
+
+    async def fake_list_tasks(_session: object, **_kwargs: object) -> list[TaskView]:
+        return [task]
+
+    async def fake_count_tasks(_session: object, **_kwargs: object) -> int:
+        return 1
+
+    monkeypatch.setattr(tasks.task_services, "list_tasks", fake_list_tasks)
+    monkeypatch.setattr(tasks.task_services, "count_tasks", fake_count_tasks)
+
+    response = asyncio.run(
+        tasks.list_tasks(
+            cast(AsyncSession, object()),
+            fields="basic",
+        )
+    )
+
+    payload = cast(dict[str, object], response.items[0])
+    assert payload == {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "vision_id": "22222222-2222-2222-2222-222222222222",
+        "parent_task_id": None,
+        "content": "Focus",
+        "status": "todo",
+        "priority": 2,
+        "display_order": 3,
+        "planning_cycle_type": "day",
+        "planning_cycle_days": 1,
+        "planning_cycle_start_date": "2026-06-30",
+        "people": [{"id": "33333333-3333-3333-3333-333333333333", "name": "A"}],
+    }
+    assert "created_at" not in payload
+    assert "updated_at" not in payload
+    assert "deleted_at" not in payload
+    assert "estimated_effort" not in payload
+    assert "actual_effort_total" not in payload
+    assert response.meta["fields"] == "basic"
+
+
+def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.areas import _area_payload
+    from lifeos_web.routers.habits import _habit_model_payload
+    from lifeos_web.routers.persons import _person_payload
+
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+
+    area_payload = _area_payload(
+        cast(
+            Any,
+            SimpleNamespace(
+                id=UUID("11111111-1111-1111-1111-111111111111"),
+                name="Work",
+                description=None,
+                color="#3B82F6",
+                icon=None,
+                is_active=True,
+                display_order=1,
+                created_at=timestamp,
+                updated_at=timestamp,
+            ),
+        )
+    )
+    assert "created_at" not in area_payload
+    assert "updated_at" not in area_payload
+
+    habit_payload = _habit_model_payload(
+        cast(
+            Any,
+            SimpleNamespace(
+                id=UUID("22222222-2222-2222-2222-222222222222"),
+                title="Read",
+                description=None,
+                start_date=date(2026, 6, 1),
+                duration_days=30,
+                cadence_frequency="daily",
+                cadence_weekdays=None,
+                target_per_cycle=1,
+                status="active",
+                task_id=None,
+                created_at=timestamp,
+                updated_at=timestamp,
+                deleted_at=timestamp,
+            ),
+        )
+    )
+    assert "created_at" not in habit_payload
+    assert "updated_at" not in habit_payload
+    assert "deleted_at" not in habit_payload
+
+    person_payload = _person_payload(
+        cast(
+            Any,
+            SimpleNamespace(
+                id=UUID("33333333-3333-3333-3333-333333333333"),
+                name="Ada",
+                description=None,
+                nicknames=(),
+                birth_date=None,
+                location=None,
+                created_at=timestamp,
+                updated_at=timestamp,
+                deleted_at=timestamp,
+                tags=(),
+            ),
+        )
+    )
+    assert "created_at" not in person_payload
+    assert "updated_at" not in person_payload
+    assert "deleted_at" not in person_payload
+    assert "is_soft_deleted" not in person_payload
+
+
+def test_web_habit_action_payload_uses_slim_habit_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers import habits
+
+    habit_id = UUID("11111111-1111-1111-1111-111111111111")
+
+    async def fake_get_habit(_session: object, *, habit_id: UUID) -> object:
+        assert habit_id == UUID("11111111-1111-1111-1111-111111111111")
+        return SimpleNamespace(
+            id=habit_id,
+            title="Walk",
+            description="Midday walk",
+            start_date=date(2026, 6, 1),
+            duration_days=30,
+            cadence_frequency="daily",
+            cadence_weekdays=None,
+            target_per_cycle=1,
+            status="active",
+            task_id=UUID("22222222-2222-2222-2222-222222222222"),
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+        )
+
+    monkeypatch.setattr(habits.habit_services, "get_habit", fake_get_habit)
+
+    action = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        habit_id=habit_id,
+        habit_title="Walk",
+        action_date=date(2026, 6, 30),
+        status="pending",
+        notes=None,
+        created_at=datetime(2026, 6, 30, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 30, 13, 0, tzinfo=timezone.utc),
+        deleted_at=None,
+    )
+
+    plain_payload = habits._habit_action_payload(action)
+    assert plain_payload == {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "habit_id": "11111111-1111-1111-1111-111111111111",
+        "action_date": "2026-06-30",
+        "status": "pending",
+        "notes": None,
+    }
+
+    summary_payload = asyncio.run(
+        habits._action_with_habit_summary(cast(AsyncSession, object()), action)
+    )
+    assert "habit_title" not in summary_payload
+    assert summary_payload["habit"] == {
+        "title": "Walk",
+        "description": "Midday walk",
+        "start_date": "2026-06-01",
+        "duration_days": 30,
+    }
+    habit_summary = cast(dict[str, object], summary_payload["habit"])
+    assert "id" not in habit_summary
+    assert "task_id" not in habit_summary
+
+
+def test_cli_rejects_deleted_record_visibility_flags_on_consumer_commands() -> None:
+    parser = build_parser()
+    rejected_commands = (
+        ("area", "list", "--include-deleted"),
+        ("area", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("event", "list", "--include-deleted"),
+        ("event", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("finance", "asset-list", "--include-deleted"),
+        ("finance", "tree-list", "--include-deleted"),
+        ("finance", "tree-show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("finance", "rate-snapshot-list", "--include-deleted"),
+        (
+            "finance",
+            "rate-snapshot-show",
+            "11111111-1111-1111-1111-111111111111",
+            "--include-deleted",
+        ),
+        (
+            "finance",
+            "snapshot-show",
+            "11111111-1111-1111-1111-111111111111",
+            "--include-deleted",
+        ),
+        ("habit", "list", "--include-deleted"),
+        ("habit", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("habit-action", "list", "--include-deleted"),
+        ("habit-action", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("note", "list", "--include-deleted"),
+        ("note", "search", "query", "--include-deleted"),
+        ("note", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("people", "list", "--include-deleted"),
+        ("people", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("tag", "list", "--include-deleted"),
+        ("tag", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("task", "list", "--include-deleted"),
+        ("task", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("timelog", "list", "--include-deleted"),
+        ("timelog", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("vision", "list", "--include-deleted"),
+        ("vision", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("data", "export", "note", "--exclude-deleted"),
+    )
+
+    for command in rejected_commands:
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args(command)
+        assert exc_info.value.code == 2
 
 
 def test_planned_event_recurrence_until_accepts_utc_z_suffix() -> None:
@@ -150,6 +701,8 @@ def test_planned_event_rrule_preserves_advanced_recurrence_details() -> None:
         "byweekday_ordinals": [{"weekday": "monday", "ordinal": 2}],
     }
     assert event_payload["rrule_string"] == "FREQ=MONTHLY;BYDAY=2MO;BYMONTH=4,5"
+    assert "created_at" not in event_payload
+    assert "updated_at" not in event_payload
 
 
 def test_planned_event_create_ignores_rrule_when_not_recurring() -> None:
@@ -452,6 +1005,50 @@ def test_web_timelog_template_list_maps_pagination_and_order(
     assert response.pagination.total == 12
     assert response.pagination.pages == 3
     assert response.meta["order_by"] == "usage"
+
+
+def test_web_timelog_template_payload_excludes_unconsumed_audit_fields() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.timelog_templates import _template_payload
+
+    payload = _template_payload(
+        TimelogTemplateView(
+            id=UUID("11111111-1111-1111-1111-111111111111"),
+            title="Focus",
+            area_id=UUID("22222222-2222-2222-2222-222222222222"),
+            area_name="Work",
+            area_color="#111111",
+            person_ids=(UUID("33333333-3333-3333-3333-333333333333"),),
+            people=(
+                PersonSummaryView(
+                    id=UUID("33333333-3333-3333-3333-333333333333"),
+                    name="A",
+                ),
+            ),
+            default_duration_minutes=25,
+            position=1,
+            usage_count=2,
+            last_used_at=datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 14, 0, tzinfo=timezone.utc),
+            deleted_at=datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc),
+        )
+    )
+
+    assert payload["person_ids"] == ["33333333-3333-3333-3333-333333333333"]
+    assert payload["people"] == [
+        {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "name": "A",
+            "display_name": "A",
+            "primary_nickname": "A",
+            "tags": [],
+        }
+    ]
+    assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
+    assert "updated_at" not in payload
+    assert "deleted_at" not in payload
 
 
 def test_web_timelog_template_update_preserves_explicit_nulls(
@@ -827,7 +1424,21 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
 
     async def fake_update_vision(_session: object, **kwargs: object) -> object:
         captured.update(kwargs)
-        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+        return SimpleNamespace(
+            id=UUID("22222222-2222-2222-2222-222222222222"),
+            name="Vision",
+            description=None,
+            status="active",
+            stage=0,
+            experience_points=0,
+            experience_rate_per_hour=None,
+            area_id=None,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            people=(),
+            tasks=(),
+        )
 
     monkeypatch.setattr(visions.vision_services, "update_vision", fake_update_vision)
 
@@ -951,10 +1562,10 @@ def test_web_habit_action_update_null_notes_maps_to_clear_notes(
         habits.habit_action_services, "update_habit_action", fake_update_habit_action
     )
 
-    async def fake_action_with_habit(_session: object, action: Any) -> dict[str, str]:
+    def fake_habit_action_payload(action: Any) -> dict[str, str]:
         return {"id": str(action.id)}
 
-    monkeypatch.setattr(habits, "_action_with_habit", fake_action_with_habit)
+    monkeypatch.setattr(habits, "_habit_action_payload", fake_habit_action_payload)
 
     asyncio.run(
         habits.update_action(
@@ -993,10 +1604,10 @@ def test_web_habit_action_by_date_update_null_notes_maps_to_clear_notes(
         fake_update_habit_action_by_date,
     )
 
-    async def fake_action_with_habit(_session: object, action: Any) -> dict[str, str]:
+    def fake_habit_action_payload(action: Any) -> dict[str, str]:
         return {"id": str(action.id)}
 
-    monkeypatch.setattr(habits, "_action_with_habit", fake_action_with_habit)
+    monkeypatch.setattr(habits, "_habit_action_payload", fake_habit_action_payload)
 
     asyncio.run(
         habits.update_action_by_date(
@@ -1165,6 +1776,58 @@ def test_web_tag_create_maps_to_lifeos_tag_service(
     }
     assert response["id"] == "11111111-1111-1111-1111-111111111111"
     assert response["name"] == "project"
+
+
+def test_web_tag_list_selector_payload_excludes_unconsumed_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+
+    tag = TagView(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
+        name="project",
+        entity_type="note",
+        category="general",
+        description="Internal description",
+        color="#ffffff",
+        created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 1, 14, 0, tzinfo=timezone.utc),
+        deleted_at=datetime(2026, 6, 1, 15, 0, tzinfo=timezone.utc),
+        people=(PersonSummaryView(id=UUID("22222222-2222-2222-2222-222222222222"), name="A"),),
+    )
+
+    async def fake_list_tags(_session: object, **kwargs: object) -> list[TagView]:
+        assert kwargs["entity_type"] == "note"
+        assert kwargs["limit"] == 1000
+        return [tag]
+
+    monkeypatch.setattr(tags.tag_services, "list_tags", fake_list_tags)
+
+    response = asyncio.run(
+        tags.list_tags(
+            cast(AsyncSession, object()),
+            entity_type="note",
+            size=1000,
+            fields="selector",
+        )
+    )
+
+    payload = cast(dict[str, object], response.items[0])
+    assert payload == {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "name": "project",
+        "entity_type": "note",
+        "category": "general",
+    }
+    assert "description" not in payload
+    assert "color" not in payload
+    assert "created_at" not in payload
+    assert "updated_at" not in payload
+    assert "deleted_at" not in payload
+    assert "people" not in payload
+    assert response.meta["fields"] == "selector"
 
 
 def test_web_tag_categories_include_builtin_and_existing_categories(

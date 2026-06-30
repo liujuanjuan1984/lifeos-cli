@@ -19,8 +19,6 @@ export interface PlannedEvent {
   status: string;
   tags?: string[] | null;
   extra_data?: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
   is_instance?: boolean;
   master_event_id?: UUID;
   instance_id?: UUID;

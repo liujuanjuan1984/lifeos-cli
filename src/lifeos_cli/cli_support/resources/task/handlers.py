@@ -147,7 +147,6 @@ async def handle_task_list_async(args: argparse.Namespace) -> int:
                 planning_cycle_type=args.planning_cycle_type,
                 planning_cycle_start_date=parse_optional_date_value(args.planning_cycle_start_date),
                 content=args.content,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -167,7 +166,6 @@ async def handle_task_show_async(args: argparse.Namespace) -> int:
         task = await task_services.get_task(
             session,
             task_id=args.task_id,
-            include_deleted=args.include_deleted,
         )
     if task is None:
         return cli_handler_utils.print_missing_record_error("Task", args.task_id)

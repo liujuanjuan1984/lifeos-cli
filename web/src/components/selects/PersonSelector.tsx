@@ -39,16 +39,6 @@ const matchesPerson = (person: PersonSummary, query: string) => {
   return person.tags.some((tag) => tag.name.toLowerCase().includes(normalized));
 };
 
-const extractPersonList = (payload: unknown): PersonSummary[] => {
-  if (payload && typeof payload === "object" && "items" in payload) {
-    const list = (payload as { items?: unknown }).items;
-    if (Array.isArray(list)) {
-      return list as PersonSummary[];
-    }
-  }
-  return [];
-};
-
 const PersonSelector: React.FC<PersonSelectorProps> = ({
   selectedPersonIds,
   onSelectionChange,
@@ -71,9 +61,9 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [remotePersons, setRemotePersons] = useState<PersonSummary[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const { persons: personsFromCache } = usePersons();
+  const { persons: personsFromCache, loading: personsLoading } = usePersons();
 
   const sanitizedSelectedIds = useMemo(
     () => filterValidUUIDs(selectedPersonIds),
@@ -88,46 +78,19 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
   }, []);
 
   useEffect(() => {
-    if (personsFromCache && personsFromCache.length > 0) {
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const data = await personsApi.getAll(1, 100);
-        if (!cancelled) {
-          setRemotePersons(extractPersonList(data));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          logger.error("Failed to load persons:", error);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [personsFromCache]);
-
-  useEffect(() => {
     if (!searchTerm.trim()) {
+      setRemotePersons([]);
+      setSearchLoading(false);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
+    setSearchLoading(true);
     const handler = window.setTimeout(async () => {
       try {
         const data = await personsApi.getAll(1, 100, searchTerm.trim());
         if (!cancelled) {
-          setRemotePersons(extractPersonList(data));
+          setRemotePersons(Array.isArray(data.items) ? data.items : []);
         }
       } catch (error) {
         if (!cancelled) {
@@ -135,7 +98,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setSearchLoading(false);
         }
       }
     }, 250);
@@ -324,7 +287,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
       showLabel={showLabel}
       usePortal={usePortal}
       dropdownMaxHeight={menuMaxHeight}
-      isLoading={loading}
+      isLoading={personsLoading || searchLoading}
       renderOption={renderOption}
       renderTag={renderTag}
       renderEmpty={(query) => (

@@ -49,8 +49,6 @@ def _area_payload(area: Area) -> dict[str, object]:
         "icon": area.icon,
         "is_active": area.is_active,
         "display_order": area.display_order,
-        "created_at": area.created_at.isoformat(),
-        "updated_at": area.updated_at.isoformat(),
     }
 
 
@@ -109,7 +107,7 @@ async def reset_area_order(session: SessionDep) -> None:
 @router.get("/{area_id}")
 async def get_area(area_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load one LifeOS area."""
-    area = await area_services.get_area(session, area_id=area_id, include_deleted=False)
+    area = await area_services.get_area(session, area_id=area_id)
     if area is None:
         raise HTTPException(status_code=404, detail=f"Area {area_id} was not found")
     return _area_payload(area)

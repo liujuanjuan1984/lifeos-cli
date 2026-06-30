@@ -15,8 +15,6 @@ export interface Vision {
   experience_points: number;
   experience_rate_per_hour: number;
   created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
   people?: PersonSummary[];
   // Optional aggregated minutes for display (if backend adds later)
   total_actual_effort?: number | null;

@@ -97,11 +97,6 @@ def build_data_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
     export_parser.add_argument(
         "--output", help=_("resources.data.parser.write_exported_data_to_file_instead_of_stdout")
     )
-    export_parser.add_argument(
-        "--exclude-deleted",
-        action="store_true",
-        help=_("resources.data.parser.exclude_deleted_rows_from_exported_snapshots"),
-    )
     export_parser.set_defaults(handler=make_sync_handler(handle_data_export_async))
 
     import_parser = add_documented_parser(

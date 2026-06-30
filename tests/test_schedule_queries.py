@@ -50,11 +50,10 @@ def test_list_schedule_in_range_groups_tasks_actions_and_events(monkeypatch) -> 
         ]
 
     async def fake_list_habit_actions_in_range(
-        session: object, *, start_date: date, end_date: date, include_deleted: bool
+        session: object, *, start_date: date, end_date: date
     ) -> list[object]:
         assert start_date == date.min
         assert end_date == date(2026, 4, 11)
-        assert include_deleted is False
         return [
             make_record(
                 id=UUID("22222222-2222-2222-2222-222222222222"),
@@ -174,11 +173,10 @@ def test_list_schedule_in_range_shows_overdue_unfinished_items_by_default(
         ]
 
     async def fake_list_habit_actions_in_range(
-        session: object, *, start_date: date, end_date: date, include_deleted: bool
+        session: object, *, start_date: date, end_date: date
     ) -> list[object]:
         assert start_date == date.min
         assert end_date == date(2026, 4, 12)
-        assert include_deleted is False
         return [
             make_record(
                 id=UUID("44444444-4444-4444-4444-444444444444"),
@@ -274,7 +272,7 @@ def test_list_schedule_in_range_can_hide_overdue_unfinished_items(monkeypatch) -
         ]
 
     async def fake_list_habit_actions_in_range(
-        session: object, *, start_date: date, end_date: date, include_deleted: bool
+        session: object, *, start_date: date, end_date: date
     ) -> list[object]:
         return [
             make_record(
@@ -332,11 +330,10 @@ def test_list_schedule_in_range_uses_expanded_recurring_event_occurrences(monkey
         return []
 
     async def fake_list_habit_actions_in_range(
-        session: object, *, start_date: date, end_date: date, include_deleted: bool
+        session: object, *, start_date: date, end_date: date
     ) -> list[object]:
         assert start_date == date.min
         assert end_date == date(2026, 4, 11)
-        assert include_deleted is False
         return []
 
     calls: list[tuple[object, object]] = []
@@ -427,9 +424,8 @@ def test_list_schedule_in_range_keeps_all_events_under_event_section(monkeypatch
         return []
 
     async def fake_list_habit_actions_in_range(
-        session: object, *, start_date: date, end_date: date, include_deleted: bool
+        session: object, *, start_date: date, end_date: date
     ) -> list[object]:
-        assert include_deleted is False
         return []
 
     async def fake_load_events(

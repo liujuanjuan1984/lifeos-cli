@@ -69,8 +69,6 @@
       "when_results_exist_list_command_prints_header_row_followed_by_tab_separated": "When results exist, the list command prints a header row followed by tab-separated columns: {columns}."
     },
     "parser": {
-      "allow_loading_deleted_records": "Allow loading deleted records",
-      "include_deleted_records": "Include deleted records",
       "maximum_number_of_results_to_return": "Maximum number of results to return",
       "noun_identifiers_to_action_verb": "{noun} identifiers to {action_verb}",
       "number_of_results_to_skip": "Number of results to skip"
@@ -94,7 +92,6 @@
         "delete_multiple_areas": "Delete multiple areas",
         "delete_multiple_areas_by_identifier": "Delete multiple areas by identifier.",
         "delete_multiple_areas_in_one_command": "Delete multiple areas in one command.",
-        "deleted_areas_are_hidden_unless_include_deleted_is_set": "Deleted areas are hidden unless `--include-deleted` is set.",
         "hex_color_code": "Hex color code",
         "include_inactive_areas": "Include inactive areas",
         "list_areas": "List areas",
@@ -116,7 +113,6 @@
         "use_clear_description_or_clear_icon_to_remove_optional_values": "Use `--clear-description` or `--clear-icon` to remove optional values.",
         "use_filters_and_pagination_flags_here_instead_of_expecting_separate_search_command": "Use filters and pagination flags here instead of expecting a separate search command.",
         "use_inactive_when_area_should_exist_but_not_appear_as_active_yet": "Use `--inactive` when the area should exist but not appear as active yet.",
-        "use_include_deleted_to_inspect_deleted_area": "Use `--include-deleted` to inspect a deleted area.",
         "use_limit_and_offset_together_for_pagination": "Use `--limit` and `--offset` together for pagination.",
         "use_this_action_when_you_need_exact_field_values_instead_of_compact": "Use this action when you need exact field values instead of the compact list view."
       }
@@ -132,7 +128,6 @@
         "bundle_import_is_implied_when_target_is_bundle": "Bundle import is implied when the target is `bundle`.",
         "continue_processing_later_rows_after_failure": "Continue processing later rows after a failure",
         "delete_multiple_rows_for_one_resource_using_repeated_ids_ids_file_or": "Delete multiple rows for one resource using repeated IDs, an IDs file, or JSON/JSONL input containing row IDs.",
-        "exclude_deleted_rows_from_exported_snapshots": "Exclude deleted rows from exported snapshots",
         "export_canonical_snapshot_rows_for_one_resource_or_create_full_bundle_zip": "Export canonical snapshot rows for one resource, or create a full bundle zip covering all supported resources.",
         "export_format_for_one_resource_bundle_is_implied_for_all": "Export format for one resource; bundle is implied for `all`",
         "export_one_resource_or_full_bundle": "Export one resource or a full bundle",
@@ -263,10 +258,6 @@
         "delete_finance_asset": "Delete a finance asset.",
         "delete_finance_node": "Delete a finance node.",
         "ensure_default_finance_tree_exists": "Ensure a default finance tree exists.",
-        "finance_assets": "finance assets",
-        "finance_rate_snapshots": "finance rate snapshots",
-        "finance_snapshots": "finance snapshots",
-        "finance_trees": "finance trees",
         "instant_snapshots_appear_in_balance_sheet_view": "Instant snapshots appear in the balance-sheet view.",
         "list_active_finance_assets_and_their_precision": "List active finance assets and their display/input precision.",
         "list_active_finance_trees": "List active finance trees.",
@@ -465,8 +456,6 @@
         "update_note_content_and_weak_associations_in_place": "Update note content and weak associations in place.",
         "use_case_sensitive_find_replace_instead_of_case_insensitive_matching": "Use a case-sensitive find/replace instead of case-insensitive matching",
         "use_delete_to_remove_multiple_notes_by_identifier": "Use `delete` to remove multiple notes by identifier.",
-        "use_include_deleted_to_inspect_deleted_note": "Use `--include-deleted` to inspect a deleted note.",
-        "use_include_deleted_when_reviewing_deleted_records": "Use --include-deleted when reviewing deleted records.",
         "use_limit_and_offset_together_for_pagination": "Use --limit and --offset together for pagination.",
         "use_relation_flags_without_content_when_only_links_need_to_change": "Use relation flags without `content` when only links need to change.",
         "use_stdin_or_file_for_multi_line_note_content": "Use `--stdin` or `--file` for multi-line note content.",
@@ -596,8 +585,7 @@
         "updated_tag_description": "Updated tag description",
         "updated_tag_name": "Updated tag name",
         "use_clear_description_clear_color_or_clear_people_to_remove_optional_values": "Use `--clear-description`, `--clear-color`, or `--clear-people` to remove optional values.",
-        "use_entity_type_and_category_to_narrow_result_set_before_inspecting_one": "Use entity type and category to narrow the result set before inspecting one tag in detail.",
-        "use_include_deleted_to_review_previously_deleted_tags": "Use `--include-deleted` to review previously deleted tags."
+        "use_entity_type_and_category_to_narrow_result_set_before_inspecting_one": "Use entity type and category to narrow the result set before inspecting one tag in detail."
       }
     },
     "task": {

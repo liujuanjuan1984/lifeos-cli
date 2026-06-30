@@ -108,7 +108,6 @@ async def handle_vision_list_async(args: argparse.Namespace) -> int:
                 status=args.status,
                 area_id=args.area_id,
                 person_id=args.person_id,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -128,7 +127,6 @@ async def handle_vision_show_async(args: argparse.Namespace) -> int:
         vision = await vision_services.get_vision(
             session,
             vision_id=args.vision_id,
-            include_deleted=args.include_deleted,
         )
     if vision is None:
         return cli_handler_utils.print_missing_record_error("Vision", args.vision_id)

@@ -18,7 +18,9 @@ from sqlalchemy.ext.asyncio import (
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import events, task_effort, timelogs
 from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
@@ -479,9 +481,8 @@ def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch)
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_sync_tags(_: object, **__: object) -> None:
@@ -576,6 +577,41 @@ def test_sqlite_roundtrip_returns_utc_aware_datetimes(monkeypatch: pytest.Monkey
     asyncio.run(run())
 
 
+def test_timelog_view_does_not_hydrate_soft_deleted_task() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Work")
+                session.add(vision)
+                await session.flush()
+                task = Task(vision_id=vision.id, content="Deleted task")
+                session.add(task)
+                await session.flush()
+                timelog = Timelog(
+                    title="Deep work",
+                    start_time=utc_datetime(2026, 6, 30, 13, 0),
+                    end_time=utc_datetime(2026, 6, 30, 14, 0),
+                    task_id=task.id,
+                )
+                session.add(timelog)
+                await session.flush()
+                task.soft_delete()
+                await session.commit()
+                timelog_id = timelog.id
+
+            async with session_factory() as session:
+                loaded = await timelogs.get_timelog(session, timelog_id=timelog_id)
+
+                assert loaded is not None
+                assert loaded.task_id == task.id
+                assert loaded.task is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
 def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     event = SimpleNamespace(
         id=UUID("abababab-abab-abab-abab-abababababab"),
@@ -590,9 +626,8 @@ def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPa
     session = SimpleNamespace(flush=AsyncMock())
     record_skip = AsyncMock()
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_get_override_event(
@@ -639,9 +674,8 @@ def test_delete_event_single_interprets_naive_instance_start_using_preferred_tim
     session = SimpleNamespace(flush=AsyncMock())
     record_skip = AsyncMock()
 
-    async def fake_get_event(_: object, *, event_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_event(_: object, *, event_id: UUID) -> object:
         assert event_id == UUID("abababab-abab-abab-abab-abababababab")
-        assert include_deleted is False
         return event
 
     async def fake_get_override_event(
@@ -1038,10 +1072,8 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert timelog_id == UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
-        assert include_deleted is False
         return timelog
 
     async def fake_sync_tags(_: object, **__: object) -> None:
@@ -1112,9 +1144,7 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object | None:
-        assert include_deleted is False
         if timelog_id == missing_id:
             return None
         return timelog
@@ -1172,9 +1202,7 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
         _: object,
         *,
         timelog_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
-        assert include_deleted is False
         return timelog
 
     update_timelog = AsyncMock()

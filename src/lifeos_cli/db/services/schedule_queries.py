@@ -179,7 +179,6 @@ async def list_schedule_in_range(
         session,
         start_date=query_start_date,
         end_date=end_date,
-        include_deleted=False,
     )
     events = await _load_schedule_events(session, start_date=start_date, end_date=end_date)
 

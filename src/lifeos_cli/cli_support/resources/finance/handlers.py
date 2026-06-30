@@ -93,8 +93,6 @@ def _format_tree_detail(tree: FinanceTree, nodes: list[FinanceTreeNode]) -> str:
             f"primary_currency: {tree.primary_currency}",
             f"is_default: {tree.is_default}",
             f"display_order: {tree.display_order}",
-            f"created_at: {format_timestamp(tree.created_at)}",
-            f"updated_at: {format_timestamp(tree.updated_at)}",
             "nodes:",
             *(node_lines or ["-"]),
         )
@@ -225,7 +223,6 @@ async def handle_finance_asset_list_async(args: argparse.Namespace) -> int:
     async with db_session.session_scope() as session:
         assets = await finance_services.list_finance_assets(
             session,
-            include_deleted=args.include_deleted,
             limit=args.limit,
             offset=args.offset,
         )
@@ -302,7 +299,6 @@ async def handle_finance_tree_list_async(args: argparse.Namespace) -> int:
         try:
             trees = await finance_services.list_finance_trees(
                 session,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -322,7 +318,6 @@ async def handle_finance_tree_show_async(args: argparse.Namespace) -> int:
         tree = await finance_services.get_finance_tree_with_nodes(
             session,
             tree_id=args.tree_id,
-            include_deleted=args.include_deleted,
         )
     if tree is None:
         return cli_handler_utils.print_missing_record_error("Finance tree", args.tree_id)
@@ -428,7 +423,6 @@ async def handle_finance_rate_snapshot_list_async(args: argparse.Namespace) -> i
         try:
             rate_snapshots = await finance_services.list_finance_rate_snapshots(
                 session,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -448,7 +442,6 @@ async def handle_finance_rate_snapshot_show_async(args: argparse.Namespace) -> i
         rate_snapshot = await finance_services.get_finance_rate_snapshot(
             session,
             rate_snapshot_id=args.rate_snapshot_id,
-            include_deleted=args.include_deleted,
         )
     if rate_snapshot is None:
         return cli_handler_utils.print_missing_record_error(
@@ -489,7 +482,6 @@ async def handle_finance_snapshot_show_async(args: argparse.Namespace) -> int:
         snapshot = await finance_services.get_finance_snapshot(
             session,
             snapshot_id=args.snapshot_id,
-            include_deleted=args.include_deleted,
         )
         assets = await finance_services.list_finance_assets(session)
     if snapshot is None:

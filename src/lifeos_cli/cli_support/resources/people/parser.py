@@ -13,7 +13,6 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.people.handlers import (
@@ -150,7 +149,6 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
     list_parser.add_argument(
         "--tag-id", type=UUID, help=_("resources.people.parser.filter_by_tag_identifier")
     )
-    add_include_deleted_argument(list_parser, noun="people")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_people_list_async))
 
@@ -162,14 +160,13 @@ def build_people_parser(subparsers: argparse._SubParsersAction[argparse.Argument
             description=_("resources.people.parser.show_one_person_with_full_metadata"),
             examples=(
                 "lifeos people show 11111111-1111-1111-1111-111111111111",
-                "lifeos people show 11111111-1111-1111-1111-111111111111 --include-deleted",
+                "lifeos people show 11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
     show_parser.add_argument(
         "person_id", type=UUID, help=_("resources.people.parser.person_identifier")
     )
-    add_include_deleted_argument(show_parser, noun="people", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_people_show_async))
 
     update_parser = add_documented_parser(

@@ -67,7 +67,6 @@ async def handle_people_list_async(args: argparse.Namespace) -> int:
             session,
             search=args.search,
             tag_id=args.tag_id,
-            include_deleted=args.include_deleted,
             limit=args.limit,
             offset=args.offset,
         )
@@ -85,7 +84,6 @@ async def handle_people_show_async(args: argparse.Namespace) -> int:
         person = await people_services.get_person(
             session,
             person_id=args.person_id,
-            include_deleted=args.include_deleted,
         )
     if person is None:
         return cli_handler_utils.print_missing_record_error("Person", args.person_id)

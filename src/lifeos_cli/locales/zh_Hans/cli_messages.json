@@ -69,8 +69,6 @@
       "when_results_exist_list_command_prints_header_row_followed_by_tab_separated": "当存在结果时，`list` 命令会先输出一行表头，随后按制表符分隔输出列：{columns}。"
     },
     "parser": {
-      "allow_loading_deleted_records": "允许加载已删除的记录",
-      "include_deleted_records": "包含已删除的记录",
       "maximum_number_of_results_to_return": "返回结果的最大数量",
       "noun_identifiers_to_action_verb": "用于{action_verb}的{noun}标识符",
       "number_of_results_to_skip": "要跳过的结果数量"
@@ -94,7 +92,6 @@
         "delete_multiple_areas": "删除多个 `area`",
         "delete_multiple_areas_by_identifier": "通过标识符删除多个 `area`。",
         "delete_multiple_areas_in_one_command": "在一个命令中删除多个 `area`。",
-        "deleted_areas_are_hidden_unless_include_deleted_is_set": "除非设置了 `--include-deleted`，否则已删除的 `area` 将被隐藏。",
         "hex_color_code": "十六进制颜色代码",
         "include_inactive_areas": "包括非活动 `area`",
         "list_areas": "列出 `area`",
@@ -116,7 +113,6 @@
         "use_clear_description_or_clear_icon_to_remove_optional_values": "使用 `--clear-description` 或 `--clear-icon` 删除可选值。",
         "use_filters_and_pagination_flags_here_instead_of_expecting_separate_search_command": "此处使用过滤器和分页标志，而不是期望单独的搜索命令。",
         "use_inactive_when_area_should_exist_but_not_appear_as_active_yet": "当 `area` 应该存在但尚未显示为活动状态时，请使用 `--inactive`。",
-        "use_include_deleted_to_inspect_deleted_area": "使用 `--include-deleted` 检查已删除的 `area`。",
         "use_limit_and_offset_together_for_pagination": "结合使用 `--limit` 和 `--offset` 进行分页。",
         "use_this_action_when_you_need_exact_field_values_instead_of_compact": "当您需要精确的字段值而不是紧凑列表视图时，请使用此操作。"
       }
@@ -132,7 +128,6 @@
         "bundle_import_is_implied_when_target_is_bundle": "当目标是 `bundle ` 时，暗示捆绑导入。",
         "continue_processing_later_rows_after_failure": "失败后继续处理后面的行",
         "delete_multiple_rows_for_one_resource_using_repeated_ids_ids_file_or": "使用重复 ID、ID 文件，或包含行 ID 的 JSON/JSONL 输入，批量删除某一资源的多行记录。",
-        "exclude_deleted_rows_from_exported_snapshots": "从导出的快照中排除已删除的行",
         "export_canonical_snapshot_rows_for_one_resource_or_create_full_bundle_zip": "导出一个资源的规范快照行，或创建涵盖所有支持资源的完整捆绑包 zip。",
         "export_format_for_one_resource_bundle_is_implied_for_all": "一项资源的导出格式；`all` 隐含捆绑包",
         "export_one_resource_or_full_bundle": "导出一个资源或整个资源包",
@@ -263,10 +258,6 @@
         "delete_finance_asset": "删除 `finance asset`。",
         "delete_finance_node": "删除 `finance node`。",
         "ensure_default_finance_tree_exists": "确保默认 `finance tree` 存在。",
-        "finance_assets": "`finance asset`",
-        "finance_rate_snapshots": "finance 汇率 snapshot",
-        "finance_snapshots": "`finance snapshot`",
-        "finance_trees": "`finance tree`",
         "instant_snapshots_appear_in_balance_sheet_view": "即时 snapshot 会出现在资产负债表视图中。",
         "list_active_finance_assets_and_their_precision": "列出活动 `finance asset` 及其显示/输入精度。",
         "list_active_finance_trees": "列出活动 `finance tree`。",
@@ -465,8 +456,6 @@
         "update_note_content_and_weak_associations_in_place": "更新 `note` 内容和薄弱关联。",
         "use_case_sensitive_find_replace_instead_of_case_insensitive_matching": "使用区分大小写的查找/替换而不是不区分大小写的匹配",
         "use_delete_to_remove_multiple_notes_by_identifier": "使用 `delete` 按标识符删除多个 `note`。",
-        "use_include_deleted_to_inspect_deleted_note": "使用 `--include-deleted` 检查已删除的 `note`。",
-        "use_include_deleted_when_reviewing_deleted_records": "查看已删除记录时使用 --include-deleted。",
         "use_limit_and_offset_together_for_pagination": "一起使用 --limit 和 --offset 进行分页。",
         "use_relation_flags_without_content_when_only_links_need_to_change": "当仅需要更改链接时，使用不带 `content ` 的关系标志。",
         "use_stdin_or_file_for_multi_line_note_content": "使用 `--stdin` 或 `--file` 处理多行 `note` 内容。",
@@ -596,8 +585,7 @@
         "updated_tag_description": "更新了 `tag` 描述",
         "updated_tag_name": "更新的 `tag` 名称",
         "use_clear_description_clear_color_or_clear_people_to_remove_optional_values": "使用 `--clear-description`、`--clear-color` 或 `--clear-people` 删除可选值。",
-        "use_entity_type_and_category_to_narrow_result_set_before_inspecting_one": "在详细检查一个 `tag` 之前，使用实体类型和类别来缩小结果集范围。",
-        "use_include_deleted_to_review_previously_deleted_tags": "使用 `--include-deleted` 查看之前删除的 `tag`。"
+        "use_entity_type_and_category_to_narrow_result_set_before_inspecting_one": "在详细检查一个 `tag` 之前，使用实体类型和类别来缩小结果集范围。"
       }
     },
     "task": {

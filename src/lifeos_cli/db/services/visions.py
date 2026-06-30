@@ -192,14 +192,12 @@ async def get_vision(
     session: AsyncSession,
     *,
     vision_id: UUID,
-    include_deleted: bool = False,
 ) -> VisionView | None:
     """Load a vision by identifier."""
     return await load_view_by_id(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=include_deleted,
         view_builder=_build_vision_view,
     )
 
@@ -210,14 +208,12 @@ async def list_visions(
     status: str | None = None,
     area_id: UUID | None = None,
     person_id: UUID | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[VisionView]:
     """List visions."""
     stmt = select(Vision)
-    if not include_deleted:
-        stmt = stmt.where(Vision.deleted_at.is_(None))
+    stmt = stmt.where(Vision.deleted_at.is_(None))
     if status is not None:
         stmt = stmt.where(Vision.status == validate_vision_status(status))
     if area_id is not None:
@@ -253,7 +249,6 @@ async def update_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -324,7 +319,6 @@ async def add_experience_to_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -348,7 +342,6 @@ async def sync_vision_experience(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -374,7 +367,6 @@ async def get_vision_with_tasks(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -392,7 +384,6 @@ async def get_vision_stats(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
@@ -429,7 +420,6 @@ async def harvest_vision(
         session,
         model_cls=Vision,
         model_id=vision_id,
-        include_deleted=False,
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")

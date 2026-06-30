@@ -9,6 +9,10 @@ import { setupTranslationMock } from "@test/utils";
 
 setupTranslationMock();
 
+const personsApiMock = vi.hoisted(() => ({
+  getAll: vi.fn().mockResolvedValue({ items: [] }),
+}));
+
 type MockDropdownOptions = {
   isOpen: boolean;
   usePortal?: boolean;
@@ -70,14 +74,12 @@ const createPersons = (): PersonSummary[] => [
 vi.mock("@/hooks/queries/usePersonsList", () => {
   const persons = createPersons();
   return {
-    usePersonsList: () => ({ persons }),
+    usePersonsList: () => ({ persons, loading: false }),
   };
 });
 
 vi.mock("@/services/api/persons", () => ({
-  personsApi: {
-    getAll: vi.fn().mockResolvedValue({ items: createPersons() }),
-  },
+  personsApi: personsApiMock,
 }));
 
 let PersonSelector: typeof import("@/components/selects/PersonSelector").default;
@@ -151,6 +153,12 @@ describe("PersonSelector", () => {
         screen.queryByText(/Grace Hopper/, { selector: "span" }),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  it("uses the shared persons cache without issuing an initial direct request", () => {
+    render(<Controlled />);
+
+    expect(personsApiMock.getAll).not.toHaveBeenCalled();
   });
 
   it("supports clearing via the None option", async () => {

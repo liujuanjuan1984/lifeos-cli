@@ -30,16 +30,18 @@ from lifeos_cli.db.services.read_models import HabitActionView
 from lifeos_cli.db.sql_expressions import AddDaysToDate
 
 
+def _active_habit_task_loader() -> Any:
+    return selectinload(Habit.task.and_(Task.deleted_at.is_(None)))
+
+
 def _apply_habit_filters(
     stmt: Any,
     *,
     status: str | None,
     title: str | None,
     active_window_only: bool,
-    include_deleted: bool,
 ) -> Any:
-    if not include_deleted:
-        stmt = stmt.where(Habit.deleted_at.is_(None))
+    stmt = stmt.where(Habit.deleted_at.is_(None))
     if status is not None:
         stmt = stmt.where(Habit.status == validate_habit_status(status))
     if title is not None:
@@ -155,13 +157,11 @@ async def _load_materialized_actions_for_habits(
     start_date: date | None,
     end_date: date | None,
     target_dates: tuple[date, ...] = (),
-    include_deleted: bool,
 ) -> list[HabitAction]:
     if not habit_ids:
         return []
     stmt = select(HabitAction).where(HabitAction.habit_id.in_(habit_ids))
-    if not include_deleted:
-        stmt = stmt.where(HabitAction.deleted_at.is_(None))
+    stmt = stmt.where(HabitAction.deleted_at.is_(None))
     if target_dates:
         stmt = stmt.where(HabitAction.action_date.in_(target_dates))
     elif start_date is not None:
@@ -180,19 +180,17 @@ async def _load_candidate_habits(
     session: AsyncSession,
     *,
     habit_id: UUID | None,
-    include_deleted: bool,
     action_window: tuple[date, date] | None,
     target_dates: tuple[date, ...] = (),
 ) -> list[Habit]:
     if habit_id is not None:
-        habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
+        habit = await get_habit(session, habit_id=habit_id)
         if habit is None:
             raise HabitNotFoundError(f"Habit {habit_id} was not found")
         return [habit]
 
-    stmt = select(Habit).options(selectinload(Habit.task))
-    if not include_deleted:
-        stmt = stmt.where(Habit.deleted_at.is_(None))
+    stmt = select(Habit).options(_active_habit_task_loader())
+    stmt = stmt.where(Habit.deleted_at.is_(None))
     if target_dates:
         habit_end_expr = _habit_end_expr()
         stmt = stmt.where(
@@ -215,12 +213,10 @@ def _build_habit_action_views_for_occurrence_dates(
     habit: Habit,
     materialized_actions: list[HabitAction],
     occurrence_dates: list[date],
-    include_deleted: bool,
 ) -> list[HabitActionView]:
     active_actions_by_date = {
         action.action_date: action for action in materialized_actions if action.deleted_at is None
     }
-    deleted_actions = [action for action in materialized_actions if action.deleted_at is not None]
     views: list[HabitActionView] = []
 
     for action_date in occurrence_dates:
@@ -254,23 +250,6 @@ def _build_habit_action_views_for_occurrence_dates(
             )
         )
 
-    if include_deleted:
-        occurrence_date_set = set(occurrence_dates)
-        views.extend(
-            _build_habit_action_view(
-                action_id=action.id,
-                habit_id=action.habit_id,
-                habit_title=habit.title,
-                action_date=action.action_date,
-                status=action.status,
-                notes=action.notes,
-                created_at=action.created_at,
-                updated_at=action.updated_at,
-                deleted_at=action.deleted_at,
-            )
-            for action in deleted_actions
-            if action.action_date in occurrence_date_set
-        )
     return views
 
 
@@ -281,13 +260,11 @@ async def _build_habit_action_views(
     status: str | None,
     action_window: tuple[date, date] | None,
     target_dates: tuple[date, ...] = (),
-    include_deleted: bool,
 ) -> list[HabitActionView]:
     normalized_target_dates = tuple(deduplicate_preserving_order(target_dates))
     habits = await _load_candidate_habits(
         session,
         habit_id=habit_id,
-        include_deleted=include_deleted,
         action_window=action_window,
         target_dates=normalized_target_dates,
     )
@@ -310,7 +287,6 @@ async def _build_habit_action_views(
         start_date=range_start,
         end_date=range_end,
         target_dates=normalized_target_dates,
-        include_deleted=include_deleted,
     )
     actions_by_habit: dict[UUID, list[HabitAction]] = {habit_id: [] for habit_id in habit_ids}
     for action in materialized_actions:
@@ -334,7 +310,6 @@ async def _build_habit_action_views(
                     habit=habit,
                     materialized_actions=actions_by_habit.get(habit.id, []),
                     occurrence_dates=occurrence_dates,
-                    include_deleted=include_deleted,
                 )
             )
             continue
@@ -351,7 +326,6 @@ async def _build_habit_action_views(
                     start_date=habit_start,
                     end_date=habit_end,
                 ),
-                include_deleted=include_deleted,
             )
         )
     if status is not None:
@@ -373,13 +347,11 @@ async def get_habit(
     session: AsyncSession,
     *,
     habit_id: UUID,
-    include_deleted: bool = False,
 ) -> Habit | None:
     """Load a habit by identifier."""
     await refresh_habit_expiration(session, habit_id=habit_id)
-    stmt = select(Habit).where(Habit.id == habit_id).options(selectinload(Habit.task)).limit(1)
-    if not include_deleted:
-        stmt = stmt.where(Habit.deleted_at.is_(None))
+    stmt = select(Habit).where(Habit.id == habit_id).options(_active_habit_task_loader()).limit(1)
+    stmt = stmt.where(Habit.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -389,19 +361,17 @@ async def list_habits(
     status: str | None = None,
     title: str | None = None,
     active_window_only: bool = False,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[Habit]:
     """List habits with optional status and title filters."""
     await refresh_habit_expiration(session)
-    stmt = select(Habit).options(selectinload(Habit.task))
+    stmt = select(Habit).options(_active_habit_task_loader())
     stmt = _apply_habit_filters(
         stmt,
         status=status,
         title=title,
         active_window_only=active_window_only,
-        include_deleted=include_deleted,
     )
     stmt = stmt.order_by(Habit.created_at.desc(), Habit.id.desc()).offset(offset).limit(limit)
     return list((await session.execute(stmt)).scalars())
@@ -413,7 +383,6 @@ async def count_habits(
     status: str | None = None,
     title: str | None = None,
     active_window_only: bool = False,
-    include_deleted: bool = False,
 ) -> int:
     """Count habits with the same filters used by list_habits."""
     await refresh_habit_expiration(session)
@@ -423,14 +392,13 @@ async def count_habits(
         status=status,
         title=title,
         active_window_only=active_window_only,
-        include_deleted=include_deleted,
     )
     return int((await session.execute(stmt)).scalar_one())
 
 
 async def get_habit_stats(session: AsyncSession, *, habit_id: UUID) -> dict[str, object]:
     """Return statistics for one habit."""
-    habit = await get_habit(session, habit_id=habit_id, include_deleted=False)
+    habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
     actions = await _build_habit_action_views(
@@ -438,7 +406,6 @@ async def get_habit_stats(session: AsyncSession, *, habit_id: UUID) -> dict[str,
         habit_id=habit.id,
         status=None,
         action_window=None,
-        include_deleted=False,
     )
     return build_habit_stats_payload(habit, cast(list[HabitActionLike], actions))
 
@@ -447,10 +414,9 @@ async def get_habit_overview(
     session: AsyncSession,
     *,
     habit_id: UUID,
-    include_deleted: bool = False,
 ) -> dict[str, object]:
     """Return a habit plus its derived statistics."""
-    habit = await get_habit(session, habit_id=habit_id, include_deleted=include_deleted)
+    habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
     actions = await _build_habit_action_views(
@@ -458,7 +424,6 @@ async def get_habit_overview(
         habit_id=habit.id,
         status=None,
         action_window=None,
-        include_deleted=False,
     )
     return {
         "habit": habit,
@@ -472,7 +437,6 @@ async def list_habit_overviews(
     status: str | None = None,
     title: str | None = None,
     active_window_only: bool = False,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[dict[str, object]]:
@@ -482,7 +446,6 @@ async def list_habit_overviews(
         status=status,
         title=title,
         active_window_only=active_window_only,
-        include_deleted=include_deleted,
         limit=limit,
         offset=offset,
     )
@@ -495,7 +458,6 @@ async def list_habit_overviews(
             habit_id=habit.id,
             status=None,
             action_window=None,
-            include_deleted=False,
         )
         overviews.append(
             {
@@ -517,7 +479,7 @@ async def get_habit_task_associations(session: AsyncSession) -> dict[UUID, list[
             Habit.task_id.is_not(None),
             Task.deleted_at.is_(None),
         )
-        .options(selectinload(Habit.task))
+        .options(_active_habit_task_loader())
         .order_by(Habit.created_at.desc())
     )
     habits = list((await session.execute(stmt)).scalars())
@@ -537,7 +499,6 @@ async def list_habit_actions(
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
-    include_deleted: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> list[HabitActionView]:
@@ -552,11 +513,10 @@ async def list_habit_actions(
         status=status,
         action_window=action_window,
         target_dates=target_dates,
-        include_deleted=include_deleted,
     )
     paged_views = views[offset : offset + limit]
     synthetic_views = [view for view in paged_views if view.id is None]
-    if not synthetic_views or include_deleted:
+    if not synthetic_views:
         return paged_views
 
     habit_ids = {view.habit_id for view in synthetic_views}
@@ -600,7 +560,6 @@ async def list_habit_actions_in_range(
     *,
     start_date: date,
     end_date: date,
-    include_deleted: bool = False,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views for an explicit inclusive date range."""
     if end_date < start_date:
@@ -610,7 +569,6 @@ async def list_habit_actions_in_range(
         habit_id=None,
         status=None,
         action_window=(start_date, end_date),
-        include_deleted=include_deleted,
     )
     return [view for view in views if start_date <= view.action_date <= end_date]
 
@@ -623,7 +581,6 @@ async def count_habit_actions(
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
-    include_deleted: bool = False,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
     target_dates = tuple(deduplicate_preserving_order(date_values))
@@ -636,7 +593,6 @@ async def count_habit_actions(
         status=status,
         action_window=action_window,
         target_dates=target_dates,
-        include_deleted=include_deleted,
     )
     return len(views)
 
@@ -645,15 +601,16 @@ async def get_habit_action(
     session: AsyncSession,
     *,
     action_id: UUID,
-    include_deleted: bool = False,
 ) -> HabitAction | None:
     """Load one materialized habit action with its parent habit."""
     stmt = (
         select(HabitAction)
         .where(HabitAction.id == action_id)
-        .options(selectinload(HabitAction.habit))
+        .options(selectinload(HabitAction.habit.and_(Habit.deleted_at.is_(None))))
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(HabitAction.deleted_at.is_(None))
+    stmt = stmt.where(
+        HabitAction.deleted_at.is_(None),
+        HabitAction.habit.has(Habit.deleted_at.is_(None)),
+    )
     return (await session.execute(stmt)).scalar_one_or_none()

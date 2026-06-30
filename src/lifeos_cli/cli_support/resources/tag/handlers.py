@@ -70,7 +70,6 @@ async def handle_tag_list_async(args: argparse.Namespace) -> int:
                 entity_type=args.entity_type,
                 category=args.category,
                 person_id=args.person_id,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -90,7 +89,6 @@ async def handle_tag_show_async(args: argparse.Namespace) -> int:
         tag = await tag_services.get_tag(
             session,
             tag_id=args.tag_id,
-            include_deleted=args.include_deleted,
         )
     if tag is None:
         return cli_handler_utils.print_missing_record_error("Tag", args.tag_id)

@@ -452,14 +452,13 @@ async def export_resource_snapshot(
     session: AsyncSession,
     *,
     resource: str,
-    include_deleted: bool = True,
 ) -> list[dict[str, Any]]:
     """Export one resource into canonical snapshot rows."""
     if resource not in RESOURCE_SPECS:
         raise DataOperationError(f"Unsupported data resource {resource!r}.")
     spec = RESOURCE_SPECS[resource]
     stmt = select(spec.model)
-    if not include_deleted and "deleted_at" in spec.model.__table__.c:
+    if "deleted_at" in spec.model.__table__.c:
         stmt = stmt.where(spec.model.deleted_at.is_(None))
     stmt = stmt.order_by(*_build_order_by_columns(spec))
     rows = list((await session.execute(stmt)).scalars())
@@ -1060,7 +1059,6 @@ async def _batch_delete_habit_actions(
         action = await habit_actions.get_habit_action(
             session,
             action_id=action_id,
-            include_deleted=False,
         )
         if action is None:
             failures.append(
@@ -1166,7 +1164,6 @@ async def export_bundle(
     session: AsyncSession,
     *,
     output_path: Path,
-    include_deleted: bool = True,
 ) -> BundleExportReport:
     """Export all supported resources into one bundle zip file."""
     resource_counts: dict[str, int] = {}
@@ -1175,7 +1172,6 @@ async def export_bundle(
             rows = await export_resource_snapshot(
                 session,
                 resource=resource,
-                include_deleted=include_deleted,
             )
             archive.writestr(
                 f"{resource}.jsonl",

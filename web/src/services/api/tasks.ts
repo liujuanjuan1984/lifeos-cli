@@ -20,8 +20,6 @@ export interface Task {
   planning_cycle_type?: string | null;
   planning_cycle_days?: number | null;
   planning_cycle_start_date?: string | null;
-  // Deprecated compatibility field (mapped to total on backend)
-  actual_effort?: number | null;
   // New fields for precise time investment rendering
   actual_effort_self: number;
   actual_effort_total: number;

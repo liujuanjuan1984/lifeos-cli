@@ -30,6 +30,17 @@ DEFAULT_TAG_CATEGORIES: dict[str, tuple[str, ...]] = {
     "note": ("general", "topic"),
     "person": ("general", "location", "relation", "profession", "team"),
 }
+TAG_LIST_FIELD_MODES = {"selector", "full"}
+TAG_SELECTOR_FIELDS = ("id", "name", "entity_type", "category")
+
+
+def _tag_payload(row: object, *, fields: str) -> dict[str, object]:
+    payload = to_jsonable_dict(row)
+    payload.pop("deleted_at", None)
+    payload.pop("people", None)
+    if fields == "selector":
+        return {field: payload[field] for field in TAG_SELECTOR_FIELDS}
+    return payload
 
 
 def _category_label(value: str) -> str:
@@ -54,12 +65,15 @@ def _normalize_category_value(payload: TagCategoryCreate | TagCategoryUpdate) ->
 @router.get("/", response_model=ListResponse)
 async def list_tags(
     session: SessionDep,
-    page: int = Query(1, ge=1),
-    size: int = Query(100, ge=1, le=1000),
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=1000)] = 100,
     entity_type: str | None = None,
     category: str | None = None,
+    fields: Annotated[str, Query(pattern="^(selector|full)$")] = "full",
 ) -> ListResponse:
     """List LifeOS tags for selectors and tag management."""
+    if fields not in TAG_LIST_FIELD_MODES:
+        raise HTTPException(status_code=400, detail=f"Unsupported tag fields mode: {fields}")
     offset = (page - 1) * size
     try:
         rows = await tag_services.list_tags(
@@ -71,7 +85,7 @@ async def list_tags(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    items = [to_jsonable(row) for row in rows]
+    items = [_tag_payload(row, fields=fields) for row in rows]
     return ListResponse(
         items=items,
         pagination=Pagination(
@@ -80,7 +94,7 @@ async def list_tags(
             total=len(items),
             pages=math.ceil(len(items) / size) if size else 0,
         ),
-        meta={"entity_type": entity_type, "category": category},
+        meta={"entity_type": entity_type, "category": category, "fields": fields},
     )
 
 

@@ -66,9 +66,12 @@ export interface TagBulkUpdateResponse {
   updated_tags: Tag[];
 }
 
+export type TagListFieldsMode = "selector" | "full";
+
 interface TagListMeta {
   entity_type?: string | null;
   category?: string | null;
+  fields?: TagListFieldsMode | null;
 }
 
 export type TagListResponse = ListResponse<Tag, TagListMeta>;
@@ -79,6 +82,7 @@ export const tagsApi = {
     category?: string;
     page?: number;
     size?: number;
+    fields?: TagListFieldsMode;
   }): Promise<TagListResponse> => http.get<TagListResponse>(ENDPOINTS.TAGS.BASE, params),
   getEntityTypes: (): Promise<string[]> =>
     http.get<string[]>(ENDPOINTS.TAGS.ENTITY_TYPES),

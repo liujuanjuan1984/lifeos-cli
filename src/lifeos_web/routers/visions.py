@@ -12,15 +12,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import visions as vision_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination, VisionCreate, VisionUpdate
-from lifeos_web.serialization import to_jsonable_dict
+from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/visions", tags=["visions"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
-def _vision_payload(vision: object) -> dict[str, object]:
+def _vision_payload(vision: object, *, include_tasks: bool = False) -> dict[str, object]:
     """Serialize a vision for the Web UI."""
-    return to_jsonable_dict(vision)
+    payload: dict[str, object] = {
+        "id": str(vision.id),
+        "name": vision.name,
+        "description": vision.description,
+        "area_id": str(vision.area_id) if vision.area_id else None,
+        "status": vision.status,
+        "stage": vision.stage,
+        "experience_points": vision.experience_points,
+        "experience_rate_per_hour": vision.experience_rate_per_hour,
+        "created_at": to_jsonable(vision.created_at),
+        "people": to_jsonable(vision.people),
+    }
+    if include_tasks:
+        payload["tasks"] = to_jsonable(vision.tasks)
+    return payload
 
 
 @router.get("/", response_model=ListResponse)
@@ -77,7 +91,7 @@ async def create_vision(
         )
     except (LookupError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _vision_payload(vision)
+    return _vision_payload(vision, include_tasks=True)
 
 
 @router.put("/{vision_id}")

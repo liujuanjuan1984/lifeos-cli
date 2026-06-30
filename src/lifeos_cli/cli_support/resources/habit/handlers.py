@@ -188,7 +188,6 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                     status=args.status,
                     title=args.title,
                     active_window_only=args.active_window_only,
-                    include_deleted=args.include_deleted,
                     limit=args.limit,
                     offset=args.offset,
                 )
@@ -198,7 +197,6 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                         status=args.status,
                         title=args.title,
                         active_window_only=args.active_window_only,
-                        include_deleted=args.include_deleted,
                     )
                     if args.count
                     else None
@@ -217,7 +215,6 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                 status=args.status,
                 title=args.title,
                 active_window_only=args.active_window_only,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -227,7 +224,6 @@ async def handle_habit_list_async(args: argparse.Namespace) -> int:
                     status=args.status,
                     title=args.title,
                     active_window_only=args.active_window_only,
-                    include_deleted=args.include_deleted,
                 )
                 if args.count
                 else None
@@ -251,7 +247,6 @@ async def handle_habit_show_async(args: argparse.Namespace) -> int:
             overview = await habit_services.get_habit_overview(
                 session,
                 habit_id=args.habit_id,
-                include_deleted=args.include_deleted,
             )
         except habit_services.HabitNotFoundError as exc:
             return cli_handler_utils.print_cli_error(exc)

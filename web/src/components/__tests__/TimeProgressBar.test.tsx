@@ -91,16 +91,12 @@ describe("TimeProgressBar", () => {
         name: "Deep Work",
         color: "#111",
         is_active: true,
-        created_at: "",
-        updated_at: "",
       },
       {
         id: "area-b",
         name: "Shallow Work",
         color: "#222",
         is_active: true,
-        created_at: "",
-        updated_at: "",
       },
     ];
 
@@ -133,8 +129,6 @@ describe("TimeProgressBar", () => {
         name: "Focus",
         color: "#123",
         is_active: true,
-        created_at: "",
-        updated_at: "",
       },
     ];
 

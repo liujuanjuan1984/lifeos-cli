@@ -13,7 +13,6 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.area.handlers import (
@@ -122,10 +121,9 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             examples=(
                 "lifeos area list",
                 "lifeos area list --include-inactive",
-                "lifeos area list --include-deleted --limit 20 --offset 20",
+                "lifeos area list --limit 20 --offset 20",
             ),
             notes=(
-                _("resources.area.parser.deleted_areas_are_hidden_unless_include_deleted_is_set"),
                 _(
                     "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(AREA_SUMMARY_COLUMNS)),
@@ -133,7 +131,6 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
             ),
         ),
     )
-    add_include_deleted_argument(list_parser, noun="areas")
     list_parser.add_argument(
         "--include-inactive",
         action="store_true",
@@ -154,15 +151,10 @@ def build_area_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPa
                     "resources.area.parser.use_this_action_when_you_need_exact_field_values_instead_of_compact"
                 )
             ),
-            examples=(
-                "lifeos area show 11111111-1111-1111-1111-111111111111",
-                "lifeos area show 11111111-1111-1111-1111-111111111111 --include-deleted",
-            ),
-            notes=(_("resources.area.parser.use_include_deleted_to_inspect_deleted_area"),),
+            examples=("lifeos area show 11111111-1111-1111-1111-111111111111",),
         ),
     )
     show_parser.add_argument("area_id", type=UUID, help=_("resources.area.parser.area_identifier"))
-    add_include_deleted_argument(show_parser, noun="areas", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_area_show_async))
 
     update_parser = add_documented_parser(

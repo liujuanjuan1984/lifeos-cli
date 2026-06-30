@@ -211,9 +211,17 @@ def test_real_cli_habit_workflow(integration_context: IntegrationContext) -> Non
     assert_ok(habit_batch_delete_result)
     assert "Deleted habits: 2" in habit_batch_delete_result.stdout
 
-    deleted_habit_result = run_lifeos(integration_context, "habit", "list", "--include-deleted")
+    deleted_habit_result = run_lifeos(integration_context, "habit", "list")
     assert_ok(deleted_habit_result)
-    assert first_habit_id in deleted_habit_result.stdout
-    assert second_habit_id in deleted_habit_result.stdout
-    assert weekly_habit_id in deleted_habit_result.stdout
-    assert "deleted" in deleted_habit_result.stdout
+    assert first_habit_id not in deleted_habit_result.stdout
+    assert second_habit_id not in deleted_habit_result.stdout
+    assert weekly_habit_id not in deleted_habit_result.stdout
+
+    rejected_deleted_habit_result = run_lifeos(
+        integration_context,
+        "habit",
+        "list",
+        "--include-deleted",
+    )
+    assert rejected_deleted_habit_result.returncode == 2
+    assert "--include-deleted" in rejected_deleted_habit_result.stderr

@@ -16,10 +16,12 @@ from lifeos_cli.application.time_preferences import (
     get_utc_window_for_local_date_range,
     to_storage_timezone,
 )
+from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
@@ -111,16 +113,17 @@ async def _get_event_model(
     session: AsyncSession,
     *,
     event_id: UUID,
-    include_deleted: bool,
 ) -> Event | None:
     stmt = (
         select(Event)
-        .options(selectinload(Event.area), selectinload(Event.task))
+        .options(
+            selectinload(Event.area.and_(Area.deleted_at.is_(None))),
+            selectinload(Event.task.and_(Task.deleted_at.is_(None))),
+        )
         .where(Event.id == event_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(Event.deleted_at.is_(None))
+    stmt = stmt.where(Event.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -171,7 +174,6 @@ async def _record_skip_exception(
     existing = (await session.execute(stmt)).scalar_one_or_none()
     if existing is not None:
         existing.action = "skip"
-        existing.deleted_at = None
         return
     session.add(
         EventOccurrenceException(
@@ -536,7 +538,6 @@ def _normalize_event_filters(filters: EventQueryFilters) -> EventQueryFilters:
         end_date=filters.end_date,
         window_start=filters.window_start,
         window_end=filters.window_end,
-        include_deleted=filters.include_deleted,
     )
 
 
@@ -584,7 +585,6 @@ def _resolve_event_list_filters(filters: EventQueryFilters) -> EventQueryFilters
             date_values=normalized.date_values,
             window_start=window_start,
             window_end=window_end,
-            include_deleted=normalized.include_deleted,
         )
     return normalized
 
@@ -695,10 +695,9 @@ async def get_event(
     session: AsyncSession,
     *,
     event_id: UUID,
-    include_deleted: bool = False,
 ) -> EventView | None:
     """Load an event by identifier."""
-    event = await _get_event_model(session, event_id=event_id, include_deleted=include_deleted)
+    event = await _get_event_model(session, event_id=event_id)
     if event is None:
         return None
     return await _build_event_view(session, event)
@@ -723,8 +722,7 @@ async def list_event_occurrences(
             Event.end_time >= window_start,
         ),
     )
-    if not normalized_filters.include_deleted:
-        master_stmt = master_stmt.where(Event.deleted_at.is_(None))
+    master_stmt = master_stmt.where(Event.deleted_at.is_(None))
     master_stmt = _apply_event_query_filters(master_stmt, filters=normalized_filters)
     masters = list((await session.execute(master_stmt)).scalars())
     master_ids = [event.id for event in masters if event_is_recurring(event)]
@@ -735,8 +733,7 @@ async def list_event_occurrences(
         Event.start_time <= window_end,
         or_(Event.end_time.is_(None), Event.end_time >= window_start),
     )
-    if not normalized_filters.include_deleted:
-        override_stmt = override_stmt.where(Event.deleted_at.is_(None))
+    override_stmt = override_stmt.where(Event.deleted_at.is_(None))
     override_stmt = _apply_event_query_filters(override_stmt, filters=normalized_filters)
     overrides = list((await session.execute(override_stmt)).scalars())
     override_keys = {
@@ -841,9 +838,11 @@ async def list_events(
         )
         return list(occurrences[query.offset : query.offset + query.limit])
 
-    stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
-    if not resolved_filters.include_deleted:
-        stmt = stmt.where(Event.deleted_at.is_(None))
+    stmt = select(Event).options(
+        selectinload(Event.area.and_(Area.deleted_at.is_(None))),
+        selectinload(Event.task.and_(Task.deleted_at.is_(None))),
+    )
+    stmt = stmt.where(Event.deleted_at.is_(None))
     stmt = _apply_event_query_filters(stmt, filters=resolved_filters)
     if window_start is not None:
         stmt = stmt.where(or_(Event.end_time.is_(None), Event.end_time >= window_start))
@@ -1061,7 +1060,7 @@ async def update_event(
     instance_start: datetime | None = None,
 ) -> EventView:
     """Update one event."""
-    event = await _get_event_model(session, event_id=event_id, include_deleted=False)
+    event = await _get_event_model(session, event_id=event_id)
     if event is None:
         raise EventNotFoundError(f"Event {event_id} was not found")
 
@@ -1100,7 +1099,7 @@ async def delete_event(
     instance_start: datetime | None = None,
 ) -> None:
     """Soft-delete one event or one recurring slice."""
-    event = await _get_event_model(session, event_id=event_id, include_deleted=False)
+    event = await _get_event_model(session, event_id=event_id)
     if event is None:
         raise EventNotFoundError(f"Event {event_id} was not found")
 

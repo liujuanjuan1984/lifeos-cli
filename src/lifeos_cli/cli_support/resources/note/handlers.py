@@ -94,14 +94,12 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
         ):
             notes = await note_services.list_notes(
                 session,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
         else:
             notes = await note_services.list_notes(
                 session,
-                include_deleted=args.include_deleted,
                 tag_id=args.tag_id,
                 event_id=args.event_id,
                 person_id=args.person_id,
@@ -138,7 +136,6 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
             notes = await note_services.search_notes(
                 session,
                 query=normalized_query,
-                include_deleted=args.include_deleted,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -146,7 +143,6 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
             notes = await note_services.search_notes(
                 session,
                 query=normalized_query,
-                include_deleted=args.include_deleted,
                 tag_id=args.tag_id,
                 event_id=args.event_id,
                 person_id=args.person_id,
@@ -171,7 +167,6 @@ async def handle_note_show_async(args: argparse.Namespace) -> int:
         note = await note_services.get_note(
             session,
             note_id=args.note_id,
-            include_deleted=args.include_deleted,
         )
     if note is None:
         return cli_handler_utils.print_missing_record_error("Note", args.note_id)

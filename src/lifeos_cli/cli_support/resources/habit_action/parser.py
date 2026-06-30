@@ -13,7 +13,6 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
     add_start_end_date_arguments,
 )
@@ -121,7 +120,6 @@ def build_habit_action_parser(
     list_parser.add_argument(
         "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
-    add_include_deleted_argument(list_parser, noun="habit actions")
     add_limit_offset_arguments(list_parser, row_noun="habit actions")
     list_parser.set_defaults(handler=make_sync_handler(handle_habit_action_list_async))
 
@@ -135,14 +133,13 @@ def build_habit_action_parser(
             ),
             examples=(
                 "lifeos habit-action show 11111111-1111-1111-1111-111111111111",
-                "lifeos habit-action show 11111111-1111-1111-1111-111111111111 --include-deleted",
+                "lifeos habit-action show 11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
     show_parser.add_argument(
         "action_id", type=UUID, help=_("resources.habit_action.parser.habit_action_identifier")
     )
-    add_include_deleted_argument(show_parser, noun="habit actions", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_habit_action_show_async))
 
     update_parser = add_documented_parser(

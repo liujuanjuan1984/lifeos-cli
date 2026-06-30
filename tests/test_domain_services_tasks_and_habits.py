@@ -105,11 +105,9 @@ def test_update_task_can_clear_parent_without_committing(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == UUID("77777777-7777-7777-7777-777777777777")
-        assert include_deleted is False
         return task
 
     async def fake_validate_parent_task(
@@ -171,11 +169,9 @@ def test_move_task_updates_parent_vision_and_descendants(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == task.id
-        assert include_deleted is False
         return task
 
     async def fake_ensure_vision_exists(_: object, vision_id: UUID) -> None:
@@ -251,11 +247,9 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == task.id
-        assert include_deleted is False
         return task
 
     async def fake_validate_parent_task(_: object, **kwargs: object) -> None:
@@ -339,11 +333,9 @@ def test_update_task_can_clear_optional_fields_without_committing(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == UUID("88888888-8888-8888-8888-888888888888")
-        assert include_deleted is False
         return task
 
     async def fake_validate_parent_task(
@@ -409,11 +401,9 @@ def test_update_task_can_clear_people_without_committing(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == UUID("99999999-9999-9999-9999-999999999999")
-        assert include_deleted is False
         return task
 
     async def fake_validate_parent_task(
@@ -519,11 +509,9 @@ def test_delete_task_soft_deletes_subtree_without_committing(
         *,
         model_cls: object,
         model_id: UUID,
-        include_deleted: bool = False,
     ) -> object:
         assert model_cls is task_mutations.Task
         assert model_id == root_task.id
-        assert include_deleted is False
         return root_task
 
     monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
@@ -840,9 +828,8 @@ def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.Monk
     )
     session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
 
-    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
+    async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
         assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-        assert include_deleted is False
         return habit
 
     async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
@@ -973,8 +960,7 @@ def test_update_habit_action_by_date_uses_existing_update_rules(
         def scalar_one_or_none(self) -> object:
             return action
 
-    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
-        assert include_deleted is False
+    async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
         return SimpleNamespace(id=habit_id)
 
     async def fake_execute(statement: object) -> Result:
@@ -1023,8 +1009,7 @@ def test_update_habit_action_by_date_materializes_missing_occurrence(
         cast(Any, record).id = action_id
         added_records.append(record)
 
-    async def fake_get_habit(_: object, *, habit_id: UUID, include_deleted: bool = False) -> object:
-        assert include_deleted is False
+    async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
         return SimpleNamespace(
             id=habit_id,
             start_date=date(2026, 4, 1),
@@ -1156,7 +1141,6 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
             status=None,
             action_window=None,
             target_dates=selected_dates,
-            include_deleted=False,
         )
     )
 

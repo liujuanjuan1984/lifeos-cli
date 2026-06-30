@@ -285,27 +285,32 @@ def test_real_cli_event_and_timelog_workflow(integration_context: IntegrationCon
         integration_context,
         "event",
         "list",
-        "--include-deleted",
     )
     assert_ok(deleted_event_result)
-    assert first_event_id in deleted_event_result.stdout
-    assert second_event_id in deleted_event_result.stdout
-    assert "deleted" in deleted_event_result.stdout
+    assert first_event_id not in deleted_event_result.stdout
+    assert second_event_id not in deleted_event_result.stdout
 
     deleted_timelog_result = run_lifeos(
         integration_context,
         "timelog",
         "list",
-        "--include-deleted",
         "--start-time",
         "2026-04-10T00:00:00-04:00",
         "--end-time",
         "2026-04-10T23:59:59-04:00",
     )
     assert_ok(deleted_timelog_result)
-    assert first_timelog_id in deleted_timelog_result.stdout
-    assert second_timelog_id in deleted_timelog_result.stdout
-    assert "deleted" in deleted_timelog_result.stdout
+    assert first_timelog_id not in deleted_timelog_result.stdout
+    assert second_timelog_id not in deleted_timelog_result.stdout
+
+    rejected_deleted_timelog_result = run_lifeos(
+        integration_context,
+        "timelog",
+        "list",
+        "--include-deleted",
+    )
+    assert rejected_deleted_timelog_result.returncode == 2
+    assert "--include-deleted" in rejected_deleted_timelog_result.stderr
 
 
 def test_real_cli_timelog_add_quick_batch_inherits_latest_end_time(

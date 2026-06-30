@@ -48,6 +48,39 @@ describe("tagsApi", () => {
     });
   });
 
+  it("lists selector tags with a slim fields mode", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [],
+          pagination: { page: 1, size: 1000, total: 0, pages: 0 },
+          meta: { entity_type: "note", fields: "selector" },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await tagsApi.getAll({
+      entity_type: "note",
+      page: 1,
+      size: 1000,
+      fields: "selector",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parsedUrl = new URL(url);
+    expect(url.startsWith(localUrl(ENDPOINTS.TAGS.BASE))).toBe(true);
+    expect(parsedUrl.searchParams.get("entity_type")).toBe("note");
+    expect(parsedUrl.searchParams.get("page")).toBe("1");
+    expect(parsedUrl.searchParams.get("size")).toBe("1000");
+    expect(parsedUrl.searchParams.get("fields")).toBe("selector");
+    expect(init.method).toBe("GET");
+  });
+
   it("creates tag categories with the scoped entity type", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

@@ -13,7 +13,6 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.tag.handlers import (
@@ -133,7 +132,6 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
                 "lifeos tag list --entity-type task --category priority --limit 20",
             ),
             notes=(
-                _("resources.tag.parser.use_include_deleted_to_review_previously_deleted_tags"),
                 _(
                     "common.messages.when_results_exist_list_command_prints_header_row_followed_by_tab_separated"
                 ).format(columns=format_summary_column_list(TAG_SUMMARY_COLUMNS)),
@@ -145,7 +143,6 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
     list_parser.add_argument(
         "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person_identifier")
     )
-    add_include_deleted_argument(list_parser, noun="tags")
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_tag_list_async))
 
@@ -155,14 +152,10 @@ def build_tag_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPar
         help_content=HelpContent(
             summary=_("resources.tag.parser.show_tag"),
             description=_("resources.tag.parser.show_one_tag_with_full_metadata"),
-            examples=(
-                "lifeos tag show 11111111-1111-1111-1111-111111111111",
-                "lifeos tag show 11111111-1111-1111-1111-111111111111 --include-deleted",
-            ),
+            examples=("lifeos tag show 11111111-1111-1111-1111-111111111111",),
         ),
     )
     show_parser.add_argument("tag_id", type=UUID, help=_("resources.tag.parser.tag_identifier"))
-    add_include_deleted_argument(show_parser, noun="tags", help_prefix="Allow")
     show_parser.set_defaults(handler=make_sync_handler(handle_tag_show_async))
 
     update_parser = add_documented_parser(

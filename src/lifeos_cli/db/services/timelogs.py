@@ -18,6 +18,7 @@ from lifeos_cli.application.time_preferences import (
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import (
     BatchDeleteResult,
@@ -92,7 +93,6 @@ async def _build_timelog_view(session: AsyncSession, timelog: Timelog) -> Timelo
     refreshed = await _get_timelog_model(
         session,
         timelog_id=timelog.id,
-        include_deleted=True,
     )
     if refreshed is not None:
         timelog = refreshed
@@ -104,16 +104,17 @@ async def _get_timelog_model(
     session: AsyncSession,
     *,
     timelog_id: UUID,
-    include_deleted: bool,
 ) -> Timelog | None:
     stmt = (
         select(Timelog)
-        .options(selectinload(Timelog.area), selectinload(Timelog.task))
+        .options(
+            selectinload(Timelog.area.and_(Area.deleted_at.is_(None))),
+            selectinload(Timelog.task.and_(Task.deleted_at.is_(None))),
+        )
         .where(Timelog.id == timelog_id)
         .limit(1)
     )
-    if not include_deleted:
-        stmt = stmt.where(Timelog.deleted_at.is_(None))
+    stmt = stmt.where(Timelog.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -280,7 +281,6 @@ async def _resolve_batch_timelog_title(
     timelog = await get_timelog(
         session,
         timelog_id=timelog_id,
-        include_deleted=False,
     )
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
@@ -295,12 +295,12 @@ async def _resolve_batch_timelog_title(
 
 def _apply_timelog_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
     """Apply shared timelog list filters to a SQLAlchemy select."""
-    if not filters.include_deleted:
-        stmt = stmt.where(Timelog.deleted_at.is_(None))
+    stmt = stmt.where(Timelog.deleted_at.is_(None))
     stmt = _apply_timelog_text_filters(stmt, filters=filters)
     stmt = _apply_timelog_area_task_filters(stmt, filters=filters)
     stmt = _apply_timelog_association_filters(stmt, filters=filters)
-    return _apply_timelog_window_filters(stmt, filters=filters)
+    stmt = _apply_timelog_window_filters(stmt, filters=filters)
+    return stmt
 
 
 def _apply_timelog_text_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
@@ -462,13 +462,11 @@ async def get_timelog(
     session: AsyncSession,
     *,
     timelog_id: UUID,
-    include_deleted: bool = False,
 ) -> TimelogView | None:
     """Load a timelog by identifier."""
     timelog = await _get_timelog_model(
         session,
         timelog_id=timelog_id,
-        include_deleted=include_deleted,
     )
     if timelog is None:
         return None
@@ -493,7 +491,10 @@ async def list_timelogs(
 ) -> list[TimelogView]:
     """List timelogs with optional filters."""
     resolved_filters = _resolve_timelog_filters(query.filters)
-    stmt = select(Timelog).options(selectinload(Timelog.area), selectinload(Timelog.task))
+    stmt = select(Timelog).options(
+        selectinload(Timelog.area.and_(Area.deleted_at.is_(None))),
+        selectinload(Timelog.task.and_(Task.deleted_at.is_(None))),
+    )
     stmt = _apply_timelog_filters(stmt, filters=resolved_filters)
     stmt = (
         stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc())
@@ -525,7 +526,7 @@ async def update_timelog(
     changes: TimelogUpdateInput,
 ) -> TimelogView:
     """Update one timelog."""
-    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=False)
+    timelog = await _get_timelog_model(session, timelog_id=timelog_id)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     previous_state = _capture_timelog_dependency_snapshot(timelog)
@@ -603,7 +604,7 @@ async def batch_update_timelogs(
 
 async def delete_timelog(session: AsyncSession, *, timelog_id: UUID) -> None:
     """Soft-delete one timelog."""
-    timelog = await _get_timelog_model(session, timelog_id=timelog_id, include_deleted=False)
+    timelog = await _get_timelog_model(session, timelog_id=timelog_id)
     if timelog is None:
         raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
     old_task_id = timelog.task_id

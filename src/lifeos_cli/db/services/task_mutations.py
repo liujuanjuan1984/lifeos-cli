@@ -147,7 +147,6 @@ async def move_task(
         session,
         model_cls=Task,
         model_id=task_id,
-        include_deleted=False,
     )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
@@ -230,7 +229,6 @@ async def update_task(
         session,
         model_cls=Task,
         model_id=task_id,
-        include_deleted=False,
     )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
@@ -327,7 +325,6 @@ async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
         session,
         model_cls=Task,
         model_id=task_id,
-        include_deleted=False,
     )
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")

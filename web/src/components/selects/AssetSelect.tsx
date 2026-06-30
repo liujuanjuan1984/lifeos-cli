@@ -51,10 +51,7 @@ export default function AssetSelect({
         code: normalizedValue,
         name: null,
         decimal_places: 2,
-        display_order: 0,
         is_default: false,
-        created_at: "",
-        updated_at: "",
       });
     }
     return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
