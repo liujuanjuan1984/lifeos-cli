@@ -71,9 +71,9 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [remotePersons, setRemotePersons] = useState<PersonSummary[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const { persons: personsFromCache } = usePersons();
+  const { persons: personsFromCache, loading: personsLoading } = usePersons();
 
   const sanitizedSelectedIds = useMemo(
     () => filterValidUUIDs(selectedPersonIds),
@@ -88,41 +88,14 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
   }, []);
 
   useEffect(() => {
-    if (personsFromCache && personsFromCache.length > 0) {
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const data = await personsApi.getAll(1, 100);
-        if (!cancelled) {
-          setRemotePersons(extractPersonList(data));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          logger.error("Failed to load persons:", error);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [personsFromCache]);
-
-  useEffect(() => {
     if (!searchTerm.trim()) {
+      setRemotePersons([]);
+      setSearchLoading(false);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
+    setSearchLoading(true);
     const handler = window.setTimeout(async () => {
       try {
         const data = await personsApi.getAll(1, 100, searchTerm.trim());
@@ -135,7 +108,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setSearchLoading(false);
         }
       }
     }, 250);
@@ -324,7 +297,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
       showLabel={showLabel}
       usePortal={usePortal}
       dropdownMaxHeight={menuMaxHeight}
-      isLoading={loading}
+      isLoading={personsLoading || searchLoading}
       renderOption={renderOption}
       renderTag={renderTag}
       renderEmpty={(query) => (

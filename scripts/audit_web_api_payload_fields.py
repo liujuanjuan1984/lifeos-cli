@@ -122,8 +122,7 @@ def _format_markdown(results: list[InterfaceField], *, only_candidates: bool) ->
     for item in rows:
         source_name = Path(item.source).name
         lines.append(
-            f"| `{source_name}` | `{item.interface}` | `{item.field}` | "
-            f"{item.references} |"
+            f"| `{source_name}` | `{item.interface}` | `{item.field}` | {item.references} |"
         )
     lines.append("")
     return "\n".join(lines)
@@ -137,8 +136,7 @@ def _format_json(results: list[InterfaceField], *, only_candidates: bool) -> str
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Audit frontend references to fields declared by Web API "
-            "TypeScript interfaces."
+            "Audit frontend references to fields declared by Web API TypeScript interfaces."
         ),
     )
     parser.add_argument(
