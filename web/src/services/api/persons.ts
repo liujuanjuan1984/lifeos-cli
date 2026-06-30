@@ -38,9 +38,6 @@ export interface Person extends PersonSummary {
   nicknames?: string[] | null;
   birth_date?: string | null;
   location?: string | null;
-  is_soft_deleted: boolean;
-  created_at: string;
-  updated_at: string;
   tags: Tag[];
   anniversaries: Anniversary[];
   display_name: string;

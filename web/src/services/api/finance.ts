@@ -8,28 +8,17 @@ export interface FinanceAsset {
   code: string;
   name?: string | null;
   decimal_places: number;
-  display_order: number;
   is_default: boolean;
-  metadata?: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceTreeNode {
   id: UUID;
-  tree_id: UUID;
   parent_id: UUID | null;
   name: string;
   currency_code: string | null;
   path: string;
   depth: number;
   display_order: number;
-  children_count: number;
-  metadata?: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceTree {
@@ -38,27 +27,18 @@ export interface FinanceTree {
   primary_currency: string;
   display_order: number;
   is_default: boolean;
-  metadata?: Record<string, unknown> | null;
   nodes?: FinanceTreeNode[];
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceSnapshotEntry {
   id: UUID;
-  snapshot_id: UUID;
   node_id: UUID;
   node_name: string | null;
-  node_path: string | null;
   amount: string;
   currency_code: string;
   amount_converted: string;
   note?: string | null;
   is_auto_generated: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceSnapshot {
@@ -71,32 +51,20 @@ export interface FinanceSnapshot {
   period_end: string | null;
   primary_currency: string;
   rate_snapshot_id?: UUID | null;
-  rate_snapshot_policy: string;
-  total_positive: string;
-  total_negative: string;
-  net_amount: string;
   exchange_rates?: Record<string, unknown> | null;
   summary?: Record<string, unknown> | null;
   note?: string | null;
   entries?: FinanceSnapshotEntry[];
   created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceRateSnapshotEntry {
   id: UUID;
-  rate_snapshot_id: UUID;
   base_currency: string;
   quote_currency: string;
   rate: string;
   source?: string | null;
   captured_at?: string | null;
-  is_derived: boolean;
-  metadata?: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceRateSnapshot {
@@ -104,11 +72,7 @@ export interface FinanceRateSnapshot {
   captured_at: string;
   source: string;
   note?: string | null;
-  metadata?: Record<string, unknown> | null;
   entries?: FinanceRateSnapshotEntry[];
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 export interface FinanceTreeCreate {
@@ -193,13 +157,15 @@ export interface FinanceRateSnapshotUpdate {
   entries?: FinanceRateSnapshotEntryCreate[];
 }
 
+type EmptyFinanceListMeta = Record<string, never>;
+
 export type FinanceTreeListResponse = ListResponse<
   FinanceTree,
-  { include_deleted?: boolean }
+  EmptyFinanceListMeta
 >;
 export type FinanceAssetListResponse = ListResponse<
   FinanceAsset,
-  { include_deleted?: boolean }
+  EmptyFinanceListMeta
 >;
 export type FinanceSnapshotListResponse = ListResponse<
   FinanceSnapshot,
@@ -207,7 +173,7 @@ export type FinanceSnapshotListResponse = ListResponse<
 >;
 export type FinanceRateSnapshotListResponse = ListResponse<
   FinanceRateSnapshot,
-  { include_deleted?: boolean }
+  EmptyFinanceListMeta
 >;
 
 export const financeApi = {

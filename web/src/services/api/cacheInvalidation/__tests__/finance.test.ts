@@ -98,9 +98,24 @@ describe("finance cache invalidation helpers", () => {
 
   it("removes deleted trees from the cached tree list", () => {
     const existing = {
-      items: [{ id: "tree-1" }, { id: "tree-2" }],
+      items: [
+        {
+          id: "tree-1",
+          name: "Tree 1",
+          primary_currency: "USD",
+          display_order: 0,
+          is_default: true,
+        },
+        {
+          id: "tree-2",
+          name: "Tree 2",
+          primary_currency: "USD",
+          display_order: 1,
+          is_default: false,
+        },
+      ],
       pagination: { page: 1, size: 50, total: 2, pages: 1 },
-      meta: { include_deleted: false },
+      meta: {},
     } as FinanceTreeListResponse;
 
     removeFinanceTreeFromListCache(queryClient, "tree-1");
@@ -157,11 +172,21 @@ describe("finance cache invalidation helpers", () => {
   });
 
   it("prepends new rate snapshots into the cached rate snapshot list", () => {
-    const rateSnapshot = { id: "rate-snapshot-2" } as FinanceRateSnapshot;
+    const rateSnapshot = {
+      id: "rate-snapshot-2",
+      captured_at: "2026-06-01T13:00:00Z",
+      source: "manual",
+    } as FinanceRateSnapshot;
     const existing = {
-      items: [{ id: "rate-snapshot-1" }],
+      items: [
+        {
+          id: "rate-snapshot-1",
+          captured_at: "2026-06-01T12:00:00Z",
+          source: "manual",
+        },
+      ],
       pagination: { page: 1, size: 50, total: 1, pages: 1 },
-      meta: { include_deleted: false },
+      meta: {},
     } as FinanceRateSnapshotListResponse;
 
     addFinanceRateSnapshotToListCache(queryClient, rateSnapshot);

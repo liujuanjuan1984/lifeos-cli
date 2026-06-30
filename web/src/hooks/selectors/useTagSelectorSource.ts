@@ -40,6 +40,7 @@ export const useTagSelectorSource = (
     category,
     page: DEFAULT_PAGE,
     size: DEFAULT_SIZE,
+    fields: "selector" as const,
   };
 
   const {

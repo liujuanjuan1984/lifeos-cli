@@ -138,6 +138,7 @@ export const tagsKeys = {
     category?: string;
     page?: number;
     size?: number;
+    fields?: "selector" | "full";
   }) => [...tagsKeys.lists(), filters] as const,
   details: () => [...tagsKeys.all, "detail"] as const,
   detail: (id: UUID) => [...tagsKeys.details(), id] as const,

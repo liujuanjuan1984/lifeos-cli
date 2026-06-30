@@ -100,4 +100,5 @@ _keep(
     load_dialect_impl,
     process_bind_param,
     process_result_value,
+    metadata_json,
 )

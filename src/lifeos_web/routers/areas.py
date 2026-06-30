@@ -49,8 +49,6 @@ def _area_payload(area: Area) -> dict[str, object]:
         "icon": area.icon,
         "is_active": area.is_active,
         "display_order": area.display_order,
-        "created_at": area.created_at.isoformat(),
-        "updated_at": area.updated_at.isoformat(),
     }
 
 

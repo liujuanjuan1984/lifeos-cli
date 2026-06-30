@@ -243,18 +243,12 @@ async def _finance_asset_decimal_places(session: AsyncSession) -> dict[str, int]
 def _node_payload(node: FinanceTreeNode) -> dict[str, object]:
     return {
         "id": str(node.id),
-        "tree_id": str(node.tree_id),
         "parent_id": str(node.parent_id) if node.parent_id else None,
         "name": node.name,
         "currency_code": node.currency_code,
         "path": node.path,
         "depth": node.depth,
         "display_order": node.display_order,
-        "children_count": node.children_count,
-        "metadata": to_jsonable(node.metadata_json),
-        "created_at": node.created_at.isoformat(),
-        "updated_at": node.updated_at.isoformat(),
-        "deleted_at": node.deleted_at.isoformat() if node.deleted_at else None,
     }
 
 
@@ -264,12 +258,7 @@ def _asset_payload(asset: FinanceAsset) -> dict[str, object]:
         "code": asset.code,
         "name": asset.name,
         "decimal_places": asset.decimal_places,
-        "display_order": asset.display_order,
         "is_default": asset.is_default,
-        "metadata": to_jsonable(asset.metadata_json),
-        "created_at": asset.created_at.isoformat(),
-        "updated_at": asset.updated_at.isoformat(),
-        "deleted_at": asset.deleted_at.isoformat() if asset.deleted_at else None,
     }
 
 
@@ -280,10 +269,6 @@ def _tree_payload(tree, *, nodes: list[FinanceTreeNode] | None = None) -> dict[s
         "primary_currency": tree.primary_currency,
         "display_order": tree.display_order,
         "is_default": tree.is_default,
-        "metadata": to_jsonable(tree.metadata_json),
-        "created_at": tree.created_at.isoformat(),
-        "updated_at": tree.updated_at.isoformat(),
-        "deleted_at": tree.deleted_at.isoformat() if tree.deleted_at else None,
     }
     if nodes is not None:
         payload["nodes"] = [_node_payload(node) for node in nodes]
@@ -298,10 +283,8 @@ def _entry_payload(
 ) -> dict[str, object]:
     return {
         "id": str(entry.id),
-        "snapshot_id": str(entry.snapshot_id),
         "node_id": str(entry.node_id),
         "node_name": entry.node.name if entry.node else None,
-        "node_path": entry.node.path if entry.node else None,
         "amount": _asset_decimal_str(
             entry.amount,
             currency_code=entry.currency_code,
@@ -315,26 +298,17 @@ def _entry_payload(
         ),
         "note": entry.note,
         "is_auto_generated": entry.is_auto_generated,
-        "created_at": entry.created_at.isoformat(),
-        "updated_at": entry.updated_at.isoformat(),
-        "deleted_at": entry.deleted_at.isoformat() if entry.deleted_at else None,
     }
 
 
 def _rate_entry_payload(entry: FinanceRateSnapshotEntry) -> dict[str, object]:
     return {
         "id": str(entry.id),
-        "rate_snapshot_id": str(entry.rate_snapshot_id),
         "base_currency": entry.base_currency,
         "quote_currency": entry.quote_currency,
         "rate": _decimal_str(entry.rate),
         "source": entry.source,
         "captured_at": entry.captured_at.isoformat() if entry.captured_at else None,
-        "is_derived": entry.is_derived,
-        "metadata": to_jsonable(entry.metadata_json),
-        "created_at": entry.created_at.isoformat(),
-        "updated_at": entry.updated_at.isoformat(),
-        "deleted_at": entry.deleted_at.isoformat() if entry.deleted_at else None,
     }
 
 
@@ -348,10 +322,6 @@ def _rate_snapshot_payload(
         "captured_at": rate_snapshot.captured_at.isoformat(),
         "source": rate_snapshot.source,
         "note": rate_snapshot.note,
-        "metadata": to_jsonable(rate_snapshot.metadata_json),
-        "created_at": rate_snapshot.created_at.isoformat(),
-        "updated_at": rate_snapshot.updated_at.isoformat(),
-        "deleted_at": rate_snapshot.deleted_at.isoformat() if rate_snapshot.deleted_at else None,
     }
     if include_entries:
         payload["entries"] = [_rate_entry_payload(entry) for entry in rate_snapshot.entries]
@@ -374,34 +344,20 @@ def _snapshot_payload(
         "period_end": snapshot.period_end.isoformat() if snapshot.period_end else None,
         "primary_currency": snapshot.primary_currency,
         "rate_snapshot_id": str(snapshot.rate_snapshot_id) if snapshot.rate_snapshot_id else None,
-        "rate_snapshot_policy": snapshot.rate_snapshot_policy,
-        "total_positive": _asset_decimal_str(
-            snapshot.total_positive,
-            currency_code=snapshot.primary_currency,
-            decimal_places_by_code=decimal_places_by_code,
-        ),
-        "total_negative": _asset_decimal_str(
-            snapshot.total_negative,
-            currency_code=snapshot.primary_currency,
-            decimal_places_by_code=decimal_places_by_code,
-        ),
-        "net_amount": _asset_decimal_str(
-            snapshot.net_amount,
-            currency_code=snapshot.primary_currency,
-            decimal_places_by_code=decimal_places_by_code,
-        ),
-        "exchange_rates": to_jsonable(snapshot.exchange_rates),
-        "summary": _summary_payload(
-            snapshot.summary,
-            primary_currency=snapshot.primary_currency,
-            decimal_places_by_code=decimal_places_by_code,
-        ),
-        "note": snapshot.note,
         "created_at": snapshot.created_at.isoformat(),
-        "updated_at": snapshot.updated_at.isoformat(),
-        "deleted_at": snapshot.deleted_at.isoformat() if snapshot.deleted_at else None,
     }
     if include_entries:
+        payload.update(
+            {
+                "exchange_rates": to_jsonable(snapshot.exchange_rates),
+                "summary": _summary_payload(
+                    snapshot.summary,
+                    primary_currency=snapshot.primary_currency,
+                    decimal_places_by_code=decimal_places_by_code,
+                ),
+                "note": snapshot.note,
+            }
+        )
         payload["entries"] = [
             _entry_payload(
                 entry,
@@ -416,27 +372,21 @@ def _snapshot_payload(
 @router.get("/assets", response_model=ListResponse)
 async def list_assets(
     session: SessionDep,
-    include_deleted: bool = False,
     page: int = Query(1, ge=1),
     size: int = Query(200, ge=1, le=500),
 ) -> ListResponse:
     """List finance assets."""
     assets = await finance_services.list_finance_assets(
         session,
-        include_deleted=include_deleted,
         limit=size,
         offset=(page - 1) * size,
     )
-    total = await finance_services.count_finance_assets(
-        session,
-        include_deleted=include_deleted,
-    )
+    total = await finance_services.count_finance_assets(session)
     return _page_envelope(
         items=[_asset_payload(asset) for asset in assets],
         page=page,
         size=size,
         total=total,
-        meta={"include_deleted": include_deleted},
     )
 
 
@@ -493,7 +443,6 @@ async def delete_asset(asset_id: UUID, session: SessionDep) -> None:
 @router.get("/trees", response_model=ListResponse)
 async def list_trees(
     session: SessionDep,
-    include_deleted: bool = False,
     page: int = Query(1, ge=1),
     size: int = Query(100, ge=1, le=500),
 ) -> ListResponse:
@@ -501,14 +450,10 @@ async def list_trees(
     try:
         trees = await finance_services.list_finance_trees(
             session,
-            include_deleted=include_deleted,
             limit=size,
             offset=(page - 1) * size,
         )
-        total = await finance_services.count_finance_trees(
-            session,
-            include_deleted=include_deleted,
-        )
+        total = await finance_services.count_finance_trees(session)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _page_envelope(
@@ -516,14 +461,12 @@ async def list_trees(
         page=page,
         size=size,
         total=total,
-        meta={"include_deleted": include_deleted},
     )
 
 
 @router.get("/rate-snapshots", response_model=ListResponse)
 async def list_rate_snapshots(
     session: SessionDep,
-    include_deleted: bool = False,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
 ) -> ListResponse:
@@ -531,14 +474,10 @@ async def list_rate_snapshots(
     try:
         rate_snapshots = await finance_services.list_finance_rate_snapshots(
             session,
-            include_deleted=include_deleted,
             limit=size,
             offset=(page - 1) * size,
         )
-        total = await finance_services.count_finance_rate_snapshots(
-            session,
-            include_deleted=include_deleted,
-        )
+        total = await finance_services.count_finance_rate_snapshots(session)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _page_envelope(
@@ -546,7 +485,6 @@ async def list_rate_snapshots(
         page=page,
         size=size,
         total=total,
-        meta={"include_deleted": include_deleted},
     )
 
 

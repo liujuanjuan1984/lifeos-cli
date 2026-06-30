@@ -12,9 +12,6 @@ export interface Habit {
   start_date: string;
   duration_days: number;
   status: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
   stats?: HabitStats | null;
   task_id?: UUID | null;
   task?: Task | null;
@@ -43,9 +40,13 @@ export interface HabitAction {
   action_date: string;
   status: string;
   notes?: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
+}
+
+export interface HabitActionHabitSummary {
+  title: string;
+  description?: string | null;
+  start_date: string;
+  duration_days: number;
 }
 
 export interface HabitActionUpdate {
@@ -99,7 +100,7 @@ export type HabitActionListResponse = ListResponse<
 >;
 
 export interface HabitActionWithHabit extends HabitAction {
-  habit: Habit;
+  habit: HabitActionHabitSummary;
 }
 
 export type HabitActionByDateListResponse = ListResponse<

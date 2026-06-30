@@ -11,7 +11,6 @@ from lifeos_cli.cli_support.help_utils import (
     add_documented_parser,
 )
 from lifeos_cli.cli_support.parser_common import (
-    add_include_deleted_argument,
     add_limit_offset_arguments,
 )
 from lifeos_cli.cli_support.resources.finance.handlers import (
@@ -78,7 +77,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=("lifeos finance asset-list",),
         ),
     )
-    add_include_deleted_argument(asset_list, noun=_("resources.finance.parser.finance_assets"))
     add_limit_offset_arguments(asset_list)
     asset_list.set_defaults(handler=make_sync_handler(handle_finance_asset_list_async))
 
@@ -155,7 +153,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=("lifeos finance tree-list",),
         ),
     )
-    add_include_deleted_argument(tree_list, noun=_("resources.finance.parser.finance_trees"))
     add_limit_offset_arguments(tree_list)
     tree_list.set_defaults(handler=make_sync_handler(handle_finance_tree_list_async))
 
@@ -169,7 +166,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     tree_show.add_argument("tree_id", type=UUID)
-    add_include_deleted_argument(tree_show, noun=_("resources.finance.parser.finance_trees"))
     tree_show.set_defaults(handler=make_sync_handler(handle_finance_tree_show_async))
 
     ensure_default = add_documented_parser(
@@ -296,10 +292,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
             examples=("lifeos finance rate-snapshot-list",),
         ),
     )
-    add_include_deleted_argument(
-        rate_snapshot_list,
-        noun=_("resources.finance.parser.finance_rate_snapshots"),
-    )
     add_limit_offset_arguments(rate_snapshot_list)
     rate_snapshot_list.set_defaults(
         handler=make_sync_handler(handle_finance_rate_snapshot_list_async)
@@ -315,10 +307,6 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     rate_snapshot_show.add_argument("rate_snapshot_id", type=UUID)
-    add_include_deleted_argument(
-        rate_snapshot_show,
-        noun=_("resources.finance.parser.finance_rate_snapshots"),
-    )
     rate_snapshot_show.set_defaults(
         handler=make_sync_handler(handle_finance_rate_snapshot_show_async)
     )
@@ -349,8 +337,4 @@ def build_finance_parser(subparsers: argparse._SubParsersAction[argparse.Argumen
         ),
     )
     snapshot_show.add_argument("snapshot_id", type=UUID)
-    add_include_deleted_argument(
-        snapshot_show,
-        noun=_("resources.finance.parser.finance_snapshots"),
-    )
     snapshot_show.set_defaults(handler=make_sync_handler(handle_finance_snapshot_show_async))

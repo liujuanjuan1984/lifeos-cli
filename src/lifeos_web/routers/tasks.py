@@ -24,6 +24,20 @@ from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+TASK_LIST_FIELD_MODES = {"basic", "full"}
+TASK_BASIC_FIELDS = (
+    "id",
+    "vision_id",
+    "parent_task_id",
+    "content",
+    "status",
+    "priority",
+    "display_order",
+    "planning_cycle_type",
+    "planning_cycle_days",
+    "planning_cycle_start_date",
+    "people",
+)
 
 
 def _page_envelope(
@@ -65,7 +79,6 @@ def _task_tree_payload(task: Any) -> dict[str, object]:
         "notes_count": 0,
         "created_at": task.created_at.isoformat(),
         "updated_at": task.updated_at.isoformat(),
-        "deleted_at": task.deleted_at.isoformat() if task.deleted_at else None,
         "people": to_jsonable(task.people),
         "subtasks": [_task_tree_payload(subtask) for subtask in task.subtasks],
         "completion_percentage": task.completion_percentage,
@@ -73,11 +86,19 @@ def _task_tree_payload(task: Any) -> dict[str, object]:
     }
 
 
+def _task_list_payload(task: object, *, fields: str) -> dict[str, object]:
+    payload = to_jsonable_dict(task)
+    payload.pop("deleted_at", None)
+    if fields == "basic":
+        return {field: payload.get(field) for field in TASK_BASIC_FIELDS}
+    return payload
+
+
 @router.get("/", response_model=ListResponse)
 async def list_tasks(
     session: SessionDep,
-    page: int = Query(1, ge=1),
-    size: int = Query(100, ge=1, le=500),
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=500)] = 100,
     vision_id: UUID | None = None,
     vision_in: str | None = None,
     status_filter: str | None = None,
@@ -86,10 +107,11 @@ async def list_tasks(
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
     query: str | None = None,
-    fields: str = "basic",
+    fields: Annotated[str, Query(pattern="^(basic|full)$")] = "basic",
 ) -> ListResponse:
     """List tasks using the frontend planning query shape."""
-    del fields
+    if fields not in TASK_LIST_FIELD_MODES:
+        raise HTTPException(status_code=400, detail=f"Unsupported task fields mode: {fields}")
     try:
         rows = await task_services.list_tasks(
             session,
@@ -118,7 +140,7 @@ async def list_tasks(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _page_envelope(
-        items=[to_jsonable(row) for row in rows],
+        items=[_task_list_payload(row, fields=fields) for row in rows],
         page=page,
         size=size,
         total=total_count,
@@ -133,6 +155,7 @@ async def list_tasks(
                 planning_cycle_start_date.isoformat() if planning_cycle_start_date else None
             ),
             "query": query,
+            "fields": fields,
         },
     )
 

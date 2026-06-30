@@ -34,9 +34,6 @@ def _habit_model_payload(habit: Habit) -> dict[str, object]:
         "target_per_cycle": habit.target_per_cycle,
         "status": habit.status,
         "task_id": str(habit.task_id) if habit.task_id else None,
-        "created_at": habit.created_at.isoformat(),
-        "updated_at": habit.updated_at.isoformat(),
-        "deleted_at": habit.deleted_at.isoformat() if habit.deleted_at else None,
     }
 
 
@@ -47,10 +44,8 @@ async def _habit_payload(session: AsyncSession, habit_id: UUID) -> dict[str, obj
     return _habit_model_payload(habit)
 
 
-async def _action_with_habit(
-    session: AsyncSession,
-    action: object,
-) -> dict[str, object]:
+def _habit_action_payload(action: object) -> dict[str, object]:
+    """Serialize a habit action occurrence for Web consumers."""
     if isinstance(action, HabitAction):
         payload: dict[str, object] = {
             "id": str(action.id),
@@ -58,15 +53,32 @@ async def _action_with_habit(
             "action_date": action.action_date.isoformat(),
             "status": action.status,
             "notes": action.notes,
-            "created_at": action.created_at.isoformat(),
-            "updated_at": action.updated_at.isoformat(),
-            "deleted_at": action.deleted_at.isoformat() if action.deleted_at else None,
         }
     else:
         jsonable = to_jsonable(action)
         assert isinstance(jsonable, dict)
         payload = jsonable
-    payload["habit"] = await _habit_payload(session, UUID(str(payload["habit_id"])))
+        payload.pop("habit_title", None)
+        payload.pop("created_at", None)
+        payload.pop("updated_at", None)
+        payload.pop("deleted_at", None)
+    return payload
+
+
+async def _action_with_habit_summary(
+    session: AsyncSession,
+    action: object,
+) -> dict[str, object]:
+    payload = _habit_action_payload(action)
+    habit = await habit_services.get_habit(session, habit_id=UUID(str(payload["habit_id"])))
+    if habit is None:
+        raise HTTPException(status_code=404, detail=f"Habit {payload['habit_id']} was not found")
+    payload["habit"] = {
+        "title": habit.title,
+        "description": habit.description,
+        "start_date": habit.start_date.isoformat(),
+        "duration_days": habit.duration_days,
+    }
     return payload
 
 
@@ -234,7 +246,7 @@ async def list_actions_by_date(
         date_values=(action_date,),
         limit=500,
     )
-    items = [await _action_with_habit(session, action) for action in actions]
+    items = [await _action_with_habit_summary(session, action) for action in actions]
     return ListResponse(
         items=items,
         pagination=Pagination(page=1, size=500, total=len(items), pages=1 if items else 0),
@@ -261,7 +273,7 @@ async def list_actions_for_habit(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    items = [await _action_with_habit(session, action) for action in actions]
+    items = [_habit_action_payload(action) for action in actions]
     return ListResponse(
         items=items,
         pagination=Pagination(page=1, size=size, total=len(items), pages=1 if items else 0),
@@ -297,7 +309,7 @@ async def update_action(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return await _action_with_habit(session, action)
+    return _habit_action_payload(action)
 
 
 @router.patch("/{habit_id}/actions/by-date/{action_date}")
@@ -323,4 +335,4 @@ async def update_action_by_date(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return await _action_with_habit(session, action)
+    return _habit_action_payload(action)

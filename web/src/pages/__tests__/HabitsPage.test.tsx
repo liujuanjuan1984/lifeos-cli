@@ -159,9 +159,6 @@ describe("HabitsPage", () => {
         current_streak: 3,
         longest_streak: 5,
       },
-      created_at: "2025-01-01T00:00:00",
-      updated_at: "2025-01-02T00:00:00",
-      deleted_at: null,
     };
 
     habitsState.value = createHabitsResult({ habits: [habit] });

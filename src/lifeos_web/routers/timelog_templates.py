@@ -20,7 +20,6 @@ from lifeos_web.schemas import (
     TimelogTemplateReorderRequest,
     TimelogTemplateUpdate,
 )
-from lifeos_web.serialization import to_jsonable
 
 router = APIRouter(prefix="/timelogs/templates", tags=["timelog-templates"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -37,12 +36,20 @@ def _person_payload(person: PersonSummaryView) -> dict[str, object]:
 
 
 def _template_payload(template: TimelogTemplateView) -> dict[str, object]:
-    payload = to_jsonable(template)
-    if not isinstance(payload, dict):
-        raise TypeError("Timelog template serialization did not produce a dictionary.")
-    payload["person_ids"] = [str(person_id) for person_id in template.person_ids]
-    payload["people"] = [_person_payload(person) for person in template.people]
-    return payload
+    return {
+        "id": str(template.id),
+        "title": template.title,
+        "area_id": str(template.area_id) if template.area_id else None,
+        "area_name": template.area_name,
+        "area_color": template.area_color,
+        "person_ids": [str(person_id) for person_id in template.person_ids],
+        "people": [_person_payload(person) for person in template.people],
+        "default_duration_minutes": template.default_duration_minutes,
+        "position": template.position,
+        "usage_count": template.usage_count,
+        "last_used_at": template.last_used_at.isoformat() if template.last_used_at else None,
+        "created_at": template.created_at.isoformat(),
+    }
 
 
 def _update_input(payload: TimelogTemplateUpdate) -> template_services.TimelogTemplateUpdateInput:

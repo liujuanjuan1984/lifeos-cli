@@ -10,12 +10,7 @@ const baseSnapshot = {
   period_start: null,
   period_end: null,
   primary_currency: "USD",
-  rate_snapshot_policy: "none",
-  total_positive: "0.00000000",
-  total_negative: "0.00000000",
-  net_amount: "0.00000000",
   created_at: "2026-06-25T12:00:00.000Z",
-  updated_at: "2026-06-25T12:00:00.000Z",
 } satisfies Partial<FinanceSnapshot>;
 
 describe("finance snapshot labels", () => {

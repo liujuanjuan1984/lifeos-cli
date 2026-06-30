@@ -96,8 +96,6 @@ const recurringInstance: PlannedEvent = {
   status: "planned",
   tags: ["focus"],
   extra_data: null,
-  created_at: "2025-08-10T00:00:00Z",
-  updated_at: "2025-08-10T00:00:00Z",
   is_instance: true,
   master_event_id: "event-1",
   instance_id: "instance-1",
