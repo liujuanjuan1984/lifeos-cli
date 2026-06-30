@@ -1167,6 +1167,223 @@ def test_web_tag_create_maps_to_lifeos_tag_service(
     assert response["name"] == "project"
 
 
+def test_web_tag_categories_include_builtin_and_existing_categories(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+
+    async def fake_list_tag_categories(
+        _session: object,
+        *,
+        entity_type: str | None = None,
+    ) -> list[str]:
+        assert entity_type == "person"
+        return ["community", "relationship"]
+
+    monkeypatch.setattr(tags.tag_services, "list_tag_categories", fake_list_tag_categories)
+
+    response = asyncio.run(
+        tags.list_tag_categories(cast(AsyncSession, object()), entity_type="person")
+    )
+
+    values = [item["value"] for item in response]
+    assert values == [
+        "community",
+        "general",
+        "location",
+        "profession",
+        "relation",
+        "relationship",
+        "team",
+    ]
+
+
+def test_web_tag_category_create_returns_normalized_option() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+    from lifeos_web.schemas import TagCategoryCreate
+
+    response = asyncio.run(
+        tags.create_tag_category(
+            TagCategoryCreate(label="Close Circle"),
+            entity_type="person",
+        )
+    )
+
+    assert response == {
+        "value": "close_circle",
+        "label": "Close Circle",
+        "entity_type": "person",
+    }
+
+
+def test_web_tag_category_rename_maps_to_lifeos_tag_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+    from lifeos_web.schemas import TagCategoryUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_rename_tag_category(_session: object, **kwargs: object) -> list[object]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(tags.tag_services, "rename_tag_category", fake_rename_tag_category)
+
+    response = asyncio.run(
+        tags.rename_tag_category(
+            "relationship",
+            TagCategoryUpdate(label="Close Circle"),
+            cast(AsyncSession, object()),
+            entity_type="person",
+        )
+    )
+
+    assert captured == {
+        "entity_type": "person",
+        "category": "relationship",
+        "new_category": "close_circle",
+    }
+    assert response["value"] == "close_circle"
+    assert response["entity_type"] == "person"
+
+
+def test_web_tag_bulk_category_update_returns_updated_tags(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+    from lifeos_web.schemas import TagBulkCategoryUpdate
+
+    tag_id = UUID("11111111-1111-1111-1111-111111111111")
+    missing_id = UUID("22222222-2222-2222-2222-222222222222")
+    updated_tag = TagView(
+        id=tag_id,
+        name="mentor",
+        entity_type="person",
+        category="relationship",
+        description=None,
+        color=None,
+        created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        deleted_at=None,
+        people=(),
+    )
+
+    async def fake_bulk_update_tag_categories(
+        _session: object,
+        *,
+        tag_ids: list[UUID],
+        category: str,
+    ) -> tuple[list[TagView], list[UUID], list[str]]:
+        assert tag_ids == [tag_id, missing_id]
+        assert category == "relationship"
+        return [updated_tag], [missing_id], [f"Tag {missing_id} was not found"]
+
+    monkeypatch.setattr(
+        tags.tag_services,
+        "bulk_update_tag_categories",
+        fake_bulk_update_tag_categories,
+    )
+
+    response = asyncio.run(
+        tags.bulk_update_tag_categories(
+            TagBulkCategoryUpdate(ids=[tag_id, missing_id], category="relationship"),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert response["updated_count"] == 1
+    assert response["failed_ids"] == [str(missing_id)]
+    updated_tags = cast(list[dict[str, object]], response["updated_tags"])
+    assert updated_tags[0]["category"] == "relationship"
+
+
+def test_web_tag_usage_endpoint_returns_tagged_record_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import tags
+
+    tag_id = UUID("11111111-1111-1111-1111-111111111111")
+    tag = TagView(
+        id=tag_id,
+        name="mentor",
+        entity_type="person",
+        category="relationship",
+        description=None,
+        color=None,
+        created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+        deleted_at=None,
+        people=(),
+    )
+
+    async def fake_get_tag(_session: object, *, tag_id: UUID) -> TagView | None:
+        assert tag_id == UUID("11111111-1111-1111-1111-111111111111")
+        return tag
+
+    async def fake_count_tag_usage(_session: object, *, tag_id: UUID) -> int:
+        assert tag_id == UUID("11111111-1111-1111-1111-111111111111")
+        return 12
+
+    monkeypatch.setattr(tags.tag_services, "get_tag", fake_get_tag)
+    monkeypatch.setattr(tags.tag_services, "count_tag_usage", fake_count_tag_usage)
+
+    response = asyncio.run(tags.get_tag_usage(tag_id, cast(AsyncSession, object())))
+
+    assert response == {
+        "tag_id": str(tag_id),
+        "tag_name": "mentor",
+        "entity_type": "person",
+        "category": "relationship",
+        "usage_by_entity_type": {"person": 12},
+        "total_usage": 12,
+    }
+
+
+def test_web_stats_tag_usage_endpoint_returns_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import stats
+
+    tag_id = UUID("11111111-1111-1111-1111-111111111111")
+
+    async def fake_count_tag_usage_by_entity_type(
+        _session: object,
+        *,
+        entity_type: str,
+    ) -> dict[UUID, int]:
+        assert entity_type == "person"
+        return {tag_id: 12}
+
+    monkeypatch.setattr(
+        stats.tag_services,
+        "count_tag_usage_by_entity_type",
+        fake_count_tag_usage_by_entity_type,
+    )
+
+    response = asyncio.run(
+        stats.get_tag_usage_by_entity_type("person", cast(AsyncSession, object()))
+    )
+
+    assert response == {
+        "entity_type": "person",
+        "tag_stats": [{"id": str(tag_id), "usage_count": 12}],
+        "total_tags": 1,
+    }
+
+
 def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

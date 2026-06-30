@@ -70,8 +70,6 @@ const TimeEntryModal = ({
     [modalStateRaw],
   );
 
-  // Removed unused local edited flag
-
   const toastRaw = useToast();
 
   // Memoize toast object to prevent unnecessary re-renders

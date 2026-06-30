@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.models.area import Area
+from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.note import Note
+from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag import Tag
+from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
@@ -20,6 +29,15 @@ from lifeos_cli.db.services.model_utils import (
 from lifeos_cli.db.services.read_models import TagView, build_tag_view
 
 VALID_TAG_ENTITY_TYPES = {"note", "person", "task", "vision", "area", "event", "timelog"}
+TAGGED_ENTITY_MODELS = {
+    "area": Area,
+    "event": Event,
+    "note": Note,
+    "person": Person,
+    "task": Task,
+    "timelog": Timelog,
+    "vision": Vision,
+}
 
 
 class TagNotFoundError(LookupError):
@@ -53,6 +71,12 @@ def validate_tag_entity_type(entity_type: str) -> str:
     return normalized
 
 
+def normalize_tag_category(category: str | None) -> str:
+    """Normalize a tag category."""
+    normalized = (category or "").strip().lower()
+    return normalized or "general"
+
+
 async def create_tag(
     session: AsyncSession,
     *,
@@ -66,7 +90,7 @@ async def create_tag(
     """Create a new tag."""
     normalized_name = normalize_tag_name(name)
     normalized_entity_type = validate_tag_entity_type(entity_type)
-    normalized_category = category.strip().lower() or "general"
+    normalized_category = normalize_tag_category(category)
     existing = await session.execute(
         select(Tag).where(
             Tag.name == normalized_name,
@@ -145,7 +169,7 @@ async def list_tags(
     if entity_type is not None:
         stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
     if category is not None:
-        stmt = stmt.where(Tag.category == category.strip().lower())
+        stmt = stmt.where(Tag.category == normalize_tag_category(category))
     if person_id is not None:
         stmt = stmt.join(
             person_associations,
@@ -155,6 +179,24 @@ async def list_tags(
     stmt = stmt.order_by(Tag.name.asc(), Tag.id.asc()).offset(offset).limit(limit)
     tags = list((await session.execute(stmt)).scalars())
     return await _build_tag_views(session, tags)
+
+
+async def list_tag_categories(
+    session: AsyncSession,
+    *,
+    entity_type: str | None = None,
+    include_deleted: bool = False,
+) -> list[str]:
+    """List normalized categories present on tags."""
+    stmt = select(Tag.category).distinct()
+    if not include_deleted:
+        stmt = stmt.where(Tag.deleted_at.is_(None))
+    if entity_type is not None:
+        stmt = stmt.where(Tag.entity_type == validate_tag_entity_type(entity_type))
+    rows = (await session.execute(stmt)).scalars()
+    categories = {normalize_tag_category(category) for category in rows}
+    categories.add("general")
+    return sorted(categories)
 
 
 async def update_tag(
@@ -182,7 +224,7 @@ async def update_tag(
         raise TagNotFoundError(f"Tag {tag_id} was not found")
     next_name = normalize_tag_name(name) if name is not None else tag.name
     next_entity_type = validate_tag_entity_type(entity_type) if entity_type else tag.entity_type
-    next_category = category.strip().lower() if category is not None else tag.category
+    next_category = normalize_tag_category(category) if category is not None else tag.category
     conflict = await session.execute(
         select(Tag.id).where(
             Tag.name == next_name,
@@ -218,6 +260,132 @@ async def update_tag(
     await session.flush()
     await session.refresh(tag)
     return await _build_tag_view(session, tag)
+
+
+async def rename_tag_category(
+    session: AsyncSession,
+    *,
+    entity_type: str,
+    category: str,
+    new_category: str,
+) -> list[TagView]:
+    """Move all active tags in one category to another category."""
+    normalized_entity_type = validate_tag_entity_type(entity_type)
+    normalized_category = normalize_tag_category(category)
+    normalized_new_category = normalize_tag_category(new_category)
+    if normalized_category == normalized_new_category:
+        return []
+
+    stmt = select(Tag).where(
+        Tag.entity_type == normalized_entity_type,
+        Tag.category == normalized_category,
+        Tag.deleted_at.is_(None),
+    )
+    tags = list((await session.execute(stmt)).scalars())
+    conflict_names: list[str] = []
+    for tag in tags:
+        conflict = await session.execute(
+            select(Tag.id).where(
+                Tag.name == tag.name,
+                Tag.entity_type == normalized_entity_type,
+                Tag.category == normalized_new_category,
+                Tag.id != tag.id,
+                Tag.deleted_at.is_(None),
+            )
+        )
+        if conflict.scalar_one_or_none() is not None:
+            conflict_names.append(tag.name)
+    if conflict_names:
+        preview = ", ".join(sorted(conflict_names)[:3])
+        suffix = "" if len(conflict_names) <= 3 else f", and {len(conflict_names) - 3} more"
+        raise TagAlreadyExistsError(
+            f"Cannot rename category because matching tags already exist: {preview}{suffix}"
+        )
+    for tag in tags:
+        tag.category = normalized_new_category
+    await session.flush()
+    return await _build_tag_views(session, tags)
+
+
+async def bulk_update_tag_categories(
+    session: AsyncSession,
+    *,
+    tag_ids: list[UUID],
+    category: str,
+) -> tuple[list[TagView], list[UUID], list[str]]:
+    """Move selected active tags to another category with per-tag errors."""
+    normalized_category = normalize_tag_category(category)
+    updated: list[Tag] = []
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+
+    for tag_id in deduplicate_preserving_order(tag_ids):
+        tag = await load_model_by_id(
+            session,
+            model_cls=Tag,
+            model_id=tag_id,
+            include_deleted=False,
+        )
+        if tag is None:
+            failed_ids.append(tag_id)
+            errors.append(f"Tag {tag_id} was not found")
+            continue
+        conflict = await session.execute(
+            select(Tag.id).where(
+                Tag.name == tag.name,
+                Tag.entity_type == tag.entity_type,
+                Tag.category == normalized_category,
+                Tag.id != tag.id,
+                Tag.deleted_at.is_(None),
+            )
+        )
+        if conflict.scalar_one_or_none() is not None:
+            failed_ids.append(tag_id)
+            errors.append("Tag with the same name, entity type, and category already exists")
+            continue
+        tag.category = normalized_category
+        updated.append(tag)
+
+    await session.flush()
+    return await _build_tag_views(session, updated), failed_ids, errors
+
+
+async def count_tag_usage_by_entity_type(
+    session: AsyncSession,
+    *,
+    entity_type: str,
+) -> dict[UUID, int]:
+    """Count active tagged records by tag for one entity type."""
+    normalized_entity_type = validate_tag_entity_type(entity_type)
+    entity_model: Any = TAGGED_ENTITY_MODELS[normalized_entity_type]
+    stmt = (
+        select(tag_associations.c.tag_id, func.count(func.distinct(entity_model.id)))
+        .join(Tag, Tag.id == tag_associations.c.tag_id)
+        .join(entity_model, entity_model.id == tag_associations.c.entity_id)
+        .where(
+            tag_associations.c.entity_type == normalized_entity_type,
+            Tag.entity_type == normalized_entity_type,
+            Tag.deleted_at.is_(None),
+            entity_model.deleted_at.is_(None),
+        )
+        .group_by(tag_associations.c.tag_id)
+    )
+    rows = await session.execute(stmt)
+    return {tag_id: int(count) for tag_id, count in rows.all()}
+
+
+async def count_tag_usage(session: AsyncSession, *, tag_id: UUID) -> int:
+    """Count active tagged records for one tag."""
+    tag = await load_model_by_id(
+        session,
+        model_cls=Tag,
+        model_id=tag_id,
+        include_deleted=False,
+    )
+    if tag is None:
+        raise TagNotFoundError(f"Tag {tag_id} was not found")
+    usage_counts = await count_tag_usage_by_entity_type(session, entity_type=tag.entity_type)
+    return usage_counts.get(tag_id, 0)
 
 
 async def delete_tag(session: AsyncSession, *, tag_id: UUID) -> None:

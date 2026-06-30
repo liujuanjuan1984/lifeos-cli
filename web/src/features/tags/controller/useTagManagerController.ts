@@ -627,7 +627,7 @@ export function useTagManagerController({
   const createCategoryMutation = useMutation({
     mutationFn: (label: string) =>
       tagsApi.createCategory({ label }, categoryQueryScope),
-    onSuccess: async (createdCategory) => {
+    onSuccess: (createdCategory) => {
       queryClient.setQueryData<TagCategoryOption[]>(
         tagsKeys.categories(categoryQueryScope),
         (prev) => {
@@ -638,27 +638,23 @@ export function useTagManagerController({
           return next;
         },
       );
-      await refreshTagCaches(
-        "Failed to refresh tag caches after category create",
-        {
-          includeEntityTypes: true,
-          relatedEntityType: normalizedEntityTypeScope,
-        },
-      );
     },
   });
 
   const renameCategoryMutation = useMutation({
     mutationFn: ({ value, label }: { value: string; label: string }) =>
       tagsApi.renameCategory(value, { label }, categoryQueryScope),
-    onSuccess: async (updatedCategory) => {
+    onSuccess: async (updatedCategory, variables) => {
       queryClient.setQueryData<TagCategoryOption[]>(
         tagsKeys.categories(categoryQueryScope),
         (prev) => {
-          const next = Array.isArray(prev) ? [...prev] : [];
-          return next.map((item) =>
-            item.value === updatedCategory.value ? updatedCategory : item,
-          );
+          const next = Array.isArray(prev)
+            ? prev.filter((item) => item.value !== variables.value)
+            : [];
+          if (!next.some((item) => item.value === updatedCategory.value)) {
+            next.push(updatedCategory);
+          }
+          return next;
         },
       );
       await refreshTagCaches(
