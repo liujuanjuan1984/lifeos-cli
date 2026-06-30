@@ -73,9 +73,6 @@ interface TagListMeta {
 
 export type TagListResponse = ListResponse<Tag, TagListMeta>;
 
-const unsupported = () =>
-  Promise.reject(new Error("Tags are not supported by LifeOS Web UI yet."));
-
 export const tagsApi = {
   getAll: (params?: {
     entity_type?: string;
@@ -90,35 +87,36 @@ export const tagsApi = {
       entity_type: entityType,
     }),
   createCategory: (
-    _payload: TagCategoryCreate,
-    _entityType: string,
-  ): Promise<TagCategoryOption> => unsupported(),
+    payload: TagCategoryCreate,
+    entityType: string,
+  ): Promise<TagCategoryOption> =>
+    http.post<TagCategoryOption>(ENDPOINTS.TAGS.CATEGORIES, payload, {
+      entity_type: entityType,
+    }),
   renameCategory: (
-    _value: string,
-    _payload: TagCategoryUpdate,
-    _entityType: string,
-  ): Promise<TagCategoryOption> => unsupported(),
+    value: string,
+    payload: TagCategoryUpdate,
+    entityType: string,
+  ): Promise<TagCategoryOption> =>
+    http.patch<TagCategoryOption>(ENDPOINTS.TAGS.CATEGORY_BY_VALUE(value), payload, {
+      entity_type: entityType,
+    }),
   create: (tag: TagCreate): Promise<Tag> =>
     http.post<Tag>(ENDPOINTS.TAGS.BASE, tag),
   getById: (id: UUID): Promise<Tag> => http.get<Tag>(ENDPOINTS.TAGS.BY_ID(id)),
   update: (id: UUID, tag: TagUpdate): Promise<Tag> =>
     http.patch<Tag>(ENDPOINTS.TAGS.BY_ID(id), tag),
   bulkUpdateCategories: (
-    _payload: TagBulkUpdateRequest,
-  ): Promise<TagBulkUpdateResponse> => unsupported(),
+    payload: TagBulkUpdateRequest,
+  ): Promise<TagBulkUpdateResponse> =>
+    http.patch<TagBulkUpdateResponse>(ENDPOINTS.TAGS.BATCH_UPDATE, payload),
   delete: (id: UUID): Promise<void> => http.delete<void>(ENDPOINTS.TAGS.BY_ID(id)),
   getUsage: (id: UUID): Promise<TagUsageStats> =>
-    Promise.resolve({
-      tag_id: id,
-      tag_name: "",
-      entity_type: "",
-      category: "",
-      usage_by_entity_type: {},
-      total_usage: 0,
-    }),
-  getStatsBatch: async (entityType: string) => ({
-    entity_type: entityType,
-    tag_stats: [] as Array<{ id: UUID; name: string; usage_count: number }>,
-    total_tags: 0,
-  }),
+    http.get<TagUsageStats>(ENDPOINTS.TAGS.USAGE(id)),
+  getStatsBatch: (entityType: string) =>
+    http.get<{
+      entity_type: string;
+      tag_stats: Array<{ id: UUID; name?: string; usage_count: number }>;
+      total_tags: number;
+    }>(ENDPOINTS.STATS.TAGS_USAGE(entityType)),
 };

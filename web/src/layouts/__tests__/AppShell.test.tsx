@@ -22,9 +22,6 @@ vi.mock("@tanstack/react-router", () => ({
     </a>
   ),
   useLocation: () => ({ pathname: "/notes" }),
-  useRouter: () => ({
-    preloadRoute: vi.fn().mockResolvedValue(undefined),
-  }),
 }));
 
 vi.mock("@/contexts/PageHeaderProvider", () => ({

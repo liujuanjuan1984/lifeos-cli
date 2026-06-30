@@ -7,6 +7,8 @@ export const ENDPOINTS = {
     BATCH_UPDATE: `${API_V1}/tags/batch-update`,
     ENTITY_TYPES: `${API_V1}/tags/entity-types/`,
     CATEGORIES: `${API_V1}/tags/categories/`,
+    CATEGORY_BY_VALUE: (value: string) =>
+      `${API_V1}/tags/categories/${encodeURIComponent(value)}`,
     USAGE: (id: string) => `${API_V1}/tags/${id}/usage`,
   },
   VISIONS: {

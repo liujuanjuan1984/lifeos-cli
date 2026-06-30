@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services import timelog_stats
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import ListResponse, Pagination
@@ -219,3 +220,27 @@ async def recompute_daily_areas(
     except timelog_stats.TimelogStatsValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"days_recomputed": len(rebuilt_dates)}
+
+
+@router.get("/tags/usage/{entity_type}")
+async def get_tag_usage_by_entity_type(
+    entity_type: str,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Return active tagged-record counts for tags of one entity type."""
+    try:
+        normalized_entity_type = tag_services.validate_tag_entity_type(entity_type)
+        usage_counts = await tag_services.count_tag_usage_by_entity_type(
+            session,
+            entity_type=normalized_entity_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "entity_type": normalized_entity_type,
+        "tag_stats": [
+            {"id": str(tag_id), "usage_count": count}
+            for tag_id, count in sorted(usage_counts.items(), key=lambda item: str(item[0]))
+        ],
+        "total_tags": len(usage_counts),
+    }

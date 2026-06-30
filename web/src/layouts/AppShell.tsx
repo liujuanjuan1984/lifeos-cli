@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { PageHeaderProvider } from "@/contexts/PageHeaderProvider";
 import { AutoPageHeader } from "@/components/PageHeader";
 import { useModuleConfig } from "@/hooks/useModuleConfig";
 import { useVisibleModules } from "@/hooks/queries/useVisibleModules";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
-import { logger } from "@/utils/core";
 import ActionButton from "@/components/ActionButton";
 import { Icon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
@@ -18,7 +17,6 @@ interface AppShellProps {
 export default function AppShell({ children }: AppShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
-  const router = useRouter();
 
   // Handle escape key to close drawer
   useEffect(() => {
@@ -36,19 +34,6 @@ export default function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [location.pathname]);
-
-  // Preload frequently visited routes to reduce navigation latency
-  useEffect(() => {
-    const preloadTargets: Array<{ to: "/notes" }> = [
-      { to: "/notes" },
-    ];
-
-    preloadTargets.forEach((target) => {
-      router.preloadRoute(target).catch((error: unknown) => {
-        logger.debug("Route preload failed", target.to, error);
-      });
-    });
-  }, [router]);
 
   return (
     <PageHeaderProvider>

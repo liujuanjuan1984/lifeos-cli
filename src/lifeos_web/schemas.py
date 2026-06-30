@@ -113,6 +113,26 @@ class TagUpdate(BaseModel):
     color: str | None = None
 
 
+class TagCategoryCreate(BaseModel):
+    """Payload for creating a tag category option from the Web UI."""
+
+    label: str
+    value: str | None = None
+
+
+class TagCategoryUpdate(BaseModel):
+    """Payload for renaming a tag category from the Web UI."""
+
+    label: str
+
+
+class TagBulkCategoryUpdate(BaseModel):
+    """Payload for moving existing tags to another category."""
+
+    ids: list[UUID] = Field(default_factory=list)
+    category: str
+
+
 class VisionCreate(BaseModel):
     """Payload for creating a vision from the Web UI."""
 

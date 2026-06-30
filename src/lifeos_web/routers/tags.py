@@ -12,11 +12,43 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services.tags import VALID_TAG_ENTITY_TYPES
 from lifeos_web.deps import get_db_session
-from lifeos_web.schemas import ListResponse, Pagination, TagCreate, TagUpdate
+from lifeos_web.schemas import (
+    ListResponse,
+    Pagination,
+    TagBulkCategoryUpdate,
+    TagCategoryCreate,
+    TagCategoryUpdate,
+    TagCreate,
+    TagUpdate,
+)
 from lifeos_web.serialization import to_jsonable, to_jsonable_dict
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
+
+DEFAULT_TAG_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "note": ("general", "topic"),
+    "person": ("general", "location", "relation", "profession", "team"),
+}
+
+
+def _category_label(value: str) -> str:
+    """Return the fallback label for a category value."""
+    return value.replace("_", " ").title() if value else "General"
+
+
+def _category_option(value: str, entity_type: str | None) -> dict[str, object]:
+    normalized = tag_services.normalize_tag_category(value)
+    return {
+        "value": normalized,
+        "label": _category_label(normalized),
+        "entity_type": entity_type,
+    }
+
+
+def _normalize_category_value(payload: TagCategoryCreate | TagCategoryUpdate) -> str:
+    raw = getattr(payload, "value", None) or payload.label
+    return tag_services.normalize_tag_category(raw.replace(" ", "_"))
 
 
 @router.get("/", response_model=ListResponse)
@@ -59,10 +91,87 @@ async def list_tag_entity_types() -> list[str]:
 
 
 @router.get("/categories/")
-async def list_tag_categories(entity_type: str | None = None) -> list[dict[str, object]]:
-    """Return the default category option used by LifeOS tags."""
-    del entity_type
-    return [{"value": "general", "label": "General", "entity_type": None}]
+async def list_tag_categories(
+    session: SessionDep,
+    entity_type: str | None = None,
+) -> list[dict[str, object]]:
+    """Return built-in and persisted tag categories."""
+    try:
+        normalized_entity_type = (
+            tag_services.validate_tag_entity_type(entity_type) if entity_type else None
+        )
+        categories = set(
+            await tag_services.list_tag_categories(
+                session,
+                entity_type=normalized_entity_type,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    categories.update(DEFAULT_TAG_CATEGORIES.get(normalized_entity_type or "", ("general",)))
+    return [_category_option(category, normalized_entity_type) for category in sorted(categories)]
+
+
+@router.post("/categories/")
+async def create_tag_category(
+    payload: TagCategoryCreate,
+    entity_type: str | None = None,
+) -> dict[str, object]:
+    """Return a normalized tag category option for the scoped entity type."""
+    try:
+        normalized_entity_type = (
+            tag_services.validate_tag_entity_type(entity_type) if entity_type else None
+        )
+        return _category_option(_normalize_category_value(payload), normalized_entity_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch("/categories/{category}")
+async def rename_tag_category(
+    category: str,
+    payload: TagCategoryUpdate,
+    session: SessionDep,
+    entity_type: str | None = None,
+) -> dict[str, object]:
+    """Rename a tag category by moving its active tags."""
+    if not entity_type:
+        raise HTTPException(status_code=400, detail="Tag category rename requires entity_type")
+    try:
+        normalized_entity_type = tag_services.validate_tag_entity_type(entity_type)
+        next_category = _normalize_category_value(payload)
+        await tag_services.rename_tag_category(
+            session,
+            entity_type=normalized_entity_type,
+            category=category,
+            new_category=next_category,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _category_option(next_category, normalized_entity_type)
+
+
+@router.patch("/batch-update")
+async def bulk_update_tag_categories(
+    payload: TagBulkCategoryUpdate,
+    session: SessionDep,
+) -> dict[str, object]:
+    """Move selected tags to another category."""
+    try:
+        updated_tags, failed_ids, errors = await tag_services.bulk_update_tag_categories(
+            session,
+            tag_ids=payload.ids,
+            category=payload.category,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "updated_count": len(updated_tags),
+        "failed_ids": [str(tag_id) for tag_id in failed_ids],
+        "errors": errors,
+        "updated_tags": [to_jsonable(tag) for tag in updated_tags],
+    }
 
 
 @router.post("/")
@@ -89,6 +198,23 @@ async def get_tag(tag_id: UUID, session: SessionDep) -> dict[str, object]:
     if tag is None:
         raise HTTPException(status_code=404, detail=f"Tag {tag_id} was not found")
     return to_jsonable_dict(tag)
+
+
+@router.get("/{tag_id}/usage")
+async def get_tag_usage(tag_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Return active tagged-record count for one tag."""
+    tag = await tag_services.get_tag(session, tag_id=tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail=f"Tag {tag_id} was not found")
+    usage_count = await tag_services.count_tag_usage(session, tag_id=tag_id)
+    return {
+        "tag_id": str(tag.id),
+        "tag_name": tag.name,
+        "entity_type": tag.entity_type,
+        "category": tag.category,
+        "usage_by_entity_type": {tag.entity_type: usage_count},
+        "total_usage": usage_count,
+    }
 
 
 @router.patch("/{tag_id}")
