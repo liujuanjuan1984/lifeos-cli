@@ -179,7 +179,7 @@ async def handle_data_export_async(args: argparse.Namespace) -> int:
                 report = await data_ops.export_bundle(
                     session,
                     output_path=Path(args.output),
-                    include_deleted=not args.exclude_deleted,
+                    include_deleted=False,
                 )
                 print(f"Exported bundle to {report.output_path}")
                 for resource, count in report.resource_counts.items():
@@ -192,7 +192,7 @@ async def handle_data_export_async(args: argparse.Namespace) -> int:
             rows = await data_ops.export_resource_snapshot(
                 session,
                 resource=args.target,
-                include_deleted=not args.exclude_deleted,
+                include_deleted=False,
             )
         _write_output(
             output_path=args.output,

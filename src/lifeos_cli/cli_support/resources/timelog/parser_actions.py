@@ -13,9 +13,9 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
     add_start_end_date_arguments,
+    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.timelog.handlers import (
     TIMELOG_SUMMARY_COLUMNS,
@@ -328,7 +328,7 @@ def _add_timelog_query_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--count", action="store_true", help=_("common.messages.print_total_matched_count")
     )
-    add_include_deleted_argument(parser, noun="timelogs")
+    set_deleted_records_hidden(parser)
     add_limit_offset_arguments(parser)
 
 
@@ -346,14 +346,14 @@ def build_timelog_show_parser(
             ),
             examples=(
                 "lifeos timelog show 11111111-1111-1111-1111-111111111111",
-                "lifeos timelog show 11111111-1111-1111-1111-111111111111 --include-deleted",
+                "lifeos timelog show 11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
     show_parser.add_argument(
         "timelog_id", type=UUID, help=_("resources.timelog.parser_actions.timelog_identifier")
     )
-    add_include_deleted_argument(show_parser, noun="timelogs", help_prefix="Allow")
+    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_timelog_show_async))
 
 

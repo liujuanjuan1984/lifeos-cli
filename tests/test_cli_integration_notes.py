@@ -89,11 +89,19 @@ def test_real_cli_note_workflow(integration_context: IntegrationContext) -> None
     assert_ok(batch_delete_result)
     assert "Deleted notes: 1" in batch_delete_result.stdout
 
-    deleted_list_result = run_lifeos(integration_context, "note", "list", "--include-deleted")
+    deleted_list_result = run_lifeos(integration_context, "note", "list")
     assert_ok(deleted_list_result)
-    assert first_note_id in deleted_list_result.stdout
-    assert second_note_id in deleted_list_result.stdout
-    assert "deleted" in deleted_list_result.stdout
+    assert first_note_id not in deleted_list_result.stdout
+    assert second_note_id not in deleted_list_result.stdout
+
+    rejected_deleted_list_result = run_lifeos(
+        integration_context,
+        "note",
+        "list",
+        "--include-deleted",
+    )
+    assert rejected_deleted_list_result.returncode == 2
+    assert "--include-deleted" in rejected_deleted_list_result.stderr
 
     missing_show_result = run_lifeos(
         integration_context,

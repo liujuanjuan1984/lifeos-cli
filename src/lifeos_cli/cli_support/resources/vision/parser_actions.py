@@ -13,8 +13,8 @@ from lifeos_cli.cli_support.help_utils import (
 from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_identifier_list_argument,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
+    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.vision.handlers import (
     VISION_SUMMARY_COLUMNS,
@@ -132,7 +132,7 @@ def build_vision_list_parser(
     list_parser.add_argument(
         "--person-id", type=UUID, help=_("common.messages.filter_by_linked_person_identifier")
     )
-    add_include_deleted_argument(list_parser, noun="visions")
+    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_vision_list_async))
 
@@ -149,12 +149,12 @@ def build_vision_show_parser(
             description=_("resources.vision.parser_actions.show_one_vision_with_full_metadata"),
             examples=(
                 "lifeos vision show 11111111-1111-1111-1111-111111111111",
-                "lifeos vision show 11111111-1111-1111-1111-111111111111 --include-deleted",
+                "lifeos vision show 11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
     show_parser.add_argument("vision_id", type=UUID, help=_("common.messages.vision_identifier"))
-    add_include_deleted_argument(show_parser, noun="visions", help_prefix="Allow")
+    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_vision_show_async))
 
 

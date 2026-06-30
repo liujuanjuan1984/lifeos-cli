@@ -263,20 +263,21 @@ def test_web_finance_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "is_derived" not in rate_entry_payload
 
 
-def test_web_finance_list_routes_do_not_expose_deleted_records() -> None:
+def test_web_routes_do_not_expose_deleted_records() -> None:
     pytest.importorskip("fastapi")
     from fastapi.routing import APIRoute
 
-    from lifeos_web.routers.finance import router
+    from lifeos_web.app import create_app
 
-    route_query_params = {
-        route.path: {param.name for param in route.dependant.query_params}
-        for route in router.routes
+    app = create_app()
+    routes_with_include_deleted = [
+        route.path
+        for route in app.routes
         if isinstance(route, APIRoute)
-    }
+        and any(param.name == "include_deleted" for param in route.dependant.query_params)
+    ]
 
-    for path in ("/finance/assets", "/finance/trees", "/finance/rate-snapshots"):
-        assert "include_deleted" not in route_query_params[path]
+    assert routes_with_include_deleted == []
 
 
 def test_web_vision_payload_excludes_unconsumed_audit_fields() -> None:
@@ -572,9 +573,13 @@ def test_web_habit_action_payload_uses_slim_habit_summary(
     assert "task_id" not in habit_summary
 
 
-def test_finance_cli_rejects_include_deleted_on_consumer_commands() -> None:
+def test_cli_rejects_deleted_record_visibility_flags_on_consumer_commands() -> None:
     parser = build_parser()
     rejected_commands = (
+        ("area", "list", "--include-deleted"),
+        ("area", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("event", "list", "--include-deleted"),
+        ("event", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
         ("finance", "asset-list", "--include-deleted"),
         ("finance", "tree-list", "--include-deleted"),
         ("finance", "tree-show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
@@ -591,6 +596,24 @@ def test_finance_cli_rejects_include_deleted_on_consumer_commands() -> None:
             "11111111-1111-1111-1111-111111111111",
             "--include-deleted",
         ),
+        ("habit", "list", "--include-deleted"),
+        ("habit", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("habit-action", "list", "--include-deleted"),
+        ("habit-action", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("note", "list", "--include-deleted"),
+        ("note", "search", "query", "--include-deleted"),
+        ("note", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("people", "list", "--include-deleted"),
+        ("people", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("tag", "list", "--include-deleted"),
+        ("tag", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("task", "list", "--include-deleted"),
+        ("task", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("timelog", "list", "--include-deleted"),
+        ("timelog", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("vision", "list", "--include-deleted"),
+        ("vision", "show", "11111111-1111-1111-1111-111111111111", "--include-deleted"),
+        ("data", "export", "note", "--exclude-deleted"),
     )
 
     for command in rejected_commands:

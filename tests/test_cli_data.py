@@ -52,7 +52,7 @@ def test_main_data_export_prints_json(
         include_deleted: bool,
     ) -> list[dict[str, object]]:
         assert resource == "note"
-        assert include_deleted is True
+        assert include_deleted is False
         return [{"id": "11111111-1111-1111-1111-111111111111", "content": "hello"}]
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
@@ -80,7 +80,7 @@ def test_main_data_export_all_uses_bundle_writer(
         include_deleted: bool,
     ) -> data_ops.BundleExportReport:
         assert output_path == bundle_path
-        assert include_deleted is True
+        assert include_deleted is False
         return data_ops.BundleExportReport(
             resource_counts={"note": 2, "timelog": 1},
             output_path=output_path,

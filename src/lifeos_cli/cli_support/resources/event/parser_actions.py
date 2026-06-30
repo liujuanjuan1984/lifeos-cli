@@ -16,9 +16,9 @@ from lifeos_cli.cli_support.output_utils import format_summary_column_list
 from lifeos_cli.cli_support.parser_common import (
     add_date_range_arguments,
     add_identifier_list_argument,
-    add_include_deleted_argument,
     add_limit_offset_arguments,
     add_start_end_date_arguments,
+    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.event.handlers import (
     EVENT_SUMMARY_COLUMNS,
@@ -318,7 +318,7 @@ def build_event_list_parser(
             "common.messages.inclusive_time_filter_end_date_only_values_use_configured_timezone"
         ),
     )
-    add_include_deleted_argument(list_parser, noun="events")
+    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser)
     list_parser.set_defaults(handler=make_sync_handler(handle_event_list_async))
 
@@ -335,14 +335,14 @@ def build_event_show_parser(
             description=_("resources.event.parser_actions.show_one_event_with_full_metadata"),
             examples=(
                 "lifeos event show 11111111-1111-1111-1111-111111111111",
-                "lifeos event show 11111111-1111-1111-1111-111111111111 --include-deleted",
+                "lifeos event show 11111111-1111-1111-1111-111111111111",
             ),
         ),
     )
     show_parser.add_argument(
         "event_id", type=UUID, help=_("resources.event.parser_actions.event_identifier")
     )
-    add_include_deleted_argument(show_parser, noun="events", help_prefix="Allow")
+    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_event_show_async))
 
 

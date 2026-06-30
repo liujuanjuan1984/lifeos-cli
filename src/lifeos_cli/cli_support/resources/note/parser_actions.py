@@ -16,8 +16,8 @@ from lifeos_cli.cli_support.output_utils import (
     format_summary_column_list,
 )
 from lifeos_cli.cli_support.parser_common import (
-    add_include_deleted_argument,
     add_limit_offset_arguments,
+    set_deleted_records_hidden,
 )
 from lifeos_cli.cli_support.resources.note.handlers import (
     handle_note_add_async,
@@ -151,12 +151,8 @@ def build_note_list_parser(
                 "lifeos note list --event-id <event-id>",
                 "lifeos note list --timelog-id <timelog-id>",
                 "lifeos note list --limit 20 --offset 20",
-                "lifeos note list --include-deleted",
             ),
             notes=(
-                _(
-                    "resources.note.parser_actions.use_include_deleted_when_reviewing_deleted_records"
-                ),
                 _("resources.note.parser_actions.use_limit_and_offset_together_for_pagination"),
                 _(
                     "common.messages.use_with_counts_to_add_relationship_count_columns_columns"
@@ -185,7 +181,7 @@ def build_note_list_parser(
         action="store_true",
         help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
-    add_include_deleted_argument(list_parser, noun="notes")
+    set_deleted_records_hidden(list_parser)
     add_limit_offset_arguments(list_parser, row_noun="notes")
     list_parser.set_defaults(handler=make_sync_handler(handle_note_list_async))
 
@@ -210,7 +206,7 @@ def build_note_search_parser(
                 'lifeos note search "review" --task-id <task-id>',
                 'lifeos note search "partner sync" --event-id <event-id>',
                 'lifeos note search "budget q2" --limit 20',
-                'lifeos note search "archived idea" --include-deleted',
+                'lifeos note search "archived idea"',
             ),
             notes=(
                 _(
@@ -249,7 +245,7 @@ def build_note_search_parser(
         action="store_true",
         help=_("common.messages.include_relationship_count_columns_in_summary_output"),
     )
-    add_include_deleted_argument(search_parser, noun="notes in the search scope")
+    set_deleted_records_hidden(search_parser)
     add_limit_offset_arguments(search_parser, row_noun="matching notes")
     search_parser.set_defaults(handler=make_sync_handler(handle_note_search_async))
 
@@ -271,17 +267,13 @@ def build_note_show_parser(
                     "resources.note.parser_actions.use_this_action_when_you_need_to_inspect_preserved_line_breaks_instead"
                 )
             ),
-            examples=(
-                "lifeos note show 11111111-1111-1111-1111-111111111111",
-                "lifeos note show 11111111-1111-1111-1111-111111111111 --include-deleted",
-            ),
-            notes=(_("resources.note.parser_actions.use_include_deleted_to_inspect_deleted_note"),),
+            examples=("lifeos note show 11111111-1111-1111-1111-111111111111",),
         ),
     )
     show_parser.add_argument(
         "note_id", type=UUID, help=_("resources.note.parser_actions.note_identifier")
     )
-    add_include_deleted_argument(show_parser, noun="notes", help_prefix="Allow loading")
+    set_deleted_records_hidden(show_parser)
     show_parser.set_defaults(handler=make_sync_handler(handle_note_show_async))
 
 

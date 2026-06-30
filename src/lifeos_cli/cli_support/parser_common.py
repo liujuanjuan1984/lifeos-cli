@@ -9,24 +9,9 @@ from lifeos_cli.cli_support.time_args import parse_date_value
 from lifeos_cli.i18n import cli_message as _
 
 
-def add_include_deleted_argument(
-    parser: argparse.ArgumentParser,
-    *,
-    noun: str,
-    help_prefix: str = "Include",
-) -> None:
-    """Add a standard include-deleted flag."""
-    del noun
-    help_message = (
-        _("common.parser.allow_loading_deleted_records")
-        if help_prefix.startswith("Allow")
-        else _("common.parser.include_deleted_records")
-    )
-    parser.add_argument(
-        "--include-deleted",
-        action="store_true",
-        help=help_message,
-    )
+def set_deleted_records_hidden(parser: argparse.ArgumentParser) -> None:
+    """Keep deleted records hidden for user-facing commands."""
+    parser.set_defaults(include_deleted=False)
 
 
 def add_limit_offset_arguments(
