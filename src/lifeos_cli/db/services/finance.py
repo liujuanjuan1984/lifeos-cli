@@ -39,6 +39,53 @@ FINANCE_AMOUNT_QUANT = Decimal("0.00000001")
 FINANCE_RATE_QUANT = Decimal("0.000000000001")
 
 
+def _finance_tree_nodes_loader(include_deleted: bool) -> Any:
+    if include_deleted:
+        return selectinload(FinanceTree.nodes)
+    return selectinload(FinanceTree.nodes.and_(FinanceTreeNode.deleted_at.is_(None)))
+
+
+def _finance_node_tree_loader(include_deleted: bool) -> Any:
+    if include_deleted:
+        return selectinload(FinanceTreeNode.tree)
+    return selectinload(FinanceTreeNode.tree.and_(FinanceTree.deleted_at.is_(None)))
+
+
+def _finance_node_children_loader(include_deleted: bool) -> Any:
+    if include_deleted:
+        return selectinload(FinanceTreeNode.children)
+    return selectinload(FinanceTreeNode.children.and_(FinanceTreeNode.deleted_at.is_(None)))
+
+
+def _finance_rate_entries_loader(include_deleted: bool) -> Any:
+    if include_deleted:
+        return selectinload(FinanceRateSnapshot.entries)
+    return selectinload(
+        FinanceRateSnapshot.entries.and_(FinanceRateSnapshotEntry.deleted_at.is_(None))
+    )
+
+
+def _finance_snapshot_tree_loader() -> Any:
+    return selectinload(FinanceSnapshot.tree.and_(FinanceTree.deleted_at.is_(None)))
+
+
+def _finance_snapshot_rate_loader() -> Any:
+    return selectinload(
+        FinanceSnapshot.rate_snapshot.and_(FinanceRateSnapshot.deleted_at.is_(None))
+    )
+
+
+def _finance_snapshot_entries_loader(include_deleted: bool) -> Any:
+    entries = (
+        selectinload(FinanceSnapshot.entries)
+        if include_deleted
+        else selectinload(FinanceSnapshot.entries.and_(FinanceSnapshotEntry.deleted_at.is_(None)))
+    )
+    return entries.selectinload(
+        FinanceSnapshotEntry.node.and_(FinanceTreeNode.deleted_at.is_(None))
+    )
+
+
 class FinanceValidationError(ValueError):
     """Raised when finance input is invalid."""
 
@@ -409,7 +456,7 @@ async def get_finance_tree_with_nodes(
     """Load one finance tree with all nodes."""
     stmt = (
         select(FinanceTree)
-        .options(selectinload(FinanceTree.nodes))
+        .options(_finance_tree_nodes_loader(include_deleted))
         .where(FinanceTree.id == tree_id)
         .limit(1)
     )
@@ -418,8 +465,6 @@ async def get_finance_tree_with_nodes(
     tree = (await session.execute(stmt)).scalar_one_or_none()
     if tree is None:
         return None
-    if not include_deleted:
-        tree.nodes = [node for node in tree.nodes if node.deleted_at is None]
     return tree
 
 
@@ -564,7 +609,10 @@ async def _get_node_model(
 ) -> FinanceTreeNode | None:
     stmt = (
         select(FinanceTreeNode)
-        .options(selectinload(FinanceTreeNode.tree), selectinload(FinanceTreeNode.children))
+        .options(
+            _finance_node_tree_loader(include_deleted),
+            _finance_node_children_loader(include_deleted),
+        )
         .where(FinanceTreeNode.id == node_id)
         .limit(1)
     )
@@ -876,7 +924,7 @@ async def get_finance_rate_snapshot(
     """Load one finance rate snapshot with entries."""
     stmt = (
         select(FinanceRateSnapshot)
-        .options(selectinload(FinanceRateSnapshot.entries))
+        .options(_finance_rate_entries_loader(include_deleted))
         .where(FinanceRateSnapshot.id == rate_snapshot_id)
         .limit(1)
     )
@@ -885,10 +933,6 @@ async def get_finance_rate_snapshot(
     rate_snapshot = (await session.execute(stmt)).scalar_one_or_none()
     if rate_snapshot is None:
         return None
-    if not include_deleted:
-        rate_snapshot.entries = [
-            entry for entry in rate_snapshot.entries if entry.deleted_at is None
-        ]
     return rate_snapshot
 
 
@@ -900,7 +944,7 @@ async def list_finance_rate_snapshots(
     offset: int = 0,
 ) -> list[FinanceRateSnapshot]:
     """List exchange-rate snapshots."""
-    stmt = select(FinanceRateSnapshot).options(selectinload(FinanceRateSnapshot.entries))
+    stmt = select(FinanceRateSnapshot).options(_finance_rate_entries_loader(include_deleted))
     if not include_deleted:
         stmt = stmt.where(FinanceRateSnapshot.deleted_at.is_(None))
     stmt = (
@@ -911,11 +955,7 @@ async def list_finance_rate_snapshots(
         .offset(offset)
         .limit(limit)
     )
-    snapshots = list((await session.execute(stmt)).scalars())
-    if not include_deleted:
-        for snapshot in snapshots:
-            snapshot.entries = [entry for entry in snapshot.entries if entry.deleted_at is None]
-    return snapshots
+    return list((await session.execute(stmt)).scalars())
 
 
 async def count_finance_rate_snapshots(
@@ -1038,8 +1078,8 @@ async def _recalculate_finance_snapshots_for_rate_snapshot(
     stmt = (
         select(FinanceSnapshot)
         .options(
-            selectinload(FinanceSnapshot.entries),
-            selectinload(FinanceSnapshot.tree),
+            _finance_snapshot_entries_loader(include_deleted=False),
+            _finance_snapshot_tree_loader(),
         )
         .where(
             FinanceSnapshot.rate_snapshot_id == rate_snapshot.id,
@@ -1564,7 +1604,7 @@ async def list_finance_snapshots(
     """List finance snapshots."""
     stmt = (
         select(FinanceSnapshot)
-        .options(selectinload(FinanceSnapshot.tree))
+        .options(_finance_snapshot_tree_loader())
         .where(FinanceSnapshot.deleted_at.is_(None))
     )
     if tree_id is not None:
@@ -1686,9 +1726,9 @@ async def get_finance_snapshot(
     stmt = (
         select(FinanceSnapshot)
         .options(
-            selectinload(FinanceSnapshot.tree),
-            selectinload(FinanceSnapshot.rate_snapshot),
-            selectinload(FinanceSnapshot.entries).selectinload(FinanceSnapshotEntry.node),
+            _finance_snapshot_tree_loader(),
+            _finance_snapshot_rate_loader(),
+            _finance_snapshot_entries_loader(include_deleted),
         )
         .where(FinanceSnapshot.id == snapshot_id)
         .limit(1)
@@ -1698,8 +1738,6 @@ async def get_finance_snapshot(
     snapshot = (await session.execute(stmt)).scalar_one_or_none()
     if snapshot is None:
         return None
-    if not include_deleted:
-        snapshot.entries = [entry for entry in snapshot.entries if entry.deleted_at is None]
     return snapshot
 
 

@@ -165,7 +165,7 @@ async def _get_template_model(
 ) -> TimelogTemplate | None:
     stmt = (
         select(TimelogTemplate)
-        .options(selectinload(TimelogTemplate.area))
+        .options(selectinload(TimelogTemplate.area.and_(Area.deleted_at.is_(None))))
         .where(TimelogTemplate.id == template_id)
         .limit(1)
     )
@@ -202,7 +202,7 @@ async def _build_template_view(
     refreshed = await _get_template_model(
         session,
         template_id=template.id,
-        include_deleted=True,
+        include_deleted=False,
     )
     if refreshed is not None:
         template = refreshed
@@ -240,7 +240,7 @@ async def list_templates(
     resolved_query = query or TimelogTemplateListInput()
     stmt = (
         select(TimelogTemplate)
-        .options(selectinload(TimelogTemplate.area))
+        .options(selectinload(TimelogTemplate.area.and_(Area.deleted_at.is_(None))))
         .where(TimelogTemplate.deleted_at.is_(None))
         .order_by(*_order_by(resolved_query.order_by))
         .offset(resolved_query.offset)

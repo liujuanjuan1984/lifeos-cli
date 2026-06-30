@@ -30,6 +30,10 @@ from lifeos_cli.db.services.read_models import HabitActionView
 from lifeos_cli.db.sql_expressions import AddDaysToDate
 
 
+def _active_habit_task_loader() -> Any:
+    return selectinload(Habit.task.and_(Task.deleted_at.is_(None)))
+
+
 def _apply_habit_filters(
     stmt: Any,
     *,
@@ -190,7 +194,7 @@ async def _load_candidate_habits(
             raise HabitNotFoundError(f"Habit {habit_id} was not found")
         return [habit]
 
-    stmt = select(Habit).options(selectinload(Habit.task))
+    stmt = select(Habit).options(_active_habit_task_loader())
     if not include_deleted:
         stmt = stmt.where(Habit.deleted_at.is_(None))
     if target_dates:
@@ -377,7 +381,7 @@ async def get_habit(
 ) -> Habit | None:
     """Load a habit by identifier."""
     await refresh_habit_expiration(session, habit_id=habit_id)
-    stmt = select(Habit).where(Habit.id == habit_id).options(selectinload(Habit.task)).limit(1)
+    stmt = select(Habit).where(Habit.id == habit_id).options(_active_habit_task_loader()).limit(1)
     if not include_deleted:
         stmt = stmt.where(Habit.deleted_at.is_(None))
     return (await session.execute(stmt)).scalar_one_or_none()
@@ -395,7 +399,7 @@ async def list_habits(
 ) -> list[Habit]:
     """List habits with optional status and title filters."""
     await refresh_habit_expiration(session)
-    stmt = select(Habit).options(selectinload(Habit.task))
+    stmt = select(Habit).options(_active_habit_task_loader())
     stmt = _apply_habit_filters(
         stmt,
         status=status,
@@ -517,7 +521,7 @@ async def get_habit_task_associations(session: AsyncSession) -> dict[UUID, list[
             Habit.task_id.is_not(None),
             Task.deleted_at.is_(None),
         )
-        .options(selectinload(Habit.task))
+        .options(_active_habit_task_loader())
         .order_by(Habit.created_at.desc())
     )
     habits = list((await session.execute(stmt)).scalars())
@@ -651,9 +655,12 @@ async def get_habit_action(
     stmt = (
         select(HabitAction)
         .where(HabitAction.id == action_id)
-        .options(selectinload(HabitAction.habit))
+        .options(selectinload(HabitAction.habit.and_(Habit.deleted_at.is_(None))))
         .limit(1)
     )
     if not include_deleted:
-        stmt = stmt.where(HabitAction.deleted_at.is_(None))
+        stmt = stmt.where(
+            HabitAction.deleted_at.is_(None),
+            HabitAction.habit.has(Habit.deleted_at.is_(None)),
+        )
     return (await session.execute(stmt)).scalar_one_or_none()

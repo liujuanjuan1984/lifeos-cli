@@ -452,7 +452,7 @@ async def export_resource_snapshot(
     session: AsyncSession,
     *,
     resource: str,
-    include_deleted: bool = True,
+    include_deleted: bool = False,
 ) -> list[dict[str, Any]]:
     """Export one resource into canonical snapshot rows."""
     if resource not in RESOURCE_SPECS:
@@ -1166,7 +1166,7 @@ async def export_bundle(
     session: AsyncSession,
     *,
     output_path: Path,
-    include_deleted: bool = True,
+    include_deleted: bool = False,
 ) -> BundleExportReport:
     """Export all supported resources into one bundle zip file."""
     resource_counts: dict[str, int] = {}

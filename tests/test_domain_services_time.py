@@ -18,7 +18,9 @@ from sqlalchemy.ext.asyncio import (
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import events, task_effort, timelogs
 from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
@@ -574,6 +576,41 @@ def test_sqlite_roundtrip_returns_utc_aware_datetimes(monkeypatch: pytest.Monkey
             await engine.dispose()
 
     asyncio.run(run())
+
+
+def test_timelog_view_does_not_hydrate_soft_deleted_task() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Work")
+                session.add(vision)
+                await session.flush()
+                task = Task(vision_id=vision.id, content="Deleted task")
+                session.add(task)
+                await session.flush()
+                timelog = Timelog(
+                    title="Deep work",
+                    start_time=utc_datetime(2026, 6, 30, 13, 0),
+                    end_time=utc_datetime(2026, 6, 30, 14, 0),
+                    task_id=task.id,
+                )
+                session.add(timelog)
+                await session.flush()
+                task.soft_delete()
+                await session.commit()
+                timelog_id = timelog.id
+
+            async with session_factory() as session:
+                loaded = await timelogs.get_timelog(session, timelog_id=timelog_id)
+
+                assert loaded is not None
+                assert loaded.task_id == task.id
+                assert loaded.task is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
 
 
 def test_delete_event_single_records_skip_exception(monkeypatch: pytest.MonkeyPatch) -> None:

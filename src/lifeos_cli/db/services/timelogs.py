@@ -18,6 +18,7 @@ from lifeos_cli.application.time_preferences import (
 from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services.batching import (
     BatchDeleteResult,
@@ -92,7 +93,7 @@ async def _build_timelog_view(session: AsyncSession, timelog: Timelog) -> Timelo
     refreshed = await _get_timelog_model(
         session,
         timelog_id=timelog.id,
-        include_deleted=True,
+        include_deleted=False,
     )
     if refreshed is not None:
         timelog = refreshed
@@ -108,7 +109,10 @@ async def _get_timelog_model(
 ) -> Timelog | None:
     stmt = (
         select(Timelog)
-        .options(selectinload(Timelog.area), selectinload(Timelog.task))
+        .options(
+            selectinload(Timelog.area.and_(Area.deleted_at.is_(None))),
+            selectinload(Timelog.task.and_(Task.deleted_at.is_(None))),
+        )
         .where(Timelog.id == timelog_id)
         .limit(1)
     )
@@ -493,7 +497,10 @@ async def list_timelogs(
 ) -> list[TimelogView]:
     """List timelogs with optional filters."""
     resolved_filters = _resolve_timelog_filters(query.filters)
-    stmt = select(Timelog).options(selectinload(Timelog.area), selectinload(Timelog.task))
+    stmt = select(Timelog).options(
+        selectinload(Timelog.area.and_(Area.deleted_at.is_(None))),
+        selectinload(Timelog.task.and_(Task.deleted_at.is_(None))),
+    )
     stmt = _apply_timelog_filters(stmt, filters=resolved_filters)
     stmt = (
         stmt.order_by(Timelog.start_time.desc(), Timelog.id.desc())

@@ -68,6 +68,37 @@ def test_create_template_hydrates_area_and_people() -> None:
     asyncio.run(scenario())
 
 
+def test_list_templates_does_not_hydrate_soft_deleted_area() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                area = Area(name="Archived area", color="#123456", display_order=1)
+                session.add(area)
+                await session.flush()
+                template = TimelogTemplate(
+                    title="Archived area template",
+                    title_normalized="archived area template",
+                    area_id=area.id,
+                )
+                session.add(template)
+                await session.flush()
+                area.soft_delete()
+                await session.commit()
+
+            async with session_factory() as session:
+                templates = await timelog_templates.list_templates(session)
+
+                assert len(templates) == 1
+                assert templates[0].area_id == area.id
+                assert templates[0].area_name is None
+                assert templates[0].area_color is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
 def test_create_template_rejects_duplicate_active_title() -> None:
     async def scenario() -> None:
         engine, session_factory = await _create_sqlite_session_factory()

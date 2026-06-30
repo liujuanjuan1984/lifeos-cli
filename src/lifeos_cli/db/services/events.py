@@ -16,10 +16,12 @@ from lifeos_cli.application.time_preferences import (
     get_utc_window_for_local_date_range,
     to_storage_timezone,
 )
+from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.event_occurrence_exception import EventOccurrenceException
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.tag_association import tag_associations
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
@@ -115,7 +117,10 @@ async def _get_event_model(
 ) -> Event | None:
     stmt = (
         select(Event)
-        .options(selectinload(Event.area), selectinload(Event.task))
+        .options(
+            selectinload(Event.area.and_(Area.deleted_at.is_(None))),
+            selectinload(Event.task.and_(Task.deleted_at.is_(None))),
+        )
         .where(Event.id == event_id)
         .limit(1)
     )
@@ -841,7 +846,10 @@ async def list_events(
         )
         return list(occurrences[query.offset : query.offset + query.limit])
 
-    stmt = select(Event).options(selectinload(Event.area), selectinload(Event.task))
+    stmt = select(Event).options(
+        selectinload(Event.area.and_(Area.deleted_at.is_(None))),
+        selectinload(Event.task.and_(Task.deleted_at.is_(None))),
+    )
     if not resolved_filters.include_deleted:
         stmt = stmt.where(Event.deleted_at.is_(None))
     stmt = _apply_event_query_filters(stmt, filters=resolved_filters)

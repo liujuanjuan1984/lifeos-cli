@@ -148,7 +148,7 @@ async def _load_area_name_map(
 ) -> dict[UUID, str]:
     if not area_ids:
         return {}
-    stmt = select(Area.id, Area.name).where(Area.id.in_(area_ids))
+    stmt = select(Area.id, Area.name).where(Area.id.in_(area_ids), Area.deleted_at.is_(None))
     return {area_id: name for area_id, name in (await session.execute(stmt)).all()}
 
 
