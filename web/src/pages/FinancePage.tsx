@@ -48,6 +48,7 @@ import {
   type FinanceTab,
   type FinanceToolbarTab,
   type PresetConfig,
+  type SnapshotFormMode,
   type TreeNodeWithChildren,
 } from "@/features/finance/utils";
 import {
@@ -167,7 +168,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
   const { assets, createAsset } = useFinanceAssetSource();
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<UUID | null>(null);
   const [snapshotFormVisible, setSnapshotFormVisible] = useState(false);
-  const [snapshotFormMode, setSnapshotFormMode] = useState<"create" | "edit">("create");
+  const [snapshotFormMode, setSnapshotFormMode] = useState<SnapshotFormMode>("create");
   const [selectedTreeId, setSelectedTreeId] = useState<UUID | null>(null);
   const [pendingDeleteSnapshot, setPendingDeleteSnapshot] = useState<FinanceSnapshot | null>(null);
   const [deletedSnapshotIds, setDeletedSnapshotIds] = useState<Set<UUID>>(() => new Set());
@@ -395,6 +396,14 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
     setSnapshotFormVisible(true);
   };
 
+  const openCopySnapshotForm = () => {
+    if (currentSnapshot) {
+      setSelectedTreeId(currentSnapshot.tree_id);
+    }
+    setSnapshotFormMode("copy");
+    setSnapshotFormVisible(true);
+  };
+
   const closeSnapshotForm = () => {
     setSnapshotFormVisible(false);
     setSnapshotFormMode("create");
@@ -444,6 +453,7 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
         snapshotDeleting={deleteSnapshotMutation.isPending}
         onOpenSnapshotForm={openCreateSnapshotForm}
         onEditSnapshot={openEditSnapshotForm}
+        onCopySnapshot={openCopySnapshotForm}
         onDeleteSnapshot={setPendingDeleteSnapshot}
         onCloseSnapshotForm={closeSnapshotForm}
         treeOptions={trees}
@@ -972,6 +982,7 @@ function SnapshotModule({
   snapshotDeleting,
   onOpenSnapshotForm,
   onEditSnapshot,
+  onCopySnapshot,
   onDeleteSnapshot,
   onCloseSnapshotForm,
   treeOptions,
@@ -991,12 +1002,13 @@ function SnapshotModule({
   snapshotDetail: FinanceSnapshot | null;
   snapshotDetailLoading: boolean;
   snapshotFormVisible: boolean;
-  snapshotFormMode: "create" | "edit";
+  snapshotFormMode: SnapshotFormMode;
   snapshotSubmitting: boolean;
   snapshotUpdating: boolean;
   snapshotDeleting: boolean;
   onOpenSnapshotForm: () => void;
   onEditSnapshot: () => void;
+  onCopySnapshot: () => void;
   onDeleteSnapshot: (snapshot: FinanceSnapshot) => void;
   onCloseSnapshotForm: () => void;
   treeOptions: FinanceTree[];
@@ -1074,7 +1086,7 @@ function SnapshotModule({
   return (
     <section className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
       {snapshotFormVisible ? (
-        snapshotFormMode === "edit" && snapshotDetailLoading ? (
+        snapshotFormMode !== "create" && snapshotDetailLoading ? (
             <div className="py-6">
               <LoadingSpinner />
             </div>
@@ -1093,7 +1105,7 @@ function SnapshotModule({
                 snapshotFormMode === "edit" ? snapshotUpdating : snapshotSubmitting
               }
               mode={snapshotFormMode}
-              initialSnapshot={snapshotFormMode === "edit" ? snapshotDetail : null}
+              initialSnapshot={snapshotFormMode !== "create" ? snapshotDetail : null}
               onSubmit={(payload) => {
                 if (snapshotFormMode === "edit" && snapshotDetail) {
                   onUpdateSnapshot(snapshotDetail.id, payload);
@@ -1112,10 +1124,12 @@ function SnapshotModule({
               currentSnapshot ? (
                 <SnapshotActionButtons
                   editLabel={t("common.edit")}
+                  copyLabel={t("common.copy")}
                   deleteLabel={t("common.delete")}
-                  disabled={snapshotDetailLoading || snapshotDeleting}
+                  disabled={snapshotDetailLoading || !snapshotDetail || snapshotDeleting}
                   deleteDisabled={snapshotDeleting}
                   onEdit={onEditSnapshot}
+                  onCopy={onCopySnapshot}
                   onDelete={() => onDeleteSnapshot(currentSnapshot)}
                 />
               ) : null
