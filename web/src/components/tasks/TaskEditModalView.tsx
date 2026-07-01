@@ -180,6 +180,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
           label={t("taskForm.fields.content")}
           htmlFor={taskContentId}
           required
+          labelClassName="text-sm sm:text-sm mb-1 sm:mb-1"
           description={
             isBulkMode ? t("taskForm.tips.bulkContentDescription") : undefined
           }
@@ -198,6 +199,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 disabled={loading}
                 rows={8}
                 resize="vertical"
+                className="text-sm sm:text-sm"
               />
               <p className="text-xs sm:text-sm mt-2 text-primary font-medium">
                 {t("taskForm.tips.bulkContentHelper")}
@@ -216,6 +218,8 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
               placeholder={t("taskForm.placeholders.content")}
               required
               disabled={loading}
+              size="sm"
+              className="text-sm"
             />
           )}
         </FormField>
@@ -312,8 +316,14 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                   { value: "", label: t("common.none") },
                   { value: "day", label: t("target.day") },
                   { value: "week", label: t("target.week") },
-                  { value: "month", label: t("target.month") },
-                  { value: "year", label: t("target.year") },
+                  {
+                    value: "month",
+                    label: t("taskForm.planning.cycleTypes.month"),
+                  },
+                  {
+                    value: "year",
+                    label: t("taskForm.planning.cycleTypes.year"),
+                  },
                   { value: "7years", label: t("target.sevenYears") },
                 ]}
                 disabled={loading}
@@ -327,7 +337,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 <div className="mt-0 sm:mt-2">
                   <label
                     htmlFor={planningCycleStartDateId}
-                    className="block text-sm sm:text-base font-medium mb-1"
+                    className="block text-sm font-medium text-base-content mb-1"
                   >
                     {formData.planning_cycle_type === "year" &&
                       t("taskForm.planning.startLabels.year")}

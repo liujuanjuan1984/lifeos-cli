@@ -987,6 +987,10 @@
     "planning": {
       "title": "规划周期设置",
       "description": "被规划的任务将展示在规划页；选择周期后，开始日期将为该周期的第一天。",
+      "cycleTypes": {
+        "month": "月",
+        "year": "年"
+      },
       "startLabels": {
         "year": "开始年份",
         "sevenYears": "起始年份",

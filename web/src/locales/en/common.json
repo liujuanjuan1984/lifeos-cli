@@ -987,6 +987,10 @@
     "planning": {
       "title": "Planning Settings",
       "description": "Planned tasks will appear on the planning page; after choosing a period, the start date will be the first day of that period.",
+      "cycleTypes": {
+        "month": "Month",
+        "year": "Year"
+      },
       "startLabels": {
         "year": "Start Year",
         "sevenYears": "Start Year",
