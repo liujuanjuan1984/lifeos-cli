@@ -2,7 +2,12 @@ import type {
   CalendarAdapter,
   ExtendedPlanningViewType,
   PlanningGroup,
-  PlanningViewType,
+} from "./CalendarAdapter";
+import {
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
+  normalizePlanningViewType,
+  parseLocalDateString,
 } from "./CalendarAdapter";
 import type { TaskWithSubtasks } from "@/services/api";
 import {
@@ -18,9 +23,14 @@ import {
  */
 export class GregorianCalendarAdapter implements CalendarAdapter {
   private firstDayOfWeek: number;
+  private sevenYearAnchorDate: string;
 
-  constructor(firstDayOfWeek: number = 1) {
+  constructor(
+    firstDayOfWeek: number = 1,
+    sevenYearAnchorDate: string = DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  ) {
     this.firstDayOfWeek = firstDayOfWeek;
+    this.sevenYearAnchorDate = sevenYearAnchorDate;
   }
 
   getYearStart(date: Date): Date {
@@ -33,14 +43,14 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
 
   getNextPeriod(currentDate: Date, cycleType: ExtendedPlanningViewType): Date {
     const nextDate = new Date(currentDate);
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
 
-    switch (cycleType) {
+    switch (normalizedCycleType) {
       case "year":
         nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
         return this.normalizePeriodDate(nextDate);
       case "sevenYear":
-        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 7);
-        return this.normalizePeriodDate(nextDate);
+        return this.shiftSevenYearPeriodStart(currentDate, 1);
       case "month":
         nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
         return this.normalizePeriodDate(nextDate);
@@ -60,14 +70,14 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     cycleType: ExtendedPlanningViewType,
   ): Date {
     const prevDate = new Date(currentDate);
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
 
-    switch (cycleType) {
+    switch (normalizedCycleType) {
       case "year":
         prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 1);
         return this.normalizePeriodDate(prevDate);
       case "sevenYear":
-        prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 7);
-        return this.normalizePeriodDate(prevDate);
+        return this.shiftSevenYearPeriodStart(currentDate, -1);
       case "month":
         prevDate.setUTCMonth(prevDate.getUTCMonth() - 1);
         return this.normalizePeriodDate(prevDate);
@@ -83,7 +93,9 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
   }
 
   getPlanningCycleDays(cycleType: ExtendedPlanningViewType): number {
-    switch (cycleType) {
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
+
+    switch (normalizedCycleType) {
       case "year":
         return 365;
       case "sevenYear":
@@ -104,25 +116,76 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     return date;
   }
 
+  private getSevenYearAnchorStart(): Date {
+    const anchorDate = parseLocalDateString(this.sevenYearAnchorDate);
+    return new Date(anchorDate.getFullYear(), 0, 1);
+  }
+
+  private getSevenYearPeriodStart(date: Date): Date {
+    const anchorStart = this.getSevenYearAnchorStart();
+    const targetYear = date.getFullYear();
+    const deltaYears = targetYear - anchorStart.getFullYear();
+    const periodOffsetYears = Math.floor(deltaYears / 7) * 7;
+    return new Date(anchorStart.getFullYear() + periodOffsetYears, 0, 1);
+  }
+
+  private shiftSevenYearPeriodStart(date: Date, step: number): Date {
+    const start = this.getSevenYearPeriodStart(date);
+    start.setFullYear(start.getFullYear() + 7 * step);
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }
+
   buildPlanningGroups(
-    viewType: PlanningViewType,
+    viewType: ExtendedPlanningViewType,
     date: Date,
     tasks: TaskWithSubtasks[],
     firstDayOfWeek: number = this.firstDayOfWeek,
   ): PlanningGroup[] {
     const groups: PlanningGroup[] = [];
+    const normalizedViewType = normalizePlanningViewType(viewType);
 
-    if (viewType === "year") {
+    if (normalizedViewType === "sevenYear") {
+      return this.buildSevenYearGroups(date, tasks);
+    } else if (normalizedViewType === "year") {
       return this.buildYearGroups(date, tasks, firstDayOfWeek);
-    } else if (viewType === "month") {
+    } else if (normalizedViewType === "month") {
       return this.buildMonthGroups(date, tasks, firstDayOfWeek);
-    } else if (viewType === "week") {
+    } else if (normalizedViewType === "week") {
       return this.buildWeekGroups(date, tasks, firstDayOfWeek);
-    } else if (viewType === "day") {
+    } else if (normalizedViewType === "day") {
       return this.buildDayGroups(date, tasks);
     }
 
     return groups;
+  }
+
+  private buildSevenYearGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+  ): PlanningGroup[] {
+    const periodStart = this.getSevenYearPeriodStart(date);
+    const startYear = periodStart.getFullYear();
+    const endYear = startYear + 6;
+    const periodEnd = new Date(endYear + 1, 0, 0);
+    const sevenYearTasks = this.getTasksByPlanningType(tasks, "7years");
+
+    const tasksInCurrentPeriod = sevenYearTasks.filter((task) => {
+      if (!task.planning_cycle_start_date) return false;
+      if (!isLocalDateString(task.planning_cycle_start_date)) return false;
+      const taskDate = parseLocalDateString(task.planning_cycle_start_date);
+      return taskDate >= periodStart && taskDate <= periodEnd;
+    });
+
+    return [
+      {
+        id: `seven-year-${startYear}-${endYear}`,
+        label: `${startYear}-${endYear}`,
+        date: periodStart,
+        tasks: tasksInCurrentPeriod,
+        children: [],
+      },
+    ];
   }
 
   private buildYearGroups(
@@ -321,7 +384,7 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
 
   private getTasksByPlanningType(
     tasks: TaskWithSubtasks[],
-    type: PlanningViewType,
+    type: ExtendedPlanningViewType,
   ): TaskWithSubtasks[] {
     return tasks.filter((task) => task.planning_cycle_type === type);
   }
@@ -531,7 +594,9 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     viewType: ExtendedPlanningViewType,
     date: Date,
   ): { start: string; end: string } {
-    switch (viewType) {
+    const normalizedViewType = normalizePlanningViewType(viewType);
+
+    switch (normalizedViewType) {
       case "year": {
         const yearStart = this.getYearStart(date);
         const yearEnd = new Date(yearStart.getFullYear() + 1, 0, 1);
@@ -543,12 +608,12 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
         };
       }
       case "sevenYear": {
-        const endYear = date.getFullYear();
-        const startYear = endYear - 6;
-        const startDate = new Date(startYear, 0, 1);
+        const periodStart = this.getSevenYearPeriodStart(date);
+        const startYear = periodStart.getFullYear();
+        const endYear = startYear + 6;
         const endDateExclusive = new Date(endYear + 1, 0, 1);
         return {
-          start: startDate.toLocaleDateString("en-CA"),
+          start: periodStart.toLocaleDateString("en-CA"),
           end: new Date(
             endDateExclusive.getTime() - 24 * 60 * 60 * 1000,
           ).toLocaleDateString("en-CA"),
@@ -592,7 +657,9 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     endDate: string,
     step: number,
   ): { start: string; end: string } {
-    switch (viewType) {
+    const normalizedViewType = normalizePlanningViewType(viewType);
+
+    switch (normalizedViewType) {
       case "year": {
         const s = new Date(startDate + "T00:00:00");
         const e = new Date(endDate + "T00:00:00");

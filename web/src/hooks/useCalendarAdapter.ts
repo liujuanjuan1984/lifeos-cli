@@ -1,10 +1,15 @@
 import { useMemo } from "react";
 import { usePreferenceWithBootstrap } from "./queries/usePreferenceWithBootstrap";
-import { CalendarAdapterFactory } from "@/utils/calendar";
+import {
+  CalendarAdapterFactory,
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
+  parseLocalDateString,
+} from "@/utils/calendar";
 import type {
   CalendarAdapter,
   CalendarSystem,
-  PlanningViewType,
+  ExtendedPlanningViewType,
 } from "@/utils/calendar";
 
 interface CalendarAdapterState {
@@ -32,6 +37,12 @@ export function useCalendarAdapter(): CalendarAdapterState {
     module: "calendar",
     validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
   });
+  const sevenYearAnchorPreference = usePreferenceWithBootstrap<string>({
+    key: "calendar.seven_year_anchor_date",
+    defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+    module: "calendar",
+    validator: isLocalDateString,
+  });
 
   const calendarSystem: CalendarSystem =
     calendarSystemPreference.value === "mayan_13_moon"
@@ -40,16 +51,26 @@ export function useCalendarAdapter(): CalendarAdapterState {
   const firstDayOfWeek = Number.isFinite(firstDayPreference.value)
     ? firstDayPreference.value
     : 1;
+  const sevenYearAnchorDate = isLocalDateString(sevenYearAnchorPreference.value)
+    ? sevenYearAnchorPreference.value
+    : DEFAULT_SEVEN_YEAR_ANCHOR_DATE;
 
   const adapter = useMemo(() => {
-    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
-  }, [calendarSystem, firstDayOfWeek]);
+    return CalendarAdapterFactory.create(
+      calendarSystem,
+      firstDayOfWeek,
+      sevenYearAnchorDate,
+    );
+  }, [calendarSystem, firstDayOfWeek, sevenYearAnchorDate]);
 
   return {
     adapter,
     calendarSystem,
     firstDayOfWeek,
-    loading: calendarSystemPreference.loading || firstDayPreference.loading,
+    loading:
+      calendarSystemPreference.loading ||
+      firstDayPreference.loading ||
+      sevenYearAnchorPreference.loading,
   };
 }
 
@@ -64,7 +85,7 @@ export function usePlanningCycle() {
    * Get default planning cycle settings for a given cycle type
    */
   const getDefaultCycleSettings = (
-    cycleType: PlanningViewType,
+    cycleType: ExtendedPlanningViewType,
     baseDate: Date = new Date(),
   ) => {
     const yearStart = adapter.getYearStart(baseDate);
@@ -76,6 +97,14 @@ export function usePlanningCycle() {
     switch (cycleType) {
       case "year":
         startDate.setTime(yearStart.getTime());
+        break;
+      case "7years":
+      case "sevenYear":
+        startDate.setTime(
+          parseLocalDateString(
+            adapter.getPeriodRange("7years", baseDate).start,
+          ).getTime(),
+        );
         break;
       case "month":
         if (monthInfo.monthStart) {

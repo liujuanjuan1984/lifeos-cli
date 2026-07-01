@@ -4,6 +4,7 @@ type SettingItemType =
   | "select"
   | "checkbox"
   | "multiselect"
+  | "date"
   | "number"
   | "custom";
 

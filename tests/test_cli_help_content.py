@@ -127,8 +127,9 @@ def test_cli_task_add_help_describes_planning_cycle_semantics(capsys) -> None:
         parser.parse_args(["task", "add", "--help"])
 
     captured = capsys.readouterr()
+    normalized_output = " ".join(captured.out.split())
 
-    assert "Planning cycle type: year, month, week, or day" in captured.out
+    assert "Planning cycle type: 7years, year, month, week, or day" in normalized_output
     assert "Start date of the enclosing planning cycle window" in captured.out
     assert "not a clock-time execution slot" in captured.out
     assert "--planning-cycle-type week --planning-cycle-days 7" in captured.out

@@ -668,7 +668,7 @@
         "planning_cycle_duration_in_days_for_enclosing_timebox": "Planning cycle duration in days for the enclosing timebox",
         "planning_cycle_fields_describe_enclosing_timebox_for_task_not_clock_time_execution": "Planning-cycle fields describe the enclosing timebox for the task, not a clock-time execution slot.",
         "planning_cycle_flags_must_be_supplied_as_complete_set_when_used": "Planning-cycle flags must be supplied as a complete set when used.",
-        "planning_cycle_type_year_month_week_or_day": "Planning cycle type: year, month, week, or day",
+        "planning_cycle_type_year_month_week_or_day": "Planning cycle type: 7years, year, month, week, or day",
         "start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd_format": "Start date of the enclosing planning cycle window in YYYY-MM-DD format",
         "task_content": "Task content",
         "task_priority": "Task priority",
@@ -680,7 +680,7 @@
         "updated_parent_task_identifier": "Updated parent task identifier",
         "updated_planning_cycle_duration_in_days_for_enclosing_timebox": "Updated planning cycle duration in days for the enclosing timebox",
         "updated_planning_cycle_fields_still_describe_enclosing_timebox_not_specific_scheduled_timestamp": "Updated planning-cycle fields still describe the enclosing timebox, not a specific scheduled timestamp.",
-        "updated_planning_cycle_type_year_month_week_or_day": "Updated planning cycle type: year, month, week, or day",
+        "updated_planning_cycle_type_year_month_week_or_day": "Updated planning cycle type: 7years, year, month, week, or day",
         "updated_priority": "Updated priority",
         "updated_start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd": "Updated start date of the enclosing planning cycle window in YYYY-MM-DD format",
         "updated_task_content": "Updated task content",
@@ -688,7 +688,7 @@
         "use_clear_flags_to_remove_optional_values_such_as_descriptions_or_planning": "Use `--clear-*` flags to remove optional values such as descriptions or planning cycles.",
         "use_clear_parent_to_move_child_task_back_to_root_level": "Use `--clear-parent` to move a child task back to the root level.",
         "use_lifeos_event_add_task_id_task_id_if_task_also_needs": "Use `lifeos event add --task-id <task-id>` if the task also needs a specific time block on a calendar day.",
-        "use_planning_cycle_fields_for_broader_year_month_week_or_day_window": "Use planning-cycle fields for the broader year, month, week, or day window that the task belongs to.",
+        "use_planning_cycle_fields_for_broader_year_month_week_or_day_window": "Use planning-cycle fields for the broader 7-year, year, month, week, or day window that the task belongs to.",
         "use_repeated_person_id_to_keep_human_only_agent_only_and_shared": "Use repeated `--person-id` to keep human-only, agent-only, and shared task ownership explicit.",
         "when_agent_creates_tasks_on_behalf_of_human_use_person_id_to": "When an agent creates tasks on behalf of a human, use `--person-id` to mark whether the task belongs to the human, the agent, or both."
       }

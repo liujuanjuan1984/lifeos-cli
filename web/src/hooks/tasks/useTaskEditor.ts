@@ -14,7 +14,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { ALL_TASK_STATUSES, ALL_VISION_STATUSES } from "@/utils/constants";
-import type { PlanningViewType } from "@/utils/calendar";
+import type { ExtendedPlanningViewType } from "@/utils/calendar";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
 import { invalidateTasksByIds, updateTaskCaches } from "@/utils/query";
@@ -350,7 +350,7 @@ export function useTaskEditor(
       const options = getQuickSetOptions(now);
       const presetSettings = options[presetKey];
 
-      const cycleType: PlanningViewType =
+      const cycleType: ExtendedPlanningViewType =
         presetKey === "thisWeek"
           ? "week"
           : presetKey === "thisMonth"
@@ -486,7 +486,7 @@ export function useTaskEditor(
       if (resolvedType) {
         const now = new Date();
         const settings = getDefaultCycleSettings(
-          resolvedType as PlanningViewType,
+          resolvedType as ExtendedPlanningViewType,
           now,
         );
         defaultStartDate = settings.startDate;
@@ -503,12 +503,27 @@ export function useTaskEditor(
     [getDefaultCycleSettings],
   );
 
-  const handlePlanningStartDateChange = useCallback((startDate?: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      planning_cycle_start_date: startDate,
-    }));
-  }, []);
+  const handlePlanningStartDateChange = useCallback(
+    (startDate?: string) => {
+      setFormData((prev) => {
+        const cycleType = prev.planning_cycle_type;
+        const planningCycleDays =
+          cycleType && startDate
+            ? getDefaultCycleSettings(
+                cycleType as ExtendedPlanningViewType,
+                new Date(`${startDate}T00:00:00`),
+              ).days
+            : prev.planning_cycle_days;
+
+        return {
+          ...prev,
+          planning_cycle_days: planningCycleDays,
+          planning_cycle_start_date: startDate,
+        };
+      });
+    },
+    [getDefaultCycleSettings],
+  );
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {

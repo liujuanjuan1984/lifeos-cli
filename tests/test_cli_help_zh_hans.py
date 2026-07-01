@@ -126,7 +126,7 @@ def test_cli_task_add_help_keeps_long_option_invocation_with_summary(
 
     assert any(
         "--planning-cycle-type PLANNING_CYCLE_TYPE" in line
-        and "planning-cycle 类型：year、month、week 或 day" in line
+        and "planning-cycle 类型：7years、year、month、week 或 day" in line
         for line in captured.out.splitlines()
     )
 

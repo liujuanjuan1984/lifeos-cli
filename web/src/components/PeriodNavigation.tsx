@@ -10,7 +10,7 @@ import {
 } from "@/utils/datetime";
 import { TextInput } from "./forms";
 
-type PeriodType = "day" | "week" | "month" | "year" | "sevenYear";
+type PeriodType = "day" | "week" | "month" | "year" | "7years" | "sevenYear";
 
 interface PeriodNavigationProps {
   // 周期类型
@@ -241,6 +241,7 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
 
       case "year":
         return isSamePeriod(calendarAdapter, "year", selectedDate, now);
+      case "7years":
       case "sevenYear": {
         return isSamePeriod(calendarAdapter, "sevenYear", selectedDate, now);
       }
@@ -308,14 +309,13 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
         return addCurrentIndicator(label);
       }
 
+      case "7years":
       case "sevenYear": {
-        // 如果提供了 startDate 和 endDate，优先使用它们来生成准确的标签
         if (startDate && endDate) {
           const label = `${startDate}-${endDate}`;
           return addCurrentIndicator(label);
         }
-        // 否则回退到基于 selectedDate 的计算
-        const range = calendarAdapter.getPeriodRange("sevenYear", selectedDate);
+        const range = calendarAdapter.getPeriodRange(periodType, selectedDate);
         const label = `${range.start}-${range.end}`;
         return addCurrentIndicator(label);
       }

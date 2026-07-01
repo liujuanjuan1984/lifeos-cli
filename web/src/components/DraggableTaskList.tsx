@@ -272,6 +272,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
         week: t("draggableTaskList.planningCycle.week"),
         month: t("draggableTaskList.planningCycle.month"),
         year: t("draggableTaskList.planningCycle.year"),
+        "7years": t("draggableTaskList.planningCycle.7years"),
       };
       const periodText =
         cycleTypeMap[task.planning_cycle_type] || task.planning_cycle_type;
@@ -480,6 +481,9 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                             week: t("draggableTaskList.planningCycle.week"),
                             month: t("draggableTaskList.planningCycle.month"),
                             year: t("draggableTaskList.planningCycle.year"),
+                            "7years": t(
+                              "draggableTaskList.planningCycle.7years",
+                            ),
                           };
 
                           if (task.planning_cycle_start_date) {

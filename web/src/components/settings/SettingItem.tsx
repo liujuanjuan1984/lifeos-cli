@@ -137,6 +137,22 @@ const SettingItem: React.FC<SettingItemProps> = ({
         );
       }
 
+      case "date":
+        return (
+          <TextInput
+            id={getControlId()}
+            type="date"
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => {
+              void commitValue(event.target.value);
+            }}
+            disabled={isControlDisabled}
+            aria-describedby={
+              config.description ? `${getControlId()}-description` : undefined
+            }
+          />
+        );
+
       case "checkbox":
         return (
           <Checkbox
@@ -218,6 +234,8 @@ const SettingItem: React.FC<SettingItemProps> = ({
         return `${config.key}-select`;
       case "number":
         return `${config.key}-input`;
+      case "date":
+        return `${config.key}-date`;
       case "checkbox":
         return config.key;
       case "multiselect":

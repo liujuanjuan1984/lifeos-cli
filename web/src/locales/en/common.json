@@ -56,6 +56,7 @@
     "priority": "Priority",
     "tag": "Tag",
     "year": "Year",
+    "sevenYears": "7 Years",
     "month": "Month",
     "week": "Week",
     "day": "Day",
@@ -628,6 +629,10 @@
       "firstDay": {
         "label": "First Day of Week",
         "description": "Default Monday. This setting controls Gregorian week boundaries."
+      },
+      "sevenYearAnchorDate": {
+        "label": "Seven-Year Start Date",
+        "description": "Choose a date whose calendar year anchors seven-year periods. Gregorian uses the selected date's year; Mayan 13 Moon uses the Mayan year containing that date."
       }
     },
     "planningSettings": {
@@ -873,7 +878,15 @@
       "goToCurrent": "Go to Current",
       "pickDateButton": "Pick date",
       "pickDateLabel": "Select date",
-      "pickDatePlaceholder": "YYYY-MM-DD"
+      "pickDatePlaceholder": "YYYY-MM-DD",
+      "periodTypes": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month",
+        "year": "Year",
+        "7years": "7 Years",
+        "sevenYear": "7 Years"
+      }
     },
     "emptyState": {
       "title": "No Planned Tasks",
@@ -978,8 +991,13 @@
     "planning": {
       "title": "Planning Settings",
       "description": "Planned tasks will appear on the planning page; after choosing a period, the start date will be the first day of that period.",
+      "cycleTypes": {
+        "month": "Month",
+        "year": "Year"
+      },
       "startLabels": {
         "year": "Start Year",
+        "sevenYears": "Start Year",
         "month": "Start Month",
         "week": "Start Week",
         "day": "Start Date"
@@ -1575,7 +1593,7 @@
     "planning": {
       "displayName": "Planning",
       "navLabel": "Planning",
-      "description": "Place tasks on a day, week, month, or year planning cycle."
+      "description": "Place tasks on a day, week, month, year, or 7-year planning cycle."
     },
     "timelog": {
       "displayName": "Timelog",
@@ -1889,6 +1907,7 @@
       "week": "Week",
       "month": "Month",
       "year": "Year",
+      "7years": "7 Years",
       "from": "From {{date}}",
       "within": " within"
     },

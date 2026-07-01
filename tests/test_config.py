@@ -21,6 +21,7 @@ from lifeos_cli.config import (
     parse_boolean_value,
     resolve_config_path,
     validate_calendar_first_day_of_week,
+    validate_calendar_seven_year_anchor_date,
     validate_calendar_system,
     validate_database_schema_name,
     validate_database_url,
@@ -169,6 +170,7 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
                 'theme = "night"',
                 "calendar_first_day_of_week = 7",
                 'calendar_system = "mayan_13_moon"',
+                'calendar_seven_year_anchor_date = "2026-07-20"',
                 'navigation_visible_modules = ["visions", "notes", "settings"]',
                 "notes_card_min_collapsed_lines = 9",
                 "notes_export_planning_include_cycle_notes = true",
@@ -193,6 +195,7 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
     assert settings.theme == "night"
     assert settings.calendar_first_day_of_week == 7
     assert settings.calendar_system == "mayan_13_moon"
+    assert settings.calendar_seven_year_anchor_date == "2026-07-20"
     assert settings.navigation_visible_modules == ("visions", "notes", "settings")
     assert settings.notes_card_min_collapsed_lines == 9
     assert settings.notes_export_planning_include_cycle_notes is True
@@ -485,6 +488,7 @@ def test_validate_language_accepts_bcp47_like_values() -> None:
 def test_validate_web_preferences_reject_invalid_values() -> None:
     assert validate_calendar_first_day_of_week("7") == 7
     assert validate_calendar_system("mayan_13_moon") == "mayan_13_moon"
+    assert validate_calendar_seven_year_anchor_date("2026-07-20") == "2026-07-20"
     assert validate_navigation_visible_modules(["visions", "notes", "visions"]) == (
         "visions",
         "notes",
@@ -499,6 +503,7 @@ def test_validate_web_preferences_reject_invalid_values() -> None:
     invalid_cases = (
         lambda: validate_calendar_first_day_of_week("8"),
         lambda: validate_calendar_system("julian"),
+        lambda: validate_calendar_seven_year_anchor_date("2026-02-31"),
         lambda: validate_navigation_visible_modules(["visions", "unknown"]),
         lambda: validate_notes_card_min_collapsed_lines("4"),
         lambda: validate_tasks_default_planning_preset("tomorrow"),
@@ -931,6 +936,7 @@ def test_build_preferences_settings_preserves_existing_web_preferences(
                 'theme = "night"',
                 "calendar_first_day_of_week = 7",
                 'calendar_system = "mayan_13_moon"',
+                'calendar_seven_year_anchor_date = "2026-07-20"',
                 'navigation_visible_modules = ["visions", "notes", "settings"]',
                 "notes_card_min_collapsed_lines = 11",
                 "notes_export_planning_include_cycle_notes = true",
@@ -964,6 +970,7 @@ def test_build_preferences_settings_preserves_existing_web_preferences(
     assert settings.theme == "night"
     assert settings.calendar_first_day_of_week == 7
     assert settings.calendar_system == "mayan_13_moon"
+    assert settings.calendar_seven_year_anchor_date == "2026-07-20"
     assert settings.navigation_visible_modules == ("visions", "notes", "settings")
     assert settings.notes_card_min_collapsed_lines == 11
     assert settings.notes_export_planning_include_cycle_notes is True

@@ -1,6 +1,10 @@
 import React from "react";
 import type { Vision } from "@/services/api";
-import type { CalendarAdapter, PlanningGroup } from "@/utils/calendar";
+import type {
+  CalendarAdapter,
+  PlanningGroup,
+  PlanningViewType,
+} from "@/utils/calendar";
 import type { UUID } from "@/types/primitive";
 import { usePlanningTaskGroup } from "@/hooks/planning/usePlanningTaskGroup";
 import { TaskGroupCard } from "./planning/TaskGroupCard";
@@ -10,7 +14,7 @@ interface PlanningTaskListProps {
   visions: Vision[];
   onTaskUpdate?: () => void;
   onTaskStatusUpdate?: (taskId: UUID, newStatus: string) => Promise<void>;
-  planningCycleType?: "year" | "month" | "week" | "day";
+  planningCycleType?: PlanningViewType;
   calendarAdapter?: CalendarAdapter;
 }
 

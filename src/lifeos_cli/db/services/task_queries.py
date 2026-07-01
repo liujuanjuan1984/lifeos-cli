@@ -162,7 +162,7 @@ def _planning_cycle_date_filter_range(
     """Return a calendar-aware planning-cycle filter range when requested."""
     if calendar_system is None and first_day_of_week is None:
         return None
-    if planning_cycle_type not in {"day", "week", "month", "year"}:
+    if planning_cycle_type not in {"day", "week", "month", "year", "7years"}:
         return None
     try:
         return get_calendar_period_range(

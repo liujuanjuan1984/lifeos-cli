@@ -23,6 +23,10 @@ import {
   coerceNoteCollapseValue,
   useNoteCollapsePreference,
 } from "@/hooks/notes/useNoteCollapsePreference";
+import {
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
+} from "@/utils/calendar";
 
 function SettingsPage() {
   const { t } = useTranslation();
@@ -49,6 +53,13 @@ function SettingsPage() {
       value >= 1 &&
       value <= 7,
   });
+  const calendarSevenYearAnchorDateSettings =
+    usePreferenceWithBootstrap<string>({
+      key: "calendar.seven_year_anchor_date",
+      defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+      module: "calendar",
+      validator: isLocalDateString,
+    });
 
   const visionExperienceSettings = usePreferenceWithBootstrap<number>({
     key: "visions.experience_rate_per_hour",
@@ -211,6 +222,17 @@ function SettingsPage() {
         updateValue: (value: unknown) =>
           calendarFirstDaySettings.updateValue(Number(value)),
       },
+      "calendar.sevenYearAnchorDate": {
+        ...calendarSevenYearAnchorDateSettings,
+        saveValue: async (value: unknown) =>
+          await calendarSevenYearAnchorDateSettings.saveValue(
+            isLocalDateString(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+          ),
+        updateValue: (value: unknown) =>
+          calendarSevenYearAnchorDateSettings.updateValue(
+            isLocalDateString(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+          ),
+      },
       "visions.experienceRatePerHour": {
         ...visionExperiencePreference,
         saveValue: async (value: unknown) =>
@@ -297,6 +319,7 @@ function SettingsPage() {
       visibleModulesSettings,
       calendarSystemSettings,
       calendarFirstDaySettings,
+      calendarSevenYearAnchorDateSettings,
       visionExperiencePreference,
       noteCollapseSettings,
       areaOrderSettings,

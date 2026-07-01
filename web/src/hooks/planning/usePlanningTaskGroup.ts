@@ -13,7 +13,11 @@ import { useMultipleTaskTimelogs } from "@/hooks/queries/useTaskTimelogs";
 import { useHabitActionsByDate } from "@/hooks/queries/useHabitActionsByDate";
 import { useTaskExpansionState } from "@/hooks/useTaskExpansionState";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import type { CalendarAdapter, PlanningGroup } from "@/utils/calendar";
+import type {
+  CalendarAdapter,
+  PlanningGroup,
+  PlanningViewType,
+} from "@/utils/calendar";
 import { formatDateInTimezone, formatDuration } from "@/utils/datetime";
 import { ACTIVE_TASK_STATUSES, TASK_STATUS_LABELS } from "@/utils/constants";
 
@@ -43,7 +47,7 @@ interface PlanningTaskGroupHookParams {
   group: PlanningGroup;
   visions: Vision[];
   onTaskUpdate?: () => void;
-  planningCycleType?: "year" | "month" | "week" | "day";
+  planningCycleType?: PlanningViewType;
   calendarAdapter?: CalendarAdapter;
 }
 

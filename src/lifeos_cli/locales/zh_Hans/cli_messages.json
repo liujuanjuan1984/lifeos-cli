@@ -668,7 +668,7 @@
         "planning_cycle_duration_in_days_for_enclosing_timebox": "所属时间窗口的 planning-cycle 时长（天）",
         "planning_cycle_fields_describe_enclosing_timebox_for_task_not_clock_time_execution": "`planning-cycle` 字段描述的是 `task` 所属的时间窗口，而不是具体的时钟时间段。",
         "planning_cycle_flags_must_be_supplied_as_complete_set_when_used": "使用时必须成组提供完整的 planning-cycle 参数。",
-        "planning_cycle_type_year_month_week_or_day": "planning-cycle 类型：year、month、week 或 day",
+        "planning_cycle_type_year_month_week_or_day": "planning-cycle 类型：7years、year、month、week 或 day",
         "start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd_format": "所属 planning-cycle 窗口的开始日期（YYYY-MM-DD）",
         "task_content": "`task` 内容",
         "task_priority": "`task` 优先级",
@@ -680,7 +680,7 @@
         "updated_parent_task_identifier": "更新了父 `task` 标识符",
         "updated_planning_cycle_duration_in_days_for_enclosing_timebox": "更新所属时间窗口的 planning-cycle 时长（天）",
         "updated_planning_cycle_fields_still_describe_enclosing_timebox_not_specific_scheduled_timestamp": "更新后的 planning-cycle 字段仍描述所属时间窗口，而不是具体的计划时间戳。",
-        "updated_planning_cycle_type_year_month_week_or_day": "更新后的 planning-cycle 类型：year、month、week 或 day",
+        "updated_planning_cycle_type_year_month_week_or_day": "更新后的 planning-cycle 类型：7years、year、month、week 或 day",
         "updated_priority": "更新优先级",
         "updated_start_date_of_enclosing_planning_cycle_window_in_yyyy_mm_dd": "更新所属 planning-cycle 窗口的开始日期（YYYY-MM-DD）",
         "updated_task_content": "更新了 `task` 内容",
@@ -688,7 +688,7 @@
         "use_clear_flags_to_remove_optional_values_such_as_descriptions_or_planning": "使用 `--clear-*` 标志清除描述或 planning-cycle 等可选值。",
         "use_clear_parent_to_move_child_task_back_to_root_level": "使用 `--clear-parent` 将子 `task` 移回根级别。",
         "use_lifeos_event_add_task_id_task_id_if_task_also_needs": "如果 `task` 还需要日历日的特定时间块，请使用 `lifeos event add --task-id <task-id>`。",
-        "use_planning_cycle_fields_for_broader_year_month_week_or_day_window": "使用 planning-cycle 字段描述 `task` 所属的 year、month、week 或 day 窗口。",
+        "use_planning_cycle_fields_for_broader_year_month_week_or_day_window": "使用 planning-cycle 字段描述 `task` 所属的 7years、year、month、week 或 day 窗口。",
         "use_repeated_person_id_to_keep_human_only_agent_only_and_shared": "重复使用 `--person-id`，以明确区分仅人类、仅代理和共享的 `task` 归属。",
         "when_agent_creates_tasks_on_behalf_of_human_use_person_id_to": "当代理代表人类创建 `task` 时，使用 `--person-id` 标记 `task` 属于人类、代理或两者。"
       }

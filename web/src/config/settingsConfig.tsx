@@ -132,6 +132,12 @@ export const useSettingsConfig = (
             },
           ],
         },
+        {
+          key: "sevenYearAnchorDate",
+          type: "date",
+          label: t("settings.calendar.sevenYearAnchorDate.label"),
+          description: t("settings.calendar.sevenYearAnchorDate.description"),
+        },
         ...(context.calendarSystem === "mayan_13_moon"
           ? []
           : [

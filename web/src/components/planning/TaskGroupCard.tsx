@@ -1,5 +1,5 @@
 import React from "react";
-import type { PlanningGroup } from "@/utils/calendar";
+import type { PlanningGroup, PlanningViewType } from "@/utils/calendar";
 import type { TaskWithSubtasks, Vision } from "@/services/api";
 import type { HabitActionWithHabit } from "@/services/api/habits";
 import type { UUID } from "@/types/primitive";
@@ -17,7 +17,7 @@ import { TaskListSection } from "./TaskListSection";
 interface TaskGroupCardProps {
   group: PlanningGroup;
   visions: Vision[];
-  planningCycleType?: "year" | "month" | "week" | "day";
+  planningCycleType?: PlanningViewType;
   statusFilter: string;
   statusFilterOptions: StatusFilterOption[];
   visionFilter: string;

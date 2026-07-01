@@ -13,7 +13,7 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
 
 VALID_TASK_STATUSES = {"todo", "in_progress", "done", "cancelled", "paused"}
-VALID_PLANNING_CYCLE_TYPES = {"year", "month", "week", "day"}
+VALID_PLANNING_CYCLE_TYPES = {"7years", "year", "month", "week", "day"}
 MAX_TASK_DEPTH = 8
 
 

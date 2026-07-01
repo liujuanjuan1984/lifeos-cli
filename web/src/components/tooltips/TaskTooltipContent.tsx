@@ -61,6 +61,7 @@ const TaskTooltipContent: React.FC<TaskTooltipContentProps> = ({
       week: t("draggableTaskList.planningCycle.week"),
       month: t("draggableTaskList.planningCycle.month"),
       year: t("draggableTaskList.planningCycle.year"),
+      "7years": t("draggableTaskList.planningCycle.7years"),
     };
     const periodText =
       cycleTypeMap[task.planning_cycle_type] || task.planning_cycle_type;

@@ -26,6 +26,7 @@ from lifeos_cli.config import (
     parse_boolean_value,
     resolve_config_path,
     validate_calendar_first_day_of_week,
+    validate_calendar_seven_year_anchor_date,
     validate_calendar_system,
     validate_database_url,
     validate_day_starts_at,
@@ -80,6 +81,7 @@ SUPPORTED_CONFIG_KEYS = (
     "preferences.theme",
     "preferences.calendar_first_day_of_week",
     "preferences.calendar_system",
+    "preferences.calendar_seven_year_anchor_date",
     "preferences.navigation_visible_modules",
     "preferences.notes_card_min_collapsed_lines",
     "preferences.notes_export_planning_include_cycle_notes",
@@ -202,6 +204,7 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
         theme=validate_theme(current.theme),
         calendar_first_day_of_week=current.calendar_first_day_of_week,
         calendar_system=current.calendar_system,
+        calendar_seven_year_anchor_date=current.calendar_seven_year_anchor_date,
         navigation_visible_modules=current.navigation_visible_modules,
         notes_card_min_collapsed_lines=current.notes_card_min_collapsed_lines,
         notes_export_planning_include_cycle_notes=(
@@ -314,6 +317,11 @@ def set_runtime_config_value(
         preferences_settings = replace(
             preferences_settings,
             calendar_system=validate_calendar_system(value),
+        )
+    elif normalized_key == "preferences.calendar_seven_year_anchor_date":
+        preferences_settings = replace(
+            preferences_settings,
+            calendar_seven_year_anchor_date=validate_calendar_seven_year_anchor_date(value),
         )
     elif normalized_key == "preferences.navigation_visible_modules":
         preferences_settings = replace(
