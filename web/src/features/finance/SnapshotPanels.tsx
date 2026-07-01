@@ -761,7 +761,9 @@ function SnapshotEntryTreeTable({
 
   return (
     <div className="rounded-lg border border-base-200">
-      <div className={`border-b border-base-200 bg-base-200/40 px-4 py-2 ${financeTextClass.panelTitle}`}>
+      <div
+        className={`border-b border-base-200 bg-base-200/40 px-4 py-2 ${financeTextClass.sectionTitle}`}
+      >
         {t("finance.snapshot.tableTitle")}
       </div>
       {treeNodes.length ? (
@@ -878,7 +880,7 @@ function AssetSummaryPanel({
   return (
     <div className="rounded-lg border border-base-300 bg-base-100">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 px-3 py-2">
-        <h4 className={financeTextClass.panelTitle}>
+        <h4 className={financeTextClass.sectionTitle}>
           {t("finance.metrics.assetSummary")}
         </h4>
         <span className={`text-right ${financeTextClass.bodyMuted}`} title={rateSnapshotTooltip}>
@@ -1052,7 +1054,7 @@ export function SnapshotDetail({
 
       <div className="rounded-lg border border-base-300">
         <div className="border-b border-base-200 px-3 py-2">
-          <h4 className={financeTextClass.panelTitle}>
+          <h4 className={financeTextClass.sectionTitle}>
             {t("finance.metrics.details")}
           </h4>
         </div>

@@ -1441,7 +1441,7 @@ function TreeNodeRow({
           onClick={() => onToggleNode(node.id)}
         />
         <div className="min-w-0 flex flex-1 items-center gap-2">
-          <span className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</span>
+          <span className={`truncate ${financeTextClass.treeNodeTitle}`}>{node.name}</span>
           <span className="shrink-0">
             <FinanceAssetSymbol symbol={node.currency_code || "-"} />
           </span>
