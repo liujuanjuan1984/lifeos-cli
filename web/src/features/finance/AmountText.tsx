@@ -33,7 +33,6 @@ export function FinanceAmountText({
     );
   }
 
-  const parts = splitAmountText(text);
   const numericValue = typeof value === "number" ? value : parseNumericAmount(text);
   const toneClass =
     Number.isFinite(numericValue) && numericValue < 0 ? "text-warning" : "text-base-content";
@@ -49,11 +48,7 @@ export function FinanceAmountText({
         .filter(Boolean)
         .join(" ")}
     >
-      <span className="font-medium">
-        {parts.sign}
-        {parts.integer}
-      </span>
-      {parts.fraction ? <span className={subduedTextClass}>{parts.fraction}</span> : null}
+      <span className="font-medium">{text}</span>
       {showCurrency && symbol ? <FinanceAssetSymbol symbol={symbol} inheritTone /> : null}
     </span>
   );
@@ -108,27 +103,6 @@ export function FinanceAssetSymbol({
       {symbol.trim().toUpperCase()}
     </span>
   );
-}
-
-function splitAmountText(value: string): { sign: string; integer: string; fraction: string } {
-  const normalized = value.trim();
-  const sign = normalized.startsWith("-") || normalized.startsWith("+") ? normalized[0] : "";
-  const unsigned = sign ? normalized.slice(1) : normalized;
-  const decimalIndex = findDecimalSeparatorIndex(unsigned);
-  if (decimalIndex === -1) {
-    return { sign, integer: unsigned || "0", fraction: "" };
-  }
-  return {
-    sign,
-    integer: unsigned.slice(0, decimalIndex) || "0",
-    fraction: unsigned.slice(decimalIndex),
-  };
-}
-
-function findDecimalSeparatorIndex(value: string): number {
-  const dotIndex = value.lastIndexOf(".");
-  const commaIndex = value.lastIndexOf(",");
-  return Math.max(dotIndex, commaIndex);
 }
 
 function parseNumericAmount(value: string): number {
