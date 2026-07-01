@@ -15,13 +15,13 @@ import type {
 } from "@/services/api/finance";
 import type { UUID } from "@/types/primitive";
 
+import { FinanceAmountListText, FinanceAmountText, FinanceAssetSymbol } from "./AmountText";
 import {
   dateToEndIso,
   dateToStartIso,
   assetDecimalPlaces,
   flattenTree,
   formatAmountForAsset,
-  formatMoney,
   formatNumberForAsset,
   isoToDateInput,
   isoToDateTimeLocal,
@@ -506,8 +506,6 @@ function SnapshotEntryTreeTable({
         : "";
       const displayConvertedAmount = hasChildren ? aggregatedAmount : defaultConvertedAmount;
       const defaultAmountNegative = isNegativeAmount(defaultAmount);
-      const nativeAggregatedNegative = isNegativeAmount(nativeAggregatedAmount);
-      const displayConvertedNegative = isNegativeAmount(displayConvertedAmount);
 
       const rows: React.ReactNode[] = [
         <tr
@@ -548,22 +546,19 @@ function SnapshotEntryTreeTable({
             </div>
           </td>
           <td className="align-top text-center">
-            <span className="inline-flex min-h-[2.25rem] items-center text-base-content/70">
-              {defaultCurrency}
+            <span className="inline-flex min-h-[2.25rem] items-center">
+              {hasChildren ? (
+                <span className="text-base-content/40">-</span>
+              ) : (
+                <FinanceAssetSymbol symbol={defaultCurrency} />
+              )}
             </span>
           </td>
           <td className="align-top">
             {hasChildren ? (
               <div className="flex min-w-[12rem] items-start gap-2">
-                <div
-                  className={[
-                    "min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 text-sm",
-                    nativeAggregatedNegative ? "text-error" : "text-base-content/80",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {nativeAggregatedAmount || "-"}
+                <div className="min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 text-sm">
+                  <FinanceAmountListText value={nativeAggregatedAmount} />
                 </div>
                 <ActionButton
                   label=""
@@ -586,7 +581,7 @@ function SnapshotEntryTreeTable({
                   inputMode="decimal"
                   pattern={amountInputPattern(assetDecimalPlaces(assets, defaultCurrency))}
                   size="sm"
-                  className={defaultAmountNegative ? "text-error" : "text-base-content"}
+                  className={defaultAmountNegative ? "text-warning" : "text-base-content"}
                   value={defaultAmount}
                   onChange={(event) =>
                     onChangeHolding(node.id, defaultHolding?.id ?? "", {
@@ -615,15 +610,11 @@ function SnapshotEntryTreeTable({
           </td>
           <td className="align-top">
             {displayConvertedAmount ? (
-              <span
-                className={[
-                  "inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm",
-                  displayConvertedNegative ? "text-error" : "text-base-content/80",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {displayConvertedAmount}
+              <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
+                <FinanceAmountText
+                  amount={displayConvertedAmount}
+                  currencyCode={primaryCurrency}
+                />
               </span>
             ) : (
               <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
@@ -671,7 +662,6 @@ function SnapshotEntryTreeTable({
               : ""
             : "";
           const amountNegative = isNegativeAmount(holding.amount);
-          const holdingConvertedNegative = isNegativeAmount(convertedHoldingAmount);
           rows.push(
             <tr
               key={`${node.id}:${holding.id}`}
@@ -705,7 +695,7 @@ function SnapshotEntryTreeTable({
                       assetDecimalPlaces(assets, holdingPrecisionCurrency),
                     )}
                     size="sm"
-                    className={amountNegative ? "text-error" : "text-base-content"}
+                    className={amountNegative ? "text-warning" : "text-base-content"}
                     value={holding.amount}
                     onChange={(event) =>
                       onChangeHolding(node.id, holding.id, { amount: event.target.value })
@@ -728,15 +718,11 @@ function SnapshotEntryTreeTable({
               </td>
               <td className="align-top">
                 {convertedHoldingAmount ? (
-                  <span
-                    className={[
-                      "inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm",
-                      holdingConvertedNegative ? "text-error" : "text-base-content/80",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {convertedHoldingAmount}
+                  <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
+                    <FinanceAmountText
+                      amount={convertedHoldingAmount}
+                      currencyCode={primaryCurrency}
+                    />
                   </span>
                 ) : (
                   <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
@@ -912,28 +898,42 @@ function AssetSummaryPanel({
           <tbody>
             {rowsWithShare.map((row) => (
               <tr key={row.currency}>
-                <td className="font-medium">{row.currency}</td>
-                <td className={`text-right tabular-nums ${amountToneClass(row.numericAmount)}`}>
-                  {row.amount}
+                <td>
+                  <FinanceAssetSymbol symbol={row.currency} />
                 </td>
-                <td className="text-right tabular-nums">
+                <td className="text-right">
+                  <FinanceAmountText
+                    amount={row.amount}
+                    currencyCode={row.currency}
+                    value={row.numericAmount}
+                    showCurrency={false}
+                  />
+                </td>
+                <td className="text-right">
                   {row.rateInfo ? (
                     <span title={rateInfoTooltip(row.rateInfo, assets)}>
-                      {formatAmountForAsset(
-                        row.rateInfo.rate,
-                        row.rateInfo.quoteCurrency,
-                        assets,
-                      )}
+                      <FinanceAmountText
+                        amount={formatAmountForAsset(
+                          row.rateInfo.rate,
+                          row.rateInfo.quoteCurrency,
+                          assets,
+                        )}
+                        currencyCode={row.rateInfo.quoteCurrency}
+                        value={Number(row.rateInfo.rate)}
+                        showCurrency={false}
+                      />
                     </span>
                   ) : (
                     <span className="text-base-content/40">-</span>
                   )}
                 </td>
-                <td className="text-right tabular-nums">
+                <td className="text-right">
                   {row.convertedAmount ? (
-                    <span className={amountToneClass(row.convertedValue)}>
-                      {row.convertedAmount} {primaryCurrency}
-                    </span>
+                    <FinanceAmountText
+                      amount={row.convertedAmount}
+                      currencyCode={primaryCurrency}
+                      value={row.convertedValue}
+                    />
                   ) : (
                     <span className="text-base-content/40">-</span>
                   )}
@@ -950,10 +950,16 @@ function AssetSummaryPanel({
         <span className="text-sm font-medium text-base-content/70">
           {t("finance.metrics.totalValue")}
         </span>
-        <span className={`font-semibold tabular-nums ${amountToneClass(totalValue)}`}>
-          {totalValue === null
-            ? "-"
-            : `${formatNumberForAsset(totalValue, primaryCurrency, assets)} ${primaryCurrency}`}
+        <span className="font-semibold">
+          {totalValue === null ? (
+            <span className="text-base-content/40">-</span>
+          ) : (
+            <FinanceAmountText
+              amount={formatNumberForAsset(totalValue, primaryCurrency, assets)}
+              currencyCode={primaryCurrency}
+              value={totalValue}
+            />
+          )}
         </span>
       </div>
     </div>
@@ -1068,20 +1074,6 @@ export function SnapshotDetail({
                 const isExpanded = expandedIds.has(node.id);
                 const hasNodeLabel = node.name.trim().length > 0;
                 const isAggregateRow = hasChildren || node.isAutoGenerated;
-                const originalAmount = parseDisplayAmount(node.amount);
-                const convertedAmount = parseDisplayAmount(node.amountConverted);
-                const originalAmountClass =
-                  originalAmount > 0
-                    ? "text-success"
-                    : originalAmount < 0
-                      ? "text-error"
-                      : "text-base-content";
-                const convertedAmountClass =
-                  convertedAmount > 0
-                    ? "text-success"
-                    : convertedAmount < 0
-                      ? "text-error"
-                      : "text-base-content";
 
                 return (
                   <tr
@@ -1124,19 +1116,35 @@ export function SnapshotDetail({
                         </div>
                       </div>
                     </td>
-                    <td className="align-top text-center text-base-content/70">
-                      {(node.currencyCode || snapshot.primary_currency).toUpperCase()}
+                    <td className="align-top text-center">
+                      {node.currencyCode ? (
+                        <FinanceAssetSymbol symbol={node.currencyCode} />
+                      ) : (
+                        <span className="text-base-content/40">-</span>
+                      )}
                     </td>
                     <td className="align-top">
-                      <span className={`tabular-nums ${originalAmountClass}`}>
-                        {node.amount || "-"}
-                      </span>
+                      {node.currencyCode ? (
+                        <FinanceAmountText
+                          amount={node.amount}
+                          currencyCode={node.currencyCode}
+                          showCurrency={false}
+                        />
+                      ) : (
+                        <FinanceAmountListText value={node.amount} />
+                      )}
                     </td>
                     <td className="align-top">
                       {usesConvertedAggregation && node.amountConverted ? (
-                        <span className={`tabular-nums ${convertedAmountClass}`}>
-                          {formatMoney(node.amountConverted, snapshot.primary_currency, assets)}
-                        </span>
+                        <FinanceAmountText
+                          amount={formatAmountForAsset(
+                            node.amountConverted,
+                            snapshot.primary_currency,
+                            assets,
+                          )}
+                          currencyCode={snapshot.primary_currency}
+                          value={parseDisplayAmount(node.amountConverted)}
+                        />
                       ) : (
                         <span className="text-base-content/40">-</span>
                       )}
@@ -1760,19 +1768,6 @@ function sumSnapshotNodeAmounts(
 function isNegativeAmount(value: string | null | undefined): boolean {
   const numeric = parseDisplayAmount(value ?? "");
   return Number.isFinite(numeric) && numeric < 0;
-}
-
-function amountToneClass(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "text-base-content";
-  }
-  if (value > 0) {
-    return "text-success";
-  }
-  if (value < 0) {
-    return "text-error";
-  }
-  return "text-base-content";
 }
 
 function parseDisplayAmount(value: string): number {

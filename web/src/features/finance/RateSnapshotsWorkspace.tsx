@@ -35,6 +35,7 @@ import {
   SnapshotNavigator,
   SnapshotSelectorToolbar,
 } from "./SnapshotChrome";
+import { FinanceAmountText, FinanceAssetSymbol } from "./AmountText";
 import {
   isoToDateTimeLocal,
   localDateTimeToIso,
@@ -831,15 +832,27 @@ function RateEntryEquationCells({
 }) {
   return (
     <>
-      <td className="text-right font-medium tabular-nums text-base-content">
-        {formatAmountForAsset("1", entry.base_currency, assets)}
+      <td className="text-right">
+        <FinanceAmountText
+          amount={formatAmountForAsset("1", entry.base_currency, assets)}
+          currencyCode={entry.base_currency}
+          showCurrency={false}
+        />
       </td>
-      <td className="font-medium text-info/80">{entry.base_currency}</td>
+      <td>
+        <FinanceAssetSymbol symbol={entry.base_currency} />
+      </td>
       <td className="text-center text-base-content/50">=</td>
-      <td className="text-right font-medium tabular-nums text-base-content">
-        {formatAmountForAsset(entry.rate, entry.quote_currency, assets)}
+      <td className="text-right">
+        <FinanceAmountText
+          amount={formatAmountForAsset(entry.rate, entry.quote_currency, assets)}
+          currencyCode={entry.quote_currency}
+          showCurrency={false}
+        />
       </td>
-      <td className="font-medium text-info/80">{entry.quote_currency}</td>
+      <td>
+        <FinanceAssetSymbol symbol={entry.quote_currency} />
+      </td>
     </>
   );
 }
