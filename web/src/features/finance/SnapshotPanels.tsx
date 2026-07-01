@@ -16,6 +16,7 @@ import type {
 import type { UUID } from "@/types/primitive";
 
 import { FinanceAmountListText, FinanceAmountText, FinanceAssetSymbol } from "./AmountText";
+import { financeTextClass } from "./styles";
 import {
   dateToEndIso,
   dateToStartIso,
@@ -234,7 +235,7 @@ export function SnapshotFormPanel({
           onChange={(event) => setTitle(event.target.value)}
           placeholder={t("finance.snapshot.titlePlaceholder")}
           aria-label={t("finance.snapshot.title")}
-          className="max-w-xl text-lg font-semibold"
+          className={`max-w-xl ${financeTextClass.moduleTitle}`}
         />
         <div className="flex justify-end gap-2">
           <ActionButton
@@ -386,7 +387,7 @@ function InlineFinanceField({
 }) {
   return (
     <label className="grid items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
-      <span className="text-sm font-medium text-base-content/70">{label}</span>
+      <span className={financeTextClass.inlineLabel}>{label}</span>
       <div className="min-w-0">{children}</div>
     </label>
   );
@@ -541,14 +542,14 @@ function SnapshotEntryTreeTable({
                 </span>
               )}
               <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <p className="truncate font-semibold text-base-content">{node.name}</p>
+                <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
               </div>
             </div>
           </td>
           <td className="align-top text-center">
             <span className="inline-flex min-h-[2.25rem] items-center">
               {hasChildren ? (
-                <span className="text-base-content/40">-</span>
+                <span className={financeTextClass.placeholder}>-</span>
               ) : (
                 <FinanceAssetSymbol symbol={defaultCurrency} />
               )}
@@ -557,7 +558,9 @@ function SnapshotEntryTreeTable({
           <td className="align-top">
             {hasChildren ? (
               <div className="flex min-w-[12rem] items-start gap-2">
-                <div className="min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 text-sm">
+                <div
+                  className={`min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 ${financeTextClass.helperText}`}
+                >
                   <FinanceAmountListText value={nativeAggregatedAmount} />
                 </div>
                 <ActionButton
@@ -618,14 +621,14 @@ function SnapshotEntryTreeTable({
                 />
               </span>
             ) : (
-              <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
+              <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
                 -
               </span>
             )}
           </td>
           <td className="align-top">
             {hasChildren ? (
-              <span className="inline-flex min-h-[2.25rem] items-center text-base-content/40">
+              <span className={`inline-flex min-h-[2.25rem] items-center ${financeTextClass.placeholder}`}>
                 -
               </span>
             ) : (
@@ -727,7 +730,7 @@ function SnapshotEntryTreeTable({
                     />
                   </span>
                 ) : (
-                  <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm text-base-content/40">
+                  <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
                     -
                   </span>
                 )}
@@ -758,13 +761,13 @@ function SnapshotEntryTreeTable({
 
   return (
     <div className="rounded-lg border border-base-200">
-      <div className="border-b border-base-200 bg-base-200/40 px-4 py-2 text-sm font-semibold text-base-content">
+      <div className={`border-b border-base-200 bg-base-200/40 px-4 py-2 ${financeTextClass.panelTitle}`}>
         {t("finance.snapshot.tableTitle")}
       </div>
       {treeNodes.length ? (
         <div className="overflow-x-auto p-3 pb-4">
           <table className="min-w-full text-sm">
-            <thead className="bg-base-200/60 text-left text-xs uppercase text-base-content/60">
+            <thead className={`text-left ${financeTextClass.tableHeader}`}>
               <tr>
                 <th className="w-[40%] min-w-[12rem] px-4 py-2">
                   {t("finance.snapshot.node")}
@@ -787,7 +790,7 @@ function SnapshotEntryTreeTable({
           </table>
         </div>
       ) : (
-        <div className="px-4 py-8 text-center text-sm text-base-content/60">
+        <div className={`px-4 py-8 text-center ${financeTextClass.helperText}`}>
           {t("finance.snapshot.noEntryNodes")}
         </div>
       )}
@@ -875,17 +878,17 @@ function AssetSummaryPanel({
   return (
     <div className="rounded-lg border border-base-300 bg-base-100">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 px-3 py-2">
-        <h4 className="text-base font-semibold text-base-content">
+        <h4 className={financeTextClass.panelTitle}>
           {t("finance.metrics.assetSummary")}
         </h4>
-        <span className="text-right text-sm text-base-content/70" title={rateSnapshotTooltip}>
+        <span className={`text-right ${financeTextClass.bodyMuted}`} title={rateSnapshotTooltip}>
           {t("finance.rates.tabTitle")}
           <span className="ml-2 text-base-content">{rateSnapshotLabelText}</span>
         </span>
       </div>
       <div className="overflow-x-auto">
         <table className="table table-sm">
-          <thead className="bg-base-200/50 text-xs uppercase text-base-content/60">
+          <thead className={financeTextClass.tableHeader}>
             <tr>
               <th>{t("finance.snapshot.currency")}</th>
               <th className="text-right">{t("finance.snapshot.amount")}</th>
@@ -925,7 +928,7 @@ function AssetSummaryPanel({
                       />
                     </span>
                   ) : (
-                    <span className="text-base-content/40">-</span>
+                    <span className={financeTextClass.placeholder}>-</span>
                   )}
                 </td>
                 <td className="text-right">
@@ -937,11 +940,11 @@ function AssetSummaryPanel({
                       showCurrency={false}
                     />
                   ) : (
-                    <span className="text-base-content/40">-</span>
+                    <span className={financeTextClass.placeholder}>-</span>
                   )}
                 </td>
                 <td className="text-right tabular-nums">
-                  {row.share || <span className="text-base-content/40">-</span>}
+                  {row.share || <span className={financeTextClass.placeholder}>-</span>}
                 </td>
               </tr>
             ))}
@@ -949,12 +952,12 @@ function AssetSummaryPanel({
         </table>
       </div>
       <div className="flex items-center justify-end gap-3 border-t border-base-200 px-3 py-2">
-        <span className="text-sm font-medium text-base-content/70">
+        <span className={financeTextClass.inlineLabel}>
           {t("finance.metrics.totalValue")}
         </span>
         <span className="font-semibold">
           {totalValue === null ? (
-            <span className="text-base-content/40">-</span>
+            <span className={financeTextClass.placeholder}>-</span>
           ) : (
             <FinanceAmountText
               amount={formatNumberForAsset(totalValue, primaryCurrency, assets)}
@@ -1049,13 +1052,13 @@ export function SnapshotDetail({
 
       <div className="rounded-lg border border-base-300">
         <div className="border-b border-base-200 px-3 py-2">
-          <h4 className="text-base font-semibold text-base-content">
+          <h4 className={financeTextClass.panelTitle}>
             {t("finance.metrics.details")}
           </h4>
         </div>
         <div className="overflow-x-auto">
           <table className="table table-sm">
-            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+            <thead className={financeTextClass.tableHeader}>
               <tr>
                 <th className="w-[40%] min-w-[12rem] px-4 py-2">
                   {t("finance.snapshot.node")}
@@ -1072,7 +1075,7 @@ export function SnapshotDetail({
                 <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
               </tr>
             </thead>
-            <tbody className="align-top text-sm text-base-content/80">
+            <tbody className={financeTextClass.tableBody}>
               {visibleNodes.map((node) => {
                 const hasChildren = node.children.length > 0;
                 const isExpanded = expandedIds.has(node.id);
@@ -1115,7 +1118,7 @@ export function SnapshotDetail({
                         )}
                         <div className="min-w-0 space-y-1">
                           {hasNodeLabel ? (
-                            <span className="font-medium text-base-content">{node.name}</span>
+                            <span className={financeTextClass.rowTitle}>{node.name}</span>
                           ) : null}
                         </div>
                       </div>
@@ -1124,7 +1127,7 @@ export function SnapshotDetail({
                       {node.currencyCode ? (
                         <FinanceAssetSymbol symbol={node.currencyCode} />
                       ) : (
-                        <span className="text-base-content/40">-</span>
+                        <span className={financeTextClass.placeholder}>-</span>
                       )}
                     </td>
                     <td className="align-top">
@@ -1151,16 +1154,16 @@ export function SnapshotDetail({
                           showCurrency={false}
                         />
                       ) : (
-                        <span className="text-base-content/40">-</span>
+                        <span className={financeTextClass.placeholder}>-</span>
                       )}
                     </td>
                     <td className="align-top">
                       {node.note ? (
-                        <span className="block min-h-[2.25rem] text-sm text-base-content/80">
+                        <span className={`block min-h-[2.25rem] ${financeTextClass.bodyMuted}`}>
                           {node.note}
                         </span>
                       ) : (
-                        <span className="text-base-content/40">-</span>
+                        <span className={financeTextClass.placeholder}>-</span>
                       )}
                     </td>
                   </tr>
@@ -1168,7 +1171,7 @@ export function SnapshotDetail({
               })}
               {!visibleNodes.length ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-base-content/60 py-6">
+                  <td colSpan={5} className={`text-center py-6 ${financeTextClass.helperText}`}>
                     {t("finance.history.noSelection")}
                   </td>
                 </tr>
@@ -1179,8 +1182,8 @@ export function SnapshotDetail({
       </div>
 
       {snapshotNote ? (
-        <div className="rounded-lg border border-dashed border-base-200 p-3 text-sm text-base-content/70">
-          <p className="font-medium text-base-content">{t("finance.snapshot.note")}</p>
+        <div className={`rounded-lg border border-dashed border-base-200 p-3 ${financeTextClass.bodyMuted}`}>
+          <p className={financeTextClass.rowTitle}>{t("finance.snapshot.note")}</p>
           <p className="mt-1 whitespace-pre-wrap">{snapshotNote}</p>
         </div>
       ) : null}

@@ -1,3 +1,5 @@
+import { financeTextClass } from "./styles";
+
 type FinanceAmountTextProps = {
   amount: string;
   currencyCode?: string | null;
@@ -29,7 +31,9 @@ export function FinanceAmountText({
   const text = amount.trim();
   if (!text) {
     return (
-      <span className={["text-base-content/40", className].filter(Boolean).join(" ")}>-</span>
+      <span className={[financeTextClass.placeholder, className].filter(Boolean).join(" ")}>
+        -
+      </span>
     );
   }
 
@@ -58,7 +62,9 @@ export function FinanceAmountListText({ value, className = "" }: FinanceAmountLi
   const items = parseAmountList(value);
   if (!items.length) {
     return (
-      <span className={["text-base-content/40", className].filter(Boolean).join(" ")}>-</span>
+      <span className={[financeTextClass.placeholder, className].filter(Boolean).join(" ")}>
+        -
+      </span>
     );
   }
 
@@ -76,7 +82,7 @@ export function FinanceAmountListText({ value, className = "" }: FinanceAmountLi
           key={`${item.amount}:${item.currencyCode}:${index}`}
           className="inline-flex items-baseline gap-1"
         >
-          {index > 0 ? <span className="text-base-content/40">,</span> : null}
+          {index > 0 ? <span className={financeTextClass.placeholder}>,</span> : null}
           <FinanceAmountText amount={item.amount} currencyCode={item.currencyCode} />
         </span>
       ))}

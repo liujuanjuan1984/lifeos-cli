@@ -59,6 +59,8 @@ import {
   SnapshotNavigator,
   SnapshotSelectorToolbar,
 } from "@/features/finance/SnapshotChrome";
+import { FinanceAssetSymbol } from "@/features/finance/AmountText";
+import { financeTextClass } from "@/features/finance/styles";
 import { useFinanceAssetSource } from "@/features/finance/useFinanceAssetSource";
 
 const PRESETS: PresetConfig[] = [
@@ -364,7 +366,9 @@ function FinancePresetWorkspace({ preset }: { preset: PresetConfig }) {
 
   if (!tree) {
     return (
-      <div className="rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center text-sm text-base-content/70">
+      <div
+        className={`rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center ${financeTextClass.bodyMuted}`}
+      >
         <p>{t("finance.tree.noTrees")}</p>
       </div>
     );
@@ -800,7 +804,9 @@ function FinanceTreesWorkspace() {
             </div>
           </>
         ) : (
-          <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
+          <div
+            className={`rounded-lg border border-dashed border-base-300 p-6 text-center ${financeTextClass.helperText}`}
+          >
             {t("finance.tree.noTrees")}
           </div>
         )}
@@ -932,7 +938,7 @@ function FinanceTreeFormPanel({
           />
         </FormField>
       </div>
-      <label className="flex items-center gap-2 text-sm text-base-content/80">
+      <label className={`flex items-center gap-2 ${financeTextClass.bodyMuted}`}>
         <input
           type="checkbox"
           className="checkbox checkbox-sm"
@@ -1045,7 +1051,9 @@ function SnapshotModule({
     }
 
     return (
-      <div className="rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center text-sm text-base-content/70">
+      <div
+        className={`rounded-2xl border border-dashed border-base-200 bg-base-100 p-8 text-center ${financeTextClass.bodyMuted}`}
+      >
         <p>{t("finance.history.empty")}</p>
         <div className="mt-4 flex justify-center">
           <CreateNewButton
@@ -1125,7 +1133,7 @@ function SnapshotModule({
                 rateSnapshots={rateSnapshots}
               />
             ) : (
-              <p className="py-4 text-sm text-base-content/70">
+              <p className={`py-4 ${financeTextClass.bodyMuted}`}>
                 {t("finance.history.noSelection")}
               </p>
             )}
@@ -1155,7 +1163,7 @@ function FinanceTreeManagerPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-base-content/60">{t("finance.tree.manageHint")}</p>
+        <p className={financeTextClass.helperText}>{t("finance.tree.manageHint")}</p>
         <CreateNewButton
           label={t("finance.tree.addNode")}
           onClick={onCreateRootNode}
@@ -1363,7 +1371,9 @@ function FinanceTreeView({
 
   if (!treeNodes.length) {
     return (
-      <div className="rounded-lg border border-dashed border-base-300 bg-base-100 p-6 text-center text-sm text-base-content/60">
+      <div
+        className={`rounded-lg border border-dashed border-base-300 bg-base-100 p-6 text-center ${financeTextClass.helperText}`}
+      >
         {t("finance.tree.empty")}
       </div>
     );
@@ -1431,8 +1441,10 @@ function TreeNodeRow({
           onClick={() => onToggleNode(node.id)}
         />
         <div className="min-w-0 flex flex-1 items-center gap-2">
-          <span className="font-medium truncate">{node.name}</span>
-          <span className="shrink-0 text-xs text-base-content/60">{node.currency_code || "-"}</span>
+          <span className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</span>
+          <span className="shrink-0">
+            <FinanceAssetSymbol symbol={node.currency_code || "-"} />
+          </span>
         </div>
         <ActionButton
           label=""

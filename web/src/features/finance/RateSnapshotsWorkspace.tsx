@@ -45,6 +45,7 @@ import {
   type RateRowState,
   type RateSnapshotFormMode,
 } from "./utils";
+import { financeTextClass } from "./styles";
 import { useFinanceAssetSource } from "./useFinanceAssetSource";
 
 export function RateSnapshotsWorkspace() {
@@ -350,7 +351,9 @@ export function RateSnapshotsWorkspace() {
               </div>
 
               <div className="rounded-lg border border-base-200">
-                <div className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 bg-base-200/40 px-3 py-2 text-xs uppercase text-base-content/60">
+                <div
+                  className={`grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] gap-2 border-b border-base-200 px-3 py-2 ${financeTextClass.tableHeader}`}
+                >
                   <span>{t("finance.rates.baseAmount")}</span>
                   <span>{t("finance.rates.baseAsset")}</span>
                   <span />
@@ -394,7 +397,7 @@ export function RateSnapshotsWorkspace() {
                           updateRateSnapshotMutation.isPending
                         }
                       />
-                      <span className="text-center text-base-content/60">=</span>
+                      <span className={`text-center ${financeTextClass.placeholder}`}>=</span>
                       <TextInput
                         size="sm"
                         inputMode="decimal"
@@ -481,35 +484,35 @@ export function RateSnapshotsWorkspace() {
                 />
               }
             />
-            <div className="grid grid-cols-1 gap-3 rounded-lg border border-base-200 bg-base-200/30 p-3 text-sm sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-base-200 bg-base-200/30 p-3 sm:grid-cols-3">
               <div>
-                <p className="text-xs uppercase text-base-content/50">
+                <p className={financeTextClass.fieldLabel}>
                   {t("finance.rates.capturedAt")}
                 </p>
-                <p className="mt-1 font-medium text-base-content">
+                <p className={`mt-1 ${financeTextClass.rowTitle}`}>
                   {formatDateTime(currentSnapshot.captured_at)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-base-content/50">
+                <p className={financeTextClass.fieldLabel}>
                   {t("finance.rates.source")}
                 </p>
-                <p className="mt-1 font-medium text-base-content">
+                <p className={`mt-1 ${financeTextClass.rowTitle}`}>
                   {currentSnapshot.source || "-"}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase text-base-content/50">
+                <p className={financeTextClass.fieldLabel}>
                   {t("finance.rates.note")}
                 </p>
-                <p className="mt-1 whitespace-pre-wrap text-base-content/80">
+                <p className={`mt-1 whitespace-pre-wrap ${financeTextClass.bodyMuted}`}>
                   {currentSnapshot.note || "-"}
                 </p>
               </div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-base-200">
               <table className="table table-sm">
-                <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+                <thead className={financeTextClass.tableHeader}>
                   <tr>
                     <th className="text-right">{t("finance.rates.baseAmount")}</th>
                     <th>{t("finance.rates.baseAsset")}</th>
@@ -526,7 +529,7 @@ export function RateSnapshotsWorkspace() {
                   ))}
                   {!(currentSnapshot.entries ?? []).length ? (
                     <tr>
-                      <td colSpan={5} className="text-center text-base-content/40">
+                      <td colSpan={5} className={`text-center ${financeTextClass.placeholder}`}>
                         -
                       </td>
                     </tr>
@@ -536,7 +539,9 @@ export function RateSnapshotsWorkspace() {
             </div>
           </>
         ) : (
-          <div className="rounded-lg border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60">
+          <div
+            className={`rounded-lg border border-dashed border-base-300 p-6 text-center ${financeTextClass.helperText}`}
+          >
             {t("finance.rates.empty")}
             <div className="mt-4 flex justify-center">
               <CreateNewButton
@@ -653,7 +658,7 @@ export function FinanceAssetManagerModal({
       bodyOverflow="auto"
     >
       <div className="space-y-4">
-        <p className="text-sm text-base-content/60">{t("finance.assets.description")}</p>
+        <p className={financeTextClass.helperText}>{t("finance.assets.description")}</p>
         <form
           className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto]"
           onSubmit={submitAsset}
@@ -692,7 +697,7 @@ export function FinanceAssetManagerModal({
         </form>
         <div className="max-h-[520px] overflow-y-auto pr-1">
           <table className="table table-sm">
-            <thead className="bg-base-200/60 text-xs uppercase text-base-content/60">
+            <thead className={financeTextClass.tableHeader}>
               <tr>
                 <th>{t("finance.assets.code")}</th>
                 <th>{t("finance.assets.name")}</th>
@@ -713,7 +718,7 @@ export function FinanceAssetManagerModal({
                           onChange={(event) => setEditingAssetCode(event.target.value.toUpperCase())}
                         />
                       ) : (
-                        <span className="font-medium">{asset.code}</span>
+                        <FinanceAssetSymbol symbol={asset.code} />
                       )}
                     </td>
                     <td>
@@ -842,7 +847,7 @@ function RateEntryEquationCells({
       <td>
         <FinanceAssetSymbol symbol={entry.base_currency} />
       </td>
-      <td className="text-center text-base-content/50">=</td>
+      <td className={`text-center ${financeTextClass.placeholder}`}>=</td>
       <td className="text-right">
         <FinanceAmountText
           amount={formatAmountForAsset(entry.rate, entry.quote_currency, assets)}
