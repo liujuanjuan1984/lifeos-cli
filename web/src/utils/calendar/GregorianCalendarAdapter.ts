@@ -5,6 +5,7 @@ import type {
 } from "./CalendarAdapter";
 import {
   DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
   normalizePlanningViewType,
   parseLocalDateString,
 } from "./CalendarAdapter";
@@ -166,13 +167,14 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     const periodStart = this.getSevenYearPeriodStart(date);
     const startYear = periodStart.getFullYear();
     const endYear = startYear + 6;
+    const periodEnd = new Date(endYear + 1, 0, 0);
     const sevenYearTasks = this.getTasksByPlanningType(tasks, "7years");
 
     const tasksInCurrentPeriod = sevenYearTasks.filter((task) => {
       if (!task.planning_cycle_start_date) return false;
-      const [taskYear] = task.planning_cycle_start_date.split("-");
-      const parsedYear = parseInt(taskYear, 10);
-      return parsedYear >= startYear && parsedYear <= endYear;
+      if (!isLocalDateString(task.planning_cycle_start_date)) return false;
+      const taskDate = parseLocalDateString(task.planning_cycle_start_date);
+      return taskDate >= periodStart && taskDate <= periodEnd;
     });
 
     return [

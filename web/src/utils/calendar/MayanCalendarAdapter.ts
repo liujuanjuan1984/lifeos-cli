@@ -5,6 +5,7 @@ import type {
 } from "./CalendarAdapter";
 import {
   DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
   normalizePlanningViewType,
   parseLocalDateString,
 } from "./CalendarAdapter";
@@ -491,6 +492,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
 
     const tasksInCurrentPeriod = sevenYearTasks.filter((task) => {
       if (!task.planning_cycle_start_date) return false;
+      if (!isLocalDateString(task.planning_cycle_start_date)) return false;
       const taskDate = parseLocalDateString(task.planning_cycle_start_date);
       return taskDate >= start && taskDate <= end;
     });
