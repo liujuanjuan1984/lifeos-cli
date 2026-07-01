@@ -2572,16 +2572,25 @@ def test_web_calendar_preferences_persist_to_cli_config(
             PreferenceUpdate(value=7, module="calendar"),
         )
     )
+    updated_anchor_date = asyncio.run(
+        set_preference(
+            "calendar.seven_year_anchor_date",
+            PreferenceUpdate(value="2026-07-20", module="calendar"),
+        )
+    )
 
     assert updated_system["value"] == "mayan_13_moon"
     assert updated_first_day["value"] == 7
+    assert updated_anchor_date["value"] == "2026-07-20"
     clear_config_cache()
     assert asyncio.run(get_preference("calendar.system"))["value"] == "mayan_13_moon"
     assert asyncio.run(get_preference("calendar.first_day_of_week"))["value"] == 7
+    assert asyncio.run(get_preference("calendar.seven_year_anchor_date"))["value"] == "2026-07-20"
 
     content = config_path.read_text(encoding="utf-8")
     assert 'calendar_system = "mayan_13_moon"' in content
     assert "calendar_first_day_of_week = 7" in content
+    assert 'calendar_seven_year_anchor_date = "2026-07-20"' in content
 
 
 def test_web_note_collapse_preference_persists_to_cli_config(

@@ -629,6 +629,10 @@
       "firstDay": {
         "label": "每周第一天",
         "description": "默认周一。该设置控制公历周边界。"
+      },
+      "sevenYearAnchorDate": {
+        "label": "七年起始日期",
+        "description": "选择一个日期，用它所在的历法年份锚定七年周期。公历使用该日期所在年份；玛雅13月亮历使用该日期所在的玛雅年。"
       }
     },
     "planningSettings": {

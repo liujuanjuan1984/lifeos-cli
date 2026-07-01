@@ -24,6 +24,23 @@ import {
   useNoteCollapsePreference,
 } from "@/hooks/notes/useNoteCollapsePreference";
 
+const DEFAULT_SEVEN_YEAR_ANCHOR_DATE = "2025-07-26";
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
 function SettingsPage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -49,6 +66,13 @@ function SettingsPage() {
       value >= 1 &&
       value <= 7,
   });
+  const calendarSevenYearAnchorDateSettings =
+    usePreferenceWithBootstrap<string>({
+      key: "calendar.seven_year_anchor_date",
+      defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+      module: "calendar",
+      validator: isIsoDate,
+    });
 
   const visionExperienceSettings = usePreferenceWithBootstrap<number>({
     key: "visions.experience_rate_per_hour",
@@ -211,6 +235,17 @@ function SettingsPage() {
         updateValue: (value: unknown) =>
           calendarFirstDaySettings.updateValue(Number(value)),
       },
+      "calendar.sevenYearAnchorDate": {
+        ...calendarSevenYearAnchorDateSettings,
+        saveValue: async (value: unknown) =>
+          await calendarSevenYearAnchorDateSettings.saveValue(
+            isIsoDate(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+          ),
+        updateValue: (value: unknown) =>
+          calendarSevenYearAnchorDateSettings.updateValue(
+            isIsoDate(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+          ),
+      },
       "visions.experienceRatePerHour": {
         ...visionExperiencePreference,
         saveValue: async (value: unknown) =>
@@ -297,6 +332,7 @@ function SettingsPage() {
       visibleModulesSettings,
       calendarSystemSettings,
       calendarFirstDaySettings,
+      calendarSevenYearAnchorDateSettings,
       visionExperiencePreference,
       noteCollapseSettings,
       areaOrderSettings,

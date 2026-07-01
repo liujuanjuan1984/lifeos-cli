@@ -49,6 +49,10 @@ describe("useSettingsConfig", () => {
           ]),
         }),
         expect.objectContaining({
+          key: "sevenYearAnchorDate",
+          type: "date",
+        }),
+        expect.objectContaining({
           key: "firstDayOfWeek",
           type: "select",
           options: expect.arrayContaining([
@@ -69,7 +73,15 @@ describe("useSettingsConfig", () => {
     const firstDayItem = calendarGroup?.items.find(
       (item) => item.key === "firstDayOfWeek",
     );
+    const anchorDateItem = calendarGroup?.items.find(
+      (item) => item.key === "sevenYearAnchorDate",
+    );
 
     expect(firstDayItem).toBeUndefined();
+    expect(anchorDateItem).toEqual(
+      expect.objectContaining({
+        type: "date",
+      }),
+    );
   });
 });

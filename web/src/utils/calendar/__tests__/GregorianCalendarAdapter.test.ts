@@ -43,22 +43,28 @@ describe("GregorianCalendarAdapter", () => {
 
   it("computes next and previous periods", () => {
     const adapter = new GregorianCalendarAdapter();
-    const base = new Date("2025-01-01T00:00:00Z");
+    const base = new Date("2025-01-01T12:00:00Z");
 
-    expect(adapter.getNextPeriod(base, "year").getFullYear()).toBe(2026);
-    expect(adapter.getPreviousPeriod(base, "year").getFullYear()).toBe(2024);
+    expect(adapter.getNextPeriod(base, "year").getUTCFullYear()).toBe(2026);
+    expect(adapter.getPreviousPeriod(base, "year").getUTCFullYear()).toBe(2024);
     expect(adapter.getNextPeriod(base, "7years").getFullYear()).toBe(2032);
-    expect(adapter.getPreviousPeriod(base, "7years").getFullYear()).toBe(2018);
-    expect(adapter.getNextPeriod(base, "month").getMonth()).toBe(1);
-    expect(adapter.getPreviousPeriod(base, "day").getDate()).toBe(31);
+    expect(adapter.getPreviousPeriod(base, "7years").getFullYear()).toBe(
+      2018,
+    );
+    expect(adapter.getNextPeriod(base, "month").getUTCMonth()).toBe(1);
+    expect(adapter.getPreviousPeriod(base, "day").getUTCDate()).toBe(31);
   });
 
-  it("computes 7-year ranges from the selected start year", () => {
+  it("computes 7-year ranges from the configured anchor year", () => {
     const adapter = new GregorianCalendarAdapter();
 
     expect(adapter.getPeriodRange("7years", new Date(2026, 4, 15))).toEqual({
-      start: "2026-01-01",
-      end: "2032-12-31",
+      start: "2025-01-01",
+      end: "2031-12-31",
+    });
+    expect(adapter.getPeriodRange("7years", new Date(2024, 4, 15))).toEqual({
+      start: "2018-01-01",
+      end: "2024-12-31",
     });
   });
 
@@ -152,7 +158,7 @@ describe("GregorianCalendarAdapter", () => {
     );
 
     expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe("2026-2032");
+    expect(groups[0].label).toBe("2025-2031");
     expect(groups[0].tasks.map((task) => task.id)).toEqual(["seven-year-1"]);
   });
 });

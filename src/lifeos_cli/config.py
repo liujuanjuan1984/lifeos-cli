@@ -6,7 +6,7 @@ import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
@@ -38,6 +38,7 @@ DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
 DEFAULT_THEME = "system"
 DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK = 1
 DEFAULT_CALENDAR_SYSTEM = "gregorian"
+DEFAULT_CALENDAR_SEVEN_YEAR_ANCHOR_DATE = "2025-07-26"
 DEFAULT_NAVIGATION_VISIBLE_MODULES = (
     "visions",
     "habits",
@@ -368,6 +369,17 @@ def validate_calendar_system(value: str) -> str:
     return normalized
 
 
+def validate_calendar_seven_year_anchor_date(value: str) -> str:
+    """Validate the date used to anchor seven-year calendar periods."""
+    normalized = value.strip()
+    try:
+        return date.fromisoformat(normalized).isoformat()
+    except ValueError as exc:
+        raise ConfigurationError(
+            "Preference `calendar_seven_year_anchor_date` must be a YYYY-MM-DD date."
+        ) from exc
+
+
 def validate_navigation_visible_modules(value: object) -> tuple[str, ...]:
     """Validate the Web navigation module visibility preference."""
     modules = _parse_string_list(value, field_name="navigation_visible_modules")
@@ -469,6 +481,8 @@ def _render_preferences_table(settings: PreferencesSettings) -> str:
         f"theme = {_serialize_toml_string(settings.theme)}",
         f"calendar_first_day_of_week = {settings.calendar_first_day_of_week}",
         f"calendar_system = {_serialize_toml_string(settings.calendar_system)}",
+        "calendar_seven_year_anchor_date = "
+        f"{_serialize_toml_string(settings.calendar_seven_year_anchor_date)}",
         "navigation_visible_modules = "
         f"{_serialize_toml_string_list(settings.navigation_visible_modules)}",
         f"notes_card_min_collapsed_lines = {settings.notes_card_min_collapsed_lines}",
@@ -673,6 +687,7 @@ class PreferencesSettings:
     theme: str = DEFAULT_THEME
     calendar_first_day_of_week: int = DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK
     calendar_system: str = DEFAULT_CALENDAR_SYSTEM
+    calendar_seven_year_anchor_date: str = DEFAULT_CALENDAR_SEVEN_YEAR_ANCHOR_DATE
     navigation_visible_modules: tuple[str, ...] = DEFAULT_NAVIGATION_VISIBLE_MODULES
     notes_card_min_collapsed_lines: int = DEFAULT_NOTES_CARD_MIN_COLLAPSED_LINES
     notes_export_planning_include_cycle_notes: bool = (
@@ -711,6 +726,9 @@ class PreferencesSettings:
         file_theme = preference_values.get("theme")
         file_calendar_first_day_of_week = preference_values.get("calendar_first_day_of_week")
         file_calendar_system = preference_values.get("calendar_system")
+        file_calendar_seven_year_anchor_date = preference_values.get(
+            "calendar_seven_year_anchor_date"
+        )
         file_navigation_visible_modules = preference_values.get("navigation_visible_modules")
         file_notes_card_min_collapsed_lines = preference_values.get(
             "notes_card_min_collapsed_lines"
@@ -780,6 +798,15 @@ class PreferencesSettings:
         )
         calendar_system = validate_calendar_system(calendar_system_value)
 
+        calendar_seven_year_anchor_date_value = (
+            file_calendar_seven_year_anchor_date
+            if isinstance(file_calendar_seven_year_anchor_date, str)
+            else DEFAULT_CALENDAR_SEVEN_YEAR_ANCHOR_DATE
+        )
+        calendar_seven_year_anchor_date = validate_calendar_seven_year_anchor_date(
+            calendar_seven_year_anchor_date_value
+        )
+
         navigation_visible_modules_value = (
             file_navigation_visible_modules
             if file_navigation_visible_modules is not None
@@ -847,6 +874,7 @@ class PreferencesSettings:
             theme=theme,
             calendar_first_day_of_week=calendar_first_day_of_week,
             calendar_system=calendar_system,
+            calendar_seven_year_anchor_date=calendar_seven_year_anchor_date,
             navigation_visible_modules=navigation_visible_modules,
             notes_card_min_collapsed_lines=notes_card_min_collapsed_lines,
             notes_export_planning_include_cycle_notes=notes_export_include_cycle_notes,

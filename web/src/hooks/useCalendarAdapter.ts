@@ -1,11 +1,30 @@
 import { useMemo } from "react";
 import { usePreferenceWithBootstrap } from "./queries/usePreferenceWithBootstrap";
-import { CalendarAdapterFactory } from "@/utils/calendar";
+import {
+  CalendarAdapterFactory,
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  parseLocalDateString,
+} from "@/utils/calendar";
 import type {
   CalendarAdapter,
   CalendarSystem,
   ExtendedPlanningViewType,
 } from "@/utils/calendar";
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
 
 interface CalendarAdapterState {
   adapter: CalendarAdapter;
@@ -32,6 +51,12 @@ export function useCalendarAdapter(): CalendarAdapterState {
     module: "calendar",
     validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
   });
+  const sevenYearAnchorPreference = usePreferenceWithBootstrap<string>({
+    key: "calendar.seven_year_anchor_date",
+    defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+    module: "calendar",
+    validator: isIsoDate,
+  });
 
   const calendarSystem: CalendarSystem =
     calendarSystemPreference.value === "mayan_13_moon"
@@ -40,16 +65,26 @@ export function useCalendarAdapter(): CalendarAdapterState {
   const firstDayOfWeek = Number.isFinite(firstDayPreference.value)
     ? firstDayPreference.value
     : 1;
+  const sevenYearAnchorDate = isIsoDate(sevenYearAnchorPreference.value)
+    ? sevenYearAnchorPreference.value
+    : DEFAULT_SEVEN_YEAR_ANCHOR_DATE;
 
   const adapter = useMemo(() => {
-    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
-  }, [calendarSystem, firstDayOfWeek]);
+    return CalendarAdapterFactory.create(
+      calendarSystem,
+      firstDayOfWeek,
+      sevenYearAnchorDate,
+    );
+  }, [calendarSystem, firstDayOfWeek, sevenYearAnchorDate]);
 
   return {
     adapter,
     calendarSystem,
     firstDayOfWeek,
-    loading: calendarSystemPreference.loading || firstDayPreference.loading,
+    loading:
+      calendarSystemPreference.loading ||
+      firstDayPreference.loading ||
+      sevenYearAnchorPreference.loading,
   };
 }
 
@@ -79,7 +114,11 @@ export function usePlanningCycle() {
         break;
       case "7years":
       case "sevenYear":
-        startDate.setTime(yearStart.getTime());
+        startDate.setTime(
+          parseLocalDateString(
+            adapter.getPeriodRange("7years", baseDate).start,
+          ).getTime(),
+        );
         break;
       case "month":
         if (monthInfo.monthStart) {

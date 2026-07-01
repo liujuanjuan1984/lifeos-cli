@@ -629,6 +629,10 @@
       "firstDay": {
         "label": "First Day of Week",
         "description": "Default Monday. This setting controls Gregorian week boundaries."
+      },
+      "sevenYearAnchorDate": {
+        "label": "Seven-Year Start Date",
+        "description": "Choose a date whose calendar year anchors seven-year periods. Gregorian uses the selected date's year; Mayan 13 Moon uses the Mayan year containing that date."
       }
     },
     "planningSettings": {

@@ -3,7 +3,11 @@ import type {
   ExtendedPlanningViewType,
   PlanningGroup,
 } from "./CalendarAdapter";
-import { normalizePlanningViewType } from "./CalendarAdapter";
+import {
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  normalizePlanningViewType,
+  parseLocalDateString,
+} from "./CalendarAdapter";
 import type { TaskWithSubtasks } from "@/services/api";
 import {
   getDaysInWeek,
@@ -18,9 +22,14 @@ import {
  */
 export class GregorianCalendarAdapter implements CalendarAdapter {
   private firstDayOfWeek: number;
+  private sevenYearAnchorDate: string;
 
-  constructor(firstDayOfWeek: number = 1) {
+  constructor(
+    firstDayOfWeek: number = 1,
+    sevenYearAnchorDate: string = DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  ) {
     this.firstDayOfWeek = firstDayOfWeek;
+    this.sevenYearAnchorDate = sevenYearAnchorDate;
   }
 
   getYearStart(date: Date): Date {
@@ -40,8 +49,7 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
         nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
         return this.normalizePeriodDate(nextDate);
       case "sevenYear":
-        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 7);
-        return this.normalizePeriodDate(nextDate);
+        return this.shiftSevenYearPeriodStart(currentDate, 1);
       case "month":
         nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
         return this.normalizePeriodDate(nextDate);
@@ -68,8 +76,7 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
         prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 1);
         return this.normalizePeriodDate(prevDate);
       case "sevenYear":
-        prevDate.setUTCFullYear(prevDate.getUTCFullYear() - 7);
-        return this.normalizePeriodDate(prevDate);
+        return this.shiftSevenYearPeriodStart(currentDate, -1);
       case "month":
         prevDate.setUTCMonth(prevDate.getUTCMonth() - 1);
         return this.normalizePeriodDate(prevDate);
@@ -108,6 +115,26 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     return date;
   }
 
+  private getSevenYearAnchorStart(): Date {
+    const anchorDate = parseLocalDateString(this.sevenYearAnchorDate);
+    return new Date(anchorDate.getFullYear(), 0, 1);
+  }
+
+  private getSevenYearPeriodStart(date: Date): Date {
+    const anchorStart = this.getSevenYearAnchorStart();
+    const targetYear = date.getFullYear();
+    const deltaYears = targetYear - anchorStart.getFullYear();
+    const periodOffsetYears = Math.floor(deltaYears / 7) * 7;
+    return new Date(anchorStart.getFullYear() + periodOffsetYears, 0, 1);
+  }
+
+  private shiftSevenYearPeriodStart(date: Date, step: number): Date {
+    const start = this.getSevenYearPeriodStart(date);
+    start.setFullYear(start.getFullYear() + 7 * step);
+    start.setHours(12, 0, 0, 0);
+    return start;
+  }
+
   buildPlanningGroups(
     viewType: ExtendedPlanningViewType,
     date: Date,
@@ -136,7 +163,8 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
     date: Date,
     tasks: TaskWithSubtasks[],
   ): PlanningGroup[] {
-    const startYear = date.getFullYear();
+    const periodStart = this.getSevenYearPeriodStart(date);
+    const startYear = periodStart.getFullYear();
     const endYear = startYear + 6;
     const sevenYearTasks = this.getTasksByPlanningType(tasks, "7years");
 
@@ -151,7 +179,7 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
       {
         id: `seven-year-${startYear}-${endYear}`,
         label: `${startYear}-${endYear}`,
-        date: new Date(startYear, 0, 1),
+        date: periodStart,
         tasks: tasksInCurrentPeriod,
         children: [],
       },
@@ -578,12 +606,12 @@ export class GregorianCalendarAdapter implements CalendarAdapter {
         };
       }
       case "sevenYear": {
-        const startYear = date.getFullYear();
+        const periodStart = this.getSevenYearPeriodStart(date);
+        const startYear = periodStart.getFullYear();
         const endYear = startYear + 6;
-        const startDate = new Date(startYear, 0, 1);
         const endDateExclusive = new Date(endYear + 1, 0, 1);
         return {
-          start: startDate.toLocaleDateString("en-CA"),
+          start: periodStart.toLocaleDateString("en-CA"),
           end: new Date(
             endDateExclusive.getTime() - 24 * 60 * 60 * 1000,
           ).toLocaleDateString("en-CA"),

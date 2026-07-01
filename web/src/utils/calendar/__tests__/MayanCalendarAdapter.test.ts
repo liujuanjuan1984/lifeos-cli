@@ -15,8 +15,8 @@ describe("MayanCalendarAdapter", () => {
       end: "2026-07-25",
     });
     expect(adapter.getPeriodRange("7years", new Date(2026, 6, 26))).toEqual({
-      start: "2026-07-26",
-      end: "2033-07-25",
+      start: "2025-07-26",
+      end: "2032-07-25",
     });
     expect(adapter.getPeriodRange("month", new Date(2027, 6, 25))).toEqual({
       start: "2027-07-25",
@@ -46,6 +46,19 @@ describe("MayanCalendarAdapter", () => {
     expect(options[12]).toEqual({
       index: 13,
       name: "13 2027-06-27",
+    });
+  });
+
+  it("anchors 7-year ranges to the Mayan year containing the configured date", () => {
+    const anchoredAdapter = new MayanCalendarAdapter(1, "2026-07-20");
+
+    expect(anchoredAdapter.getPeriodRange("7years", new Date(2026, 6, 26))).toEqual({
+      start: "2025-07-26",
+      end: "2032-07-25",
+    });
+    expect(anchoredAdapter.getPeriodRange("7years", new Date(2025, 6, 25))).toEqual({
+      start: "2018-07-26",
+      end: "2025-07-25",
     });
   });
 });

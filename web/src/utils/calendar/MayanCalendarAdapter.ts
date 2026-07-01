@@ -3,7 +3,11 @@ import type {
   ExtendedPlanningViewType,
   PlanningGroup,
 } from "./CalendarAdapter";
-import { normalizePlanningViewType } from "./CalendarAdapter";
+import {
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  normalizePlanningViewType,
+  parseLocalDateString,
+} from "./CalendarAdapter";
 import type { TaskWithSubtasks } from "@/services/api";
 import { getDaysInWeek } from "@/utils/datetime";
 
@@ -13,9 +17,14 @@ import { getDaysInWeek } from "@/utils/datetime";
  */
 export class MayanCalendarAdapter implements CalendarAdapter {
   private firstDayOfWeek: number;
+  private sevenYearAnchorDate: string;
 
-  constructor(firstDayOfWeek: number = 1) {
+  constructor(
+    firstDayOfWeek: number = 1,
+    sevenYearAnchorDate: string = DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  ) {
     this.firstDayOfWeek = firstDayOfWeek;
+    this.sevenYearAnchorDate = sevenYearAnchorDate;
   }
 
   /**
@@ -339,6 +348,20 @@ export class MayanCalendarAdapter implements CalendarAdapter {
     return this.getMayanYearStart(date);
   }
 
+  private getSevenYearAnchorStart(): Date {
+    return this.getMayanYearStart(parseLocalDateString(this.sevenYearAnchorDate));
+  }
+
+  private getSevenYearPeriodStart(date: Date): Date {
+    const anchorStart = this.getSevenYearAnchorStart();
+    const targetStart = this.getMayanYearStart(date);
+    const deltaYears = targetStart.getFullYear() - anchorStart.getFullYear();
+    const periodOffsetYears = Math.floor(deltaYears / 7) * 7;
+    const periodStart = new Date(anchorStart);
+    periodStart.setFullYear(anchorStart.getFullYear() + periodOffsetYears);
+    return periodStart;
+  }
+
   getWeekStart(date: Date): Date {
     const range = this.getMayanWeekRange(date);
     return range.start;
@@ -355,7 +378,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
         return start;
       }
       case "sevenYear": {
-        const start = this.getMayanYearStart(currentDate);
+        const start = this.getSevenYearPeriodStart(currentDate);
         start.setFullYear(start.getFullYear() + 7);
         return start;
       }
@@ -387,7 +410,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
         return start;
       }
       case "sevenYear": {
-        const start = this.getMayanYearStart(currentDate);
+        const start = this.getSevenYearPeriodStart(currentDate);
         start.setFullYear(start.getFullYear() - 7);
         return start;
       }
@@ -460,7 +483,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
     date: Date,
     tasks: TaskWithSubtasks[],
   ): PlanningGroup[] {
-    const start = this.getMayanYearStart(date);
+    const start = this.getSevenYearPeriodStart(date);
     const end = new Date(start);
     end.setFullYear(start.getFullYear() + 7);
     end.setDate(end.getDate() - 1);
@@ -468,7 +491,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
 
     const tasksInCurrentPeriod = sevenYearTasks.filter((task) => {
       if (!task.planning_cycle_start_date) return false;
-      const taskDate = new Date(task.planning_cycle_start_date);
+      const taskDate = parseLocalDateString(task.planning_cycle_start_date);
       return taskDate >= start && taskDate <= end;
     });
 
@@ -783,7 +806,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
         };
       }
       case "sevenYear": {
-        const start = this.getMayanYearStart(date);
+        const start = this.getSevenYearPeriodStart(date);
         const end = new Date(start);
         end.setFullYear(start.getFullYear() + 7);
         end.setDate(end.getDate() - 1);
