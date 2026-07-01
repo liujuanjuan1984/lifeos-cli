@@ -258,7 +258,7 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
         className="space-y-3 sm:space-y-4 lg:space-y-5"
       >
         {/* Name Field */}
-        <FormField label={t("auth.name")} htmlFor="person-name-input">
+        <FormField label={t("personDetail.name")} htmlFor="person-name-input">
           <TextInput
             id="person-name-input"
             name="person-name-input"

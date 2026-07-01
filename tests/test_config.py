@@ -20,12 +20,18 @@ from lifeos_cli.config import (
     ensure_database_driver_available,
     parse_boolean_value,
     resolve_config_path,
+    validate_calendar_first_day_of_week,
+    validate_calendar_system,
     validate_database_schema_name,
     validate_database_url,
     validate_day_starts_at,
     validate_language,
+    validate_navigation_visible_modules,
+    validate_notes_card_min_collapsed_lines,
+    validate_tasks_default_planning_preset,
     validate_theme,
     validate_timezone_name,
+    validate_todos_default_inbox_vision,
     validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
     write_database_settings,
@@ -161,6 +167,16 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
                 'week_starts_on = "sunday"',
                 "vision_experience_rate_per_hour = 90",
                 'theme = "night"',
+                "calendar_first_day_of_week = 7",
+                'calendar_system = "mayan_13_moon"',
+                'navigation_visible_modules = ["visions", "notes", "settings"]',
+                "notes_card_min_collapsed_lines = 9",
+                "notes_export_planning_include_cycle_notes = true",
+                "notes_export_planning_include_task_notes = false",
+                "planning_show_habit_actions = false",
+                'tasks_default_planning_preset = "today"',
+                "timelog_auto_set_task_planning = true",
+                'todos_default_inbox_vision = "11111111-1111-1111-1111-111111111111"',
                 "",
             )
         ),
@@ -175,6 +191,16 @@ def test_preferences_settings_read_config_file(tmp_path: Path) -> None:
     assert settings.week_starts_on == "sunday"
     assert settings.vision_experience_rate_per_hour == 90
     assert settings.theme == "night"
+    assert settings.calendar_first_day_of_week == 7
+    assert settings.calendar_system == "mayan_13_moon"
+    assert settings.navigation_visible_modules == ("visions", "notes", "settings")
+    assert settings.notes_card_min_collapsed_lines == 9
+    assert settings.notes_export_planning_include_cycle_notes is True
+    assert settings.notes_export_planning_include_task_notes is False
+    assert settings.planning_show_habit_actions is False
+    assert settings.tasks_default_planning_preset == "today"
+    assert settings.timelog_auto_set_task_planning is True
+    assert settings.todos_default_inbox_vision == "11111111-1111-1111-1111-111111111111"
 
 
 def test_preferences_settings_can_ignore_env_overrides(tmp_path: Path) -> None:
@@ -453,6 +479,38 @@ def test_validate_timezone_name_rejects_unknown_values() -> None:
 
 def test_validate_language_accepts_bcp47_like_values() -> None:
     assert validate_language("zh_Hans.UTF-8") == "zh-Hans"
+    assert validate_language("auto") == "auto"
+
+
+def test_validate_web_preferences_reject_invalid_values() -> None:
+    assert validate_calendar_first_day_of_week("7") == 7
+    assert validate_calendar_system("mayan_13_moon") == "mayan_13_moon"
+    assert validate_navigation_visible_modules(["visions", "notes", "visions"]) == (
+        "visions",
+        "notes",
+    )
+    assert validate_notes_card_min_collapsed_lines("9") == 9
+    assert validate_tasks_default_planning_preset("this_week") == "this_week"
+    assert (
+        validate_todos_default_inbox_vision("11111111-1111-1111-1111-111111111111")
+        == "11111111-1111-1111-1111-111111111111"
+    )
+
+    invalid_cases = (
+        lambda: validate_calendar_first_day_of_week("8"),
+        lambda: validate_calendar_system("julian"),
+        lambda: validate_navigation_visible_modules(["visions", "unknown"]),
+        lambda: validate_notes_card_min_collapsed_lines("4"),
+        lambda: validate_tasks_default_planning_preset("tomorrow"),
+        lambda: validate_todos_default_inbox_vision("not-a-uuid"),
+    )
+    for invalid in invalid_cases:
+        try:
+            invalid()
+        except ConfigurationError:
+            pass
+        else:
+            raise AssertionError("invalid Web preference should fail validation")
 
 
 def test_detect_default_language_uses_environment() -> None:
@@ -741,6 +799,51 @@ def test_set_runtime_config_value_updates_theme_preference(
     assert 'theme = "night"' in config_path.read_text(encoding="utf-8")
 
 
+def test_set_runtime_config_value_updates_web_preferences(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    config_path.write_text(
+        "\n".join(
+            (
+                "[database]",
+                'schema = "lifeos"',
+                "echo = false",
+                "",
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    set_runtime_config_value(
+        key="preferences.navigation_visible_modules",
+        value="visions,notes,settings",
+    )
+    set_runtime_config_value(
+        key="preferences.notes_card_min_collapsed_lines",
+        value="11",
+    )
+    set_runtime_config_value(
+        key="preferences.todos_default_inbox_vision",
+        value="11111111-1111-1111-1111-111111111111",
+    )
+
+    content = config_path.read_text(encoding="utf-8")
+    assert 'navigation_visible_modules = ["visions", "notes", "settings"]' in content
+    assert "notes_card_min_collapsed_lines = 11" in content
+    assert 'todos_default_inbox_vision = "11111111-1111-1111-1111-111111111111"' in content
+
+
 def test_build_database_settings_uses_injected_prompts(
     monkeypatch,
     tmp_path: Path,
@@ -807,6 +910,68 @@ def test_build_preferences_settings_uses_explicit_values(monkeypatch, tmp_path: 
     assert settings.week_starts_on == "sunday"
     assert settings.vision_experience_rate_per_hour == 120
     assert settings.config_file == config_path
+
+
+def test_build_preferences_settings_preserves_existing_web_preferences(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "lifeos" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LIFEOS_CONFIG_FILE", str(config_path))
+    config_path.write_text(
+        "\n".join(
+            (
+                "[preferences]",
+                'timezone = "UTC"',
+                'language = "en"',
+                'day_starts_at = "00:00"',
+                'week_starts_on = "monday"',
+                "vision_experience_rate_per_hour = 60",
+                'theme = "night"',
+                "calendar_first_day_of_week = 7",
+                'calendar_system = "mayan_13_moon"',
+                'navigation_visible_modules = ["visions", "notes", "settings"]',
+                "notes_card_min_collapsed_lines = 11",
+                "notes_export_planning_include_cycle_notes = true",
+                "notes_export_planning_include_task_notes = false",
+                "planning_show_habit_actions = false",
+                'tasks_default_planning_preset = "this_week"',
+                "timelog_auto_set_task_planning = true",
+                'todos_default_inbox_vision = "11111111-1111-1111-1111-111111111111"',
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    request = InitializationRequest(
+        database_url=None,
+        schema=None,
+        echo=None,
+        timezone="America/Toronto",
+        language=None,
+        day_starts_at=None,
+        week_starts_on=None,
+        vision_experience_rate_per_hour=None,
+        non_interactive=True,
+        is_interactive=False,
+        prompts=None,
+    )
+
+    settings = build_preferences_settings(request)
+
+    assert settings.timezone == "America/Toronto"
+    assert settings.theme == "night"
+    assert settings.calendar_first_day_of_week == 7
+    assert settings.calendar_system == "mayan_13_moon"
+    assert settings.navigation_visible_modules == ("visions", "notes", "settings")
+    assert settings.notes_card_min_collapsed_lines == 11
+    assert settings.notes_export_planning_include_cycle_notes is True
+    assert settings.notes_export_planning_include_task_notes is False
+    assert settings.planning_show_habit_actions is False
+    assert settings.tasks_default_planning_preset == "this_week"
+    assert settings.timelog_auto_set_task_planning is True
+    assert settings.todos_default_inbox_vision == "11111111-1111-1111-1111-111111111111"
 
 
 def test_build_preferences_settings_rejects_invalid_explicit_vision_experience_rate(

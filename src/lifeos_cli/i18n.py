@@ -37,11 +37,16 @@ def resolve_locale() -> str:
     """Resolve the active locale for user-facing CLI text."""
     env_locale = os.environ.get("LIFEOS_LANGUAGE")
     if env_locale:
+        if env_locale.strip().lower() == "auto":
+            return detect_default_language()
         return env_locale
     try:
-        return get_preferences_settings().language
+        preference_locale = get_preferences_settings().language
     except ConfigurationError:
         return detect_default_language()
+    if preference_locale.strip().lower() == "auto":
+        return detect_default_language()
+    return preference_locale
 
 
 def _validate_catalog_name(catalog_name: str) -> None:

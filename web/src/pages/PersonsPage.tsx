@@ -1,13 +1,14 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import PersonManager from "@/components/PersonManager";
-import Card from "@/layouts/Card";
+import ExpandableCard from "@/components/ExpandableCard";
 import TagManager from "@/components/TagManagerModal";
 import PersonTimelineModal from "@/components/PersonTimelineModal";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import PageLayout from "@/layouts/PageLayout";
 import { usePersonActivitiesPage } from "@/hooks/queries/usePersons";
 import { useTagSelectorSource } from "@/hooks/selectors/useTagSelectorSource";
+import { usePersistentState } from "@/hooks/usePersistentState";
 import ActionButton from "@/components/ActionButton";
 import type { PersonSummary } from "@/services/api";
 import type { Tag } from "@/services/api/tags";
@@ -33,6 +34,12 @@ const PersonsPage: React.FC = () => {
   // Tag filtering state
   const [filteredByTag, setFilteredByTag] = useState(false);
   const [selectedTagId, setSelectedTagId] = useState<UUID | null>(null);
+  const { state: tagFiltersExpanded, setState: setTagFiltersExpanded } =
+    usePersistentState<boolean>({
+      key: "personsPage.tagFiltersExpanded",
+      defaultValue: true,
+      expireInHours: 0,
+    });
 
   // Use the paginated activities hook
   type ActivityFilter = "all" | PersonActivityType;
@@ -80,10 +87,6 @@ const PersonsPage: React.FC = () => {
     [t],
   );
 
-  const getTagDisplayLabel = useCallback((tag: Tag): string => {
-    return tag.name;
-  }, []);
-
   const sortedPersonTags = useMemo(
     () => [...personTags].sort((a, b) => a.name.localeCompare(b.name)),
     [personTags],
@@ -111,12 +114,6 @@ const PersonsPage: React.FC = () => {
   const loadPersonsByTag = useCallback((tag: Tag) => {
     setFilteredByTag(true);
     setSelectedTagId(tag.id);
-  }, []);
-
-  // Reset to show all persons
-  const resetToAllPersons = useCallback(() => {
-    setFilteredByTag(false);
-    setSelectedTagId(null);
   }, []);
 
   // Handle search query change from PersonManager
@@ -168,33 +165,30 @@ const PersonsPage: React.FC = () => {
   return (
     <PageLayout>
       {/* Tags Filter Container */}
-      <Card
-        title={t("personManager.tagFiltersTitle")}
-        size="sm"
+      <ExpandableCard
+        isExpanded={tagFiltersExpanded}
+        onToggleExpansion={() =>
+          setTagFiltersExpanded((isExpanded) => !isExpanded)
+        }
+        title={
+          <h3 className="text-base font-semibold text-base-content">
+            {t("personManager.tagFiltersTitle")}
+          </h3>
+        }
         elevation="moderate"
         className="mb-4"
       >
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <ActionButton
-              label={t("common.all")}
-              color={!filteredByTag ? "primary" : "neutral"}
-              variant={!filteredByTag ? "solid" : "ghost"}
-              size="sm"
-              onClick={resetToAllPersons}
-              className="rounded-full"
-            />
-          </div>
+        <div className="space-y-3 px-5 pb-5">
           {tagsByCategory.map((group) => (
-            <div key={group.category}>
-              <div className="text-xs font-semibold uppercase tracking-wide text-base-content/70 mb-2">
+            <div key={group.category} className="space-y-2">
+              <div className="rounded-sm bg-base-200/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-base-content/70">
                 {group.label}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 px-3">
                 {group.tags.map((tag) => (
                   <ActionButton
                     key={tag.id}
-                    label={getTagDisplayLabel(tag)}
+                    label={tag.name}
                     color={selectedTagId === tag.id ? "primary" : "neutral"}
                     variant={selectedTagId === tag.id ? "solid" : "ghost"}
                     size="sm"
@@ -206,7 +200,7 @@ const PersonsPage: React.FC = () => {
             </div>
           ))}
         </div>
-      </Card>
+      </ExpandableCard>
 
       {/* Persons List Container */}
       <PersonManager

@@ -98,7 +98,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
         {person.name && (
           <div>
             <label className="block text-base font-medium text-base-content/70">
-              {t("auth.name")}
+              {t("personDetail.name")}
             </label>
             <p className="text-base">{person.name}</p>
           </div>

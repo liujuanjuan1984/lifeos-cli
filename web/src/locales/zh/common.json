@@ -1699,6 +1699,7 @@
     "saveFailed": "保存失败，请稍后重试"
   },
   "personDetail": {
+    "name": "姓名",
     "nicknames": "昵称",
     "primaryNickname": "主要昵称",
     "birthDate": "生日",

@@ -2383,3 +2383,121 @@ def test_web_theme_preference_persists_to_cli_config(
     assert reloaded["value"] == "night"
 
     assert 'theme = "night"' in config_path.read_text(encoding="utf-8")
+
+
+def test_web_language_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+        language="en",
+    )
+    monkeypatch.delenv("LIFEOS_LANGUAGE", raising=False)
+    clear_config_cache()
+
+    updated = asyncio.run(
+        set_preference(
+            "system.language",
+            PreferenceUpdate(value="auto", module="system"),
+        )
+    )
+
+    assert updated["value"] == "auto"
+    clear_config_cache()
+    reloaded = asyncio.run(get_preference("system.language"))
+    assert reloaded["value"] == "auto"
+    assert 'language = "auto"' in config_path.read_text(encoding="utf-8")
+
+
+def test_web_visible_modules_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+    )
+
+    updated = asyncio.run(
+        set_preference(
+            "navigation.visible_modules",
+            PreferenceUpdate(value=["visions", "notes", "settings"], module="navigation"),
+        )
+    )
+
+    assert updated["value"] == ["visions", "notes", "settings"]
+    clear_config_cache()
+    reloaded = asyncio.run(get_preference("navigation.visible_modules"))
+    assert reloaded["value"] == ["visions", "notes", "settings"]
+    assert 'navigation_visible_modules = ["visions", "notes", "settings"]' in (
+        config_path.read_text(encoding="utf-8")
+    )
+
+
+def test_web_note_collapse_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+    )
+
+    updated = asyncio.run(
+        set_preference(
+            "notes.card_min_collapsed_lines",
+            PreferenceUpdate(value=11, module="notes"),
+        )
+    )
+
+    assert updated["value"] == 11
+    clear_config_cache()
+    reloaded = asyncio.run(get_preference("notes.card_min_collapsed_lines"))
+    assert reloaded["value"] == 11
+    assert "notes_card_min_collapsed_lines = 11" in config_path.read_text(encoding="utf-8")
+
+
+def test_web_default_inbox_vision_preference_persists_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+    )
+    vision_id = "11111111-1111-1111-1111-111111111111"
+
+    updated = asyncio.run(
+        set_preference(
+            "todos.default_inbox_vision",
+            PreferenceUpdate(value=vision_id, module="todos"),
+        )
+    )
+
+    assert updated["value"] == vision_id
+    clear_config_cache()
+    reloaded = asyncio.run(get_preference("todos.default_inbox_vision"))
+    assert reloaded["value"] == vision_id
+    assert f'todos_default_inbox_vision = "{vision_id}"' in config_path.read_text(encoding="utf-8")

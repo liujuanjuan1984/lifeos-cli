@@ -25,11 +25,17 @@ from lifeos_cli.config import (
     normalize_database_schema,
     parse_boolean_value,
     resolve_config_path,
+    validate_calendar_first_day_of_week,
+    validate_calendar_system,
     validate_database_url,
     validate_day_starts_at,
     validate_language,
+    validate_navigation_visible_modules,
+    validate_notes_card_min_collapsed_lines,
+    validate_tasks_default_planning_preset,
     validate_theme,
     validate_timezone_name,
+    validate_todos_default_inbox_vision,
     validate_vision_experience_rate_per_hour,
     validate_week_starts_on,
     write_database_settings,
@@ -72,6 +78,16 @@ SUPPORTED_CONFIG_KEYS = (
     "preferences.week_starts_on",
     "preferences.vision_experience_rate_per_hour",
     "preferences.theme",
+    "preferences.calendar_first_day_of_week",
+    "preferences.calendar_system",
+    "preferences.navigation_visible_modules",
+    "preferences.notes_card_min_collapsed_lines",
+    "preferences.notes_export_planning_include_cycle_notes",
+    "preferences.notes_export_planning_include_task_notes",
+    "preferences.planning_show_habit_actions",
+    "preferences.tasks_default_planning_preset",
+    "preferences.timelog_auto_set_task_planning",
+    "preferences.todos_default_inbox_vision",
 )
 
 
@@ -184,6 +200,18 @@ def build_preferences_settings(request: InitializationRequest) -> PreferencesSet
         ),
         config_file=config_path,
         theme=validate_theme(current.theme),
+        calendar_first_day_of_week=current.calendar_first_day_of_week,
+        calendar_system=current.calendar_system,
+        navigation_visible_modules=current.navigation_visible_modules,
+        notes_card_min_collapsed_lines=current.notes_card_min_collapsed_lines,
+        notes_export_planning_include_cycle_notes=(
+            current.notes_export_planning_include_cycle_notes
+        ),
+        notes_export_planning_include_task_notes=current.notes_export_planning_include_task_notes,
+        planning_show_habit_actions=current.planning_show_habit_actions,
+        tasks_default_planning_preset=current.tasks_default_planning_preset,
+        timelog_auto_set_task_planning=current.timelog_auto_set_task_planning,
+        todos_default_inbox_vision=current.todos_default_inbox_vision,
     )
 
 
@@ -276,6 +304,68 @@ def set_runtime_config_value(
         preferences_settings = replace(
             preferences_settings,
             theme=validate_theme(value),
+        )
+    elif normalized_key == "preferences.calendar_first_day_of_week":
+        preferences_settings = replace(
+            preferences_settings,
+            calendar_first_day_of_week=validate_calendar_first_day_of_week(value),
+        )
+    elif normalized_key == "preferences.calendar_system":
+        preferences_settings = replace(
+            preferences_settings,
+            calendar_system=validate_calendar_system(value),
+        )
+    elif normalized_key == "preferences.navigation_visible_modules":
+        preferences_settings = replace(
+            preferences_settings,
+            navigation_visible_modules=validate_navigation_visible_modules(value),
+        )
+    elif normalized_key == "preferences.notes_card_min_collapsed_lines":
+        preferences_settings = replace(
+            preferences_settings,
+            notes_card_min_collapsed_lines=validate_notes_card_min_collapsed_lines(value),
+        )
+    elif normalized_key == "preferences.notes_export_planning_include_cycle_notes":
+        preferences_settings = replace(
+            preferences_settings,
+            notes_export_planning_include_cycle_notes=parse_boolean_value(
+                value,
+                field_name="Config key `preferences.notes_export_planning_include_cycle_notes`",
+            ),
+        )
+    elif normalized_key == "preferences.notes_export_planning_include_task_notes":
+        preferences_settings = replace(
+            preferences_settings,
+            notes_export_planning_include_task_notes=parse_boolean_value(
+                value,
+                field_name="Config key `preferences.notes_export_planning_include_task_notes`",
+            ),
+        )
+    elif normalized_key == "preferences.planning_show_habit_actions":
+        preferences_settings = replace(
+            preferences_settings,
+            planning_show_habit_actions=parse_boolean_value(
+                value,
+                field_name="Config key `preferences.planning_show_habit_actions`",
+            ),
+        )
+    elif normalized_key == "preferences.tasks_default_planning_preset":
+        preferences_settings = replace(
+            preferences_settings,
+            tasks_default_planning_preset=validate_tasks_default_planning_preset(value),
+        )
+    elif normalized_key == "preferences.timelog_auto_set_task_planning":
+        preferences_settings = replace(
+            preferences_settings,
+            timelog_auto_set_task_planning=parse_boolean_value(
+                value,
+                field_name="Config key `preferences.timelog_auto_set_task_planning`",
+            ),
+        )
+    elif normalized_key == "preferences.todos_default_inbox_vision":
+        preferences_settings = replace(
+            preferences_settings,
+            todos_default_inbox_vision=validate_todos_default_inbox_vision(value),
         )
 
     written_path = write_database_settings(
