@@ -85,6 +85,8 @@ const calendarAdapterMock = {
 
 vi.mock("@/utils/calendar", () => ({
   DEFAULT_SEVEN_YEAR_ANCHOR_DATE: "2025-07-26",
+  isLocalDateString: (value: unknown) =>
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value),
   parseLocalDateString: (value: string) => new Date(`${value}T00:00:00`),
   CalendarAdapterFactory: {
     create: vi.fn(() => calendarAdapterMock),

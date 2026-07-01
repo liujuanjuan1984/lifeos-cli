@@ -3,6 +3,7 @@ import { usePreferenceWithBootstrap } from "./queries/usePreferenceWithBootstrap
 import {
   CalendarAdapterFactory,
   DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
   parseLocalDateString,
 } from "@/utils/calendar";
 import type {
@@ -10,21 +11,6 @@ import type {
   CalendarSystem,
   ExtendedPlanningViewType,
 } from "@/utils/calendar";
-
-function isIsoDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-}
 
 interface CalendarAdapterState {
   adapter: CalendarAdapter;
@@ -55,7 +41,7 @@ export function useCalendarAdapter(): CalendarAdapterState {
     key: "calendar.seven_year_anchor_date",
     defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
     module: "calendar",
-    validator: isIsoDate,
+    validator: isLocalDateString,
   });
 
   const calendarSystem: CalendarSystem =
@@ -65,7 +51,7 @@ export function useCalendarAdapter(): CalendarAdapterState {
   const firstDayOfWeek = Number.isFinite(firstDayPreference.value)
     ? firstDayPreference.value
     : 1;
-  const sevenYearAnchorDate = isIsoDate(sevenYearAnchorPreference.value)
+  const sevenYearAnchorDate = isLocalDateString(sevenYearAnchorPreference.value)
     ? sevenYearAnchorPreference.value
     : DEFAULT_SEVEN_YEAR_ANCHOR_DATE;
 

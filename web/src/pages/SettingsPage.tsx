@@ -23,23 +23,10 @@ import {
   coerceNoteCollapseValue,
   useNoteCollapsePreference,
 } from "@/hooks/notes/useNoteCollapsePreference";
-
-const DEFAULT_SEVEN_YEAR_ANCHOR_DATE = "2025-07-26";
-
-function isIsoDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-}
+import {
+  DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  isLocalDateString,
+} from "@/utils/calendar";
 
 function SettingsPage() {
   const { t } = useTranslation();
@@ -71,7 +58,7 @@ function SettingsPage() {
       key: "calendar.seven_year_anchor_date",
       defaultValue: DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
       module: "calendar",
-      validator: isIsoDate,
+      validator: isLocalDateString,
     });
 
   const visionExperienceSettings = usePreferenceWithBootstrap<number>({
@@ -239,11 +226,11 @@ function SettingsPage() {
         ...calendarSevenYearAnchorDateSettings,
         saveValue: async (value: unknown) =>
           await calendarSevenYearAnchorDateSettings.saveValue(
-            isIsoDate(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+            isLocalDateString(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
           ),
         updateValue: (value: unknown) =>
           calendarSevenYearAnchorDateSettings.updateValue(
-            isIsoDate(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+            isLocalDateString(value) ? value : DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
           ),
       },
       "visions.experienceRatePerHour": {

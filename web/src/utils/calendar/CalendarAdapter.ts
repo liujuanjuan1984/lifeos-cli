@@ -5,11 +5,27 @@ export type ExtendedPlanningViewType = PlanningViewType | "sevenYear";
 
 export const DEFAULT_SEVEN_YEAR_ANCHOR_DATE = "2025-07-26";
 
+export const isLocalDateString = (value: unknown): value is string => {
+  if (typeof value !== "string") return false;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+};
+
 export const parseLocalDateString = (
   dateValue: string,
   fallback: string = DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
 ): Date => {
-  const value = /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? dateValue : fallback;
+  const value = isLocalDateString(dateValue) ? dateValue : fallback;
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) {
     return parseLocalDateString(fallback, DEFAULT_SEVEN_YEAR_ANCHOR_DATE);
