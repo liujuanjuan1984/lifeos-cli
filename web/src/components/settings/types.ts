@@ -36,7 +36,6 @@ export interface SettingItemConfig {
     "aria-labelledby"?: string;
     "aria-describedby"?: string;
   }) => React.ReactNode;
-  dependencies?: string[];
   min?: number;
   max?: number;
   step?: number;
