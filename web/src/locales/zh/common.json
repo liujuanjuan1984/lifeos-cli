@@ -1404,7 +1404,7 @@
       "net": "净额",
       "entries": "条目",
       "amountsByCurrency": "按币种汇总",
-      "assetSummary": "资产汇总",
+      "assetSummary": "汇总",
       "summary": "汇总",
       "details": "详情",
       "convertTo": "换算为 {{currency}}",

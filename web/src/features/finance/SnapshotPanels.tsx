@@ -614,6 +614,7 @@ function SnapshotEntryTreeTable({
                 <FinanceAmountText
                   amount={displayConvertedAmount}
                   currencyCode={primaryCurrency}
+                  showCurrency={false}
                 />
               </span>
             ) : (
@@ -722,6 +723,7 @@ function SnapshotEntryTreeTable({
                     <FinanceAmountText
                       amount={convertedHoldingAmount}
                       currencyCode={primaryCurrency}
+                      showCurrency={false}
                     />
                   </span>
                 ) : (
@@ -774,7 +776,7 @@ function SnapshotEntryTreeTable({
                   {t("finance.snapshot.originalAmount")}
                 </th>
                 <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.snapshot.convertedAmount", { currency: primaryCurrency })}
+                  {t("finance.metrics.convertTo", { currency: primaryCurrency })}
                 </th>
                 <th className="min-w-[10rem] px-4 py-2">
                   {t("finance.snapshot.note")}
@@ -873,14 +875,13 @@ function AssetSummaryPanel({
   return (
     <div className="rounded-lg border border-base-300 bg-base-100">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 px-3 py-2">
-        <h4 className="font-semibold text-base-content">{t("finance.metrics.assetSummary")}</h4>
+        <h4 className="text-base font-semibold text-base-content">
+          {t("finance.metrics.assetSummary")}
+        </h4>
         <span className="text-right text-sm text-base-content/70" title={rateSnapshotTooltip}>
           {t("finance.rates.tabTitle")}
           <span className="ml-2 text-base-content">{rateSnapshotLabelText}</span>
         </span>
-      </div>
-      <div className="px-3 pt-3 text-sm font-semibold text-base-content">
-        {t("finance.metrics.summary")}
       </div>
       <div className="overflow-x-auto">
         <table className="table table-sm">
@@ -933,6 +934,7 @@ function AssetSummaryPanel({
                       amount={row.convertedAmount}
                       currencyCode={primaryCurrency}
                       value={row.convertedValue}
+                      showCurrency={false}
                     />
                   ) : (
                     <span className="text-base-content/40">-</span>
@@ -1046,8 +1048,10 @@ export function SnapshotDetail({
       />
 
       <div className="rounded-lg border border-base-300">
-        <div className="border-b border-base-200 px-3 py-2 text-sm font-semibold text-base-content">
-          {t("finance.metrics.details")}
+        <div className="border-b border-base-200 px-3 py-2">
+          <h4 className="text-base font-semibold text-base-content">
+            {t("finance.metrics.details")}
+          </h4>
         </div>
         <div className="overflow-x-auto">
           <table className="table table-sm">
@@ -1063,7 +1067,7 @@ export function SnapshotDetail({
                   {t("finance.snapshot.originalAmount")}
                 </th>
                 <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.snapshot.convertedAmount", { currency: snapshot.primary_currency })}
+                  {t("finance.metrics.convertTo", { currency: snapshot.primary_currency })}
                 </th>
                 <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
               </tr>
@@ -1144,6 +1148,7 @@ export function SnapshotDetail({
                           )}
                           currencyCode={snapshot.primary_currency}
                           value={parseDisplayAmount(node.amountConverted)}
+                          showCurrency={false}
                         />
                       ) : (
                         <span className="text-base-content/40">-</span>
