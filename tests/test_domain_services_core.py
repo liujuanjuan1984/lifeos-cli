@@ -274,6 +274,46 @@ def test_update_person_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     session.commit.assert_not_called()
 
 
+def test_update_person_skips_duplicate_check_when_name_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    person = SimpleNamespace(
+        id=UUID("33333333-3333-3333-3333-333333333333"),
+        name="Alice",
+        description=None,
+        nicknames=None,
+        birth_date=None,
+        location=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_load_person(
+        _: object,
+        *,
+        model_cls: object,
+        model_id: UUID,
+    ) -> object:
+        assert model_cls is people.Person
+        assert model_id == UUID("33333333-3333-3333-3333-333333333333")
+        return person
+
+    monkeypatch.setattr(people, "load_model_by_id", fake_load_person)
+    monkeypatch.setattr(people, "_build_person_view", _identity_view)
+
+    updated_person = asyncio.run(
+        people.update_person(
+            cast(Any, session),
+            person_id=UUID("33333333-3333-3333-3333-333333333333"),
+            name="Alice",
+        )
+    )
+
+    assert updated_person.name == "Alice"
+    assert not hasattr(session, "execute")
+    session.flush.assert_awaited_once()
+    session.commit.assert_not_called()
+
+
 def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     vision = SimpleNamespace(
         id=UUID("44444444-4444-4444-4444-444444444444"),

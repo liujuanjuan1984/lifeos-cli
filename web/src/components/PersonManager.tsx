@@ -390,7 +390,7 @@ const PersonManager: React.FC<PersonManagerProps> = ({
               onClick={() => handleSort("name")}
               className="text-left text-sm font-medium uppercase tracking-wider flex items-center gap-1"
             >
-              <span>{t("auth.name")}</span>
+              <span>{t("personDetail.name")}</span>
               {sortField === "name" && (
                 <Icon
                   name="chevron-down"

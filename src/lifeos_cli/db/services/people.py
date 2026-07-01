@@ -160,15 +160,18 @@ async def update_person(
         raise PersonNotFoundError(f"Person {person_id} was not found")
     if name is not None:
         normalized_name = name.strip()
-        conflict = await session.execute(
-            select(Person.id).where(
-                Person.name == normalized_name,
-                Person.id != person_id,
-                Person.deleted_at.is_(None),
+        if normalized_name != person.name:
+            conflict = await session.execute(
+                select(Person.id).where(
+                    Person.name == normalized_name,
+                    Person.id != person_id,
+                    Person.deleted_at.is_(None),
+                )
             )
-        )
-        if conflict.scalar_one_or_none() is not None:
-            raise PersonAlreadyExistsError(f"Person with name {normalized_name!r} already exists")
+            if conflict.scalar_one_or_none() is not None:
+                raise PersonAlreadyExistsError(
+                    f"Person with name {normalized_name!r} already exists"
+                )
         person.name = normalized_name
     if clear_description:
         person.description = None

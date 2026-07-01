@@ -34,26 +34,33 @@ _VISIBLE_MODULES = [
 
 _CONFIG_KEY_MAP = {
     "appearance.theme": "preferences.theme",
+    "calendar.first_day_of_week": "preferences.calendar_first_day_of_week",
+    "calendar.system": "preferences.calendar_system",
+    "navigation.visible_modules": "preferences.navigation_visible_modules",
+    "notes.card_min_collapsed_lines": "preferences.notes_card_min_collapsed_lines",
+    "notes.export_planning.include_cycle_notes": (
+        "preferences.notes_export_planning_include_cycle_notes"
+    ),
+    "notes.export_planning.include_task_notes": (
+        "preferences.notes_export_planning_include_task_notes"
+    ),
+    "planning.show_habit_actions": "preferences.planning_show_habit_actions",
     "system.timezone": "preferences.timezone",
+    "system.language": "preferences.language",
+    "tasks.default_planning_preset": "preferences.tasks_default_planning_preset",
+    "timeLog.auto_set_task_planning": "preferences.timelog_auto_set_task_planning",
+    "todos.default_inbox_vision": "preferences.todos_default_inbox_vision",
     "visions.experience_rate_per_hour": "preferences.vision_experience_rate_per_hour",
 }
 
 _CONFIG_ENV_KEY_MAP = {
+    "system.language": "LIFEOS_LANGUAGE",
     "system.timezone": "LIFEOS_TIMEZONE",
     "visions.experience_rate_per_hour": "LIFEOS_VISION_EXPERIENCE_RATE_PER_HOUR",
 }
 
 _STATIC_DEFAULTS: dict[str, Any] = {
-    "calendar.first_day_of_week": 1,
-    "calendar.system": "gregorian",
     "dashboard.area_order": [],
-    "navigation.visible_modules": _VISIBLE_MODULES,
-    "notes.card_min_collapsed_lines": 5,
-    "notes.export_planning.include_cycle_notes": False,
-    "notes.export_planning.include_task_notes": True,
-    "planning.show_habit_actions": True,
-    "tasks.default_planning_preset": "none",
-    "timeLog.auto_set_task_planning": False,
 }
 
 _META: dict[str, dict[str, Any]] = {
@@ -92,8 +99,30 @@ class PreferenceUpdate(BaseModel):
 def _extract_config_preference_value(preferences: PreferencesSettings, key: str) -> Any:
     if key == "appearance.theme":
         return preferences.theme
+    if key == "calendar.first_day_of_week":
+        return preferences.calendar_first_day_of_week
+    if key == "calendar.system":
+        return preferences.calendar_system
+    if key == "navigation.visible_modules":
+        return list(preferences.navigation_visible_modules)
+    if key == "notes.card_min_collapsed_lines":
+        return preferences.notes_card_min_collapsed_lines
+    if key == "notes.export_planning.include_cycle_notes":
+        return preferences.notes_export_planning_include_cycle_notes
+    if key == "notes.export_planning.include_task_notes":
+        return preferences.notes_export_planning_include_task_notes
+    if key == "planning.show_habit_actions":
+        return preferences.planning_show_habit_actions
     if key == "system.timezone":
         return preferences.timezone
+    if key == "system.language":
+        return preferences.language
+    if key == "tasks.default_planning_preset":
+        return preferences.tasks_default_planning_preset
+    if key == "timeLog.auto_set_task_planning":
+        return preferences.timelog_auto_set_task_planning
+    if key == "todos.default_inbox_vision":
+        return preferences.todos_default_inbox_vision
     if key == "visions.experience_rate_per_hour":
         return preferences.vision_experience_rate_per_hour
     return None
@@ -110,7 +139,7 @@ def _sync_effective_config_preference_to_file(key: str) -> Any:
     if effective_value != file_value:
         set_runtime_config_value(
             key=config_key,
-            value=str(effective_value),
+            value=_config_payload_to_string(effective_value),
             refresh_runtime=False,
         )
         effective_value = _extract_config_preference_value(get_preferences_settings(), key)
@@ -122,25 +151,29 @@ def _set_process_config_override(key: str, value: Any) -> None:
     if env_key is None:
         return
     if env_key in os.environ:
-        os.environ[env_key] = str(value)
+        os.environ[env_key] = _config_payload_to_string(value)
     clear_config_cache()
-
-
-def _config_preference_value(key: str) -> Any:
-    if key in _CONFIG_KEY_MAP:
-        return _sync_effective_config_preference_to_file(key)
-    return None
 
 
 def _default_value(key: str) -> Any:
     if key in _CONFIG_KEY_MAP:
-        return _config_preference_value(key)
+        return _sync_effective_config_preference_to_file(key)
     return _STATIC_DEFAULTS.get(key)
+
+
+def _config_payload_to_string(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list | tuple):
+        return ",".join(str(item) for item in value)
+    if value is None:
+        return ""
+    return str(value)
 
 
 def _preference_response(key: str) -> dict[str, Any]:
     if key in _CONFIG_KEY_MAP:
-        value = _config_preference_value(key)
+        value = _sync_effective_config_preference_to_file(key)
     else:
         value = _VALUES.get(key, _STATIC_DEFAULTS.get(key))
     meta = {
@@ -165,7 +198,7 @@ async def set_preference(key: str, payload: PreferenceUpdate) -> dict[str, Any]:
         try:
             set_runtime_config_value(
                 key=config_key,
-                value=str(payload.value),
+                value=_config_payload_to_string(payload.value),
                 refresh_runtime=False,
             )
         except ConfigurationError as exc:

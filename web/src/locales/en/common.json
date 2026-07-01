@@ -1699,6 +1699,7 @@
     "saveFailed": "Save failed, please try again later"
   },
   "personDetail": {
+    "name": "Name",
     "nicknames": "Nicknames",
     "primaryNickname": "Primary Nickname",
     "birthDate": "Birth Date",

@@ -36,6 +36,27 @@ DEFAULT_DAY_STARTS_AT = "00:00"
 DEFAULT_WEEK_STARTS_ON = "monday"
 DEFAULT_VISION_EXPERIENCE_RATE_PER_HOUR = 60
 DEFAULT_THEME = "system"
+DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK = 1
+DEFAULT_CALENDAR_SYSTEM = "gregorian"
+DEFAULT_NAVIGATION_VISIBLE_MODULES = (
+    "visions",
+    "habits",
+    "planning",
+    "timelog",
+    "finance",
+    "insights",
+    "calendar",
+    "notes",
+    "persons",
+    "settings",
+)
+DEFAULT_NOTES_CARD_MIN_COLLAPSED_LINES = 5
+DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_CYCLE_NOTES = False
+DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_TASK_NOTES = True
+DEFAULT_PLANNING_SHOW_HABIT_ACTIONS = True
+DEFAULT_TASKS_DEFAULT_PLANNING_PRESET = "none"
+DEFAULT_TIMELOG_AUTO_SET_TASK_PLANNING = False
+DEFAULT_TODOS_DEFAULT_INBOX_VISION = None
 MAX_VISION_EXPERIENCE_RATE_PER_HOUR = 3600
 SUPPORTED_THEMES = (
     "system",
@@ -67,10 +88,17 @@ SUPPORTED_THEMES = (
     "coffee",
     "winter",
 )
+SUPPORTED_CALENDAR_SYSTEMS = ("gregorian", "mayan_13_moon")
+SUPPORTED_NAVIGATION_MODULES = DEFAULT_NAVIGATION_VISIBLE_MODULES
+SUPPORTED_NOTES_CARD_MIN_COLLAPSED_LINES = (3, 5, 7, 9, 11, 13, 15)
+SUPPORTED_TASKS_DEFAULT_PLANNING_PRESETS = ("none", "today", "this_week", "this_month")
 _SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LANGUAGE_TAG_PATTERN = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
 _DAY_STARTS_AT_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
 _WEEK_STARTS_ON_VALUES = {"monday", "sunday"}
+_UUID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 class ConfigurationError(RuntimeError):
@@ -231,10 +259,12 @@ def _normalize_language_value(language: str) -> str:
 def validate_language(language: str) -> str:
     """Validate a language tag used for user-facing preferences."""
     normalized = _normalize_language_value(language)
+    if normalized.lower() == "auto":
+        return "auto"
     if not _LANGUAGE_TAG_PATTERN.match(normalized):
         raise ConfigurationError(
-            "Preference `language` must be a valid language tag such as `en`, "
-            "`en-CA`, or `zh-Hans`."
+            "Preference `language` must be `auto` or a valid language tag such as "
+            "`en`, `en-CA`, or `zh-Hans`."
         )
     return normalized
 
@@ -298,6 +328,100 @@ def validate_theme(value: str) -> str:
     return normalized
 
 
+def _parse_string_list(value: object, *, field_name: str) -> list[str]:
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            return []
+        return [item.strip() for item in normalized.split(",") if item.strip()]
+    if isinstance(value, list | tuple):
+        items: list[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                raise ConfigurationError(f"Preference `{field_name}` must contain strings.")
+            items.append(item.strip())
+        return [item for item in items if item]
+    raise ConfigurationError(f"Preference `{field_name}` must be a list of strings.")
+
+
+def validate_calendar_first_day_of_week(value: int | str) -> int:
+    """Validate the preferred first day used by Web calendar views."""
+    if isinstance(value, bool):
+        raise ConfigurationError("Preference `calendar_first_day_of_week` must be an integer.")
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(
+            "Preference `calendar_first_day_of_week` must be an integer."
+        ) from exc
+    if normalized < 1 or normalized > 7:
+        raise ConfigurationError("Preference `calendar_first_day_of_week` must be between 1 and 7.")
+    return normalized
+
+
+def validate_calendar_system(value: str) -> str:
+    """Validate the preferred Web calendar system."""
+    normalized = value.strip()
+    if normalized not in SUPPORTED_CALENDAR_SYSTEMS:
+        supported = ", ".join(SUPPORTED_CALENDAR_SYSTEMS)
+        raise ConfigurationError(f"Preference `calendar_system` must be one of: {supported}.")
+    return normalized
+
+
+def validate_navigation_visible_modules(value: object) -> tuple[str, ...]:
+    """Validate the Web navigation module visibility preference."""
+    modules = _parse_string_list(value, field_name="navigation_visible_modules")
+    unsupported = [module for module in modules if module not in SUPPORTED_NAVIGATION_MODULES]
+    if unsupported:
+        supported = ", ".join(SUPPORTED_NAVIGATION_MODULES)
+        raise ConfigurationError(
+            "Preference `navigation_visible_modules` contains unsupported modules: "
+            f"{', '.join(unsupported)}. Supported modules: {supported}."
+        )
+    return tuple(dict.fromkeys(modules))
+
+
+def validate_notes_card_min_collapsed_lines(value: int | str) -> int:
+    """Validate the Web note card collapsed preview size."""
+    if isinstance(value, bool):
+        raise ConfigurationError("Preference `notes_card_min_collapsed_lines` must be an integer.")
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(
+            "Preference `notes_card_min_collapsed_lines` must be an integer."
+        ) from exc
+    if normalized not in SUPPORTED_NOTES_CARD_MIN_COLLAPSED_LINES:
+        supported = ", ".join(str(item) for item in SUPPORTED_NOTES_CARD_MIN_COLLAPSED_LINES)
+        raise ConfigurationError(
+            f"Preference `notes_card_min_collapsed_lines` must be one of: {supported}."
+        )
+    return normalized
+
+
+def validate_tasks_default_planning_preset(value: str) -> str:
+    """Validate the default planning preset for new Web tasks."""
+    normalized = value.strip()
+    if normalized not in SUPPORTED_TASKS_DEFAULT_PLANNING_PRESETS:
+        supported = ", ".join(SUPPORTED_TASKS_DEFAULT_PLANNING_PRESETS)
+        raise ConfigurationError(
+            f"Preference `tasks_default_planning_preset` must be one of: {supported}."
+        )
+    return normalized
+
+
+def validate_todos_default_inbox_vision(value: str | None) -> str | None:
+    """Validate the optional default inbox vision identifier used by Web planning."""
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if not _UUID_PATTERN.match(normalized):
+        raise ConfigurationError("Preference `todos_default_inbox_vision` must be a UUID when set.")
+    return normalized.lower()
+
+
 def _parse_bool(value: str) -> bool:
     normalized = value.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
@@ -318,6 +442,10 @@ def _serialize_toml_string(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _serialize_toml_string_list(values: tuple[str, ...]) -> str:
+    return f"[{', '.join(_serialize_toml_string(value) for value in values)}]"
+
+
 def _render_database_table(settings: DatabaseSettings) -> str:
     """Render the `[database]` TOML table for persisted settings."""
     lines = ["[database]"]
@@ -331,17 +459,36 @@ def _render_database_table(settings: DatabaseSettings) -> str:
 
 def _render_preferences_table(settings: PreferencesSettings) -> str:
     """Render the `[preferences]` TOML table for persisted settings."""
-    return "\n".join(
-        (
-            "[preferences]",
-            f"timezone = {_serialize_toml_string(settings.timezone)}",
-            f"language = {_serialize_toml_string(settings.language)}",
-            f"day_starts_at = {_serialize_toml_string(settings.day_starts_at)}",
-            f"week_starts_on = {_serialize_toml_string(settings.week_starts_on)}",
-            f"vision_experience_rate_per_hour = {settings.vision_experience_rate_per_hour}",
-            f"theme = {_serialize_toml_string(settings.theme)}",
+    lines = [
+        "[preferences]",
+        f"timezone = {_serialize_toml_string(settings.timezone)}",
+        f"language = {_serialize_toml_string(settings.language)}",
+        f"day_starts_at = {_serialize_toml_string(settings.day_starts_at)}",
+        f"week_starts_on = {_serialize_toml_string(settings.week_starts_on)}",
+        f"vision_experience_rate_per_hour = {settings.vision_experience_rate_per_hour}",
+        f"theme = {_serialize_toml_string(settings.theme)}",
+        f"calendar_first_day_of_week = {settings.calendar_first_day_of_week}",
+        f"calendar_system = {_serialize_toml_string(settings.calendar_system)}",
+        "navigation_visible_modules = "
+        f"{_serialize_toml_string_list(settings.navigation_visible_modules)}",
+        f"notes_card_min_collapsed_lines = {settings.notes_card_min_collapsed_lines}",
+        "notes_export_planning_include_cycle_notes = "
+        f"{'true' if settings.notes_export_planning_include_cycle_notes else 'false'}",
+        "notes_export_planning_include_task_notes = "
+        f"{'true' if settings.notes_export_planning_include_task_notes else 'false'}",
+        "planning_show_habit_actions = "
+        f"{'true' if settings.planning_show_habit_actions else 'false'}",
+        f"tasks_default_planning_preset = "
+        f"{_serialize_toml_string(settings.tasks_default_planning_preset)}",
+        f"timelog_auto_set_task_planning = "
+        f"{'true' if settings.timelog_auto_set_task_planning else 'false'}",
+    ]
+    if settings.todos_default_inbox_vision is not None:
+        lines.append(
+            "todos_default_inbox_vision = "
+            f"{_serialize_toml_string(settings.todos_default_inbox_vision)}"
         )
-    )
+    return "\n".join(lines)
 
 
 def _replace_top_level_table(existing_content: str, *, table_name: str, replacement: str) -> str:
@@ -524,6 +671,20 @@ class PreferencesSettings:
     vision_experience_rate_per_hour: int
     config_file: Path
     theme: str = DEFAULT_THEME
+    calendar_first_day_of_week: int = DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK
+    calendar_system: str = DEFAULT_CALENDAR_SYSTEM
+    navigation_visible_modules: tuple[str, ...] = DEFAULT_NAVIGATION_VISIBLE_MODULES
+    notes_card_min_collapsed_lines: int = DEFAULT_NOTES_CARD_MIN_COLLAPSED_LINES
+    notes_export_planning_include_cycle_notes: bool = (
+        DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_CYCLE_NOTES
+    )
+    notes_export_planning_include_task_notes: bool = (
+        DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_TASK_NOTES
+    )
+    planning_show_habit_actions: bool = DEFAULT_PLANNING_SHOW_HABIT_ACTIONS
+    tasks_default_planning_preset: str = DEFAULT_TASKS_DEFAULT_PLANNING_PRESET
+    timelog_auto_set_task_planning: bool = DEFAULT_TIMELOG_AUTO_SET_TASK_PLANNING
+    todos_default_inbox_vision: str | None = DEFAULT_TODOS_DEFAULT_INBOX_VISION
 
     @classmethod
     def from_env(
@@ -548,6 +709,24 @@ class PreferencesSettings:
         file_week_starts_on = preference_values.get("week_starts_on")
         file_vision_experience_rate = preference_values.get("vision_experience_rate_per_hour")
         file_theme = preference_values.get("theme")
+        file_calendar_first_day_of_week = preference_values.get("calendar_first_day_of_week")
+        file_calendar_system = preference_values.get("calendar_system")
+        file_navigation_visible_modules = preference_values.get("navigation_visible_modules")
+        file_notes_card_min_collapsed_lines = preference_values.get(
+            "notes_card_min_collapsed_lines"
+        )
+        file_notes_export_include_cycle_notes = preference_values.get(
+            "notes_export_planning_include_cycle_notes"
+        )
+        file_notes_export_include_task_notes = preference_values.get(
+            "notes_export_planning_include_task_notes"
+        )
+        file_planning_show_habit_actions = preference_values.get("planning_show_habit_actions")
+        file_tasks_default_planning_preset = preference_values.get("tasks_default_planning_preset")
+        file_timelog_auto_set_task_planning = preference_values.get(
+            "timelog_auto_set_task_planning"
+        )
+        file_todos_default_inbox_vision = preference_values.get("todos_default_inbox_vision")
 
         timezone_value = source.get("LIFEOS_TIMEZONE") if include_overrides else None
         if timezone_value is None and isinstance(file_timezone, str):
@@ -585,6 +764,79 @@ class PreferencesSettings:
         theme_value = file_theme if isinstance(file_theme, str) else DEFAULT_THEME
         theme = validate_theme(theme_value)
 
+        calendar_first_day_of_week_value = (
+            file_calendar_first_day_of_week
+            if file_calendar_first_day_of_week is not None
+            else DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK
+        )
+        calendar_first_day_of_week = validate_calendar_first_day_of_week(
+            calendar_first_day_of_week_value
+        )
+
+        calendar_system_value = (
+            file_calendar_system
+            if isinstance(file_calendar_system, str)
+            else DEFAULT_CALENDAR_SYSTEM
+        )
+        calendar_system = validate_calendar_system(calendar_system_value)
+
+        navigation_visible_modules_value = (
+            file_navigation_visible_modules
+            if file_navigation_visible_modules is not None
+            else DEFAULT_NAVIGATION_VISIBLE_MODULES
+        )
+        navigation_visible_modules = validate_navigation_visible_modules(
+            navigation_visible_modules_value
+        )
+
+        notes_card_min_collapsed_lines_value = (
+            file_notes_card_min_collapsed_lines
+            if file_notes_card_min_collapsed_lines is not None
+            else DEFAULT_NOTES_CARD_MIN_COLLAPSED_LINES
+        )
+        notes_card_min_collapsed_lines = validate_notes_card_min_collapsed_lines(
+            notes_card_min_collapsed_lines_value
+        )
+
+        notes_export_include_cycle_notes = (
+            bool(file_notes_export_include_cycle_notes)
+            if isinstance(file_notes_export_include_cycle_notes, bool)
+            else DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_CYCLE_NOTES
+        )
+        notes_export_include_task_notes = (
+            bool(file_notes_export_include_task_notes)
+            if isinstance(file_notes_export_include_task_notes, bool)
+            else DEFAULT_NOTES_EXPORT_PLANNING_INCLUDE_TASK_NOTES
+        )
+        planning_show_habit_actions = (
+            bool(file_planning_show_habit_actions)
+            if isinstance(file_planning_show_habit_actions, bool)
+            else DEFAULT_PLANNING_SHOW_HABIT_ACTIONS
+        )
+
+        tasks_default_planning_preset_value = (
+            file_tasks_default_planning_preset
+            if isinstance(file_tasks_default_planning_preset, str)
+            else DEFAULT_TASKS_DEFAULT_PLANNING_PRESET
+        )
+        tasks_default_planning_preset = validate_tasks_default_planning_preset(
+            tasks_default_planning_preset_value
+        )
+
+        timelog_auto_set_task_planning = (
+            bool(file_timelog_auto_set_task_planning)
+            if isinstance(file_timelog_auto_set_task_planning, bool)
+            else DEFAULT_TIMELOG_AUTO_SET_TASK_PLANNING
+        )
+        todos_default_inbox_vision_value = (
+            file_todos_default_inbox_vision
+            if isinstance(file_todos_default_inbox_vision, str)
+            else DEFAULT_TODOS_DEFAULT_INBOX_VISION
+        )
+        todos_default_inbox_vision = validate_todos_default_inbox_vision(
+            todos_default_inbox_vision_value
+        )
+
         return cls(
             timezone=timezone_value,
             language=language_value,
@@ -593,6 +845,16 @@ class PreferencesSettings:
             vision_experience_rate_per_hour=vision_experience_rate,
             config_file=config_path,
             theme=theme,
+            calendar_first_day_of_week=calendar_first_day_of_week,
+            calendar_system=calendar_system,
+            navigation_visible_modules=navigation_visible_modules,
+            notes_card_min_collapsed_lines=notes_card_min_collapsed_lines,
+            notes_export_planning_include_cycle_notes=notes_export_include_cycle_notes,
+            notes_export_planning_include_task_notes=notes_export_include_task_notes,
+            planning_show_habit_actions=planning_show_habit_actions,
+            tasks_default_planning_preset=tasks_default_planning_preset,
+            timelog_auto_set_task_planning=timelog_auto_set_task_planning,
+            todos_default_inbox_vision=todos_default_inbox_vision,
         )
 
 
