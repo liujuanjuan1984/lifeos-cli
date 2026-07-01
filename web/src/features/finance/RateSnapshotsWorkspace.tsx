@@ -162,8 +162,10 @@ export function RateSnapshotsWorkspace() {
     event.preventDefault();
     const entries = rateRows
       .map((row) => {
-        const baseAmount = Number(row.baseAmount);
-        const quoteAmount = Number(row.quoteAmount);
+        const baseAmountValue = row.baseAmount.trim();
+        const quoteAmountValue = row.quoteAmount.trim();
+        const baseAmount = Number(baseAmountValue);
+        const quoteAmount = Number(quoteAmountValue);
         const baseCurrency = row.baseCurrency.trim().toUpperCase();
         const quoteCurrency = row.quoteCurrency.trim().toUpperCase();
         return {
@@ -171,7 +173,9 @@ export function RateSnapshotsWorkspace() {
           quote_currency: quoteCurrency,
           rate:
             Number.isFinite(baseAmount) && baseAmount > 0 && Number.isFinite(quoteAmount)
-              ? String(quoteAmount / baseAmount)
+              ? baseAmount === 1
+                ? quoteAmountValue
+                : String(quoteAmount / baseAmount)
               : "",
           source: source.trim() || "manual",
         };
@@ -256,11 +260,28 @@ export function RateSnapshotsWorkspace() {
       (currentSnapshot.entries ?? []).map((entry) => ({
         baseAmount: "1",
         baseCurrency: entry.base_currency,
-        quoteAmount: entry.rate,
+        quoteAmount: formatAmountForAsset(entry.rate, entry.quote_currency, assets),
         quoteCurrency: entry.quote_currency,
       })),
     );
     setRateFormMode("edit");
+    setRateFormVisible(true);
+  };
+
+  const openCopyRateSnapshotForm = () => {
+    if (!currentSnapshot) return;
+    setCapturedAt(nowDateTimeLocal());
+    setSource(currentSnapshot.source || "manual");
+    setNote(currentSnapshot.note ?? "");
+    setRateRows(
+      (currentSnapshot.entries ?? []).map((entry) => ({
+        baseAmount: "1",
+        baseCurrency: entry.base_currency,
+        quoteAmount: formatAmountForAsset(entry.rate, entry.quote_currency, assets),
+        quoteCurrency: entry.quote_currency,
+      })),
+    );
+    setRateFormMode("copy");
     setRateFormVisible(true);
   };
 
@@ -301,38 +322,42 @@ export function RateSnapshotsWorkspace() {
               title={
                 rateFormMode === "edit"
                   ? t("finance.rates.editSnapshot")
+                  : rateFormMode === "copy"
+                    ? t("finance.rates.copySnapshot")
                   : t("finance.rates.createSnapshot")
               }
-              rightSlot={
-                <div className="flex justify-end gap-2">
-                  <ActionButton
-                    label={t("common.cancel")}
-                    iconName="x-mark"
-                    onClick={closeRateSnapshotForm}
-                    size="sm"
-                    variant="ghost"
-                    disabled={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                    }
-                  />
-                  <ActionButton
-                    type="submit"
-                    form={rateSnapshotFormId}
-                    label={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                        ? t("common.saving")
-                        : t("common.save")
-                    }
-                    iconName="check"
-                    color="primary"
-                    variant="solid"
-                    disabled={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                    }
-                  />
-                </div>
-              }
             />
+            <div
+              className={`mt-4 flex gap-2 ${
+                rateFormMode === "create" ? "justify-end" : "justify-center"
+              }`}
+            >
+              <ActionButton
+                label={t("common.cancel")}
+                iconName="x-mark"
+                onClick={closeRateSnapshotForm}
+                size="sm"
+                variant="ghost"
+                disabled={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                }
+              />
+              <ActionButton
+                type="submit"
+                form={rateSnapshotFormId}
+                label={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    ? t("common.saving")
+                    : t("common.save")
+                }
+                iconName="check"
+                color="primary"
+                variant="solid"
+                disabled={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                }
+              />
+            </div>
             <form id={rateSnapshotFormId} className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <FormField label={t("finance.rates.capturedAt")}>
@@ -475,11 +500,13 @@ export function RateSnapshotsWorkspace() {
               title={rateSnapshotLabel(currentSnapshot)}
               rightSlot={
                 <SnapshotActionButtons
-                  editLabel={t("finance.rates.editSnapshot")}
-                  deleteLabel={t("finance.rates.deleteSnapshot")}
+                  editLabel={t("common.edit")}
+                  copyLabel={t("common.copy")}
+                  deleteLabel={t("common.delete")}
                   disabled={deleteRateSnapshotMutation.isPending}
                   deleteDisabled={deleteRateSnapshotMutation.isPending}
                   onEdit={openEditRateSnapshotForm}
+                  onCopy={openCopyRateSnapshotForm}
                   onDelete={() => setPendingDeleteRateSnapshot(currentSnapshot)}
                 />
               }

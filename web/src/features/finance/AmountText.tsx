@@ -28,8 +28,8 @@ export function FinanceAmountText({
   showCurrency = true,
   className = "",
 }: FinanceAmountTextProps) {
-  const text = amount.trim();
-  if (!text) {
+  const rawText = amount.trim();
+  if (!rawText) {
     return (
       <span className={[financeTextClass.placeholder, className].filter(Boolean).join(" ")}>
         -
@@ -37,6 +37,7 @@ export function FinanceAmountText({
     );
   }
 
+  const text = trimInsignificantFractionZeroes(rawText);
   const numericValue = typeof value === "number" ? value : parseNumericAmount(text);
   const toneClass =
     Number.isFinite(numericValue) && numericValue < 0 ? "text-warning" : "text-base-content";
@@ -113,6 +114,20 @@ export function FinanceAssetSymbol({
 
 function parseNumericAmount(value: string): number {
   return Number(value.trim().replace(",", "."));
+}
+
+function trimInsignificantFractionZeroes(value: string): string {
+  const normalized = value.trim();
+  if (!/^[+-]?\d+(?:[.,]\d+)?$/.test(normalized)) {
+    return value;
+  }
+  const separator = normalized.includes(".") ? "." : ",";
+  const [integerPart, fractionPart] = normalized.split(separator);
+  if (!fractionPart) {
+    return normalized;
+  }
+  const trimmedFraction = fractionPart.replace(/0+$/, "");
+  return trimmedFraction ? `${integerPart}${separator}${trimmedFraction}` : integerPart;
 }
 
 function parseAmountList(value: string): Array<{ amount: string; currencyCode: string }> {

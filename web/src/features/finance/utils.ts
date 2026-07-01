@@ -40,7 +40,9 @@ export type SnapshotHoldingState = {
 
 export type SnapshotAmountState = Record<UUID, SnapshotHoldingState[]>;
 
-export type RateSnapshotFormMode = "create" | "edit";
+export type SnapshotFormMode = "create" | "edit" | "copy";
+
+export type RateSnapshotFormMode = "create" | "edit" | "copy";
 
 export type RateRowState = {
   baseAmount: string;
@@ -103,7 +105,7 @@ export const formatNumberForAsset = (
 ) =>
   value.toLocaleString(undefined, {
     useGrouping: false,
-    minimumFractionDigits: assetDecimalPlaces(assets, currency),
+    minimumFractionDigits: 0,
     maximumFractionDigits: assetDecimalPlaces(assets, currency),
   });
 
