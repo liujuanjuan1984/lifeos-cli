@@ -913,7 +913,9 @@ function AssetSummaryPanel({
             {rowsWithShare.map((row) => (
               <tr key={row.currency}>
                 <td className="font-medium">{row.currency}</td>
-                <td className="text-right tabular-nums">{row.amount}</td>
+                <td className={`text-right tabular-nums ${amountToneClass(row.numericAmount)}`}>
+                  {row.amount}
+                </td>
                 <td className="text-right tabular-nums">
                   {row.rateInfo ? (
                     <span title={rateInfoTooltip(row.rateInfo, assets)}>
@@ -929,7 +931,9 @@ function AssetSummaryPanel({
                 </td>
                 <td className="text-right tabular-nums">
                   {row.convertedAmount ? (
-                    `${row.convertedAmount} ${primaryCurrency}`
+                    <span className={amountToneClass(row.convertedValue)}>
+                      {row.convertedAmount} {primaryCurrency}
+                    </span>
                   ) : (
                     <span className="text-base-content/40">-</span>
                   )}
@@ -946,7 +950,7 @@ function AssetSummaryPanel({
         <span className="text-sm font-medium text-base-content/70">
           {t("finance.metrics.totalValue")}
         </span>
-        <span className="font-semibold tabular-nums text-base-content">
+        <span className={`font-semibold tabular-nums ${amountToneClass(totalValue)}`}>
           {totalValue === null
             ? "-"
             : `${formatNumberForAsset(totalValue, primaryCurrency, assets)} ${primaryCurrency}`}
@@ -1756,6 +1760,19 @@ function sumSnapshotNodeAmounts(
 function isNegativeAmount(value: string | null | undefined): boolean {
   const numeric = parseDisplayAmount(value ?? "");
   return Number.isFinite(numeric) && numeric < 0;
+}
+
+function amountToneClass(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "text-base-content";
+  }
+  if (value > 0) {
+    return "text-success";
+  }
+  if (value < 0) {
+    return "text-error";
+  }
+  return "text-base-content";
 }
 
 function parseDisplayAmount(value: string): number {
