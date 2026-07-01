@@ -102,17 +102,21 @@ export function SnapshotSelectorToolbar({
 
 export function SnapshotActionButtons({
   editLabel,
+  copyLabel,
   deleteLabel,
   disabled,
   deleteDisabled,
   onEdit,
+  onCopy,
   onDelete,
 }: {
   editLabel: string;
+  copyLabel?: string;
   deleteLabel: string;
   disabled?: boolean;
   deleteDisabled?: boolean;
   onEdit: () => void;
+  onCopy?: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -126,6 +130,17 @@ export function SnapshotActionButtons({
         ariaLabel={editLabel}
         disabled={disabled}
       />
+      {copyLabel && onCopy ? (
+        <ActionButton
+          label={copyLabel}
+          iconName="clipboard"
+          onClick={onCopy}
+          size="sm"
+          variant="ghost"
+          ariaLabel={copyLabel}
+          disabled={disabled}
+        />
+      ) : null}
       <ActionButton
         label={deleteLabel}
         iconName="trash"

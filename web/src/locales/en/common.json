@@ -1538,6 +1538,7 @@
       "addRate": "Add rate",
       "createSnapshot": "Create rates",
       "editSnapshot": "Edit rate snapshot",
+      "copySnapshot": "Copy rate snapshot",
       "saveSnapshot": "Save rate snapshot",
       "deleteSnapshot": "Delete rate snapshot",
       "deleteTitle": "Delete rate snapshot",

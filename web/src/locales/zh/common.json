@@ -1538,6 +1538,7 @@
       "addRate": "添加汇率",
       "createSnapshot": "创建汇率",
       "editSnapshot": "编辑汇率快照",
+      "copySnapshot": "复制汇率快照",
       "saveSnapshot": "保存汇率快照",
       "deleteSnapshot": "删除汇率快照",
       "deleteTitle": "删除汇率快照",

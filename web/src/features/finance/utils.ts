@@ -40,7 +40,7 @@ export type SnapshotHoldingState = {
 
 export type SnapshotAmountState = Record<UUID, SnapshotHoldingState[]>;
 
-export type RateSnapshotFormMode = "create" | "edit";
+export type RateSnapshotFormMode = "create" | "edit" | "copy";
 
 export type RateRowState = {
   baseAmount: string;

@@ -192,18 +192,18 @@ const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
       .filter(Boolean)
       .join(" ");
 
-    // 增强的点击处理函数，避免多余全局 DOM 查询
+    // Keep click handling local and avoid extra global DOM lookups.
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
-        // 防止重复点击
+        // Prevent duplicate clicks.
         if (disabled) return;
 
-        // 执行原始点击处理
+        // Run the original click handler.
         if (onClick) {
           onClick(e);
         }
 
-        // 去除当前按钮激活态与焦点，保持与 DaisyUI 行为一致
+        // Clear DaisyUI active/focus state from the current button.
         const current = e.currentTarget;
         current.classList.remove("active");
         current.blur();
