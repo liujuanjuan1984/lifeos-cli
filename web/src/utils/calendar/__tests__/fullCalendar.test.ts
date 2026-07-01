@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getFullCalendarFirstDay,
-  getMayanYearFirstDayOfWeekPreference,
   GregorianCalendarAdapter,
-  javascriptDayToWeekPreference,
   MayanCalendarAdapter,
 } from "@/utils/calendar";
 
@@ -42,17 +40,22 @@ describe("getFullCalendarFirstDay", () => {
     ).toBe(new Date(2026, 6, 26).getDay());
   });
 
-  it("maps JavaScript Sunday to the stored week preference value", () => {
-    expect(javascriptDayToWeekPreference(0)).toBe(7);
-    expect(javascriptDayToWeekPreference(6)).toBe(6);
-  });
-
-  it("derives the Mayan first day preference from the current Mayan year", () => {
-    expect(getMayanYearFirstDayOfWeekPreference(new Date(2026, 4, 1))).toBe(
-      6,
-    );
-    expect(getMayanYearFirstDayOfWeekPreference(new Date(2026, 6, 28))).toBe(
-      7,
-    );
+  it("anchors Mayan weeks to the Mayan year that contains the target date", () => {
+    expect(
+      getFullCalendarFirstDay(
+        "mayan_13_moon",
+        new MayanCalendarAdapter(1),
+        new Date(2026, 4, 1),
+        1,
+      ),
+    ).toBe(new Date(2025, 6, 26).getDay());
+    expect(
+      getFullCalendarFirstDay(
+        "mayan_13_moon",
+        new MayanCalendarAdapter(1),
+        new Date(2026, 6, 28),
+        1,
+      ),
+    ).toBe(new Date(2026, 6, 26).getDay());
   });
 });

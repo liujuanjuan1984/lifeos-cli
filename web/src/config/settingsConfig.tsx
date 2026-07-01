@@ -132,25 +132,25 @@ export const useSettingsConfig = (
             },
           ],
         },
-        {
-          key: "firstDayOfWeek",
-          type: "select",
-          label: t("settings.calendar.firstDay.label"),
-          description:
-            context.calendarSystem === "mayan_13_moon"
-              ? t("settings.calendar.firstDay.autoDescription")
-              : t("settings.calendar.firstDay.description"),
-          disabled: context.calendarSystem === "mayan_13_moon",
-          options: [
-            { value: "1", label: t("weekdays.monday") },
-            { value: "2", label: t("weekdays.tuesday") },
-            { value: "3", label: t("weekdays.wednesday") },
-            { value: "4", label: t("weekdays.thursday") },
-            { value: "5", label: t("weekdays.friday") },
-            { value: "6", label: t("weekdays.saturday") },
-            { value: "7", label: t("weekdays.sunday") },
-          ],
-        },
+        ...(context.calendarSystem === "mayan_13_moon"
+          ? []
+          : [
+              {
+                key: "firstDayOfWeek",
+                type: "select" as const,
+                label: t("settings.calendar.firstDay.label"),
+                description: t("settings.calendar.firstDay.description"),
+                options: [
+                  { value: "1", label: t("weekdays.monday") },
+                  { value: "2", label: t("weekdays.tuesday") },
+                  { value: "3", label: t("weekdays.wednesday") },
+                  { value: "4", label: t("weekdays.thursday") },
+                  { value: "5", label: t("weekdays.friday") },
+                  { value: "6", label: t("weekdays.saturday") },
+                  { value: "7", label: t("weekdays.sunday") },
+                ],
+              },
+            ]),
       ],
     },
     {

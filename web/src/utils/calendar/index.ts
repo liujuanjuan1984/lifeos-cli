@@ -10,8 +10,6 @@ export {
 } from "./CalendarAdapterFactory";
 export {
   getFullCalendarFirstDay,
-  getMayanYearFirstDayOfWeekPreference,
-  javascriptDayToWeekPreference,
 } from "./fullCalendar";
 
 // Export concrete adapters for tests and advanced callers.

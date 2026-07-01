@@ -627,8 +627,7 @@
       },
       "firstDay": {
         "label": "First Day of Week",
-        "description": "Default Monday. This setting controls Gregorian week boundaries.",
-        "autoDescription": "Mayan 13 Moon weeks are fixed from July 26 of the current Mayan year, so this value is automatically filled."
+        "description": "Default Monday. This setting controls Gregorian week boundaries."
       }
     },
     "planningSettings": {

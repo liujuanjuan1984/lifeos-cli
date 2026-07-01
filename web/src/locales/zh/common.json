@@ -627,8 +627,7 @@
       },
       "firstDay": {
         "label": "每周第一天",
-        "description": "默认周一。该设置控制公历周边界。",
-        "autoDescription": "玛雅13月亮历的一周从当前玛雅年 7 月 26 日对应的星期自动计算，因此此值会自动填充。"
+        "description": "默认周一。该设置控制公历周边界。"
       }
     },
     "planningSettings": {

@@ -22,7 +22,6 @@ export interface SettingItemConfig {
    * When true, SettingItem will not render the outer description text.
    */
   hideDescription?: boolean;
-  disabled?: boolean;
   options?: Array<{ value: string; label: string }>;
   render?: (props: {
     value: unknown;
