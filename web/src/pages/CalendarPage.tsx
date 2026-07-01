@@ -17,7 +17,8 @@ import AreaSelect from "@/components/selects/AreaSelect";
 import ToolbarContainer from "@/components/ToolbarContainer";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import { CalendarAdapterFactory } from "@/utils/calendar";
+import { useCalendarAdapter } from "@/hooks/useCalendarAdapter";
+import { getFullCalendarFirstDay } from "@/utils/calendar";
 import { Icon } from "@/components/icons";
 import { useVisions } from "@/hooks/queries/useVisions";
 import { useAllTasks } from "@/hooks/queries/useTasks";
@@ -42,24 +43,21 @@ function CalendarPage() {
   const [calendarTitle, setCalendarTitle] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
-  const { value: calendarSystem } = usePreferenceWithBootstrap<
-    "gregorian" | "mayan_13_moon"
-  >({
-    key: "calendar.system",
-    defaultValue: "gregorian",
-    module: "calendar",
-    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
-  });
-  const { value: firstDayOfWeek } = usePreferenceWithBootstrap<number>({
-    key: "calendar.first_day_of_week",
-    defaultValue: 1,
-    module: "calendar",
-    validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
-  });
-
-  const calendarAdapter = useMemo(() => {
-    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
-  }, [calendarSystem, firstDayOfWeek]);
+  const {
+    adapter: calendarAdapter,
+    calendarSystem,
+    firstDayOfWeek,
+  } = useCalendarAdapter();
+  const fullCalendarFirstDay = useMemo(
+    () =>
+      getFullCalendarFirstDay(
+        calendarSystem,
+        calendarAdapter,
+        currentDate,
+        firstDayOfWeek,
+      ),
+    [calendarSystem, calendarAdapter, currentDate, firstDayOfWeek],
+  );
 
   const timezonePreference = usePreferenceWithBootstrap<string>({
     key: "system.timezone",
@@ -319,7 +317,7 @@ function CalendarPage() {
           dayMaxEvents
           weekends
           timeZone={activeTimezone}
-          firstDay={firstDayOfWeek === 7 ? 0 : firstDayOfWeek}
+          firstDay={fullCalendarFirstDay}
           datesSet={handleDatesSet}
           select={handleDateSelect}
           eventClick={handlePlannedEventClick}

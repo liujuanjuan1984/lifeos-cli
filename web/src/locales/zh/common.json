@@ -627,7 +627,7 @@
       },
       "firstDay": {
         "label": "每周第一天",
-        "description": "默认周一。选择玛雅13月亮历时，该设置将固定为新年起点周，不可更改。"
+        "description": "默认周一。该设置控制公历周边界。"
       }
     },
     "planningSettings": {

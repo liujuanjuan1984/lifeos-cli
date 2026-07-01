@@ -102,4 +102,30 @@ describe("usePlanningTasks", () => {
     const [, , filters] = tasksGetAllMock.mock.calls[0];
     expect(filters).toMatchObject({ planning_cycle_type: "week" });
   });
+
+  it("includes calendar context in planning queries", async () => {
+    tasksGetAllMock.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, size: 100, total: 0, pages: 0 },
+      meta: {},
+    });
+
+    renderHook(
+      () =>
+        usePlanningTasks("month", new Date("2026-07-26T00:00:00Z"), {
+          calendarSystem: "mayan_13_moon",
+          firstDayOfWeek: 7,
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(tasksGetAllMock).toHaveBeenCalled());
+    const [, , filters] = tasksGetAllMock.mock.calls[0];
+    expect(filters).toMatchObject({
+      planning_cycle_type: "month",
+      planning_cycle_start_date: "2026-07-26",
+      calendar_system: "mayan_13_moon",
+      first_day_of_week: 7,
+    });
+  });
 });

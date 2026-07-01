@@ -105,6 +105,8 @@ async def list_tasks(
     exclude_status: str | None = None,
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
+    calendar_system: str | None = None,
+    first_day_of_week: Annotated[int | None, Query(ge=1, le=7)] = None,
     query: str | None = None,
     fields: Annotated[str, Query(pattern="^(basic|full)$")] = "basic",
 ) -> ListResponse:
@@ -121,6 +123,8 @@ async def list_tasks(
             exclude_status=exclude_status,
             planning_cycle_type=planning_cycle_type,
             planning_cycle_start_date=planning_cycle_start_date,
+            calendar_system=calendar_system,
+            first_day_of_week=first_day_of_week,
             query=query,
             limit=size,
             offset=(page - 1) * size,
@@ -134,6 +138,8 @@ async def list_tasks(
             exclude_status=exclude_status,
             planning_cycle_type=planning_cycle_type,
             planning_cycle_start_date=planning_cycle_start_date,
+            calendar_system=calendar_system,
+            first_day_of_week=first_day_of_week,
             query=query,
         )
     except ValueError as exc:
@@ -153,6 +159,8 @@ async def list_tasks(
             "planning_cycle_start_date": (
                 planning_cycle_start_date.isoformat() if planning_cycle_start_date else None
             ),
+            "calendar_system": calendar_system,
+            "first_day_of_week": first_day_of_week,
             "query": query,
             "fields": fields,
         },

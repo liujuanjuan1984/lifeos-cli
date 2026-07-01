@@ -801,6 +801,8 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         "exclude_status": None,
         "planning_cycle_type": None,
         "planning_cycle_start_date": None,
+        "calendar_system": None,
+        "first_day_of_week": None,
         "query": "Needle",
         "limit": 50,
         "offset": 50,
@@ -813,6 +815,8 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         "exclude_status": None,
         "planning_cycle_type": None,
         "planning_cycle_start_date": None,
+        "calendar_system": None,
+        "first_day_of_week": None,
         "query": "Needle",
     }
     assert response.pagination.total == 123
@@ -2047,6 +2051,102 @@ def test_web_stats_tag_usage_endpoint_returns_counts(
     }
 
 
+def test_web_stats_aggregated_areas_uses_mayan_calendar_buckets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import stats
+
+    area_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured_ranges: list[tuple[date, date]] = []
+
+    async def fake_get_range(
+        _session: object,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> object:
+        captured_ranges.append((start_date, end_date))
+        return SimpleNamespace(
+            rows=(
+                SimpleNamespace(
+                    area_id=area_id,
+                    minutes=60,
+                ),
+            )
+        )
+
+    monkeypatch.setattr(
+        stats.timelog_stats,
+        "get_timelog_stats_groupby_area_for_range",
+        fake_get_range,
+    )
+
+    response = asyncio.run(
+        stats.list_aggregated_areas(
+            cast(AsyncSession, object()),
+            granularity="month",
+            start=date(2026, 7, 24),
+            end=date(2026, 7, 27),
+            calendar_system="mayan_13_moon",
+            first_day_of_week=1,
+        )
+    )
+
+    assert captured_ranges == [
+        (date(2026, 6, 27), date(2026, 7, 24)),
+        (date(2026, 7, 25), date(2026, 7, 25)),
+        (date(2026, 7, 26), date(2026, 8, 22)),
+    ]
+    assert response.meta["calendar_system"] == "mayan_13_moon"
+    assert response.items == [
+        {
+            "granularity": "month",
+            "period_start": "2026-06-27",
+            "period_end": "2026-07-24",
+            "area_id": str(area_id),
+            "minutes": 60,
+        },
+        {
+            "granularity": "month",
+            "period_start": "2026-07-25",
+            "period_end": "2026-07-25",
+            "area_id": str(area_id),
+            "minutes": 60,
+        },
+        {
+            "granularity": "month",
+            "period_start": "2026-07-26",
+            "period_end": "2026-08-22",
+            "area_id": str(area_id),
+            "minutes": 60,
+        },
+    ]
+
+
+def test_web_stats_aggregated_areas_rejects_invalid_calendar_system() -> None:
+    pytest.importorskip("fastapi")
+
+    from fastapi import HTTPException
+
+    from lifeos_web.routers import stats
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            stats.list_aggregated_areas(
+                cast(AsyncSession, object()),
+                granularity="month",
+                start=date(2026, 7, 24),
+                end=date(2026, 7, 27),
+                calendar_system="martian",
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "calendar_system" in str(exc_info.value.detail)
+
+
 def test_web_note_person_usage_stats_endpoint_returns_counts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2444,6 +2544,44 @@ def test_web_visible_modules_preference_persists_to_cli_config(
     assert 'navigation_visible_modules = ["visions", "notes", "settings"]' in (
         config_path.read_text(encoding="utf-8")
     )
+
+
+def test_web_calendar_preferences_persist_to_cli_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
+
+    config_path = install_test_config(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        include_preferences=True,
+    )
+
+    updated_system = asyncio.run(
+        set_preference(
+            "calendar.system",
+            PreferenceUpdate(value="mayan_13_moon", module="calendar"),
+        )
+    )
+    updated_first_day = asyncio.run(
+        set_preference(
+            "calendar.first_day_of_week",
+            PreferenceUpdate(value=7, module="calendar"),
+        )
+    )
+
+    assert updated_system["value"] == "mayan_13_moon"
+    assert updated_first_day["value"] == 7
+    clear_config_cache()
+    assert asyncio.run(get_preference("calendar.system"))["value"] == "mayan_13_moon"
+    assert asyncio.run(get_preference("calendar.first_day_of_week"))["value"] == 7
+
+    content = config_path.read_text(encoding="utf-8")
+    assert 'calendar_system = "mayan_13_moon"' in content
+    assert "calendar_first_day_of_week = 7" in content
 
 
 def test_web_note_collapse_preference_persists_to_cli_config(
