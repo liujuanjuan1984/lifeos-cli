@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import PersonManager from "@/components/PersonManager";
 import ExpandableCard from "@/components/ExpandableCard";
 import TagManager from "@/components/TagManagerModal";
@@ -10,8 +11,13 @@ import { usePersonActivitiesPage } from "@/hooks/queries/usePersons";
 import { useTagSelectorSource } from "@/hooks/selectors/useTagSelectorSource";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import ActionButton from "@/components/ActionButton";
+import {
+  formatPersonTagFilterLabel,
+  getNextPersonTagFilterState,
+} from "@/features/people/tagFilters";
 import type { PersonSummary } from "@/services/api";
-import type { Tag } from "@/services/api/tags";
+import { tagsApi, type Tag } from "@/services/api/tags";
+import { tagsKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 import type { PersonActivityType } from "@/services/api/persons";
 
@@ -74,6 +80,21 @@ const PersonsPage: React.FC = () => {
       entityType: "person",
     },
   );
+  const { data: personTagStats } = useQuery({
+    queryKey: tagsKeys.statsBatch("person"),
+    queryFn: () => tagsApi.getStatsBatch("person"),
+    enabled: personTags.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const personTagUsageCounts = useMemo(() => {
+    if (!personTagStats) {
+      return null;
+    }
+    return new Map<UUID, number>(
+      personTagStats.tag_stats.map((stat) => [stat.id, stat.usage_count]),
+    );
+  }, [personTagStats]);
 
   const getCategoryDisplayName = useCallback(
     (category: string): string => {
@@ -110,11 +131,18 @@ const PersonsPage: React.FC = () => {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [sortedPersonTags, getCategoryDisplayName]);
 
-  // Load persons by tag
-  const loadPersonsByTag = useCallback((tag: Tag) => {
-    setFilteredByTag(true);
-    setSelectedTagId(tag.id);
-  }, []);
+  // Toggle person tag filtering.
+  const togglePersonTagFilter = useCallback(
+    (tag: Tag) => {
+      const nextState = getNextPersonTagFilterState(
+        { filteredByTag, selectedTagId },
+        tag.id,
+      );
+      setFilteredByTag(nextState.filteredByTag);
+      setSelectedTagId(nextState.selectedTagId);
+    },
+    [filteredByTag, selectedTagId],
+  );
 
   // Handle search query change from PersonManager
   const handleSearchQueryChange = useCallback(
@@ -188,11 +216,14 @@ const PersonsPage: React.FC = () => {
                 {group.tags.map((tag) => (
                   <ActionButton
                     key={tag.id}
-                    label={tag.name}
+                    label={formatPersonTagFilterLabel(
+                      tag.name,
+                      personTagUsageCounts?.get(tag.id) ?? null,
+                    )}
                     color={selectedTagId === tag.id ? "primary" : "neutral"}
                     variant={selectedTagId === tag.id ? "solid" : "ghost"}
                     size="sm"
-                    onClick={() => loadPersonsByTag(tag)}
+                    onClick={() => togglePersonTagFilter(tag)}
                     className="rounded-full"
                   />
                 ))}
