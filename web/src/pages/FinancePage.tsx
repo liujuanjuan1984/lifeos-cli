@@ -1443,7 +1443,10 @@ function TreeNodeRow({
         <div className="min-w-0 flex flex-1 items-center gap-2">
           <span className={`truncate ${financeTextClass.treeNodeTitle}`}>{node.name}</span>
           <span className="shrink-0">
-            <FinanceAssetSymbol symbol={node.currency_code || "-"} />
+            <FinanceAssetSymbol
+              symbol={node.currency_code || "-"}
+              className={financeTextClass.treeNodeSymbol}
+            />
           </span>
         </div>
         <ActionButton

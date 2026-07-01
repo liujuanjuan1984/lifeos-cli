@@ -3,6 +3,7 @@ export const financeTextClass = {
   sectionTitle: "text-base font-semibold text-base-content",
   rowTitle: "font-medium text-base-content",
   treeNodeTitle: "text-sm font-medium text-base-content",
+  treeNodeSymbol: "text-xs",
   inlineLabel: "text-sm font-medium text-base-content/70",
   bodyMuted: "text-sm text-base-content/70",
   helperText: "text-sm text-base-content/60",
