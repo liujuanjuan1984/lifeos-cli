@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatPersonTagFilterLabel,
   getNextPersonTagFilterState,
+  getPersonTagUsageCount,
 } from "@/features/people/tagFilters";
 import type { UUID } from "@/types/primitive";
 
@@ -44,5 +45,13 @@ describe("person tag filters", () => {
 
   it("keeps tag labels unchanged before counts are loaded", () => {
     expect(formatPersonTagFilterLabel("Friends", null)).toBe("Friends");
+  });
+
+  it("returns zero for tags missing from loaded usage counts", () => {
+    const usageCounts = new Map<UUID, number>([[otherTagId, 3]]);
+
+    expect(getPersonTagUsageCount(null, tagId)).toBeNull();
+    expect(getPersonTagUsageCount(usageCounts, otherTagId)).toBe(3);
+    expect(getPersonTagUsageCount(usageCounts, tagId)).toBe(0);
   });
 });

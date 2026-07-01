@@ -139,7 +139,7 @@ def _sync_effective_config_preference_to_file(key: str) -> Any:
     if effective_value != file_value:
         set_runtime_config_value(
             key=config_key,
-            value=str(effective_value),
+            value=_config_payload_to_string(effective_value),
             refresh_runtime=False,
         )
         effective_value = _extract_config_preference_value(get_preferences_settings(), key)

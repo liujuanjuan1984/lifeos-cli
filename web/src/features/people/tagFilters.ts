@@ -28,3 +28,10 @@ export function formatPersonTagFilterLabel(
 ): string {
   return usageCount === null ? tagName : `${tagName} (${usageCount})`;
 }
+
+export function getPersonTagUsageCount(
+  usageCounts: ReadonlyMap<UUID, number> | null,
+  tagId: UUID,
+): number | null {
+  return usageCounts === null ? null : (usageCounts.get(tagId) ?? 0);
+}

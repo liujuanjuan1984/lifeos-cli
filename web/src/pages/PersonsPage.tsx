@@ -14,6 +14,7 @@ import ActionButton from "@/components/ActionButton";
 import {
   formatPersonTagFilterLabel,
   getNextPersonTagFilterState,
+  getPersonTagUsageCount,
 } from "@/features/people/tagFilters";
 import type { PersonSummary } from "@/services/api";
 import { tagsApi, type Tag } from "@/services/api/tags";
@@ -218,7 +219,7 @@ const PersonsPage: React.FC = () => {
                     key={tag.id}
                     label={formatPersonTagFilterLabel(
                       tag.name,
-                      personTagUsageCounts?.get(tag.id) ?? null,
+                      getPersonTagUsageCount(personTagUsageCounts, tag.id),
                     )}
                     color={selectedTagId === tag.id ? "primary" : "neutral"}
                     variant={selectedTagId === tag.id ? "solid" : "ghost"}
