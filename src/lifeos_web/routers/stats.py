@@ -10,6 +10,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.calendar_adapter import iter_calendar_periods
+from lifeos_cli.config import (
+    DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK,
+    DEFAULT_CALENDAR_SYSTEM,
+    ConfigurationError,
+    validate_calendar_first_day_of_week,
+    validate_calendar_system,
+)
 from lifeos_cli.db.services import tags as tag_services
 from lifeos_cli.db.services import timelog_stats
 from lifeos_web.deps import get_db_session
@@ -40,44 +48,20 @@ def _parse_area_ids(values: list[UUID] | None) -> set[UUID] | None:
     return set(values)
 
 
-def _next_period_start(granularity: Granularity, current: date) -> date:
-    if granularity in {"day", "week"}:
-        return current + timedelta(days=1 if granularity == "day" else 7)
-    if granularity == "month":
-        if current.month == 12:
-            return date(current.year + 1, 1, 1)
-        return date(current.year, current.month + 1, 1)
-    return date(current.year + 1, 1, 1)
-
-
-async def _aggregated_report(
-    session: AsyncSession,
+def _resolve_calendar_preferences(
     *,
-    granularity: Granularity,
-    cursor: date,
-) -> timelog_stats.TimelogStatsReport:
-    if granularity == "day":
-        return await timelog_stats.get_timelog_stats_groupby_area_for_day(
-            session,
-            target_date=cursor,
+    calendar_system: str | None,
+    first_day_of_week: int | None,
+) -> tuple[str, int]:
+    try:
+        return (
+            validate_calendar_system(calendar_system or DEFAULT_CALENDAR_SYSTEM),
+            validate_calendar_first_day_of_week(
+                first_day_of_week or DEFAULT_CALENDAR_FIRST_DAY_OF_WEEK
+            ),
         )
-    if granularity == "week":
-        return await timelog_stats.get_timelog_stats_groupby_area_for_period(
-            session,
-            granularity="week",
-            target_date=cursor,
-        )
-    if granularity == "month":
-        return await timelog_stats.get_timelog_stats_groupby_area_for_period(
-            session,
-            granularity="month",
-            month=cursor,
-        )
-    return await timelog_stats.get_timelog_stats_groupby_area_for_period(
-        session,
-        granularity="year",
-        year=cursor.year,
-    )
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/daily-areas", response_model=ListResponse)
@@ -164,27 +148,36 @@ async def list_aggregated_areas(
     """Return aggregated timelog minutes by LifeOS area."""
     if end < start:
         raise HTTPException(status_code=400, detail="end must be on or after start")
+    resolved_calendar_system, resolved_first_day = _resolve_calendar_preferences(
+        calendar_system=calendar_system,
+        first_day_of_week=first_day_of_week,
+    )
     selected_areas = _parse_area_ids(area_ids)
     rows: list[dict[str, object]] = []
-    seen_periods: set[tuple[date, date]] = set()
-    cursor = start
-    while cursor <= end:
-        report = await _aggregated_report(session, granularity=granularity, cursor=cursor)
-        period_key = (report.start_date, report.end_date)
-        if period_key not in seen_periods:
-            seen_periods.add(period_key)
-            for row in report.rows:
-                if _filter_area(row.area_id, selected_areas):
-                    rows.append(
-                        {
-                            "granularity": granularity,
-                            "period_start": report.start_date.isoformat(),
-                            "period_end": report.end_date.isoformat(),
-                            "area_id": str(row.area_id),
-                            "minutes": row.minutes,
-                        }
-                    )
-        cursor = _next_period_start(granularity, cursor)
+    periods = iter_calendar_periods(
+        start=start,
+        end=end,
+        granularity=granularity,
+        calendar_system=resolved_calendar_system,
+        first_day_of_week=resolved_first_day,
+    )
+    for period_start, period_end in periods:
+        report = await timelog_stats.get_timelog_stats_groupby_area_for_range(
+            session,
+            start_date=period_start,
+            end_date=period_end,
+        )
+        for row in report.rows:
+            if _filter_area(row.area_id, selected_areas):
+                rows.append(
+                    {
+                        "granularity": granularity,
+                        "period_start": period_start.isoformat(),
+                        "period_end": period_end.isoformat(),
+                        "area_id": str(row.area_id),
+                        "minutes": row.minutes,
+                    }
+                )
     return ListResponse(
         items=_page_items(rows, page=page, size=size),
         pagination=_pagination(page=page, size=size, total=len(rows)),
@@ -194,8 +187,8 @@ async def list_aggregated_areas(
             "end": end.isoformat(),
             "timezone": timezone,
             "area_ids": [str(item) for item in area_ids] if area_ids else None,
-            "first_day_of_week": first_day_of_week,
-            "calendar_system": calendar_system,
+            "first_day_of_week": resolved_first_day,
+            "calendar_system": resolved_calendar_system,
         },
     )
 

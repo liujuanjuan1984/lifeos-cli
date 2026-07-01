@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.calendar_adapter import (
+    CalendarGranularity,
+    get_calendar_period_range,
+)
+from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
@@ -147,6 +152,29 @@ def _parse_status_csv(value: str | None) -> list[str]:
     return [validate_task_status(item) for item in _split_csv(value)]
 
 
+def _planning_cycle_date_filter_range(
+    *,
+    planning_cycle_type: str,
+    planning_cycle_start_date: date,
+    calendar_system: str | None,
+    first_day_of_week: int | None,
+) -> tuple[date, date] | None:
+    """Return a calendar-aware planning-cycle filter range when requested."""
+    if calendar_system is None and first_day_of_week is None:
+        return None
+    if planning_cycle_type not in {"day", "week", "month", "year"}:
+        return None
+    try:
+        return get_calendar_period_range(
+            cast(CalendarGranularity, planning_cycle_type),
+            planning_cycle_start_date,
+            calendar_system=calendar_system,
+            first_day_of_week=first_day_of_week,
+        )
+    except (ConfigurationError, ValueError) as exc:
+        raise ValueError(str(exc)) from exc
+
+
 def _apply_task_filters(
     stmt: Any,
     *,
@@ -159,6 +187,8 @@ def _apply_task_filters(
     exclude_status: str | None = None,
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
+    calendar_system: str | None = None,
+    first_day_of_week: int | None = None,
     content: str | None = None,
     query: str | None = None,
 ) -> Any:
@@ -196,7 +226,23 @@ def _apply_task_filters(
             )
         stmt = stmt.where(Task.planning_cycle_type == normalized_cycle_type)
     if planning_cycle_start_date is not None:
-        stmt = stmt.where(Task.planning_cycle_start_date == planning_cycle_start_date)
+        if planning_cycle_type is not None:
+            cycle_range = _planning_cycle_date_filter_range(
+                planning_cycle_type=planning_cycle_type.strip().lower(),
+                planning_cycle_start_date=planning_cycle_start_date,
+                calendar_system=calendar_system,
+                first_day_of_week=first_day_of_week,
+            )
+        else:
+            cycle_range = None
+        if cycle_range is None:
+            stmt = stmt.where(Task.planning_cycle_start_date == planning_cycle_start_date)
+        else:
+            cycle_start, cycle_end = cycle_range
+            stmt = stmt.where(
+                Task.planning_cycle_start_date >= cycle_start,
+                Task.planning_cycle_start_date <= cycle_end,
+            )
     if content is not None:
         normalized_content = content.strip()
         if normalized_content:
@@ -254,6 +300,8 @@ async def list_tasks(
     exclude_status: str | None = None,
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
+    calendar_system: str | None = None,
+    first_day_of_week: int | None = None,
     content: str | None = None,
     query: str | None = None,
     limit: int = 100,
@@ -271,6 +319,8 @@ async def list_tasks(
         exclude_status=exclude_status,
         planning_cycle_type=planning_cycle_type,
         planning_cycle_start_date=planning_cycle_start_date,
+        calendar_system=calendar_system,
+        first_day_of_week=first_day_of_week,
         content=content,
         query=query,
     )
@@ -295,6 +345,8 @@ async def count_tasks(
     exclude_status: str | None = None,
     planning_cycle_type: str | None = None,
     planning_cycle_start_date: date | None = None,
+    calendar_system: str | None = None,
+    first_day_of_week: int | None = None,
     content: str | None = None,
     query: str | None = None,
 ) -> int:
@@ -310,6 +362,8 @@ async def count_tasks(
         exclude_status=exclude_status,
         planning_cycle_type=planning_cycle_type,
         planning_cycle_start_date=planning_cycle_start_date,
+        calendar_system=calendar_system,
+        first_day_of_week=first_day_of_week,
         content=content,
         query=query,
     )

@@ -627,7 +627,7 @@
       },
       "firstDay": {
         "label": "First Day of Week",
-        "description": "Default Monday. When Mayan 13 Moon calendar is selected, this setting will be fixed to New Year start week and cannot be changed."
+        "description": "Default Monday. Mayan 13 Moon weeks follow fixed seven-day moons; this setting only affects Gregorian week boundaries."
       }
     },
     "planningSettings": {

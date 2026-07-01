@@ -3,11 +3,8 @@ import { useTranslation } from "react-i18next";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import PageLayout from "@/layouts/PageLayout";
 import { useVisions } from "@/hooks/queries/useVisions";
-import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
-import {
-  CalendarAdapterFactory,
-  type PlanningViewType,
-} from "@/utils/calendar";
+import { useCalendarAdapter } from "@/hooks/useCalendarAdapter";
+import type { PlanningViewType } from "@/utils/calendar";
 import PlanningTaskList from "@/components/PlanningTaskList";
 import ToolbarContainer from "@/components/ToolbarContainer";
 import { SegmentedControl } from "@/components/forms";
@@ -28,24 +25,11 @@ const PlanningPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { visions: referenceVisions } = useVisions();
   const { setHeader } = usePageHeader();
-  const { value: firstDayOfWeek } = usePreferenceWithBootstrap<number>({
-    key: "calendar.first_day_of_week",
-    defaultValue: 1,
-    module: "calendar",
-    validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
-  });
-  const { value: calendarSystem } = usePreferenceWithBootstrap<
-    "gregorian" | "mayan_13_moon"
-  >({
-    key: "calendar.system",
-    defaultValue: "gregorian",
-    module: "calendar",
-    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
-  });
-
-  const calendarAdapter = useMemo(() => {
-    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
-  }, [calendarSystem, firstDayOfWeek]);
+  const {
+    adapter: calendarAdapter,
+    calendarSystem,
+    firstDayOfWeek,
+  } = useCalendarAdapter();
 
   React.useEffect(() => {
     return () => setHeader({ actions: undefined });
@@ -75,7 +59,11 @@ const PlanningPage: React.FC = () => {
     tasks: tasksForView,
     query: tasksQuery,
     prefetch,
-  } = usePlanningTasks(viewType, normalizedDate, { limit: 100 });
+  } = usePlanningTasks(viewType, normalizedDate, {
+    limit: 100,
+    calendarSystem,
+    firstDayOfWeek,
+  });
 
   useEffect(() => {
     const others: PlanningViewType[] = ["year", "month", "week", "day"].filter(

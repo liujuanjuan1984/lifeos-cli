@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ActionButton from "./ActionButton";
-import { CalendarAdapterFactory, type CalendarAdapter } from "@/utils/calendar";
-import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
+import type { CalendarAdapter } from "@/utils/calendar";
+import { useCalendarAdapter } from "@/hooks/useCalendarAdapter";
 import {
   dateStringToISO,
   formatDate,
@@ -143,25 +143,7 @@ const PeriodNavigation: React.FC<PeriodNavigationProps> = ({
   const pickerButtonRef = useRef<HTMLButtonElement>(null);
   const pickerInputRef = useRef<HTMLInputElement>(null);
 
-  const { value: calendarSystem } = usePreferenceWithBootstrap<
-    "gregorian" | "mayan_13_moon"
-  >({
-    key: "calendar.system",
-    defaultValue: "gregorian",
-    module: "calendar",
-    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
-  });
-
-  const { value: firstDayOfWeek } = usePreferenceWithBootstrap<number>({
-    key: "calendar.first_day_of_week",
-    defaultValue: 1,
-    module: "calendar",
-    validator: (value) => Number.isFinite(value) && value >= 1 && value <= 7,
-  });
-
-  const calendarAdapter = React.useMemo(() => {
-    return CalendarAdapterFactory.create(calendarSystem, firstDayOfWeek);
-  }, [calendarSystem, firstDayOfWeek]);
+  const { adapter: calendarAdapter } = useCalendarAdapter();
 
   // 容器宽度监听
   useEffect(() => {

@@ -20,6 +20,8 @@ const AppearanceIcon = createIcon("sparkles");
 
 const NavigationIcon = createIcon("map");
 
+const CalendarIcon = createIcon("calendar");
+
 const DataIcon = createIcon("chart");
 
 const LanguageIcon = createIcon("language");
@@ -101,6 +103,42 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
               label: module.navLabel,
             }),
           ),
+        },
+      ],
+    },
+    {
+      id: "calendar",
+      title: t("settings.calendar.title"),
+      description: t("settings.calendar.description"),
+      icon: <CalendarIcon />,
+      items: [
+        {
+          key: "calendarSystem",
+          type: "select",
+          label: t("settings.calendar.system.label"),
+          description: t("settings.calendar.system.description"),
+          options: [
+            { value: "gregorian", label: t("calendarSystems.gregorian") },
+            {
+              value: "mayan_13_moon",
+              label: t("calendarSystems.mayan_13_moon"),
+            },
+          ],
+        },
+        {
+          key: "firstDayOfWeek",
+          type: "select",
+          label: t("settings.calendar.firstDay.label"),
+          description: t("settings.calendar.firstDay.description"),
+          options: [
+            { value: "1", label: t("weekdays.monday") },
+            { value: "2", label: t("weekdays.tuesday") },
+            { value: "3", label: t("weekdays.wednesday") },
+            { value: "4", label: t("weekdays.thursday") },
+            { value: "5", label: t("weekdays.friday") },
+            { value: "6", label: t("weekdays.saturday") },
+            { value: "7", label: t("weekdays.sunday") },
+          ],
         },
       ],
     },

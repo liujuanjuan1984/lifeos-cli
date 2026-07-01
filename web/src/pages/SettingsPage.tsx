@@ -30,6 +30,24 @@ function SettingsPage() {
   // Initialize preference hooks directly
   const themeSettings = useTheme();
   const visibleModulesSettings = useVisibleModules();
+  const calendarSystemSettings = usePreferenceWithBootstrap<
+    "gregorian" | "mayan_13_moon"
+  >({
+    key: "calendar.system",
+    defaultValue: "gregorian",
+    module: "calendar",
+    validator: (value) => value === "gregorian" || value === "mayan_13_moon",
+  });
+  const calendarFirstDaySettings = usePreferenceWithBootstrap<number>({
+    key: "calendar.first_day_of_week",
+    defaultValue: 1,
+    module: "calendar",
+    validator: (value) =>
+      typeof value === "number" &&
+      Number.isInteger(value) &&
+      value >= 1 &&
+      value <= 7,
+  });
 
   const visionExperienceSettings = usePreferenceWithBootstrap<number>({
     key: "visions.experience_rate_per_hour",
@@ -170,6 +188,24 @@ function SettingsPage() {
           visibleModulesSettings.updateVisibleKeys(value as string[]);
         },
       },
+      "calendar.calendarSystem": {
+        ...calendarSystemSettings,
+        saveValue: async (value: unknown) =>
+          await calendarSystemSettings.saveValue(
+            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian",
+          ),
+        updateValue: (value: unknown) =>
+          calendarSystemSettings.updateValue(
+            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian",
+          ),
+      },
+      "calendar.firstDayOfWeek": {
+        ...calendarFirstDaySettings,
+        saveValue: async (value: unknown) =>
+          await calendarFirstDaySettings.saveValue(Number(value)),
+        updateValue: (value: unknown) =>
+          calendarFirstDaySettings.updateValue(Number(value)),
+      },
       "visions.experienceRatePerHour": {
         ...visionExperiencePreference,
         saveValue: async (value: unknown) =>
@@ -254,6 +290,8 @@ function SettingsPage() {
     [
       themeSettings,
       visibleModulesSettings,
+      calendarSystemSettings,
+      calendarFirstDaySettings,
       visionExperiencePreference,
       noteCollapseSettings,
       areaOrderSettings,
