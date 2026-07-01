@@ -109,7 +109,7 @@ describe("RateSnapshotsWorkspace", () => {
     renderWithProviders(<RateSnapshotsWorkspace />);
 
     await user.click(
-      await screen.findByRole("button", { name: "finance.rates.copySnapshot" }),
+      await screen.findByRole("button", { name: "common.copy" }),
     );
     await user.click(screen.getByRole("button", { name: "common.save" }));
 
@@ -125,7 +125,7 @@ describe("RateSnapshotsWorkspace", () => {
         {
           base_currency: "USD",
           quote_currency: "CNY",
-          rate: "7.120000000000",
+          rate: "7.12",
           source: "wise",
         },
       ],

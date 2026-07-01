@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { rateSnapshotLabel, snapshotLabel } from "@/features/finance/utils";
+import {
+  formatCompactAmountForAsset,
+  rateSnapshotLabel,
+  snapshotLabel,
+} from "@/features/finance/utils";
 import type { FinanceRateSnapshot, FinanceSnapshot } from "@/services/api/finance";
 
 const baseSnapshot = {
@@ -50,5 +54,27 @@ describe("finance rate snapshot labels", () => {
     } as FinanceRateSnapshot);
 
     expect(label).not.toContain("BTC/USDT");
+  });
+});
+
+describe("finance asset amount formatting", () => {
+  it("limits editable values to asset precision and trims trailing zeroes", () => {
+    expect(
+      formatCompactAmountForAsset(
+        "2.340000",
+        "USDT",
+        [{ id: "asset-usdt", code: "USDT", decimal_places: 6, is_default: true }],
+      ),
+    ).toBe("2.34");
+  });
+
+  it("rounds editable values to the selected asset precision", () => {
+    expect(
+      formatCompactAmountForAsset(
+        "7.129",
+        "CNY",
+        [{ id: "asset-cny", code: "CNY", decimal_places: 2, is_default: true }],
+      ),
+    ).toBe("7.13");
   });
 });

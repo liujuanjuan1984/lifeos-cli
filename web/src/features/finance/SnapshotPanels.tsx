@@ -228,7 +228,13 @@ export function SnapshotFormPanel({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className={
+          mode === "edit"
+            ? "grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+            : "flex flex-wrap items-center justify-between gap-3"
+        }
+      >
         <TextInput
           type="text"
           value={title}
@@ -237,7 +243,7 @@ export function SnapshotFormPanel({
           aria-label={t("finance.snapshot.title")}
           className={`max-w-xl ${financeTextClass.moduleTitle}`}
         />
-        <div className="flex justify-end gap-2">
+        <div className={`flex gap-2 ${mode === "edit" ? "justify-center" : "justify-end"}`}>
           <ActionButton
             type="button"
             label={t("common.cancel")}
@@ -256,6 +262,7 @@ export function SnapshotFormPanel({
             disabled={submitting || !flatNodes.length}
           />
         </div>
+        {mode === "edit" ? <span className="hidden lg:block" aria-hidden="true" /> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

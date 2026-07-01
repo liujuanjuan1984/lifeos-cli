@@ -717,35 +717,37 @@ function FinanceTreesWorkspace() {
                   ? t("finance.tree.editTree")
                   : t("finance.tree.createTree")
               }
-              rightSlot={
-                <div className="flex justify-end gap-2">
-                  <ActionButton
-                    label={t("common.cancel")}
-                    iconName="x-mark"
-                    onClick={() => {
-                      setTreeFormVisible(false);
-                      setTreeFormMode("create");
-                    }}
-                    size="sm"
-                    variant="ghost"
-                    disabled={createTreeMutation.isPending || updateTreeMutation.isPending}
-                  />
-                  <ActionButton
-                    type="submit"
-                    form={treeFormId}
-                    label={
-                      createTreeMutation.isPending || updateTreeMutation.isPending
-                        ? t("common.saving")
-                        : t("common.save")
-                    }
-                    iconName="check"
-                    color="primary"
-                    variant="solid"
-                    disabled={createTreeMutation.isPending || updateTreeMutation.isPending}
-                  />
-                </div>
-              }
             />
+            <div
+              className={`mt-4 flex gap-2 ${
+                treeFormMode === "create" ? "justify-end" : "justify-center"
+              }`}
+            >
+              <ActionButton
+                label={t("common.cancel")}
+                iconName="x-mark"
+                onClick={() => {
+                  setTreeFormVisible(false);
+                  setTreeFormMode("create");
+                }}
+                size="sm"
+                variant="ghost"
+                disabled={createTreeMutation.isPending || updateTreeMutation.isPending}
+              />
+              <ActionButton
+                type="submit"
+                form={treeFormId}
+                label={
+                  createTreeMutation.isPending || updateTreeMutation.isPending
+                    ? t("common.saving")
+                    : t("common.save")
+                }
+                iconName="check"
+                color="primary"
+                variant="solid"
+                disabled={createTreeMutation.isPending || updateTreeMutation.isPending}
+              />
+            </div>
             <FinanceTreeFormPanel
               formId={treeFormId}
               mode={treeFormMode}
@@ -776,8 +778,8 @@ function FinanceTreesWorkspace() {
               title={tree.name}
               rightSlot={
                 <SnapshotActionButtons
-                  editLabel={t("finance.tree.editTree")}
-                  deleteLabel={t("finance.tree.deleteTree")}
+                  editLabel={t("common.edit")}
+                  deleteLabel={t("common.delete")}
                   disabled={deleteTreeMutation.isPending}
                   deleteDisabled={deleteTreeMutation.isPending}
                   onEdit={() => {
@@ -1109,8 +1111,8 @@ function SnapshotModule({
             rightSlot={
               currentSnapshot ? (
                 <SnapshotActionButtons
-                  editLabel={t("finance.snapshot.edit")}
-                  deleteLabel={t("finance.snapshot.delete")}
+                  editLabel={t("common.edit")}
+                  deleteLabel={t("common.delete")}
                   disabled={snapshotDetailLoading || snapshotDeleting}
                   deleteDisabled={snapshotDeleting}
                   onEdit={onEditSnapshot}

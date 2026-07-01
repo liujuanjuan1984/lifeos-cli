@@ -41,6 +41,7 @@ import {
   localDateTimeToIso,
   nowDateTimeLocal,
   formatAmountForAsset,
+  formatCompactAmountForAsset,
   rateSnapshotLabel,
   type RateRowState,
   type RateSnapshotFormMode,
@@ -260,7 +261,7 @@ export function RateSnapshotsWorkspace() {
       (currentSnapshot.entries ?? []).map((entry) => ({
         baseAmount: "1",
         baseCurrency: entry.base_currency,
-        quoteAmount: entry.rate,
+        quoteAmount: formatCompactAmountForAsset(entry.rate, entry.quote_currency, assets),
         quoteCurrency: entry.quote_currency,
       })),
     );
@@ -277,7 +278,7 @@ export function RateSnapshotsWorkspace() {
       (currentSnapshot.entries ?? []).map((entry) => ({
         baseAmount: "1",
         baseCurrency: entry.base_currency,
-        quoteAmount: entry.rate,
+        quoteAmount: formatCompactAmountForAsset(entry.rate, entry.quote_currency, assets),
         quoteCurrency: entry.quote_currency,
       })),
     );
@@ -326,36 +327,38 @@ export function RateSnapshotsWorkspace() {
                     ? t("finance.rates.copySnapshot")
                   : t("finance.rates.createSnapshot")
               }
-              rightSlot={
-                <div className="flex justify-end gap-2">
-                  <ActionButton
-                    label={t("common.cancel")}
-                    iconName="x-mark"
-                    onClick={closeRateSnapshotForm}
-                    size="sm"
-                    variant="ghost"
-                    disabled={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                    }
-                  />
-                  <ActionButton
-                    type="submit"
-                    form={rateSnapshotFormId}
-                    label={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                        ? t("common.saving")
-                        : t("common.save")
-                    }
-                    iconName="check"
-                    color="primary"
-                    variant="solid"
-                    disabled={
-                      createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
-                    }
-                  />
-                </div>
-              }
             />
+            <div
+              className={`mt-4 flex gap-2 ${
+                rateFormMode === "create" ? "justify-end" : "justify-center"
+              }`}
+            >
+              <ActionButton
+                label={t("common.cancel")}
+                iconName="x-mark"
+                onClick={closeRateSnapshotForm}
+                size="sm"
+                variant="ghost"
+                disabled={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                }
+              />
+              <ActionButton
+                type="submit"
+                form={rateSnapshotFormId}
+                label={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                    ? t("common.saving")
+                    : t("common.save")
+                }
+                iconName="check"
+                color="primary"
+                variant="solid"
+                disabled={
+                  createRateSnapshotMutation.isPending || updateRateSnapshotMutation.isPending
+                }
+              />
+            </div>
             <form id={rateSnapshotFormId} className="mt-4 space-y-4" onSubmit={submitRateSnapshot}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <FormField label={t("finance.rates.capturedAt")}>
@@ -498,9 +501,9 @@ export function RateSnapshotsWorkspace() {
               title={rateSnapshotLabel(currentSnapshot)}
               rightSlot={
                 <SnapshotActionButtons
-                  editLabel={t("finance.rates.editSnapshot")}
-                  copyLabel={t("finance.rates.copySnapshot")}
-                  deleteLabel={t("finance.rates.deleteSnapshot")}
+                  editLabel={t("common.edit")}
+                  copyLabel={t("common.copy")}
+                  deleteLabel={t("common.delete")}
                   disabled={deleteRateSnapshotMutation.isPending}
                   deleteDisabled={deleteRateSnapshotMutation.isPending}
                   onEdit={openEditRateSnapshotForm}
