@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  formatCompactAmountForAsset,
+  formatAmountForAsset,
+  formatNumberForAsset,
   rateSnapshotLabel,
   snapshotLabel,
 } from "@/features/finance/utils";
@@ -60,7 +61,7 @@ describe("finance rate snapshot labels", () => {
 describe("finance asset amount formatting", () => {
   it("limits editable values to asset precision and trims trailing zeroes", () => {
     expect(
-      formatCompactAmountForAsset(
+      formatAmountForAsset(
         "2.340000",
         "USDT",
         [{ id: "asset-usdt", code: "USDT", decimal_places: 6, is_default: true }],
@@ -70,11 +71,21 @@ describe("finance asset amount formatting", () => {
 
   it("rounds editable values to the selected asset precision", () => {
     expect(
-      formatCompactAmountForAsset(
+      formatAmountForAsset(
         "7.129",
         "CNY",
         [{ id: "asset-cny", code: "CNY", decimal_places: 2, is_default: true }],
       ),
     ).toBe("7.13");
+  });
+
+  it("does not pad formatted display values to asset precision", () => {
+    expect(
+      formatNumberForAsset(
+        1,
+        "ETH",
+        [{ id: "asset-eth", code: "ETH", decimal_places: 8, is_default: true }],
+      ),
+    ).toBe("1");
   });
 });

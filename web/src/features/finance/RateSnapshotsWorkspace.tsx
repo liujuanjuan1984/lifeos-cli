@@ -41,7 +41,6 @@ import {
   localDateTimeToIso,
   nowDateTimeLocal,
   formatAmountForAsset,
-  formatCompactAmountForAsset,
   rateSnapshotLabel,
   type RateRowState,
   type RateSnapshotFormMode,
@@ -261,7 +260,7 @@ export function RateSnapshotsWorkspace() {
       (currentSnapshot.entries ?? []).map((entry) => ({
         baseAmount: "1",
         baseCurrency: entry.base_currency,
-        quoteAmount: formatCompactAmountForAsset(entry.rate, entry.quote_currency, assets),
+        quoteAmount: formatAmountForAsset(entry.rate, entry.quote_currency, assets),
         quoteCurrency: entry.quote_currency,
       })),
     );
@@ -278,7 +277,7 @@ export function RateSnapshotsWorkspace() {
       (currentSnapshot.entries ?? []).map((entry) => ({
         baseAmount: "1",
         baseCurrency: entry.base_currency,
-        quoteAmount: formatCompactAmountForAsset(entry.rate, entry.quote_currency, assets),
+        quoteAmount: formatAmountForAsset(entry.rate, entry.quote_currency, assets),
         quoteCurrency: entry.quote_currency,
       })),
     );

@@ -103,7 +103,7 @@ export const formatNumberForAsset = (
 ) =>
   value.toLocaleString(undefined, {
     useGrouping: false,
-    minimumFractionDigits: assetDecimalPlaces(assets, currency),
+    minimumFractionDigits: 0,
     maximumFractionDigits: assetDecimalPlaces(assets, currency),
   });
 
@@ -120,25 +120,6 @@ export const formatAmountForAsset = (
     return value;
   }
   return formatNumberForAsset(numeric, currency, assets);
-};
-
-export const formatCompactAmountForAsset = (
-  value: string,
-  currency: string,
-  assets: FinanceAsset[] = [],
-) => {
-  if (!value.trim()) {
-    return value;
-  }
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return value;
-  }
-  return numeric.toLocaleString(undefined, {
-    useGrouping: false,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: assetDecimalPlaces(assets, currency),
-  });
 };
 
 export const formatMoney = (
