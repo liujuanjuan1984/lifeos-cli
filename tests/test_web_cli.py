@@ -2047,6 +2047,47 @@ def test_web_stats_tag_usage_endpoint_returns_counts(
     }
 
 
+def test_web_note_person_usage_stats_endpoint_returns_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db.services.notes import NotePersonUsage
+    from lifeos_web.routers import notes
+
+    person_id = UUID("11111111-1111-1111-1111-111111111111")
+
+    async def fake_count_note_usage_by_person(_session: object) -> list[NotePersonUsage]:
+        return [
+            NotePersonUsage(
+                id=person_id,
+                name="Alice",
+                display_name="Alice",
+                usage_count=3,
+            )
+        ]
+
+    monkeypatch.setattr(
+        notes.note_services,
+        "count_note_usage_by_person",
+        fake_count_note_usage_by_person,
+    )
+
+    response = asyncio.run(notes.get_note_person_usage_stats(cast(AsyncSession, object())))
+
+    assert response == {
+        "person_stats": [
+            {
+                "id": str(person_id),
+                "name": "Alice",
+                "display_name": "Alice",
+                "usage_count": 3,
+            }
+        ],
+        "total_persons": 1,
+    }
+
+
 def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

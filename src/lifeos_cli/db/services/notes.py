@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, exists, or_, select
+from sqlalchemy import Select, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -51,6 +51,16 @@ class NoteBatchUpdateResult:
     failed_ids: tuple[UUID, ...]
     errors: tuple[str, ...]
     replacement_count: int
+
+
+@dataclass(frozen=True)
+class NotePersonUsage:
+    """Aggregated active-note usage for one associated person."""
+
+    id: UUID
+    name: str
+    display_name: str
+    usage_count: int
 
 
 def _normalize_note_content(content: str) -> str:
@@ -105,6 +115,7 @@ def _note_query(
                     tag_associations.c.entity_type == "note",
                     tag_associations.c.entity_id == Note.id,
                     tag_associations.c.tag_id == tag_id,
+                    Tag.id == tag_associations.c.tag_id,
                     Tag.id == tag_id,
                     Tag.deleted_at.is_(None),
                 )
@@ -356,6 +367,41 @@ async def list_notes(
         .limit(limit)
     )
     return await _build_note_views(session, list((await session.execute(stmt)).scalars()))
+
+
+async def count_note_usage_by_person(session: AsyncSession) -> list[NotePersonUsage]:
+    """Count active notes by associated active person."""
+    stmt = (
+        select(
+            Person.id,
+            Person.name,
+            func.count(func.distinct(Note.id)).label("usage_count"),
+        )
+        .join(
+            Association,
+            (Association.target_id == Person.id)
+            & (Association.source_model == "note")
+            & (Association.target_model == "person")
+            & (Association.link_type == "is_about"),
+        )
+        .join(Note, Note.id == Association.source_id)
+        .where(
+            Note.deleted_at.is_(None),
+            Person.deleted_at.is_(None),
+        )
+        .group_by(Person.id, Person.name)
+        .order_by(Person.name.asc(), Person.id.asc())
+    )
+    rows = await session.execute(stmt)
+    return [
+        NotePersonUsage(
+            id=person_id,
+            name=name,
+            display_name=name,
+            usage_count=int(usage_count),
+        )
+        for person_id, name, usage_count in rows.all()
+    ]
 
 
 async def search_notes(

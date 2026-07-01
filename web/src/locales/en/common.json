@@ -1404,7 +1404,7 @@
       "net": "Net",
       "entries": "Entries",
       "amountsByCurrency": "Amounts by currency",
-      "assetSummary": "Asset summary",
+      "assetSummary": "Summary",
       "summary": "Summary",
       "details": "Details",
       "convertTo": "Convert to {{currency}}",

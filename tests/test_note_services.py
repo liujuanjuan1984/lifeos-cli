@@ -1,14 +1,33 @@
 from __future__ import annotations
 
 import asyncio
+import warnings
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from sqlalchemy.exc import SAWarning
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-from lifeos_cli.db.services import notes
+from lifeos_cli.db.base import Base
+from lifeos_cli.db.services import notes, people, tags
+
+
+async def _create_sqlite_session_factory() -> tuple[
+    AsyncEngine,
+    async_sessionmaker[AsyncSession],
+]:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    return engine, async_sessionmaker(engine, expire_on_commit=False, future=True)
 
 
 def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -34,6 +53,69 @@ def test_create_note_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(note)
     session.commit.assert_not_called()
+
+
+def test_list_notes_by_tag_does_not_emit_cartesian_product_warning() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                tag = await tags.create_tag(
+                    session,
+                    name="Project",
+                    entity_type="note",
+                    category="general",
+                )
+                created_note = await notes.create_note(
+                    session,
+                    content="Tagged note",
+                    tag_ids=[tag.id],
+                )
+
+                with warnings.catch_warnings(record=True) as caught:
+                    warnings.simplefilter("always", SAWarning)
+                    rows = await notes.list_notes(session, tag_id=tag.id)
+
+                assert [row.id for row in rows] == [created_note.id]
+                assert not any(
+                    issubclass(item.category, SAWarning)
+                    and "cartesian product" in str(item.message)
+                    for item in caught
+                )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_count_note_usage_by_person_counts_active_notes() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                person = await people.create_person(session, name="Alice")
+                active_note = await notes.create_note(
+                    session,
+                    content="Active note",
+                    person_ids=[person.id],
+                )
+                deleted_note = await notes.create_note(
+                    session,
+                    content="Deleted note",
+                    person_ids=[person.id],
+                )
+                await notes.delete_note(session, note_id=deleted_note.id)
+
+                stats = await notes.count_note_usage_by_person(session)
+
+                assert active_note.people[0].id == person.id
+                assert [(row.id, row.name, row.display_name, row.usage_count) for row in stats] == [
+                    (person.id, "Alice", "Alice", 1),
+                ]
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
 
 
 def test_batch_update_note_content_does_not_rollback_missing_note(

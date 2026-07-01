@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { snapshotLabel } from "@/features/finance/utils";
-import type { FinanceSnapshot } from "@/services/api/finance";
+import { rateSnapshotLabel, snapshotLabel } from "@/features/finance/utils";
+import type { FinanceRateSnapshot, FinanceSnapshot } from "@/services/api/finance";
 
 const baseSnapshot = {
   id: "snapshot-1",
@@ -30,5 +30,25 @@ describe("finance snapshot labels", () => {
         title: " ",
       } as FinanceSnapshot),
     ).not.toBe(" ");
+  });
+});
+
+describe("finance rate snapshot labels", () => {
+  it("uses only the captured timestamp", () => {
+    const label = rateSnapshotLabel({
+      id: "rate-snapshot-1",
+      captured_at: "2026-06-25T12:00:00.000Z",
+      source: "manual",
+      entries: [
+        {
+          id: "rate-entry-1",
+          base_currency: "BTC",
+          quote_currency: "USDT",
+          rate: "100000",
+        },
+      ],
+    } as FinanceRateSnapshot);
+
+    expect(label).not.toContain("BTC/USDT");
   });
 });

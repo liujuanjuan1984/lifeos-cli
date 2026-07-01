@@ -120,6 +120,24 @@ async def list_notes(
     )
 
 
+@router.get("/stats/persons")
+async def get_note_person_usage_stats(session: SessionDep) -> dict[str, object]:
+    """Return active-note usage counts grouped by associated person."""
+    person_stats = await note_services.count_note_usage_by_person(session)
+    return {
+        "person_stats": [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "display_name": row.display_name,
+                "usage_count": row.usage_count,
+            }
+            for row in person_stats
+        ],
+        "total_persons": len(person_stats),
+    }
+
+
 @router.post("/")
 async def create_note(
     payload: NoteCreate,

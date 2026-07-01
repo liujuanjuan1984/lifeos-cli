@@ -1,7 +1,7 @@
 import { http } from "./client";
 import { ENDPOINTS } from "./endpoints";
 import type { PersonSummary } from "./types/common";
-import type { Tag } from "./tags";
+import { tagsApi, type Tag } from "./tags";
 import type { UUID } from "@/types/primitive";
 import type { ListResponse } from "@/types/pagination";
 
@@ -122,6 +122,11 @@ export interface NoteStats {
     display_name: string;
     usage_count: number;
   }>;
+}
+
+interface NotePersonStatsResponse {
+  person_stats: NoteStats["person_stats"];
+  total_persons: number;
 }
 
 export type NoteTagFilterMode = "any" | "all" | "none";
@@ -273,11 +278,19 @@ export const notesApi = {
 
   // New method to get statistics (aggregated from split endpoints)
   getStats: async (): Promise<NoteStats> => {
-    const notes = await notesApi.fetchPaged({ page: 1, size: 1 });
+    const [notes, tagUsage, personUsage] = await Promise.all([
+      notesApi.fetchPaged({ page: 1, size: 1 }),
+      tagsApi.getStatsBatch("note"),
+      http.get<NotePersonStatsResponse>(ENDPOINTS.NOTES.STATS_PERSONS),
+    ]);
     return {
       total_notes: notes.pagination.total,
-      tag_stats: [],
-      person_stats: [],
+      tag_stats: tagUsage.tag_stats.map((tagStat) => ({
+        id: tagStat.id,
+        name: tagStat.name ?? "",
+        usage_count: tagStat.usage_count,
+      })),
+      person_stats: personUsage.person_stats,
     };
   },
 
