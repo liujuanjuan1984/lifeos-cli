@@ -54,7 +54,7 @@ const SettingGroup: React.FC<SettingGroupProps> = ({
               key={itemConfig.key}
               config={itemConfig}
               preference={preference}
-              disabled={disabled}
+              disabled={disabled || itemConfig.disabled}
             />
           );
         })}

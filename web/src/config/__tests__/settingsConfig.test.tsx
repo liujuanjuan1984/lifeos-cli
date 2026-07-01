@@ -59,4 +59,22 @@ describe("useSettingsConfig", () => {
       ]),
     );
   });
+
+  it("disables first-day selection for Mayan 13 Moon calendar", () => {
+    const { result } = renderHook(() =>
+      useSettingsConfig({ calendarSystem: "mayan_13_moon" }),
+    );
+
+    const calendarGroup = result.current.find((group) => group.id === "calendar");
+    const firstDayItem = calendarGroup?.items.find(
+      (item) => item.key === "firstDayOfWeek",
+    );
+
+    expect(firstDayItem).toEqual(
+      expect.objectContaining({
+        disabled: true,
+        description: "settings.calendar.firstDay.autoDescription",
+      }),
+    );
+  });
 });

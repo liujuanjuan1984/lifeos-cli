@@ -11,6 +11,7 @@ import VisionExperienceRatesTable from "@/components/settings/VisionExperienceRa
 import VisionExperienceDefaultPreference from "@/components/settings/VisionExperienceDefaultPreference";
 import { Icon, type IconName } from "@/components/icons";
 import type { UUID } from "@/types/primitive";
+import type { CalendarSystem } from "@/utils/calendar";
 
 const createIcon = (name: IconName) => () => (
   <Icon name={name} size={18} aria-hidden />
@@ -30,7 +31,13 @@ const NotesIcon = createIcon("document-text");
 
 const VisionIcon = createIcon("eye");
 
-export const useSettingsConfig = (): SettingGroupConfig[] => {
+interface SettingsConfigContext {
+  calendarSystem?: CalendarSystem;
+}
+
+export const useSettingsConfig = (
+  context: SettingsConfigContext = {},
+): SettingGroupConfig[] => {
   const { t } = useTranslation();
   const visibleModulesSettings = useVisibleModules();
   const defaultInboxVisionSettings = useDefaultInboxVision();
@@ -129,7 +136,11 @@ export const useSettingsConfig = (): SettingGroupConfig[] => {
           key: "firstDayOfWeek",
           type: "select",
           label: t("settings.calendar.firstDay.label"),
-          description: t("settings.calendar.firstDay.description"),
+          description:
+            context.calendarSystem === "mayan_13_moon"
+              ? t("settings.calendar.firstDay.autoDescription")
+              : t("settings.calendar.firstDay.description"),
+          disabled: context.calendarSystem === "mayan_13_moon",
           options: [
             { value: "1", label: t("weekdays.monday") },
             { value: "2", label: t("weekdays.tuesday") },

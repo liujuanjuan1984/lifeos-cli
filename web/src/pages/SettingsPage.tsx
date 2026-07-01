@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppTheme } from "@/theme";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
@@ -23,6 +23,11 @@ import {
   coerceNoteCollapseValue,
   useNoteCollapsePreference,
 } from "@/hooks/notes/useNoteCollapsePreference";
+import { getMayanYearFirstDayOfWeekPreference } from "@/utils/calendar";
+
+const getCurrentMayanFirstDayOfWeekPreference = () =>
+  getMayanYearFirstDayOfWeekPreference(new Date());
+
 function SettingsPage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -93,6 +98,26 @@ function SettingsPage() {
   const [visionRatesSaving, setVisionRatesSaving] = useState(false);
   const [visionRatesError, setVisionRatesError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const automaticMayanFirstDay = getCurrentMayanFirstDayOfWeekPreference();
+    if (
+      calendarSystemSettings.value !== "mayan_13_moon" ||
+      calendarSystemSettings.loading ||
+      calendarFirstDaySettings.loading ||
+      calendarFirstDaySettings.saving ||
+      calendarFirstDaySettings.value === automaticMayanFirstDay
+    ) {
+      return;
+    }
+
+    calendarFirstDaySettings.updateValue(automaticMayanFirstDay);
+    void calendarFirstDaySettings.saveValue(automaticMayanFirstDay);
+  }, [
+    calendarFirstDaySettings,
+    calendarSystemSettings.loading,
+    calendarSystemSettings.value,
+  ]);
+
   const visionExperiencePreference = useMemo(() => {
     return {
       ...visionExperienceSettings,
@@ -157,7 +182,9 @@ function SettingsPage() {
   );
 
   // Get settings configuration with props
-  const groupsConfig = useSettingsConfig();
+  const groupsConfig = useSettingsConfig({
+    calendarSystem: calendarSystemSettings.value,
+  });
 
   // Area manager modal state
   const [showAreaManager, setShowAreaManager] = useState(false);
@@ -190,14 +217,31 @@ function SettingsPage() {
       },
       "calendar.calendarSystem": {
         ...calendarSystemSettings,
-        saveValue: async (value: unknown) =>
-          await calendarSystemSettings.saveValue(
-            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian",
-          ),
-        updateValue: (value: unknown) =>
-          calendarSystemSettings.updateValue(
-            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian",
-          ),
+        saveValue: async (value: unknown) => {
+          const nextSystem =
+            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian";
+          if (nextSystem === "mayan_13_moon") {
+            const automaticMayanFirstDay =
+              getCurrentMayanFirstDayOfWeekPreference();
+            calendarFirstDaySettings.updateValue(automaticMayanFirstDay);
+            const savedFirstDay =
+              await calendarFirstDaySettings.saveValue(automaticMayanFirstDay);
+            if (!savedFirstDay) {
+              return false;
+            }
+          }
+          return await calendarSystemSettings.saveValue(nextSystem);
+        },
+        updateValue: (value: unknown) => {
+          const nextSystem =
+            value === "mayan_13_moon" ? "mayan_13_moon" : "gregorian";
+          calendarSystemSettings.updateValue(nextSystem);
+          if (nextSystem === "mayan_13_moon") {
+            const automaticMayanFirstDay =
+              getCurrentMayanFirstDayOfWeekPreference();
+            calendarFirstDaySettings.updateValue(automaticMayanFirstDay);
+          }
+        },
       },
       "calendar.firstDayOfWeek": {
         ...calendarFirstDaySettings,
