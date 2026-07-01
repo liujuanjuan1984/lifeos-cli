@@ -9,7 +9,7 @@ import {
 import { tasksKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 
-type PlanningCycleType = "year" | "month" | "week" | "day";
+type PlanningCycleType = "7years" | "year" | "month" | "week" | "day";
 type CalendarSystem = "gregorian" | "mayan_13_moon";
 
 function buildTaskHierarchy(flatTasks: Task[]): TaskWithSubtasks[] {

@@ -314,6 +314,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                   { value: "week", label: t("target.week") },
                   { value: "month", label: t("target.month") },
                   { value: "year", label: t("target.year") },
+                  { value: "7years", label: t("target.sevenYears") },
                 ]}
                 disabled={loading}
                 id="planning-cycle-type-select"
@@ -330,6 +331,8 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                   >
                     {formData.planning_cycle_type === "year" &&
                       t("taskForm.planning.startLabels.year")}
+                    {formData.planning_cycle_type === "7years" &&
+                      t("taskForm.planning.startLabels.sevenYears")}
                     {formData.planning_cycle_type === "month" &&
                       t("taskForm.planning.startLabels.month")}
                     {formData.planning_cycle_type === "week" &&

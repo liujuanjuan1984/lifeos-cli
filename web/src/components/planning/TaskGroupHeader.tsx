@@ -4,6 +4,7 @@ import Container from "@/layouts/Container";
 import ActionButton from "@/components/ActionButton";
 import EnumSelect from "@/components/selects/EnumSelect";
 import { Icon } from "@/components/icons";
+import type { PlanningViewType } from "@/utils/calendar";
 
 import type { StatusFilterOption } from "@/hooks/planning/usePlanningTaskGroup";
 
@@ -11,7 +12,7 @@ interface TaskGroupHeaderProps {
   groupId: string;
   groupLabel: string;
   periodRangeLabel?: string;
-  planningCycleType?: "year" | "month" | "week" | "day";
+  planningCycleType?: PlanningViewType;
   totalTimeSpent: string;
   statusFilter: string;
   statusFilterOptions: StatusFilterOption[];

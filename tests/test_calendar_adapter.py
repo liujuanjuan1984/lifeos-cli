@@ -66,6 +66,12 @@ def test_calendar_period_helpers_validate_calendar_system() -> None:
         get_calendar_adapter("martian")
 
     assert get_calendar_period_range(
+        "7years",
+        date(2026, 4, 10),
+        calendar_system="gregorian",
+    ) == (date(2026, 1, 1), date(2032, 12, 31))
+
+    assert get_calendar_period_range(
         "month",
         date(2026, 8, 23),
         calendar_system="mayan_13_moon",
@@ -106,6 +112,13 @@ def test_task_planning_cycle_filter_range_uses_mayan_periods() -> None:
         calendar_system="mayan_13_moon",
         first_day_of_week=1,
     ) == (date(2026, 7, 26), date(2026, 8, 22))
+
+    assert _planning_cycle_date_filter_range(
+        planning_cycle_type="7years",
+        planning_cycle_start_date=date(2026, 7, 26),
+        calendar_system="mayan_13_moon",
+        first_day_of_week=1,
+    ) == (date(2026, 7, 26), date(2033, 7, 25))
 
     assert _planning_cycle_date_filter_range(
         planning_cycle_type="week",

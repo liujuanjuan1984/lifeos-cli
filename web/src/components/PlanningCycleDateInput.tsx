@@ -78,8 +78,8 @@ export const PlanningCycleDateInput: React.FC<PlanningCycleDateInputProps> = ({
     }
   }
 
-  // Handle year selection via EnumSelect with configurable range
-  if (cycleType === "year") {
+  // Handle year-based cycle selection via EnumSelect with configurable range
+  if (cycleType === "year" || cycleType === "7years") {
     // Use adapter's display year logic for consistent behavior across calendar systems
     let currentYear = "";
     if (startDate && adapter && adapter.getDisplayYear) {
@@ -128,6 +128,7 @@ export const PlanningCycleDateInput: React.FC<PlanningCycleDateInputProps> = ({
   const getInputType = () => {
     switch (cycleType) {
       case "year":
+      case "7years":
         return "number";
       case "month":
         return "month";
@@ -144,6 +145,7 @@ export const PlanningCycleDateInput: React.FC<PlanningCycleDateInputProps> = ({
 
     switch (cycleType) {
       case "year":
+      case "7years":
         // Use adapter's display year logic for consistent behavior
         if (adapter && adapter.getDisplayYear) {
           return adapter.getDisplayYear(startDate);

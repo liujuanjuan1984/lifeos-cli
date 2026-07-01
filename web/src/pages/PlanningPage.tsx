@@ -38,6 +38,8 @@ const PlanningPage: React.FC = () => {
   const normalizedDate = useMemo(() => {
     if (!calendarAdapter) return selectedDate;
     switch (viewType) {
+      case "7years":
+        return calendarAdapter.getYearStart(selectedDate);
       case "year":
         return calendarAdapter.getYearStart(selectedDate);
       case "month": {
@@ -66,12 +68,18 @@ const PlanningPage: React.FC = () => {
   });
 
   useEffect(() => {
-    const others: PlanningViewType[] = ["year", "month", "week", "day"].filter(
-      (vt) => vt !== viewType,
-    ) as PlanningViewType[];
+    const others: PlanningViewType[] = [
+      "7years",
+      "year",
+      "month",
+      "week",
+      "day",
+    ].filter((vt) => vt !== viewType) as PlanningViewType[];
     others.forEach((vt) => {
       const dateForPrefetch = (() => {
         switch (vt) {
+          case "7years":
+            return calendarAdapter.getYearStart(selectedDate);
           case "year":
             return calendarAdapter.getYearStart(selectedDate);
           case "month": {
@@ -161,6 +169,7 @@ const PlanningPage: React.FC = () => {
               <SegmentedControl
                 value={viewType}
                 options={[
+                  { value: "7years", label: t("planning.viewType.sevenYear") },
                   { value: "year", label: t("planning.viewType.year") },
                   { value: "month", label: t("planning.viewType.month") },
                   { value: "week", label: t("target.week") },

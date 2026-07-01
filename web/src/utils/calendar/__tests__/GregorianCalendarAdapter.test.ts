@@ -47,8 +47,19 @@ describe("GregorianCalendarAdapter", () => {
 
     expect(adapter.getNextPeriod(base, "year").getFullYear()).toBe(2026);
     expect(adapter.getPreviousPeriod(base, "year").getFullYear()).toBe(2024);
+    expect(adapter.getNextPeriod(base, "7years").getFullYear()).toBe(2032);
+    expect(adapter.getPreviousPeriod(base, "7years").getFullYear()).toBe(2018);
     expect(adapter.getNextPeriod(base, "month").getMonth()).toBe(1);
     expect(adapter.getPreviousPeriod(base, "day").getDate()).toBe(31);
+  });
+
+  it("computes 7-year ranges from the selected start year", () => {
+    const adapter = new GregorianCalendarAdapter();
+
+    expect(adapter.getPeriodRange("7years", new Date(2026, 4, 15))).toEqual({
+      start: "2026-01-01",
+      end: "2032-12-31",
+    });
   });
 
   it("builds week groups with nested day children", () => {
@@ -116,5 +127,32 @@ describe("GregorianCalendarAdapter", () => {
     expect(yearGroup.children).toHaveLength(12);
     const mayGroup = yearGroup.children?.[4];
     expect(mayGroup?.tasks.map((task) => task.id)).toEqual(["month-5"]);
+  });
+
+  it("builds 7-year groups for 7years tasks", () => {
+    const adapter = new GregorianCalendarAdapter();
+    const base = new Date("2026-01-01T00:00:00Z");
+
+    const sevenYearTask = createTask({
+      id: "seven-year-1",
+      planning_cycle_type: "7years",
+      planning_cycle_start_date: "2026-01-01",
+    });
+    const nextPeriodTask = createTask({
+      id: "seven-year-next",
+      planning_cycle_type: "7years",
+      planning_cycle_start_date: "2033-01-01",
+    });
+
+    const groups = adapter.buildPlanningGroups(
+      "7years",
+      base,
+      [sevenYearTask, nextPeriodTask],
+      1,
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe("2026-2032");
+    expect(groups[0].tasks.map((task) => task.id)).toEqual(["seven-year-1"]);
   });
 });

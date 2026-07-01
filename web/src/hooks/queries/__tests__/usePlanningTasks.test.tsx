@@ -128,4 +128,24 @@ describe("usePlanningTasks", () => {
       first_day_of_week: 7,
     });
   });
+
+  it("uses 7years as the planning cycle query value", async () => {
+    tasksGetAllMock.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, size: 100, total: 0, pages: 0 },
+      meta: {},
+    });
+
+    renderHook(
+      () => usePlanningTasks("7years", new Date("2026-01-01T00:00:00Z")),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(tasksGetAllMock).toHaveBeenCalled());
+    const [, , filters] = tasksGetAllMock.mock.calls[0];
+    expect(filters).toMatchObject({
+      planning_cycle_type: "7years",
+      planning_cycle_start_date: "2026-01-01",
+    });
+  });
 });

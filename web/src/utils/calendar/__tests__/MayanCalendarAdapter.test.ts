@@ -14,6 +14,10 @@ describe("MayanCalendarAdapter", () => {
       start: "2025-07-26",
       end: "2026-07-25",
     });
+    expect(adapter.getPeriodRange("7years", new Date(2026, 6, 26))).toEqual({
+      start: "2026-07-26",
+      end: "2033-07-25",
+    });
     expect(adapter.getPeriodRange("month", new Date(2027, 6, 25))).toEqual({
       start: "2027-07-25",
       end: "2027-07-25",

@@ -2,8 +2,8 @@ import type {
   CalendarAdapter,
   ExtendedPlanningViewType,
   PlanningGroup,
-  PlanningViewType,
 } from "./CalendarAdapter";
+import { normalizePlanningViewType } from "./CalendarAdapter";
 import type { TaskWithSubtasks } from "@/services/api";
 import { getDaysInWeek } from "@/utils/datetime";
 
@@ -346,8 +346,9 @@ export class MayanCalendarAdapter implements CalendarAdapter {
 
   getNextPeriod(currentDate: Date, cycleType: ExtendedPlanningViewType): Date {
     const nextDate = new Date(currentDate);
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
 
-    switch (cycleType) {
+    switch (normalizedCycleType) {
       case "year": {
         const start = this.getMayanYearStart(currentDate);
         start.setFullYear(start.getFullYear() + 1);
@@ -377,8 +378,9 @@ export class MayanCalendarAdapter implements CalendarAdapter {
     cycleType: ExtendedPlanningViewType,
   ): Date {
     const prevDate = new Date(currentDate);
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
 
-    switch (cycleType) {
+    switch (normalizedCycleType) {
       case "year": {
         const start = this.getMayanYearStart(currentDate);
         start.setFullYear(start.getFullYear() - 1);
@@ -404,7 +406,9 @@ export class MayanCalendarAdapter implements CalendarAdapter {
   }
 
   getPlanningCycleDays(cycleType: ExtendedPlanningViewType): number {
-    switch (cycleType) {
+    const normalizedCycleType = normalizePlanningViewType(cycleType);
+
+    switch (normalizedCycleType) {
       case "year":
         return 365;
       case "sevenYear":
@@ -429,24 +433,54 @@ export class MayanCalendarAdapter implements CalendarAdapter {
   }
 
   buildPlanningGroups(
-    viewType: PlanningViewType,
+    viewType: ExtendedPlanningViewType,
     date: Date,
     tasks: TaskWithSubtasks[],
     _firstDayOfWeek: number = this.firstDayOfWeek,
   ): PlanningGroup[] {
     const groups: PlanningGroup[] = [];
+    const normalizedViewType = normalizePlanningViewType(viewType);
 
-    if (viewType === "year") {
+    if (normalizedViewType === "sevenYear") {
+      return this.buildSevenYearGroups(date, tasks);
+    } else if (normalizedViewType === "year") {
       return this.buildYearGroups(date, tasks);
-    } else if (viewType === "month") {
+    } else if (normalizedViewType === "month") {
       return this.buildMonthGroups(date, tasks);
-    } else if (viewType === "week") {
+    } else if (normalizedViewType === "week") {
       return this.buildWeekGroups(date, tasks);
-    } else if (viewType === "day") {
+    } else if (normalizedViewType === "day") {
       return this.buildDayGroups(date, tasks);
     }
 
     return groups;
+  }
+
+  private buildSevenYearGroups(
+    date: Date,
+    tasks: TaskWithSubtasks[],
+  ): PlanningGroup[] {
+    const start = this.getMayanYearStart(date);
+    const end = new Date(start);
+    end.setFullYear(start.getFullYear() + 7);
+    end.setDate(end.getDate() - 1);
+    const sevenYearTasks = this.getTasksByPlanningType(tasks, "7years");
+
+    const tasksInCurrentPeriod = sevenYearTasks.filter((task) => {
+      if (!task.planning_cycle_start_date) return false;
+      const taskDate = new Date(task.planning_cycle_start_date);
+      return taskDate >= start && taskDate <= end;
+    });
+
+    return [
+      {
+        id: `mayan-seven-year-${start.toLocaleDateString("en-CA")}`,
+        label: `${start.getFullYear()}-${start.getFullYear() + 6}`,
+        date: start,
+        tasks: tasksInCurrentPeriod,
+        children: [],
+      },
+    ];
   }
 
   private buildYearGroups(
@@ -671,7 +705,7 @@ export class MayanCalendarAdapter implements CalendarAdapter {
 
   private getTasksByPlanningType(
     tasks: TaskWithSubtasks[],
-    type: PlanningViewType,
+    type: ExtendedPlanningViewType,
   ): TaskWithSubtasks[] {
     return tasks.filter((task) => task.planning_cycle_type === type);
   }
@@ -735,7 +769,9 @@ export class MayanCalendarAdapter implements CalendarAdapter {
     viewType: ExtendedPlanningViewType,
     date: Date,
   ): { start: string; end: string } {
-    switch (viewType) {
+    const normalizedViewType = normalizePlanningViewType(viewType);
+
+    switch (normalizedViewType) {
       case "year": {
         const start = this.getMayanYearStart(date);
         const end = new Date(start);
@@ -747,14 +783,12 @@ export class MayanCalendarAdapter implements CalendarAdapter {
         };
       }
       case "sevenYear": {
-        const endYearStart = this.getMayanYearStart(date);
-        const startYearStart = new Date(endYearStart);
-        startYearStart.setFullYear(startYearStart.getFullYear() - 6);
-        const end = new Date(endYearStart);
-        end.setFullYear(endYearStart.getFullYear() + 1);
+        const start = this.getMayanYearStart(date);
+        const end = new Date(start);
+        end.setFullYear(start.getFullYear() + 7);
         end.setDate(end.getDate() - 1);
         return {
-          start: startYearStart.toLocaleDateString("en-CA"),
+          start: start.toLocaleDateString("en-CA"),
           end: end.toLocaleDateString("en-CA"),
         };
       }
@@ -793,7 +827,9 @@ export class MayanCalendarAdapter implements CalendarAdapter {
     endDate: string,
     step: number,
   ): { start: string; end: string } {
-    switch (viewType) {
+    const normalizedViewType = normalizePlanningViewType(viewType);
+
+    switch (normalizedViewType) {
       case "year": {
         const s = new Date(startDate + "T00:00:00");
         const e = new Date(endDate + "T00:00:00");

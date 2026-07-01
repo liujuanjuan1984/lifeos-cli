@@ -34,6 +34,14 @@ def test_validate_planning_cycle_requires_complete_fields() -> None:
         )
 
 
+def test_validate_planning_cycle_accepts_seven_year_cycle() -> None:
+    assert tasks.validate_planning_cycle(
+        planning_cycle_type="7years",
+        planning_cycle_days=365 * 7,
+        planning_cycle_start_date=date(2026, 1, 1),
+    ) == ("7years", 365 * 7, date(2026, 1, 1))
+
+
 def test_create_task_flushes_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
     session = SimpleNamespace(
         add=None,

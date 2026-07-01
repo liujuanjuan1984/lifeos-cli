@@ -4,7 +4,7 @@ import { CalendarAdapterFactory } from "@/utils/calendar";
 import type {
   CalendarAdapter,
   CalendarSystem,
-  PlanningViewType,
+  ExtendedPlanningViewType,
 } from "@/utils/calendar";
 
 interface CalendarAdapterState {
@@ -64,7 +64,7 @@ export function usePlanningCycle() {
    * Get default planning cycle settings for a given cycle type
    */
   const getDefaultCycleSettings = (
-    cycleType: PlanningViewType,
+    cycleType: ExtendedPlanningViewType,
     baseDate: Date = new Date(),
   ) => {
     const yearStart = adapter.getYearStart(baseDate);
@@ -75,6 +75,10 @@ export function usePlanningCycle() {
     // Override start date based on cycle type
     switch (cycleType) {
       case "year":
+        startDate.setTime(yearStart.getTime());
+        break;
+      case "7years":
+      case "sevenYear":
         startDate.setTime(yearStart.getTime());
         break;
       case "month":

@@ -13,7 +13,7 @@ from lifeos_cli.config import (
     validate_calendar_system,
 )
 
-CalendarGranularity = Literal["day", "week", "month", "year"]
+CalendarGranularity = Literal["day", "week", "month", "year", "7years"]
 
 
 class CalendarAdapter(Protocol):
@@ -27,6 +27,9 @@ class CalendarAdapter(Protocol):
 
     def year_range(self, target: date) -> tuple[date, date]:
         """Return inclusive year boundaries for the target date."""
+
+    def seven_year_range(self, target: date) -> tuple[date, date]:
+        """Return inclusive seven-year boundaries starting with the target year."""
 
 
 @dataclass(frozen=True)
@@ -49,6 +52,11 @@ class GregorianCalendarAdapter:
 
     def year_range(self, target: date) -> tuple[date, date]:
         return date(target.year, 1, 1), date(target.year, 12, 31)
+
+    def seven_year_range(self, target: date) -> tuple[date, date]:
+        start = date(target.year, 1, 1)
+        end = date(target.year + 7, 1, 1) - timedelta(days=1)
+        return start, end
 
 
 @dataclass(frozen=True)
@@ -92,6 +100,10 @@ class MayanCalendarAdapter:
         start = self.year_start(target)
         return start, start.replace(year=start.year + 1) - timedelta(days=1)
 
+    def seven_year_range(self, target: date) -> tuple[date, date]:
+        start = self.year_start(target)
+        return start, start.replace(year=start.year + 7) - timedelta(days=1)
+
 
 def get_calendar_adapter(system: str | None = None) -> CalendarAdapter:
     """Return the adapter for a validated calendar system."""
@@ -122,6 +134,8 @@ def get_calendar_period_range(
         return adapter.month_range(target)
     if granularity == "year":
         return adapter.year_range(target)
+    if granularity == "7years":
+        return adapter.seven_year_range(target)
     raise ValueError(f"Unsupported calendar granularity: {granularity}")
 
 

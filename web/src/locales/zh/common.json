@@ -56,6 +56,7 @@
     "priority": "优先级",
     "tag": "标签",
     "year": "年份",
+    "sevenYears": "七年",
     "month": "月份",
     "week": "周",
     "day": "日",
@@ -864,7 +865,7 @@
       "label": "视图",
       "year": "年",
       "month": "月",
-      "sevenYear": "7年"
+      "sevenYear": "七年"
     },
     "periodNavigation": {
       "previous": "前一",
@@ -873,7 +874,15 @@
       "goToCurrent": "回到当前",
       "pickDateButton": "选择日期",
       "pickDateLabel": "选择日期",
-      "pickDatePlaceholder": "YYYY-MM-DD"
+      "pickDatePlaceholder": "YYYY-MM-DD",
+      "periodTypes": {
+        "day": "日",
+        "week": "周",
+        "month": "月",
+        "year": "年",
+        "7years": "七年",
+        "sevenYear": "七年"
+      }
     },
     "emptyState": {
       "title": "暂无规划任务",
@@ -980,6 +989,7 @@
       "description": "被规划的任务将展示在规划页；选择周期后，开始日期将为该周期的第一天。",
       "startLabels": {
         "year": "开始年份",
+        "sevenYears": "起始年份",
         "month": "开始月份",
         "week": "开始周起始日",
         "day": "开始日期"
@@ -1575,7 +1585,7 @@
     "planning": {
       "displayName": "任务规划",
       "navLabel": "任务规划",
-      "description": "以日、周、月等视图规划愿景的实现，聚焦当下任务并捕获相关想法。"
+      "description": "以日、周、月、年和七年视图规划愿景的实现，聚焦当下任务并捕获相关想法。"
     },
     "timelog": {
       "displayName": "时间日志",
@@ -1889,6 +1899,7 @@
       "week": "周",
       "month": "月",
       "year": "年",
+      "7years": "七年",
       "from": "{{date}}起",
       "within": "内"
     },

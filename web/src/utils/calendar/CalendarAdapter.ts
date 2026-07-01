@@ -1,7 +1,12 @@
 import type { TaskWithSubtasks } from "@/services/api";
 
-export type PlanningViewType = "year" | "month" | "week" | "day";
+export type PlanningViewType = "7years" | "year" | "month" | "week" | "day";
 export type ExtendedPlanningViewType = PlanningViewType | "sevenYear";
+
+export const normalizePlanningViewType = (
+  viewType: ExtendedPlanningViewType,
+): "sevenYear" | "year" | "month" | "week" | "day" =>
+  viewType === "7years" ? "sevenYear" : viewType;
 
 export interface PlanningGroup {
   id: string;
@@ -153,7 +158,7 @@ export interface CalendarAdapter {
 
   /**
    * Get a period range for a given view type and base date
-   * @param viewType - one of year/month/week/day/sevenYear
+   * @param viewType - one of 7years/year/month/week/day/sevenYear
    * @param date - base date
    * @returns start/end in YYYY-MM-DD
    */
@@ -164,7 +169,7 @@ export interface CalendarAdapter {
 
   /**
    * Shift a period range forward/backward by a step
-   * @param viewType - one of year/month/week/day/sevenYear
+   * @param viewType - one of 7years/year/month/week/day/sevenYear
    * @param startDate - current range start (YYYY-MM-DD)
    * @param endDate - current range end (YYYY-MM-DD)
    * @param step - positive for next, negative for previous
