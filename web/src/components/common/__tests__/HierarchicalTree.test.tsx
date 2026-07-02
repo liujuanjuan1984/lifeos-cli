@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   TreeDisclosure,
-  TreeNodeIndent,
+  TreeNodeControl,
   TreeRowSurface,
 } from "@/components/common/HierarchicalTree";
 
@@ -68,16 +68,22 @@ describe("TreeRowSurface", () => {
   });
 });
 
-describe("TreeNodeIndent", () => {
+describe("TreeNodeControl", () => {
   it("renders one guide line for each visible depth level", () => {
     render(
-      <TreeNodeIndent depth={3}>
+      <TreeNodeControl
+        depth={3}
+        hasChildren={false}
+        isExpanded={false}
+        expandedLabel="Collapse node"
+        collapsedLabel="Expand node"
+      >
         <span>Cash</span>
-      </TreeNodeIndent>,
+      </TreeNodeControl>,
     );
 
     const container = screen.getByText("Cash").parentElement;
 
-    expect(container?.querySelectorAll(".border-l")).toHaveLength(3);
+    expect(container?.parentElement?.querySelectorAll(".border-l")).toHaveLength(3);
   });
 });

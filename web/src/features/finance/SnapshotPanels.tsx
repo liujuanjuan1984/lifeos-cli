@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import ActionButton from "@/components/ActionButton";
 import {
-  TreeDisclosure,
-  TreeNodeIndent,
+  TreeNodeControl,
   TreeRowSurface,
 } from "@/components/common/HierarchicalTree";
 import { FormField, TextArea, TextInput } from "@/components/forms";
@@ -532,20 +531,18 @@ function SnapshotEntryTreeTable({
           className={hasChildren ? "border-l-4 border-l-base-content/30" : ""}
         >
           <td className="align-top">
-            <TreeNodeIndent depth={depth}>
-              <TreeDisclosure
-                hasChildren={hasChildren}
-                isExpanded={isExpanded}
-                expandedLabel={t("common.collapse")}
-                collapsedLabel={t("common.expand")}
-                noChildrenLabel={t("common.noChildren")}
-                className="mt-1"
-                onToggle={() => toggleNode(node.id)}
-              />
-              <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
-              </div>
-            </TreeNodeIndent>
+            <TreeNodeControl
+              depth={depth}
+              hasChildren={hasChildren}
+              isExpanded={isExpanded}
+              expandedLabel={t("common.collapse")}
+              collapsedLabel={t("common.expand")}
+              noChildrenLabel={t("common.noChildren")}
+              contentClassName="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+              onToggle={() => toggleNode(node.id)}
+            >
+              <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
+            </TreeNodeControl>
           </td>
           <td className="align-top text-center">
             <span className="inline-flex min-h-[2.25rem] items-center">
@@ -675,9 +672,17 @@ function SnapshotEntryTreeTable({
               className="border-base-200 border-l-4 border-l-transparent bg-base-100"
             >
               <td className="align-top">
-                <TreeNodeIndent depth={depth + 1}>
-                  <span className="inline-flex h-6 min-h-6 w-6 min-w-6 flex-shrink-0" />
-                </TreeNodeIndent>
+                <TreeNodeControl
+                  depth={depth + 1}
+                  hasChildren={false}
+                  isExpanded={false}
+                  expandedLabel={t("common.collapse")}
+                  collapsedLabel={t("common.expand")}
+                  leafIndicator="empty"
+                  disclosureClassName=""
+                >
+                  {null}
+                </TreeNodeControl>
               </td>
               <td className="align-top">
                 <AssetSelect
@@ -1099,23 +1104,22 @@ export function SnapshotDetail({
                     ].join(" ")}
                   >
                     <td className="align-top">
-                      <TreeNodeIndent depth={node.depth}>
-                        <TreeDisclosure
-                          hasChildren={hasChildren}
-                          isExpanded={isExpanded}
-                          expandedLabel={t("common.collapse")}
-                          collapsedLabel={t("common.expand")}
-                          noChildrenLabel={t("common.noChildren")}
-                          leafIndicator={hasNodeLabel ? "disabled-chevron" : "empty"}
-                          className={hasNodeLabel ? "mt-1" : ""}
-                          onToggle={() => toggleNode(node.id)}
-                        />
-                        <div className="min-w-0 space-y-1">
-                          {hasNodeLabel ? (
-                            <span className={financeTextClass.rowTitle}>{node.name}</span>
-                          ) : null}
-                        </div>
-                      </TreeNodeIndent>
+                      <TreeNodeControl
+                        depth={node.depth}
+                        hasChildren={hasChildren}
+                        isExpanded={isExpanded}
+                        expandedLabel={t("common.collapse")}
+                        collapsedLabel={t("common.expand")}
+                        noChildrenLabel={t("common.noChildren")}
+                        leafIndicator={hasNodeLabel ? "disabled-chevron" : "empty"}
+                        disclosureClassName={hasNodeLabel ? "mt-1" : ""}
+                        contentClassName="space-y-1"
+                        onToggle={() => toggleNode(node.id)}
+                      >
+                        {hasNodeLabel ? (
+                          <span className={financeTextClass.rowTitle}>{node.name}</span>
+                        ) : null}
+                      </TreeNodeControl>
                     </td>
                     <td className="align-top text-center">
                       {node.currencyCode ? (

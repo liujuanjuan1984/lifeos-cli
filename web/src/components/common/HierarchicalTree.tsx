@@ -33,6 +33,23 @@ interface TreeNodeIndentProps {
   children: React.ReactNode;
 }
 
+interface TreeNodeControlProps {
+  depth: number;
+  hasChildren: boolean;
+  isExpanded: boolean;
+  expandedLabel: string;
+  collapsedLabel: string;
+  noChildrenLabel?: string;
+  onToggle?: () => void;
+  maxDepth?: number;
+  shape?: TreeDisclosureShape;
+  leafIndicator?: TreeLeafIndicator;
+  className?: string;
+  disclosureClassName?: string;
+  contentClassName?: string;
+  children: React.ReactNode;
+}
+
 type TreeRowSurfaceProps =
   | (TreeRowSurfaceBaseProps &
       Omit<React.HTMLAttributes<HTMLDivElement>, keyof TreeRowSurfaceBaseProps> & {
@@ -164,7 +181,7 @@ export function TreeRowSurface({
   );
 }
 
-export function TreeNodeIndent({
+function TreeNodeIndent({
   depth,
   maxDepth = 6,
   className = "",
@@ -187,5 +204,41 @@ export function TreeNodeIndent({
       ))}
       {children}
     </div>
+  );
+}
+
+export function TreeNodeControl({
+  depth,
+  hasChildren,
+  isExpanded,
+  expandedLabel,
+  collapsedLabel,
+  noChildrenLabel,
+  onToggle,
+  maxDepth,
+  shape = "square",
+  leafIndicator = "disabled-chevron",
+  className = "",
+  disclosureClassName = "mt-1",
+  contentClassName = "",
+  children,
+}: TreeNodeControlProps) {
+  return (
+    <TreeNodeIndent depth={depth} maxDepth={maxDepth} className={className}>
+      <TreeDisclosure
+        hasChildren={hasChildren}
+        isExpanded={isExpanded}
+        expandedLabel={expandedLabel}
+        collapsedLabel={collapsedLabel}
+        noChildrenLabel={noChildrenLabel}
+        shape={shape}
+        leafIndicator={leafIndicator}
+        className={disclosureClassName}
+        onToggle={onToggle}
+      />
+      <div className={["min-w-0 flex-1", contentClassName].filter(Boolean).join(" ")}>
+        {children}
+      </div>
+    </TreeNodeIndent>
   );
 }

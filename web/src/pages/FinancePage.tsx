@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import ActionButton, { CreateNewButton } from "@/components/ActionButton";
-import { TreeDisclosure, TreeRowSurface } from "@/components/common/HierarchicalTree";
+import { TreeNodeControl, TreeRowSurface } from "@/components/common/HierarchicalTree";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { FormField, TextInput } from "@/components/forms";
@@ -1409,6 +1409,7 @@ function FinanceTreeView({
           <TreeNodeRow
             key={node.id}
             node={node}
+            depth={0}
             expandedIds={expandedIds}
             deletingNodeId={deletingNodeId}
             onToggleNode={toggleNode}
@@ -1424,6 +1425,7 @@ function FinanceTreeView({
 
 function TreeNodeRow({
   node,
+  depth,
   expandedIds,
   deletingNodeId,
   onToggleNode,
@@ -1432,6 +1434,7 @@ function TreeNodeRow({
   onDeleteNode,
 }: {
   node: TreeNodeWithChildren;
+  depth: number;
   expandedIds: Set<UUID>;
   deletingNodeId: UUID | null;
   onToggleNode: (nodeId: UUID) => void;
@@ -1446,15 +1449,16 @@ function TreeNodeRow({
   return (
     <li>
       <TreeRowSurface>
-        <TreeDisclosure
+        <TreeNodeControl
+          depth={depth}
           hasChildren={hasChildren}
           isExpanded={isExpanded}
           expandedLabel={t("common.collapse")}
           collapsedLabel={t("common.expand")}
           noChildrenLabel={t("common.noChildren")}
+          contentClassName="flex items-center gap-2"
           onToggle={() => onToggleNode(node.id)}
-        />
-        <div className="min-w-0 flex flex-1 items-center gap-2">
+        >
           <span className={`truncate ${financeTextClass.treeNodeTitle}`}>{node.name}</span>
           <span className="shrink-0">
             <FinanceAssetSymbol
@@ -1462,7 +1466,7 @@ function TreeNodeRow({
               className={financeTextClass.treeNodeSymbol}
             />
           </span>
-        </div>
+        </TreeNodeControl>
         <ActionButton
           label=""
           ariaLabel={t("finance.tree.createChild")}
@@ -1497,11 +1501,12 @@ function TreeNodeRow({
         />
       </TreeRowSurface>
       {hasChildren && isExpanded ? (
-        <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
+        <ul className="mt-2 space-y-2">
           {node.children.map((child) => (
             <TreeNodeRow
               key={child.id}
               node={child}
+              depth={depth + 1}
               expandedIds={expandedIds}
               deletingNodeId={deletingNodeId}
               onToggleNode={onToggleNode}
