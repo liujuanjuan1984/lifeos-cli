@@ -86,4 +86,23 @@ describe("TreeNodeControl", () => {
 
     expect(container?.parentElement?.querySelectorAll(".border-l")).toHaveLength(3);
   });
+
+  it("can defer guide lines to the surrounding tree layout", () => {
+    render(
+      <TreeNodeControl
+        depth={3}
+        hasChildren={false}
+        isExpanded={false}
+        expandedLabel="Collapse node"
+        collapsedLabel="Expand node"
+        showGuideLines={false}
+      >
+        <span>Cash</span>
+      </TreeNodeControl>,
+    );
+
+    const container = screen.getByText("Cash").parentElement;
+
+    expect(container?.parentElement?.querySelectorAll(".border-l")).toHaveLength(0);
+  });
 });

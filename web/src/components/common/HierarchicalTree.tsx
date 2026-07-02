@@ -29,6 +29,7 @@ type TreeRowSurfaceBaseProps = {
 interface TreeNodeIndentProps {
   depth: number;
   maxDepth?: number;
+  showGuideLines?: boolean;
   className?: string;
   children: React.ReactNode;
 }
@@ -42,6 +43,7 @@ interface TreeNodeControlProps {
   noChildrenLabel?: string;
   onToggle?: () => void;
   maxDepth?: number;
+  showGuideLines?: boolean;
   shape?: TreeDisclosureShape;
   leafIndicator?: TreeLeafIndicator;
   className?: string;
@@ -184,10 +186,11 @@ export function TreeRowSurface({
 function TreeNodeIndent({
   depth,
   maxDepth = 6,
+  showGuideLines = true,
   className = "",
   children,
 }: TreeNodeIndentProps) {
-  const visibleDepth = Math.max(0, Math.min(depth, maxDepth));
+  const visibleDepth = showGuideLines ? Math.max(0, Math.min(depth, maxDepth)) : 0;
 
   return (
     <div
@@ -216,6 +219,7 @@ export function TreeNodeControl({
   noChildrenLabel,
   onToggle,
   maxDepth,
+  showGuideLines = true,
   shape = "square",
   leafIndicator = "disabled-chevron",
   className = "",
@@ -224,7 +228,12 @@ export function TreeNodeControl({
   children,
 }: TreeNodeControlProps) {
   return (
-    <TreeNodeIndent depth={depth} maxDepth={maxDepth} className={className}>
+    <TreeNodeIndent
+      depth={depth}
+      maxDepth={maxDepth}
+      showGuideLines={showGuideLines}
+      className={className}
+    >
       <TreeDisclosure
         hasChildren={hasChildren}
         isExpanded={isExpanded}

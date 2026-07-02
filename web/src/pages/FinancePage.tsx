@@ -1456,6 +1456,7 @@ function TreeNodeRow({
           expandedLabel={t("common.collapse")}
           collapsedLabel={t("common.expand")}
           noChildrenLabel={t("common.noChildren")}
+          showGuideLines={false}
           contentClassName="flex items-center gap-2"
           onToggle={() => onToggleNode(node.id)}
         >
@@ -1501,7 +1502,7 @@ function TreeNodeRow({
         />
       </TreeRowSurface>
       {hasChildren && isExpanded ? (
-        <ul className="mt-2 space-y-2">
+        <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
           {node.children.map((child) => (
             <TreeNodeRow
               key={child.id}
