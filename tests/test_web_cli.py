@@ -1415,6 +1415,75 @@ def test_web_timelog_payload_serializes_naive_storage_datetimes_as_utc() -> None
     assert payload["created_at"] == "2026-06-13T21:09:24Z"
 
 
+def test_web_person_note_activity_payload_avoids_duplicate_note_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import persons
+
+    note_id = UUID("11111111-1111-1111-1111-111111111111")
+    person_id = UUID("22222222-2222-2222-2222-222222222222")
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+    note = SimpleNamespace(
+        id=note_id,
+        content="Remember the meeting notes",
+        updated_at=timestamp,
+    )
+
+    async def fake_load_person_entity_ids(
+        _session: object,
+        *,
+        person_id: UUID,
+    ) -> dict[str, list[UUID]]:
+        return {}
+
+    async def fake_load_person_note_ids(
+        _session: object,
+        *,
+        person_id: UUID,
+    ) -> list[UUID]:
+        return [note_id]
+
+    class FakeResult:
+        def scalars(self) -> list[object]:
+            return [note]
+
+    class FakeSession:
+        async def execute(self, _statement: object) -> FakeResult:
+            return FakeResult()
+
+    monkeypatch.setattr(
+        persons,
+        "_load_person_entity_ids",
+        fake_load_person_entity_ids,
+    )
+    monkeypatch.setattr(
+        persons,
+        "_load_person_note_ids",
+        fake_load_person_note_ids,
+    )
+
+    activities = asyncio.run(
+        persons._load_activity_items(
+            cast(AsyncSession, FakeSession()),
+            person_id=person_id,
+            activity_filter="note",
+        )
+    )
+
+    assert activities == [
+        {
+            "id": str(note_id),
+            "type": "note",
+            "title": "Remember the meeting notes",
+            "description": None,
+            "date": timestamp.isoformat(),
+            "status": None,
+        }
+    ]
+
+
 def test_web_task_update_null_planning_cycle_translates_to_clear_flag(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

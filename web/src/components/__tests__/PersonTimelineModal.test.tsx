@@ -121,4 +121,34 @@ describe("PersonTimelineModal", () => {
     expect(screen.getByText("Deep work")).toBeInTheDocument();
     expect(screen.queryByText("manual")).not.toBeInTheDocument();
   });
+
+  it("does not render duplicate note content when title and description match", () => {
+    renderWithProviders(
+      <PersonTimelineModal
+        person={person}
+        isOpen
+        onClose={vi.fn()}
+        activities={[
+          {
+            id: "note-1",
+            type: "note",
+            title: "Remember the meeting notes",
+            description: "Remember the meeting notes",
+            date: "2026-07-02T09:00:00.000Z",
+            status: null,
+          },
+        ]}
+        total={1}
+        totalPages={1}
+        isLoadingActivities={false}
+        isFetchingActivities={false}
+        page={1}
+        onPageChange={vi.fn()}
+        activityType="note"
+        onActivityTypeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Remember the meeting notes")).toHaveLength(1);
+  });
 });

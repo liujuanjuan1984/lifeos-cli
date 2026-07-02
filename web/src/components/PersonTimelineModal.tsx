@@ -295,7 +295,10 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
           </div>
           {activities.length > 0 ? (
             <>
-              <div ref={parentRef} className="h-[48rem] overflow-auto">
+              <div
+                ref={parentRef}
+                className="min-h-[18rem] max-h-[calc(100dvh-12rem)] overflow-auto md:max-h-[42rem]"
+              >
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
@@ -310,6 +313,13 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                       if (!activity) return null;
                       const typeMeta = getActivityTypeMeta(activity.type);
                       const isTimelog = activity.type === "timelog";
+                      const shouldRenderDescription =
+                        Boolean(activity.description) &&
+                        !isTimelog &&
+                        !(
+                          activity.type === "note" &&
+                          activity.description?.trim() === activity.title.trim()
+                        );
                       return (
                         <div
                           key={`${activity.type}-${activity.id}`}
@@ -371,7 +381,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                           </div>
 
                           {/* Description line (if exists) - aligned to record start */}
-                          {activity.description && !isTimelog && (
+                          {shouldRenderDescription && (
                             <div className="flex mt-2">
                               <div className="flex-shrink-0 min-w-[110px]"></div>
                               <div className="flex-shrink-0 min-w-[140px]"></div>

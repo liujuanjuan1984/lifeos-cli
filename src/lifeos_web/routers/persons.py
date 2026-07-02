@@ -132,10 +132,13 @@ async def _load_person_entity_ids(
 
 async def _load_person_note_ids(session: AsyncSession, *, person_id: UUID) -> list[UUID]:
     rows = await session.execute(
-        select(Association.source_id).where(
+        select(Association.source_id)
+        .distinct()
+        .where(
             Association.source_model == "note",
             Association.target_model == "person",
             Association.target_id == person_id,
+            Association.link_type == "is_about",
         )
     )
     return list(rows.scalars().all())
@@ -236,8 +239,8 @@ async def _load_activity_items(
                 _activity_payload(
                     entity_id=note.id,
                     activity_type="note",
-                    title=_preview(note.content, limit=80) or "Note",
-                    description=note.content,
+                    title=_preview(note.content) or "Note",
+                    description=None,
                     activity_date=note.updated_at,
                 )
                 for note in note_rows.scalars()

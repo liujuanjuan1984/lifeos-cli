@@ -32,7 +32,7 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 15;
   const timezonePreference = usePreferenceWithBootstrap<string>({
     key: "system.timezone",
     defaultValue: resolvePreferredTimezone(),
@@ -123,190 +123,198 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
       loadingSpinnerSize="md"
       showCloseButton={true}
       errorDisplayMode="inline"
+      bodyOverflow="hidden"
     >
-      {!isLoading && !error && (
-        <div className="px-2 pt-4 pb-2 flex items-center justify-between">
-          <div className="text-base">
-            {task && (
-              <span>
-                {t("taskTimelogs.taskLabel")} {task.content}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-base-content/40">
-              {t("taskTimelogs.totalTime")} {calculateTotalTime()}
+      <div className="flex max-h-[calc(100dvh-8rem)] min-h-0 flex-col overflow-hidden md:max-h-[42rem]">
+        {!isLoading && !error && (
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-2 pt-4 pb-2">
+            <div className="min-w-0 text-base">
+              {task && (
+                <span className="line-clamp-2">
+                  {t("taskTimelogs.taskLabel")} {task.content}
+                </span>
+              )}
             </div>
-            <div className="text-sm text-base-content/40">
-              {t("taskTimelogs.recordsCount", {
-                count: totalRecords,
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <ListContainer
-        title={t("taskTimelogs.title")}
-        hideHeader
-        size="lg"
-        borderVariant="subtle"
-        columns={[
-          {
-            key: "date",
-            label: t("taskTimelogs.columns.date"),
-            width: "0.5fr",
-            align: "left",
-          },
-          {
-            key: "timeRange",
-            label: t("taskTimelogs.columns.timeRange"),
-            width: "0.7fr",
-            align: "left",
-          },
-          {
-            key: "duration",
-            label: t("taskTimelogs.columns.duration"),
-            width: "0.5fr",
-            align: "left",
-          },
-          {
-            key: "area",
-            label: t("taskTimelogs.columns.area"),
-            width: "0.5fr",
-            align: "left",
-          },
-          {
-            key: "description",
-            label: t("taskTimelogs.columns.description"),
-            width: "2.5fr",
-            align: "left",
-          },
-        ]}
-        emptyState={
-          !isLoading && !error && timelogs.length === 0 ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center max-w-md">
-                <Icon
-                  name="timer"
-                  size={48}
-                  className="mb-6 opacity-60 text-info"
-                  aria-hidden
-                />
-                <h3 className="text-lg font-semibold text-base-content mb-3">
-                  {t("taskTimelogs.emptyState.title")}
-                </h3>
-                <p className="text-base-content/80 mb-4 leading-relaxed">
-                  {t("taskTimelogs.emptyState.description")}
-                </p>
+            <div className="flex flex-shrink-0 items-center gap-3">
+              <div className="text-sm text-base-content/40">
+                {t("taskTimelogs.totalTime")} {calculateTotalTime()}
+              </div>
+              <div className="text-sm text-base-content/40">
+                {t("taskTimelogs.recordsCount", {
+                  count: totalRecords,
+                })}
               </div>
             </div>
-          ) : null
-        }
-      >
-        {!isLoading && !error && timelogs.length > 0 && (
-          <div className="px-2 py-3 overflow-x-auto">
-            <div
-              className="min-w-[760px] grid gap-4"
-              style={{
-                gridTemplateColumns: [
-                  "0.5fr",
-                  "0.7fr",
-                  "0.5fr",
-                  "0.5fr",
-                  "2.5fr",
-                ].join(" "),
-              }}
-            >
-              {timelogs.map((event) => {
-                const trimmedTitle = event.title.trim();
-                const description =
-                  trimmedTitle.length > 0
-                    ? trimmedTitle
-                    : t("taskTimelogs.untitled");
-                const areaName =
-                  event.area_summary?.name ??
-                  (event.area_id ? areaMap.get(event.area_id)?.name : null) ??
-                  t("taskTimelogs.unknownArea");
-                const areaColor =
-                  event.area_summary?.color ??
-                  (event.area_id ? areaMap.get(event.area_id)?.color : null) ??
-                  undefined;
-
-                return (
-                  <React.Fragment key={event.id}>
-                    <div className="text-base-content/80 flex items-center">
-                      {formatDate(event.start_time, activeTimezone)}
-                    </div>
-                    <div className="text-base-content/90 flex items-center">
-                      <TimeRangeText
-                        start={event.start_time}
-                        end={event.end_time || null}
-                        timezone={activeTimezone}
-                      />
-                    </div>
-                    <div className="text-left text-base-content/90 flex items-center gap-2">
-                      {calculateDuration(event)}
-                    </div>
-                    <div className="flex items-center">
-                      <AreaBadge
-                        areaId={event.area_id ?? undefined}
-                        areaMap={areaMap}
-                        name={areaName}
-                        color={areaColor}
-                        showLabel
-                        labelClassName="text-base"
-                        ariaLabel={areaName}
-                      />
-                    </div>
-                    <div
-                      className="text-base-content/90 flex items-center truncate"
-                      title={description}
-                    >
-                      {description}
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-            {safeTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-4">
-                <ActionButton
-                  label={t("taskTimelogs.previousPage")}
-                  size="sm"
-                  variant="outline"
-                  color="neutral"
-                  disabled={!canGoPrev}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                />
-                <div className="flex items-center gap-3 text-sm text-base-content/70">
-                  <span>
-                    {t("taskTimelogs.pageIndicator", {
-                      page,
-                      total: safeTotalPages,
-                    })}
-                  </span>
-                  {isFetching && (
-                    <span className="text-xs text-base-content/60">
-                      {t("common.loading")}
-                    </span>
-                  )}
-                </div>
-                <ActionButton
-                  label={t("taskTimelogs.nextPage")}
-                  size="sm"
-                  variant="outline"
-                  color="neutral"
-                  disabled={!canGoNext}
-                  onClick={() =>
-                    setPage((current) => Math.min(safeTotalPages, current + 1))
-                  }
-                />
-              </div>
-            )}
           </div>
         )}
-      </ListContainer>
+
+        <ListContainer
+          title={t("taskTimelogs.title")}
+          hideHeader
+          size="lg"
+          borderVariant="subtle"
+          className="min-h-0 flex flex-1 flex-col overflow-hidden"
+          columns={[
+            {
+              key: "date",
+              label: t("taskTimelogs.columns.date"),
+              width: "0.5fr",
+              align: "left",
+            },
+            {
+              key: "timeRange",
+              label: t("taskTimelogs.columns.timeRange"),
+              width: "0.7fr",
+              align: "left",
+            },
+            {
+              key: "duration",
+              label: t("taskTimelogs.columns.duration"),
+              width: "0.5fr",
+              align: "left",
+            },
+            {
+              key: "area",
+              label: t("taskTimelogs.columns.area"),
+              width: "0.5fr",
+              align: "left",
+            },
+            {
+              key: "description",
+              label: t("taskTimelogs.columns.description"),
+              width: "2.5fr",
+              align: "left",
+            },
+          ]}
+          emptyState={
+            !isLoading && !error && timelogs.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center max-w-md">
+                  <Icon
+                    name="timer"
+                    size={48}
+                    className="mb-6 opacity-60 text-info"
+                    aria-hidden
+                  />
+                  <h3 className="text-lg font-semibold text-base-content mb-3">
+                    {t("taskTimelogs.emptyState.title")}
+                  </h3>
+                  <p className="text-base-content/80 mb-4 leading-relaxed">
+                    {t("taskTimelogs.emptyState.description")}
+                  </p>
+                </div>
+              </div>
+            ) : null
+          }
+        >
+          {!isLoading && !error && timelogs.length > 0 && (
+            <div className="overflow-x-auto px-2 py-3">
+              <div
+                className="min-w-[760px] grid gap-4"
+                style={{
+                  gridTemplateColumns: [
+                    "0.5fr",
+                    "0.7fr",
+                    "0.5fr",
+                    "0.5fr",
+                    "2.5fr",
+                  ].join(" "),
+                }}
+              >
+                {timelogs.map((event) => {
+                  const trimmedTitle = event.title.trim();
+                  const description =
+                    trimmedTitle.length > 0
+                      ? trimmedTitle
+                      : t("taskTimelogs.untitled");
+                  const areaName =
+                    event.area_summary?.name ??
+                    (event.area_id ? areaMap.get(event.area_id)?.name : null) ??
+                    t("taskTimelogs.unknownArea");
+                  const areaColor =
+                    event.area_summary?.color ??
+                    (event.area_id ? areaMap.get(event.area_id)?.color : null) ??
+                    undefined;
+
+                  return (
+                    <React.Fragment key={event.id}>
+                      <div className="text-base-content/80 flex items-center">
+                        {formatDate(event.start_time, activeTimezone)}
+                      </div>
+                      <div className="text-base-content/90 flex items-center">
+                        <TimeRangeText
+                          start={event.start_time}
+                          end={event.end_time || null}
+                          timezone={activeTimezone}
+                        />
+                      </div>
+                      <div className="text-left text-base-content/90 flex items-center gap-2">
+                        {calculateDuration(event)}
+                      </div>
+                      <div className="flex items-center">
+                        <AreaBadge
+                          areaId={event.area_id ?? undefined}
+                          areaMap={areaMap}
+                          name={areaName}
+                          color={areaColor}
+                          showLabel
+                          labelClassName="text-base"
+                          ariaLabel={areaName}
+                        />
+                      </div>
+                      <div
+                        className="text-base-content/90 flex items-center truncate"
+                        title={description}
+                      >
+                        {description}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              {safeTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-4">
+                  <ActionButton
+                    label={t("taskTimelogs.previousPage")}
+                    size="sm"
+                    variant="outline"
+                    color="neutral"
+                    disabled={!canGoPrev}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                  />
+                  <div className="flex items-center gap-3 text-sm text-base-content/70">
+                    <span>
+                      {t("taskTimelogs.pageIndicator", {
+                        page,
+                        total: safeTotalPages,
+                      })}
+                    </span>
+                    {isFetching && (
+                      <span className="text-xs text-base-content/60">
+                        {t("common.loading")}
+                      </span>
+                    )}
+                  </div>
+                  <ActionButton
+                    label={t("taskTimelogs.nextPage")}
+                    size="sm"
+                    variant="outline"
+                    color="neutral"
+                    disabled={!canGoNext}
+                    onClick={() =>
+                      setPage((current) =>
+                        Math.min(safeTotalPages, current + 1),
+                      )
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </ListContainer>
+      </div>
     </ModalBase>
   );
 };

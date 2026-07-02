@@ -127,7 +127,7 @@ describe("TaskTimelogsModal", () => {
 
     expect(useTaskTimelogsMock).toHaveBeenCalledWith(
       "task-1",
-      expect.objectContaining({ page: 1, size: 50 }),
+      expect.objectContaining({ page: 1, size: 15 }),
     );
     expect(screen.getAllByText("时间日志").length).toBeGreaterThan(0);
     expect(screen.getByText("101 条记录")).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe("TaskTimelogsModal", () => {
 
     expect(useTaskTimelogsMock).toHaveBeenLastCalledWith(
       "task-1",
-      expect.objectContaining({ page: 2, size: 50 }),
+      expect.objectContaining({ page: 2, size: 15 }),
     );
   });
 });
