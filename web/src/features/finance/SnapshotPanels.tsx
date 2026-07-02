@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ActionButton from "@/components/ActionButton";
-import { TreeDisclosure, TreeRowSurface } from "@/components/common/HierarchicalTree";
+import {
+  TreeDisclosure,
+  TreeNodeIndent,
+  TreeRowSurface,
+} from "@/components/common/HierarchicalTree";
 import { FormField, TextArea, TextInput } from "@/components/forms";
 import AssetSelect from "@/components/selects/AssetSelect";
 import EnumSelect from "@/components/selects/EnumSelect";
@@ -528,24 +532,20 @@ function SnapshotEntryTreeTable({
           className={hasChildren ? "border-l-4 border-l-base-content/30" : ""}
         >
           <td className="align-top">
-            <div
-              className="flex items-start gap-3"
-              style={{ paddingLeft: `${depth * 1.25}rem` }}
-            >
+            <TreeNodeIndent depth={depth}>
               <TreeDisclosure
                 hasChildren={hasChildren}
                 isExpanded={isExpanded}
                 expandedLabel={t("common.collapse")}
                 collapsedLabel={t("common.expand")}
-                shape="circle"
-                leafIndicator="bullet"
+                noChildrenLabel={t("common.noChildren")}
                 className="mt-1"
                 onToggle={() => toggleNode(node.id)}
               />
               <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
               </div>
-            </div>
+            </TreeNodeIndent>
           </td>
           <td className="align-top text-center">
             <span className="inline-flex min-h-[2.25rem] items-center">
@@ -675,10 +675,9 @@ function SnapshotEntryTreeTable({
               className="border-base-200 border-l-4 border-l-transparent bg-base-100"
             >
               <td className="align-top">
-                <div
-                  className="flex items-start gap-3"
-                  style={{ paddingLeft: `${(depth + 1) * 1.25}rem` }}
-                />
+                <TreeNodeIndent depth={depth + 1}>
+                  <span className="inline-flex h-6 min-h-6 w-6 min-w-6 flex-shrink-0" />
+                </TreeNodeIndent>
               </td>
               <td className="align-top">
                 <AssetSelect
@@ -1100,16 +1099,14 @@ export function SnapshotDetail({
                     ].join(" ")}
                   >
                     <td className="align-top">
-                      <div
-                        className="flex items-start gap-2"
-                        style={{ paddingLeft: `${Math.min(node.depth, 6) * 1.5}rem` }}
-                      >
+                      <TreeNodeIndent depth={node.depth}>
                         <TreeDisclosure
                           hasChildren={hasChildren}
                           isExpanded={isExpanded}
                           expandedLabel={t("common.collapse")}
                           collapsedLabel={t("common.expand")}
-                          leafIndicator={hasNodeLabel ? "bullet" : "empty"}
+                          noChildrenLabel={t("common.noChildren")}
+                          leafIndicator={hasNodeLabel ? "disabled-chevron" : "empty"}
                           className={hasNodeLabel ? "mt-1" : ""}
                           onToggle={() => toggleNode(node.id)}
                         />
@@ -1118,7 +1115,7 @@ export function SnapshotDetail({
                             <span className={financeTextClass.rowTitle}>{node.name}</span>
                           ) : null}
                         </div>
-                      </div>
+                      </TreeNodeIndent>
                     </td>
                     <td className="align-top text-center">
                       {node.currencyCode ? (

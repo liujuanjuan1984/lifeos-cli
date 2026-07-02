@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { TreeDisclosure, TreeRowSurface } from "@/components/common/HierarchicalTree";
+import {
+  TreeDisclosure,
+  TreeNodeIndent,
+  TreeRowSurface,
+} from "@/components/common/HierarchicalTree";
 
 describe("TreeDisclosure", () => {
   it("renders an accessible expand button for expandable rows", async () => {
@@ -61,5 +65,19 @@ describe("TreeRowSurface", () => {
     expect(row).toHaveClass("group/tree-row");
     expect(row).toHaveClass("hover:bg-primary/10");
     expect(row).toHaveClass("bg-base-200/60");
+  });
+});
+
+describe("TreeNodeIndent", () => {
+  it("renders one guide line for each visible depth level", () => {
+    render(
+      <TreeNodeIndent depth={3}>
+        <span>Cash</span>
+      </TreeNodeIndent>,
+    );
+
+    const container = screen.getByText("Cash").parentElement;
+
+    expect(container?.querySelectorAll(".border-l")).toHaveLength(3);
   });
 });

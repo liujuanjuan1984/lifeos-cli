@@ -26,6 +26,13 @@ type TreeRowSurfaceBaseProps = {
   children: React.ReactNode;
 };
 
+interface TreeNodeIndentProps {
+  depth: number;
+  maxDepth?: number;
+  className?: string;
+  children: React.ReactNode;
+}
+
 type TreeRowSurfaceProps =
   | (TreeRowSurfaceBaseProps &
       Omit<React.HTMLAttributes<HTMLDivElement>, keyof TreeRowSurfaceBaseProps> & {
@@ -152,6 +159,32 @@ export function TreeRowSurface({
       className={resolvedClassName}
       {...(rest as React.HTMLAttributes<HTMLDivElement>)}
     >
+      {children}
+    </div>
+  );
+}
+
+export function TreeNodeIndent({
+  depth,
+  maxDepth = 6,
+  className = "",
+  children,
+}: TreeNodeIndentProps) {
+  const visibleDepth = Math.max(0, Math.min(depth, maxDepth));
+
+  return (
+    <div
+      className={["flex min-h-[2.25rem] items-start gap-2", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {Array.from({ length: visibleDepth }, (_, index) => (
+        <span
+          key={index}
+          className="h-9 w-4 flex-shrink-0 border-l border-base-300"
+          aria-hidden
+        />
+      ))}
       {children}
     </div>
   );
