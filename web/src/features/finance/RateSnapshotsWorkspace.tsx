@@ -390,7 +390,7 @@ export function RateSnapshotsWorkspace() {
                   {rateRows.map((row, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
+                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2 rounded-md transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
                     >
                       <TextInput
                         size="sm"
