@@ -58,6 +58,7 @@ interface DraggableTaskListProps {
   onViewTimeRecords: (task: TaskWithSubtasks) => void;
   onCreateNote: (task: TaskWithSubtasks) => void;
   onViewNotes: (task: TaskWithSubtasks) => void;
+  onCreateTimeRecord: (task: TaskWithSubtasks) => void;
   expandedTasks?: Set<UUID>;
   onToggleExpansion?: (taskId: UUID) => void;
   onTasksReorder?: (reorderedTasks: TaskWithSubtasks[]) => void | Promise<void>;
@@ -82,6 +83,7 @@ interface SortableTaskItemProps {
   onViewTimeRecords: (task: TaskWithSubtasks) => void;
   onCreateNote: (task: TaskWithSubtasks) => void;
   onViewNotes: (task: TaskWithSubtasks) => void;
+  onCreateTimeRecord: (task: TaskWithSubtasks) => void;
   onToggleExpansion: (taskId: UUID) => void;
   habitTaskAssociations?: Record<UUID, Habit[]>;
   // Vision information for planning page
@@ -189,6 +191,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
   onViewTimeRecords,
   onCreateNote,
   onViewNotes,
+  onCreateTimeRecord,
   onToggleExpansion,
   habitTaskAssociations,
   visions,
@@ -235,7 +238,8 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
     : 0;
   const priorityInfo = PRIORITY[priorityIndex] ?? PRIORITY[0];
   const hasNotes = (task.notes_count ?? 0) > 0;
-  const hasTimeLogs = (task.actual_effort_self ?? 0) > 0;
+  const hasTimeLogs =
+    (task.timelogs_count ?? (task.actual_effort_self ?? 0)) > 0;
   const subduedClass = "opacity-40 hover:opacity-60 transition-opacity";
   const noteButtonClass = hasNotes ? undefined : subduedClass;
   const timeLogButtonClass = hasTimeLogs ? undefined : subduedClass;
@@ -562,6 +566,12 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                     className={noteButtonClass}
                     onClick={() => onViewNotes(task)}
                   />
+                  <ActionButton
+                    label=""
+                    iconName="bolt"
+                    color="primary"
+                    onClick={() => onCreateTimeRecord(task)}
+                  />
                   {/* View time records button - only show in vision page */}
                   <ActionButton
                     label=""
@@ -662,6 +672,7 @@ const DraggableTaskList: React.FC<DraggableTaskListProps> = ({
   onViewTimeRecords,
   onCreateNote,
   onViewNotes,
+  onCreateTimeRecord,
   expandedTasks: externalExpandedTasks,
   onToggleExpansion: externalOnToggleExpansion,
   onTasksReorder,
@@ -847,6 +858,7 @@ const DraggableTaskList: React.FC<DraggableTaskListProps> = ({
             onViewTimeRecords={onViewTimeRecords}
             onCreateNote={onCreateNote}
             onViewNotes={onViewNotes}
+            onCreateTimeRecord={onCreateTimeRecord}
             onToggleExpansion={setExpandedTasks}
             habitTaskAssociations={habitTaskAssociations}
             visions={visions}
@@ -884,6 +896,7 @@ const DraggableTaskList: React.FC<DraggableTaskListProps> = ({
       onViewTimeRecords,
       onCreateNote,
       onViewNotes,
+      onCreateTimeRecord,
       habitTaskAssociations,
       isPlanningPage,
       showVisionInfo,

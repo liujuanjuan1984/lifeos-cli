@@ -112,6 +112,123 @@ const upsertTaskInUnknownData = (data: unknown, task: Task): unknown => {
   return changed ? result : data;
 };
 
+type TaskRelationshipCountPatch = {
+  notes_count?: number | ((current: number) => number);
+  timelogs_count?: number | ((current: number) => number);
+};
+
+const resolveCountPatch = (
+  current: number | undefined,
+  patch: number | ((current: number) => number) | undefined,
+): number | undefined => {
+  if (patch === undefined) return current;
+  const currentValue = current ?? 0;
+  if (typeof patch === "function") {
+    return patch(currentValue);
+  }
+  return patch;
+};
+
+const patchTaskRelationshipCountsInValue = (
+  value: unknown,
+  taskId: UUID,
+  patch: TaskRelationshipCountPatch,
+): { result: unknown; changed: boolean } => {
+  if (value === null || value === undefined) {
+    return { result: value, changed: false };
+  }
+
+  if (Array.isArray(value)) {
+    let nextArray: unknown[] | null = null;
+    for (let i = 0; i < value.length; i += 1) {
+      const item = value[i];
+      const { result, changed } = patchTaskRelationshipCountsInValue(
+        item,
+        taskId,
+        patch,
+      );
+      if (changed && !nextArray) {
+        nextArray = value.slice(0, i);
+      }
+      if (nextArray) {
+        nextArray.push(result);
+      }
+    }
+    if (nextArray) {
+      return { result: nextArray, changed: true };
+    }
+    return { result: value, changed: false };
+  }
+
+  if (isTaskLike(value)) {
+    const originalTask = value as Task;
+    let nextTask: Task = originalTask;
+    let changed = false;
+
+    if (originalTask.id === taskId) {
+      const nextNotesCount = resolveCountPatch(
+        originalTask.notes_count,
+        patch.notes_count,
+      );
+      const nextTimelogsCount = resolveCountPatch(
+        originalTask.timelogs_count,
+        patch.timelogs_count,
+      );
+      nextTask = {
+        ...originalTask,
+        ...(nextNotesCount !== undefined ? { notes_count: nextNotesCount } : {}),
+        ...(nextTimelogsCount !== undefined
+          ? { timelogs_count: nextTimelogsCount }
+          : {}),
+      };
+      changed =
+        nextNotesCount !== originalTask.notes_count ||
+        nextTimelogsCount !== originalTask.timelogs_count;
+    }
+
+    let working: Record<string, unknown> | Task = nextTask;
+    Object.entries(nextTask).forEach(([key, child]) => {
+      const { result, changed: childChanged } =
+        patchTaskRelationshipCountsInValue(child, taskId, patch);
+      if (childChanged) {
+        if (working === nextTask) {
+          working = { ...nextTask };
+        }
+        (working as Record<string, unknown>)[key] = result;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      return { result: working as Task, changed: true };
+    }
+    return { result: value, changed: false };
+  }
+
+  if (isPlainObject(value)) {
+    let nextObject: Record<string, unknown> | null = null;
+    for (const [key, child] of Object.entries(value)) {
+      const { result, changed } = patchTaskRelationshipCountsInValue(
+        child,
+        taskId,
+        patch,
+      );
+      if (changed) {
+        if (!nextObject) {
+          nextObject = { ...(value as Record<string, unknown>) };
+        }
+        nextObject[key] = result;
+      }
+    }
+    if (nextObject) {
+      return { result: nextObject, changed: true };
+    }
+    return { result: value, changed: false };
+  }
+
+  return { result: value, changed: false };
+};
+
 const dataContainsTask = (value: unknown, taskId: UUID): boolean => {
   if (value === null || value === undefined) return false;
 
@@ -314,6 +431,31 @@ export const updateTaskCaches = (
   });
 
   syncSelectorSourceQueries(queryClient, task);
+};
+
+export const updateTaskRelationshipCounts = (
+  queryClient: QueryClient,
+  taskId: UUID,
+  patch: TaskRelationshipCountPatch,
+): void => {
+  if (!taskId) return;
+
+  const queries = queryClient.getQueryCache().findAll({
+    predicate: (query) => queryContainsTask(query as QueryLike, taskId),
+  }) as QueryLike[];
+
+  queries.forEach((query) => {
+    const currentData = query.state.data;
+    const { result, changed } = patchTaskRelationshipCountsInValue(
+      currentData,
+      taskId,
+      patch,
+    );
+    if (changed) {
+      const queryKey = query.queryKey as readonly unknown[];
+      queryClient.setQueryData(queryKey, result);
+    }
+  });
 };
 
 export const removeTaskFromSelectorSourceCache = (

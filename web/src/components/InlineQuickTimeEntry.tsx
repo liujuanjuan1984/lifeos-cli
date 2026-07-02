@@ -354,6 +354,7 @@ export default function InlineQuickTimeEntry({
   // removed duplicate state declarations for areas
 
   // Refs for keyboard navigation
+  const formRef = useRef<HTMLFormElement | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const areaRef = useRef<HTMLInputElement>(null);
 
@@ -834,7 +835,7 @@ export default function InlineQuickTimeEntry({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         {/* Quick input row */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
           {/* Start Time */}
@@ -974,7 +975,7 @@ export default function InlineQuickTimeEntry({
           <FormActions
             loading={loading}
             onCancel={sessionAwareCancel}
-            onSubmit={() => document.querySelector("form")?.requestSubmit()}
+            onSubmit={() => formRef.current?.requestSubmit()}
             disabled={
               !formData.title.trim() ||
               formData.area_id === "" ||

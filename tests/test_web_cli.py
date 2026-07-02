@@ -357,14 +357,24 @@ def test_web_task_hierarchy_payload_excludes_deleted_at() -> None:
         task_node(
             "11111111-1111-1111-1111-111111111111",
             subtasks=(task_node("33333333-3333-3333-3333-333333333333"),),
-        )
+        ),
+        notes_count_by_task={
+            UUID("11111111-1111-1111-1111-111111111111"): 2,
+        },
+        timelogs_count_by_task={
+            UUID("33333333-3333-3333-3333-333333333333"): 1,
+        },
     )
 
     assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
     assert payload["updated_at"] == "2026-06-01T13:00:00+00:00"
+    assert payload["notes_count"] == 2
+    assert payload["timelogs_count"] == 0
     assert "actual_effort" not in payload
     assert "deleted_at" not in payload
     subtask_payload = cast(list[dict[str, object]], payload["subtasks"])[0]
+    assert subtask_payload["notes_count"] == 0
+    assert subtask_payload["timelogs_count"] == 1
     assert "deleted_at" not in subtask_payload
 
 
@@ -403,8 +413,22 @@ def test_web_task_list_basic_payload_excludes_full_task_fields(
     async def fake_count_tasks(_session: object, **_kwargs: object) -> int:
         return 1
 
+    async def fake_load_task_relation_counts(
+        _session: object,
+        _task_ids: list[UUID],
+    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
+        return (
+            {UUID("11111111-1111-1111-1111-111111111111"): 4},
+            {UUID("11111111-1111-1111-1111-111111111111"): 5},
+        )
+
     monkeypatch.setattr(tasks.task_services, "list_tasks", fake_list_tasks)
     monkeypatch.setattr(tasks.task_services, "count_tasks", fake_count_tasks)
+    monkeypatch.setattr(
+        tasks,
+        "_load_task_relation_counts",
+        fake_load_task_relation_counts,
+    )
 
     response = asyncio.run(
         tasks.list_tasks(
@@ -426,6 +450,8 @@ def test_web_task_list_basic_payload_excludes_full_task_fields(
         "planning_cycle_days": 1,
         "planning_cycle_start_date": "2026-06-30",
         "people": [{"id": "33333333-3333-3333-3333-333333333333", "name": "A"}],
+        "notes_count": 4,
+        "timelogs_count": 5,
     }
     assert "created_at" not in payload
     assert "updated_at" not in payload
@@ -781,8 +807,19 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         captured["count_kwargs"] = kwargs
         return 123
 
+    async def fake_load_task_relation_counts(
+        _session: object,
+        _task_ids: list[UUID],
+    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
+        return ({}, {})
+
     monkeypatch.setattr(task_router.task_services, "list_tasks", fake_list_tasks)
     monkeypatch.setattr(task_router.task_services, "count_tasks", fake_count_tasks)
+    monkeypatch.setattr(
+        task_router,
+        "_load_task_relation_counts",
+        fake_load_task_relation_counts,
+    )
 
     response = asyncio.run(
         task_router.list_tasks(
