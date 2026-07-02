@@ -917,7 +917,10 @@ function AssetSummaryPanel({
           </thead>
           <tbody>
             {rowsWithShare.map((row) => (
-              <tr key={row.currency}>
+              <tr
+                key={row.currency}
+                className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
+              >
                 <td>
                   <FinanceAssetSymbol symbol={row.currency} />
                 </td>

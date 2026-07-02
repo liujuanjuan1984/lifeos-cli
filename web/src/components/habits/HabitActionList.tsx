@@ -386,7 +386,7 @@ export function HabitActionList({
               return (
                 <div
                   key={formatDateKey(date)}
-                  className={`flex items-center justify-between p-3 border rounded-lg ${
+                  className={`flex items-center justify-between p-3 border rounded-lg transition-colors hover:bg-primary/10 focus-within:bg-primary/10 ${
                     isSelectedDate
                       ? "border-primary bg-primary/10 ring-2 ring-primary/20"
                       : isTodayDate

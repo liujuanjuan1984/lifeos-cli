@@ -25,6 +25,9 @@ interface PersonManagerProps {
   createRequestSignal?: number;
 }
 
+const PERSON_ROW_CELL_HOVER_CLASS =
+  "transition-colors group-hover:bg-primary/10 group-focus-within:bg-primary/10";
+
 /**
  * PersonManager - Component for managing persons and their relationships
  *
@@ -467,15 +470,15 @@ const PersonManager: React.FC<PersonManagerProps> = ({
               return (
                 <div
                   key={person.id}
-                  className="contents hover:bg-base-200/40 cursor-pointer rounded"
+                  className="contents group cursor-pointer"
                   onClick={() => handlePersonSelect(person)}
                 >
-                  <div className="px-4 py-3 border-b border-base-300">
+                  <div className={`px-4 py-3 border-b border-base-300 ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     <div className="text-base font-medium text-base-content">
                       {person.display_name}
                     </div>
                   </div>
-                  <div className="px-4 py-3 border-b border-base-300">
+                  <div className={`px-4 py-3 border-b border-base-300 ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     {person.primary_nickname &&
                       person.primary_nickname.trim() &&
                       person.primary_nickname !== person.display_name && (
@@ -496,7 +499,7 @@ const PersonManager: React.FC<PersonManagerProps> = ({
                         </div>
                       )}
                   </div>
-                  <div className="px-4 py-3 border-b border-base-300">
+                  <div className={`px-4 py-3 border-b border-base-300 ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     {(locationTags.length > 0 || person.location) && (
                       <div className="flex flex-wrap gap-1">
                         {locationTags.length > 0
@@ -522,10 +525,10 @@ const PersonManager: React.FC<PersonManagerProps> = ({
                       </div>
                     )}
                   </div>
-                  <div className="px-4 py-3 border-b border-base-300 text-base text-base-content whitespace-nowrap">
+                  <div className={`px-4 py-3 border-b border-base-300 text-base text-base-content whitespace-nowrap ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     {person.birth_date || ""}
                   </div>
-                  <div className="px-4 py-3 border-b border-base-300  ">
+                  <div className={`px-4 py-3 border-b border-base-300 ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     <div className="flex flex-wrap gap-1">
                       {relationshipTags.slice(0, 5).map((tag: Tag) => (
                         <UnifiedTag key={tag.id} type="relationship" size="sm">
@@ -539,7 +542,7 @@ const PersonManager: React.FC<PersonManagerProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="px-4 py-3 border-b border-base-300 text-right">
+                  <div className={`px-4 py-3 border-b border-base-300 text-right ${PERSON_ROW_CELL_HOVER_CLASS}`}>
                     <ActionButtonGroup gap="sm" align="end">
                       <ActionButton
                         label={t("personManager.timeline")}

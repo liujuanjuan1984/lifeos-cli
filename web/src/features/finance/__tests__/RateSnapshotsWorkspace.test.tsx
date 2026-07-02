@@ -108,6 +108,10 @@ describe("RateSnapshotsWorkspace", () => {
 
     renderWithProviders(<RateSnapshotsWorkspace />);
 
+    const rateRow = (await screen.findByText("7.12")).closest("tr");
+    expect(rateRow).toHaveClass("hover:bg-primary/10");
+    expect(rateRow).toHaveClass("focus-within:bg-primary/10");
+
     await user.click(
       await screen.findByRole("button", { name: "common.copy" }),
     );

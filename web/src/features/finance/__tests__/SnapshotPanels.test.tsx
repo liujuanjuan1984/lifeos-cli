@@ -177,8 +177,14 @@ describe("SnapshotDetail", () => {
     );
 
     const row = screen.getByText("Wallet").closest("tr");
+    const assetSummaryPanel = screen
+      .getByText("finance.metrics.assetSummary")
+      .closest(".rounded-lg");
+    const assetSummaryRow = assetSummaryPanel?.querySelector("tbody tr");
 
     expect(row).toHaveClass("hover:bg-primary/10");
     expect(row).toHaveClass("focus-within:bg-primary/10");
+    expect(assetSummaryRow).toHaveClass("hover:bg-primary/10");
+    expect(assetSummaryRow).toHaveClass("focus-within:bg-primary/10");
   });
 });
