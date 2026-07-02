@@ -64,7 +64,7 @@ describe("TreeRowSurface", () => {
 
     expect(row).toHaveClass("group/tree-row");
     expect(row).toHaveClass("hover:bg-primary/10");
-    expect(row).toHaveClass("bg-base-200/60");
+    expect(row).toHaveClass("bg-base-300/70");
   });
 });
 

@@ -4,7 +4,7 @@ import ActionButton from "@/components/ActionButton";
 
 type TreeDisclosureShape = "square" | "circle";
 type TreeLeafIndicator = "disabled-chevron" | "bullet" | "empty";
-type TreeRowLayout = "card" | "table";
+type TreeRowLayout = "card" | "grid" | "table";
 type TreeRowTone = "default" | "aggregate";
 
 interface TreeDisclosureProps {
@@ -77,9 +77,16 @@ function getRowSurfaceClassName(
     "group/tree-row transition-all duration-200 ease-in-out focus-within:bg-primary/10";
   const layoutClass =
     layout === "card"
-      ? "flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-2 py-2 hover:border-primary/40 hover:bg-primary/10 hover:shadow-sm focus-within:border-primary/40"
-      : "border-base-200 hover:bg-primary/10";
-  const toneClass = layout === "table" && tone === "aggregate" ? "bg-base-200/60" : "";
+      ? "flex items-center gap-2 rounded-md px-2 py-2 hover:bg-primary/10 hover:shadow-sm"
+      : layout === "grid"
+        ? "grid rounded-md px-2 py-2 hover:bg-primary/10 hover:shadow-sm"
+        : "border-base-200 hover:bg-primary/10";
+  const toneClass =
+    tone === "aggregate"
+      ? "bg-base-300/70"
+      : layout === "card" || layout === "grid"
+        ? "bg-base-200/70"
+        : "";
 
   return [common, layoutClass, toneClass, className].filter(Boolean).join(" ");
 }

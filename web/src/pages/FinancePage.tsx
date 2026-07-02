@@ -1448,7 +1448,7 @@ function TreeNodeRow({
   const isExpanded = expandedIds.has(node.id);
   return (
     <li>
-      <TreeRowSurface>
+      <TreeRowSurface tone={hasChildren ? "aggregate" : "default"}>
         <TreeNodeControl
           depth={depth}
           hasChildren={hasChildren}

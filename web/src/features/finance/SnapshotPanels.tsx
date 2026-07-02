@@ -40,6 +40,9 @@ import {
   type TreeNodeWithChildren,
 } from "./utils";
 
+const SNAPSHOT_TREE_GRID_CLASS =
+  "min-w-[60rem] grid-cols-[minmax(16rem,2fr)_5rem_minmax(12rem,1.2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)] items-start gap-3";
+
 export function SnapshotFormPanel({
   tree,
   preset,
@@ -497,8 +500,8 @@ function SnapshotEntryTreeTable({
     });
   };
 
-  const renderRows = (nodes: TreeNodeWithChildren[], depth: number): React.ReactNode[] =>
-    nodes.flatMap((node) => {
+  const renderRows = (nodes: TreeNodeWithChildren[]): React.ReactNode[] =>
+    nodes.map((node) => {
       const hasChildren = node.children.length > 0;
       const isExpanded = expandedIds.has(node.id);
       const holdings = amounts[node.id] ?? [];
@@ -521,132 +524,7 @@ function SnapshotEntryTreeTable({
         : "";
       const displayConvertedAmount = hasChildren ? aggregatedAmount : defaultConvertedAmount;
       const defaultAmountNegative = isNegativeAmount(defaultAmount);
-
-      const rows: React.ReactNode[] = [
-        <TreeRowSurface
-          as="tr"
-          layout="table"
-          tone={hasChildren ? "aggregate" : "default"}
-          key={node.id}
-          className={hasChildren ? "border-l-4 border-l-base-content/30" : ""}
-        >
-          <td className="align-top">
-            <TreeNodeControl
-              depth={depth}
-              hasChildren={hasChildren}
-              isExpanded={isExpanded}
-              expandedLabel={t("common.collapse")}
-              collapsedLabel={t("common.expand")}
-              noChildrenLabel={t("common.noChildren")}
-              contentClassName="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
-              onToggle={() => toggleNode(node.id)}
-            >
-              <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
-            </TreeNodeControl>
-          </td>
-          <td className="align-top text-center">
-            <span className="inline-flex min-h-[2.25rem] items-center">
-              {hasChildren ? (
-                <span className={financeTextClass.placeholder}>-</span>
-              ) : (
-                <FinanceAssetSymbol symbol={defaultCurrency} />
-              )}
-            </span>
-          </td>
-          <td className="align-top">
-            {hasChildren ? (
-              <div className="flex min-w-[12rem] items-start gap-2">
-                <div
-                  className={`min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 ${financeTextClass.helperText}`}
-                >
-                  <FinanceAmountListText value={nativeAggregatedAmount} />
-                </div>
-                <ActionButton
-                  label=""
-                  iconName="plus"
-                  iconOnly
-                  size="xs"
-                  variant="ghost"
-                  ariaLabel={t("finance.snapshot.addHolding")}
-                  disabled={submitting}
-                  onClick={() => {
-                    onAddHolding(node);
-                    setExpandedIds((current) => new Set(current).add(node.id));
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex min-w-[12rem] items-start gap-2">
-                <TextInput
-                  type="text"
-                  inputMode="decimal"
-                  pattern={amountInputPattern(assetDecimalPlaces(assets, defaultCurrency))}
-                  size="sm"
-                  className={defaultAmountNegative ? "text-warning" : "text-base-content"}
-                  value={defaultAmount}
-                  onChange={(event) =>
-                    onChangeHolding(node.id, defaultHolding?.id ?? "", {
-                      currencyCode: defaultCurrency,
-                      amount: event.target.value,
-                    })
-                  }
-                  placeholder={t("finance.snapshot.balancePlaceholder")}
-                  disabled={submitting}
-                />
-                <ActionButton
-                  label=""
-                  iconName="plus"
-                  iconOnly
-                  size="xs"
-                  variant="ghost"
-                  ariaLabel={t("finance.snapshot.addHolding")}
-                  disabled={submitting}
-                  onClick={() => {
-                    onAddHolding(node);
-                    setExpandedIds((current) => new Set(current).add(node.id));
-                  }}
-                />
-              </div>
-            )}
-          </td>
-          <td className="align-top">
-            {displayConvertedAmount ? (
-              <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
-                <FinanceAmountText
-                  amount={displayConvertedAmount}
-                  currencyCode={primaryCurrency}
-                  showCurrency={false}
-                />
-              </span>
-            ) : (
-              <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
-                -
-              </span>
-            )}
-          </td>
-          <td className="align-top">
-            {hasChildren ? (
-              <span className={`inline-flex min-h-[2.25rem] items-center ${financeTextClass.placeholder}`}>
-                -
-              </span>
-            ) : (
-              <TextInput
-                type="text"
-                size="sm"
-                value={defaultHolding?.note ?? ""}
-                onChange={(event) =>
-                  onChangeHolding(node.id, defaultHolding?.id ?? "", {
-                    currencyCode: defaultCurrency,
-                    note: event.target.value,
-                  })
-                }
-                placeholder={t("finance.snapshot.notePlaceholder")}
-                disabled={submitting}
-              />
-            )}
-          </td>
-        </TreeRowSurface>,
-      ];
+      const nestedRows: React.ReactNode[] = [];
 
       if (isExpanded) {
         (hasChildren ? holdings : extraHoldings).forEach((holding) => {
@@ -664,106 +542,219 @@ function SnapshotEntryTreeTable({
               : ""
             : "";
           const amountNegative = isNegativeAmount(holding.amount);
-          rows.push(
-            <TreeRowSurface
-              as="tr"
-              layout="table"
-              key={`${node.id}:${holding.id}`}
-              className="border-base-200 border-l-4 border-l-transparent bg-base-100"
+          nestedRows.push(
+            <li key={`${node.id}:${holding.id}`}>
+              <TreeRowSurface layout="grid" className={SNAPSHOT_TREE_GRID_CLASS}>
+                <div />
+                <div className="align-top">
+                  <AssetSelect
+                    assets={assets}
+                    value={holdingCurrency}
+                    onChange={(currencyCode) =>
+                      onChangeHolding(node.id, holding.id, { currencyCode })
+                    }
+                    onCreateAsset={onCreateAsset}
+                    disabled={submitting}
+                    size="sm"
+                    className="min-w-[8rem]"
+                  />
+                </div>
+                <div className="align-top">
+                  <div className="flex min-w-[12rem] items-start gap-2">
+                    <TextInput
+                      type="text"
+                      inputMode="decimal"
+                      pattern={amountInputPattern(
+                        assetDecimalPlaces(assets, holdingPrecisionCurrency),
+                      )}
+                      size="sm"
+                      className={amountNegative ? "text-warning" : "text-base-content"}
+                      value={holding.amount}
+                      onChange={(event) =>
+                        onChangeHolding(node.id, holding.id, { amount: event.target.value })
+                      }
+                      placeholder={t("finance.snapshot.balancePlaceholder")}
+                      disabled={submitting}
+                    />
+                    <ActionButton
+                      label=""
+                      iconName="trash"
+                      iconOnly
+                      size="xs"
+                      variant="ghost"
+                      color="error"
+                      ariaLabel={t("finance.snapshot.removeHolding")}
+                      disabled={submitting}
+                      onClick={() => onRemoveHolding(node.id, holding.id)}
+                    />
+                  </div>
+                </div>
+                <div className="align-top">
+                  {convertedHoldingAmount ? (
+                    <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
+                      <FinanceAmountText
+                        amount={convertedHoldingAmount}
+                        currencyCode={primaryCurrency}
+                        showCurrency={false}
+                      />
+                    </span>
+                  ) : (
+                    <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
+                      -
+                    </span>
+                  )}
+                </div>
+                <div className="align-top">
+                  <TextInput
+                    type="text"
+                    size="sm"
+                    value={holding.note}
+                    onChange={(event) =>
+                      onChangeHolding(node.id, holding.id, { note: event.target.value })
+                    }
+                    placeholder={t("finance.snapshot.notePlaceholder")}
+                    disabled={submitting}
+                  />
+                </div>
+              </TreeRowSurface>
+            </li>,
+          );
+        });
+      }
+
+      if (hasChildren && isExpanded) {
+        nestedRows.push(...renderRows(node.children));
+      }
+
+      return (
+        <li key={node.id}>
+          <TreeRowSurface
+            layout="grid"
+            tone={hasChildren ? "aggregate" : "default"}
+            className={SNAPSHOT_TREE_GRID_CLASS}
+          >
+            <TreeNodeControl
+              depth={0}
+              hasChildren={hasChildren}
+              isExpanded={isExpanded}
+              expandedLabel={t("common.collapse")}
+              collapsedLabel={t("common.expand")}
+              noChildrenLabel={t("common.noChildren")}
+              showGuideLines={false}
+              contentClassName="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+              onToggle={() => toggleNode(node.id)}
             >
-              <td className="align-top">
-                <TreeNodeControl
-                  depth={depth + 1}
-                  hasChildren={false}
-                  isExpanded={false}
-                  expandedLabel={t("common.collapse")}
-                  collapsedLabel={t("common.expand")}
-                  leafIndicator="empty"
-                  disclosureClassName=""
-                >
-                  {null}
-                </TreeNodeControl>
-              </td>
-              <td className="align-top">
-                <AssetSelect
-                  assets={assets}
-                  value={holdingCurrency}
-                  onChange={(currencyCode) =>
-                    onChangeHolding(node.id, holding.id, { currencyCode })
-                  }
-                  onCreateAsset={onCreateAsset}
-                  disabled={submitting}
-                  size="sm"
-                  className="min-w-[8rem]"
-                />
-              </td>
-              <td className="align-top">
+              <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
+            </TreeNodeControl>
+            <div className="align-top text-center">
+              <span className="inline-flex min-h-[2.25rem] items-center">
+                {hasChildren ? (
+                  <span className={financeTextClass.placeholder}>-</span>
+                ) : (
+                  <FinanceAssetSymbol symbol={defaultCurrency} />
+                )}
+              </span>
+            </div>
+            <div className="align-top">
+              {hasChildren ? (
+                <div className="flex min-w-[12rem] items-start gap-2">
+                  <div
+                    className={`min-h-[2.25rem] flex-1 rounded-md border border-dashed border-base-200 px-3 py-2 ${financeTextClass.helperText}`}
+                  >
+                    <FinanceAmountListText value={nativeAggregatedAmount} />
+                  </div>
+                  <ActionButton
+                    label=""
+                    iconName="plus"
+                    iconOnly
+                    size="xs"
+                    variant="ghost"
+                    ariaLabel={t("finance.snapshot.addHolding")}
+                    disabled={submitting}
+                    onClick={() => {
+                      onAddHolding(node);
+                      setExpandedIds((current) => new Set(current).add(node.id));
+                    }}
+                  />
+                </div>
+              ) : (
                 <div className="flex min-w-[12rem] items-start gap-2">
                   <TextInput
                     type="text"
                     inputMode="decimal"
-                    pattern={amountInputPattern(
-                      assetDecimalPlaces(assets, holdingPrecisionCurrency),
-                    )}
+                    pattern={amountInputPattern(assetDecimalPlaces(assets, defaultCurrency))}
                     size="sm"
-                    className={amountNegative ? "text-warning" : "text-base-content"}
-                    value={holding.amount}
+                    className={defaultAmountNegative ? "text-warning" : "text-base-content"}
+                    value={defaultAmount}
                     onChange={(event) =>
-                      onChangeHolding(node.id, holding.id, { amount: event.target.value })
+                      onChangeHolding(node.id, defaultHolding?.id ?? "", {
+                        currencyCode: defaultCurrency,
+                        amount: event.target.value,
+                      })
                     }
                     placeholder={t("finance.snapshot.balancePlaceholder")}
                     disabled={submitting}
                   />
                   <ActionButton
                     label=""
-                    iconName="trash"
+                    iconName="plus"
                     iconOnly
                     size="xs"
                     variant="ghost"
-                    color="error"
-                    ariaLabel={t("finance.snapshot.removeHolding")}
+                    ariaLabel={t("finance.snapshot.addHolding")}
                     disabled={submitting}
-                    onClick={() => onRemoveHolding(node.id, holding.id)}
+                    onClick={() => {
+                      onAddHolding(node);
+                      setExpandedIds((current) => new Set(current).add(node.id));
+                    }}
                   />
                 </div>
-              </td>
-              <td className="align-top">
-                {convertedHoldingAmount ? (
-                  <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
-                    <FinanceAmountText
-                      amount={convertedHoldingAmount}
-                      currencyCode={primaryCurrency}
-                      showCurrency={false}
-                    />
-                  </span>
-                ) : (
-                  <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
-                    -
-                  </span>
-                )}
-              </td>
-              <td className="align-top">
+              )}
+            </div>
+            <div className="align-top">
+              {displayConvertedAmount ? (
+                <span className="inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm">
+                  <FinanceAmountText
+                    amount={displayConvertedAmount}
+                    currencyCode={primaryCurrency}
+                    showCurrency={false}
+                  />
+                </span>
+              ) : (
+                <span className={`inline-flex min-h-[2.25rem] items-center rounded-md border border-dashed border-base-200 px-3 text-sm ${financeTextClass.placeholder}`}>
+                  -
+                </span>
+              )}
+            </div>
+            <div className="align-top">
+              {hasChildren ? (
+                <span className={`inline-flex min-h-[2.25rem] items-center ${financeTextClass.placeholder}`}>
+                  -
+                </span>
+              ) : (
                 <TextInput
                   type="text"
                   size="sm"
-                  value={holding.note}
+                  value={defaultHolding?.note ?? ""}
                   onChange={(event) =>
-                    onChangeHolding(node.id, holding.id, { note: event.target.value })
+                    onChangeHolding(node.id, defaultHolding?.id ?? "", {
+                      currencyCode: defaultCurrency,
+                      note: event.target.value,
+                    })
                   }
                   placeholder={t("finance.snapshot.notePlaceholder")}
                   disabled={submitting}
                 />
-              </td>
-            </TreeRowSurface>,
-          );
-        });
-      }
-
-      if (hasChildren && isExpanded) {
-        rows.push(...renderRows(node.children, depth + 1));
-      }
-
-      return rows;
+              )}
+            </div>
+          </TreeRowSurface>
+          {nestedRows.length ? (
+            <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
+              {nestedRows}
+            </ul>
+          ) : null}
+        </li>
+      );
     });
 
   return (
@@ -775,28 +766,16 @@ function SnapshotEntryTreeTable({
       </div>
       {treeNodes.length ? (
         <div className="overflow-x-auto p-3 pb-4">
-          <table className="min-w-full text-sm">
-            <thead className={`text-left ${financeTextClass.tableHeader}`}>
-              <tr>
-                <th className="w-[40%] min-w-[12rem] px-4 py-2">
-                  {t("finance.snapshot.node")}
-                </th>
-                <th className="w-20 px-4 py-2 text-center">
-                  {t("finance.snapshot.asset")}
-                </th>
-                <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.snapshot.originalAmount")}
-                </th>
-                <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.metrics.convertTo", { currency: primaryCurrency })}
-                </th>
-                <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.snapshot.note")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>{renderRows(treeNodes, 0)}</tbody>
-          </table>
+          <div
+            className={`${SNAPSHOT_TREE_GRID_CLASS} rounded-md bg-base-200/60 px-3 py-2 text-left ${financeTextClass.tableHeader}`}
+          >
+            <span>{t("finance.snapshot.node")}</span>
+            <span className="text-center">{t("finance.snapshot.asset")}</span>
+            <span>{t("finance.snapshot.originalAmount")}</span>
+            <span>{t("finance.metrics.convertTo", { currency: primaryCurrency })}</span>
+            <span>{t("finance.snapshot.note")}</span>
+          </div>
+          <ul className="mt-2 space-y-2">{renderRows(treeNodes)}</ul>
         </div>
       ) : (
         <div className={`px-4 py-8 text-center ${financeTextClass.helperText}`}>
@@ -1038,12 +1017,91 @@ export function SnapshotDetail({
     });
   };
 
-  const visibleNodes = useMemo(
-    () => flattenVisibleSnapshotNodes(displayTree, expandedIds),
-    [displayTree, expandedIds],
-  );
   const snapshotNote = snapshot.note?.trim() ?? "";
   const rateSnapshot = rateSnapshots.find((item) => item.id === snapshot.rate_snapshot_id) ?? null;
+  const renderDetailRows = (nodes: SnapshotDisplayNode[]): React.ReactNode[] =>
+    nodes.map((node) => {
+      const hasChildren = node.children.length > 0;
+      const isExpanded = expandedIds.has(node.id);
+      const hasNodeLabel = node.name.trim().length > 0;
+      const isAggregateRow = hasChildren || node.isAutoGenerated;
+
+      return (
+        <li key={node.id}>
+          <TreeRowSurface
+            layout="grid"
+            tone={isAggregateRow ? "aggregate" : "default"}
+            className={SNAPSHOT_TREE_GRID_CLASS}
+          >
+            <TreeNodeControl
+              depth={0}
+              hasChildren={hasChildren}
+              isExpanded={isExpanded}
+              expandedLabel={t("common.collapse")}
+              collapsedLabel={t("common.expand")}
+              noChildrenLabel={t("common.noChildren")}
+              showGuideLines={false}
+              leafIndicator={hasNodeLabel ? "disabled-chevron" : "empty"}
+              disclosureClassName={hasNodeLabel ? "mt-1" : ""}
+              contentClassName="space-y-1"
+              onToggle={() => toggleNode(node.id)}
+            >
+              {hasNodeLabel ? (
+                <span className={financeTextClass.rowTitle}>{node.name}</span>
+              ) : null}
+            </TreeNodeControl>
+            <div className="align-top text-center">
+              {node.currencyCode ? (
+                <FinanceAssetSymbol symbol={node.currencyCode} />
+              ) : (
+                <span className={financeTextClass.placeholder}>-</span>
+              )}
+            </div>
+            <div className="align-top">
+              {node.currencyCode ? (
+                <FinanceAmountText
+                  amount={node.amount}
+                  currencyCode={node.currencyCode}
+                  showCurrency={false}
+                />
+              ) : (
+                <FinanceAmountListText value={node.amount} />
+              )}
+            </div>
+            <div className="align-top">
+              {usesConvertedAggregation && node.amountConverted ? (
+                <FinanceAmountText
+                  amount={formatAmountForAsset(
+                    node.amountConverted,
+                    snapshot.primary_currency,
+                    assets,
+                  )}
+                  currencyCode={snapshot.primary_currency}
+                  value={parseDisplayAmount(node.amountConverted)}
+                  showCurrency={false}
+                />
+              ) : (
+                <span className={financeTextClass.placeholder}>-</span>
+              )}
+            </div>
+            <div className="align-top">
+              {node.note ? (
+                <span className={`block min-h-[2.25rem] ${financeTextClass.bodyMuted}`}>
+                  {node.note}
+                </span>
+              ) : (
+                <span className={financeTextClass.placeholder}>-</span>
+              )}
+            </div>
+          </TreeRowSurface>
+          {hasChildren && isExpanded ? (
+            <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
+              {renderDetailRows(node.children)}
+            </ul>
+          ) : null}
+        </li>
+      );
+    });
 
   return (
     <div className="space-y-4">
@@ -1065,117 +1123,23 @@ export function SnapshotDetail({
             {t("finance.metrics.details")}
           </h4>
         </div>
-        <div className="overflow-x-auto">
-          <table className="table table-sm">
-            <thead className={financeTextClass.tableHeader}>
-              <tr>
-                <th className="w-[40%] min-w-[12rem] px-4 py-2">
-                  {t("finance.snapshot.node")}
-                </th>
-                <th className="w-20 px-4 py-2 text-center">
-                  {t("finance.snapshot.asset")}
-                </th>
-                <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.snapshot.originalAmount")}
-                </th>
-                <th className="min-w-[10rem] px-4 py-2">
-                  {t("finance.metrics.convertTo", { currency: snapshot.primary_currency })}
-                </th>
-                <th className="min-w-[12rem]">{t("finance.snapshot.note")}</th>
-              </tr>
-            </thead>
-            <tbody className={financeTextClass.tableBody}>
-              {visibleNodes.map((node) => {
-                const hasChildren = node.children.length > 0;
-                const isExpanded = expandedIds.has(node.id);
-                const hasNodeLabel = node.name.trim().length > 0;
-                const isAggregateRow = hasChildren || node.isAutoGenerated;
-
-                return (
-                  <TreeRowSurface
-                    as="tr"
-                    layout="table"
-                    tone={isAggregateRow ? "aggregate" : "default"}
-                    key={node.id}
-                    className={[
-                      isAggregateRow
-                        ? "border-l-4 border-l-base-content/30"
-                        : "border-l-4 border-l-transparent",
-                    ].join(" ")}
-                  >
-                    <td className="align-top">
-                      <TreeNodeControl
-                        depth={node.depth}
-                        hasChildren={hasChildren}
-                        isExpanded={isExpanded}
-                        expandedLabel={t("common.collapse")}
-                        collapsedLabel={t("common.expand")}
-                        noChildrenLabel={t("common.noChildren")}
-                        leafIndicator={hasNodeLabel ? "disabled-chevron" : "empty"}
-                        disclosureClassName={hasNodeLabel ? "mt-1" : ""}
-                        contentClassName="space-y-1"
-                        onToggle={() => toggleNode(node.id)}
-                      >
-                        {hasNodeLabel ? (
-                          <span className={financeTextClass.rowTitle}>{node.name}</span>
-                        ) : null}
-                      </TreeNodeControl>
-                    </td>
-                    <td className="align-top text-center">
-                      {node.currencyCode ? (
-                        <FinanceAssetSymbol symbol={node.currencyCode} />
-                      ) : (
-                        <span className={financeTextClass.placeholder}>-</span>
-                      )}
-                    </td>
-                    <td className="align-top">
-                      {node.currencyCode ? (
-                        <FinanceAmountText
-                          amount={node.amount}
-                          currencyCode={node.currencyCode}
-                          showCurrency={false}
-                        />
-                      ) : (
-                        <FinanceAmountListText value={node.amount} />
-                      )}
-                    </td>
-                    <td className="align-top">
-                      {usesConvertedAggregation && node.amountConverted ? (
-                        <FinanceAmountText
-                          amount={formatAmountForAsset(
-                            node.amountConverted,
-                            snapshot.primary_currency,
-                            assets,
-                          )}
-                          currencyCode={snapshot.primary_currency}
-                          value={parseDisplayAmount(node.amountConverted)}
-                          showCurrency={false}
-                        />
-                      ) : (
-                        <span className={financeTextClass.placeholder}>-</span>
-                      )}
-                    </td>
-                    <td className="align-top">
-                      {node.note ? (
-                        <span className={`block min-h-[2.25rem] ${financeTextClass.bodyMuted}`}>
-                          {node.note}
-                        </span>
-                      ) : (
-                        <span className={financeTextClass.placeholder}>-</span>
-                      )}
-                    </td>
-                  </TreeRowSurface>
-                );
-              })}
-              {!visibleNodes.length ? (
-                <tr>
-                  <td colSpan={5} className={`text-center py-6 ${financeTextClass.helperText}`}>
-                    {t("finance.history.noSelection")}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="overflow-x-auto p-3">
+          <div
+            className={`${SNAPSHOT_TREE_GRID_CLASS} rounded-md bg-base-200/60 px-3 py-2 text-left ${financeTextClass.tableHeader}`}
+          >
+            <span>{t("finance.snapshot.node")}</span>
+            <span className="text-center">{t("finance.snapshot.asset")}</span>
+            <span>{t("finance.snapshot.originalAmount")}</span>
+            <span>{t("finance.metrics.convertTo", { currency: snapshot.primary_currency })}</span>
+            <span>{t("finance.snapshot.note")}</span>
+          </div>
+          {displayTree.length ? (
+            <ul className="mt-2 space-y-2">{renderDetailRows(displayTree)}</ul>
+          ) : (
+            <div className={`py-6 text-center ${financeTextClass.helperText}`}>
+              {t("finance.history.noSelection")}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1797,21 +1761,4 @@ function collectExpandableSnapshotNodeIds(
       collectExpandableSnapshotNodeIds(node.children, target);
     }
   });
-}
-
-function flattenVisibleSnapshotNodes(
-  nodes: SnapshotDisplayNode[],
-  expandedIds: Set<string>,
-): SnapshotDisplayNode[] {
-  const result: SnapshotDisplayNode[] = [];
-  const walk = (items: SnapshotDisplayNode[]) => {
-    items.forEach((node) => {
-      result.push(node);
-      if (node.children.length && expandedIds.has(node.id)) {
-        walk(node.children);
-      }
-    });
-  };
-  walk(nodes);
-  return result;
 }
