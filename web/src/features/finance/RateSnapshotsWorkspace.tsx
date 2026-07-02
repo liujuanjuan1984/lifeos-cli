@@ -390,7 +390,7 @@ export function RateSnapshotsWorkspace() {
                   {rateRows.map((row, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2"
+                      className="grid grid-cols-[minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto_minmax(5rem,0.7fr)_minmax(7rem,1fr)_auto] items-center gap-2 rounded-md transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
                     >
                       <TextInput
                         size="sm"
@@ -550,7 +550,10 @@ export function RateSnapshotsWorkspace() {
                 </thead>
                 <tbody>
                   {(currentSnapshot.entries ?? []).map((entry) => (
-                    <tr key={entry.id}>
+                    <tr
+                      key={entry.id}
+                      className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
+                    >
                       <RateEntryEquationCells entry={entry} assets={assets} />
                     </tr>
                   ))}

@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { SnapshotFormPanel } from "@/features/finance/SnapshotPanels";
+import { SnapshotDetail, SnapshotFormPanel } from "@/features/finance/SnapshotPanels";
 import type {
   FinanceAsset,
   FinanceSnapshot,
@@ -74,6 +74,38 @@ const sourceSnapshot: FinanceSnapshot = {
 };
 
 describe("SnapshotFormPanel", () => {
+  it("renders snapshot entry rows with hover state", () => {
+    setupTranslationMock();
+
+    renderWithProviders(
+      <SnapshotFormPanel
+        tree={tree}
+        preset={{
+          report: "balance",
+          titleKey: "finance.balance.title",
+          descriptionKey: "finance.balance.description",
+          timeMode: "instant",
+        }}
+        assets={assets}
+        onCreateAsset={vi.fn()}
+        treeOptions={[tree]}
+        selectedTreeId={tree.id}
+        onSelectTree={vi.fn()}
+        treeNodes={[{ ...node, children: [] }]}
+        rateSnapshots={[]}
+        submitting={false}
+        mode="create"
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const row = screen.getByText("Wallet").closest("tr");
+
+    expect(row).toHaveClass("hover:bg-primary/10");
+    expect(row).toHaveClass("focus-within:bg-primary/10");
+  });
+
   it("prefills copied snapshots and submits create-ready entries", async () => {
     setupTranslationMock();
     const user = userEvent.setup();
@@ -128,5 +160,31 @@ describe("SnapshotFormPanel", () => {
     );
     expect(onSubmit.mock.calls[0]?.[0].snapshot_ts).toEqual(expect.any(String));
     expect(onSubmit.mock.calls[0]?.[0].snapshot_ts).not.toBe(sourceSnapshot.snapshot_ts);
+  });
+});
+
+describe("SnapshotDetail", () => {
+  it("renders detail tree rows with hover state", () => {
+    setupTranslationMock();
+
+    renderWithProviders(
+      <SnapshotDetail
+        snapshot={sourceSnapshot}
+        assets={assets}
+        treeNodes={[{ ...node, children: [] }]}
+        rateSnapshots={[]}
+      />,
+    );
+
+    const row = screen.getByText("Wallet").closest("tr");
+    const assetSummaryPanel = screen
+      .getByText("finance.metrics.assetSummary")
+      .closest(".rounded-lg");
+    const assetSummaryRow = assetSummaryPanel?.querySelector("tbody tr");
+
+    expect(row).toHaveClass("hover:bg-primary/10");
+    expect(row).toHaveClass("focus-within:bg-primary/10");
+    expect(assetSummaryRow).toHaveClass("hover:bg-primary/10");
+    expect(assetSummaryRow).toHaveClass("focus-within:bg-primary/10");
   });
 });

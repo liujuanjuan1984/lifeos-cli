@@ -36,6 +36,9 @@ import {
   type TreeNodeWithChildren,
 } from "./utils";
 
+const SNAPSHOT_TREE_ROW_HOVER_CLASS =
+  "transition-colors hover:bg-primary/10 focus-within:bg-primary/10";
+
 export function SnapshotFormPanel({
   tree,
   preset,
@@ -523,6 +526,7 @@ function SnapshotEntryTreeTable({
           key={node.id}
           className={[
             "border-base-200",
+            SNAPSHOT_TREE_ROW_HOVER_CLASS,
             hasChildren ? "border-l-4 border-l-base-content/30 bg-base-200/60" : "",
           ]
             .filter(Boolean)
@@ -679,7 +683,7 @@ function SnapshotEntryTreeTable({
           rows.push(
             <tr
               key={`${node.id}:${holding.id}`}
-              className="border-base-200 border-l-4 border-l-transparent bg-base-100"
+              className={`border-base-200 border-l-4 border-l-transparent bg-base-100 ${SNAPSHOT_TREE_ROW_HOVER_CLASS}`}
             >
               <td className="align-top">
                 <div
@@ -913,7 +917,10 @@ function AssetSummaryPanel({
           </thead>
           <tbody>
             {rowsWithShare.map((row) => (
-              <tr key={row.currency}>
+              <tr
+                key={row.currency}
+                className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10"
+              >
                 <td>
                   <FinanceAssetSymbol symbol={row.currency} />
                 </td>
@@ -1099,6 +1106,7 @@ export function SnapshotDetail({
                     key={node.id}
                     className={[
                       "border-base-200",
+                      SNAPSHOT_TREE_ROW_HOVER_CLASS,
                       isAggregateRow
                         ? "border-l-4 border-l-base-content/30 bg-base-200/60"
                         : "border-l-4 border-l-transparent",

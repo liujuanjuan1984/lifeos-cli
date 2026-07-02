@@ -1444,7 +1444,7 @@ function TreeNodeRow({
   const isExpanded = expandedIds.has(node.id);
   return (
     <li>
-      <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-2 py-2 hover:border-base-300/80">
+      <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-2 py-2 transition-colors hover:border-base-300/80 hover:bg-primary/10 focus-within:bg-primary/10">
         <ActionButton
           label=""
           ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
