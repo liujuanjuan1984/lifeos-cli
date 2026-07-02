@@ -655,6 +655,10 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
                               onViewNotes={
                                 taskManagement.actions.handleViewNotes
                               }
+                              onCreateTimeRecord={
+                                taskManagement.actions
+                                  .handleOpenCreateTimelogModal
+                              }
                               expandedTasks={
                                 expandedTasksInVision[vision.id] || new Set()
                               }

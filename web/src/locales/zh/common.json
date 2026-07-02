@@ -1396,7 +1396,7 @@
     },
     "activityTypes": {
       "vision": "愿景管理",
-      "timelog": "时间跟踪",
+      "timelog": "时间日志",
       "note": "快速笔记",
       "task": "任务",
       "planned_event": "日程安排"
@@ -1811,17 +1811,20 @@
     }
   },
   "taskTimelogs": {
-    "title": "日志",
+    "title": "时间日志",
     "taskLabel": "任务：",
     "totalTime": "总计",
     "recordsCount": "{{count}} 条记录",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "pageIndicator": "第 {{page}} / {{total}} 页",
     "duration": "进行中",
     "minutes": "分钟",
     "hours": "小时",
-    "untitled": "未命名事件",
+    "untitled": "未命名时间日志",
     "unknownArea": "未分配领域",
     "emptyState": {
-      "title": "暂无日志",
+      "title": "暂无时间日志",
       "description": "在时间日志页面记录时间时关联此任务即可显示"
     },
     "columns": {

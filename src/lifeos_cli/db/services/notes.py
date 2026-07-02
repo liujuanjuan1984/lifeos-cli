@@ -91,6 +91,7 @@ def _association_exists_clause(
             Association.target_model == target_model,
             Association.target_id == target_id,
             Association.link_type == link_type,
+            target_table.id == Association.target_id,
             target_table.id == target_id,
             target_table.deleted_at.is_(None),
         )

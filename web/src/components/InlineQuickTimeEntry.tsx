@@ -120,6 +120,7 @@ interface InlineQuickTimeEntryProps {
   idPrefix?: string;
   sessionId: string;
   timezone?: string;
+  blankInitialEndTime?: boolean;
 }
 
 export default function InlineQuickTimeEntry({
@@ -135,6 +136,7 @@ export default function InlineQuickTimeEntry({
   idPrefix = "quick-time",
   sessionId,
   timezone,
+  blankInitialEndTime = false,
 }: InlineQuickTimeEntryProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<TimelogCreate>({
@@ -354,6 +356,7 @@ export default function InlineQuickTimeEntry({
   // removed duplicate state declarations for areas
 
   // Refs for keyboard navigation
+  const formRef = useRef<HTMLFormElement | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const areaRef = useRef<HTMLInputElement>(null);
 
@@ -431,10 +434,11 @@ export default function InlineQuickTimeEntry({
         : initialEndTime;
 
     const startISO = hhmmToISO(selectedDate, effectiveStartTime);
-    let endISO = hhmmToISO(selectedDate, normalizedEnd);
+    const shouldBlankEndTime = blankInitialEndTime && !initialEndTime;
+    let endISO = shouldBlankEndTime ? "" : hhmmToISO(selectedDate, normalizedEnd);
 
     // Cross-day: if end before start, roll to next day
-    if (new Date(endISO) < new Date(startISO)) {
+    if (endISO && new Date(endISO) < new Date(startISO)) {
       const tmp = new Date(endISO);
       tmp.setDate(tmp.getDate() + 1);
       endISO = tmp.toISOString();
@@ -449,6 +453,7 @@ export default function InlineQuickTimeEntry({
     selectedDate,
     initialStartTime,
     initialEndTime,
+    blankInitialEndTime,
     shouldInitializeFromProps,
     setFormDataWithSync,
     hhmmToISO,
@@ -834,7 +839,7 @@ export default function InlineQuickTimeEntry({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         {/* Quick input row */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
           {/* Start Time */}
@@ -974,7 +979,7 @@ export default function InlineQuickTimeEntry({
           <FormActions
             loading={loading}
             onCancel={sessionAwareCancel}
-            onSubmit={() => document.querySelector("form")?.requestSubmit()}
+            onSubmit={() => formRef.current?.requestSubmit()}
             disabled={
               !formData.title.trim() ||
               formData.area_id === "" ||

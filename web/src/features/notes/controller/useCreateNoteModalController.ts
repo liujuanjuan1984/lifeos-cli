@@ -23,7 +23,11 @@ import {
   isTimelogsAdvancedSearchQuery,
   type QueryLike,
 } from "@/services/api/queryPredicates";
-import { invalidateTasksByIds, updateTaskCaches } from "@/utils/query";
+import {
+  invalidateTasksByIds,
+  updateTaskCaches,
+  updateTaskRelationshipCounts,
+} from "@/utils/query";
 import { logger } from "@/utils/core";
 import type { UUID } from "@/types/primitive";
 
@@ -184,6 +188,10 @@ export function useCreateNoteModalController({
               typeof noteTask.notes_count === "number"
                 ? noteTask.notes_count
                 : baseTask.notes_count,
+            timelogs_count:
+              typeof noteTask.timelogs_count === "number"
+                ? noteTask.timelogs_count
+                : baseTask.timelogs_count,
             actual_effort_total:
               typeof noteTask.actual_effort_total === "number"
                 ? noteTask.actual_effort_total
@@ -248,6 +256,11 @@ export function useCreateNoteModalController({
 
       const refreshCaches = async () => {
         await syncTaskFromNoteSummary(createdNote?.task);
+        Array.from(taskIds).forEach((taskId) => {
+          updateTaskRelationshipCounts(queryClient, taskId, {
+            notes_count: (current) => Math.max(1, current + 1),
+          });
+        });
         await invalidateRelatedQueries({
           timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),

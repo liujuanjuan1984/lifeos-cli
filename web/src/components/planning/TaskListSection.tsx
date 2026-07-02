@@ -110,6 +110,9 @@ export const TaskListSection: React.FC<TaskListSectionProps> = ({
               onViewTimeRecords={taskManagement.actions.handleViewTimeRecords}
               onCreateNote={taskManagement.actions.handleOpenCreateNoteModal}
               onViewNotes={taskManagement.actions.handleViewNotes}
+              onCreateTimeRecord={
+                taskManagement.actions.handleOpenCreateTimelogModal
+              }
               expandedTasks={getExpandedTasksForDraggable(groupId)}
               onToggleExpansion={(taskId) =>
                 toggleTaskExpansion(groupId, taskId)

@@ -98,8 +98,9 @@ def _activity_payload(
     description: str | None,
     activity_date: date | datetime,
     status: str | None = None,
+    extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "id": str(entity_id),
         "type": activity_type,
         "title": title,
@@ -107,6 +108,9 @@ def _activity_payload(
         "date": activity_date.isoformat(),
         "status": status,
     }
+    if extra:
+        payload.update(extra)
+    return payload
 
 
 async def _load_person_entity_ids(
@@ -128,10 +132,13 @@ async def _load_person_entity_ids(
 
 async def _load_person_note_ids(session: AsyncSession, *, person_id: UUID) -> list[UUID]:
     rows = await session.execute(
-        select(Association.source_id).where(
+        select(Association.source_id)
+        .distinct()
+        .where(
             Association.source_model == "note",
             Association.target_model == "person",
             Association.target_id == person_id,
+            Association.link_type == "is_about",
         )
     )
     return list(rows.scalars().all())
@@ -211,9 +218,13 @@ async def _load_activity_items(
                     entity_id=timelog.id,
                     activity_type="timelog",
                     title=timelog.title,
-                    description=timelog.notes,
+                    description=None,
                     activity_date=timelog.start_time,
-                    status=timelog.tracking_method,
+                    extra={
+                        "start_time": timelog.start_time.isoformat(),
+                        "end_time": timelog.end_time.isoformat(),
+                        "area_id": str(timelog.area_id) if timelog.area_id else None,
+                    },
                 )
                 for timelog in timelog_rows.scalars()
             )
@@ -228,8 +239,8 @@ async def _load_activity_items(
                 _activity_payload(
                     entity_id=note.id,
                     activity_type="note",
-                    title=_preview(note.content, limit=80) or "Note",
-                    description=note.content,
+                    title=_preview(note.content) or "Note",
+                    description=None,
                     activity_date=note.updated_at,
                 )
                 for note in note_rows.scalars()

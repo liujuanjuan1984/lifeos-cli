@@ -40,6 +40,7 @@ export interface TaskSummary {
   priority?: number | null;
   estimated_effort?: number | null;
   notes_count?: number;
+  timelogs_count?: number;
   actual_effort_total?: number | null;
   actual_effort_self?: number | null;
   planning_cycle_type?: string | null;

@@ -24,6 +24,7 @@ export interface Task {
   actual_effort_self: number;
   actual_effort_total: number;
   notes_count: number;
+  timelogs_count?: number;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -333,10 +334,10 @@ export const tasksApi = {
     page: number = 1,
     size: number = 100,
   ): Promise<TimelogListResponse> {
-    return Promise.resolve({
-      items: [],
-      pagination: { page, size, total: 0, pages: 0 },
-      meta: { task_id: id },
+    return http.get<TimelogListResponse>(ENDPOINTS.TIMELOGS.BASE, {
+      task_id: id,
+      page,
+      size,
     });
   },
 };

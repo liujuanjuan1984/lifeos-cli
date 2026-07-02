@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import TaskEditModal from "./TaskEditModal";
 import TaskTimelogsModal from "./TaskTimelogsModal";
+import TaskTimelogQuickAddModal from "./TaskTimelogQuickAddModal";
 import TaskNotesModal from "./TaskNotesModal";
 import CreateNoteModal from "./CreateNoteModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -172,6 +173,15 @@ const TaskManagementWrapper: React.FC<TaskManagementWrapperProps> = ({
           lockTaskSelection={createNoteDefaults?.lockTaskSelection ?? false}
           lockPersonSelection={createNoteDefaults?.lockPersonSelection ?? false}
           onNoteCreated={taskManagement.actions.handleNoteCreated}
+        />
+      )}
+
+      {taskManagement.isCreateTimelogModalOpen && (
+        <TaskTimelogQuickAddModal
+          isOpen={taskManagement.isCreateTimelogModalOpen}
+          onClose={taskManagement.actions.closeCreateTimelogModal}
+          task={taskManagement.creatingTimelogForTask}
+          onTimelogCreated={taskManagement.actions.handleTimelogCreated}
         />
       )}
     </>

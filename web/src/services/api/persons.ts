@@ -75,6 +75,9 @@ export interface PersonActivityItem {
   description?: string | null;
   date: string;
   status?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  area_id?: UUID | null;
 }
 
 export type PersonActivityType = PersonActivityItem["type"];

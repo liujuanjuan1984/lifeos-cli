@@ -357,14 +357,24 @@ def test_web_task_hierarchy_payload_excludes_deleted_at() -> None:
         task_node(
             "11111111-1111-1111-1111-111111111111",
             subtasks=(task_node("33333333-3333-3333-3333-333333333333"),),
-        )
+        ),
+        notes_count_by_task={
+            UUID("11111111-1111-1111-1111-111111111111"): 2,
+        },
+        timelogs_count_by_task={
+            UUID("33333333-3333-3333-3333-333333333333"): 1,
+        },
     )
 
     assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
     assert payload["updated_at"] == "2026-06-01T13:00:00+00:00"
+    assert payload["notes_count"] == 2
+    assert payload["timelogs_count"] == 0
     assert "actual_effort" not in payload
     assert "deleted_at" not in payload
     subtask_payload = cast(list[dict[str, object]], payload["subtasks"])[0]
+    assert subtask_payload["notes_count"] == 0
+    assert subtask_payload["timelogs_count"] == 1
     assert "deleted_at" not in subtask_payload
 
 
@@ -403,8 +413,22 @@ def test_web_task_list_basic_payload_excludes_full_task_fields(
     async def fake_count_tasks(_session: object, **_kwargs: object) -> int:
         return 1
 
+    async def fake_load_task_relation_counts(
+        _session: object,
+        _task_ids: list[UUID],
+    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
+        return (
+            {UUID("11111111-1111-1111-1111-111111111111"): 4},
+            {UUID("11111111-1111-1111-1111-111111111111"): 5},
+        )
+
     monkeypatch.setattr(tasks.task_services, "list_tasks", fake_list_tasks)
     monkeypatch.setattr(tasks.task_services, "count_tasks", fake_count_tasks)
+    monkeypatch.setattr(
+        tasks,
+        "_load_task_relation_counts",
+        fake_load_task_relation_counts,
+    )
 
     response = asyncio.run(
         tasks.list_tasks(
@@ -426,6 +450,8 @@ def test_web_task_list_basic_payload_excludes_full_task_fields(
         "planning_cycle_days": 1,
         "planning_cycle_start_date": "2026-06-30",
         "people": [{"id": "33333333-3333-3333-3333-333333333333", "name": "A"}],
+        "notes_count": 4,
+        "timelogs_count": 5,
     }
     assert "created_at" not in payload
     assert "updated_at" not in payload
@@ -507,6 +533,30 @@ def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "updated_at" not in person_payload
     assert "deleted_at" not in person_payload
     assert "is_soft_deleted" not in person_payload
+
+
+def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.persons import _activity_payload
+
+    timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
+    payload = _activity_payload(
+        entity_id=UUID("11111111-1111-1111-1111-111111111111"),
+        activity_type="timelog",
+        title="Deep work",
+        description=None,
+        activity_date=timestamp,
+        extra={
+            "start_time": "2026-07-02T09:00:00+00:00",
+            "end_time": "2026-07-02T09:30:00+00:00",
+            "area_id": "22222222-2222-2222-2222-222222222222",
+        },
+    )
+
+    assert payload["status"] is None
+    assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
+    assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
+    assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
 
 
 def test_web_habit_action_payload_uses_slim_habit_summary(
@@ -781,8 +831,19 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         captured["count_kwargs"] = kwargs
         return 123
 
+    async def fake_load_task_relation_counts(
+        _session: object,
+        _task_ids: list[UUID],
+    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
+        return ({}, {})
+
     monkeypatch.setattr(task_router.task_services, "list_tasks", fake_list_tasks)
     monkeypatch.setattr(task_router.task_services, "count_tasks", fake_count_tasks)
+    monkeypatch.setattr(
+        task_router,
+        "_load_task_relation_counts",
+        fake_load_task_relation_counts,
+    )
 
     response = asyncio.run(
         task_router.list_tasks(
@@ -1352,6 +1413,75 @@ def test_web_timelog_payload_serializes_naive_storage_datetimes_as_utc() -> None
     assert payload["start_time"] == "2026-06-13T21:00:00Z"
     assert payload["end_time"] == "2026-06-13T21:05:00Z"
     assert payload["created_at"] == "2026-06-13T21:09:24Z"
+
+
+def test_web_person_note_activity_payload_avoids_duplicate_note_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import persons
+
+    note_id = UUID("11111111-1111-1111-1111-111111111111")
+    person_id = UUID("22222222-2222-2222-2222-222222222222")
+    timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
+    note = SimpleNamespace(
+        id=note_id,
+        content="Remember the meeting notes",
+        updated_at=timestamp,
+    )
+
+    async def fake_load_person_entity_ids(
+        _session: object,
+        *,
+        person_id: UUID,
+    ) -> dict[str, list[UUID]]:
+        return {}
+
+    async def fake_load_person_note_ids(
+        _session: object,
+        *,
+        person_id: UUID,
+    ) -> list[UUID]:
+        return [note_id]
+
+    class FakeResult:
+        def scalars(self) -> list[object]:
+            return [note]
+
+    class FakeSession:
+        async def execute(self, _statement: object) -> FakeResult:
+            return FakeResult()
+
+    monkeypatch.setattr(
+        persons,
+        "_load_person_entity_ids",
+        fake_load_person_entity_ids,
+    )
+    monkeypatch.setattr(
+        persons,
+        "_load_person_note_ids",
+        fake_load_person_note_ids,
+    )
+
+    activities = asyncio.run(
+        persons._load_activity_items(
+            cast(AsyncSession, FakeSession()),
+            person_id=person_id,
+            activity_filter="note",
+        )
+    )
+
+    assert activities == [
+        {
+            "id": str(note_id),
+            "type": "note",
+            "title": "Remember the meeting notes",
+            "description": None,
+            "date": timestamp.isoformat(),
+            "status": None,
+        }
+    ]
 
 
 def test_web_task_update_null_planning_cycle_translates_to_clear_flag(

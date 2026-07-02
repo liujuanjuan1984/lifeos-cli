@@ -1,10 +1,15 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskWithSubtasks, Vision } from "@/services/api";
+import type { TimelogWithEnergyResponse } from "@/services/api/timelogs";
 import { tasksApi } from "@/services/api";
 import { useToast } from "@/contexts/ToastContext";
 import type { UUID } from "@/types/primitive";
-import { invalidateTasksByIds, updateTaskCaches } from "@/utils/query";
+import {
+  invalidateTasksByIds,
+  updateTaskCaches,
+  updateTaskRelationshipCounts,
+} from "@/utils/query";
 import { tasksKeys } from "@/services/api/queryKeys";
 import { createModalSessionId } from "@/utils/session";
 
@@ -78,6 +83,10 @@ interface TaskManagementState {
   creatingNoteForTask: TaskWithSubtasks | null;
   isCreateNoteModalOpen: boolean;
 
+  // Timelog creation state
+  creatingTimelogForTask: TaskWithSubtasks | null;
+  isCreateTimelogModalOpen: boolean;
+
   // 创建子任务相关状态
   creatingSubtask: boolean;
   parentTaskId: UUID | null;
@@ -115,6 +124,11 @@ interface TaskManagementActions {
   handleOpenCreateNoteModal: (task: TaskWithSubtasks) => void;
   closeCreateNoteModal: () => void;
   handleNoteCreated: () => void;
+
+  // Timelog creation
+  handleOpenCreateTimelogModal: (task: TaskWithSubtasks) => void;
+  closeCreateTimelogModal: () => void;
+  handleTimelogCreated: (result: TimelogWithEnergyResponse) => void;
 
   // 任务重排序
   handleTasksReorder: (reorderedTasks: TaskWithSubtasks[]) => Promise<void>;
@@ -257,6 +271,8 @@ export const useTaskManagement = (config: TaskManagementConfig = {}) => {
     isNotesModalOpen: false,
     creatingNoteForTask: null,
     isCreateNoteModalOpen: false,
+    creatingTimelogForTask: null,
+    isCreateTimelogModalOpen: false,
     creatingSubtask: false,
     parentTaskId: null,
   });
@@ -539,6 +555,53 @@ export const useTaskManagement = (config: TaskManagementConfig = {}) => {
     }
   }, [onNoteCreated]);
 
+  const handleOpenCreateTimelogModal = useCallback((task: TaskWithSubtasks) => {
+    setState((prev) => ({
+      ...prev,
+      creatingTimelogForTask: task,
+      isCreateTimelogModalOpen: true,
+    }));
+  }, []);
+
+  const closeCreateTimelogModal = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      isCreateTimelogModalOpen: false,
+      creatingTimelogForTask: null,
+    }));
+  }, []);
+
+  const handleTimelogCreated = useCallback(
+    (result: TimelogWithEnergyResponse) => {
+      const taskId =
+        result.task?.id ??
+        result.task_id ??
+        state.creatingTimelogForTask?.id ??
+        null;
+
+      setState((prev) => ({
+        ...prev,
+        isCreateTimelogModalOpen: false,
+        creatingTimelogForTask: null,
+      }));
+
+      if (!taskId) {
+        onTaskUpdate?.();
+        return;
+      }
+
+      updateTaskRelationshipCounts(queryClient, taskId, {
+        timelogs_count: (current) => Math.max(1, current + 1),
+      });
+
+      void invalidateTasksByIds(queryClient, [taskId]).catch((error) => {
+        console.warn("Failed to refresh task after creating timelog:", error);
+      });
+      onTaskUpdate?.();
+    },
+    [onTaskUpdate, queryClient, state.creatingTimelogForTask?.id],
+  );
+
   // 任务重排序处理
   const handleTasksReorder = useCallback(
     async (reorderedTasks: TaskWithSubtasks[]) => {
@@ -580,6 +643,9 @@ export const useTaskManagement = (config: TaskManagementConfig = {}) => {
     handleOpenCreateNoteModal,
     closeCreateNoteModal,
     handleNoteCreated,
+    handleOpenCreateTimelogModal,
+    closeCreateTimelogModal,
+    handleTimelogCreated,
     handleTasksReorder,
   };
 
@@ -598,6 +664,8 @@ export const useTaskManagement = (config: TaskManagementConfig = {}) => {
     isNotesModalOpen: state.isNotesModalOpen,
     creatingNoteForTask: state.creatingNoteForTask,
     isCreateNoteModalOpen: state.isCreateNoteModalOpen,
+    creatingTimelogForTask: state.creatingTimelogForTask,
+    isCreateTimelogModalOpen: state.isCreateTimelogModalOpen,
     creatingSubtask: state.creatingSubtask,
     parentTaskId: state.parentTaskId,
   };
