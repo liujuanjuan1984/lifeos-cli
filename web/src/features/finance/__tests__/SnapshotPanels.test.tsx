@@ -74,7 +74,7 @@ const sourceSnapshot: FinanceSnapshot = {
 };
 
 describe("SnapshotFormPanel", () => {
-  it("renders snapshot entry rows with hover state and plain leaf placeholders", () => {
+  it("renders snapshot entry rows with hover state", () => {
     setupTranslationMock();
 
     renderWithProviders(
@@ -104,7 +104,6 @@ describe("SnapshotFormPanel", () => {
 
     expect(row).toHaveClass("hover:bg-primary/10");
     expect(row).toHaveClass("focus-within:bg-primary/10");
-    expect(screen.queryByText("•")).not.toBeInTheDocument();
   });
 
   it("prefills copied snapshots and submits create-ready entries", async () => {
@@ -165,7 +164,7 @@ describe("SnapshotFormPanel", () => {
 });
 
 describe("SnapshotDetail", () => {
-  it("renders detail tree rows with hover state and plain leaf placeholders", () => {
+  it("renders detail tree rows with hover state", () => {
     setupTranslationMock();
 
     renderWithProviders(
@@ -181,6 +180,5 @@ describe("SnapshotDetail", () => {
 
     expect(row).toHaveClass("hover:bg-primary/10");
     expect(row).toHaveClass("focus-within:bg-primary/10");
-    expect(screen.queryByText("•")).not.toBeInTheDocument();
   });
 });

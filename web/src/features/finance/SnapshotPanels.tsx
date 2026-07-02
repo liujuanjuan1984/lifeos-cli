@@ -551,7 +551,9 @@ function SnapshotEntryTreeTable({
                   onClick={() => toggleNode(node.id)}
                 />
               ) : (
-                <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0" />
+                <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center text-base-content/30">
+                  •
+                </span>
               )}
               <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
@@ -1125,7 +1127,9 @@ export function SnapshotDetail({
                             onClick={() => toggleNode(node.id)}
                           />
                         ) : hasNodeLabel ? (
-                          <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0" />
+                          <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
+                            •
+                          </span>
                         ) : (
                           <span className="inline-flex h-5 w-5 flex-shrink-0" />
                         )}
