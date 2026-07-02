@@ -7,11 +7,11 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import ActionButton, {
+  ActionButtonGroup,
   EditButton,
   DeleteButton,
   ExpandButton,
 } from "./ActionButton";
-import ResponsiveActionButtonGroup from "./ResponsiveActionButtonGroup";
 import {
   DndContext,
   closestCenter,
@@ -98,6 +98,27 @@ interface TaskDragInfo {
   parentId: UUID | null;
   level: number;
 }
+
+const readTaskRelationshipCount = (
+  task: TaskWithSubtasks,
+  keys: string[],
+): number => {
+  const taskRecord = task as unknown as Record<string, unknown>;
+  let count = 0;
+  for (const key of keys) {
+    const value = taskRecord[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      count = Math.max(count, value);
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        count = Math.max(count, parsed);
+      }
+    }
+  }
+  return count;
+};
 
 // Task hierarchy utilities
 class TaskHierarchyManager {
@@ -212,11 +233,11 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    // 强制宽度约束，防止被 transform 覆盖
+    // Keep width constraints stable while dnd transforms are active.
     maxWidth: "100%",
     width: "100%",
     minWidth: "0",
-    // 确保 flex 子元素不会超出容器
+    // Prevent flex children from overflowing the row container.
     flexShrink: 1,
     overflow: "hidden",
   };
@@ -237,9 +258,18 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
     ? Math.max(0, Math.min(PRIORITY.length - 1, Number(task.priority ?? 0)))
     : 0;
   const priorityInfo = PRIORITY[priorityIndex] ?? PRIORITY[0];
-  const hasNotes = (task.notes_count ?? 0) > 0;
+  const hasNotes =
+    readTaskRelationshipCount(task, [
+      "notes_count",
+      "note_count",
+      "linked_notes_count",
+    ]) > 0;
   const hasTimeLogs =
-    (task.timelogs_count ?? (task.actual_effort_self ?? 0)) > 0;
+    readTaskRelationshipCount(task, [
+      "timelogs_count",
+      "timelog_count",
+      "actual_effort_self",
+    ]) > 0;
   const subduedClass = "opacity-40 hover:opacity-60 transition-opacity";
   const noteButtonClass = hasNotes ? undefined : subduedClass;
   const timeLogButtonClass = hasTimeLogs ? undefined : subduedClass;
@@ -458,7 +488,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                     </span>
                   </h4>
 
-                  {/* Task Metadata - 响应式布局，支持换行 */}
+                  {/* Task metadata wraps responsively. */}
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-base-content/50 mt-1 sm:mt-0 sm:ml-3">
                     <span
                       className="flex-shrink-0 inline-flex items-center gap-1"
@@ -533,26 +563,18 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                   />
                 </div>
 
-                <ResponsiveActionButtonGroup
+                <ActionButtonGroup
                   gap="sm"
                   align="end"
-                  mobileVisibleCount={1}
-                  mediumVisibleCount={2}
-                  largeVisibleCount={6}
-                  moreButtonText={t("draggableTaskList.actions.more")}
-                  moreButtonIcon={<span>⋯</span>}
                   className="gap-0.1"
                 >
-                  {/* 移动端只显示：编辑 */}
                   <EditButton onClick={() => onEditTask(task)} size="sm" />
-                  {/* 桌面端显示：添加子任务 */}
                   <ActionButton
                     label=""
                     iconName="plus"
                     color="primary"
                     onClick={() => onAddSubtask(task.id)}
                   />
-                  {/* 其他功能按钮 - 都收起到抽屉中 */}
                   <ActionButton
                     label=""
                     iconName="document-plus"
@@ -587,7 +609,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({
                       size="sm"
                     />
                   )}
-                </ResponsiveActionButtonGroup>
+                </ActionButtonGroup>
               </div>
             </div>
 

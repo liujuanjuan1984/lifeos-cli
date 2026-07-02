@@ -117,6 +117,26 @@ type TaskRelationshipCountPatch = {
   timelogs_count?: number | ((current: number) => number);
 };
 
+const readNumericCount = (
+  source: Record<string, unknown>,
+  keys: string[],
+): number | undefined => {
+  let count: number | undefined;
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      count = Math.max(count ?? 0, value);
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        count = Math.max(count ?? 0, parsed);
+      }
+    }
+  }
+  return count;
+};
+
 const resolveCountPatch = (
   current: number | undefined,
   patch: number | ((current: number) => number) | undefined,
@@ -166,24 +186,48 @@ const patchTaskRelationshipCountsInValue = (
     let changed = false;
 
     if (originalTask.id === taskId) {
+      const originalRecord = originalTask as unknown as Record<string, unknown>;
+      const originalNotesCount = readNumericCount(originalRecord, [
+        "notes_count",
+        "note_count",
+        "linked_notes_count",
+      ]);
+      const originalTimelogsCount = readNumericCount(originalRecord, [
+        "timelogs_count",
+        "timelog_count",
+      ]);
       const nextNotesCount = resolveCountPatch(
-        originalTask.notes_count,
+        originalNotesCount,
         patch.notes_count,
       );
       const nextTimelogsCount = resolveCountPatch(
-        originalTask.timelogs_count,
+        originalTimelogsCount,
         patch.timelogs_count,
       );
       nextTask = {
         ...originalTask,
         ...(nextNotesCount !== undefined ? { notes_count: nextNotesCount } : {}),
+        ...(nextNotesCount !== undefined && "note_count" in originalRecord
+          ? { note_count: nextNotesCount }
+          : {}),
+        ...(nextNotesCount !== undefined &&
+        "linked_notes_count" in originalRecord
+          ? { linked_notes_count: nextNotesCount }
+          : {}),
         ...(nextTimelogsCount !== undefined
           ? { timelogs_count: nextTimelogsCount }
           : {}),
+        ...(nextTimelogsCount !== undefined && "timelog_count" in originalRecord
+          ? { timelog_count: nextTimelogsCount }
+          : {}),
       };
       changed =
-        nextNotesCount !== originalTask.notes_count ||
-        nextTimelogsCount !== originalTask.timelogs_count;
+        nextNotesCount !== originalNotesCount ||
+        nextTimelogsCount !== originalTimelogsCount ||
+        (nextNotesCount !== undefined &&
+          originalTask.notes_count !== nextNotesCount) ||
+        (nextTimelogsCount !== undefined &&
+          originalTask.timelogs_count !== nextTimelogsCount);
     }
 
     let working: Record<string, unknown> | Task = nextTask;

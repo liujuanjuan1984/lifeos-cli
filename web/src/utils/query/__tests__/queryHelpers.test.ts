@@ -7,6 +7,7 @@ import { normalizeTaskSelectorSourceFilters } from "@/services/api/taskFilters";
 import {
   removeTaskFromSelectorSourceCache,
   updateTaskCaches,
+  updateTaskRelationshipCounts,
 } from "@/utils/query";
 
 const createTask = (overrides?: Partial<Task>): Task => ({
@@ -112,5 +113,28 @@ describe("queryHelpers selector source cache syncing", () => {
     expect(hierarchyData?.root_tasks[0].subtasks?.[0].content).toBe(
       "Updated Child",
     );
+  });
+
+  it("normalizes task relationship count aliases when patching cache data", () => {
+    const taskId = "task-note-alias" as UUID;
+    const queryKey = ["task-alias-cache"];
+    const taskWithAlias = {
+      ...createTask({ id: taskId, notes_count: 0 }),
+      note_count: 2,
+    } as Task & { note_count: number };
+
+    queryClient.setQueryData(queryKey, { root_tasks: [taskWithAlias] });
+
+    updateTaskRelationshipCounts(queryClient, taskId, {
+      notes_count: (current) => current + 1,
+    });
+
+    const data = queryClient.getQueryData<{
+      root_tasks: Array<Task & { note_count?: number }>;
+    }>(queryKey);
+    const updatedTask = data?.root_tasks[0];
+
+    expect(updatedTask?.notes_count).toBe(3);
+    expect(updatedTask?.note_count).toBe(3);
   });
 });

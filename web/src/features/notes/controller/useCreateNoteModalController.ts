@@ -255,12 +255,12 @@ export function useCreateNoteModalController({
       }
 
       const refreshCaches = async () => {
+        await syncTaskFromNoteSummary(createdNote?.task);
         Array.from(taskIds).forEach((taskId) => {
           updateTaskRelationshipCounts(queryClient, taskId, {
             notes_count: (current) => Math.max(1, current + 1),
           });
         });
-        await syncTaskFromNoteSummary(createdNote?.task);
         await invalidateRelatedQueries({
           timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),
