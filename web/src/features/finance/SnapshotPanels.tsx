@@ -36,6 +36,9 @@ import {
   type TreeNodeWithChildren,
 } from "./utils";
 
+const SNAPSHOT_TREE_ROW_HOVER_CLASS =
+  "transition-colors hover:bg-primary/10 focus-within:bg-primary/10";
+
 export function SnapshotFormPanel({
   tree,
   preset,
@@ -523,6 +526,7 @@ function SnapshotEntryTreeTable({
           key={node.id}
           className={[
             "border-base-200",
+            SNAPSHOT_TREE_ROW_HOVER_CLASS,
             hasChildren ? "border-l-4 border-l-base-content/30 bg-base-200/60" : "",
           ]
             .filter(Boolean)
@@ -547,9 +551,7 @@ function SnapshotEntryTreeTable({
                   onClick={() => toggleNode(node.id)}
                 />
               ) : (
-                <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center text-base-content/30">
-                  •
-                </span>
+                <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0" />
               )}
               <div className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <p className={`truncate ${financeTextClass.rowTitle}`}>{node.name}</p>
@@ -679,7 +681,7 @@ function SnapshotEntryTreeTable({
           rows.push(
             <tr
               key={`${node.id}:${holding.id}`}
-              className="border-base-200 border-l-4 border-l-transparent bg-base-100"
+              className={`border-base-200 border-l-4 border-l-transparent bg-base-100 ${SNAPSHOT_TREE_ROW_HOVER_CLASS}`}
             >
               <td className="align-top">
                 <div
@@ -1099,6 +1101,7 @@ export function SnapshotDetail({
                     key={node.id}
                     className={[
                       "border-base-200",
+                      SNAPSHOT_TREE_ROW_HOVER_CLASS,
                       isAggregateRow
                         ? "border-l-4 border-l-base-content/30 bg-base-200/60"
                         : "border-l-4 border-l-transparent",
@@ -1122,9 +1125,7 @@ export function SnapshotDetail({
                             onClick={() => toggleNode(node.id)}
                           />
                         ) : hasNodeLabel ? (
-                          <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-base-content/30">
-                            •
-                          </span>
+                          <span className="mt-1 inline-flex h-5 w-5 flex-shrink-0" />
                         ) : (
                           <span className="inline-flex h-5 w-5 flex-shrink-0" />
                         )}
