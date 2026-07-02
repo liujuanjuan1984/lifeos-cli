@@ -94,7 +94,8 @@ export default function TaskTimelogQuickAddModal({
         <InlineQuickTimeEntry
           selectedDate={selectedDate}
           startTime={defaultTime}
-          endTime={defaultTime}
+          endTime=""
+          blankInitialEndTime
           preselectedTaskId={task.id}
           allowedTaskIds={[task.id]}
           preloadedTasks={[task]}

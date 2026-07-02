@@ -44,6 +44,17 @@ describe("datetime helpers", () => {
     expect(isoString).toBe("2024-05-15T06:45:00.000Z");
   });
 
+  it("keeps UTC+8 task quick-entry times on the selected local day", () => {
+    const baseDate = new Date("2026-07-02T09:00:00.000Z");
+
+    expect(hhmmOnDateToISO(baseDate, "17:00", "Asia/Shanghai")).toBe(
+      "2026-07-02T09:00:00.000Z",
+    );
+    expect(hhmmOnDateToISO(baseDate, "17:10", "Asia/Shanghai")).toBe(
+      "2026-07-02T09:10:00.000Z",
+    );
+  });
+
   it("formats datetime strings with explicit timezone", () => {
     const value = "2024-01-01T00:00:00.000Z";
     expect(formatDateTime(value, "Asia/Shanghai")).toBe("2024-01-01 08:00");

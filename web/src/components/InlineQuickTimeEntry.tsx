@@ -120,6 +120,7 @@ interface InlineQuickTimeEntryProps {
   idPrefix?: string;
   sessionId: string;
   timezone?: string;
+  blankInitialEndTime?: boolean;
 }
 
 export default function InlineQuickTimeEntry({
@@ -135,6 +136,7 @@ export default function InlineQuickTimeEntry({
   idPrefix = "quick-time",
   sessionId,
   timezone,
+  blankInitialEndTime = false,
 }: InlineQuickTimeEntryProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<TimelogCreate>({
@@ -432,10 +434,11 @@ export default function InlineQuickTimeEntry({
         : initialEndTime;
 
     const startISO = hhmmToISO(selectedDate, effectiveStartTime);
-    let endISO = hhmmToISO(selectedDate, normalizedEnd);
+    const shouldBlankEndTime = blankInitialEndTime && !initialEndTime;
+    let endISO = shouldBlankEndTime ? "" : hhmmToISO(selectedDate, normalizedEnd);
 
     // Cross-day: if end before start, roll to next day
-    if (new Date(endISO) < new Date(startISO)) {
+    if (endISO && new Date(endISO) < new Date(startISO)) {
       const tmp = new Date(endISO);
       tmp.setDate(tmp.getDate() + 1);
       endISO = tmp.toISOString();
@@ -450,6 +453,7 @@ export default function InlineQuickTimeEntry({
     selectedDate,
     initialStartTime,
     initialEndTime,
+    blankInitialEndTime,
     shouldInitializeFromProps,
     setFormDataWithSync,
     hhmmToISO,
