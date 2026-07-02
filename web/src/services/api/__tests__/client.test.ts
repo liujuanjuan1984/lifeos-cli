@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, http } from "@/services/api/client";
+import { subscribeApiError } from "@/services/api/errorBus";
 
 const localUrl = (path: string) => new URL(path, "http://localhost").toString();
 
@@ -68,5 +69,17 @@ describe("local web http client", () => {
     );
 
     await expect(http.get("/api/v1/missing")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("does not emit global errors for aborted requests", async () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeApiError(listener);
+    const abortError = new Error("signal is aborted without reason");
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(abortError);
+
+    await expect(http.get("/api/v1/test")).rejects.toBe(abortError);
+
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
   });
 });

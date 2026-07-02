@@ -73,7 +73,7 @@ async def _load_task_relation_counts(
         .where(
             Association.source_model == "note",
             Association.target_model == "task",
-            Association.link_type == "captured_from",
+            Association.link_type == "relates_to",
             Association.target_id.in_(unique_task_ids),
             Note.deleted_at.is_(None),
         )

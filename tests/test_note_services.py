@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from lifeos_cli.db.base import Base
+from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import notes, people, tags
 
 
@@ -82,6 +84,73 @@ def test_list_notes_by_tag_does_not_emit_cartesian_product_warning() -> None:
                     and "cartesian product" in str(item.message)
                     for item in caught
                 )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_list_notes_by_task_does_not_emit_cartesian_product_warning() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Planning")
+                session.add(vision)
+                await session.flush()
+                task = Task(vision_id=vision.id, content="Review notes")
+                session.add(task)
+                await session.flush()
+                created_note = await notes.create_note(
+                    session,
+                    content="Task note",
+                    task_ids=[task.id],
+                )
+
+                with warnings.catch_warnings(record=True) as caught:
+                    warnings.simplefilter("always", SAWarning)
+                    rows = await notes.list_notes(session, task_id=task.id)
+
+                assert [row.id for row in rows] == [created_note.id]
+                assert not any(
+                    issubclass(item.category, SAWarning)
+                    and "cartesian product" in str(item.message)
+                    for item in caught
+                )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_web_task_relation_counts_include_related_notes() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers.tasks import _load_task_relation_counts
+
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Planning")
+                session.add(vision)
+                await session.flush()
+                task = Task(vision_id=vision.id, content="Review notes")
+                session.add(task)
+                await session.flush()
+                await notes.create_note(
+                    session,
+                    content="Task note",
+                    task_ids=[task.id],
+                )
+
+                note_counts, timelog_counts = await _load_task_relation_counts(
+                    session,
+                    [task.id],
+                )
+
+                assert note_counts == {task.id: 1}
+                assert timelog_counts == {}
         finally:
             await engine.dispose()
 

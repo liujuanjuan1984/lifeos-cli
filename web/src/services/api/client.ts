@@ -64,6 +64,23 @@ async function request<T>(
     signal?: AbortSignal;
   },
 ): Promise<T> {
+  const isAbortError = (error: unknown): boolean => {
+    if (
+      typeof DOMException !== "undefined" &&
+      error instanceof DOMException &&
+      error.name === "AbortError"
+    ) {
+      return true;
+    }
+    if (error instanceof Error) {
+      return (
+        error.name === "AbortError" ||
+        error.message.toLowerCase().includes("aborted")
+      );
+    }
+    return false;
+  };
+
   try {
     const response = await fetch(buildUrl(path, options?.query), {
       method,
@@ -85,6 +102,9 @@ async function request<T>(
     }
     return (await response.json()) as T;
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     if (error instanceof ApiError) {
       emitApiError({ title: error.title, message: error.message });
     } else {
