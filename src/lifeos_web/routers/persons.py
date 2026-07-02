@@ -98,8 +98,9 @@ def _activity_payload(
     description: str | None,
     activity_date: date | datetime,
     status: str | None = None,
+    extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "id": str(entity_id),
         "type": activity_type,
         "title": title,
@@ -107,6 +108,9 @@ def _activity_payload(
         "date": activity_date.isoformat(),
         "status": status,
     }
+    if extra:
+        payload.update(extra)
+    return payload
 
 
 async def _load_person_entity_ids(
@@ -211,9 +215,13 @@ async def _load_activity_items(
                     entity_id=timelog.id,
                     activity_type="timelog",
                     title=timelog.title,
-                    description=timelog.notes,
+                    description=None,
                     activity_date=timelog.start_time,
-                    status=timelog.tracking_method,
+                    extra={
+                        "start_time": timelog.start_time.isoformat(),
+                        "end_time": timelog.end_time.isoformat(),
+                        "area_id": str(timelog.area_id) if timelog.area_id else None,
+                    },
                 )
                 for timelog in timelog_rows.scalars()
             )

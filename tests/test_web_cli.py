@@ -535,6 +535,30 @@ def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "is_soft_deleted" not in person_payload
 
 
+def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.persons import _activity_payload
+
+    timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
+    payload = _activity_payload(
+        entity_id=UUID("11111111-1111-1111-1111-111111111111"),
+        activity_type="timelog",
+        title="Deep work",
+        description=None,
+        activity_date=timestamp,
+        extra={
+            "start_time": "2026-07-02T09:00:00+00:00",
+            "end_time": "2026-07-02T09:30:00+00:00",
+            "area_id": "22222222-2222-2222-2222-222222222222",
+        },
+    )
+
+    assert payload["status"] is None
+    assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
+    assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
+    assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
+
+
 def test_web_habit_action_payload_uses_slim_habit_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

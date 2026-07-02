@@ -1396,7 +1396,7 @@
     },
     "activityTypes": {
       "vision": "Vision Management",
-      "timelog": "Timelog",
+      "timelog": "Time Logs",
       "note": "Notes",
       "task": "Tasks",
       "planned_event": "Calendar"
@@ -1811,17 +1811,20 @@
     }
   },
   "taskTimelogs": {
-    "title": "Logs",
+    "title": "Time Logs",
     "taskLabel": "Task:",
     "totalTime": "Total",
     "recordsCount": "{{count}} records",
+    "previousPage": "Previous Page",
+    "nextPage": "Next Page",
+    "pageIndicator": "Page {{page}} / {{total}}",
     "duration": "In progress",
     "minutes": "minutes",
     "hours": "hours",
-    "untitled": "Untitled event",
+    "untitled": "Untitled time log",
     "unknownArea": "Unassigned area",
     "emptyState": {
-      "title": "No Logs",
+      "title": "No Time Logs",
       "description": "Link timelog entries to this task to review them here."
     },
     "columns": {

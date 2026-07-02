@@ -6,12 +6,21 @@ import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "./EmptyState";
 import ActionButton from "./ActionButton";
 import { Icon } from "./icons";
-import { formatDateTime } from "@/utils/datetime";
+import {
+  formatDate,
+  formatDateTime,
+  formatDurationFromTimes,
+  formatTime,
+  resolvePreferredTimezone,
+} from "@/utils/datetime";
 import type { PersonSummary } from "@/services/api";
 import type {
   PersonActivityItem,
   PersonActivityType,
 } from "@/services/api/persons";
+import { useAreas } from "@/hooks/queries/useAreas";
+import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
+import AreaBadge from "./AreaBadge";
 
 interface PersonTimelineModalProps {
   person: PersonSummary | null;
@@ -52,35 +61,41 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
+  const timezonePreference = usePreferenceWithBootstrap<string>({
+    key: "system.timezone",
+    defaultValue: resolvePreferredTimezone(),
+    module: "system",
+    validator: (value) => typeof value === "string" && value.length > 0,
+  });
+  const activeTimezone = resolvePreferredTimezone(timezonePreference.value);
+  const { areaMap } = useAreas();
 
-  // 虚拟化配置 - 使用动态高度测量
+  // Virtualize the timeline with dynamic row-height measurement.
   const virtualizer = useVirtualizer({
     count: activities.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index: number) => {
-      // 根据内容类型估算高度
+      // Estimate height from content shape.
       const activity = activities[index];
       if (!activity) return 60;
 
-      // 基础高度：时间 + 模块 + 标题 + padding
-      let baseHeight = 100; // 增加基础高度以适应新的间距
+      // Base height: time, module, title, and padding.
+      let baseHeight = 100;
 
-      // 如果有描述，增加描述高度（按行数估算）
+      // Add room for descriptions by estimating wrapped line count.
       if (activity.description) {
         const descriptionLength = activity.description.length;
-        // 更精确的行数估算，考虑中文字符和容器宽度
-        const containerWidth = 1000; // 估算容器宽度
-        const charWidth = 14; // 估算字符宽度（稍微增加）
+        const containerWidth = 1000;
+        const charWidth = 14;
         const charsPerLine = Math.floor(containerWidth / charWidth);
         const estimatedLines = Math.ceil(descriptionLength / charsPerLine);
-        baseHeight += estimatedLines * 22 + 20; // 每行22px + 间距20px
+        baseHeight += estimatedLines * 22 + 20;
       }
 
-      return Math.max(baseHeight, 100); // 最小高度100px
+      return Math.max(baseHeight, 100);
     },
-    overscan: 5, // 预渲染额外项目
+    overscan: 5,
     measureElement: (element: Element | null) => {
-      // 使用实际测量的高度
       return element?.getBoundingClientRect().height ?? 60;
     },
   });
@@ -196,9 +211,40 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
     );
   };
 
+  const renderTimelogDetails = (activity: PersonActivityItem) => {
+    const startTime = activity.start_time ?? activity.date;
+    const endTime = activity.end_time ?? null;
+    const timeRange = `${formatTime(startTime, activeTimezone)}${
+      endTime ? `-${formatTime(endTime, activeTimezone)}` : ""
+    }`;
+    const duration = formatDurationFromTimes(startTime, endTime);
+    const areaName =
+      (activity.area_id ? areaMap.get(activity.area_id)?.name : null) ??
+      t("taskTimelogs.unknownArea");
+    return (
+      <div className="grid grid-cols-[minmax(100px,0.8fr)_minmax(70px,0.6fr)_minmax(120px,0.8fr)_minmax(180px,2fr)] gap-3 text-sm leading-relaxed">
+        <div className="text-base-content/80">{timeRange}</div>
+        <div className="text-base-content/80">{duration}</div>
+        <div className="min-w-0">
+          <AreaBadge
+            areaId={activity.area_id ?? undefined}
+            areaMap={areaMap}
+            name={areaName}
+            showLabel
+            size="sm"
+            labelClassName="text-sm"
+            ariaLabel={areaName}
+          />
+        </div>
+        <div className="min-w-0 truncate text-base-content/90" title={activity.title}>
+          {activity.title}
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen || !person) return null;
 
-  // 构建标题内容
   const titleContent = (
     <>
       {t("persons.timeline.title", {
@@ -263,6 +309,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                       const activity = activities[virtualItem.index];
                       if (!activity) return null;
                       const typeMeta = getActivityTypeMeta(activity.type);
+                      const isTimelog = activity.type === "timelog";
                       return (
                         <div
                           key={`${activity.type}-${activity.id}`}
@@ -281,7 +328,12 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                           <div className="flex items-start space-x-4">
                             {/* Time */}
                             <div className="flex-shrink-0 text-sm font-mono min-w-[110px] text-base-content/80">
-                              {formatDateTime(activity.date)}
+                              {isTimelog
+                                ? formatDate(
+                                    activity.start_time ?? activity.date,
+                                    activeTimezone,
+                                  )
+                                : formatDateTime(activity.date, activeTimezone)}
                             </div>
 
                             {/* Module */}
@@ -297,7 +349,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                                 />
                                 {typeMeta.label}
                               </span>
-                              {activity.status && (
+                              {activity.status && !isTimelog && (
                                 <span
                                   className={`inline-flex items-center px-2 py-1 text-sm rounded ${getStatusColor(activity.status)}`}
                                 >
@@ -308,14 +360,18 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
 
                             {/* Title */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-base font-medium break-words leading-relaxed">
-                                {activity.title}
-                              </h4>
+                              {isTimelog ? (
+                                renderTimelogDetails(activity)
+                              ) : (
+                                <h4 className="text-base font-medium break-words leading-relaxed">
+                                  {activity.title}
+                                </h4>
+                              )}
                             </div>
                           </div>
 
                           {/* Description line (if exists) - aligned to record start */}
-                          {activity.description && (
+                          {activity.description && !isTimelog && (
                             <div className="flex mt-2">
                               <div className="flex-shrink-0 min-w-[110px]"></div>
                               <div className="flex-shrink-0 min-w-[140px]"></div>

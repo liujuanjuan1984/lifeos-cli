@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Timelog, TaskWithSubtasks } from "@/services/api";
 import type { UUID } from "@/types/primitive";
@@ -10,6 +10,8 @@ import ListContainer from "@/layouts/ListContainer";
 import AreaBadge from "./AreaBadge";
 import { Icon } from "./icons";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
+import { useAreas } from "@/hooks/queries/useAreas";
+import ActionButton from "./ActionButton";
 
 interface TaskTimelogsModalProps {
   isOpen: boolean;
@@ -29,6 +31,8 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
   task,
 }) => {
   const { t } = useTranslation();
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
   const timezonePreference = usePreferenceWithBootstrap<string>({
     key: "system.timezone",
     defaultValue: resolvePreferredTimezone(),
@@ -36,20 +40,39 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
     validator: (value) => typeof value === "string" && value.length > 0,
   });
   const activeTimezone = resolvePreferredTimezone(timezonePreference.value);
+  const { areaMap } = useAreas();
 
-  // 使用 TanStack Query 替代手动状态管理
+  useEffect(() => {
+    if (isOpen) {
+      setPage(1);
+    }
+  }, [isOpen, task?.id]);
+
   const {
     data: timelogsData,
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useTaskTimelogs(task?.id || ("" as UUID), {
     enabled: !!task?.id && isOpen,
+    page,
+    size: pageSize,
   });
   const timelogs = useMemo(
-    () => timelogsData ?? [],
+    () => timelogsData?.items ?? [],
     [timelogsData],
   );
+  const totalRecords = timelogsData?.pagination.total ?? 0;
+  const safeTotalPages = Math.max(1, timelogsData?.pagination.pages ?? 0);
+  const canGoPrev = page > 1;
+  const canGoNext = page < safeTotalPages;
+
+  useEffect(() => {
+    if (page > safeTotalPages) {
+      setPage(safeTotalPages);
+    }
+  }, [page, safeTotalPages]);
 
   // Calculate duration for an event
   const calculateDuration = (event: Timelog): string => {
@@ -73,30 +96,19 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
     }
   };
 
-  // Replaced by TimeRangeText
-
-  // Calculate total time spent on this task
-  const calculateTotalTime = (): string => {
-    let totalMinutes = 0;
-    timelogs.forEach((event) => {
-      if (event.start_time && event.end_time) {
-        const startTime = new Date(event.start_time);
-        const endTime = new Date(event.end_time);
-        const durationMs = endTime.getTime() - startTime.getTime();
-        totalMinutes += Math.round(durationMs / (1000 * 60));
-      }
-    });
-
+  const formatMinutes = (totalMinutes: number): string => {
     if (totalMinutes < 60) {
       return `${totalMinutes}${t("taskTimelogs.minutes")}`;
-    } else {
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return minutes > 0
-        ? `${hours}${t("taskTimelogs.hours")}${minutes}${t("taskTimelogs.minutes")}`
-        : `${hours}${t("taskTimelogs.hours")}`;
     }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes > 0
+      ? `${hours}${t("taskTimelogs.hours")}${minutes}${t("taskTimelogs.minutes")}`
+      : `${hours}${t("taskTimelogs.hours")}`;
   };
+
+  const calculateTotalTime = (): string =>
+    formatMinutes(Math.max(0, task?.actual_effort_self ?? 0));
 
   return (
     <ModalBase
@@ -127,7 +139,7 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
             </div>
             <div className="text-sm text-base-content/40">
               {t("taskTimelogs.recordsCount", {
-                count: timelogs.length,
+                count: totalRecords,
               })}
             </div>
           </div>
@@ -213,21 +225,20 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                     ? trimmedTitle
                     : t("taskTimelogs.untitled");
                 const areaName =
-                  event.area_summary?.name ||
+                  event.area_summary?.name ??
+                  (event.area_id ? areaMap.get(event.area_id)?.name : null) ??
                   t("taskTimelogs.unknownArea");
+                const areaColor =
+                  event.area_summary?.color ??
+                  (event.area_id ? areaMap.get(event.area_id)?.color : null) ??
+                  undefined;
 
                 return (
                   <React.Fragment key={event.id}>
                     <div className="text-base-content/80 flex items-center">
                       {formatDate(event.start_time, activeTimezone)}
                     </div>
-                    <div className="text-base-content/90 flex items-center gap-2">
-                      <Icon
-                        name="timer"
-                        size={16}
-                        className="text-primary/70"
-                        aria-hidden
-                      />
+                    <div className="text-base-content/90 flex items-center">
                       <TimeRangeText
                         start={event.start_time}
                         end={event.end_time || null}
@@ -239,10 +250,12 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                     </div>
                     <div className="flex items-center">
                       <AreaBadge
+                        areaId={event.area_id ?? undefined}
+                        areaMap={areaMap}
                         name={areaName}
-                        color={event.area_summary?.color || undefined}
+                        color={areaColor}
                         showLabel
-                        className="text-sm"
+                        labelClassName="text-base"
                         ariaLabel={areaName}
                       />
                     </div>
@@ -256,6 +269,41 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                 );
               })}
             </div>
+            {safeTotalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <ActionButton
+                  label={t("taskTimelogs.previousPage")}
+                  size="sm"
+                  variant="outline"
+                  color="neutral"
+                  disabled={!canGoPrev}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                />
+                <div className="flex items-center gap-3 text-sm text-base-content/70">
+                  <span>
+                    {t("taskTimelogs.pageIndicator", {
+                      page,
+                      total: safeTotalPages,
+                    })}
+                  </span>
+                  {isFetching && (
+                    <span className="text-xs text-base-content/60">
+                      {t("common.loading")}
+                    </span>
+                  )}
+                </div>
+                <ActionButton
+                  label={t("taskTimelogs.nextPage")}
+                  size="sm"
+                  variant="outline"
+                  color="neutral"
+                  disabled={!canGoNext}
+                  onClick={() =>
+                    setPage((current) => Math.min(safeTotalPages, current + 1))
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
       </ListContainer>
