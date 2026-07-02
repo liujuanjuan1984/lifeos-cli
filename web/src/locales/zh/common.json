@@ -35,6 +35,7 @@
     "actions": "操作",
     "all": "全部",
     "none": "无",
+    "noChildren": "无子节点",
     "noArea": "无领域",
     "please_select": "请选择……",
     "no_options": "暂无选项",

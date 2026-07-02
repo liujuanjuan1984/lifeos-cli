@@ -35,6 +35,7 @@
     "actions": "Actions",
     "all": "All",
     "none": "None",
+    "noChildren": "No child nodes",
     "noArea": "No Area",
     "please_select": "Please select...",
     "no_options": "No options",

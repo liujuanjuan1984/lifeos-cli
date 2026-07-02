@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import ActionButton, { CreateNewButton } from "@/components/ActionButton";
+import { TreeDisclosure, TreeRowSurface } from "@/components/common/HierarchicalTree";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { FormField, TextInput } from "@/components/forms";
@@ -1444,17 +1445,14 @@ function TreeNodeRow({
   const isExpanded = expandedIds.has(node.id);
   return (
     <li>
-      <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-2 py-2 hover:border-base-300/80">
-        <ActionButton
-          label=""
-          ariaLabel={isExpanded ? t("common.collapse") : t("common.expand")}
-          iconName={isExpanded ? "chevron-down" : "chevron-right"}
-          iconOnly
-          shape="square"
-          size="xs"
-          variant="ghost"
-          disabled={!hasChildren}
-          onClick={() => onToggleNode(node.id)}
+      <TreeRowSurface>
+        <TreeDisclosure
+          hasChildren={hasChildren}
+          isExpanded={isExpanded}
+          expandedLabel={t("common.collapse")}
+          collapsedLabel={t("common.expand")}
+          noChildrenLabel={t("common.noChildren")}
+          onToggle={() => onToggleNode(node.id)}
         />
         <div className="min-w-0 flex flex-1 items-center gap-2">
           <span className={`truncate ${financeTextClass.treeNodeTitle}`}>{node.name}</span>
@@ -1497,7 +1495,7 @@ function TreeNodeRow({
           disabled={deleting}
           onClick={() => onDeleteNode(node)}
         />
-      </div>
+      </TreeRowSurface>
       {hasChildren && isExpanded ? (
         <ul className="ml-4 mt-2 space-y-2 border-l border-base-300 pl-3">
           {node.children.map((child) => (
