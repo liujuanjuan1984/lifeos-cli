@@ -11,6 +11,7 @@ from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.model_utils import load_model_by_id
+from lifeos_cli.db.session import INCLUDE_SOFT_DELETED_EXECUTION_OPTION
 
 
 class AreaNotFoundError(LookupError):
@@ -31,13 +32,31 @@ async def create_area(
     is_active: bool = True,
     display_order: int = 0,
 ) -> Area:
-    """Create a new area."""
+    """Create a new area, restoring a soft-deleted area with the same name."""
     normalized_name = name.strip()
     existing = await session.execute(
         select(Area).where(Area.name == normalized_name, Area.deleted_at.is_(None)).limit(1)
     )
     if existing.scalar_one_or_none() is not None:
         raise AreaAlreadyExistsError(f"Area with name {normalized_name!r} already exists")
+    deleted = await session.execute(
+        select(Area)
+        .where(Area.name == normalized_name, Area.deleted_at.is_not(None))
+        .order_by(Area.deleted_at.desc(), Area.updated_at.desc())
+        .limit(1)
+        .execution_options(**{INCLUDE_SOFT_DELETED_EXECUTION_OPTION: True})
+    )
+    restored_area = deleted.scalar_one_or_none()
+    if restored_area is not None:
+        restored_area.deleted_at = None
+        restored_area.description = description
+        restored_area.color = color
+        restored_area.icon = icon
+        restored_area.is_active = is_active
+        restored_area.display_order = display_order
+        await session.flush()
+        await session.refresh(restored_area)
+        return restored_area
     area = Area(
         name=normalized_name,
         description=description,
