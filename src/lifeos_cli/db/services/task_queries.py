@@ -18,6 +18,7 @@ from lifeos_cli.config import ConfigurationError
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.entity_people import load_people_for_entities
 from lifeos_cli.db.services.model_utils import load_view_by_id
 from lifeos_cli.db.services.read_models import (
@@ -193,7 +194,10 @@ def _apply_task_filters(
     query: str | None = None,
 ) -> Any:
     """Apply the shared task list/count filter contract."""
-    stmt = stmt.where(Task.deleted_at.is_(None))
+    stmt = stmt.where(
+        Task.deleted_at.is_(None),
+        Task.vision.has(Vision.deleted_at.is_(None)),
+    )
     if vision_id is not None:
         stmt = stmt.where(Task.vision_id == vision_id)
     vision_ids = _parse_uuid_csv(vision_in)

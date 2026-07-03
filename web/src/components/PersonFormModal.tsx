@@ -59,10 +59,23 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
     const toSortableCategory = (category: string | null | undefined): string =>
       category?.trim() || "general";
 
-    const tagsWithLabel = availablePersonTags
-      .filter((tag) => tag.category !== "location")
-      .map((tag) => ({
+    const selectedRelationshipTags =
+      editingPerson?.tags?.filter((tag) => tag.category !== "location") ?? [];
+    const tagById = new Map(
+      [...availablePersonTags, ...selectedRelationshipTags].map((tag) => [
+        tag.id,
         tag,
+      ]),
+    );
+    const tagsWithLabel = availablePersonTags
+      .concat(selectedRelationshipTags)
+      .filter((tag) => tag.category !== "location")
+      .filter(
+        (tag, index, tags) =>
+          tags.findIndex((item) => item.id === tag.id) === index,
+      )
+      .map((tag) => ({
+        tag: tagById.get(tag.id) ?? tag,
         category: toSortableCategory(tag.category),
         label: `${toSortableCategory(tag.category)}-${tag.name}`,
       }))
@@ -77,11 +90,18 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
       ...tag,
       name: label,
     }));
-  }, [availablePersonTags]);
-  const availableLocationTags = useMemo(
-    () => availablePersonTags.filter((tag) => tag.category === "location"),
-    [availablePersonTags],
-  );
+  }, [availablePersonTags, editingPerson?.tags]);
+  const availableLocationTags = useMemo(() => {
+    const selectedLocationTags =
+      editingPerson?.tags?.filter((tag) => tag.category === "location") ?? [];
+    return availablePersonTags
+      .concat(selectedLocationTags)
+      .filter((tag) => tag.category === "location")
+      .filter(
+        (tag, index, tags) =>
+          tags.findIndex((item) => item.id === tag.id) === index,
+      );
+  }, [availablePersonTags, editingPerson?.tags]);
   const createLocationTag = useCallback(
     async (tagName: string) => {
       const created = await tagsApi.create({
@@ -189,7 +209,11 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
           birth_date: formData.birth_date?.trim() || undefined,
           location: formData.location?.trim() || undefined,
           nicknames: formData.nicknames?.filter((n) => n.trim()) || undefined,
-          tag_ids: mergedTagIds.length ? mergedTagIds : undefined,
+          tag_ids: editingPerson
+            ? mergedTagIds
+            : mergedTagIds.length
+              ? mergedTagIds
+              : undefined,
         };
 
         let saved: Person | null = null;
@@ -274,7 +298,6 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
         <FormField
           label={t("personDetail.nicknames")}
           htmlFor="person-nickname-input"
-          description={t("personForm.nicknameHelper")}
         >
           <InputGroup>
             <TextInput
@@ -336,6 +359,7 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
             idPrefix="location-tag-selector"
             label={t("personForm.locationTagsLabel")}
             dropdownZIndexClassName="z-modal"
+            selectedPlacement="below"
           />
         </div>
 
@@ -350,6 +374,7 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
             idPrefix="tag-selector"
             label={t("personDetail.relationshipTags")}
             dropdownZIndexClassName="z-modal"
+            selectedPlacement="below"
           />
         </div>
       </form>

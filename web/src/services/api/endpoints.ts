@@ -16,6 +16,8 @@ export const ENDPOINTS = {
     BY_ID: (id: string) => `${API_V1}/visions/${id}`,
     WITH_TASKS: (id: string) => `${API_V1}/visions/${id}/with-tasks`,
     ADD_EXPERIENCE: (id: string) => `${API_V1}/visions/${id}/add-experience`,
+    RECOMPUTE_EFFORTS: (id: string) =>
+      `${API_V1}/visions/${id}/recompute-efforts`,
     HARVEST: (id: string) => `${API_V1}/visions/${id}/harvest`,
     STATS: (id: string) => `${API_V1}/visions/${id}/stats`,
     EXPERIENCE_RATES: `${API_V1}/visions/experience-rates`,

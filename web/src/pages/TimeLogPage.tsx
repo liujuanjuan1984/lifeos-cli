@@ -113,6 +113,23 @@ const TimeLogPage = () => {
     });
   }, [activeTimelogForNotes]);
 
+  const latestTimelogEndTime = useMemo(() => {
+    let latestMs = Number.NEGATIVE_INFINITY;
+    let latestEnd: string | null = null;
+
+    processedEntries.forEach((entry) => {
+      if (entry.isPlaceholder || !entry.end_time) return;
+      const endMs = new Date(entry.end_time).getTime();
+      if (Number.isNaN(endMs)) return;
+      if (endMs > latestMs) {
+        latestMs = endMs;
+        latestEnd = entry.end_time;
+      }
+    });
+
+    return latestEnd;
+  }, [processedEntries]);
+
   // Request concurrency guards - removed as it's now handled in the hook
 
   // Advanced search states
@@ -323,6 +340,7 @@ const TimeLogPage = () => {
         <TimeLogBulkImportPanel
           selectedDate={selectedDate}
           timezone={activeTimezone}
+          latestTimelogEndTime={latestTimelogEndTime}
           areaMap={areaMap}
           preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
           onCancel={() => switchToSingleMode()}
@@ -343,6 +361,7 @@ const TimeLogPage = () => {
                   area_id: advancedSearchParams.area_id,
                   description_keyword: advancedSearchParams.description_keyword,
                   task_id: advancedSearchParams.task_id,
+                  with_task: advancedSearchParams.with_task,
                 }}
                 onParamsChange={(params) => {
                   setAdvancedSearchParams({
@@ -359,6 +378,7 @@ const TimeLogPage = () => {
                           : null,
                     description_keyword: params.description_keyword,
                     task_id: params.task_id,
+                    with_task: params.with_task,
                   });
                 }}
                 onSearch={handleAdvancedSearch}
@@ -562,6 +582,10 @@ const TimeLogPage = () => {
                                 )?.content ||
                                 t("timeLog.searchResults.unknownTask"),
                             })}`)}
+                      {advancedSearchParams.with_task &&
+                        ` | ${t("timeLog.searchResults.task", {
+                          task: t("taskSelector.specialOptions.hasTask"),
+                        })}`}
                     </div>
                     <div className="text-base text-primary">
                       {t("timeLog.searchResults.foundRecords", {
@@ -595,7 +619,7 @@ const TimeLogPage = () => {
               queryMode={queryMode}
               areaMap={areaMap}
               preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
-              disableQuickEntry={showEntryModal}
+              disableQuickEntry={showEntryModal || queryMode === "advanced"}
               selectedAreaId={
                 queryMode === "advanced" ? null : selectedAreaId
               }

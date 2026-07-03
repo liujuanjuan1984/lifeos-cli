@@ -1392,7 +1392,8 @@
       "nextPage": "Next Page",
       "pageIndicator": "Page {{page}} / {{total}}",
       "noActivities": "No activity records yet",
-      "noActivitiesDescription": "Every interaction is worth noting. Link your contacts to activities, and your shared story will unfold here."
+      "noActivitiesDescription": "Every interaction is worth noting. Link your contacts to activities, and your shared story will unfold here.",
+      "timelogStats": "{{count}} records, {{duration}} total"
     },
     "activityTypes": {
       "vision": "Vision Management",
@@ -1841,7 +1842,8 @@
     "noResults": "No matching tasks found",
     "loadMore": "Load more tasks",
     "specialOptions": {
-      "allTasks": "All"
+      "allTasks": "All",
+      "hasTask": "Has Task"
     }
   },
   "errorBoundary": {

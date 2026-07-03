@@ -18,6 +18,7 @@ interface AdvancedSearchParams {
   area_id: UUID | null | undefined;
   description_keyword: string | null;
   task_id: UUID | null | undefined; // null means no linked task; undefined means all tasks.
+  with_task: boolean;
 }
 
 interface AdvancedSearchPanelProps {
@@ -162,6 +163,9 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
   }, [tasks, defaultInboxVision]);
 
   const taskSelectorValue = useMemo(() => {
+    if (params.with_task) {
+      return SelectorSpecialValue.Has as unknown as UUID;
+    }
     if (params.task_id === undefined) {
       return SelectorSpecialValue.All as unknown as UUID;
     }
@@ -169,7 +173,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
       return SelectorSpecialValue.None as unknown as UUID;
     }
     return params.task_id;
-  }, [params.task_id]);
+  }, [params.task_id, params.with_task]);
 
   const taskSelectorProps = useMemo(() => {
     return {
@@ -273,19 +277,43 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
               {...taskSelectorProps}
               onChange={(taskId) => {
                 if (taskId === undefined) {
-                  handleParamChange("task_id", undefined);
+                  onParamsChange({
+                    ...paramsRef.current,
+                    task_id: undefined,
+                    with_task: false,
+                  });
                   return;
                 }
                 if (taskId === null) {
-                  handleParamChange("task_id", null);
+                  onParamsChange({
+                    ...paramsRef.current,
+                    task_id: null,
+                    with_task: false,
+                  });
                   return;
                 }
                 const rawValue = taskId as unknown as string;
                 if (rawValue === SelectorSpecialValue.All) {
-                  handleParamChange("task_id", undefined);
+                  onParamsChange({
+                    ...paramsRef.current,
+                    task_id: undefined,
+                    with_task: false,
+                  });
                   return;
                 }
-                handleParamChange("task_id", taskId);
+                if (rawValue === SelectorSpecialValue.Has) {
+                  onParamsChange({
+                    ...paramsRef.current,
+                    task_id: undefined,
+                    with_task: true,
+                  });
+                  return;
+                }
+                onParamsChange({
+                  ...paramsRef.current,
+                  task_id: taskId,
+                  with_task: false,
+                });
               }}
               className="w-full"
               idPrefix="advanced-search-task"
@@ -314,6 +342,19 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2">
           {/* Left side buttons */}
           <div className="flex flex-wrap gap-2">
+            {!isSelectMode && (
+              <ActionButton
+                label={t("timeLog.advancedSearch.enableBatchOperations")}
+                iconName="switch"
+                color="primary"
+                variant="outline"
+                onClick={() => onSelectModeToggle(true)}
+              />
+            )}
+          </div>
+
+          {/* Right side buttons */}
+          <div className="flex flex-wrap gap-2">
             <ActionButton
               label={t("timeLog.advancedSearch.search")}
               iconName="search"
@@ -329,19 +370,6 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
               onClick={onReset}
             />
           </div>
-
-          {/* Right side buttons */}
-          <div className="flex flex-wrap gap-2">
-            {!isSelectMode && (
-              <ActionButton
-                label={t("timeLog.advancedSearch.enableBatchOperations")}
-                iconName="switch"
-                color="primary"
-                variant="outline"
-                onClick={() => onSelectModeToggle(true)}
-              />
-            )}
-          </div>
         </div>
 
         {/* Batch Operations Section */}
@@ -349,7 +377,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
           <div className="flex flex-col items-center gap-3">
             {/* Batch operations controls - only show when in select mode */}
             {isSelectMode && (
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex w-full flex-wrap justify-start gap-2">
                 <ActionButton
                   label={t("timeLog.advancedSearch.selectAll")}
                   iconName="check"

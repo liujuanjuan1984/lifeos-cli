@@ -1,5 +1,6 @@
 export const SelectorSpecialValue = {
   None: "__none__",
+  Has: "__has__",
   All: "__all__",
   Default: "__default__",
 } as const;

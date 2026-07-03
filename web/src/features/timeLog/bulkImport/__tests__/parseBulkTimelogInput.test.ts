@@ -4,6 +4,7 @@ import {
   parseBulkTimelogInput,
   type BulkImportRow,
 } from "@/features/timeLog/bulkImport/parseBulkTimelogInput";
+import { resolveBulkImportDefaultStart } from "@/features/timeLog/bulkImport/bulkImportDefaults";
 
 const baseDate = new Date("2025-01-01T00:00:00Z");
 
@@ -95,6 +96,19 @@ describe("parseBulkTimelogInput", () => {
     expect(result.globalErrors[0]).toMatchObject({
       code: "too_many_lines",
       meta: { limit: 2, dropped: 1 },
+    });
+  });
+
+  it("uses the latest timelog end time as the bulk import default start", () => {
+    expect(
+      resolveBulkImportDefaultStart(
+        new Date("2026-04-13T00:00:00.000Z"),
+        "Asia/Shanghai",
+        "2026-04-13T17:30:00.000Z",
+      ),
+    ).toEqual({
+      date: "2026-04-14",
+      time: "01:30",
     });
   });
 });

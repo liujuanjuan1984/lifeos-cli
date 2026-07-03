@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -21,7 +22,7 @@ from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services import events, task_effort, timelogs
+from lifeos_cli.db.services import events, task_effort, timelogs, visions
 from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
 
@@ -459,6 +460,58 @@ def test_timelog_minutes_uses_whole_positive_minutes() -> None:
 
     assert task_effort._timelog_minutes(cast(Any, timelog)) == 59
     assert task_effort._timelog_minutes(cast(Any, invalid_timelog)) == 0
+
+
+def test_recompute_vision_task_efforts_clears_old_parent_rollup() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Work")
+                session.add(vision)
+                await session.flush()
+                old_parent = Task(vision_id=vision.id, content="Old parent")
+                new_parent = Task(vision_id=vision.id, content="New parent", display_order=1)
+                session.add_all([old_parent, new_parent])
+                await session.flush()
+                child = Task(
+                    vision_id=vision.id,
+                    parent_task_id=old_parent.id,
+                    content="Moved child",
+                    display_order=2,
+                )
+                session.add(child)
+                await session.flush()
+                session.add(
+                    Timelog(
+                        title="Deep work",
+                        start_time=utc_datetime(2026, 4, 10, 13, 0),
+                        end_time=utc_datetime(2026, 4, 10, 14, 30),
+                        task_id=child.id,
+                    )
+                )
+                await session.flush()
+
+                await visions.recompute_vision_task_efforts(session, vision_id=vision.id)
+                await session.refresh(old_parent)
+                assert old_parent.actual_effort_total == 90
+
+                child.parent_task_id = new_parent.id
+                await session.flush()
+
+                result = await visions.recompute_vision_task_efforts(session, vision_id=vision.id)
+                await session.refresh(old_parent)
+                await session.refresh(new_parent)
+                await session.refresh(child)
+
+                assert set(result.recomputed_roots) == {old_parent.id, new_parent.id}
+                assert old_parent.actual_effort_total == 0
+                assert new_parent.actual_effort_total == 90
+                assert child.actual_effort_total == 90
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
 
 
 def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1053,6 +1106,15 @@ def test_resolve_timelog_filters_deduplicates_discrete_dates() -> None:
     assert filters.date_values == (date(2026, 4, 10), date(2026, 4, 12))
 
 
+def test_timelog_with_task_filter_requires_linked_task() -> None:
+    statement = timelogs._apply_timelog_area_task_filters(
+        select(Timelog),
+        filters=timelogs.TimelogQueryFilters(with_task=True),
+    )
+
+    assert "timelogs.task_id IS NOT NULL" in str(statement)
+
+
 def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     timelog = SimpleNamespace(
         id=UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd"),
@@ -1136,25 +1198,35 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
     timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
     missing_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
     task_id = UUID("22222222-2222-2222-2222-222222222222")
-    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+    timelog = SimpleNamespace(
+        id=timelog_id,
+        title="Deep work",
+        task_id=None,
+        start_time=None,
+        end_time=None,
+        area_id=None,
+    )
     session = SimpleNamespace()
-    update_calls: list[dict[str, object]] = []
 
-    async def fake_get_timelog(
+    async def fake_load_batch_timelog_models(
         _: object,
         *,
-        timelog_id: UUID,
-    ) -> object | None:
-        if timelog_id == missing_id:
-            return None
-        return timelog
+        timelog_ids: list[UUID],
+    ) -> dict[UUID, object]:
+        assert timelog_ids == [timelog_id, missing_id]
+        return {timelog_id: timelog}
 
-    async def fake_update_timelog(_: object, **kwargs: object) -> object:
-        update_calls.append(kwargs)
-        return timelog
-
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
-    monkeypatch.setattr(timelogs, "update_timelog", fake_update_timelog)
+    ensure_task = AsyncMock()
+    replace_people = AsyncMock()
+    flush_recompute = AsyncMock()
+    monkeypatch.setattr(timelogs, "_load_batch_timelog_models", fake_load_batch_timelog_models)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", ensure_task)
+    monkeypatch.setattr(timelogs, "_replace_batch_timelog_people", replace_people)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_batch_timelog_dependents",
+        flush_recompute,
+    )
 
     result = asyncio.run(
         timelogs.batch_update_timelogs(
@@ -1173,22 +1245,16 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
 
     assert result.updated_count == 1
     assert result.failed_ids == (missing_id,)
-    assert update_calls == [
-        {
-            "timelog_id": timelog_id,
-            "changes": timelogs.TimelogUpdateInput(
-                title="Focused work",
-                area_id=None,
-                clear_area=False,
-                task_id=task_id,
-                clear_task=False,
-                tag_ids=None,
-                clear_tags=False,
-                person_ids=None,
-                clear_people=True,
-            ),
-        }
-    ]
+    assert timelog.title == "Focused work"
+    assert timelog.task_id == task_id
+    ensure_task.assert_awaited_once_with(cast(Any, session), task_id)
+    replace_people.assert_awaited_once_with(
+        cast(Any, session),
+        timelog_ids=[timelog_id],
+        desired_person_ids=[],
+        validated_person_ids=[],
+    )
+    flush_recompute.assert_awaited_once()
 
 
 def test_batch_update_timelogs_reports_unchanged_title_replace(
@@ -1196,18 +1262,30 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
 ) -> None:
     timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
     session = SimpleNamespace()
-    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+    timelog = SimpleNamespace(
+        id=timelog_id,
+        title="Deep work",
+        task_id=None,
+        start_time=None,
+        end_time=None,
+        area_id=None,
+    )
 
-    async def fake_get_timelog(
+    async def fake_load_batch_timelog_models(
         _: object,
         *,
-        timelog_id: UUID,
-    ) -> object:
-        return timelog
+        timelog_ids: list[UUID],
+    ) -> dict[UUID, object]:
+        assert timelog_ids == [timelog_id]
+        return {timelog_id: timelog}
 
-    update_timelog = AsyncMock()
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
-    monkeypatch.setattr(timelogs, "update_timelog", update_timelog)
+    flush_recompute = AsyncMock()
+    monkeypatch.setattr(timelogs, "_load_batch_timelog_models", fake_load_batch_timelog_models)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_batch_timelog_dependents",
+        flush_recompute,
+    )
 
     result = asyncio.run(
         timelogs.batch_update_timelogs(
@@ -1222,4 +1300,86 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
 
     assert result.updated_count == 0
     assert result.unchanged_ids == (timelog_id,)
-    update_timelog.assert_not_awaited()
+    flush_recompute.assert_not_awaited()
+
+
+def test_batch_timelog_dependent_recompute_skips_metadata_only_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    area_id = UUID("33333333-3333-3333-3333-333333333333")
+    timestamp = utc_datetime(2026, 4, 9, 12, 0)
+    session = SimpleNamespace(flush=AsyncMock())
+    recompute_task = AsyncMock()
+    recompute_daily = AsyncMock()
+    recompute_aggregated = AsyncMock()
+    monkeypatch.setattr(timelogs, "recompute_totals_upwards", recompute_task)
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_daily_timelog_stats_groupby_area_for_dates",
+        recompute_daily,
+    )
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_aggregated_timelog_stats_groupby_area_for_dates",
+        recompute_aggregated,
+    )
+
+    snapshot = timelogs._TimelogDependencySnapshot(
+        task_id=task_id,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=area_id,
+    )
+
+    asyncio.run(
+        timelogs._flush_and_recompute_batch_timelog_dependents(
+            cast(Any, session),
+            changes=[
+                timelogs._TimelogDependencyChange(
+                    previous=snapshot,
+                    current=snapshot,
+                )
+            ],
+        )
+    )
+
+    assert session.flush.await_count == 2
+    recompute_task.assert_not_awaited()
+    recompute_daily.assert_not_awaited()
+    recompute_aggregated.assert_not_awaited()
+
+
+def test_batch_timelog_dependent_recompute_deduplicates_affected_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    timestamp = utc_datetime(2026, 4, 9, 12, 0)
+    session = SimpleNamespace(flush=AsyncMock())
+    recompute_task = AsyncMock()
+    monkeypatch.setattr(timelogs, "recompute_totals_upwards", recompute_task)
+
+    previous = timelogs._TimelogDependencySnapshot(
+        task_id=None,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=None,
+    )
+    current = timelogs._TimelogDependencySnapshot(
+        task_id=task_id,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=None,
+    )
+
+    asyncio.run(
+        timelogs._flush_and_recompute_batch_timelog_dependents(
+            cast(Any, session),
+            changes=[
+                timelogs._TimelogDependencyChange(previous=previous, current=current),
+                timelogs._TimelogDependencyChange(previous=previous, current=current),
+            ],
+        )
+    )
+
+    recompute_task.assert_awaited_once_with(cast(Any, session), task_id)

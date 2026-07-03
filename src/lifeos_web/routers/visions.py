@@ -190,6 +190,22 @@ async def add_experience(
     return _vision_payload(vision)
 
 
+@router.post("/{vision_id}/recompute-efforts")
+async def recompute_vision_efforts(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Recompute task effort totals for one vision."""
+    try:
+        result = await vision_services.recompute_vision_task_efforts(
+            session,
+            vision_id=vision_id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "vision_id": str(result.vision_id),
+        "recomputed_roots": [str(task_id) for task_id in result.recomputed_roots],
+    }
+
+
 @router.post("/{vision_id}/harvest")
 async def harvest_vision(vision_id: UUID, session: SessionDep) -> dict[str, object]:
     """Harvest one vision when the underlying LifeOS rules allow it."""

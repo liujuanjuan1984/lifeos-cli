@@ -64,6 +64,10 @@ interface UsePersonActivitiesPageReturn {
   activities: PersonActivityItem[];
   total: number;
   totalPages: number;
+  timelogStats: {
+    count: number;
+    totalMinutes: number;
+  } | null;
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -274,6 +278,14 @@ export function usePersonActivitiesPage(
     activities: data?.items ?? [],
     total: data?.pagination.total ?? 0,
     totalPages: data?.pagination.pages ?? 0,
+    timelogStats:
+      data?.meta.timelog_count !== undefined &&
+      data?.meta.timelog_total_minutes !== undefined
+        ? {
+            count: data.meta.timelog_count ?? 0,
+            totalMinutes: data.meta.timelog_total_minutes ?? 0,
+          }
+        : null,
     isLoading,
     isFetching,
     error,

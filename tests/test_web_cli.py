@@ -18,6 +18,7 @@ from lifeos_cli.db.services.read_models import (
     EventView,
     NoteView,
     PersonSummaryView,
+    PersonView,
     TagSummaryView,
     TagView,
     TaskSummaryView,
@@ -535,9 +536,49 @@ def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "is_soft_deleted" not in person_payload
 
 
+def test_web_person_payload_preserves_tag_categories() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.persons import _person_payload
+
+    payload = _person_payload(
+        PersonView(
+            id=UUID("33333333-3333-3333-3333-333333333333"),
+            name="Ada",
+            description=None,
+            nicknames=(),
+            birth_date=None,
+            location=None,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            tags=(
+                TagSummaryView(
+                    id=UUID("44444444-4444-4444-4444-444444444444"),
+                    name="Shanghai",
+                    entity_type="person",
+                    category="location",
+                ),
+            ),
+        )
+    )
+
+    assert payload["tags"] == [
+        {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "name": "Shanghai",
+            "entity_type": "person",
+            "category": "location",
+            "description": None,
+            "color": None,
+            "created_at": "",
+            "updated_at": "",
+        }
+    ]
+
+
 def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     pytest.importorskip("fastapi")
-    from lifeos_web.routers.persons import _activity_payload
+    from lifeos_web.routers.persons import _activity_payload, _timelog_total_minutes
 
     timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
     payload = _activity_payload(
@@ -557,6 +598,7 @@ def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
     assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
     assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
+    assert _timelog_total_minutes([payload]) == 30
 
 
 def test_web_habit_action_payload_uses_slim_habit_summary(
@@ -1324,6 +1366,26 @@ def test_web_timelog_rejects_task_id_with_without_task() -> None:
     assert "Use either task_id or without_task" in str(getattr(exc_info.value, "detail", ""))
 
 
+def test_web_timelog_rejects_with_task_with_other_task_filters() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                task_id=UUID("11111111-1111-1111-1111-111111111111"),
+                with_task=True,
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use only one of task_id, without_task, or with_task" in str(
+        getattr(exc_info.value, "detail", "")
+    )
+
+
 def test_web_timelog_rejects_partial_date_filter() -> None:
     pytest.importorskip("fastapi")
 
@@ -1587,6 +1649,43 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
     assert captured["clear_description"] is True
     assert captured["clear_experience_rate"] is True
     assert captured["clear_area"] is False
+
+
+def test_web_vision_recompute_efforts_calls_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db.services.visions import VisionEffortRecomputeResult
+    from lifeos_web.routers import visions
+
+    vision_id = UUID("55555555-5555-5555-5555-555555555555")
+    root_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured: dict[str, object] = {}
+
+    async def fake_recompute(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return VisionEffortRecomputeResult(
+            vision_id=vision_id,
+            recomputed_roots=(root_id,),
+        )
+
+    monkeypatch.setattr(
+        visions.vision_services,
+        "recompute_vision_task_efforts",
+        fake_recompute,
+    )
+
+    response = asyncio.run(
+        visions.recompute_vision_efforts(
+            vision_id,
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["vision_id"] == vision_id
+    assert response == {
+        "vision_id": str(vision_id),
+        "recomputed_roots": [str(root_id)],
+    }
 
 
 def test_web_vision_update_area_id_passes_through(

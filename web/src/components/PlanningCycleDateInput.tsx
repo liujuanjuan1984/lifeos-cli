@@ -59,7 +59,7 @@ export const PlanningCycleDateInput: React.FC<PlanningCycleDateInputProps> = ({
           onChange={(value) => {
             if (value) {
               const monthIndex = parseInt(value);
-              const yearStart = adapter.getYearStart(new Date());
+              const yearStart = adapter.getYearStart(currentDate);
               const monthStart = adapter.getMonthStart(yearStart, monthIndex);
               onStartDateChange(monthStart.toLocaleDateString("en-CA"));
             }

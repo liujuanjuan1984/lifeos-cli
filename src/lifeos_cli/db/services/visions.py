@@ -27,6 +27,7 @@ from lifeos_cli.db.services.model_utils import (
     soft_delete_model_by_id,
 )
 from lifeos_cli.db.services.read_models import VisionView, build_vision_view
+from lifeos_cli.db.services.task_effort import recompute_subtree_totals
 
 VALID_VISION_STATUSES = {"active", "archived", "fruit"}
 VISION_EXPERIENCE_RATE_MAX = MAX_VISION_EXPERIENCE_RATE_PER_HOUR
@@ -43,6 +44,14 @@ class VisionStats:
     completion_percentage: float
     total_estimated_effort: int | None
     total_actual_effort: int | None
+
+
+@dataclass(frozen=True)
+class VisionEffortRecomputeResult:
+    """Result of recalculating task effort totals for a vision."""
+
+    vision_id: UUID
+    recomputed_roots: tuple[UUID, ...]
 
 
 class VisionNotFoundError(LookupError):
@@ -355,6 +364,27 @@ async def sync_vision_experience(
     await session.flush()
     await session.refresh(vision)
     return await _build_vision_view(session, vision)
+
+
+async def recompute_vision_task_efforts(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> VisionEffortRecomputeResult:
+    """Recompute task effort totals for every active root task in a vision."""
+    vision = await load_model_by_id(
+        session,
+        model_cls=Vision,
+        model_id=vision_id,
+    )
+    if vision is None:
+        raise VisionNotFoundError(f"Vision {vision_id} was not found")
+    tasks = await _load_active_tasks_for_vision(session, vision.id)
+    root_task_ids = tuple(task.id for task in tasks if task.parent_task_id is None)
+    for root_task_id in root_task_ids:
+        await recompute_subtree_totals(session, root_task_id)
+    await session.flush()
+    return VisionEffortRecomputeResult(vision_id=vision.id, recomputed_roots=root_task_ids)
 
 
 async def get_vision_with_tasks(

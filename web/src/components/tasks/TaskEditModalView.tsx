@@ -15,6 +15,7 @@ import type { TaskCreate, TaskWithSubtasks } from "@/services/api";
 import type { UUID } from "@/types/primitive";
 import { PRIORITY } from "@/utils/constants";
 import type { UseTaskEditorHandlers } from "@/hooks/tasks/useTaskEditor";
+import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { Icon } from "@/components/icons";
 
 interface TaskEditModalViewProps {
@@ -57,8 +58,10 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   visionLocked = false,
 }) => {
   const { t } = useTranslation();
+  const { adapter } = usePlanningCycle();
   const uniqueId = useId();
   const taskContentId = `task-content-${uniqueId}`;
+  const planningCycleYearId = `planning-cycle-year-${uniqueId}`;
   const planningCycleStartDateId = `planning-cycle-start-date-${uniqueId}`;
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -82,6 +85,25 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   const selectedParentTask = formData.parent_task_id
     ? allTasks.find((candidate) => candidate.id === formData.parent_task_id)
     : null;
+  const isMonthlyPlanning = formData.planning_cycle_type === "month";
+
+  const handlePlanningMonthYearChange = (yearStartDate?: string) => {
+    if (!yearStartDate) {
+      handlers.handlePlanningStartDateChange(undefined);
+      return;
+    }
+    const selectedYearStart = new Date(`${yearStartDate}T00:00:00`);
+    const currentMonthIndex = formData.planning_cycle_start_date
+      ? adapter.getMonthInfo(new Date(`${formData.planning_cycle_start_date}T00:00:00`))
+          .monthIndex
+      : adapter.getMonthInfo(new Date()).monthIndex;
+    if (!currentMonthIndex || Number.isNaN(selectedYearStart.getTime())) {
+      handlers.handlePlanningStartDateChange(yearStartDate);
+      return;
+    }
+    const monthStart = adapter.getMonthStart(selectedYearStart, currentMonthIndex);
+    handlers.handlePlanningStartDateChange(monthStart.toLocaleDateString("en-CA"));
+  };
 
   return (
     <ModalBase
@@ -303,7 +325,13 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
             </ActionButtonGroup>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            className={
+              isMonthlyPlanning
+                ? "grid grid-cols-1 sm:grid-cols-3 gap-3"
+                : "grid grid-cols-1 sm:grid-cols-2 gap-3"
+            }
+          >
             <div>
               <EnumSelect
                 value={formData.planning_cycle_type || ""}
@@ -331,6 +359,26 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 label={t("target.type")}
               />
             </div>
+
+            {isMonthlyPlanning && (
+              <div className="mt-0 sm:mt-2">
+                <label
+                  htmlFor={planningCycleYearId}
+                  className="block text-sm font-medium text-base-content mb-1"
+                >
+                  {t("taskForm.planning.startLabels.year")}
+                </label>
+                <PlanningCycleDateInput
+                  cycleType="year"
+                  startDate={formData.planning_cycle_start_date}
+                  id={planningCycleYearId}
+                  name="planning_cycle_start_year"
+                  className="input-sm"
+                  onStartDateChange={handlePlanningMonthYearChange}
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             {formData.planning_cycle_type &&
               formData.planning_cycle_type !== "" && (
