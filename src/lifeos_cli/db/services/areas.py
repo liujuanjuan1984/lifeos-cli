@@ -32,13 +32,23 @@ async def create_area(
     is_active: bool = True,
     display_order: int = 0,
 ) -> Area:
-    """Create a new area, restoring a soft-deleted area with the same name."""
+    """Create a new area, restoring a hidden area with the same name."""
     normalized_name = name.strip()
     existing = await session.execute(
         select(Area).where(Area.name == normalized_name, Area.deleted_at.is_(None)).limit(1)
     )
-    if existing.scalar_one_or_none() is not None:
+    existing_area = existing.scalar_one_or_none()
+    if existing_area is not None and existing_area.is_active:
         raise AreaAlreadyExistsError(f"Area with name {normalized_name!r} already exists")
+    if existing_area is not None:
+        existing_area.description = description
+        existing_area.color = color
+        existing_area.icon = icon
+        existing_area.is_active = is_active
+        existing_area.display_order = display_order
+        await session.flush()
+        await session.refresh(existing_area)
+        return existing_area
     deleted = await session.execute(
         select(Area)
         .where(Area.name == normalized_name, Area.deleted_at.is_not(None))

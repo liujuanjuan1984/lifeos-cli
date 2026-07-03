@@ -7,20 +7,6 @@ import type { PersonSummary } from "@/services/api";
 import type { PersonActivityItem } from "@/services/api/persons";
 import { renderWithProviders, setupTranslationMock } from "@test/utils";
 
-vi.mock("@tanstack/react-virtual", () => ({
-  useVirtualizer: ({ count }: { count: number }) => ({
-    getTotalSize: () => count * 120,
-    getVirtualItems: () =>
-      Array.from({ length: count }, (_, index) => ({
-        index,
-        key: index,
-        start: index * 120,
-        size: 120,
-      })),
-    measureElement: vi.fn(),
-  }),
-}));
-
 vi.mock("@/hooks/queries/useAreas", () => ({
   useAreas: () => ({
     areaMap: new Map([["area-1", { name: "Work", color: "#3B82F6" }]]),

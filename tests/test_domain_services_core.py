@@ -188,6 +188,48 @@ def test_create_area_restores_soft_deleted_name() -> None:
     asyncio.run(scenario())
 
 
+def test_create_area_reactivates_inactive_name() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                inactive_area = Area(
+                    name="Energy",
+                    description="Old description",
+                    color="#111111",
+                    icon="old",
+                    is_active=False,
+                    display_order=7,
+                )
+                session.add(inactive_area)
+                await session.flush()
+                inactive_area_id = inactive_area.id
+                await session.commit()
+
+            async with session_factory() as session:
+                restored_area = await areas.create_area(
+                    session,
+                    name=" Energy ",
+                    description="New description",
+                    color="#123456",
+                    icon="spark",
+                    display_order=2,
+                )
+
+                assert restored_area.id == inactive_area_id
+                assert restored_area.name == "Energy"
+                assert restored_area.description == "New description"
+                assert restored_area.color == "#123456"
+                assert restored_area.icon == "spark"
+                assert restored_area.is_active is True
+                assert restored_area.display_order == 2
+                assert restored_area.deleted_at is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
 def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     tag = SimpleNamespace(
         id=UUID("22222222-2222-2222-2222-222222222222"),

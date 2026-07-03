@@ -124,18 +124,6 @@ export const formatAmountForAsset = (
   return formatNumberForAsset(numeric, currency, assets);
 };
 
-export const formatMoney = (
-  value?: string | null,
-  currency = "",
-  assets: FinanceAsset[] = [],
-) => {
-  const numeric = Number(value ?? 0);
-  if (!Number.isFinite(numeric)) {
-    return `${value ?? "0"} ${currency}`.trim();
-  }
-  return `${formatNumberForAsset(numeric, currency, assets)} ${currency}`.trim();
-};
-
 export const buildTree = (nodes: FinanceTreeNode[]): TreeNodeWithChildren[] => {
   const sorted = [...nodes].sort((a, b) => {
     if (a.path !== b.path) return a.path.localeCompare(b.path);
@@ -186,18 +174,4 @@ export function snapshotLabel(snapshot: FinanceSnapshot) {
 
 export function rateSnapshotLabel(snapshot: FinanceRateSnapshot) {
   return formatDateTime(snapshot.captured_at);
-}
-
-export function getRequiredRateCurrencies(
-  nodes: TreeNodeWithChildren[],
-  primaryCurrency: string,
-): string[] {
-  const normalizedPrimary = primaryCurrency.toUpperCase();
-  return Array.from(
-    new Set(
-      nodes
-        .map((node) => (node.currency_code || normalizedPrimary).toUpperCase())
-        .filter((currency) => currency && currency !== normalizedPrimary),
-    ),
-  ).sort();
 }
