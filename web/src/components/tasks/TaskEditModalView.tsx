@@ -59,6 +59,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   const { t } = useTranslation();
   const uniqueId = useId();
   const taskContentId = `task-content-${uniqueId}`;
+  const planningCycleYearId = `planning-cycle-year-${uniqueId}`;
   const planningCycleStartDateId = `planning-cycle-start-date-${uniqueId}`;
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -82,6 +83,23 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   const selectedParentTask = formData.parent_task_id
     ? allTasks.find((candidate) => candidate.id === formData.parent_task_id)
     : null;
+  const isMonthlyPlanning = formData.planning_cycle_type === "month";
+
+  const handlePlanningMonthYearChange = (yearStartDate?: string) => {
+    if (!yearStartDate) {
+      handlers.handlePlanningStartDateChange(undefined);
+      return;
+    }
+    const selectedYear = yearStartDate.split("-")[0];
+    if (!selectedYear) {
+      handlers.handlePlanningStartDateChange(yearStartDate);
+      return;
+    }
+    const currentMonth =
+      formData.planning_cycle_start_date?.split("-")[1] ??
+      String(new Date().getMonth() + 1).padStart(2, "0");
+    handlers.handlePlanningStartDateChange(`${selectedYear}-${currentMonth}-01`);
+  };
 
   return (
     <ModalBase
@@ -303,7 +321,13 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
             </ActionButtonGroup>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            className={
+              isMonthlyPlanning
+                ? "grid grid-cols-1 sm:grid-cols-3 gap-3"
+                : "grid grid-cols-1 sm:grid-cols-2 gap-3"
+            }
+          >
             <div>
               <EnumSelect
                 value={formData.planning_cycle_type || ""}
@@ -331,6 +355,26 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 label={t("target.type")}
               />
             </div>
+
+            {isMonthlyPlanning && (
+              <div className="mt-0 sm:mt-2">
+                <label
+                  htmlFor={planningCycleYearId}
+                  className="block text-sm font-medium text-base-content mb-1"
+                >
+                  {t("taskForm.planning.startLabels.year")}
+                </label>
+                <PlanningCycleDateInput
+                  cycleType="year"
+                  startDate={formData.planning_cycle_start_date}
+                  id={planningCycleYearId}
+                  name="planning_cycle_start_year"
+                  className="input-sm"
+                  onStartDateChange={handlePlanningMonthYearChange}
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             {formData.planning_cycle_type &&
               formData.planning_cycle_type !== "" && (

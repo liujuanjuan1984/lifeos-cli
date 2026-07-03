@@ -18,6 +18,8 @@ interface ListContainerProps {
   size?: "sm" | "md" | "lg";
   /** 额外的 CSS 类名 */
   className?: string;
+  /** Extra class names for the content region. */
+  contentClassName?: string;
   /** 是否显示顶部边框（用于分隔） */
   withTopBorder?: boolean;
   /** 是否显示阴影 */
@@ -41,6 +43,7 @@ const ListContainer: React.FC<ListContainerProps> = ({
   emptyState,
   size = "md",
   className = "",
+  contentClassName = "",
   withTopBorder = false,
   shadow = true,
   borderVariant = "default",
@@ -60,6 +63,7 @@ const ListContainer: React.FC<ListContainerProps> = ({
   // 标题尺寸
   const titleSizeClass =
     size === "sm" ? "text-base" : size === "lg" ? "text-lg" : "text-base";
+  const contentClasses = `flex-1 text-sm ${contentClassName || "overflow-auto"}`;
 
   // 获取列对齐样式
   const getColumnAlignClass = (align?: "left" | "center" | "right") => {
@@ -117,9 +121,7 @@ const ListContainer: React.FC<ListContainerProps> = ({
       )}
 
       {/* Content */}
-      <div className="flex-1 text-sm overflow-auto">
-        {children || emptyState}
-      </div>
+      <div className={contentClasses}>{children || emptyState}</div>
     </Container>
   );
 };

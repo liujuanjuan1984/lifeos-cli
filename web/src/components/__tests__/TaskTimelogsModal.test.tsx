@@ -134,6 +134,9 @@ describe("TaskTimelogsModal", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Deep work")).toBeInTheDocument();
     expect(screen.queryByTestId("icon-timer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("task-timelogs-scroll-area")).not.toContainElement(
+      screen.getByRole("button", { name: "下一页" }),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "下一页" }));
 

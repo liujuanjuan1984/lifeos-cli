@@ -154,6 +154,7 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
           size="lg"
           borderVariant="subtle"
           className="min-h-0 flex flex-1 flex-col overflow-hidden"
+          contentClassName="min-h-0 overflow-hidden"
           columns={[
             {
               key: "date",
@@ -208,72 +209,81 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
           }
         >
           {!isLoading && !error && timelogs.length > 0 && (
-            <div className="overflow-x-auto px-2 py-3">
+            <div className="flex h-full min-h-0 flex-col">
               <div
-                className="min-w-[760px] grid gap-4"
-                style={{
-                  gridTemplateColumns: [
-                    "0.5fr",
-                    "0.7fr",
-                    "0.5fr",
-                    "0.5fr",
-                    "2.5fr",
-                  ].join(" "),
-                }}
+                className="min-h-0 flex-1 overflow-auto px-2 py-3"
+                data-testid="task-timelogs-scroll-area"
               >
-                {timelogs.map((event) => {
-                  const trimmedTitle = event.title.trim();
-                  const description =
-                    trimmedTitle.length > 0
-                      ? trimmedTitle
-                      : t("taskTimelogs.untitled");
-                  const areaName =
-                    event.area_summary?.name ??
-                    (event.area_id ? areaMap.get(event.area_id)?.name : null) ??
-                    t("taskTimelogs.unknownArea");
-                  const areaColor =
-                    event.area_summary?.color ??
-                    (event.area_id ? areaMap.get(event.area_id)?.color : null) ??
-                    undefined;
+                <div
+                  className="min-w-[760px] grid gap-4"
+                  style={{
+                    gridTemplateColumns: [
+                      "0.5fr",
+                      "0.7fr",
+                      "0.5fr",
+                      "0.5fr",
+                      "2.5fr",
+                    ].join(" "),
+                  }}
+                >
+                  {timelogs.map((event) => {
+                    const trimmedTitle = event.title.trim();
+                    const description =
+                      trimmedTitle.length > 0
+                        ? trimmedTitle
+                        : t("taskTimelogs.untitled");
+                    const areaName =
+                      event.area_summary?.name ??
+                      (event.area_id
+                        ? areaMap.get(event.area_id)?.name
+                        : null) ??
+                      t("taskTimelogs.unknownArea");
+                    const areaColor =
+                      event.area_summary?.color ??
+                      (event.area_id
+                        ? areaMap.get(event.area_id)?.color
+                        : null) ??
+                      undefined;
 
-                  return (
-                    <React.Fragment key={event.id}>
-                      <div className="text-base-content/80 flex items-center">
-                        {formatDate(event.start_time, activeTimezone)}
-                      </div>
-                      <div className="text-base-content/90 flex items-center">
-                        <TimeRangeText
-                          start={event.start_time}
-                          end={event.end_time || null}
-                          timezone={activeTimezone}
-                        />
-                      </div>
-                      <div className="text-left text-base-content/90 flex items-center gap-2">
-                        {calculateDuration(event)}
-                      </div>
-                      <div className="flex items-center">
-                        <AreaBadge
-                          areaId={event.area_id ?? undefined}
-                          areaMap={areaMap}
-                          name={areaName}
-                          color={areaColor}
-                          showLabel
-                          labelClassName="text-base"
-                          ariaLabel={areaName}
-                        />
-                      </div>
-                      <div
-                        className="text-base-content/90 flex items-center truncate"
-                        title={description}
-                      >
-                        {description}
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
+                    return (
+                      <React.Fragment key={event.id}>
+                        <div className="text-base-content/80 flex items-center">
+                          {formatDate(event.start_time, activeTimezone)}
+                        </div>
+                        <div className="text-base-content/90 flex items-center">
+                          <TimeRangeText
+                            start={event.start_time}
+                            end={event.end_time || null}
+                            timezone={activeTimezone}
+                          />
+                        </div>
+                        <div className="text-left text-base-content/90 flex items-center gap-2">
+                          {calculateDuration(event)}
+                        </div>
+                        <div className="flex items-center">
+                          <AreaBadge
+                            areaId={event.area_id ?? undefined}
+                            areaMap={areaMap}
+                            name={areaName}
+                            color={areaColor}
+                            showLabel
+                            labelClassName="text-base"
+                            ariaLabel={areaName}
+                          />
+                        </div>
+                        <div
+                          className="text-base-content/90 flex items-center truncate"
+                          title={description}
+                        >
+                          {description}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               </div>
               {safeTotalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex flex-shrink-0 items-center justify-between border-t border-base-300 px-2 py-3">
                   <ActionButton
                     label={t("taskTimelogs.previousPage")}
                     size="sm"
