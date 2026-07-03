@@ -13,6 +13,7 @@ from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
 
 VALID_TASK_STATUSES = {"todo", "in_progress", "done", "cancelled", "paused"}
+TASK_STATUSES_ALLOWED_FOR_PARENT_COMPLETION = {"done", "cancelled", "paused"}
 VALID_PLANNING_CYCLE_TYPES = {"7years", "year", "month", "week", "day"}
 MAX_TASK_DEPTH = 8
 
@@ -165,9 +166,11 @@ async def validate_task_status_change(
         )
     )
     child_statuses = list(result.scalars())
-    if child_statuses and any(status != "done" for status in child_statuses):
+    if child_statuses and any(
+        status not in TASK_STATUSES_ALLOWED_FOR_PARENT_COMPLETION for status in child_statuses
+    ):
         raise TaskCannotBeCompletedError(
-            "Task cannot be completed until all direct subtasks are done"
+            "Task cannot be completed until all direct subtasks are done, cancelled, or paused"
         )
     return normalized_status
 

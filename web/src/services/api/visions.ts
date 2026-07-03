@@ -112,8 +112,10 @@ export const visionsApi = {
 
   async recomputeEfforts(
     id: UUID,
-  ): Promise<{ vision_id: UUID; recomputed_roots: number[] }> {
-    return Promise.resolve({ vision_id: id, recomputed_roots: [] });
+  ): Promise<{ vision_id: UUID; recomputed_roots: UUID[] }> {
+    return http.post<{ vision_id: UUID; recomputed_roots: UUID[] }>(
+      ENDPOINTS.VISIONS.RECOMPUTE_EFFORTS(id),
+    );
   },
 
   async bulkUpdateExperienceRates(

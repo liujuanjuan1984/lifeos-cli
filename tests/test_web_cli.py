@@ -1631,6 +1631,43 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
     assert captured["clear_area"] is False
 
 
+def test_web_vision_recompute_efforts_calls_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db.services.visions import VisionEffortRecomputeResult
+    from lifeos_web.routers import visions
+
+    vision_id = UUID("55555555-5555-5555-5555-555555555555")
+    root_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured: dict[str, object] = {}
+
+    async def fake_recompute(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return VisionEffortRecomputeResult(
+            vision_id=vision_id,
+            recomputed_roots=(root_id,),
+        )
+
+    monkeypatch.setattr(
+        visions.vision_services,
+        "recompute_vision_task_efforts",
+        fake_recompute,
+    )
+
+    response = asyncio.run(
+        visions.recompute_vision_efforts(
+            vision_id,
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["vision_id"] == vision_id
+    assert response == {
+        "vision_id": str(vision_id),
+        "recomputed_roots": [str(root_id)],
+    }
+
+
 def test_web_vision_update_area_id_passes_through(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

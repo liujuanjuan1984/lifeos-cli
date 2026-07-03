@@ -21,7 +21,7 @@ from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services import events, task_effort, timelogs
+from lifeos_cli.db.services import events, task_effort, timelogs, visions
 from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
 
@@ -459,6 +459,58 @@ def test_timelog_minutes_uses_whole_positive_minutes() -> None:
 
     assert task_effort._timelog_minutes(cast(Any, timelog)) == 59
     assert task_effort._timelog_minutes(cast(Any, invalid_timelog)) == 0
+
+
+def test_recompute_vision_task_efforts_clears_old_parent_rollup() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Work")
+                session.add(vision)
+                await session.flush()
+                old_parent = Task(vision_id=vision.id, content="Old parent")
+                new_parent = Task(vision_id=vision.id, content="New parent", display_order=1)
+                session.add_all([old_parent, new_parent])
+                await session.flush()
+                child = Task(
+                    vision_id=vision.id,
+                    parent_task_id=old_parent.id,
+                    content="Moved child",
+                    display_order=2,
+                )
+                session.add(child)
+                await session.flush()
+                session.add(
+                    Timelog(
+                        title="Deep work",
+                        start_time=utc_datetime(2026, 4, 10, 13, 0),
+                        end_time=utc_datetime(2026, 4, 10, 14, 30),
+                        task_id=child.id,
+                    )
+                )
+                await session.flush()
+
+                await visions.recompute_vision_task_efforts(session, vision_id=vision.id)
+                await session.refresh(old_parent)
+                assert old_parent.actual_effort_total == 90
+
+                child.parent_task_id = new_parent.id
+                await session.flush()
+
+                result = await visions.recompute_vision_task_efforts(session, vision_id=vision.id)
+                await session.refresh(old_parent)
+                await session.refresh(new_parent)
+                await session.refresh(child)
+
+                assert set(result.recomputed_roots) == {old_parent.id, new_parent.id}
+                assert old_parent.actual_effort_total == 0
+                assert new_parent.actual_effort_total == 90
+                assert child.actual_effort_total == 90
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
 
 
 def test_update_event_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:

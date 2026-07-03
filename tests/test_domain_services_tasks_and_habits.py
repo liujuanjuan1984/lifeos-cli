@@ -497,6 +497,22 @@ def test_validate_task_status_change_rejects_done_with_incomplete_children() -> 
         )
 
 
+def test_validate_task_status_change_accepts_closed_children() -> None:
+    task = SimpleNamespace(id=UUID("11111111-1111-1111-1111-111111111111"), status="todo")
+    result = SimpleNamespace(scalars=lambda: ["done", "cancelled", "paused"])
+    session = SimpleNamespace(execute=AsyncMock(return_value=result))
+
+    status = asyncio.run(
+        tasks.validate_task_status_change(
+            cast(Any, session),
+            task=cast(Any, task),
+            new_status="done",
+        )
+    )
+
+    assert status == "done"
+
+
 def test_delete_task_soft_deletes_subtree_without_committing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

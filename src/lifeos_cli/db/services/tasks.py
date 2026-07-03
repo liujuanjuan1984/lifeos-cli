@@ -31,6 +31,7 @@ from lifeos_cli.db.services.task_queries import (
 )
 from lifeos_cli.db.services.task_support import (
     MAX_TASK_DEPTH,
+    TASK_STATUSES_ALLOWED_FOR_PARENT_COMPLETION,
     VALID_PLANNING_CYCLE_TYPES,
     VALID_TASK_STATUSES,
     CircularTaskReferenceError,
@@ -51,6 +52,7 @@ from lifeos_cli.db.services.task_support import (
 
 __all__ = [
     "MAX_TASK_DEPTH",
+    "TASK_STATUSES_ALLOWED_FOR_PARENT_COMPLETION",
     "VALID_PLANNING_CYCLE_TYPES",
     "VALID_TASK_STATUSES",
     "CircularTaskReferenceError",
