@@ -31,6 +31,7 @@ def _habit_model_payload(habit: Habit) -> dict[str, object]:
         "duration_days": habit.duration_days,
         "cadence_frequency": habit.cadence_frequency,
         "cadence_weekdays": habit.cadence_weekdays,
+        "cadence_monthdays": getattr(habit, "cadence_monthdays", None),
         "target_per_cycle": habit.target_per_cycle,
         "status": habit.status,
         "task_id": str(habit.task_id) if habit.task_id else None,
@@ -178,8 +179,11 @@ async def create_habit(
             description=payload.description,
             start_date=payload.start_date,
             duration_days=payload.duration_days,
+            end_date=payload.end_date,
+            repeat_count=payload.repeat_count,
             cadence_frequency=payload.cadence_frequency,
             cadence_weekdays=payload.cadence_weekdays,
+            cadence_monthdays=payload.cadence_monthdays,
             target_per_cycle=payload.target_per_cycle,
             task_id=payload.task_id,
         )
@@ -198,6 +202,7 @@ async def update_habit(
     fields = payload.model_fields_set
     clear_description = "description" in fields and payload.description is None
     clear_weekdays = "cadence_weekdays" in fields and payload.cadence_weekdays is None
+    clear_monthdays = "cadence_monthdays" in fields and payload.cadence_monthdays is None
     clear_task = "task_id" in fields and payload.task_id is None
     try:
         habit = await habit_services.update_habit(
@@ -208,9 +213,13 @@ async def update_habit(
             clear_description=clear_description,
             start_date=payload.start_date,
             duration_days=payload.duration_days,
+            end_date=payload.end_date,
+            repeat_count=payload.repeat_count,
             cadence_frequency=payload.cadence_frequency,
             cadence_weekdays=payload.cadence_weekdays,
             clear_weekdays=clear_weekdays,
+            cadence_monthdays=payload.cadence_monthdays,
+            clear_monthdays=clear_monthdays,
             target_per_cycle=payload.target_per_cycle,
             status=payload.status,
             task_id=payload.task_id,

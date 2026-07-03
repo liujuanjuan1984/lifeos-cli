@@ -881,6 +881,7 @@ def test_main_habit_add_creates_habit(
         assert kwargs["duration_days"] == 21
         assert kwargs["cadence_frequency"] == "daily"
         assert kwargs["cadence_weekdays"] is None
+        assert kwargs["cadence_monthdays"] is None
         assert kwargs["target_per_cycle"] is None
         return make_record(id=UUID("77777777-7777-7777-7777-777777777777"))
 
@@ -911,6 +912,7 @@ def test_main_habit_add_passes_weekly_cadence_fields(
     async def fake_create_habit(_session: object, **kwargs: object) -> object:
         assert kwargs["cadence_frequency"] == "weekly"
         assert kwargs["cadence_weekdays"] == ["saturday", "sunday"]
+        assert kwargs["cadence_monthdays"] is None
         assert kwargs["target_per_cycle"] == 1
         return make_record(id=UUID("78787878-7878-7878-7878-787878787878"))
 
@@ -946,6 +948,7 @@ def test_main_habit_add_passes_monthly_cadence_fields(
     async def fake_create_habit(_session: object, **kwargs: object) -> object:
         assert kwargs["cadence_frequency"] == "monthly"
         assert kwargs["cadence_weekdays"] is None
+        assert kwargs["cadence_monthdays"] == [1, 15]
         assert kwargs["target_per_cycle"] == 2
         return make_record(id=UUID("79797979-7979-7979-7979-797979797979"))
 
@@ -963,6 +966,8 @@ def test_main_habit_add_passes_monthly_cadence_fields(
             "365",
             "--cadence-frequency",
             "monthly",
+            "--monthdays",
+            "1,15",
             "--target-per-cycle",
             "2",
         ]

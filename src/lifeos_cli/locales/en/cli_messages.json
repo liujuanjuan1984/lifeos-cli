@@ -294,6 +294,7 @@
         "use_list_as_primary_query_entrypoint_for_habits": "Use `list` as the primary query entrypoint for habits."
       },
       "parser_actions": {
+        "allowed_monthdays_for_example_1_15_28": "Allowed calendar month days, for example 1,15,28",
         "allowed_weekdays_for_example_monday_wednesday_friday": "Allowed weekdays, for example monday,wednesday,friday",
         "cadence_and_timing_changes_reconcile_materialized_habit_action_records_without_regenerating_full": "Cadence and timing changes reconcile materialized habit-action records without regenerating full histories.",
         "cadence_target_count_for_one_cycle_daily_habits_must_keep_1": "Cadence target count for one cycle. Daily habits must keep 1.",
@@ -320,6 +321,7 @@
         "optional_habit_description": "Optional habit description",
         "reactivating_habit_still_respects_active_habit_limit": "Reactivating a habit still respects the active habit limit.",
         "remove_linked_task_reference": "Remove the linked task reference",
+        "remove_monthday_restrictions_from_habit_cadence": "Remove monthday restrictions from the habit cadence",
         "remove_weekday_restrictions_from_habit_cadence": "Remove weekday restrictions from the habit cadence",
         "restrict_results_to_habits_whose_duration_still_covers_today": "Restrict results to habits whose duration still covers today",
         "run_bulk_habit_operations": "Run bulk habit operations",
@@ -333,6 +335,7 @@
         "update_habit": "Update a habit",
         "update_mutable_habit_fields": "Update mutable habit fields.",
         "updated_allowed_weekdays_for_example_monday_wednesday_friday": "Updated allowed weekdays, for example monday,wednesday,friday",
+        "updated_allowed_monthdays_for_example_1_15_28": "Updated allowed calendar month days, for example 1,15,28",
         "updated_cadence_frequency_daily_weekly_monthly_or_yearly": "Updated cadence frequency: daily, weekly, monthly, or yearly",
         "updated_cadence_target_count_for_one_cycle": "Updated cadence target count for one cycle",
         "updated_duration_in_days": "Updated duration in days",

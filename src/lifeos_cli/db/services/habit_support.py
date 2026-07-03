@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lifeos_cli.application.calendar_adapter import CalendarGranularity, get_calendar_period_range
 from lifeos_cli.application.time_preferences import (
     get_operational_date,
     get_week_bounds,
@@ -24,7 +25,7 @@ from lifeos_cli.db.services.recurrence_core import (
     SeriesDefinition,
     build_series_definition,
     get_cycle_date_bounds,
-    get_occurrence_starts_in_range,
+    normalize_month_days,
     normalize_recurrence_frequency,
     normalize_weekday_names,
 )
@@ -34,6 +35,11 @@ if TYPE_CHECKING:
     from lifeos_cli.db.models.habit import Habit
 
 VALID_HABIT_STATUSES = {"active", "completed", "paused", "expired"}
+CADENCE_TO_CALENDAR_GRANULARITY: dict[str, CalendarGranularity] = {
+    "weekly": "week",
+    "monthly": "month",
+    "yearly": "year",
+}
 HABIT_ACTION_STATUS_CONFIG = {
     "pending": {
         "display_name": "Pending",
@@ -61,7 +67,7 @@ HABIT_ACTION_STATUS_CONFIG = {
     },
 }
 VALID_HABIT_ACTION_STATUSES = set(HABIT_ACTION_STATUS_CONFIG)
-HABIT_DURATION_OPTIONS = {7, 14, 21, 100, 365, 1000}
+MAX_HABIT_DURATION_DAYS = 10000
 WEEKEND_HABIT_WEEKDAYS = ("saturday", "sunday")
 HABIT_EDITABLE_DAYS = 10000
 MAX_ACTIVE_HABITS = 99
@@ -142,13 +148,32 @@ def validate_habit_action_status(status: str) -> str:
 
 
 def validate_habit_duration(duration_days: int) -> int:
-    """Validate habit duration options."""
-    if duration_days not in HABIT_DURATION_OPTIONS:
-        allowed = ", ".join(str(value) for value in sorted(HABIT_DURATION_OPTIONS))
+    """Validate habit duration length."""
+    if duration_days <= 0:
+        raise HabitValidationError("duration_days must be greater than zero")
+    if duration_days > MAX_HABIT_DURATION_DAYS:
         raise HabitValidationError(
-            f"Invalid duration_days {duration_days!r}. Expected one of: {allowed}"
+            f"duration_days must be no greater than {MAX_HABIT_DURATION_DAYS}"
         )
     return duration_days
+
+
+def validate_habit_repeat_count(repeat_count: int) -> int:
+    """Validate a requested number of scheduled habit occurrences."""
+    if repeat_count <= 0:
+        raise HabitValidationError("repeat_count must be greater than zero")
+    if repeat_count > MAX_HABIT_DURATION_DAYS:
+        raise HabitValidationError(
+            f"repeat_count must be no greater than {MAX_HABIT_DURATION_DAYS}"
+        )
+    return repeat_count
+
+
+def validate_habit_end_date(*, start_date: date, end_date: date) -> int:
+    """Return duration days for an inclusive habit end date."""
+    if end_date < start_date:
+        raise HabitValidationError("end_date must be on or after start_date")
+    return validate_habit_duration((end_date - start_date).days + 1)
 
 
 def validate_habit_start_date(start_date: date) -> date:
@@ -168,12 +193,24 @@ def normalize_habit_weekdays(weekdays: Sequence[str] | None) -> tuple[str, ...] 
         raise HabitValidationError(str(exc)) from exc
 
 
+def normalize_habit_monthdays(monthdays: Sequence[object] | None) -> tuple[int, ...] | None:
+    """Normalize optional calendar month day selections."""
+    try:
+        normalized = normalize_month_days(monthdays)
+    except RecurrenceValidationError as exc:
+        raise HabitValidationError(str(exc)) from exc
+    if normalized is not None and any(day < 1 for day in normalized):
+        raise HabitValidationError("cadence_monthdays values must be between 1 and 31.")
+    return normalized
+
+
 def validate_habit_cadence(
     *,
     cadence_frequency: str | None,
     cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None = None,
     target_per_cycle: int | None,
-) -> tuple[str, tuple[str, ...] | None, int]:
+) -> tuple[str, tuple[str, ...] | None, tuple[int, ...] | None, int]:
     """Validate cadence fields and normalize defaults."""
     try:
         normalized_frequency = (
@@ -184,6 +221,7 @@ def validate_habit_cadence(
     except RecurrenceValidationError as exc:
         raise HabitValidationError(str(exc)) from exc
     normalized_weekdays = normalize_habit_weekdays(cadence_weekdays)
+    normalized_monthdays = normalize_habit_monthdays(cadence_monthdays)
     normalized_target = 1 if target_per_cycle is None else target_per_cycle
     if normalized_target <= 0:
         raise HabitValidationError("target_per_cycle must be greater than zero")
@@ -201,12 +239,25 @@ def validate_habit_cadence(
                 f"target_per_cycle {normalized_target!r} exceeds the cadence "
                 f"capacity {max_cycle_capacity}."
             )
+    if normalized_frequency == "monthly" and normalized_monthdays is not None:
+        max_cycle_capacity = len(normalized_monthdays)
+        if normalized_target > max_cycle_capacity:
+            raise HabitValidationError(
+                f"target_per_cycle {normalized_target!r} exceeds the cadence "
+                f"capacity {max_cycle_capacity}."
+            )
     if normalized_frequency == "daily" and normalized_weekdays is not None:
         raise HabitValidationError(
             "Daily cadence does not accept weekday restrictions. "
             "Use weekly or longer cycles instead."
         )
-    return normalized_frequency, normalized_weekdays, normalized_target
+    if normalized_frequency == "daily" and normalized_monthdays is not None:
+        raise HabitValidationError(
+            "Daily cadence does not accept monthday restrictions. Use monthly cadence instead."
+        )
+    if normalized_frequency != "monthly" and normalized_monthdays is not None:
+        raise HabitValidationError("Monthday restrictions require monthly cadence.")
+    return normalized_frequency, normalized_weekdays, normalized_monthdays, normalized_target
 
 
 def _habit_anchor_datetime(reference_date: date) -> datetime:
@@ -249,12 +300,21 @@ def get_habit_cycle_bounds(
 ) -> tuple[date, date]:
     """Return cadence cycle bounds for one scheduled action date."""
     try:
-        return get_cycle_date_bounds(
-            reference_date=action_date,
-            cycle_frequency=cadence_frequency,
-            week_starts_on=get_preferences_settings().week_starts_on,
+        if cadence_frequency == "daily":
+            return get_cycle_date_bounds(
+                reference_date=action_date,
+                cycle_frequency=cadence_frequency,
+                week_starts_on=get_preferences_settings().week_starts_on,
+            )
+        preferences = get_preferences_settings()
+        granularity = CADENCE_TO_CALENDAR_GRANULARITY[cadence_frequency]
+        return get_calendar_period_range(
+            granularity,
+            action_date,
+            calendar_system=preferences.calendar_system,
+            first_day_of_week=preferences.calendar_first_day_of_week,
         )
-    except RecurrenceValidationError as exc:
+    except (KeyError, RecurrenceValidationError, ValueError) as exc:
         raise HabitValidationError(str(exc)) from exc
 
 
@@ -264,47 +324,102 @@ def iter_habit_scheduled_dates(
     end_date: date,
     cadence_frequency: str,
     cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None = None,
 ) -> list[date]:
     """Return scheduled habit-action dates for the requested window."""
-    normalized_frequency, normalized_weekdays, normalized_target = validate_habit_cadence(
+    normalized_frequency, normalized_weekdays, normalized_monthdays, _ = validate_habit_cadence(
         cadence_frequency=cadence_frequency,
         cadence_weekdays=cadence_weekdays,
+        cadence_monthdays=cadence_monthdays,
         target_per_cycle=1,
     )
-    series = _build_habit_series_definition(
-        start_date=start_date,
-        cadence_frequency=normalized_frequency,
-        cadence_weekdays=normalized_weekdays,
-        target_per_cycle=normalized_target,
-    )
-    window_start = _habit_anchor_datetime(start_date)
-    window_end = _habit_anchor_datetime(end_date + timedelta(days=1)) - timedelta(microseconds=1)
-    preferred_timezone = ZoneInfo(get_preferences_settings().timezone)
     return [
-        occurrence_start.astimezone(preferred_timezone).date()
-        for occurrence_start in get_occurrence_starts_in_range(
-            series,
-            window_start=window_start,
-            window_end=window_end,
+        current_date
+        for current_date in (
+            start_date + timedelta(days=offset)
+            for offset in range((end_date - start_date).days + 1)
+        )
+        if habit_occurs_on_date(
+            start_date=start_date,
+            end_date=end_date,
+            cadence_frequency=normalized_frequency,
+            cadence_weekdays=normalized_weekdays,
+            cadence_monthdays=normalized_monthdays,
+            target_date=current_date,
         )
     ]
+
+
+def calculate_habit_duration_for_repeat_count(
+    *,
+    start_date: date,
+    repeat_count: int,
+    cadence_frequency: str,
+    cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None = None,
+) -> int:
+    """Return duration days needed to include a requested occurrence count."""
+    normalized_repeat_count = validate_habit_repeat_count(repeat_count)
+    scheduled_dates: list[date] = []
+    cursor = start_date
+    latest_allowed_date = start_date + timedelta(days=MAX_HABIT_DURATION_DAYS - 1)
+    while cursor <= latest_allowed_date and len(scheduled_dates) < normalized_repeat_count:
+        if habit_occurs_on_date(
+            start_date=start_date,
+            end_date=latest_allowed_date,
+            cadence_frequency=cadence_frequency,
+            cadence_weekdays=cadence_weekdays,
+            cadence_monthdays=cadence_monthdays,
+            target_date=cursor,
+        ):
+            scheduled_dates.append(cursor)
+        cursor += timedelta(days=1)
+    if len(scheduled_dates) < normalized_repeat_count:
+        raise HabitValidationError(
+            "repeat_count does not fit within the maximum habit duration window"
+        )
+    return validate_habit_duration((scheduled_dates[-1] - start_date).days + 1)
+
+
+def _calendar_monthday(target_date: date) -> int:
+    preferences = get_preferences_settings()
+    month_start, _ = get_calendar_period_range(
+        "month",
+        target_date,
+        calendar_system=preferences.calendar_system,
+        first_day_of_week=preferences.calendar_first_day_of_week,
+    )
+    return (target_date - month_start).days + 1
 
 
 def habit_occurs_on_date(
     *,
     start_date: date,
     end_date: date,
+    cadence_frequency: str = "daily",
     cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None = None,
     target_date: date,
 ) -> bool:
     """Return whether one habit schedules an occurrence on the requested date."""
     if target_date < start_date or target_date > end_date:
         return False
-    normalized_weekdays = normalize_habit_weekdays(cadence_weekdays)
+    normalized_frequency, normalized_weekdays, normalized_monthdays, _ = validate_habit_cadence(
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        cadence_monthdays=cadence_monthdays,
+        target_per_cycle=1,
+    )
     if normalized_weekdays is None:
-        return True
-    weekday_name = VALID_WEEKDAY_NAMES[target_date.weekday()]
-    return weekday_name in normalized_weekdays
+        weekday_matches = True
+    else:
+        weekday_name = VALID_WEEKDAY_NAMES[target_date.weekday()]
+        weekday_matches = weekday_name in normalized_weekdays
+    if not weekday_matches:
+        return False
+    if normalized_frequency == "monthly" and normalized_monthdays is not None:
+        return _calendar_monthday(target_date) in normalized_monthdays
+    return True
 
 
 def validate_habit_schedule_window(
@@ -313,6 +428,7 @@ def validate_habit_schedule_window(
     end_date: date,
     cadence_frequency: str,
     cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None = None,
 ) -> None:
     """Ensure one habit definition produces at least one scheduled date."""
     desired_dates = iter_habit_scheduled_dates(
@@ -320,6 +436,7 @@ def validate_habit_schedule_window(
         end_date=end_date,
         cadence_frequency=cadence_frequency,
         cadence_weekdays=cadence_weekdays,
+        cadence_monthdays=cadence_monthdays,
     )
     if desired_dates:
         return
@@ -333,9 +450,10 @@ def build_habit_cycle_summaries(
     actions: Sequence[HabitActionLike],
 ) -> list[HabitCycleSummary]:
     """Build cadence-cycle summaries for one habit."""
-    cadence_frequency, cadence_weekdays, target_per_cycle = validate_habit_cadence(
+    cadence_frequency, cadence_weekdays, _, target_per_cycle = validate_habit_cadence(
         cadence_frequency=getattr(habit, "cadence_frequency", None),
         cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+        cadence_monthdays=getattr(habit, "cadence_monthdays", None),
         target_per_cycle=getattr(habit, "target_per_cycle", None),
     )
     series = _build_habit_series_definition(
@@ -495,10 +613,13 @@ def build_habit_stats_payload(
 ) -> dict[str, object]:
     """Build stats shared by overview, show, and stats commands."""
     current_week_start, current_week_end = get_week_bounds(get_operational_date())
-    cadence_frequency, cadence_weekdays, target_per_cycle = validate_habit_cadence(
-        cadence_frequency=getattr(habit, "cadence_frequency", None),
-        cadence_weekdays=getattr(habit, "cadence_weekdays", None),
-        target_per_cycle=getattr(habit, "target_per_cycle", None),
+    cadence_frequency, cadence_weekdays, cadence_monthdays, target_per_cycle = (
+        validate_habit_cadence(
+            cadence_frequency=getattr(habit, "cadence_frequency", None),
+            cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+            cadence_monthdays=getattr(habit, "cadence_monthdays", None),
+            target_per_cycle=getattr(habit, "target_per_cycle", None),
+        )
     )
     series = _build_habit_series_definition(
         start_date=habit.start_date,
@@ -531,6 +652,7 @@ def build_habit_stats_payload(
         "habit_id": habit.id,
         "cadence_frequency": cadence_frequency,
         "cadence_weekdays": cadence_weekdays,
+        "cadence_monthdays": cadence_monthdays,
         "target_per_cycle": target_per_cycle,
         "total_actions": total_actions,
         "completed_actions": completed_actions,

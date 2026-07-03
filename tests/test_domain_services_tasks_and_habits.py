@@ -819,6 +819,163 @@ def test_create_habit_keeps_monthly_cadence_without_pre_generation(
     session.commit.assert_not_called()
 
 
+def test_create_habit_keeps_monthly_monthday_cadence_without_pre_generation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace(
+        add=None,
+        execute=AsyncMock(return_value=Result()),
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+    added_records: list[object] = []
+
+    def fake_add(record: object) -> None:
+        if getattr(record, "id", None) is None:
+            cast(Any, record).id = UUID("99999999-9999-9999-9999-999999999999")
+        added_records.append(record)
+
+    async def fake_ensure_active_capacity(_: object, **__: object) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("99999999-9999-9999-9999-999999999999")
+        return 0
+
+    session.add = fake_add
+    monkeypatch.setattr(habit_mutations, "ensure_active_capacity", fake_ensure_active_capacity)
+    monkeypatch.setattr(habit_mutations, "ensure_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(habit_mutations, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    habit = asyncio.run(
+        habits.create_habit(
+            cast(Any, session),
+            title="Monthly cleanup",
+            start_date=date(2026, 4, 1),
+            duration_days=100,
+            cadence_frequency="monthly",
+            cadence_monthdays=[1, 15],
+            target_per_cycle=2,
+        )
+    )
+
+    assert habit.cadence_frequency == "monthly"
+    assert habit.cadence_monthdays == [1, 15]
+    assert habit.target_per_cycle == 2
+    assert not any(hasattr(record, "action_date") for record in added_records)
+    session.flush.assert_awaited()
+    session.commit.assert_not_called()
+
+
+def test_create_habit_repeat_count_resolves_duration_from_scheduled_occurrences(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace(
+        add=None,
+        execute=AsyncMock(return_value=Result()),
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    def fake_add(record: object) -> None:
+        if getattr(record, "id", None) is None:
+            cast(Any, record).id = UUID("99999999-9999-9999-9999-999999999999")
+
+    async def fake_ensure_active_capacity(_: object, **__: object) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("99999999-9999-9999-9999-999999999999")
+        return 0
+
+    session.add = fake_add
+    monkeypatch.setattr(habit_mutations, "ensure_active_capacity", fake_ensure_active_capacity)
+    monkeypatch.setattr(habit_mutations, "ensure_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(habit_mutations, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    habit = asyncio.run(
+        habits.create_habit(
+            cast(Any, session),
+            title="Weekend calls",
+            start_date=date(2026, 4, 9),
+            repeat_count=3,
+            cadence_frequency="weekly",
+            cadence_weekdays=["saturday", "sunday"],
+            target_per_cycle=1,
+        )
+    )
+
+    assert habit.duration_days == 10
+    assert habit.end_date == date(2026, 4, 18)
+    session.flush.assert_awaited()
+    session.commit.assert_not_called()
+
+
+def test_create_habit_end_date_resolves_inclusive_duration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace(
+        add=None,
+        execute=AsyncMock(return_value=Result()),
+        flush=AsyncMock(),
+        refresh=AsyncMock(),
+        commit=AsyncMock(),
+    )
+
+    def fake_add(record: object) -> None:
+        if getattr(record, "id", None) is None:
+            cast(Any, record).id = UUID("99999999-9999-9999-9999-999999999999")
+
+    async def fake_ensure_active_capacity(_: object, **__: object) -> None:
+        return None
+
+    async def fake_ensure_task_exists(_: object, __: UUID | None) -> None:
+        return None
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("99999999-9999-9999-9999-999999999999")
+        return 0
+
+    session.add = fake_add
+    monkeypatch.setattr(habit_mutations, "ensure_active_capacity", fake_ensure_active_capacity)
+    monkeypatch.setattr(habit_mutations, "ensure_task_exists", fake_ensure_task_exists)
+    monkeypatch.setattr(habit_mutations, "refresh_habit_expiration", fake_refresh_habit_expiration)
+
+    habit = asyncio.run(
+        habits.create_habit(
+            cast(Any, session),
+            title="Daily review",
+            start_date=date(2026, 4, 9),
+            end_date=date(2026, 4, 15),
+        )
+    )
+
+    assert habit.duration_days == 7
+    assert habit.end_date == date(2026, 4, 15)
+    session.flush.assert_awaited()
+    session.commit.assert_not_called()
+
+
 def test_create_habit_rejects_daily_quota_targets() -> None:
     with pytest.raises(habits.HabitValidationError):
         asyncio.run(
@@ -837,6 +994,36 @@ def test_create_habit_rejects_daily_quota_targets() -> None:
                 target_per_cycle=2,
             )
         )
+
+
+def test_iter_habit_scheduled_dates_uses_user_calendar_monthdays(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        habit_support,
+        "get_preferences_settings",
+        lambda: SimpleNamespace(
+            day_starts_at="00:00",
+            timezone="UTC",
+            week_starts_on="monday",
+            calendar_system="mayan_13_moon",
+            calendar_first_day_of_week=1,
+        ),
+    )
+
+    scheduled_dates = habit_support.iter_habit_scheduled_dates(
+        start_date=date(2026, 7, 26),
+        end_date=date(2026, 8, 25),
+        cadence_frequency="monthly",
+        cadence_weekdays=None,
+        cadence_monthdays=[1, 15],
+    )
+
+    assert scheduled_dates == [
+        date(2026, 7, 26),
+        date(2026, 8, 9),
+        date(2026, 8, 23),
+    ]
 
 
 def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -876,6 +1063,42 @@ def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.Monk
     assert updated_habit.task_id is None
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(habit)
+    session.commit.assert_not_called()
+
+
+def test_update_habit_rejects_zero_target_per_cycle(monkeypatch: pytest.MonkeyPatch) -> None:
+    habit = SimpleNamespace(
+        id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+        title="Weekly Exercise",
+        description=None,
+        start_date=date(2026, 4, 9),
+        duration_days=21,
+        cadence_frequency="weekly",
+        cadence_weekdays=["monday"],
+        cadence_monthdays=None,
+        target_per_cycle=1,
+        status="active",
+        task_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock(), commit=AsyncMock())
+
+    async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
+        assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        return habit
+
+    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
+
+    with pytest.raises(habits.HabitValidationError):
+        asyncio.run(
+            habits.update_habit(
+                cast(Any, session),
+                habit_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                target_per_cycle=0,
+            )
+        )
+
+    session.flush.assert_not_awaited()
+    session.refresh.assert_not_awaited()
     session.commit.assert_not_called()
 
 
@@ -941,6 +1164,52 @@ def test_build_habit_stats_payload_uses_monthly_cycle_targets(
     assert stats["progress_percentage"] == 100.0
     assert stats["current_cycle_start"] == date(2026, 4, 1)
     assert stats["current_cycle_end"] == date(2026, 4, 30)
+
+
+def test_build_habit_stats_payload_uses_selected_calendar_month_cycles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        habit_support,
+        "get_operational_date",
+        lambda value=None: date(2026, 8, 10),
+    )
+    monkeypatch.setattr(
+        habit_support,
+        "get_week_bounds",
+        lambda reference_date: (date(2026, 8, 9), date(2026, 8, 15)),
+    )
+    monkeypatch.setattr(
+        habit_support,
+        "get_preferences_settings",
+        lambda: SimpleNamespace(
+            day_starts_at="00:00",
+            timezone="UTC",
+            week_starts_on="monday",
+            calendar_system="mayan_13_moon",
+            calendar_first_day_of_week=1,
+        ),
+    )
+
+    habit = SimpleNamespace(
+        id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+        start_date=date(2026, 7, 26),
+        cadence_frequency="monthly",
+        cadence_weekdays=None,
+        cadence_monthdays=[1, 15],
+        target_per_cycle=2,
+    )
+    actions = [
+        SimpleNamespace(action_date=date(2026, 7, 26), status="done"),
+        SimpleNamespace(action_date=date(2026, 8, 9), status="done"),
+    ]
+
+    stats = habit_support.build_habit_stats_payload(cast(Any, habit), cast(Any, actions))
+
+    assert stats["cadence_monthdays"] == (1, 15)
+    assert stats["completed_cycles"] == 1
+    assert stats["current_cycle_start"] == date(2026, 7, 26)
+    assert stats["current_cycle_end"] == date(2026, 8, 22)
 
 
 def test_habit_task_associations_require_active_tasks(

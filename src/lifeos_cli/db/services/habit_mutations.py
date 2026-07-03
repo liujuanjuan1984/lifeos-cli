@@ -24,7 +24,9 @@ from lifeos_cli.db.services.habit_support import (
     HABIT_EDITABLE_DAYS,
     HabitActionNotFoundError,
     HabitNotFoundError,
+    HabitValidationError,
     InvalidHabitOperationError,
+    calculate_habit_duration_for_repeat_count,
     ensure_active_capacity,
     ensure_task_exists,
     habit_occurs_on_date,
@@ -32,6 +34,7 @@ from lifeos_cli.db.services.habit_support import (
     validate_habit_action_status,
     validate_habit_cadence,
     validate_habit_duration,
+    validate_habit_end_date,
     validate_habit_schedule_window,
     validate_habit_start_date,
     validate_habit_status,
@@ -44,24 +47,37 @@ async def create_habit(
     title: str,
     description: str | None = None,
     start_date: date,
-    duration_days: int,
+    duration_days: int | None = None,
+    end_date: date | None = None,
+    repeat_count: int | None = None,
     cadence_frequency: str | None = None,
     cadence_weekdays: Sequence[str] | None = None,
+    cadence_monthdays: Sequence[object] | None = None,
     target_per_cycle: int | None = None,
     task_id: UUID | None = None,
 ) -> Habit:
     """Create a new habit without pre-generating dated action rows."""
     normalized_title = title.strip()
     validate_habit_start_date(start_date)
-    validate_habit_duration(duration_days)
     (
         normalized_cadence_frequency,
         normalized_cadence_weekdays,
+        normalized_cadence_monthdays,
         normalized_target_per_cycle,
     ) = validate_habit_cadence(
         cadence_frequency=cadence_frequency,
         cadence_weekdays=cadence_weekdays,
+        cadence_monthdays=cadence_monthdays,
         target_per_cycle=target_per_cycle,
+    )
+    normalized_duration_days = _resolve_habit_duration_days(
+        start_date=start_date,
+        duration_days=duration_days,
+        end_date=end_date,
+        repeat_count=repeat_count,
+        cadence_frequency=normalized_cadence_frequency,
+        cadence_weekdays=normalized_cadence_weekdays,
+        cadence_monthdays=normalized_cadence_monthdays,
     )
     await ensure_active_capacity(session)
     await ensure_task_exists(session, task_id)
@@ -69,10 +85,13 @@ async def create_habit(
         title=normalized_title,
         description=description,
         start_date=start_date,
-        duration_days=duration_days,
+        duration_days=normalized_duration_days,
         cadence_frequency=normalized_cadence_frequency,
         cadence_weekdays=(
             None if normalized_cadence_weekdays is None else list(normalized_cadence_weekdays)
+        ),
+        cadence_monthdays=(
+            None if normalized_cadence_monthdays is None else list(normalized_cadence_monthdays)
         ),
         target_per_cycle=normalized_target_per_cycle,
         status="active",
@@ -85,6 +104,7 @@ async def create_habit(
         end_date=habit.end_date,
         cadence_frequency=habit.cadence_frequency,
         cadence_weekdays=habit.cadence_weekdays,
+        cadence_monthdays=habit.cadence_monthdays,
     )
     await refresh_habit_expiration(session, habit_id=habit.id)
     await session.refresh(habit)
@@ -100,9 +120,13 @@ async def update_habit(
     clear_description: bool = False,
     start_date: date | None = None,
     duration_days: int | None = None,
+    end_date: date | None = None,
+    repeat_count: int | None = None,
     cadence_frequency: str | None = None,
     cadence_weekdays: Sequence[str] | None = None,
     clear_weekdays: bool = False,
+    cadence_monthdays: Sequence[object] | None = None,
+    clear_monthdays: bool = False,
     target_per_cycle: int | None = None,
     status: str | None = None,
     task_id: UUID | None = None,
@@ -125,35 +149,60 @@ async def update_habit(
         validate_habit_start_date(start_date)
         habit.start_date = start_date
         schedule_changed = True
-    if duration_days is not None:
-        habit.duration_days = validate_habit_duration(duration_days)
-        schedule_changed = True
     if clear_weekdays:
         next_cadence_weekdays: Sequence[str] | None = None
     elif cadence_weekdays is not None:
         next_cadence_weekdays = cadence_weekdays
     else:
         next_cadence_weekdays = getattr(habit, "cadence_weekdays", None)
+    if clear_monthdays:
+        next_cadence_monthdays: Sequence[object] | None = None
+    elif cadence_monthdays is not None:
+        next_cadence_monthdays = cadence_monthdays
+    else:
+        next_cadence_monthdays = getattr(habit, "cadence_monthdays", None)
     if (
         cadence_frequency is not None
         or cadence_weekdays is not None
         or clear_weekdays
+        or cadence_monthdays is not None
+        or clear_monthdays
         or target_per_cycle is not None
     ):
         (
             normalized_cadence_frequency,
             normalized_cadence_weekdays,
+            normalized_cadence_monthdays,
             normalized_target_per_cycle,
         ) = validate_habit_cadence(
             cadence_frequency=cadence_frequency or getattr(habit, "cadence_frequency", None),
             cadence_weekdays=next_cadence_weekdays,
-            target_per_cycle=target_per_cycle or getattr(habit, "target_per_cycle", None),
+            cadence_monthdays=next_cadence_monthdays,
+            target_per_cycle=(
+                target_per_cycle
+                if target_per_cycle is not None
+                else getattr(habit, "target_per_cycle", None)
+            ),
         )
         habit.cadence_frequency = normalized_cadence_frequency
         habit.cadence_weekdays = (
             None if normalized_cadence_weekdays is None else list(normalized_cadence_weekdays)
         )
+        habit.cadence_monthdays = (
+            None if normalized_cadence_monthdays is None else list(normalized_cadence_monthdays)
+        )
         habit.target_per_cycle = normalized_target_per_cycle
+        schedule_changed = True
+    if duration_days is not None or end_date is not None or repeat_count is not None:
+        habit.duration_days = _resolve_habit_duration_days(
+            start_date=habit.start_date,
+            duration_days=duration_days,
+            end_date=end_date,
+            repeat_count=repeat_count,
+            cadence_frequency=habit.cadence_frequency,
+            cadence_weekdays=habit.cadence_weekdays,
+            cadence_monthdays=habit.cadence_monthdays,
+        )
         schedule_changed = True
     if clear_task:
         habit.task_id = None
@@ -172,6 +221,7 @@ async def update_habit(
             end_date=habit.end_date,
             cadence_frequency=habit.cadence_frequency,
             cadence_weekdays=habit.cadence_weekdays,
+            cadence_monthdays=habit.cadence_monthdays,
         )
         await _soft_delete_unscheduled_habit_actions(session, habit)
 
@@ -275,7 +325,9 @@ async def _soft_delete_unscheduled_habit_actions(session: AsyncSession, habit: H
         if not habit_occurs_on_date(
             start_date=habit.start_date,
             end_date=habit.end_date,
+            cadence_frequency=habit.cadence_frequency,
             cadence_weekdays=habit.cadence_weekdays,
+            cadence_monthdays=habit.cadence_monthdays,
             target_date=action.action_date,
         ):
             action.deleted_at = utc_now()
@@ -288,3 +340,36 @@ async def _load_active_actions(session: AsyncSession, habit: Habit) -> list[Habi
         HabitAction.deleted_at.is_(None),
     )
     return list((await session.execute(stmt)).scalars())
+
+
+def _resolve_habit_duration_days(
+    *,
+    start_date: date,
+    duration_days: int | None,
+    end_date: date | None,
+    repeat_count: int | None,
+    cadence_frequency: str,
+    cadence_weekdays: Sequence[str] | None,
+    cadence_monthdays: Sequence[object] | None,
+) -> int:
+    provided_modes = [
+        duration_days is not None,
+        end_date is not None,
+        repeat_count is not None,
+    ]
+    if sum(provided_modes) != 1:
+        raise HabitValidationError(
+            "Provide exactly one of duration_days, end_date, or repeat_count."
+        )
+    if duration_days is not None:
+        return validate_habit_duration(duration_days)
+    if end_date is not None:
+        return validate_habit_end_date(start_date=start_date, end_date=end_date)
+    assert repeat_count is not None
+    return calculate_habit_duration_for_repeat_count(
+        start_date=start_date,
+        repeat_count=repeat_count,
+        cadence_frequency=cadence_frequency,
+        cadence_weekdays=cadence_weekdays,
+        cadence_monthdays=cadence_monthdays,
+    )

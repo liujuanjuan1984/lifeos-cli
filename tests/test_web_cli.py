@@ -1775,6 +1775,83 @@ def test_web_habit_update_null_fields_translate_to_clear_flags(
     assert captured["clear_task"] is True
 
 
+def test_web_habit_create_passes_repeat_count_and_cadence_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitCreate
+
+    captured: dict[str, object] = {}
+
+    async def fake_create_habit(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(habits.habit_services, "create_habit", fake_create_habit)
+    monkeypatch.setattr(
+        habits,
+        "_habit_model_payload",
+        lambda habit: {"id": str(habit.id)},
+    )
+
+    asyncio.run(
+        habits.create_habit(
+            HabitCreate(
+                title="Weekend calls",
+                start_date=date(2026, 4, 9),
+                repeat_count=3,
+                cadence_frequency="weekly",
+                cadence_weekdays=["saturday", "sunday"],
+                target_per_cycle=1,
+            ),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["duration_days"] is None
+    assert captured["repeat_count"] == 3
+    assert captured["end_date"] is None
+    assert captured["cadence_frequency"] == "weekly"
+    assert captured["cadence_weekdays"] == ["saturday", "sunday"]
+    assert captured["target_per_cycle"] == 1
+
+
+def test_web_habit_update_passes_end_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_habit(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(habits.habit_services, "update_habit", fake_update_habit)
+    monkeypatch.setattr(
+        habits,
+        "_habit_model_payload",
+        lambda habit: {"id": str(habit.id)},
+    )
+
+    asyncio.run(
+        habits.update_habit(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            HabitUpdate(end_date=date(2026, 5, 1)),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["duration_days"] is None
+    assert captured["repeat_count"] is None
+    assert captured["end_date"] == date(2026, 5, 1)
+
+
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

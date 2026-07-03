@@ -29,6 +29,7 @@ class Habit(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
     cadence_frequency: Mapped[str] = mapped_column(String(16), nullable=False, default="daily")
     cadence_weekdays: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    cadence_monthdays: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     target_per_cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     task_id: Mapped[UUID | None] = mapped_column(

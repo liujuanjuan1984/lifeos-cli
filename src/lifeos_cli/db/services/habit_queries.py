@@ -109,7 +109,9 @@ async def _materialize_habit_action_for_date(
     if not habit_occurs_on_date(
         start_date=habit.start_date,
         end_date=habit.end_date,
-        cadence_weekdays=habit.cadence_weekdays,
+        cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+        cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+        cadence_monthdays=getattr(habit, "cadence_monthdays", None),
         target_date=action_date,
     ):
         raise HabitActionNotFoundError(
@@ -144,7 +146,9 @@ def _iter_habit_window_dates(
         if habit_occurs_on_date(
             start_date=habit.start_date,
             end_date=habit.end_date,
-            cadence_weekdays=habit.cadence_weekdays,
+            cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+            cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+            cadence_monthdays=getattr(habit, "cadence_monthdays", None),
             target_date=current_date,
         )
     ]
@@ -301,7 +305,9 @@ async def _build_habit_action_views(
                 if habit_occurs_on_date(
                     start_date=habit.start_date,
                     end_date=habit.end_date,
-                    cadence_weekdays=habit.cadence_weekdays,
+                    cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+                    cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+                    cadence_monthdays=getattr(habit, "cadence_monthdays", None),
                     target_date=target_date,
                 )
             ]
