@@ -231,6 +231,8 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
     </>
   );
   const shouldShowTimelogStats = activityType === "timelog" && timelogStats;
+  const timelineBodyClassName =
+    "h-[calc(100dvh-14rem)] min-h-[18rem] max-h-[42rem] overflow-auto";
 
   return (
     <ModalBase
@@ -269,21 +271,18 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
               );
             })}
           </div>
-          {shouldShowTimelogStats ? (
-            <div className="px-4 pb-3 text-sm text-base-content/70">
-              {t("persons.timeline.timelogStats", {
-                count: timelogStats.count,
-                duration: formatDuration(timelogStats.totalMinutes),
-              })}
-            </div>
-          ) : null}
-          {activities.length > 0 ? (
-            <>
-              <div
-                ref={parentRef}
-                className="min-h-[18rem] max-h-[calc(100dvh-12rem)] overflow-auto md:max-h-[42rem]"
-              >
-                {activities.map((activity) => {
+          <div className="min-h-5 px-4 pb-3 text-sm text-base-content/70">
+            {shouldShowTimelogStats
+              ? t("persons.timeline.timelogStats", {
+                  count: timelogStats.count,
+                  duration: formatDuration(timelogStats.totalMinutes),
+                })
+              : null}
+          </div>
+          <>
+            <div ref={parentRef} className={timelineBodyClassName}>
+              {activities.length > 0 ? (
+                activities.map((activity) => {
                   const typeMeta = getActivityTypeMeta(activity.type);
                   const isTimelog = activity.type === "timelog";
                   const shouldRenderDescription =
@@ -346,49 +345,53 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
                       </div>
                     </div>
                   );
-                })}
-              </div>
-              <div className="flex items-center justify-between px-4 pt-3">
-                <ActionButton
-                  label={t("persons.timeline.previousPage")}
-                  size="sm"
-                  variant="outline"
-                  color="neutral"
-                  disabled={!canGoPrev}
-                  onClick={() => onPageChange(page - 1)}
-                />
-                <div className="flex items-center gap-3 text-sm text-base-content/70">
-                  <span>
-                    {t("persons.timeline.pageIndicator", {
-                      page,
-                      total: safeTotalPages,
-                    })}
-                  </span>
-                  {isFetchingActivities && (
-                    <span className="text-xs text-base-content/60">
-                      {t("common.loading")}
-                    </span>
-                  )}
+                })
+              ) : (
+                <div className="flex h-full items-center justify-center px-4 pb-4">
+                  <EmptyState
+                    icon={<Icon name="document-text" size={48} aria-hidden />}
+                    title={t("persons.timeline.noActivities")}
+                    description={t("persons.timeline.noActivitiesDescription")}
+                  />
                 </div>
-                <ActionButton
-                  label={t("persons.timeline.nextPage")}
-                  size="sm"
-                  variant="outline"
-                  color="neutral"
-                  disabled={!canGoNext}
-                  onClick={() => onPageChange(page + 1)}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="px-4 pb-4">
-              <EmptyState
-                icon={<Icon name="document-text" size={48} aria-hidden />}
-                title={t("persons.timeline.noActivities")}
-                description={t("persons.timeline.noActivitiesDescription")}
-              />
+              )}
             </div>
-          )}
+            <div className="flex min-h-9 items-center justify-between px-4 pt-3">
+              {activities.length > 0 ? (
+                <>
+                  <ActionButton
+                    label={t("persons.timeline.previousPage")}
+                    size="sm"
+                    variant="outline"
+                    color="neutral"
+                    disabled={!canGoPrev}
+                    onClick={() => onPageChange(page - 1)}
+                  />
+                  <div className="flex items-center gap-3 text-sm text-base-content/70">
+                    <span>
+                      {t("persons.timeline.pageIndicator", {
+                        page,
+                        total: safeTotalPages,
+                      })}
+                    </span>
+                    {isFetchingActivities && (
+                      <span className="text-xs text-base-content/60">
+                        {t("common.loading")}
+                      </span>
+                    )}
+                  </div>
+                  <ActionButton
+                    label={t("persons.timeline.nextPage")}
+                    size="sm"
+                    variant="outline"
+                    color="neutral"
+                    disabled={!canGoNext}
+                    onClick={() => onPageChange(page + 1)}
+                  />
+                </>
+              ) : null}
+            </div>
+          </>
         </>
       )}
     </ModalBase>

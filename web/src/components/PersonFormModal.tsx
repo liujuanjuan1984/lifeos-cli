@@ -360,7 +360,6 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
             label={t("personForm.locationTagsLabel")}
             dropdownZIndexClassName="z-modal"
             selectedPlacement="below"
-            showCreateButton
           />
         </div>
 
@@ -376,7 +375,6 @@ const PersonFormModal: React.FC<PersonFormModalProps> = ({
             label={t("personDetail.relationshipTags")}
             dropdownZIndexClassName="z-modal"
             selectedPlacement="below"
-            showCreateButton
           />
         </div>
       </form>

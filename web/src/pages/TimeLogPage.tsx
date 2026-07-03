@@ -619,7 +619,7 @@ const TimeLogPage = () => {
               queryMode={queryMode}
               areaMap={areaMap}
               preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
-              disableQuickEntry={showEntryModal}
+              disableQuickEntry={showEntryModal || queryMode === "advanced"}
               selectedAreaId={
                 queryMode === "advanced" ? null : selectedAreaId
               }

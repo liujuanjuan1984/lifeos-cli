@@ -8,7 +8,9 @@ from unittest.mock import AsyncMock, Mock
 from uuid import UUID
 
 import pytest
+from sqlalchemy import select
 
+from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services import (
     habit_mutations,
     habit_queries,
@@ -969,6 +971,14 @@ def test_habit_task_associations_require_active_tasks(
     compiled = str(statements[-1])
     assert "tasks.deleted_at IS NULL" in compiled
     assert "habits.status =" not in compiled
+
+
+def test_task_list_filters_require_active_parent_visions() -> None:
+    stmt = task_queries._apply_task_filters(select(Task))
+
+    compiled = str(stmt)
+    assert "tasks.deleted_at IS NULL" in compiled
+    assert "visions.deleted_at IS NULL" in compiled
 
 
 def test_update_habit_action_by_date_uses_existing_update_rules(
