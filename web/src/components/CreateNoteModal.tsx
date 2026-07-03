@@ -431,6 +431,7 @@ export default function CreateNoteModal({
               multiple={true}
               disabled={isPersonSelectionLocked}
               idPrefix="create-note-person"
+              selectedPlacement="below"
             />
           </div>
 
@@ -444,6 +445,7 @@ export default function CreateNoteModal({
               lockedTagIds={lockedTagIds}
               disabled={false}
               idPrefix="create-note-tag"
+              selectedPlacement="below"
             />
           </div>
 

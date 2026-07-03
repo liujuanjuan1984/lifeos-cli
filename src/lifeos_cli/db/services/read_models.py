@@ -33,6 +33,10 @@ class TagSummaryView:
 
     id: UUID
     name: str
+    entity_type: str | None = None
+    category: str | None = None
+    description: str | None = None
+    color: str | None = None
 
 
 @dataclass(frozen=True)
@@ -257,7 +261,14 @@ def build_person_summary(person: Person) -> PersonSummaryView:
 
 def build_tag_summary(tag: Tag) -> TagSummaryView:
     """Build one tag summary view from a tag model."""
-    return TagSummaryView(id=tag.id, name=tag.name)
+    return TagSummaryView(
+        id=tag.id,
+        name=tag.name,
+        entity_type=tag.entity_type,
+        category=tag.category,
+        description=tag.description,
+        color=tag.color,
+    )
 
 
 def build_task_summary(task: Task) -> TaskSummaryView:

@@ -133,6 +133,7 @@ export function NoteInputForm({
               placeholder={t("person.selectPersonPlaceholder")}
               multiple={true}
               idPrefix="new-person"
+              selectedPlacement="below"
             />
           </div>
 
@@ -145,6 +146,7 @@ export function NoteInputForm({
               onCreateTag={handleCreateNoteTag}
               disabled={false}
               idPrefix="new-tag"
+              selectedPlacement="below"
             />
           </div>
 

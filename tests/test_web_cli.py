@@ -18,6 +18,7 @@ from lifeos_cli.db.services.read_models import (
     EventView,
     NoteView,
     PersonSummaryView,
+    PersonView,
     TagSummaryView,
     TagView,
     TaskSummaryView,
@@ -535,9 +536,49 @@ def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "is_soft_deleted" not in person_payload
 
 
+def test_web_person_payload_preserves_tag_categories() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.persons import _person_payload
+
+    payload = _person_payload(
+        PersonView(
+            id=UUID("33333333-3333-3333-3333-333333333333"),
+            name="Ada",
+            description=None,
+            nicknames=(),
+            birth_date=None,
+            location=None,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            tags=(
+                TagSummaryView(
+                    id=UUID("44444444-4444-4444-4444-444444444444"),
+                    name="Shanghai",
+                    entity_type="person",
+                    category="location",
+                ),
+            ),
+        )
+    )
+
+    assert payload["tags"] == [
+        {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "name": "Shanghai",
+            "entity_type": "person",
+            "category": "location",
+            "description": None,
+            "color": None,
+            "created_at": "",
+            "updated_at": "",
+        }
+    ]
+
+
 def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     pytest.importorskip("fastapi")
-    from lifeos_web.routers.persons import _activity_payload
+    from lifeos_web.routers.persons import _activity_payload, _timelog_total_minutes
 
     timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
     payload = _activity_payload(
@@ -557,6 +598,7 @@ def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
     assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
     assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
+    assert _timelog_total_minutes([payload]) == 30
 
 
 def test_web_habit_action_payload_uses_slim_habit_summary(

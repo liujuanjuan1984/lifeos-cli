@@ -1392,7 +1392,8 @@
       "nextPage": "下一页",
       "pageIndicator": "第 {{page}} / {{total}} 页",
       "noActivities": "暂无活动记录",
-      "noActivitiesDescription": "每一次互动都值得被记录。将联系人关联到你的活动中，共同的故事线将在这里展开。"
+      "noActivitiesDescription": "每一次互动都值得被记录。将联系人关联到你的活动中，共同的故事线将在这里展开。",
+      "timelogStats": "{{count}} 条记录，总计 {{duration}}"
     },
     "activityTypes": {
       "vision": "愿景管理",

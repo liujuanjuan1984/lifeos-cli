@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import ModalBase from "@/layouts/ModalBase";
 import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "./EmptyState";
@@ -9,6 +8,7 @@ import { Icon } from "./icons";
 import {
   formatDate,
   formatDateTime,
+  formatDuration,
   formatDurationFromTimes,
   formatTime,
   resolvePreferredTimezone,
@@ -35,6 +35,10 @@ interface PersonTimelineModalProps {
   onPageChange: (page: number) => void;
   activityType: "all" | PersonActivityType;
   onActivityTypeChange: (value: "all" | PersonActivityType) => void;
+  timelogStats?: {
+    count: number;
+    totalMinutes: number;
+  } | null;
 }
 
 /**
@@ -58,6 +62,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
   onPageChange,
   activityType,
   onActivityTypeChange,
+  timelogStats,
 }) => {
   const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -69,36 +74,6 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
   });
   const activeTimezone = resolvePreferredTimezone(timezonePreference.value);
   const { areaMap } = useAreas();
-
-  // Virtualize the timeline with dynamic row-height measurement.
-  const virtualizer = useVirtualizer({
-    count: activities.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: (index: number) => {
-      // Estimate height from content shape.
-      const activity = activities[index];
-      if (!activity) return 60;
-
-      // Base height: time, module, title, and padding.
-      let baseHeight = 100;
-
-      // Add room for descriptions by estimating wrapped line count.
-      if (activity.description) {
-        const descriptionLength = activity.description.length;
-        const containerWidth = 1000;
-        const charWidth = 14;
-        const charsPerLine = Math.floor(containerWidth / charWidth);
-        const estimatedLines = Math.ceil(descriptionLength / charsPerLine);
-        baseHeight += estimatedLines * 22 + 20;
-      }
-
-      return Math.max(baseHeight, 100);
-    },
-    overscan: 5,
-    measureElement: (element: Element | null) => {
-      return element?.getBoundingClientRect().height ?? 60;
-    },
-  });
 
   useEffect(() => {
     if (parentRef.current) {
@@ -140,15 +115,15 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
   const filterOptions = useMemo(
     () => [
       { value: "all" as const, label: t("common.all") },
+      {
+        value: "timelog" as const,
+        label: activityTypeMeta.timelog.label,
+      },
       { value: "note" as const, label: activityTypeMeta.note.label },
       { value: "task" as const, label: activityTypeMeta.task.label },
       {
         value: "planned_event" as const,
         label: activityTypeMeta.planned_event.label,
-      },
-      {
-        value: "timelog" as const,
-        label: activityTypeMeta.timelog.label,
       },
       { value: "vision" as const, label: activityTypeMeta.vision.label },
     ],
@@ -222,7 +197,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
       (activity.area_id ? areaMap.get(activity.area_id)?.name : null) ??
       t("taskTimelogs.unknownArea");
     return (
-      <div className="grid grid-cols-[minmax(100px,0.8fr)_minmax(70px,0.6fr)_minmax(120px,0.8fr)_minmax(180px,2fr)] gap-3 text-sm leading-relaxed">
+      <div className="grid grid-cols-1 gap-2 text-sm leading-relaxed sm:grid-cols-[minmax(100px,0.8fr)_minmax(70px,0.6fr)_minmax(120px,0.8fr)_minmax(180px,2fr)] sm:gap-3">
         <div className="text-base-content/80">{timeRange}</div>
         <div className="text-base-content/80">{duration}</div>
         <div className="min-w-0">
@@ -255,6 +230,7 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
       })}
     </>
   );
+  const shouldShowTimelogStats = activityType === "timelog" && timelogStats;
 
   return (
     <ModalBase
@@ -293,109 +269,84 @@ const PersonTimelineModal: React.FC<PersonTimelineModalProps> = ({
               );
             })}
           </div>
+          {shouldShowTimelogStats ? (
+            <div className="px-4 pb-3 text-sm text-base-content/70">
+              {t("persons.timeline.timelogStats", {
+                count: timelogStats.count,
+                duration: formatDuration(timelogStats.totalMinutes),
+              })}
+            </div>
+          ) : null}
           {activities.length > 0 ? (
             <>
               <div
                 ref={parentRef}
                 className="min-h-[18rem] max-h-[calc(100dvh-12rem)] overflow-auto md:max-h-[42rem]"
               >
-                <div
-                  style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    width: "100%",
-                    position: "relative",
-                  }}
-                >
-                  {virtualizer
-                    .getVirtualItems()
-                    .map((virtualItem: VirtualItem) => {
-                      const activity = activities[virtualItem.index];
-                      if (!activity) return null;
-                      const typeMeta = getActivityTypeMeta(activity.type);
-                      const isTimelog = activity.type === "timelog";
-                      const shouldRenderDescription =
-                        Boolean(activity.description) &&
-                        !isTimelog &&
-                        !(
-                          activity.type === "note" &&
-                          activity.description?.trim() === activity.title.trim()
-                        );
-                      return (
-                        <div
-                          key={`${activity.type}-${activity.id}`}
-                          ref={virtualizer.measureElement}
-                          data-index={virtualItem.index}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            transform: `translateY(${virtualItem.start}px)`,
-                          }}
-                          className="py-3 px-4 border-b border-base-200"
-                        >
-                          {/* First line: Time, Module, Title */}
-                          <div className="flex items-start space-x-4">
-                            {/* Time */}
-                            <div className="flex-shrink-0 text-sm font-mono min-w-[110px] text-base-content/80">
-                              {isTimelog
-                                ? formatDate(
-                                    activity.start_time ?? activity.date,
-                                    activeTimezone,
-                                  )
-                                : formatDateTime(activity.date, activeTimezone)}
-                            </div>
+                {activities.map((activity) => {
+                  const typeMeta = getActivityTypeMeta(activity.type);
+                  const isTimelog = activity.type === "timelog";
+                  const shouldRenderDescription =
+                    Boolean(activity.description) &&
+                    !isTimelog &&
+                    !(
+                      activity.type === "note" &&
+                      activity.description?.trim() === activity.title.trim()
+                    );
+                  return (
+                    <div
+                      key={`${activity.type}-${activity.id}`}
+                      className="border-b border-base-200 px-4 py-3"
+                    >
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[110px_minmax(140px,auto)_minmax(0,1fr)] md:gap-4">
+                        <div className="flex-shrink-0 font-mono text-sm text-base-content/80">
+                          {isTimelog
+                            ? formatDate(
+                                activity.start_time ?? activity.date,
+                                activeTimezone,
+                              )
+                            : formatDateTime(activity.date, activeTimezone)}
+                        </div>
 
-                            {/* Module */}
-                            <div className="flex-shrink-0 flex items-center space-x-2">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-1 text-sm rounded ${typeMeta.badgeClass}`}
-                              >
-                                <Icon
-                                  name={typeMeta.icon}
-                                  size={14}
-                                  className="text-current"
-                                  aria-hidden
-                                />
-                                {typeMeta.label}
-                              </span>
-                              {activity.status && !isTimelog && (
-                                <span
-                                  className={`inline-flex items-center px-2 py-1 text-sm rounded ${getStatusColor(activity.status)}`}
-                                >
-                                  {getStatusDisplay(activity.status)}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Title */}
-                            <div className="flex-1 min-w-0">
-                              {isTimelog ? (
-                                renderTimelogDetails(activity)
-                              ) : (
-                                <h4 className="text-base font-medium break-words leading-relaxed">
-                                  {activity.title}
-                                </h4>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Description line (if exists) - aligned to record start */}
-                          {shouldRenderDescription && (
-                            <div className="flex mt-2">
-                              <div className="flex-shrink-0 min-w-[110px]"></div>
-                              <div className="flex-shrink-0 min-w-[140px]"></div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm text-base-content/90 break-words leading-relaxed">
-                                  {activity.description}
-                                </p>
-                              </div>
-                            </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm ${typeMeta.badgeClass}`}
+                          >
+                            <Icon
+                              name={typeMeta.icon}
+                              size={14}
+                              className="text-current"
+                              aria-hidden
+                            />
+                            {typeMeta.label}
+                          </span>
+                          {activity.status && !isTimelog && (
+                            <span
+                              className={`inline-flex items-center rounded px-2 py-1 text-sm ${getStatusColor(activity.status)}`}
+                            >
+                              {getStatusDisplay(activity.status)}
+                            </span>
                           )}
                         </div>
-                      );
-                    })}
-                </div>
+
+                        <div className="min-w-0">
+                          {isTimelog ? (
+                            renderTimelogDetails(activity)
+                          ) : (
+                            <h4 className="break-words text-sm font-medium leading-relaxed">
+                              {activity.title}
+                            </h4>
+                          )}
+                          {shouldRenderDescription && (
+                            <p className="mt-2 break-words text-sm leading-relaxed text-base-content/90">
+                              {activity.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="flex items-center justify-between px-4 pt-3">
                 <ActionButton

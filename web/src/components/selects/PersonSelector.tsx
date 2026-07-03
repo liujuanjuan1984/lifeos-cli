@@ -26,6 +26,7 @@ interface PersonSelectorProps {
   showLabel?: boolean;
   showNoPersonOption?: boolean;
   selectedListMaxHeight?: number;
+  selectedPlacement?: "inline" | "below";
 }
 
 const filterValidUUIDs = (ids: UUID[]): UUID[] =>
@@ -54,6 +55,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
   showLabel = true,
   showNoPersonOption = true,
   selectedListMaxHeight,
+  selectedPlacement = "inline",
 }) => {
   const { t } = useTranslation();
   const defaultPlaceholder = placeholder ?? t("common.please_select");
@@ -301,6 +303,7 @@ const PersonSelector: React.FC<PersonSelectorProps> = ({
       showClearOption={showNoPersonOption}
       clearOptionLabel={t("common.none")}
       selectedContainerMaxHeight={selectedListMaxHeight}
+      selectedPlacement={selectedPlacement}
     />
   );
 };

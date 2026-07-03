@@ -61,6 +61,7 @@ const PersonsPage: React.FC = () => {
     activities,
     total,
     totalPages,
+    timelogStats,
     isLoading: isLoadingActivities,
     isFetching: isFetchingActivities,
   } = usePersonActivitiesPage(
@@ -268,6 +269,7 @@ const PersonsPage: React.FC = () => {
         onPageChange={setActivitiesPage}
         activityType={activityTypeFilter}
         onActivityTypeChange={setActivityTypeFilter}
+        timelogStats={timelogStats}
       />
     </PageLayout>
   );

@@ -67,6 +67,7 @@ setupTranslationMock({
       "persons.activityTypes.task": "任务",
       "persons.activityTypes.planned_event": "日程安排",
       "persons.activityTypes.vision": "愿景管理",
+      "persons.timeline.timelogStats": `${(options as { count?: number })?.count} 条记录，总计 ${(options as { duration?: string })?.duration}`,
     };
     return translations[key] ?? key;
   },
@@ -110,9 +111,11 @@ describe("PersonTimelineModal", () => {
         onPageChange={vi.fn()}
         activityType="timelog"
         onActivityTypeChange={vi.fn()}
+        timelogStats={{ count: 2, totalMinutes: 135 }}
       />,
     );
 
+    expect(screen.getByText("2 条记录，总计 2h15m")).toBeInTheDocument();
     expect(screen.getAllByText("时间日志").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-07-02")).toBeInTheDocument();
     expect(screen.getByText("17:00-17:30")).toBeInTheDocument();
@@ -120,6 +123,32 @@ describe("PersonTimelineModal", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Deep work")).toBeInTheDocument();
     expect(screen.queryByText("manual")).not.toBeInTheDocument();
+  });
+
+  it("orders timeline tabs with timelogs immediately after all", () => {
+    renderWithProviders(
+      <PersonTimelineModal
+        person={person}
+        isOpen
+        onClose={vi.fn()}
+        activities={[activity]}
+        total={1}
+        totalPages={1}
+        isLoadingActivities={false}
+        isFetchingActivities={false}
+        page={1}
+        onPageChange={vi.fn()}
+        activityType="all"
+        onActivityTypeChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByRole("button")
+        .slice(0, 6)
+        .map((button) => button.textContent),
+    ).toEqual(["全部", "时间日志", "快速笔记", "任务", "日程安排", "愿景管理"]);
   });
 
   it("does not render duplicate note content when title and description match", () => {
