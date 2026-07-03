@@ -8,11 +8,9 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import to_storage_timezone
-from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.services import timelogs as timelog_services
 from lifeos_cli.db.services.timelog_support import (
     TimelogBatchUpdateInput,
@@ -47,58 +45,6 @@ def _timelog_payload(timelog: object) -> dict[str, object]:
             "color": None,
         }
     return payload
-
-
-async def _batch_add_timelog_people(
-    session: AsyncSession,
-    *,
-    timelog_ids: list[UUID],
-    person_ids: list[UUID],
-) -> dict[str, object]:
-    unique_timelog_ids = list(dict.fromkeys(timelog_ids))
-    rows = await session.execute(
-        select(
-            person_associations.c.entity_id,
-            person_associations.c.person_id,
-        ).where(
-            person_associations.c.entity_type == "timelog",
-            person_associations.c.entity_id.in_(unique_timelog_ids),
-        )
-    )
-    people_by_timelog: dict[UUID, list[UUID]] = {
-        timelog_id: [] for timelog_id in unique_timelog_ids
-    }
-    for timelog_id, person_id in rows.all():
-        people_by_timelog.setdefault(timelog_id, []).append(person_id)
-
-    updated_count = 0
-    unchanged_ids: list[UUID] = []
-    failed_ids: list[UUID] = []
-    errors: list[str] = []
-    for timelog_id in unique_timelog_ids:
-        merged_person_ids = list(
-            dict.fromkeys([*people_by_timelog.get(timelog_id, []), *person_ids])
-        )
-        if merged_person_ids == people_by_timelog.get(timelog_id, []):
-            unchanged_ids.append(timelog_id)
-            continue
-        try:
-            await timelog_services.update_timelog(
-                session,
-                timelog_id=timelog_id,
-                changes=TimelogUpdateInput(person_ids=merged_person_ids),
-            )
-            updated_count += 1
-        except (LookupError, ValueError) as exc:
-            failed_ids.append(timelog_id)
-            errors.append(str(exc))
-
-    return {
-        "updated_count": updated_count,
-        "unchanged_ids": [str(timelog_id) for timelog_id in unchanged_ids],
-        "failed_ids": [str(timelog_id) for timelog_id in failed_ids],
-        "errors": errors,
-    }
 
 
 @router.get("/", response_model=ListResponse)
@@ -264,11 +210,17 @@ async def batch_update_timelogs(
         if payload.people is None:
             raise HTTPException(status_code=400, detail="Person update payload is required")
         if payload.people.mode == "add":
-            return await _batch_add_timelog_people(
+            result = await timelog_services.batch_add_timelog_people(
                 session,
                 timelog_ids=payload.timelog_ids,
                 person_ids=payload.people.person_ids,
             )
+            return {
+                "updated_count": result.updated_count,
+                "unchanged_ids": [str(timelog_id) for timelog_id in result.unchanged_ids],
+                "failed_ids": [str(timelog_id) for timelog_id in result.failed_ids],
+                "errors": list(result.errors),
+            }
         changes = TimelogUpdateInput(
             person_ids=payload.people.person_ids,
             clear_people=payload.people.mode == "clear",

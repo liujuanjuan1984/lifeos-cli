@@ -1198,25 +1198,35 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
     timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
     missing_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
     task_id = UUID("22222222-2222-2222-2222-222222222222")
-    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+    timelog = SimpleNamespace(
+        id=timelog_id,
+        title="Deep work",
+        task_id=None,
+        start_time=None,
+        end_time=None,
+        area_id=None,
+    )
     session = SimpleNamespace()
-    update_calls: list[dict[str, object]] = []
 
-    async def fake_get_timelog(
+    async def fake_load_batch_timelog_models(
         _: object,
         *,
-        timelog_id: UUID,
-    ) -> object | None:
-        if timelog_id == missing_id:
-            return None
-        return timelog
+        timelog_ids: list[UUID],
+    ) -> dict[UUID, object]:
+        assert timelog_ids == [timelog_id, missing_id]
+        return {timelog_id: timelog}
 
-    async def fake_update_timelog(_: object, **kwargs: object) -> object:
-        update_calls.append(kwargs)
-        return timelog
-
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
-    monkeypatch.setattr(timelogs, "update_timelog", fake_update_timelog)
+    ensure_task = AsyncMock()
+    replace_people = AsyncMock()
+    flush_recompute = AsyncMock()
+    monkeypatch.setattr(timelogs, "_load_batch_timelog_models", fake_load_batch_timelog_models)
+    monkeypatch.setattr(timelogs, "ensure_timelog_task_exists", ensure_task)
+    monkeypatch.setattr(timelogs, "_replace_batch_timelog_people", replace_people)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_batch_timelog_dependents",
+        flush_recompute,
+    )
 
     result = asyncio.run(
         timelogs.batch_update_timelogs(
@@ -1235,22 +1245,16 @@ def test_batch_update_timelogs_applies_title_replace_and_relation_updates(
 
     assert result.updated_count == 1
     assert result.failed_ids == (missing_id,)
-    assert update_calls == [
-        {
-            "timelog_id": timelog_id,
-            "changes": timelogs.TimelogUpdateInput(
-                title="Focused work",
-                area_id=None,
-                clear_area=False,
-                task_id=task_id,
-                clear_task=False,
-                tag_ids=None,
-                clear_tags=False,
-                person_ids=None,
-                clear_people=True,
-            ),
-        }
-    ]
+    assert timelog.title == "Focused work"
+    assert timelog.task_id == task_id
+    ensure_task.assert_awaited_once_with(cast(Any, session), task_id)
+    replace_people.assert_awaited_once_with(
+        cast(Any, session),
+        timelog_ids=[timelog_id],
+        desired_person_ids=[],
+        validated_person_ids=[],
+    )
+    flush_recompute.assert_awaited_once()
 
 
 def test_batch_update_timelogs_reports_unchanged_title_replace(
@@ -1258,18 +1262,30 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
 ) -> None:
     timelog_id = UUID("cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd")
     session = SimpleNamespace()
-    timelog = SimpleNamespace(id=timelog_id, title="Deep work")
+    timelog = SimpleNamespace(
+        id=timelog_id,
+        title="Deep work",
+        task_id=None,
+        start_time=None,
+        end_time=None,
+        area_id=None,
+    )
 
-    async def fake_get_timelog(
+    async def fake_load_batch_timelog_models(
         _: object,
         *,
-        timelog_id: UUID,
-    ) -> object:
-        return timelog
+        timelog_ids: list[UUID],
+    ) -> dict[UUID, object]:
+        assert timelog_ids == [timelog_id]
+        return {timelog_id: timelog}
 
-    update_timelog = AsyncMock()
-    monkeypatch.setattr(timelogs, "get_timelog", fake_get_timelog)
-    monkeypatch.setattr(timelogs, "update_timelog", update_timelog)
+    flush_recompute = AsyncMock()
+    monkeypatch.setattr(timelogs, "_load_batch_timelog_models", fake_load_batch_timelog_models)
+    monkeypatch.setattr(
+        timelogs,
+        "_flush_and_recompute_batch_timelog_dependents",
+        flush_recompute,
+    )
 
     result = asyncio.run(
         timelogs.batch_update_timelogs(
@@ -1284,4 +1300,86 @@ def test_batch_update_timelogs_reports_unchanged_title_replace(
 
     assert result.updated_count == 0
     assert result.unchanged_ids == (timelog_id,)
-    update_timelog.assert_not_awaited()
+    flush_recompute.assert_not_awaited()
+
+
+def test_batch_timelog_dependent_recompute_skips_metadata_only_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    area_id = UUID("33333333-3333-3333-3333-333333333333")
+    timestamp = utc_datetime(2026, 4, 9, 12, 0)
+    session = SimpleNamespace(flush=AsyncMock())
+    recompute_task = AsyncMock()
+    recompute_daily = AsyncMock()
+    recompute_aggregated = AsyncMock()
+    monkeypatch.setattr(timelogs, "recompute_totals_upwards", recompute_task)
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_daily_timelog_stats_groupby_area_for_dates",
+        recompute_daily,
+    )
+    monkeypatch.setattr(
+        timelogs,
+        "recompute_aggregated_timelog_stats_groupby_area_for_dates",
+        recompute_aggregated,
+    )
+
+    snapshot = timelogs._TimelogDependencySnapshot(
+        task_id=task_id,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=area_id,
+    )
+
+    asyncio.run(
+        timelogs._flush_and_recompute_batch_timelog_dependents(
+            cast(Any, session),
+            changes=[
+                timelogs._TimelogDependencyChange(
+                    previous=snapshot,
+                    current=snapshot,
+                )
+            ],
+        )
+    )
+
+    assert session.flush.await_count == 2
+    recompute_task.assert_not_awaited()
+    recompute_daily.assert_not_awaited()
+    recompute_aggregated.assert_not_awaited()
+
+
+def test_batch_timelog_dependent_recompute_deduplicates_affected_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = UUID("22222222-2222-2222-2222-222222222222")
+    timestamp = utc_datetime(2026, 4, 9, 12, 0)
+    session = SimpleNamespace(flush=AsyncMock())
+    recompute_task = AsyncMock()
+    monkeypatch.setattr(timelogs, "recompute_totals_upwards", recompute_task)
+
+    previous = timelogs._TimelogDependencySnapshot(
+        task_id=None,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=None,
+    )
+    current = timelogs._TimelogDependencySnapshot(
+        task_id=task_id,
+        start_time=timestamp,
+        end_time=timestamp + timedelta(hours=1),
+        area_id=None,
+    )
+
+    asyncio.run(
+        timelogs._flush_and_recompute_batch_timelog_dependents(
+            cast(Any, session),
+            changes=[
+                timelogs._TimelogDependencyChange(previous=previous, current=current),
+                timelogs._TimelogDependencyChange(previous=previous, current=current),
+            ],
+        )
+    )
+
+    recompute_task.assert_awaited_once_with(cast(Any, session), task_id)
