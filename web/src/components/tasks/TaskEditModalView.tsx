@@ -15,6 +15,7 @@ import type { TaskCreate, TaskWithSubtasks } from "@/services/api";
 import type { UUID } from "@/types/primitive";
 import { PRIORITY } from "@/utils/constants";
 import type { UseTaskEditorHandlers } from "@/hooks/tasks/useTaskEditor";
+import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { Icon } from "@/components/icons";
 
 interface TaskEditModalViewProps {
@@ -57,6 +58,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
   visionLocked = false,
 }) => {
   const { t } = useTranslation();
+  const { adapter } = usePlanningCycle();
   const uniqueId = useId();
   const taskContentId = `task-content-${uniqueId}`;
   const planningCycleYearId = `planning-cycle-year-${uniqueId}`;
@@ -90,15 +92,17 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
       handlers.handlePlanningStartDateChange(undefined);
       return;
     }
-    const selectedYear = yearStartDate.split("-")[0];
-    if (!selectedYear) {
+    const selectedYearStart = new Date(`${yearStartDate}T00:00:00`);
+    const currentMonthIndex = formData.planning_cycle_start_date
+      ? adapter.getMonthInfo(new Date(`${formData.planning_cycle_start_date}T00:00:00`))
+          .monthIndex
+      : adapter.getMonthInfo(new Date()).monthIndex;
+    if (!currentMonthIndex || Number.isNaN(selectedYearStart.getTime())) {
       handlers.handlePlanningStartDateChange(yearStartDate);
       return;
     }
-    const currentMonth =
-      formData.planning_cycle_start_date?.split("-")[1] ??
-      String(new Date().getMonth() + 1).padStart(2, "0");
-    handlers.handlePlanningStartDateChange(`${selectedYear}-${currentMonth}-01`);
+    const monthStart = adapter.getMonthStart(selectedYearStart, currentMonthIndex);
+    handlers.handlePlanningStartDateChange(monthStart.toLocaleDateString("en-CA"));
   };
 
   return (
