@@ -1366,6 +1366,26 @@ def test_web_timelog_rejects_task_id_with_without_task() -> None:
     assert "Use either task_id or without_task" in str(getattr(exc_info.value, "detail", ""))
 
 
+def test_web_timelog_rejects_with_task_with_other_task_filters() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                task_id=UUID("11111111-1111-1111-1111-111111111111"),
+                with_task=True,
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use only one of task_id, without_task, or with_task" in str(
+        getattr(exc_info.value, "detail", "")
+    )
+
+
 def test_web_timelog_rejects_partial_date_filter() -> None:
     pytest.importorskip("fastapi")
 

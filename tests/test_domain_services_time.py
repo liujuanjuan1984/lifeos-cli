@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -1103,6 +1104,15 @@ def test_resolve_timelog_filters_deduplicates_discrete_dates() -> None:
     )
 
     assert filters.date_values == (date(2026, 4, 10), date(2026, 4, 12))
+
+
+def test_timelog_with_task_filter_requires_linked_task() -> None:
+    statement = timelogs._apply_timelog_area_task_filters(
+        select(Timelog),
+        filters=timelogs.TimelogQueryFilters(with_task=True),
+    )
+
+    assert "timelogs.task_id IS NOT NULL" in str(statement)
 
 
 def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:

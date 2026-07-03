@@ -48,11 +48,12 @@ interface TaskSelectorProps {
 
 type TaskOptionMeta =
   | { kind: "task"; task: TaskWithSubtasks }
-  | { kind: "special"; type: "none" | "all" };
+  | { kind: "special"; type: "none" | "has" | "all" };
 
 type TaskEntityOption = EntityOption & { data: TaskOptionMeta };
 
 const SPECIAL_NONE_ID = SelectorSpecialValue.None as unknown as UUID;
+const SPECIAL_HAS_ID = SelectorSpecialValue.Has as unknown as UUID;
 const SPECIAL_ALL_ID = SelectorSpecialValue.All as unknown as UUID;
 const TASK_SELECTOR_PAGE_SIZE = 50;
 const TASK_SELECTOR_SEARCH_DEBOUNCE_MS = 250;
@@ -214,6 +215,12 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
 
       if (normalized === SelectorSpecialValue.None) {
         onChange(null);
+        onTaskSelect?.(null, undefined);
+        return;
+      }
+
+      if (normalized === SelectorSpecialValue.Has) {
+        onChange(SPECIAL_HAS_ID);
         onTaskSelect?.(null, undefined);
         return;
       }
@@ -588,6 +595,14 @@ const useTaskSelectorOptions = (
         {
           kind: "special",
           type: "all",
+        },
+      );
+      ensureOption(
+        SelectorSpecialValue.Has,
+        translator("taskSelector.specialOptions.hasTask"),
+        {
+          kind: "special",
+          type: "has",
         },
       );
     }

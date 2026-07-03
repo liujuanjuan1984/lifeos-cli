@@ -117,6 +117,7 @@ async def list_timelogs(
     without_area: bool = False,
     task_id: UUID | None = None,
     without_task: bool = False,
+    with_task: bool = False,
 ) -> ListResponse:
     """List timelogs for the local Web UI."""
     if (start_date is None) != (end_date is None):
@@ -136,6 +137,11 @@ async def list_timelogs(
             status_code=400,
             detail="Use either task_id or without_task, not both.",
         )
+    if with_task and (without_task or task_id is not None):
+        raise HTTPException(
+            status_code=400,
+            detail="Use only one of task_id, without_task, or with_task.",
+        )
 
     normalized_window_start = to_storage_timezone(window_start) if window_start else None
     normalized_window_end = to_storage_timezone(window_end) if window_end else None
@@ -149,6 +155,7 @@ async def list_timelogs(
         without_area=without_area,
         task_id=task_id,
         without_task=without_task,
+        with_task=with_task,
         window_start=normalized_window_start,
         window_end=normalized_window_end,
     )
@@ -184,6 +191,7 @@ async def list_timelogs(
             "without_area": without_area,
             "task_id": str(task_id) if task_id else None,
             "without_task": without_task,
+            "with_task": with_task,
             "limit": size,
             "returned_count": len(items),
             "total_count": total_count,

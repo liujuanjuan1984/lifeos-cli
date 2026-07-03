@@ -341,6 +341,8 @@ def _apply_timelog_area_task_filters(stmt: Any, *, filters: TimelogQueryFilters)
         )
     if filters.without_task:
         stmt = stmt.where(Timelog.task_id.is_(None))
+    elif filters.with_task:
+        stmt = stmt.where(Timelog.task_id.is_not(None))
     elif filters.task_id is not None:
         stmt = stmt.where(Timelog.task_id == filters.task_id)
     return stmt

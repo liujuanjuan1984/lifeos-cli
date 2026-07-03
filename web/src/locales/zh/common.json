@@ -1842,7 +1842,8 @@
     "noResults": "没有找到匹配的任务",
     "loadMore": "加载更多任务",
     "specialOptions": {
-      "allTasks": "全部"
+      "allTasks": "全部",
+      "hasTask": "有任务"
     }
   },
   "errorBoundary": {

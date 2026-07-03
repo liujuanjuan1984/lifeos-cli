@@ -35,15 +35,18 @@ vi.mock("@/layouts/ModalBase", () => ({
     isOpen,
     header,
     children,
+    footer,
   }: {
     isOpen: boolean;
     header?: React.ReactNode;
     children?: React.ReactNode;
+    footer?: React.ReactNode;
   }) =>
     isOpen ? (
       <div>
         <h2>{header}</h2>
         {children}
+        {footer ? <div data-testid="modal-footer">{footer}</div> : null}
       </div>
     ) : null,
 }));
@@ -135,6 +138,9 @@ describe("TaskTimelogsModal", () => {
     expect(screen.getByText("Deep work")).toBeInTheDocument();
     expect(screen.queryByTestId("icon-timer")).not.toBeInTheDocument();
     expect(screen.getByTestId("task-timelogs-scroll-area")).not.toContainElement(
+      screen.getByRole("button", { name: "下一页" }),
+    );
+    expect(screen.getByTestId("modal-footer")).toContainElement(
       screen.getByRole("button", { name: "下一页" }),
     );
 

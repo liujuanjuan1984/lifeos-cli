@@ -112,6 +112,7 @@ describe("TaskSelector", () => {
     expect(options.map((option) => option.id)).toEqual([
       SelectorSpecialValue.None,
       SelectorSpecialValue.All,
+      SelectorSpecialValue.Has,
       "task-1",
       "task-2",
     ]);
@@ -153,6 +154,10 @@ describe("TaskSelector", () => {
 
     onChange(SelectorSpecialValue.All);
     expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.All);
+    expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
+
+    onChange(SelectorSpecialValue.Has);
+    expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.Has);
     expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
   });
 

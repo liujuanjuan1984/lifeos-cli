@@ -361,6 +361,7 @@ const TimeLogPage = () => {
                   area_id: advancedSearchParams.area_id,
                   description_keyword: advancedSearchParams.description_keyword,
                   task_id: advancedSearchParams.task_id,
+                  with_task: advancedSearchParams.with_task,
                 }}
                 onParamsChange={(params) => {
                   setAdvancedSearchParams({
@@ -377,6 +378,7 @@ const TimeLogPage = () => {
                           : null,
                     description_keyword: params.description_keyword,
                     task_id: params.task_id,
+                    with_task: params.with_task,
                   });
                 }}
                 onSearch={handleAdvancedSearch}
@@ -580,6 +582,10 @@ const TimeLogPage = () => {
                                 )?.content ||
                                 t("timeLog.searchResults.unknownTask"),
                             })}`)}
+                      {advancedSearchParams.with_task &&
+                        ` | ${t("timeLog.searchResults.task", {
+                          task: t("taskSelector.specialOptions.hasTask"),
+                        })}`}
                     </div>
                     <div className="text-base text-primary">
                       {t("timeLog.searchResults.foundRecords", {
