@@ -7,7 +7,7 @@ from datetime import date, datetime
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.calendar_adapter import (
@@ -196,7 +196,7 @@ def _apply_task_filters(
     """Apply the shared task list/count filter contract."""
     stmt = stmt.where(
         Task.deleted_at.is_(None),
-        or_(Task.vision_id.is_(None), Task.vision.has(Vision.deleted_at.is_(None))),
+        Task.vision.has(Vision.deleted_at.is_(None)),
     )
     if vision_id is not None:
         stmt = stmt.where(Task.vision_id == vision_id)

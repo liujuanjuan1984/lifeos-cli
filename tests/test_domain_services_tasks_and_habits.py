@@ -979,6 +979,7 @@ def test_task_list_filters_require_active_parent_visions() -> None:
     compiled = str(stmt)
     assert "tasks.deleted_at IS NULL" in compiled
     assert "visions.deleted_at IS NULL" in compiled
+    assert "tasks.vision_id IS NULL" not in compiled
 
 
 def test_update_habit_action_by_date_uses_existing_update_rules(
