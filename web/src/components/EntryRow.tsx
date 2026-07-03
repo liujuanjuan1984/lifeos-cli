@@ -95,59 +95,8 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
     }
   };
 
-  const isInActionArea = (event: React.MouseEvent<HTMLTableRowElement>) => {
-    const target = event.target as HTMLElement | null;
-    return Boolean(target?.closest("[data-tooltip-exempt]"));
-  };
-
   return (
-    <tr
-      className={rowClassName}
-      tabIndex={isPlaceholder ? -1 : 0}
-      onMouseEnter={(event) => {
-        if (isPlaceholder) {
-          return;
-        }
-        if (isInActionArea(event)) {
-          return;
-        }
-        onHoverTooltip?.(entry, {
-          x: event.clientX,
-          y: event.clientY,
-        });
-      }}
-      onMouseMove={(event) => {
-        if (isPlaceholder) {
-          return;
-        }
-        if (isInActionArea(event)) {
-          onHoverLeave?.();
-          return;
-        }
-        onHoverMove?.(entry, {
-          x: event.clientX,
-          y: event.clientY,
-        });
-      }}
-      onMouseLeave={() => {
-        if (isPlaceholder) {
-          return;
-        }
-        onHoverLeave?.();
-      }}
-      onFocus={(event) => {
-        if (isPlaceholder) {
-          return;
-        }
-        onFocusTooltip?.(entry, event.currentTarget);
-      }}
-      onBlur={() => {
-        if (isPlaceholder) {
-          return;
-        }
-        onBlurTooltip?.();
-      }}
-    >
+    <tr className={rowClassName}>
       {isSelectMode && (
         <td className="px-4 py-3 text-center">
           {!entry.isPlaceholder ? (
@@ -193,7 +142,46 @@ const EntryRowComponent: React.FC<EntryRowProps> = ({
         />
       </td>
 
-      <td className="px-4 py-3">
+      <td
+        className="px-4 py-3"
+        tabIndex={isPlaceholder ? -1 : 0}
+        onMouseEnter={(event) => {
+          if (isPlaceholder) {
+            return;
+          }
+          onHoverTooltip?.(entry, {
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
+        onMouseMove={(event) => {
+          if (isPlaceholder) {
+            return;
+          }
+          onHoverMove?.(entry, {
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
+        onMouseLeave={() => {
+          if (isPlaceholder) {
+            return;
+          }
+          onHoverLeave?.();
+        }}
+        onFocus={(event) => {
+          if (isPlaceholder) {
+            return;
+          }
+          onFocusTooltip?.(entry, event.currentTarget);
+        }}
+        onBlur={() => {
+          if (isPlaceholder) {
+            return;
+          }
+          onBlurTooltip?.();
+        }}
+      >
         <div className="text-base font-medium text-base-content">
           {entry.title}
         </div>

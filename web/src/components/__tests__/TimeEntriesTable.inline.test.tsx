@@ -1,5 +1,5 @@
 import React from "react";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, beforeEach, it, expect, vi } from "vitest";
 import type InlineQuickTimeEntryComponent from "@/components/InlineQuickTimeEntry";
 import TimeEntriesTable from "@/components/TimeEntriesTable";
@@ -178,5 +178,30 @@ describe("TimeEntriesTable inline entry sessions", () => {
     expect(screen.getByText("2026-04-14")).toBeInTheDocument();
     expect(screen.getByText(/23:40-01:30/)).toBeInTheDocument();
     expect(screen.getByText("Cross-midnight work session")).toBeInTheDocument();
+  });
+
+  it("only opens the timelog tooltip from the description cell", () => {
+    renderTable({
+      entries: [buildActualEntry()],
+      disableQuickEntry: true,
+    });
+
+    const durationCell = screen.getByText("1h50m").closest("td");
+    expect(durationCell).not.toBeNull();
+    fireEvent.mouseEnter(durationCell as HTMLElement);
+    expect(
+      screen.queryByText(/timeLog\.tooltip\.timeRange/),
+    ).not.toBeInTheDocument();
+
+    const descriptionCell = screen
+      .getByText("Cross-midnight work session")
+      .closest("td");
+    expect(descriptionCell).not.toBeNull();
+    fireEvent.mouseEnter(descriptionCell as HTMLElement);
+    return waitFor(() => {
+      expect(
+        screen.getByText(/timeLog\.tooltip\.timeRange/),
+      ).toBeInTheDocument();
+    });
   });
 });

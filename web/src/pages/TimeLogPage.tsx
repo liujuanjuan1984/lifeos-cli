@@ -113,6 +113,23 @@ const TimeLogPage = () => {
     });
   }, [activeTimelogForNotes]);
 
+  const latestTimelogEndTime = useMemo(() => {
+    let latestMs = Number.NEGATIVE_INFINITY;
+    let latestEnd: string | null = null;
+
+    processedEntries.forEach((entry) => {
+      if (entry.isPlaceholder || !entry.end_time) return;
+      const endMs = new Date(entry.end_time).getTime();
+      if (Number.isNaN(endMs)) return;
+      if (endMs > latestMs) {
+        latestMs = endMs;
+        latestEnd = entry.end_time;
+      }
+    });
+
+    return latestEnd;
+  }, [processedEntries]);
+
   // Request concurrency guards - removed as it's now handled in the hook
 
   // Advanced search states
@@ -323,6 +340,7 @@ const TimeLogPage = () => {
         <TimeLogBulkImportPanel
           selectedDate={selectedDate}
           timezone={activeTimezone}
+          latestTimelogEndTime={latestTimelogEndTime}
           areaMap={areaMap}
           preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
           onCancel={() => switchToSingleMode()}
