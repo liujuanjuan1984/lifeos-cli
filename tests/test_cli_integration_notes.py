@@ -182,7 +182,7 @@ def test_real_cli_note_associations_and_timelog_counts(
     )
     assert_ok(note_list_result)
     assert note_id in note_list_result.stdout
-    assert "\t1\t0\t0\t1\t1\t0\tAssociation note" in note_list_result.stdout
+    assert "\t1\t0\t0\t1\t1\t0\t0\tAssociation note" in note_list_result.stdout
 
     note_search_result = run_lifeos(
         integration_context,

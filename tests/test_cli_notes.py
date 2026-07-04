@@ -262,6 +262,7 @@ def test_main_note_search_prints_matching_notes(
                 visions=[],
                 events=[],
                 timelogs=[],
+                habit_actions=[],
             )
         ]
 
@@ -450,10 +451,10 @@ def test_main_note_list_can_include_relationship_counts(
 
     assert exit_code == 0
     assert captured.out.splitlines() == [
-        "note_id\tstatus\tcreated_at\ttask_count\tvision_count\tevent_count\tpeople_count\ttimelog_count\ttag_count\tcontent",
+        "note_id\tstatus\tcreated_at\ttask_count\tvision_count\tevent_count\tpeople_count\ttimelog_count\thabit_action_count\ttag_count\tcontent",
         (
             "22222222-2222-2222-2222-222222222222\tactive\t2026-04-09T01:02:03+00:00\t"
-            "1\t0\t0\t0\t0\t1\tfirst note"
+            "1\t0\t0\t0\t0\t0\t1\tfirst note"
         ),
     ]
 

@@ -15,6 +15,7 @@ export interface Note {
   task?: TaskSummary | null;
   tasks?: TaskSummary[];
   timelogs?: NoteTimelogSummary[];
+  habit_actions?: NoteHabitActionSummary[];
   ingest_job?: NoteIngestJobSummary | null;
 }
 
@@ -63,6 +64,13 @@ export interface NoteTimelogSummary {
   updated_at?: string | null;
 }
 
+export interface NoteHabitActionSummary {
+  id: UUID;
+  habit_id: UUID;
+  action_date: string;
+  status: string;
+}
+
 export interface NoteIngestJobSummary {
   id: UUID;
   status: string;
@@ -99,6 +107,7 @@ export interface NoteCreate {
   tag_ids?: UUID[];
   task_id?: UUID | null;
   timelog_ids?: UUID[];
+  habit_action_ids?: UUID[];
 }
 
 export interface NoteUpdate {
@@ -107,6 +116,7 @@ export interface NoteUpdate {
   tag_ids?: UUID[];
   task_id?: UUID | null;
   timelog_ids?: UUID[];
+  habit_action_ids?: UUID[];
 }
 
 // New interfaces for statistics and filtering

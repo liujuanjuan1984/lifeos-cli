@@ -53,7 +53,7 @@ def _habit_action_payload(action: object) -> dict[str, object]:
             "habit_id": str(action.habit_id),
             "action_date": action.action_date.isoformat(),
             "status": action.status,
-            "notes": action.notes,
+            "notes": getattr(action, "notes", None),
         }
     else:
         jsonable = to_jsonable(action)

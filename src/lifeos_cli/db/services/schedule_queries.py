@@ -190,7 +190,7 @@ async def list_schedule_in_range(
             habit_title=action.habit_title,
             action_date=action.action_date,
             status=action.status,
-            notes=action.notes,
+            notes=getattr(action, "notes", None),
         )
         for action in habit_actions
     ]

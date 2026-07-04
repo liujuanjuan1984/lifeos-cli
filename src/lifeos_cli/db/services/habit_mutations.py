@@ -6,13 +6,15 @@ from collections.abc import Sequence
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.db.base import utc_now
+from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
+from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_records
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.habit_queries import (
@@ -274,14 +276,23 @@ async def update_habit_action(
         raise InvalidHabitOperationError(
             "Habit action cannot be modified outside the allowed time window"
         )
+    next_notes = getattr(action, "notes", None)
     if status is not None:
         action.status = validate_habit_action_status(status)
     if clear_notes:
-        action.notes = None
+        await _clear_habit_action_note_links(session, action_id=action.id)
+        next_notes = None
     elif notes is not None:
-        action.notes = notes
+        normalized_notes = _validate_habit_action_note_content(notes)
+        await _upsert_habit_action_note(
+            session,
+            action_id=action.id,
+            content=normalized_notes,
+        )
+        next_notes = normalized_notes
     await session.flush()
     await session.refresh(action)
+    action.__dict__["notes"] = next_notes
     return action
 
 
@@ -355,6 +366,72 @@ async def _load_active_actions(session: AsyncSession, habit: Habit) -> list[Habi
         HabitAction.deleted_at.is_(None),
     )
     return list((await session.execute(stmt)).scalars())
+
+
+def _validate_habit_action_note_content(content: str) -> str:
+    if not content.strip():
+        raise HabitValidationError("Habit action notes must not be empty.")
+    return content
+
+
+async def _load_habit_action_note_models(
+    session: AsyncSession,
+    *,
+    action_id: UUID,
+) -> list[Note]:
+    stmt = (
+        select(Note)
+        .join(Association, Association.source_id == Note.id)
+        .where(
+            Association.source_model == "note",
+            Association.target_model == "habit_action",
+            Association.target_id == action_id,
+            Association.link_type == "captured_from",
+            Note.deleted_at.is_(None),
+        )
+        .order_by(Association.created_at.asc(), Association.id.asc())
+    )
+    return list((await session.execute(stmt)).scalars())
+
+
+async def _upsert_habit_action_note(
+    session: AsyncSession,
+    *,
+    action_id: UUID,
+    content: str,
+) -> None:
+    existing_notes = await _load_habit_action_note_models(session, action_id=action_id)
+    if existing_notes:
+        existing_notes[0].content = content
+        return
+
+    note = Note(content=content)
+    session.add(note)
+    await session.flush()
+    session.add(
+        Association(
+            source_model="note",
+            source_id=note.id,
+            target_model="habit_action",
+            target_id=action_id,
+            link_type="captured_from",
+        )
+    )
+
+
+async def _clear_habit_action_note_links(
+    session: AsyncSession,
+    *,
+    action_id: UUID,
+) -> None:
+    await session.execute(
+        delete(Association).where(
+            Association.source_model == "note",
+            Association.target_model == "habit_action",
+            Association.target_id == action_id,
+            Association.link_type == "captured_from",
+        )
+    )
 
 
 def _resolve_habit_duration_days(

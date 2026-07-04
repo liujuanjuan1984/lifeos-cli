@@ -105,6 +105,7 @@ NOTE_SUMMARY_COLUMNS_WITH_COUNTS = (
     "event_count",
     "people_count",
     "timelog_count",
+    "habit_action_count",
     "tag_count",
     "content",
 )
@@ -119,10 +120,11 @@ def format_note_summary(note: NoteView, *, include_counts: bool = False) -> str:
     status = "deleted" if note.deleted_at is not None else "active"
     if not include_counts:
         return f"{note.id}\t{status}\t{created_label}\t{normalized_content}"
+    habit_actions = getattr(note, "habit_actions", ())
     return (
         f"{note.id}\t{status}\t{created_label}\t{len(note.tasks)}\t{len(note.visions)}\t"
         f"{len(note.events)}\t{len(note.people)}\t{len(note.timelogs)}\t"
-        f"{len(note.tags)}\t{normalized_content}"
+        f"{len(habit_actions)}\t{len(note.tags)}\t{normalized_content}"
     )
 
 
@@ -135,6 +137,10 @@ def format_note_detail(note: NoteView) -> str:
     vision_labels = ", ".join(f"{vision.id} | {vision.name}" for vision in note.visions)
     event_labels = ", ".join(f"{event.id} | {event.title}" for event in note.events)
     timelog_labels = ", ".join(f"{timelog.id} | {timelog.title}" for timelog in note.timelogs)
+    habit_actions = getattr(note, "habit_actions", ())
+    habit_action_labels = ", ".join(
+        f"{action.id} | {action.action_date} | {action.status}" for action in habit_actions
+    )
     lines = [
         f"id: {note.id}",
         f"status: {status}",
@@ -147,6 +153,7 @@ def format_note_detail(note: NoteView) -> str:
         f"events: {event_labels or '-'}",
         f"people: {people_names or '-'}",
         f"timelogs: {timelog_labels or '-'}",
+        f"habit_actions: {habit_action_labels or '-'}",
         "content:",
         note.content,
     ]

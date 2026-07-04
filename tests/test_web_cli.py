@@ -2556,6 +2556,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
     person_id = UUID("22222222-2222-2222-2222-222222222222")
     task_id = UUID("33333333-3333-3333-3333-333333333333")
     timelog_id = UUID("44444444-4444-4444-4444-444444444444")
+    habit_action_id = UUID("66666666-6666-6666-6666-666666666666")
     captured: dict[str, object] = {}
 
     async def fake_create_note(_session: object, **kwargs: object) -> object:
@@ -2572,6 +2573,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
             visions=(),
             events=(),
             timelogs=(),
+            habit_actions=(),
         )
 
     monkeypatch.setattr(notes.note_services, "create_note", fake_create_note)
@@ -2584,6 +2586,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
                 person_ids=[person_id],
                 task_id=task_id,
                 timelog_ids=[timelog_id],
+                habit_action_ids=[habit_action_id],
             ),
             cast(AsyncSession, object()),
         )
@@ -2595,6 +2598,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
         "person_ids": [person_id],
         "task_ids": [task_id],
         "timelog_ids": [timelog_id],
+        "habit_action_ids": [habit_action_id],
     }
 
 

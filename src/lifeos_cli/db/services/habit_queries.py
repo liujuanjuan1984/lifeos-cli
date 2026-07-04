@@ -11,8 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from lifeos_cli.application.time_preferences import get_operational_date
+from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
+from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.habit_support import (
@@ -181,6 +183,32 @@ async def _load_materialized_actions_for_habits(
     return list((await session.execute(stmt)).scalars())
 
 
+async def _load_note_content_for_actions(
+    session: AsyncSession,
+    *,
+    action_ids: list[UUID],
+) -> dict[UUID, str]:
+    if not action_ids:
+        return {}
+    stmt = (
+        select(Association.target_id, Note.content)
+        .join(Note, Note.id == Association.source_id)
+        .where(
+            Association.source_model == "note",
+            Association.target_model == "habit_action",
+            Association.target_id.in_(action_ids),
+            Association.link_type == "captured_from",
+            Note.deleted_at.is_(None),
+        )
+        .order_by(Association.created_at.asc(), Association.id.asc())
+    )
+    rows = await session.execute(stmt)
+    grouped: dict[UUID, list[str]] = {}
+    for action_id, content in rows.all():
+        grouped.setdefault(action_id, []).append(content)
+    return {action_id: "\n\n".join(contents) for action_id, contents in grouped.items()}
+
+
 async def _load_candidate_habits(
     session: AsyncSession,
     *,
@@ -248,7 +276,7 @@ def _build_habit_action_views_for_occurrence_dates(
                 habit_title=habit.title,
                 action_date=materialized.action_date,
                 status=materialized.status,
-                notes=materialized.notes,
+                notes=getattr(materialized, "notes", None),
                 created_at=materialized.created_at,
                 updated_at=materialized.updated_at,
                 deleted_at=materialized.deleted_at,
@@ -293,8 +321,13 @@ async def _build_habit_action_views(
         end_date=range_end,
         target_dates=normalized_target_dates,
     )
+    note_content_by_action = await _load_note_content_for_actions(
+        session,
+        action_ids=[action.id for action in materialized_actions],
+    )
     actions_by_habit: dict[UUID, list[HabitAction]] = {habit_id: [] for habit_id in habit_ids}
     for action in materialized_actions:
+        action.__dict__["notes"] = note_content_by_action.get(action.id)
         actions_by_habit.setdefault(action.habit_id, []).append(action)
 
     views: list[HabitActionView] = []
@@ -552,7 +585,7 @@ async def list_habit_actions(
             habit_title=habit.title,
             action_date=action.action_date,
             status=action.status,
-            notes=action.notes,
+            notes=getattr(action, "notes", None),
             created_at=action.created_at,
             updated_at=action.updated_at,
             deleted_at=action.deleted_at,
@@ -622,4 +655,9 @@ async def get_habit_action(
         HabitAction.deleted_at.is_(None),
         HabitAction.habit.has(Habit.deleted_at.is_(None)),
     )
-    return (await session.execute(stmt)).scalar_one_or_none()
+    action = (await session.execute(stmt)).scalar_one_or_none()
+    if action is None:
+        return None
+    note_content_by_action = await _load_note_content_for_actions(session, action_ids=[action.id])
+    action.__dict__["notes"] = note_content_by_action.get(action.id)
+    return action

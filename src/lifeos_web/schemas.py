@@ -83,6 +83,7 @@ class NoteCreate(BaseModel):
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
     timelog_ids: list[UUID] | None = None
+    habit_action_ids: list[UUID] | None = None
 
 
 class NoteUpdate(BaseModel):
@@ -93,6 +94,7 @@ class NoteUpdate(BaseModel):
     tag_ids: list[UUID] | None = None
     task_id: UUID | None = None
     timelog_ids: list[UUID] | None = None
+    habit_action_ids: list[UUID] | None = None
 
 
 class TagCreate(BaseModel):

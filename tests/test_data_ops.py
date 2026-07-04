@@ -113,6 +113,7 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
                     "vision_ids": ["55555555-5555-5555-5555-555555555555"],
                     "event_ids": ["66666666-6666-6666-6666-666666666666"],
                     "timelog_ids": ["77777777-7777-7777-7777-777777777777"],
+                    "habit_action_ids": ["88888888-8888-8888-8888-888888888888"],
                 }
             ],
         )
@@ -128,6 +129,7 @@ def test_batch_update_resource_parses_extended_note_relation_fields(
     assert captured["vision_ids"] == [UUID("55555555-5555-5555-5555-555555555555")]
     assert captured["event_ids"] == [UUID("66666666-6666-6666-6666-666666666666")]
     assert captured["timelog_ids"] == [UUID("77777777-7777-7777-7777-777777777777")]
+    assert captured["habit_action_ids"] == [UUID("88888888-8888-8888-8888-888888888888")]
 
 
 def test_batch_update_note_rejects_legacy_single_task_field() -> None:
@@ -147,7 +149,7 @@ def test_batch_update_note_rejects_legacy_single_task_field() -> None:
     assert report.updated_count == 0
     assert report.failed_count == 1
     assert report.failures[0].message.endswith(
-        "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+        "`task_ids`, `vision_ids`, `event_ids`, `timelog_ids`, or `habit_action_ids`."
     )
 
 
@@ -287,6 +289,8 @@ def test_read_bundle_rejects_legacy_schema_version(tmp_path: Path) -> None:
 
     with pytest.raises(
         data_ops.DataOperationError,
-        match="Older bundle schemas are not supported after sparse habit-action materialization",
+        match=(
+            "Older bundle schemas are not supported after habit-action notes moved to linked notes"
+        ),
     ):
         data_ops.read_bundle(bundle_path)

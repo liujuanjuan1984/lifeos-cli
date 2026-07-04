@@ -13,6 +13,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.tag import Tag
@@ -24,6 +25,7 @@ from lifeos_cli.db.services.batching import BatchDeleteResult, batch_delete_reco
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.entity_associations import (
     load_events_for_sources,
+    load_habit_actions_for_sources,
     load_people_for_sources,
     load_task_lists_for_sources,
     load_timelogs_for_sources,
@@ -78,6 +80,7 @@ def _association_exists_clause(
 ) -> ColumnElement[bool]:
     target_table_by_model: dict[str, Any] = {
         "event": Event,
+        "habit_action": HabitAction,
         "person": Person,
         "task": Task,
         "timelog": Timelog,
@@ -106,6 +109,7 @@ def _note_query(
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
     vision_id: UUID | None = None,
+    habit_action_id: UUID | None = None,
 ) -> Select[tuple[Note]]:
     stmt = select(Note)
     stmt = stmt.where(Note.deleted_at.is_(None))
@@ -159,6 +163,14 @@ def _note_query(
             _association_exists_clause(
                 target_model="timelog",
                 target_id=timelog_id,
+                link_type="captured_from",
+            )
+        )
+    if habit_action_id is not None:
+        stmt = stmt.where(
+            _association_exists_clause(
+                target_model="habit_action",
+                target_id=habit_action_id,
                 link_type="captured_from",
             )
         )
@@ -239,6 +251,12 @@ async def _build_note_views(
         source_ids=note_ids,
         link_type="captured_from",
     )
+    habit_action_map = await load_habit_actions_for_sources(
+        session,
+        source_model="note",
+        source_ids=note_ids,
+        link_type="captured_from",
+    )
     return [
         build_note_view(
             note,
@@ -248,6 +266,7 @@ async def _build_note_views(
             visions=vision_map.get(note.id, ()),
             events=event_map.get(note.id, ()),
             timelogs=timelog_map.get(note.id, ()),
+            habit_actions=habit_action_map.get(note.id, ()),
         )
         for note in note_records
     ]
@@ -268,6 +287,7 @@ async def create_note(
     vision_ids: list[UUID] | None = None,
     event_ids: list[UUID] | None = None,
     timelog_ids: list[UUID] | None = None,
+    habit_action_ids: list[UUID] | None = None,
 ) -> NoteView:
     """Create and persist a note."""
     note = Note(content=_normalize_note_content(content))
@@ -325,6 +345,15 @@ async def create_note(
             target_ids=timelog_ids,
             link_type="captured_from",
         )
+    if habit_action_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="habit_action",
+            target_ids=habit_action_ids,
+            link_type="captured_from",
+        )
     await session.refresh(note)
     return await _build_note_view(session, note)
 
@@ -350,6 +379,7 @@ async def list_notes(
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
     vision_id: UUID | None = None,
+    habit_action_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[NoteView]:
@@ -362,6 +392,7 @@ async def list_notes(
             task_id=task_id,
             timelog_id=timelog_id,
             vision_id=vision_id,
+            habit_action_id=habit_action_id,
         )
         .order_by(Note.created_at.desc(), Note.id.desc())
         .offset(offset)
@@ -415,6 +446,7 @@ async def search_notes(
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
     vision_id: UUID | None = None,
+    habit_action_id: UUID | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[NoteView]:
@@ -427,6 +459,7 @@ async def search_notes(
         task_id=task_id,
         timelog_id=timelog_id,
         vision_id=vision_id,
+        habit_action_id=habit_action_id,
     )
     if tokens:
         stmt = stmt.where(or_(*[Note.content.ilike(f"%{token}%") for token in tokens]))
@@ -451,6 +484,8 @@ async def update_note(
     clear_events: bool = False,
     timelog_ids: list[UUID] | None = None,
     clear_timelogs: bool = False,
+    habit_action_ids: list[UUID] | None = None,
+    clear_habit_actions: bool = False,
 ) -> NoteView:
     """Update note content and weak associations."""
     note = await _get_note_model(session, note_id=note_id)
@@ -470,6 +505,8 @@ async def update_note(
         and not clear_events
         and timelog_ids is None
         and not clear_timelogs
+        and habit_action_ids is None
+        and not clear_habit_actions
     ):
         raise NoteValidationError("Provide at least one note field or association to update.")
 
@@ -572,6 +609,24 @@ async def update_note(
             source_id=note.id,
             target_model="timelog",
             target_ids=timelog_ids,
+            link_type="captured_from",
+        )
+    if clear_habit_actions:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="habit_action",
+            target_ids=[],
+            link_type="captured_from",
+        )
+    elif habit_action_ids is not None:
+        await set_association_links(
+            session,
+            source_model="note",
+            source_id=note.id,
+            target_model="habit_action",
+            target_ids=habit_action_ids,
             link_type="captured_from",
         )
     await session.flush()

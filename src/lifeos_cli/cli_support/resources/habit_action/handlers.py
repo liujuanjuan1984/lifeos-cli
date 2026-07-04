@@ -37,7 +37,7 @@ def _format_habit_action_detail(action: HabitAction) -> str:
             f"habit_title: {habit_title}",
             f"action_date: {action.action_date}",
             f"status: {action.status}",
-            f"notes: {action.notes or '-'}",
+            f"notes: {getattr(action, 'notes', None) or '-'}",
             f"created_at: {format_timestamp(action.created_at)}",
             f"updated_at: {format_timestamp(action.updated_at)}",
             f"deleted_at: {format_timestamp(action.deleted_at)}",
