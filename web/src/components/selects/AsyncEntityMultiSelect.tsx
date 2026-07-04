@@ -580,7 +580,7 @@ const AsyncEntityMultiSelect = forwardRef<
     <div ref={containerRef} className={containerClassName}>
       {showLabel && label && (
         <label htmlFor={inputId} className="label">
-          <span className="label-text">{label}</span>
+          <span className="label-text text-sm">{label}</span>
         </label>
       )}
 

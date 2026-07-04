@@ -288,7 +288,7 @@ const CheckboxGroup = forwardRef<CheckboxGroupRef, CheckboxGroupProps>(
         {label && (
           <legend
             id={legendId}
-            className="text-sm sm:text-base font-medium text-base-content"
+            className="text-sm font-medium text-base-content"
           >
             {label}
             {required && <span className="text-error ml-1">*</span>}

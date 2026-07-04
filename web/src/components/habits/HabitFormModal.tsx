@@ -400,7 +400,7 @@ export function HabitFormModal({
             }}
             placeholder={t("task.selectTaskPlaceholder")}
             disabled={loading}
-            className="text-sm sm:text-base"
+            className="text-sm"
             filterStatus={taskFilterStatus}
             idPrefix="habit-form"
           />

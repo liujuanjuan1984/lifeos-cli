@@ -34,7 +34,7 @@ const FormField: React.FC<FormFieldProps> = ({
     ? "space-y-2 border border-error rounded-lg p-2"
     : "space-y-2";
 
-  const labelClasses = `block text-sm sm:text-base font-medium text-base-content mb-1 sm:mb-2 ${labelClassName}`;
+  const labelClasses = `block text-sm font-medium text-base-content mb-1 sm:mb-2 ${labelClassName}`;
 
   return (
     <div className={containerClasses}>
@@ -52,7 +52,7 @@ const FormField: React.FC<FormFieldProps> = ({
         ))}
 
       {description && (
-        <div className="text-sm text-base-content/70">{description}</div>
+        <div className="text-xs sm:text-sm text-base-content/70">{description}</div>
       )}
 
       <div className={contentClassName}>{children}</div>

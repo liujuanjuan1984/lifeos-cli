@@ -125,7 +125,7 @@ const TaskSelectorOverride: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-override`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className="label-text text-sm">{effectiveLabel}</span>
         </label>
       )}
 
@@ -318,7 +318,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-input`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className="label-text text-sm">{effectiveLabel}</span>
         </label>
       )}
 

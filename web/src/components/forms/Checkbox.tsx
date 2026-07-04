@@ -198,7 +198,7 @@ const Checkbox = forwardRef<CheckboxRef, CheckboxProps>(
 
       return (
         <div className="flex flex-col gap-1">
-          <span className="text-sm sm:text-base font-medium text-base-content">
+          <span className="text-sm font-medium text-base-content">
             {label}
             {required && <span className="text-error ml-1">*</span>}
           </span>
