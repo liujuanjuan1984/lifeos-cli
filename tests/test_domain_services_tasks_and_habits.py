@@ -1066,6 +1066,47 @@ def test_update_habit_can_clear_task_without_committing(monkeypatch: pytest.Monk
     session.commit.assert_not_called()
 
 
+def test_update_habit_records_status_changed_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    habit = SimpleNamespace(
+        id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+        title="Daily Exercise",
+        description="Move every day",
+        start_date=date(2026, 4, 9),
+        duration_days=90,
+        cadence_frequency="daily",
+        cadence_weekdays=None,
+        cadence_monthdays=None,
+        target_per_cycle=1,
+        status="active",
+        status_changed_date=date(2026, 4, 9),
+        task_id=None,
+    )
+    session = SimpleNamespace(flush=AsyncMock(), refresh=AsyncMock())
+
+    async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
+        assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        return habit
+
+    async def fake_refresh_habit_expiration(_: object, *, habit_id: UUID | None = None) -> int:
+        assert habit_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        return 0
+
+    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
+    monkeypatch.setattr(habit_mutations, "refresh_habit_expiration", fake_refresh_habit_expiration)
+    monkeypatch.setattr(habit_mutations, "get_operational_date", lambda: date(2026, 7, 1))
+
+    updated_habit = asyncio.run(
+        habits.update_habit(
+            cast(Any, session),
+            habit_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            status="paused",
+        )
+    )
+
+    assert updated_habit.status == "paused"
+    assert updated_habit.status_changed_date == date(2026, 7, 1)
+
+
 def test_update_habit_rejects_zero_target_per_cycle(monkeypatch: pytest.MonkeyPatch) -> None:
     habit = SimpleNamespace(
         id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
@@ -1265,7 +1306,16 @@ def test_update_habit_action_by_date_uses_existing_update_rules(
             return action
 
     async def fake_get_habit(_: object, *, habit_id: UUID) -> object:
-        return SimpleNamespace(id=habit_id)
+        return SimpleNamespace(
+            id=habit_id,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 30),
+            cadence_frequency="daily",
+            cadence_weekdays=None,
+            cadence_monthdays=None,
+            status="active",
+            status_changed_date=date(2026, 4, 1),
+        )
 
     async def fake_execute(statement: object) -> Result:
         return Result()
@@ -1318,7 +1368,11 @@ def test_update_habit_action_by_date_materializes_missing_occurrence(
             id=habit_id,
             start_date=date(2026, 4, 1),
             end_date=date(2026, 4, 30),
+            cadence_frequency="daily",
             cadence_weekdays=None,
+            cadence_monthdays=None,
+            status="active",
+            status_changed_date=date(2026, 4, 1),
         )
 
     async def fake_execute(statement: object) -> Result:
@@ -1422,7 +1476,6 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
 
     async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
         assert kwargs["action_window"] is None
-        assert kwargs["habit_status"] is None
         assert kwargs["target_dates"] == selected_dates
         return [habit]
 
@@ -1452,35 +1505,48 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
 
 
-def test_load_candidate_habits_can_filter_active_status_for_target_dates() -> None:
-    statements: list[object] = []
+def test_build_habit_action_views_stops_after_status_change_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    selected_dates = (date(2026, 6, 30), date(2026, 7, 1))
+    habit = SimpleNamespace(
+        id=habit_id,
+        title="Daily Exercise",
+        start_date=date(2026, 6, 1),
+        end_date=date(2026, 7, 31),
+        cadence_frequency="daily",
+        cadence_weekdays=None,
+        cadence_monthdays=None,
+        status="paused",
+        status_changed_date=date(2026, 7, 1),
+    )
 
-    class Result:
-        def scalars(self) -> list[object]:
-            return []
+    async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
+        assert kwargs["target_dates"] == selected_dates
+        return [habit]
 
-    session = SimpleNamespace()
+    async def fake_load_materialized_actions(*args: object, **kwargs: object) -> list[object]:
+        return []
 
-    async def fake_execute(statement: object) -> Result:
-        statements.append(statement)
-        return Result()
+    monkeypatch.setattr(habit_queries, "_load_candidate_habits", fake_load_candidate_habits)
+    monkeypatch.setattr(
+        habit_queries,
+        "_load_materialized_actions_for_habits",
+        fake_load_materialized_actions,
+    )
 
-    session.execute = fake_execute
-
-    habits_result = asyncio.run(
-        habit_queries._load_candidate_habits(
-            cast(Any, session),
+    views = asyncio.run(
+        habit_queries._build_habit_action_views(
+            cast(Any, object()),
             habit_id=None,
-            habit_status="active",
+            status=None,
             action_window=None,
-            target_dates=(date(2026, 4, 9),),
+            target_dates=selected_dates,
         )
     )
 
-    assert habits_result == []
-    assert statements
-    compiled = str(statements[-1])
-    assert "habits.status =" in compiled
+    assert [view.action_date for view in views] == [date(2026, 6, 30)]
 
 
 def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
@@ -1517,6 +1583,7 @@ def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
         ]
 
     monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(habit_queries, "refresh_habit_expiration", AsyncMock(return_value=0))
 
     views = asyncio.run(
         habits.list_habit_actions(
@@ -1533,9 +1600,7 @@ def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
 
     assert [view.action_date for view in views] == [date(2026, 4, 3), date(2026, 4, 1)]
     assert count == 2
-    assert captured_calls[0]["habit_status"] is None
     assert captured_calls[0]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
     assert captured_calls[0]["action_window"] is None
-    assert captured_calls[1]["habit_status"] is None
     assert captured_calls[1]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
     assert captured_calls[1]["action_window"] is None

@@ -29,6 +29,7 @@ from lifeos_cli.db.services.habit_support import (
     calculate_habit_duration_for_repeat_count,
     ensure_active_capacity,
     ensure_task_exists,
+    get_habit_occurrence_end_date,
     habit_occurs_on_date,
     refresh_habit_expiration,
     validate_habit_action_status,
@@ -95,6 +96,7 @@ async def create_habit(
         ),
         target_per_cycle=normalized_target_per_cycle,
         status="active",
+        status_changed_date=start_date,
         task_id=task_id,
     )
     session.add(habit)
@@ -213,6 +215,8 @@ async def update_habit(
         normalized_status = validate_habit_status(status)
         if normalized_status == "active" and habit.status != "active":
             await ensure_active_capacity(session, exclude_habit_id=habit.id)
+        if normalized_status != habit.status:
+            habit.status_changed_date = get_operational_date()
         habit.status = normalized_status
 
     if schedule_changed:
@@ -294,6 +298,17 @@ async def update_habit_action_by_date(
     habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
+    if not habit_occurs_on_date(
+        start_date=habit.start_date,
+        end_date=get_habit_occurrence_end_date(habit),
+        cadence_frequency=habit.cadence_frequency,
+        cadence_weekdays=habit.cadence_weekdays,
+        cadence_monthdays=habit.cadence_monthdays,
+        target_date=action_date,
+    ):
+        raise HabitActionNotFoundError(
+            f"Habit action for habit {habit.id} on {action_date} was not found"
+        )
     action = (
         await session.execute(
             select(HabitAction).where(
@@ -324,7 +339,7 @@ async def _soft_delete_unscheduled_habit_actions(session: AsyncSession, habit: H
     for action in existing_actions:
         if not habit_occurs_on_date(
             start_date=habit.start_date,
-            end_date=habit.end_date,
+            end_date=get_habit_occurrence_end_date(habit),
             cadence_frequency=habit.cadence_frequency,
             cadence_weekdays=habit.cadence_weekdays,
             cadence_monthdays=habit.cadence_monthdays,

@@ -1871,7 +1871,7 @@ def test_web_habit_update_passes_end_date(
     assert captured["end_date"] == date(2026, 5, 1)
 
 
-def test_web_habit_actions_by_date_filters_active_habits(
+def test_web_habit_actions_by_date_uses_lifecycle_aware_action_query(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("fastapi")
@@ -1897,7 +1897,7 @@ def test_web_habit_actions_by_date_filters_active_habits(
         )
     )
 
-    assert captured["habit_status"] == "active"
+    assert "habit_status" not in captured
     assert captured["date_values"] == (date(2026, 4, 9),)
     assert response.items == []
 

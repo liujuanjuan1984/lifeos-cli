@@ -422,6 +422,18 @@ def habit_occurs_on_date(
     return True
 
 
+def get_habit_occurrence_end_date(habit: object) -> date:
+    """Return the final date where a habit should produce action occurrences."""
+    end_date = getattr(habit, "end_date", None)
+    if not isinstance(end_date, date):
+        raise HabitValidationError("Habit occurrence end date is unavailable")
+    status = getattr(habit, "status", "active")
+    status_changed_date = getattr(habit, "status_changed_date", None)
+    if status != "active" and isinstance(status_changed_date, date):
+        return min(end_date, status_changed_date - timedelta(days=1))
+    return end_date
+
+
 def validate_habit_schedule_window(
     *,
     start_date: date,
@@ -601,7 +613,15 @@ async def refresh_habit_expiration(
     ]
     if habit_id is not None:
         filters.append(Habit.id == habit_id)
-    stmt = update(Habit).where(*filters).values(status="expired", updated_at=utc_now())
+    stmt = (
+        update(Habit)
+        .where(*filters)
+        .values(
+            status="expired",
+            status_changed_date=local_today,
+            updated_at=utc_now(),
+        )
+    )
     result = await session.execute(stmt)
     rowcount = getattr(result, "rowcount", 0)
     return int(0 if rowcount is None else rowcount)
