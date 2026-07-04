@@ -185,6 +185,7 @@ async def _load_candidate_habits(
     *,
     habit_id: UUID | None,
     action_window: tuple[date, date] | None,
+    habit_status: str | None = None,
     target_dates: tuple[date, ...] = (),
 ) -> list[Habit]:
     if habit_id is not None:
@@ -195,6 +196,8 @@ async def _load_candidate_habits(
 
     stmt = select(Habit).options(_active_habit_task_loader())
     stmt = stmt.where(Habit.deleted_at.is_(None))
+    if habit_status is not None:
+        stmt = stmt.where(Habit.status == validate_habit_status(habit_status))
     if target_dates:
         habit_end_expr = _habit_end_expr()
         stmt = stmt.where(
@@ -263,12 +266,14 @@ async def _build_habit_action_views(
     habit_id: UUID | None,
     status: str | None,
     action_window: tuple[date, date] | None,
+    habit_status: str | None = None,
     target_dates: tuple[date, ...] = (),
 ) -> list[HabitActionView]:
     normalized_target_dates = tuple(deduplicate_preserving_order(target_dates))
     habits = await _load_candidate_habits(
         session,
         habit_id=habit_id,
+        habit_status=habit_status,
         action_window=action_window,
         target_dates=normalized_target_dates,
     )
@@ -410,6 +415,7 @@ async def get_habit_stats(session: AsyncSession, *, habit_id: UUID) -> dict[str,
     actions = await _build_habit_action_views(
         session,
         habit_id=habit.id,
+        habit_status=None,
         status=None,
         action_window=None,
     )
@@ -428,6 +434,7 @@ async def get_habit_overview(
     actions = await _build_habit_action_views(
         session,
         habit_id=habit.id,
+        habit_status=None,
         status=None,
         action_window=None,
     )
@@ -462,6 +469,7 @@ async def list_habit_overviews(
         actions = await _build_habit_action_views(
             session,
             habit_id=habit.id,
+            habit_status=None,
             status=None,
             action_window=None,
         )
@@ -501,6 +509,7 @@ async def list_habit_actions(
     session: AsyncSession,
     *,
     habit_id: UUID | None = None,
+    habit_status: str | None = None,
     status: str | None = None,
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
@@ -509,6 +518,8 @@ async def list_habit_actions(
     offset: int = 0,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views with optional filters."""
+    if habit_status is not None and validate_habit_status(habit_status) == "active":
+        await refresh_habit_expiration(session)
     target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
@@ -516,6 +527,7 @@ async def list_habit_actions(
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
+        habit_status=habit_status,
         status=status,
         action_window=action_window,
         target_dates=target_dates,
@@ -573,6 +585,7 @@ async def list_habit_actions_in_range(
     views = await _build_habit_action_views(
         session,
         habit_id=None,
+        habit_status=None,
         status=None,
         action_window=(start_date, end_date),
     )
@@ -583,12 +596,15 @@ async def count_habit_actions(
     session: AsyncSession,
     *,
     habit_id: UUID | None = None,
+    habit_status: str | None = None,
     status: str | None = None,
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
+    if habit_status is not None and validate_habit_status(habit_status) == "active":
+        await refresh_habit_expiration(session)
     target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
@@ -596,6 +612,7 @@ async def count_habit_actions(
     views = await _build_habit_action_views(
         session,
         habit_id=habit_id,
+        habit_status=habit_status,
         status=status,
         action_window=action_window,
         target_dates=target_dates,

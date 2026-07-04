@@ -252,6 +252,7 @@ async def list_actions_by_date(
     """List materialized habit actions for one local date."""
     actions = await habit_action_services.list_habit_actions(
         session,
+        habit_status="active",
         date_values=(action_date,),
         limit=500,
     )

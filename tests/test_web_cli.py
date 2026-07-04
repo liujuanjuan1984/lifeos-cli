@@ -1871,6 +1871,37 @@ def test_web_habit_update_passes_end_date(
     assert captured["end_date"] == date(2026, 5, 1)
 
 
+def test_web_habit_actions_by_date_filters_active_habits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_by_date(
+            date(2026, 4, 9),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["habit_status"] == "active"
+    assert captured["date_values"] == (date(2026, 4, 9),)
+    assert response.items == []
+
+
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

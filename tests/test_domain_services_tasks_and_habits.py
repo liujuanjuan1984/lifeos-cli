@@ -1422,6 +1422,7 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
 
     async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
         assert kwargs["action_window"] is None
+        assert kwargs["habit_status"] is None
         assert kwargs["target_dates"] == selected_dates
         return [habit]
 
@@ -1449,6 +1450,37 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     )
 
     assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
+
+
+def test_load_candidate_habits_can_filter_active_status_for_target_dates() -> None:
+    statements: list[object] = []
+
+    class Result:
+        def scalars(self) -> list[object]:
+            return []
+
+    session = SimpleNamespace()
+
+    async def fake_execute(statement: object) -> Result:
+        statements.append(statement)
+        return Result()
+
+    session.execute = fake_execute
+
+    habits_result = asyncio.run(
+        habit_queries._load_candidate_habits(
+            cast(Any, session),
+            habit_id=None,
+            habit_status="active",
+            action_window=None,
+            target_dates=(date(2026, 4, 9),),
+        )
+    )
+
+    assert habits_result == []
+    assert statements
+    compiled = str(statements[-1])
+    assert "habits.status =" in compiled
 
 
 def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
@@ -1501,7 +1533,9 @@ def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
 
     assert [view.action_date for view in views] == [date(2026, 4, 3), date(2026, 4, 1)]
     assert count == 2
+    assert captured_calls[0]["habit_status"] is None
     assert captured_calls[0]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
     assert captured_calls[0]["action_window"] is None
+    assert captured_calls[1]["habit_status"] is None
     assert captured_calls[1]["target_dates"] == (date(2026, 4, 3), date(2026, 4, 1))
     assert captured_calls[1]["action_window"] is None
