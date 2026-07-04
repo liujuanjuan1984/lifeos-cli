@@ -1763,19 +1763,34 @@
       "descriptionPlaceholder": "Describe the purpose and goals of this habit...",
       "startDateHint": "Please select the start date for this habit",
       "duration": "Duration (Days)",
+      "cadenceFrequency": "Repeats",
+      "targetPerCycle": "Required per cycle",
+      "weekdays": "Weekdays",
+      "monthdays": "Month days",
+      "monthdaysHint": "Leave empty for any day in the selected calendar month.",
+      "monthdaysPlaceholder": "For example: 1,15,28",
+      "endMode": "Ends",
+      "repeatCount": "Repeat count",
+      "endDate": "End date",
       "status": "Habit Status"
     },
-    "durationOptions": {
-      "7": "7 days",
-      "14": "14 days",
-      "21": "21 days",
-      "100": "100 days",
-      "365": "365 days",
-      "1000": "1000 days"
+    "cadence": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "endMode": {
+      "repeatCount": "After count",
+      "untilDate": "On date"
     },
     "validation": {
       "titleRequired": "Please enter habit title",
-      "startDateRequired": "Please select start date"
+      "startDateRequired": "Please select start date",
+      "repeatCountRequired": "Please enter a repeat count greater than zero",
+      "endDateRequired": "Please select an end date",
+      "endDateAfterStart": "End date must be on or after start date",
+      "monthdaysInvalid": "Month days must be numbers from 1 to 31"
     },
     "messages": {
       "createSuccess": "Habit created successfully",

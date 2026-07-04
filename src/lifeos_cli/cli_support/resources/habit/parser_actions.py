@@ -46,6 +46,21 @@ def _parse_habit_weekdays(value: str) -> list[str]:
     return weekdays
 
 
+def _parse_habit_monthdays(value: str) -> list[int]:
+    """Parse one CLI monthday list into integer day numbers."""
+    parts = [part for part in _WEEKDAY_SPLIT_PATTERN.split(value.strip()) if part]
+    if not parts:
+        raise argparse.ArgumentTypeError("Expected at least one month day, for example `1,15,28`.")
+    monthdays: list[int] = []
+    for part in parts:
+        try:
+            monthday = int(part)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError("Month days must be integers.") from exc
+        monthdays.append(monthday)
+    return monthdays
+
+
 def build_habit_add_parser(
     habit_subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
@@ -65,6 +80,8 @@ def build_habit_add_parser(
                 'lifeos habit add "Gym" --start-date 2026-04-09 --duration-days 100 '
                 "--cadence-frequency weekly --weekdays monday,wednesday,friday "
                 "--target-per-week 3",
+                'lifeos habit add "Monthly cleanup" --start-date 2026-04-09 --duration-days 365 '
+                "--cadence-frequency monthly --monthdays 1,15 --target-per-cycle 2",
                 'lifeos habit add "Read annual plan" --start-date 2026-01-01 --duration-days 365 '
                 "--cadence-frequency yearly --target-per-cycle 6",
             ),
@@ -116,6 +133,11 @@ def build_habit_add_parser(
         "--weekends-only",
         action="store_true",
         help=_("resources.habit.parser_actions.shortcut_for_weekdays_saturday_sunday"),
+    )
+    add_parser.add_argument(
+        "--monthdays",
+        type=_parse_habit_monthdays,
+        help=_("resources.habit.parser_actions.allowed_monthdays_for_example_1_15_28"),
     )
     add_parser.add_argument(
         "--target-per-cycle",
@@ -249,8 +271,9 @@ def build_habit_update_parser(
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 "
                 "--cadence-frequency weekly --weekends-only --target-per-week 1",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 "
-                "--cadence-frequency monthly --target-per-cycle 2",
+                "--cadence-frequency monthly --monthdays 1,15 --target-per-cycle 2",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-weekdays",
+                "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-monthdays",
                 "lifeos habit update 11111111-1111-1111-1111-111111111111 --clear-task",
             ),
             notes=(
@@ -310,6 +333,16 @@ def build_habit_update_parser(
         "--clear-weekdays",
         action="store_true",
         help=_("resources.habit.parser_actions.remove_weekday_restrictions_from_habit_cadence"),
+    )
+    update_parser.add_argument(
+        "--monthdays",
+        type=_parse_habit_monthdays,
+        help=_("resources.habit.parser_actions.updated_allowed_monthdays_for_example_1_15_28"),
+    )
+    update_parser.add_argument(
+        "--clear-monthdays",
+        action="store_true",
+        help=_("resources.habit.parser_actions.remove_monthday_restrictions_from_habit_cadence"),
     )
     update_parser.add_argument(
         "--target-per-cycle",

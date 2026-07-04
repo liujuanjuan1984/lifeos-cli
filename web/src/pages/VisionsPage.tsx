@@ -52,7 +52,7 @@ const VisionPage: React.FC = () => {
               onChange={(value) => setStatusFilter(value as string)}
               options={VISION_STATUS_FILTER_OPTIONS}
               autoWidth
-              className="text-sm sm:text-base min-w-[140px]"
+              className="text-sm min-w-[140px]"
               id="vision-status-filter"
             />
           </div>

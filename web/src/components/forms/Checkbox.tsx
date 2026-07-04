@@ -5,6 +5,7 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
+import { FORM_DESCRIPTION_CLASS, FORM_LABEL_CLASS } from "./styles";
 
 type NativeCheckboxProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -198,15 +199,12 @@ const Checkbox = forwardRef<CheckboxRef, CheckboxProps>(
 
       return (
         <div className="flex flex-col gap-1">
-          <span className="text-sm sm:text-base font-medium text-base-content">
+          <span className={FORM_LABEL_CLASS}>
             {label}
             {required && <span className="text-error ml-1">*</span>}
           </span>
           {description && (
-            <span
-              id={descriptionId}
-              className="text-xs sm:text-sm text-base-content/70"
-            >
+            <span id={descriptionId} className={FORM_DESCRIPTION_CLASS}>
               {description}
             </span>
           )}

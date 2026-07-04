@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import EnumSelect from "./selects/EnumSelect";
 import { Checkbox, TextInput } from "./forms";
+import { FORM_LABEL_COMPACT_CLASS, FORM_LABEL_CLASS } from "./forms/styles";
 
 interface CustomRecurrenceConfig {
   frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
@@ -339,7 +340,7 @@ export default function RecurrenceSelector({
             <div>
               <label
                 htmlFor="interval"
-                className="block text-sm font-medium text-base-content mb-1"
+                className={FORM_LABEL_COMPACT_CLASS}
               >
                 {t("target.interval")}
               </label>
@@ -363,7 +364,7 @@ export default function RecurrenceSelector({
           {/* Weekly Configuration */}
           {customConfig.frequency === "WEEKLY" && (
             <div>
-              <label className="block text-sm font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 选择星期
               </label>
               <div className="flex flex-wrap gap-2">
@@ -399,7 +400,7 @@ export default function RecurrenceSelector({
           {/* Monthly Configuration */}
           {customConfig.frequency === "MONTHLY" && (
             <div>
-              <label className="block text-sm font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 重复方式
               </label>
               <div className="space-y-2">
@@ -418,7 +419,7 @@ export default function RecurrenceSelector({
                     }}
                     className="mr-2"
                   />
-                  <span className="text-base">按日期：每月</span>
+                  <span className="text-sm">按日期：每月</span>
                   <TextInput
                     id="monthDay"
                     name="monthDay"
@@ -438,7 +439,7 @@ export default function RecurrenceSelector({
                     className="mx-1 w-16"
                     disabled={!customConfig.monthDay}
                   />
-                  <span className="text-base">日</span>
+                  <span className="text-sm">日</span>
                 </label>
 
                 <label className="flex items-center">
@@ -455,7 +456,7 @@ export default function RecurrenceSelector({
                     }}
                     className="mr-2"
                   />
-                  <span className="text-base">按星期：每月</span>
+                  <span className="text-sm">按星期：每月</span>
                   <div className="mx-1 min-w-[110px]">
                     <EnumSelect
                       id="monthly-occurrence"

@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  FORM_DESCRIPTION_CLASS,
+  FORM_LABEL_SPACED_CLASS,
+} from "./styles";
 
 interface FormFieldProps {
   label?: string;
@@ -34,7 +38,7 @@ const FormField: React.FC<FormFieldProps> = ({
     ? "space-y-2 border border-error rounded-lg p-2"
     : "space-y-2";
 
-  const labelClasses = `block text-sm sm:text-base font-medium text-base-content mb-1 sm:mb-2 ${labelClassName}`;
+  const labelClasses = `${FORM_LABEL_SPACED_CLASS} ${labelClassName}`;
 
   return (
     <div className={containerClasses}>
@@ -52,7 +56,7 @@ const FormField: React.FC<FormFieldProps> = ({
         ))}
 
       {description && (
-        <div className="text-sm text-base-content/70">{description}</div>
+        <div className={FORM_DESCRIPTION_CLASS}>{description}</div>
       )}
 
       <div className={contentClassName}>{children}</div>

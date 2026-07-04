@@ -867,8 +867,11 @@ def _batch_update_habit_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
         "title",
         "start_date",
         "duration_days",
+        "end_date",
+        "repeat_count",
         "cadence_frequency",
         "cadence_weekdays",
+        "cadence_monthdays",
         "target_per_cycle",
         "status",
     ):
@@ -878,6 +881,8 @@ def _batch_update_habit_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     kwargs.update(_null_means_clear(payload, field="task_id", clear_flag="clear_task"))
     if "cadence_weekdays" in payload and payload["cadence_weekdays"] is None:
         kwargs["clear_weekdays"] = True
+    if "cadence_monthdays" in payload and payload["cadence_monthdays"] is None:
+        kwargs["clear_monthdays"] = True
     return kwargs
 
 

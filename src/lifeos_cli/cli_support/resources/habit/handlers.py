@@ -60,11 +60,22 @@ def _format_cadence_weekdays(habit: Habit) -> str:
     return ",".join(str(weekday) for weekday in weekdays)
 
 
+def _format_cadence_monthdays(habit: Habit) -> str:
+    monthdays = getattr(habit, "cadence_monthdays", None)
+    if not monthdays:
+        return "-"
+    return ",".join(str(monthday) for monthday in monthdays)
+
+
 def _format_habit_cadence(habit: Habit) -> str:
     cadence_frequency = getattr(habit, "cadence_frequency", "daily")
     target_per_cycle = getattr(habit, "target_per_cycle", 1)
     cadence_weekdays = _format_cadence_weekdays(habit)
-    return f"{cadence_frequency}:{target_per_cycle}:{cadence_weekdays}"
+    cadence_monthdays = _format_cadence_monthdays(habit)
+    cadence = f"{cadence_frequency}:{target_per_cycle}:{cadence_weekdays}"
+    if cadence_monthdays == "-":
+        return cadence
+    return f"{cadence}:monthdays={cadence_monthdays}"
 
 
 def _format_habit_summary(habit: Habit) -> str:
@@ -97,6 +108,7 @@ def _format_habit_detail(habit: Habit, stats: dict[str, object]) -> str:
             f"duration_days: {habit.duration_days}",
             f"cadence_frequency: {getattr(habit, 'cadence_frequency', 'daily')}",
             f"cadence_weekdays: {_format_cadence_weekdays(habit)}",
+            f"cadence_monthdays: {_format_cadence_monthdays(habit)}",
             f"target_per_cycle: {getattr(habit, 'target_per_cycle', 1)}",
             f"task_id: {habit.task_id or '-'}",
             f"progress_percentage: {stats['progress_percentage']:.1f}",
@@ -131,11 +143,16 @@ def _extract_habit_overview(overview: dict[str, object]) -> tuple[Habit, dict[st
 def _format_habit_stats(stats: dict[str, object]) -> str:
     cadence_weekdays = cast(tuple[str, ...] | None, stats["cadence_weekdays"])
     cadence_weekdays_text = "-" if not cadence_weekdays else ",".join(cadence_weekdays)
+    cadence_monthdays = cast(tuple[int, ...] | None, stats["cadence_monthdays"])
+    cadence_monthdays_text = (
+        "-" if not cadence_monthdays else ",".join(str(day) for day in cadence_monthdays)
+    )
     return "\n".join(
         (
             f"habit_id: {stats['habit_id']}",
             f"cadence_frequency: {stats['cadence_frequency']}",
             f"cadence_weekdays: {cadence_weekdays_text}",
+            f"cadence_monthdays: {cadence_monthdays_text}",
             f"target_per_cycle: {stats['target_per_cycle']}",
             f"total_actions: {stats['total_actions']}",
             f"completed_actions: {stats['completed_actions']}",
@@ -166,6 +183,7 @@ async def handle_habit_add_async(args: argparse.Namespace) -> int:
                 duration_days=args.duration_days,
                 cadence_frequency=args.cadence_frequency,
                 cadence_weekdays=_resolve_weekday_selection(args),
+                cadence_monthdays=args.monthdays,
                 target_per_cycle=args.target_per_cycle,
                 task_id=args.task_id,
             )
@@ -272,6 +290,11 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
             "--weekdays / --weekends-only",
             "--clear-weekdays",
         ),
+        (
+            args.clear_monthdays and args.monthdays is not None,
+            "--monthdays",
+            "--clear-monthdays",
+        ),
     )
     conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
     if conflict_error is not None:
@@ -289,6 +312,8 @@ async def handle_habit_update_async(args: argparse.Namespace) -> int:
                 cadence_frequency=args.cadence_frequency,
                 cadence_weekdays=_resolve_weekday_selection(args),
                 clear_weekdays=args.clear_weekdays,
+                cadence_monthdays=args.monthdays,
+                clear_monthdays=args.clear_monthdays,
                 target_per_cycle=args.target_per_cycle,
                 status=args.status,
                 task_id=args.task_id,

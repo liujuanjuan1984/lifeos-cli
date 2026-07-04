@@ -11,6 +11,10 @@ export interface Habit {
   description?: string | null;
   start_date: string;
   duration_days: number;
+  cadence_frequency?: string | null;
+  cadence_weekdays?: string[] | null;
+  cadence_monthdays?: number[] | null;
+  target_per_cycle?: number | null;
   status: string;
   stats?: HabitStats | null;
   task_id?: UUID | null;
@@ -21,7 +25,13 @@ export interface HabitCreate {
   title: string;
   description?: string;
   start_date: string;
-  duration_days: number;
+  duration_days?: number;
+  end_date?: string | null;
+  repeat_count?: number | null;
+  cadence_frequency?: string | null;
+  cadence_weekdays?: string[] | null;
+  cadence_monthdays?: number[] | null;
+  target_per_cycle?: number | null;
   task_id?: UUID | null;
 }
 
@@ -30,6 +40,12 @@ export interface HabitUpdate {
   description?: string;
   start_date?: string;
   duration_days?: number;
+  end_date?: string | null;
+  repeat_count?: number | null;
+  cadence_frequency?: string | null;
+  cadence_weekdays?: string[] | null;
+  cadence_monthdays?: number[] | null;
+  target_per_cycle?: number | null;
   status?: string;
   task_id?: UUID | null;
 }

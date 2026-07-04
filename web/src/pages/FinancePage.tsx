@@ -6,6 +6,7 @@ import ActionButton, { CreateNewButton } from "@/components/ActionButton";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { FormField, TextInput } from "@/components/forms";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AssetSelect from "@/components/selects/AssetSelect";
 import ToolbarContainer from "@/components/ToolbarContainer";
@@ -1289,7 +1290,9 @@ function FinanceNodeFormModal({
           />
         </FormField>
         <label className="form-control">
-          <span className="label-text">{t("finance.tree.parent")}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>
+            {t("finance.tree.parent")}
+          </span>
           <select
             className="select select-bordered select-sm"
             value={parentId}

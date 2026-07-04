@@ -14,6 +14,7 @@ import { useToast } from "@/contexts/ToastContext";
 import TaskSelector from "./selects/TaskSelector";
 import { ALL_TASK_STATUSES } from "@/utils/constants";
 import { FormField, TextInput } from "./forms";
+import { FORM_LABEL_CLASS } from "./forms/styles";
 import type { UUID } from "@/types/primitive";
 
 interface BatchEditModalProps {
@@ -346,7 +347,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
 
       {/* Edit Mode Selection */}
       <div className="mb-6">
-        <label className="block text-base font-medium text-base-content mb-3">
+        <label className={`${FORM_LABEL_CLASS} mb-3`}>
           {t("batchEdit.editType.label")}
         </label>
         <div className="flex gap-2">
@@ -379,7 +380,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         {editMode === "people" && (
           <div className="space-y-4">
             <div>
-              <label className="block text-base font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 {t("batchEdit.modes.label")}
               </label>
               <div className="flex gap-2">
@@ -423,7 +424,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         {editMode === "title" && (
           <div className="space-y-4">
             <div>
-              <label className="block text-base font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 {t("batchEdit.modes.label")}
               </label>
               <div className="flex gap-2">
@@ -486,7 +487,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         {editMode === "task" && (
           <div className="space-y-4">
             <div>
-              <label className="block text-base font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 {t("batchEdit.modes.label")}
               </label>
               <div className="flex gap-2">
@@ -532,7 +533,7 @@ const BatchEditModal: React.FC<BatchEditModalProps> = ({
         {editMode === "area" && (
           <div className="space-y-4">
             <div>
-              <label className="block text-base font-medium text-base-content mb-2">
+              <label className={`${FORM_LABEL_CLASS} mb-2`}>
                 {t("batchEdit.modes.label")}
               </label>
               <div className="flex gap-2">

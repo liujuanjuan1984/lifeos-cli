@@ -294,6 +294,7 @@
         "use_list_as_primary_query_entrypoint_for_habits": "将 `list` 作为 `habit` 的主要查询入口。"
       },
       "parser_actions": {
+        "allowed_monthdays_for_example_1_15_28": "允许的历法月内日期，例如 1,15,28",
         "allowed_weekdays_for_example_monday_wednesday_friday": "允许的星期几，例如 monday,wednesday,friday",
         "cadence_and_timing_changes_reconcile_materialized_habit_action_records_without_regenerating_full": "cadence 与时间参数变化会对齐已物化的 `habit-action` 记录，而不会重新生成完整历史。",
         "cadence_target_count_for_one_cycle_daily_habits_must_keep_1": "单个周期的 cadence 目标次数。daily `habit` 必须保持为 1。",
@@ -320,6 +321,7 @@
         "optional_habit_description": "可选的 `habit` 描述",
         "reactivating_habit_still_respects_active_habit_limit": "重新激活 `habit` 仍然遵循主动 `habit` 限制。",
         "remove_linked_task_reference": "删除链接的 `task` 参考",
+        "remove_monthday_restrictions_from_habit_cadence": "移除该 `habit` cadence 的 monthday 限制",
         "remove_weekday_restrictions_from_habit_cadence": "移除该 `habit` cadence 的 weekday 限制",
         "restrict_results_to_habits_whose_duration_still_covers_today": "将结果限制为持续时间仍然覆盖今天的 `habit`",
         "run_bulk_habit_operations": "执行批量 `habit` 操作",
@@ -333,6 +335,7 @@
         "update_habit": "更新 `habit`",
         "update_mutable_habit_fields": "更新可变的 `habit` 字段。",
         "updated_allowed_weekdays_for_example_monday_wednesday_friday": "更新后的允许星期几，例如 monday,wednesday,friday",
+        "updated_allowed_monthdays_for_example_1_15_28": "更新后的允许历法月内日期，例如 1,15,28",
         "updated_cadence_frequency_daily_weekly_monthly_or_yearly": "更新后的 cadence 频率：daily、weekly、monthly 或 yearly",
         "updated_cadence_target_count_for_one_cycle": "更新后的单个周期 cadence 目标次数",
         "updated_duration_in_days": "更新持续时间（以天为单位）",

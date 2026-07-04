@@ -1042,6 +1042,8 @@ def test_cli_parser_supports_habit_add_monthly_cadence_command() -> None:
             "365",
             "--cadence-frequency",
             "monthly",
+            "--monthdays",
+            "1,15",
             "--target-per-cycle",
             "2",
         ]
@@ -1050,6 +1052,7 @@ def test_cli_parser_supports_habit_add_monthly_cadence_command() -> None:
     assert args.resource == "habit"
     assert args.habit_command == "add"
     assert args.cadence_frequency == "monthly"
+    assert args.monthdays == [1, 15]
     assert args.target_per_cycle == 2
 
 
@@ -1095,6 +1098,23 @@ def test_cli_parser_supports_habit_update_clear_weekdays_command() -> None:
     assert args.habit_command == "update"
     assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
     assert args.clear_weekdays is True
+
+
+def test_cli_parser_supports_habit_update_clear_monthdays_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "habit",
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            "--clear-monthdays",
+        ]
+    )
+
+    assert args.resource == "habit"
+    assert args.habit_command == "update"
+    assert str(args.habit_id) == "11111111-1111-1111-1111-111111111111"
+    assert args.clear_monthdays is True
 
 
 def test_cli_parser_supports_habit_action_list_by_date_command() -> None:

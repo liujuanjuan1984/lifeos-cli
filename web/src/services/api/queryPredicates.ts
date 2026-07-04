@@ -121,6 +121,15 @@ export const isHabitsActionsQuery = (query: QueryLike): boolean => {
   );
 };
 
+export const isHabitsActionsByDateQuery = (query: QueryLike): boolean => {
+  if (!Array.isArray(query.queryKey)) return false;
+  return (
+    query.queryKey.length >= 3 &&
+    query.queryKey[0] === "habits" &&
+    query.queryKey[1] === "actions-by-date"
+  );
+};
+
 export const isAreasListQuery = (query: QueryLike): boolean => {
   if (!Array.isArray(query.queryKey)) return false;
   return (

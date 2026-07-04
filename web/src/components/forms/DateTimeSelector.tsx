@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { formatDateTime } from "@/utils/datetime";
 import { normalizeTimezone, zonedDateTimeToUtc } from "@/utils/datetime";
 import TextInput from "./TextInput";
+import { FORM_LABEL_COMPACT_CLASS } from "./styles";
 
 interface DateTimeSelectorProps {
   /** Current ISO datetime string */
@@ -209,7 +210,7 @@ export default function DateTimeSelector({
       <div>
         <label
           htmlFor={dateId}
-          className="block text-sm font-medium text-base-content mb-1"
+          className={FORM_LABEL_COMPACT_CLASS}
         >
           {t("common.date")}
         </label>
@@ -228,7 +229,7 @@ export default function DateTimeSelector({
         <div>
           <label
             htmlFor={timeId}
-            className="block text-sm font-medium text-base-content mb-1"
+            className={FORM_LABEL_COMPACT_CLASS}
           >
             {t("common.time")}
           </label>

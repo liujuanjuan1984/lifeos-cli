@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useDropdownSurface } from "./useDropdownSurface";
 import { asSelectorString, type SelectorValue } from "./selectorTypes";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 
 export interface EntityOption {
   id: string;
@@ -571,7 +572,7 @@ const AsyncEntitySelect = forwardRef<HTMLInputElement, AsyncEntitySelectProps>(
       <div ref={containerRef} className={containerClassName}>
         {showLabel && label && (
           <label htmlFor={inputId} className="label">
-            <span className="label-text">{label}</span>
+            <span className={SELECT_LABEL_TEXT_CLASS}>{label}</span>
           </label>
         )}
 

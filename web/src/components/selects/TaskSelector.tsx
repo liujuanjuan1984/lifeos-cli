@@ -15,6 +15,7 @@ import { useVisions } from "@/hooks/queries/useVisions";
 import { tasksApi } from "@/services/api/tasks";
 import { tasksKeys } from "@/services/api/queryKeys";
 import { ACTIVE_TASK_STATUSES } from "@/utils/constants";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
 
@@ -125,7 +126,7 @@ const TaskSelectorOverride: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-override`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{effectiveLabel}</span>
         </label>
       )}
 
@@ -318,7 +319,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-input`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{effectiveLabel}</span>
         </label>
       )}
 

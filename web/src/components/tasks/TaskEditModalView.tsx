@@ -6,6 +6,7 @@ import TaskSelector from "@/components/selects/TaskSelector";
 import EnumSelect from "@/components/selects/EnumSelect";
 import PersonSelector from "@/components/selects/PersonSelector";
 import { FormField, TextArea, TextInput } from "@/components/forms";
+import { FORM_LABEL_COMPACT_CLASS } from "@/components/forms/styles";
 import ActionButton, {
   ActionButtonGroup,
   FormActions,
@@ -364,7 +365,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
               <div className="mt-0 sm:mt-2">
                 <label
                   htmlFor={planningCycleYearId}
-                  className="block text-sm font-medium text-base-content mb-1"
+                  className={FORM_LABEL_COMPACT_CLASS}
                 >
                   {t("taskForm.planning.startLabels.year")}
                 </label>
@@ -385,7 +386,7 @@ export const TaskEditModalView: React.FC<TaskEditModalViewProps> = ({
                 <div className="mt-0 sm:mt-2">
                   <label
                     htmlFor={planningCycleStartDateId}
-                    className="block text-sm font-medium text-base-content mb-1"
+                    className={FORM_LABEL_COMPACT_CLASS}
                   >
                     {formData.planning_cycle_type === "year" &&
                       t("taskForm.planning.startLabels.year")}

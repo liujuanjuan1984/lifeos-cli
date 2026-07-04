@@ -10,6 +10,30 @@ describe("timelogsApi", () => {
     vi.restoreAllMocks();
   });
 
+  it("fetches the latest timelog end time", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          end_time: "2026-07-04T16:30:00+00:00",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const response = await timelogsApi.fetchLatestEndTime();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(localUrl(ENDPOINTS.TIMELOGS.LATEST_END_TIME));
+    expect(init.method).toBe("GET");
+    expect(response).toEqual({
+      end_time: "2026-07-04T16:30:00+00:00",
+    });
+  });
+
   it("fetches ranges with exact UTC window boundaries", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

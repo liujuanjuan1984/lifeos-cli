@@ -47,6 +47,15 @@ def _timelog_payload(timelog: object) -> dict[str, object]:
     return payload
 
 
+@router.get("/latest-end-time")
+async def get_latest_timelog_end_time(session: SessionDep) -> dict[str, str | None]:
+    """Return the latest active timelog end time for cursor inheritance."""
+    latest_end_time = await timelog_services.get_latest_timelog_end_time(session)
+    return {
+        "end_time": latest_end_time.isoformat() if latest_end_time else None,
+    }
+
+
 @router.get("/", response_model=ListResponse)
 async def list_timelogs(
     session: SessionDep,

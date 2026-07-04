@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useDropdownSurface } from "./useDropdownSurface";
 import type { EntityOption, SelectSize } from "./AsyncEntitySelect";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 
 export type MultiSelectOption = EntityOption;
 
@@ -580,7 +581,7 @@ const AsyncEntityMultiSelect = forwardRef<
     <div ref={containerRef} className={containerClassName}>
       {showLabel && label && (
         <label htmlFor={inputId} className="label">
-          <span className="label-text">{label}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{label}</span>
         </label>
       )}
 

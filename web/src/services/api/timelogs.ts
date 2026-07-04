@@ -119,6 +119,10 @@ export type TimelogListResponse = ListResponse<
 
 export type TimelogAdvancedSearchResponse = TimelogListResponse;
 
+export interface LatestTimelogEndTimeResponse {
+  end_time: string | null;
+}
+
 const TIMELOG_PAGE_SIZE = 500;
 const MAX_TIMELOG_RANGE_PAGES = 100;
 
@@ -140,6 +144,11 @@ function toTimelogPayload(
 }
 
 export const timelogsApi = {
+  fetchLatestEndTime: () =>
+    http.get<LatestTimelogEndTimeResponse>(
+      ENDPOINTS.TIMELOGS.LATEST_END_TIME,
+    ),
+
   fetchRange: async (start: string, end: string, trackingMethod?: string) => {
     const items: Timelog[] = [];
     let firstResponse: TimelogListResponse | null = null;

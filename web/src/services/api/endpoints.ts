@@ -35,6 +35,7 @@ export const ENDPOINTS = {
   },
   TIMELOGS: {
     BASE: `${API_V1}/timelogs/`,
+    LATEST_END_TIME: `${API_V1}/timelogs/latest-end-time`,
     BY_ID: (id: string) => `${API_V1}/timelogs/${id}`,
     BATCH_UPDATE: `${API_V1}/timelogs/batch-update`,
     TEMPLATES: {

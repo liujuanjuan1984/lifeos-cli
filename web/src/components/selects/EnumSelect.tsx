@@ -41,7 +41,7 @@ const EnumSelect: React.FC<EnumSelectProps> = ({
   placeholder,
   disabled,
   size = "sm",
-  className = "text-sm sm:text-base w-full",
+  className = "text-sm w-full",
   idPrefix = "enum-select",
   label,
   showLabel = true,
