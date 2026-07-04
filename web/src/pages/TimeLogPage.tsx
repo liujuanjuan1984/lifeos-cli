@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type {
   Timelog,
@@ -34,6 +35,8 @@ import { useQueryMode } from "@/hooks/useQueryMode";
 import TimeLogBulkImportPanel from "@/features/timeLog/bulkImport/TimeLogBulkImportPanel";
 import { createModalSessionId } from "@/utils/session";
 import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
+import { timelogsApi } from "@/services/api/timelogs";
+import { timelogsKeys } from "@/services/api/queryKeys";
 
 const TimeLogPage = () => {
   const { t } = useTranslation();
@@ -113,7 +116,13 @@ const TimeLogPage = () => {
     });
   }, [activeTimelogForNotes]);
 
-  const latestTimelogEndTime = useMemo(() => {
+  const latestTimelogEndTimeQuery = useQuery({
+    queryKey: timelogsKeys.latestEndTime(),
+    queryFn: () => timelogsApi.fetchLatestEndTime(),
+    staleTime: 30 * 1000,
+  });
+
+  const currentEntriesLatestEndTime = useMemo(() => {
     let latestMs = Number.NEGATIVE_INFINITY;
     let latestEnd: string | null = null;
 
@@ -129,6 +138,9 @@ const TimeLogPage = () => {
 
     return latestEnd;
   }, [processedEntries]);
+
+  const latestTimelogEndTime =
+    latestTimelogEndTimeQuery.data?.end_time ?? currentEntriesLatestEndTime;
 
   // Request concurrency guards - removed as it's now handled in the hook
 

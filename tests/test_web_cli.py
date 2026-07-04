@@ -1405,6 +1405,25 @@ def test_web_timelog_rejects_partial_date_filter() -> None:
     )
 
 
+def test_web_timelog_latest_end_time_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    async def fake_get_latest_timelog_end_time(_session: object) -> datetime | None:
+        return datetime(2026, 7, 4, 16, 30, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "get_latest_timelog_end_time",
+        fake_get_latest_timelog_end_time,
+    )
+
+    response = asyncio.run(timelogs.get_latest_timelog_end_time(cast(AsyncSession, object())))
+
+    assert response == {"end_time": "2026-07-04T16:30:00+00:00"}
+
+
 def test_web_timelog_payload_exposes_linked_task_summary() -> None:
     pytest.importorskip("fastapi")
 

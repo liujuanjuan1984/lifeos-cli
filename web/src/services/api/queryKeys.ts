@@ -231,6 +231,7 @@ export const timelogsKeys = {
     sort_order?: "asc" | "desc";
     timezone?: string;
   }) => [...timelogsKeys.lists(), filters] as const,
+  latestEndTime: () => [...timelogsKeys.all, "latest-end-time"] as const,
   details: () => [...timelogsKeys.all, "detail"] as const,
   detail: (id: UUID) => [...timelogsKeys.details(), id] as const,
   advancedSearch: (filters: {

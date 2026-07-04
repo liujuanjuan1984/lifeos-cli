@@ -308,6 +308,9 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
         latestTimelogEndTime,
       ).time,
   );
+  const [isStartDateCustomized, setIsStartDateCustomized] = useState(false);
+  const [isFirstStartTimeCustomized, setIsFirstStartTimeCustomized] =
+    useState(false);
   const [rawInput, setRawInput] = useState("");
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [globalErrors, setGlobalErrors] = useState<BulkImportMessage[]>([]);
@@ -333,9 +336,13 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   );
 
   useEffect(() => {
-    setStartDateInput(defaultStart.date);
-    setFirstStartTime(defaultStart.time);
-  }, [defaultStart]);
+    if (!isStartDateCustomized) {
+      setStartDateInput(defaultStart.date);
+    }
+    if (!isFirstStartTimeCustomized) {
+      setFirstStartTime(defaultStart.time);
+    }
+  }, [defaultStart, isFirstStartTimeCustomized, isStartDateCustomized]);
 
   const baseDateString = useMemo(
     () =>
@@ -619,7 +626,10 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
             <TextInput
               type="date"
               value={startDateInput}
-              onChange={(event) => setStartDateInput(event.target.value)}
+              onChange={(event) => {
+                setIsStartDateCustomized(true);
+                setStartDateInput(event.target.value);
+              }}
             />
           </div>
           <div>
@@ -629,7 +639,10 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
             <TextInput
               type="time"
               value={firstStartTime}
-              onChange={(event) => setFirstStartTime(event.target.value)}
+              onChange={(event) => {
+                setIsFirstStartTimeCustomized(true);
+                setFirstStartTime(event.target.value);
+              }}
             />
           </div>
         </div>
