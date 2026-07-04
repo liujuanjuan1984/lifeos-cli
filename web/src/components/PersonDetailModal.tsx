@@ -14,6 +14,7 @@ import UnifiedTag from "./UnifiedTag";
 import ActionButton from "./ActionButton";
 import { ActionButtonGroup } from "./ActionButton";
 import { TextInput } from "./forms";
+import { FORM_LABEL_MUTED_CLASS } from "./forms/styles";
 import { usePersonAnniversaries } from "@/hooks/queries/usePersonAnniversaries";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -97,7 +98,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
       <div className="space-y-4">
         {person.name && (
           <div>
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.name")}
             </label>
             <p className="text-base">{person.name}</p>
@@ -109,7 +110,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
           person.nicknames &&
           person.nicknames.length > 0 && (
             <div>
-              <label className="block text-base font-medium text-base-content/70">
+              <label className={FORM_LABEL_MUTED_CLASS}>
                 {t("personDetail.nicknames")}
               </label>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -125,7 +126,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
         {/* Show primary nickname for PersonSummary type */}
         {"primary_nickname" in person && person.primary_nickname && (
           <div>
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.primaryNickname")}
             </label>
             <div className="mt-1">
@@ -138,7 +139,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
 
         {person.birth_date && (
           <div>
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.birthDate")}
             </label>
             <p className="text-base">{person.birth_date}</p>
@@ -147,7 +148,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
 
         {(locationTags.length > 0 || person.location) && (
           <div>
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.location")}
             </label>
             <div className="flex flex-wrap gap-1 mt-1">
@@ -168,7 +169,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
 
         {relationshipTags.length > 0 && (
           <div>
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.relationshipTags")}
             </label>
             <div className="flex flex-wrap gap-1 mt-1">
@@ -184,7 +185,7 @@ const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
         {/* Show anniversaries only for Person type */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="block text-base font-medium text-base-content/70">
+            <label className={FORM_LABEL_MUTED_CLASS}>
               {t("personDetail.anniversaries")}
             </label>
             <ActionButton

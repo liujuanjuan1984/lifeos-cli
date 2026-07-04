@@ -15,6 +15,7 @@ import ModalBase from "@/layouts/ModalBase";
 import { FormActions } from "./ActionButton";
 import AreaSelect from "./selects/AreaSelect";
 import { TextInput } from "./forms";
+import { FORM_LABEL_SPACED_CLASS } from "./forms/styles";
 import { useModalState } from "@/hooks/useModalState";
 import { useToast } from "@/contexts/ToastContext";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
@@ -445,7 +446,7 @@ const TimeEntryModal = ({
         <div className="mb-4">
           <label
             htmlFor="title"
-            className="block text-base font-medium text-base-content mb-2"
+            className={FORM_LABEL_SPACED_CLASS}
           >
             {t("timeLog.modal.activity")} *
           </label>
@@ -466,7 +467,7 @@ const TimeEntryModal = ({
           <div>
             <label
               htmlFor="start_time"
-              className="block text-base font-medium text-base-content mb-2"
+              className={FORM_LABEL_SPACED_CLASS}
             >
               {t("eventModal.fields.startTime")}
             </label>
@@ -483,7 +484,7 @@ const TimeEntryModal = ({
           <div>
             <label
               htmlFor="end_time"
-              className="block text-base font-medium text-base-content mb-2"
+              className={FORM_LABEL_SPACED_CLASS}
             >
               {t("timeLog.modal.endTimeRequired")}
             </label>

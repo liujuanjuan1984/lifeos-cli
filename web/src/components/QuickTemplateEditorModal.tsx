@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import ModalBase from "@/layouts/ModalBase";
 import { FormActions } from "./ActionButton";
 import { TextInput } from "./forms";
+import { FORM_LABEL_COMPACT_CLASS } from "./forms/styles";
 import AreaSelect from "./selects/AreaSelect";
 import PersonSelector from "./selects/PersonSelector";
 import type { UUID } from "@/types/primitive";
@@ -113,7 +114,7 @@ const QuickTemplateEditorModal = ({
           <div>
             <label
               htmlFor="quick-template-title"
-              className="block text-sm font-medium text-base-content mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("quickTemplatesManager.activityDescription")}
             </label>
@@ -139,7 +140,7 @@ const QuickTemplateEditorModal = ({
           <div>
             <label
               htmlFor="quick-template-duration"
-              className="block text-sm font-medium text-base-content mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("quickTemplatesManager.durationOptional")}
             </label>

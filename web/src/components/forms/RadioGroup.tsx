@@ -1,4 +1,5 @@
 import React, { useId, useMemo, useRef, useState } from "react";
+import { FORM_DESCRIPTION_CLASS, FORM_LABEL_CLASS } from "./styles";
 
 type RadioGroupValue = string;
 
@@ -104,13 +105,13 @@ export default function RadioGroup({
       {label ? (
         <legend
           id={legendId}
-          className="text-sm font-medium text-base-content"
+          className={FORM_LABEL_CLASS}
         >
           {label}
         </legend>
       ) : null}
       {description ? (
-        <div id={descriptionId} className="text-sm text-base-content/70">
+        <div id={descriptionId} className={FORM_DESCRIPTION_CLASS}>
           {description}
         </div>
       ) : null}
@@ -178,7 +179,7 @@ export default function RadioGroup({
                     .join(" ")}
                 />
                 <div className="space-y-1">
-                  <div className="font-medium text-sm sm:text-base text-base-content">
+                  <div className="font-medium text-sm text-base-content">
                     {option.label}
                   </div>
                   {option.description ? (

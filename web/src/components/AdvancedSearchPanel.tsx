@@ -10,6 +10,7 @@ import Card from "@/layouts/Card";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { dateStringToISO, formatDateInTimezone } from "@/utils/datetime";
 import { FormField, TextInput } from "./forms";
+import { FORM_LABEL_COMPACT_CLASS } from "./forms/styles";
 import type { UUID } from "@/types/primitive";
 
 interface AdvancedSearchParams {
@@ -208,7 +209,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
           <div>
             <label
               htmlFor="start-date"
-              className="block text-base font-medium mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("timeLog.advancedSearch.startDateRequired")}
             </label>
@@ -233,7 +234,7 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
           <div>
             <label
               htmlFor="end-date"
-              className="block text-base font-medium mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("timeLog.advancedSearch.endDate")}
             </label>

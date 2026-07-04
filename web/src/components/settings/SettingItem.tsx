@@ -4,6 +4,7 @@ import EnumSelect from "@/components/selects/EnumSelect";
 import Checkbox from "@/components/forms/Checkbox";
 import CheckboxGroup from "@/components/forms/CheckboxGroup";
 import TextInput from "@/components/forms/TextInput";
+import { FORM_LABEL_CLASS } from "@/components/forms/styles";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import type { SettingItemConfig } from "./types";
 import type { PreferenceWithBootstrapReturn } from "@/hooks/queries/usePreferenceWithBootstrap";
@@ -255,7 +256,7 @@ const SettingItem: React.FC<SettingItemProps> = ({
         !config.hideLabel && (
           <div
             id={`${getControlId()}-label`}
-            className="block text-base font-medium"
+            className={FORM_LABEL_CLASS}
           >
             {config.label}
           </div>

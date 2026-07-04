@@ -179,7 +179,9 @@ const VisionSelector: React.FC<VisionSelectorProps> = React.memo(
         />
         {hasError && (
           <div className="label">
-            <span className="label-text-alt text-error">{errorMessage}</span>
+            <span className="label-text-alt text-xs text-error">
+              {errorMessage}
+            </span>
           </div>
         )}
       </div>
