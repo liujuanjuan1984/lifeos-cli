@@ -29,7 +29,6 @@ function HabitItem({
   onEdit,
   onCopy,
   onStatusUpdate,
-  onNotesUpdate,
   t,
 }: {
   habit: Habit;
@@ -42,7 +41,6 @@ function HabitItem({
     action: HabitAction,
     newStatus: string,
   ) => void;
-  onNotesUpdate: (habitId: UUID, action: HabitAction, notes: string) => void;
   t: TFunction;
 }) {
   const parseHabitDate = (value: string) => {
@@ -79,7 +77,7 @@ function HabitItem({
           : current;
     setActionCenterDate(clamped);
   }, [habit.id, habit.start_date, habit.duration_days]);
-  const { actions } = useHabitActions(habit.id, {
+  const { actions, query: actionsQuery } = useHabitActions(habit.id, {
     enabled: isExpanded,
     centerDate: actionCenterDate,
     windowSize: 100,
@@ -248,6 +246,7 @@ function HabitItem({
           {isExpanded && (
             <HabitActionList
               habitId={habit.id}
+              habitTitle={habit.title}
               actions={actions || []}
               durationDays={habit.duration_days}
               startDate={habit.start_date}
@@ -256,9 +255,9 @@ function HabitItem({
               onStatusUpdate={(habitId, action, newStatus) =>
                 onStatusUpdate(habitId, action, newStatus)
               }
-              onNotesUpdate={(habitId, action, notes) =>
-                onNotesUpdate(habitId, action, notes)
-              }
+              onNotesChanged={() => {
+                void actionsQuery.refetch();
+              }}
             />
           )}
         </div>
@@ -288,7 +287,6 @@ function HabitsPage() {
     isLoading,
     error,
     updateActionStatus,
-    updateActionNotes,
     createHabit,
     updateHabit,
     expandedHabits,
@@ -360,13 +358,6 @@ function HabitsPage() {
     [updateActionStatus],
   );
 
-  const handleNotesUpdate = useCallback(
-    async (habitId: UUID, action: HabitAction, notes: string) => {
-      updateActionNotes(habitId, action, notes);
-    },
-    [updateActionNotes],
-  );
-
   const handleCloseForm = useCallback(() => {
     setShowFormModal(false);
     setEditingHabit(null);
@@ -411,7 +402,6 @@ function HabitsPage() {
                   onEdit={handleEditHabit}
                   onCopy={handleCopyHabit}
                   onStatusUpdate={handleStatusUpdate}
-                  onNotesUpdate={handleNotesUpdate}
                   t={t}
                 />
               ))}

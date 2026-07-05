@@ -95,4 +95,35 @@ describe("notesApi", () => {
     expect(requestedUrls).toContain(localUrl(ENDPOINTS.STATS.TAGS_USAGE("note")));
     expect(requestedUrls).toContain(localUrl(ENDPOINTS.NOTES.STATS_PERSONS));
   });
+
+  it("queries notes through the habit_action_id filter", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [],
+          pagination: { page: 1, size: 50, total: 0, pages: 0 },
+          meta: { habit_action_id: "action-1" },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await notesApi.fetchPaged({
+      page: 1,
+      size: 50,
+      habit_action_id: "action-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parsedUrl = new URL(url);
+    expect(url.startsWith(localUrl(ENDPOINTS.NOTES.BASE))).toBe(true);
+    expect(parsedUrl.searchParams.get("habit_action_id")).toBe("action-1");
+    expect(parsedUrl.searchParams.get("page")).toBe("1");
+    expect(parsedUrl.searchParams.get("size")).toBe("50");
+    expect(init.method).toBe("GET");
+  });
 });

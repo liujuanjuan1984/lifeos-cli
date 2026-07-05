@@ -5,8 +5,12 @@ import CreateNoteModal from "./CreateNoteModal";
 import Badge from "@/components/common/Badge";
 import type { TaskWithSubtasks } from "@/services/api";
 import type { Timelog } from "@/services/api/timelogs";
-import type { Note, NoteTimelogSummary } from "@/services/api/notes";
-import { formatTime } from "@/utils/datetime";
+import type {
+  Note,
+  NoteHabitActionSummary,
+  NoteTimelogSummary,
+} from "@/services/api/notes";
+import { formatDate, formatTime } from "@/utils/datetime";
 import { deriveNoteAssociationDefaults } from "@/utils/notes";
 import ActionButton from "./ActionButton";
 import type { UUID } from "@/types/primitive";
@@ -22,6 +26,7 @@ type SharedProps = {
   onClose: () => void;
   defaultCreateOpen?: boolean;
   timezone?: string;
+  onNotesChanged?: () => void;
 };
 
 type TaskContextProps = SharedProps & {
@@ -34,10 +39,19 @@ type TimelogContextProps = SharedProps & {
   timelog: Timelog | null;
 };
 
-type TaskNotesModalProps = TaskContextProps | TimelogContextProps;
+type HabitActionContextProps = SharedProps & {
+  entityType: "habit_action";
+  habitAction: NoteHabitActionSummary | null;
+};
+
+type TaskNotesModalProps =
+  | TaskContextProps
+  | TimelogContextProps
+  | HabitActionContextProps;
 
 export default function TaskNotesModal(props: TaskNotesModalProps) {
   const { isOpen, onClose } = props;
+  const onNotesChanged = props.onNotesChanged;
   const timezone = props.timezone;
   const entityType = props.entityType ?? "task";
   const defaultCreateOpen = props.defaultCreateOpen ?? false;
@@ -46,14 +60,22 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
     entityType === "timelog"
       ? ((props as TimelogContextProps).timelog ?? null)
       : null;
+  const habitAction =
+    entityType === "habit_action"
+      ? ((props as HabitActionContextProps).habitAction ?? null)
+      : null;
   const entityId: UUID | null =
     entityType === "task"
       ? task
         ? task.id
         : null
-      : timelog
-        ? timelog.id
-        : null;
+      : entityType === "timelog"
+        ? timelog
+          ? timelog.id
+          : null
+        : habitAction
+          ? habitAction.id
+          : null;
 
   const { t } = useTranslation();
   const noteCollapsePreference = useNoteCollapsePreference();
@@ -79,8 +101,11 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
     if (entityType === "task") {
       return { task_id: task?.id } as const;
     }
-    return { timelog_id: timelog?.id } as const;
-  }, [entityType, task?.id, timelog?.id]);
+    if (entityType === "timelog") {
+      return { timelog_id: timelog?.id } as const;
+    }
+    return { habit_action_id: habitAction?.id } as const;
+  }, [entityType, habitAction?.id, task?.id, timelog?.id]);
 
   const { notes, isLoading, error, refetch } = useAssociatedNotesController({
     isOpen,
@@ -108,6 +133,7 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
   const handleEditComplete = () => {
     setEditingNote(null);
     refetch();
+    onNotesChanged?.();
   };
 
   const formatFirstTimelogLabel = (
@@ -139,24 +165,46 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
     return t("notes.timelogChipDefault");
   };
 
+  const formatHabitActionLabel = (
+    action?: NoteHabitActionSummary | null,
+  ): string | null => {
+    if (!action) {
+      return null;
+    }
+    const habitLabel =
+      action.habit_title?.trim() ||
+      t("createNoteModal.habitActionHeader.fallbackTitle");
+    return `${habitLabel} · ${formatDate(action.action_date, timezone)} (${action.status})`;
+  };
+
   if (
     (entityType === "task" && !task) ||
-    (entityType === "timelog" && !timelog)
+    (entityType === "timelog" && !timelog) ||
+    (entityType === "habit_action" && !habitAction)
   ) {
     return null;
   }
 
   const headerTitle =
-    entityType === "task" ? t("taskNotes.title") : t("timelogNotes.title");
+    entityType === "task"
+      ? t("taskNotes.title")
+      : entityType === "timelog"
+        ? t("timelogNotes.title")
+        : t("habitActionNotes.title");
 
   const emptyStateTitle =
     entityType === "task"
       ? t("taskNotes.emptyState.title")
-      : t("timelogNotes.emptyState.title");
+      : entityType === "timelog"
+        ? t("timelogNotes.emptyState.title")
+        : t("habitActionNotes.emptyState.title");
   const emptyStateDescription =
     entityType === "task"
       ? t("taskNotes.emptyState.description")
-      : t("timelogNotes.emptyState.description");
+      : entityType === "timelog"
+        ? t("timelogNotes.emptyState.description")
+        : t("habitActionNotes.emptyState.description");
+  const habitActionLabel = formatHabitActionLabel(habitAction);
 
   return (
     <ModalBase
@@ -176,6 +224,12 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
         <p className="text-base text-base-content mb-4">
           {t("taskNotes.taskLabel")}
           {task.content}
+        </p>
+      )}
+      {entityType === "habit_action" && habitActionLabel && (
+        <p className="text-base text-base-content mb-4">
+          {t("habitActionNotes.actionLabel")}
+          {habitActionLabel}
         </p>
       )}
 
@@ -301,6 +355,26 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
               });
             }
 
+            const firstHabitAction = note.habit_actions?.[0] ?? null;
+            const habitActionNoteLabel = formatHabitActionLabel(firstHabitAction);
+            if (habitActionNoteLabel) {
+              associations.push({
+                id: `habit-action-${firstHabitAction?.id ?? `${note.id}-habit-action`}`,
+                type: "habit_action",
+                label: habitActionNoteLabel,
+                icon: (
+                  <Icon
+                    name="repeat"
+                    size={16}
+                    className="text-accent"
+                    aria-hidden
+                  />
+                ),
+                title: habitActionNoteLabel,
+                disabled: true,
+              });
+            }
+
             const actions = (
               <ActionButton
                 label={t("common.edit")}
@@ -356,6 +430,14 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
                 }
               : undefined
           }
+          preSelectedHabitActionId={
+            entityType === "habit_action" ? habitAction?.id : undefined
+          }
+          preSelectedHabitAction={
+            entityType === "habit_action" && habitAction
+              ? habitAction
+              : undefined
+          }
           preSelectedPersonIds={createModalNoteDefaults?.preSelectedPersonIds}
           lockTaskSelection={
             createModalNoteDefaults?.lockTaskSelection ??
@@ -366,6 +448,7 @@ export default function TaskNotesModal(props: TaskNotesModalProps) {
           }
           onNoteCreated={() => {
             refetch();
+            onNotesChanged?.();
           }}
           timezone={timezone}
         />

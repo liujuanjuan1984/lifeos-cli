@@ -234,6 +234,7 @@ interface NoteListMeta {
   person_id?: UUID | null;
   task_id?: UUID | null;
   timelog_id?: UUID | null;
+  habit_action_id?: UUID | null;
   keyword?: string | null;
   untagged?: boolean | null;
   start_date?: string | null;
@@ -262,6 +263,7 @@ export const notesApi = {
       person_id?: UUID;
       task_id?: UUID;
       timelog_id?: UUID;
+      habit_action_id?: UUID;
       keyword?: string;
       untagged?: boolean;
     },
@@ -278,6 +280,8 @@ export const notesApi = {
       searchParams.append("task_id", params.task_id.toString());
     if (params.timelog_id)
       searchParams.append("timelog_id", params.timelog_id.toString());
+    if (params.habit_action_id)
+      searchParams.append("habit_action_id", params.habit_action_id.toString());
     if (params.untagged) searchParams.append("untagged", "true");
 
     const queryString = searchParams.toString();

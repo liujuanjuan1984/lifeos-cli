@@ -1345,6 +1345,10 @@
     "relatedTaskOptional": "Select related task (optional)",
     "submitText": "Create Note",
     "updateText": "Update Note",
+    "habitActionHeader": {
+      "label": "Linked habit action",
+      "fallbackTitle": "Habit action"
+    },
     "timelogHeader": {
       "label": "Linked timelog",
       "fallbackTitle": "Timelog",
@@ -1824,6 +1828,14 @@
     "emptyState": {
       "title": "No Notes",
       "description": "Notes linked from this time entry will appear here. Capture extra context, reflections, or follow-up items."
+    }
+  },
+  "habitActionNotes": {
+    "title": "Habit Action Notes",
+    "actionLabel": "Habit action: ",
+    "emptyState": {
+      "title": "No Notes",
+      "description": "Notes linked from this habit action will appear here. Capture check-in context or follow-up reflections."
     }
   },
   "taskTimelogs": {

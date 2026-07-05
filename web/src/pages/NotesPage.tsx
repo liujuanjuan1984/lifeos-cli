@@ -236,6 +236,8 @@ function NotesPage() {
       people?: PersonSummary[];
       tags?: Tag[];
       task?: ApiNote["task"];
+      timelogs?: ApiNote["timelogs"];
+      habit_actions?: ApiNote["habit_actions"];
     }): ApiNote | null => {
       if (!n.id) return null;
       return {
@@ -246,6 +248,8 @@ function NotesPage() {
         people: n.people,
         tags: n.tags,
         task: n.task,
+        timelogs: n.timelogs,
+        habit_actions: n.habit_actions,
       };
     },
     [],
@@ -259,6 +263,8 @@ function NotesPage() {
       people?: PersonSummary[];
       tags?: Tag[];
       task?: ApiNote["task"];
+      timelogs?: ApiNote["timelogs"];
+      habit_actions?: ApiNote["habit_actions"];
     }) => {
       const mapped = mapDbNoteToApiNote(note);
       if (!mapped) return;

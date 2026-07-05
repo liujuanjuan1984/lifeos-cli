@@ -72,11 +72,7 @@ export interface PlanningTaskGroupHandlers {
     newStatus: string,
   ) => Promise<void>;
 
-  handleHabitActionNotesUpdate: (
-    actionId: UUID,
-    habitId: UUID,
-    notes: string,
-  ) => Promise<void>;
+  handleHabitActionNotesChanged: () => Promise<void>;
 }
 
 interface PlanningTaskGroupHookResult {
@@ -811,21 +807,9 @@ export function usePlanningTaskGroup(
     [toast, t, habitsQuery],
   );
 
-  const handleHabitActionNotesUpdate = useCallback(
-    async (actionId: UUID, habitId: UUID, notes: string) => {
-      try {
-        await habitsApi.updateAction(habitId, actionId, { notes });
-        await habitsQuery.refetch();
-      } catch (error) {
-        console.error("Failed to update habit action notes:", error);
-        toast.showError(
-          t("planning.messages.habitActionUpdateFailed"),
-          t("planning.messages.habitActionUpdateFailedMessage"),
-        );
-      }
-    },
-    [toast, t, habitsQuery],
-  );
+  const handleHabitActionNotesChanged = useCallback(async () => {
+    await habitsQuery.refetch();
+  }, [habitsQuery]);
 
   const handlers: PlanningTaskGroupHandlers = {
     handleStatusFilterChange: (value) => {
@@ -851,7 +835,7 @@ export function usePlanningTaskGroup(
     handleCarryForwardTasks,
     handleCancelCarryForward,
     handleHabitActionStatusUpdate,
-    handleHabitActionNotesUpdate,
+    handleHabitActionNotesChanged,
   };
 
   return {

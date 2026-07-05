@@ -7,14 +7,12 @@ import {
   HABIT_ACTION_STATUS_OPTIONS,
   HABIT_ACTION_STATUS_CONFIG,
 } from "@/utils/constants";
-import ActionButton, {
-  ActionButtonGroup,
-  EditButton,
-} from "@/components/ActionButton";
+import ActionButton from "@/components/ActionButton";
 import EnumSelect from "@/components/selects/EnumSelect";
-import ModalBase from "@/layouts/ModalBase";
-import { FormField, TextArea } from "@/components/forms";
 import type { UUID } from "@/types/primitive";
+import CreateNoteModal from "@/components/CreateNoteModal";
+import TaskNotesModal from "@/components/TaskNotesModal";
+import type { NoteHabitActionSummary } from "@/services/api/notes";
 import {
   addDays,
   addMonths,
@@ -36,6 +34,7 @@ import {
 interface HabitActionListProps {
   actions: HabitAction[];
   habitId: UUID;
+  habitTitle: string;
   durationDays: number;
   startDate: string;
   centerDate: Date;
@@ -45,23 +44,25 @@ interface HabitActionListProps {
     action: HabitAction,
     newStatus: string,
   ) => void;
-  onNotesUpdate: (habitId: UUID, action: HabitAction, notes: string) => void;
+  onNotesChanged?: () => void;
 }
 
 export function HabitActionList({
   actions,
   habitId,
+  habitTitle,
   durationDays,
   startDate,
   centerDate,
   onCenterDateChange,
   onStatusUpdate,
-  onNotesUpdate,
+  onNotesChanged,
 }: HabitActionListProps) {
   const { t } = useTranslation();
-  const [editingAction, setEditingAction] = useState<HabitAction | null>(null);
-  const [editingNotes, setEditingNotes] = useState("");
-  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [creatingNoteForAction, setCreatingNoteForAction] =
+    useState<HabitAction | null>(null);
+  const [viewingNotesForAction, setViewingNotesForAction] =
+    useState<HabitAction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(centerDate),
   );
@@ -109,20 +110,15 @@ export function HabitActionList({
     onStatusUpdate(habitId, action, newStatus);
   };
 
-  const handleEditNotes = (action: HabitAction) => {
-    setEditingAction(action);
-    setEditingNotes(action.notes || "");
-    setShowNotesDialog(true);
-  };
-
-  const handleSaveNotes = () => {
-    if (editingAction) {
-      onNotesUpdate(habitId, editingAction, editingNotes);
-      setShowNotesDialog(false);
-      setEditingAction(null);
-      setEditingNotes("");
-    }
-  };
+  const buildHabitActionSummary = (
+    action: HabitAction,
+  ): NoteHabitActionSummary => ({
+    id: action.id,
+    habit_id: action.habit_id,
+    habit_title: habitTitle,
+    action_date: action.action_date,
+    status: action.status,
+  });
 
   // Get 5 days centered around selected date
   const getDisplayDays = (centerDate: Date) => {
@@ -382,6 +378,7 @@ export function HabitActionList({
               const canModifyAction = action
                 ? canModify(action)
                 : isTodayDate || isPastDate;
+              const hasNotes = Boolean(action?.notes?.trim());
 
               return (
                 <div
@@ -456,19 +453,40 @@ export function HabitActionList({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {canModifyAction && action && (
+                    {action && (
                       <>
-                        <EditButton onClick={() => handleEditNotes(action)} />
-                        <EnumSelect
-                          id={`status-select-${action.id}`}
-                          value={action.status}
-                          onChange={(value) => {
-                            if (value) {
-                              handleStatusChange(action, value as string);
-                            }
-                          }}
-                          options={HABIT_ACTION_STATUS_OPTIONS}
-                        />
+                        {canModifyAction && (
+                          <ActionButton
+                            label={t("notes.actions.addNote")}
+                            iconName="document-plus"
+                            color="primary"
+                            onClick={() => setCreatingNoteForAction(action)}
+                            iconOnly
+                            ariaLabel={t("notes.actions.addNote")}
+                          />
+                        )}
+                        {hasNotes && (
+                          <ActionButton
+                            label={t("notes.actions.viewNotes")}
+                            iconName="book-open"
+                            color="primary"
+                            onClick={() => setViewingNotesForAction(action)}
+                            iconOnly
+                            ariaLabel={t("notes.actions.viewNotes")}
+                          />
+                        )}
+                        {canModifyAction && (
+                          <EnumSelect
+                            id={`status-select-${action.id}`}
+                            value={action.status}
+                            onChange={(value) => {
+                              if (value) {
+                                handleStatusChange(action, value as string);
+                              }
+                            }}
+                            options={HABIT_ACTION_STATUS_OPTIONS}
+                          />
+                        )}
                       </>
                     )}
 
@@ -485,42 +503,28 @@ export function HabitActionList({
         </div>
       </div>
 
-      {/* Notes Edit Dialog */}
-      <ModalBase
-        isOpen={showNotesDialog}
-        onClose={() => setShowNotesDialog(false)}
-        title={t("habits.actionList.editNotes")}
-        size="md"
-        footer={
-          <ActionButtonGroup splitOpposite>
-            <ActionButton
-              label={t("common.cancel")}
-              color="neutral"
-              variant="ghost"
-              onClick={() => setShowNotesDialog(false)}
-            />
-            <ActionButton
-              label={t("common.save")}
-              color="primary"
-              variant="solid"
-              onClick={handleSaveNotes}
-            />
-          </ActionButtonGroup>
-        }
-      >
-        <FormField
-          label={t("habits.actionList.notesLabel")}
-          htmlFor="habit-notes-textarea"
-        >
-          <TextArea
-            id="habit-notes-textarea"
-            value={editingNotes}
-            onChange={(e) => setEditingNotes(e.target.value)}
-            placeholder={t("habits.actionList.notesPlaceholder")}
-            rows={4}
-          />
-        </FormField>
-      </ModalBase>
+      {creatingNoteForAction && (
+        <CreateNoteModal
+          isOpen={!!creatingNoteForAction}
+          onClose={() => setCreatingNoteForAction(null)}
+          preSelectedHabitActionId={creatingNoteForAction.id}
+          preSelectedHabitAction={buildHabitActionSummary(creatingNoteForAction)}
+          onNoteCreated={() => {
+            setCreatingNoteForAction(null);
+            onNotesChanged?.();
+          }}
+        />
+      )}
+
+      {viewingNotesForAction && (
+        <TaskNotesModal
+          isOpen={!!viewingNotesForAction}
+          onClose={() => setViewingNotesForAction(null)}
+          entityType="habit_action"
+          habitAction={buildHabitActionSummary(viewingNotesForAction)}
+          onNotesChanged={onNotesChanged}
+        />
+      )}
     </div>
   );
 }

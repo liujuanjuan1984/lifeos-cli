@@ -1345,6 +1345,10 @@
     "relatedTaskOptional": "选择关联任务（可选）",
     "submitText": "创建笔记",
     "updateText": "更新笔记",
+    "habitActionHeader": {
+      "label": "关联的习惯打卡",
+      "fallbackTitle": "习惯打卡"
+    },
     "timelogHeader": {
       "label": "关联的时间记录",
       "fallbackTitle": "时间记录",
@@ -1824,6 +1828,14 @@
     "emptyState": {
       "title": "暂无笔记",
       "description": "通过时间日志入口创建的笔记会显示在这里，用它记录更多感受、思考或后续事项。"
+    }
+  },
+  "habitActionNotes": {
+    "title": "习惯打卡笔记",
+    "actionLabel": "习惯打卡：",
+    "emptyState": {
+      "title": "暂无笔记",
+      "description": "关联到这次习惯打卡的笔记会显示在这里，可用于记录打卡背景、感受或后续事项。"
     }
   },
   "taskTimelogs": {

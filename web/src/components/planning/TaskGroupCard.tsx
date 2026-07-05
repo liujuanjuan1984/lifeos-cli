@@ -166,7 +166,7 @@ export const TaskGroupCard: React.FC<TaskGroupCardProps> = ({
         <HabitActionsCard
           habitActions={habitActions}
           onStatusChange={handlers.handleHabitActionStatusUpdate}
-          onNotesChange={handlers.handleHabitActionNotesUpdate}
+          onNotesChanged={handlers.handleHabitActionNotesChanged}
         />
       )}
     </div>
