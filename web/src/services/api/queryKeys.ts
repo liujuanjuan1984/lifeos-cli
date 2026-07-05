@@ -185,7 +185,7 @@ export const habitsKeys = {
   actionsInRange: (filters: {
     startDate: string;
     endDate: string;
-    referenceDate?: string | null;
+    referenceDate: string;
   }) => [...habitsKeys.all, "actions-in-range", filters] as const,
   details: () => [...habitsKeys.all, "detail"] as const,
   detail: (id: UUID) => [...habitsKeys.details(), id] as const,

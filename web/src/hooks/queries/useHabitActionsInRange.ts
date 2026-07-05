@@ -6,7 +6,7 @@ export function useHabitActionsInRange(
   params: {
     startDate: string;
     endDate: string;
-    referenceDate?: string | null;
+    referenceDate: string;
   },
   options?: { enabled?: boolean; staleTimeMs?: number },
 ) {

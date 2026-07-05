@@ -1451,7 +1451,7 @@ def test_list_habit_actions_materializes_listed_occurrences(
         )
 
     session.execute = fake_execute
-    monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(habit_queries, "build_habit_action_views", fake_build_views)
     monkeypatch.setattr(habit_queries, "_materialize_habit_action_for_date", fake_materialize)
 
     views = asyncio.run(habits.list_habit_actions(cast(Any, session), habit_id=habit_id))
@@ -1493,7 +1493,7 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     )
 
     views = asyncio.run(
-        habit_queries._build_habit_action_views(
+        habit_queries.build_habit_action_views(
             cast(Any, object()),
             habit_id=None,
             status=None,
@@ -1505,53 +1505,23 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
 
 
-def test_build_habit_action_views_marks_overdue_synthetic_actions_missed(
+def test_expire_overdue_pending_habit_actions_is_explicit_lifecycle_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     habit_id = UUID("77777777-7777-7777-7777-777777777777")
-    selected_dates = (date(2026, 4, 1), date(2026, 4, 8))
-    habit = SimpleNamespace(
-        id=habit_id,
-        title="Daily Exercise",
-        start_date=date(2026, 4, 1),
-        end_date=date(2026, 4, 30),
-        cadence_frequency="daily",
-        cadence_weekdays=None,
-        cadence_monthdays=None,
+    overdue = SimpleNamespace(
+        id=UUID("88888888-8888-8888-8888-888888888888"),
+        habit_id=habit_id,
+        action_date=date(2026, 4, 1),
+        status="pending",
     )
-
-    async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
-        return [habit]
-
-    async def fake_load_materialized_actions(*args: object, **kwargs: object) -> list[object]:
-        return []
-
-    monkeypatch.setattr(habit_queries, "_load_candidate_habits", fake_load_candidate_habits)
-    monkeypatch.setattr(
-        habit_queries,
-        "_load_materialized_actions_for_habits",
-        fake_load_materialized_actions,
+    materialized_synthetic = SimpleNamespace(
+        id=UUID("99999999-9999-9999-9999-999999999999"),
+        habit_id=habit_id,
+        action_date=date(2026, 4, 1),
+        status="pending",
     )
-
-    views = asyncio.run(
-        habit_queries._build_habit_action_views(
-            cast(Any, object()),
-            habit_id=None,
-            status="miss",
-            action_window=None,
-            target_dates=selected_dates,
-            reference_date=date(2026, 4, 5),
-        )
-    )
-
-    assert [view.action_date for view in views] == [date(2026, 4, 1)]
-    assert views[0].status == "miss"
-
-
-def test_expire_overdue_pending_habit_actions_marks_only_old_pending_rows() -> None:
-    overdue = SimpleNamespace(action_date=date(2026, 4, 1), status="pending")
-    recent = SimpleNamespace(action_date=date(2026, 4, 2), status="pending")
-    completed = SimpleNamespace(action_date=date(2026, 4, 1), status="done")
+    habit = SimpleNamespace(id=habit_id)
 
     class Result:
         def scalars(self) -> list[object]:
@@ -1562,16 +1532,48 @@ def test_expire_overdue_pending_habit_actions_marks_only_old_pending_rows() -> N
 
     session = SimpleNamespace(execute=fake_execute, flush=AsyncMock())
 
-    asyncio.run(
-        habit_queries._expire_overdue_pending_habit_actions(
+    async def fake_build_views(*args: object, **kwargs: object) -> list[object]:
+        assert kwargs["status"] == "pending"
+        assert kwargs["action_window"] == (date(2026, 4, 1), date(2026, 4, 1))
+        return [
+            SimpleNamespace(
+                id=None,
+                habit_id=habit_id,
+                habit_title="Daily Exercise",
+                action_date=date(2026, 4, 1),
+                status="pending",
+                notes=None,
+                created_at=None,
+                updated_at=None,
+                deleted_at=None,
+            )
+        ]
+
+    async def fake_get_habit(*args: object, **kwargs: object) -> object:
+        assert kwargs["habit_id"] == habit_id
+        return habit
+
+    async def fake_materialize(*args: object, **kwargs: object) -> object:
+        assert kwargs["habit"] is habit
+        assert kwargs["action_date"] == date(2026, 4, 1)
+        return materialized_synthetic
+
+    monkeypatch.setattr(habit_mutations, "build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
+    monkeypatch.setattr(habit_mutations, "_materialize_habit_action_for_date", fake_materialize)
+
+    expired_count = asyncio.run(
+        habit_mutations.expire_overdue_pending_habit_actions(
             cast(Any, session),
             reference_date=date(2026, 4, 5),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 8),
         )
     )
 
+    assert expired_count == 2
     assert overdue.status == "miss"
-    assert recent.status == "pending"
-    assert completed.status == "done"
+    assert materialized_synthetic.status == "miss"
     session.flush.assert_awaited_once()
 
 
@@ -1607,7 +1609,7 @@ def test_build_habit_action_views_stops_after_status_change_date(
     )
 
     views = asyncio.run(
-        habit_queries._build_habit_action_views(
+        habit_queries.build_habit_action_views(
             cast(Any, object()),
             habit_id=None,
             status=None,
@@ -1652,13 +1654,8 @@ def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
             ),
         ]
 
-    monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(habit_queries, "build_habit_action_views", fake_build_views)
     monkeypatch.setattr(habit_queries, "refresh_habit_expiration", AsyncMock(return_value=0))
-    monkeypatch.setattr(
-        habit_queries,
-        "_expire_overdue_pending_habit_actions",
-        AsyncMock(return_value=None),
-    )
 
     views = asyncio.run(
         habits.list_habit_actions(

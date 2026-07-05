@@ -268,23 +268,27 @@ async def list_actions_in_range(
     session: SessionDep,
     start_date: Annotated[date, Query()],
     end_date: Annotated[date, Query()],
-    reference_date: Annotated[date | None, Query()] = None,
+    reference_date: Annotated[date, Query()],
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=1000)] = 1000,
 ) -> ListResponse:
     """List materialized habit actions for one local planning date range."""
     try:
+        await habit_action_services.expire_overdue_pending_habit_actions(
+            session,
+            reference_date=reference_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
         total = await habit_action_services.count_habit_actions(
             session,
             start_date=start_date,
             end_date=end_date,
-            reference_date=reference_date,
         )
         actions = await habit_action_services.list_habit_actions(
             session,
             start_date=start_date,
             end_date=end_date,
-            reference_date=reference_date,
             limit=size,
             offset=(page - 1) * size,
         )
@@ -298,7 +302,7 @@ async def list_actions_in_range(
         meta={
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
-            "reference_date": reference_date.isoformat() if reference_date else None,
+            "reference_date": reference_date.isoformat(),
         },
     )
 

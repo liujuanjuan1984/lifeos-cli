@@ -18,7 +18,6 @@ from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 from lifeos_cli.db.services.habit_support import (
-    HABIT_ACTION_AUTO_MISS_AFTER_DAYS,
     HabitActionLike,
     HabitActionNotFoundError,
     HabitNotFoundError,
@@ -129,52 +128,6 @@ async def _materialize_habit_action_for_date(
     await session.flush()
     await session.refresh(action)
     return action
-
-
-async def _expire_overdue_pending_habit_actions(
-    session: AsyncSession,
-    *,
-    reference_date: date,
-    habit_id: UUID | None = None,
-) -> None:
-    cutoff_date = reference_date - timedelta(days=HABIT_ACTION_AUTO_MISS_AFTER_DAYS)
-    stmt = select(HabitAction).where(
-        HabitAction.action_date < cutoff_date,
-        HabitAction.status == "pending",
-        HabitAction.deleted_at.is_(None),
-    )
-    if habit_id is not None:
-        stmt = stmt.where(HabitAction.habit_id == habit_id)
-    actions = list((await session.execute(stmt)).scalars())
-    if not actions:
-        return
-    for action in actions:
-        action.status = "miss"
-    await session.flush()
-
-
-def _resolve_habit_action_reference_date(
-    *,
-    reference_date: date | None,
-    action_window: tuple[date, date] | None,
-    target_dates: tuple[date, ...],
-) -> date:
-    if reference_date is not None:
-        return reference_date
-    if target_dates:
-        return max(target_dates)
-    if action_window is not None:
-        return action_window[1]
-    return get_operational_date()
-
-
-def _is_overdue_pending_habit_action(
-    *,
-    action_date: date,
-    reference_date: date,
-) -> bool:
-    cutoff_date = reference_date - timedelta(days=HABIT_ACTION_AUTO_MISS_AFTER_DAYS)
-    return action_date < cutoff_date
 
 
 def _iter_habit_window_dates(
@@ -293,7 +246,6 @@ def _build_habit_action_views_for_occurrence_dates(
     habit: Habit,
     materialized_actions: list[HabitAction],
     occurrence_dates: list[date],
-    reference_date: date | None,
 ) -> list[HabitActionView]:
     active_actions_by_date = {
         action.action_date: action for action in materialized_actions if action.deleted_at is None
@@ -303,22 +255,13 @@ def _build_habit_action_views_for_occurrence_dates(
     for action_date in occurrence_dates:
         materialized = active_actions_by_date.get(action_date)
         if materialized is None:
-            status = (
-                "miss"
-                if reference_date is not None
-                and _is_overdue_pending_habit_action(
-                    action_date=action_date,
-                    reference_date=reference_date,
-                )
-                else "pending"
-            )
             views.append(
                 _build_habit_action_view(
                     action_id=None,
                     habit_id=habit.id,
                     habit_title=habit.title,
                     action_date=action_date,
-                    status=status,
+                    status="pending",
                     notes=None,
                     created_at=None,
                     updated_at=None,
@@ -343,15 +286,15 @@ def _build_habit_action_views_for_occurrence_dates(
     return views
 
 
-async def _build_habit_action_views(
+async def build_habit_action_views(
     session: AsyncSession,
     *,
     habit_id: UUID | None,
     status: str | None,
     action_window: tuple[date, date] | None,
-    reference_date: date | None = None,
     target_dates: tuple[date, ...] = (),
 ) -> list[HabitActionView]:
+    """Build sparse habit-action occurrence views without mutating status."""
     normalized_target_dates = tuple(deduplicate_preserving_order(target_dates))
     habits = await _load_candidate_habits(
         session,
@@ -408,7 +351,6 @@ async def _build_habit_action_views(
                     habit=habit,
                     materialized_actions=actions_by_habit.get(habit.id, []),
                     occurrence_dates=occurrence_dates,
-                    reference_date=reference_date,
                 )
             )
             continue
@@ -425,7 +367,6 @@ async def _build_habit_action_views(
                     start_date=habit_start,
                     end_date=habit_end,
                 ),
-                reference_date=reference_date,
             )
         )
     if status is not None:
@@ -501,7 +442,7 @@ async def get_habit_stats(session: AsyncSession, *, habit_id: UUID) -> dict[str,
     habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
-    actions = await _build_habit_action_views(
+    actions = await build_habit_action_views(
         session,
         habit_id=habit.id,
         status=None,
@@ -519,7 +460,7 @@ async def get_habit_overview(
     habit = await get_habit(session, habit_id=habit_id)
     if habit is None:
         raise HabitNotFoundError(f"Habit {habit_id} was not found")
-    actions = await _build_habit_action_views(
+    actions = await build_habit_action_views(
         session,
         habit_id=habit.id,
         status=None,
@@ -553,7 +494,7 @@ async def list_habit_overviews(
         return []
     overviews: list[dict[str, object]] = []
     for habit in habits:
-        actions = await _build_habit_action_views(
+        actions = await build_habit_action_views(
             session,
             habit_id=habit.id,
             status=None,
@@ -599,7 +540,6 @@ async def list_habit_actions(
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
-    reference_date: date | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[HabitActionView]:
@@ -609,22 +549,11 @@ async def list_habit_actions(
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
-    resolved_reference_date = _resolve_habit_action_reference_date(
-        reference_date=reference_date,
-        action_window=action_window,
-        target_dates=target_dates,
-    )
-    await _expire_overdue_pending_habit_actions(
-        session,
-        reference_date=resolved_reference_date,
-        habit_id=habit_id,
-    )
-    views = await _build_habit_action_views(
+    views = await build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
         action_window=action_window,
-        reference_date=resolved_reference_date,
         target_dates=target_dates,
     )
     paged_views = views[offset : offset + limit]
@@ -651,12 +580,6 @@ async def list_habit_actions(
             habit=habit,
             action_date=view.action_date,
         )
-        if _is_overdue_pending_habit_action(
-            action_date=action.action_date,
-            reference_date=resolved_reference_date,
-        ):
-            action.status = "miss"
-            await session.flush()
         materialized_by_key[(view.habit_id, view.action_date)] = _build_habit_action_view(
             action_id=action.id,
             habit_id=action.habit_id,
@@ -683,16 +606,11 @@ async def list_habit_actions_in_range(
     """List habit-action occurrence views for an explicit inclusive date range."""
     if end_date < start_date:
         raise HabitValidationError("end_date must be on or after start_date")
-    await _expire_overdue_pending_habit_actions(
-        session,
-        reference_date=end_date,
-    )
-    views = await _build_habit_action_views(
+    views = await build_habit_action_views(
         session,
         habit_id=None,
         status=None,
         action_window=(start_date, end_date),
-        reference_date=end_date,
     )
     return [view for view in views if start_date <= view.action_date <= end_date]
 
@@ -705,7 +623,6 @@ async def count_habit_actions(
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
-    reference_date: date | None = None,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
     await refresh_habit_expiration(session)
@@ -713,22 +630,11 @@ async def count_habit_actions(
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
     )
-    resolved_reference_date = _resolve_habit_action_reference_date(
-        reference_date=reference_date,
-        action_window=action_window,
-        target_dates=target_dates,
-    )
-    await _expire_overdue_pending_habit_actions(
-        session,
-        reference_date=resolved_reference_date,
-        habit_id=habit_id,
-    )
-    views = await _build_habit_action_views(
+    views = await build_habit_action_views(
         session,
         habit_id=habit_id,
         status=status,
         action_window=action_window,
-        reference_date=resolved_reference_date,
         target_dates=target_dates,
     )
     return len(views)

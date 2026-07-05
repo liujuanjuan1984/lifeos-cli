@@ -180,7 +180,7 @@ export const habitsApi = {
   async getActionsInRange(params: {
     startDate: string;
     endDate: string;
-    referenceDate?: string | null;
+    referenceDate: string;
     page?: number;
     size?: number;
   }): Promise<HabitActionRangeListResponse> {
@@ -189,7 +189,7 @@ export const habitsApi = {
       {
         start_date: params.startDate,
         end_date: params.endDate,
-        reference_date: params.referenceDate ?? undefined,
+        reference_date: params.referenceDate,
         page: params.page,
         size: params.size,
       },

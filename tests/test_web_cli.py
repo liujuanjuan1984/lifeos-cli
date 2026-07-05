@@ -1910,8 +1910,13 @@ def test_web_habit_actions_range_passes_reference_date(
 
     from lifeos_web.routers import habits
 
+    captured_expire: dict[str, object] = {}
     captured_count: dict[str, object] = {}
     captured_list: dict[str, object] = {}
+
+    async def fake_expire_overdue_pending_habit_actions(_session: object, **kwargs: object) -> int:
+        captured_expire.update(kwargs)
+        return 0
 
     async def fake_count_habit_actions(_session: object, **kwargs: object) -> int:
         captured_count.update(kwargs)
@@ -1921,6 +1926,11 @@ def test_web_habit_actions_range_passes_reference_date(
         captured_list.update(kwargs)
         return []
 
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "expire_overdue_pending_habit_actions",
+        fake_expire_overdue_pending_habit_actions,
+    )
     monkeypatch.setattr(
         habits.habit_action_services,
         "count_habit_actions",
@@ -1941,12 +1951,15 @@ def test_web_habit_actions_range_passes_reference_date(
         )
     )
 
+    assert captured_expire["start_date"] == date(2026, 4, 1)
+    assert captured_expire["end_date"] == date(2026, 4, 30)
+    assert captured_expire["reference_date"] == date(2026, 4, 9)
     assert captured_count["start_date"] == date(2026, 4, 1)
     assert captured_count["end_date"] == date(2026, 4, 30)
-    assert captured_count["reference_date"] == date(2026, 4, 9)
+    assert "reference_date" not in captured_count
     assert captured_list["start_date"] == date(2026, 4, 1)
     assert captured_list["end_date"] == date(2026, 4, 30)
-    assert captured_list["reference_date"] == date(2026, 4, 9)
+    assert "reference_date" not in captured_list
     assert captured_list["limit"] == 1000
     assert captured_list["offset"] == 0
     assert response.items == []
