@@ -526,7 +526,7 @@
         "dates_use_configured_timezone_and_day_starts_at_preference": "Dates use the configured timezone and `day_starts_at` preference.",
         "event_rows_stay_under_event_section_and_include_their_event_type": "Event rows stay under the event section and include their `event_type`.",
         "event_section_columns_columns": "Event section columns: {columns}.",
-        "habit_action_rows_use_action_date_earlier_pending_rows_remain_visible_until": "Habit action rows use `action_date`; earlier pending rows remain visible until they are completed, missed, or hidden with `--hide-overdue-unfinished`.",
+        "habit_action_rows_use_action_date_earlier_pending_rows_remain_visible_until": "Habit action rows use `action_date`; pending rows more than 3 days before the opened date are automatically marked missed, and recent pending rows remain visible unless hidden with `--hide-overdue-unfinished`.",
         "habit_action_section_columns_columns": "Habit action section columns: {columns}.",
         "hide_overdue_unfinished_planning_tasks_and_habit_actions": "Hide overdue unfinished planning tasks and habit actions",
         "inclusive_schedule_range_end_date": "Inclusive schedule range end date in YYYY-MM-DD format",

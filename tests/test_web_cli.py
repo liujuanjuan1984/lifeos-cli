@@ -1903,6 +1903,60 @@ def test_web_habit_actions_by_date_uses_lifecycle_aware_action_query(
     assert response.items == []
 
 
+def test_web_habit_actions_range_passes_reference_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured_count: dict[str, object] = {}
+    captured_list: dict[str, object] = {}
+
+    async def fake_count_habit_actions(_session: object, **kwargs: object) -> int:
+        captured_count.update(kwargs)
+        return 0
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured_list.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "count_habit_actions",
+        fake_count_habit_actions,
+    )
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_in_range(
+            cast(AsyncSession, object()),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 30),
+            reference_date=date(2026, 4, 9),
+        )
+    )
+
+    assert captured_count["start_date"] == date(2026, 4, 1)
+    assert captured_count["end_date"] == date(2026, 4, 30)
+    assert captured_count["reference_date"] == date(2026, 4, 9)
+    assert captured_list["start_date"] == date(2026, 4, 1)
+    assert captured_list["end_date"] == date(2026, 4, 30)
+    assert captured_list["reference_date"] == date(2026, 4, 9)
+    assert captured_list["limit"] == 1000
+    assert captured_list["offset"] == 0
+    assert response.items == []
+    assert response.meta == {
+        "start_date": "2026-04-01",
+        "end_date": "2026-04-30",
+        "reference_date": "2026-04-09",
+    }
+
+
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

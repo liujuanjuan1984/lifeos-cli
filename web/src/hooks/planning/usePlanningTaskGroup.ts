@@ -10,7 +10,7 @@ import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { useMultipleTaskTimelogs } from "@/hooks/queries/useTaskTimelogs";
-import { useHabitActionsByDate } from "@/hooks/queries/useHabitActionsByDate";
+import { useHabitActionsInRange } from "@/hooks/queries/useHabitActionsInRange";
 import { useTaskExpansionState } from "@/hooks/useTaskExpansionState";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import type {
@@ -18,7 +18,11 @@ import type {
   PlanningGroup,
   PlanningViewType,
 } from "@/utils/calendar";
-import { formatDateInTimezone, formatDuration } from "@/utils/datetime";
+import {
+  formatDateInTimezone,
+  formatDateKey,
+  formatDuration,
+} from "@/utils/datetime";
 import { ACTIVE_TASK_STATUSES, TASK_STATUS_LABELS } from "@/utils/constants";
 
 import type { UUID } from "@/types/primitive";
@@ -160,14 +164,30 @@ export function usePlanningTaskGroup(
     enabled: group.tasks.length > 0,
   });
 
-  const dateKey = useMemo(
-    () => group.date.toLocaleDateString("en-CA"),
-    [group.date],
+  const habitActionRange = useMemo(() => {
+    if (!planningCycleType) return null;
+    const localAdapter = calendarAdapter ?? adapter;
+    const periodRange = localAdapter.getPeriodRange(
+      planningCycleType,
+      group.date,
+    );
+    return {
+      startDate: formatDateKey(new Date(periodRange.start)),
+      endDate: formatDateKey(new Date(periodRange.end)),
+      referenceDate: formatDateKey(group.date),
+    };
+  }, [adapter, calendarAdapter, group.date, planningCycleType]);
+  const habitsQuery = useHabitActionsInRange(
+    habitActionRange ?? {
+      startDate: formatDateKey(group.date),
+      endDate: formatDateKey(group.date),
+      referenceDate: formatDateKey(group.date),
+    },
+    {
+      enabled: Boolean(planningCycleType && showHabitActions && habitActionRange),
+      staleTimeMs: 5 * 60 * 1000,
+    },
   );
-  const habitsQuery = useHabitActionsByDate(dateKey, {
-    enabled: planningCycleType === "day" && showHabitActions,
-    staleTimeMs: 5 * 60 * 1000,
-  });
   const habitActions = (habitsQuery.data || []) as HabitActionWithHabit[];
 
   const { state: statusFilter, setState: setStatusFilter } =
@@ -435,7 +455,7 @@ export function usePlanningTaskGroup(
   const canAddTask = Boolean(planningCycleType);
   const carryForwardCount = carryForwardableTasks.length;
   const showHabitActionsCard =
-    planningCycleType === "day" && showHabitActions && habitActions.length > 0;
+    Boolean(planningCycleType) && showHabitActions && habitActions.length > 0;
 
   const handleVisionFilterChange = useCallback(
     (value: string) => {

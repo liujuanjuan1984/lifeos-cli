@@ -1262,7 +1262,7 @@ def test_habit_task_associations_require_active_tasks(
         def scalars(self) -> list[object]:
             return []
 
-    session = SimpleNamespace()
+    session = SimpleNamespace(flush=AsyncMock())
 
     async def fake_execute(statement: object) -> Result:
         statements.append(statement)
@@ -1299,7 +1299,7 @@ def test_update_habit_action_by_date_uses_existing_update_rules(
     action_id = UUID("88888888-8888-8888-8888-888888888888")
     action_date = date(2026, 4, 9)
     action = SimpleNamespace(id=action_id, action_date=action_date)
-    session = SimpleNamespace()
+    session = SimpleNamespace(flush=AsyncMock())
 
     class Result:
         def scalar_one_or_none(self) -> object:
@@ -1418,7 +1418,7 @@ def test_list_habit_actions_materializes_listed_occurrences(
         def scalars(self) -> list[object]:
             return [SimpleNamespace(id=habit_id, title="Daily Exercise", deleted_at=None)]
 
-    session = SimpleNamespace()
+    session = SimpleNamespace(flush=AsyncMock())
 
     async def fake_execute(statement: object) -> Result:
         return Result()
@@ -1505,6 +1505,76 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
 
 
+def test_build_habit_action_views_marks_overdue_synthetic_actions_missed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    habit_id = UUID("77777777-7777-7777-7777-777777777777")
+    selected_dates = (date(2026, 4, 1), date(2026, 4, 8))
+    habit = SimpleNamespace(
+        id=habit_id,
+        title="Daily Exercise",
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 30),
+        cadence_frequency="daily",
+        cadence_weekdays=None,
+        cadence_monthdays=None,
+    )
+
+    async def fake_load_candidate_habits(*args: object, **kwargs: object) -> list[object]:
+        return [habit]
+
+    async def fake_load_materialized_actions(*args: object, **kwargs: object) -> list[object]:
+        return []
+
+    monkeypatch.setattr(habit_queries, "_load_candidate_habits", fake_load_candidate_habits)
+    monkeypatch.setattr(
+        habit_queries,
+        "_load_materialized_actions_for_habits",
+        fake_load_materialized_actions,
+    )
+
+    views = asyncio.run(
+        habit_queries._build_habit_action_views(
+            cast(Any, object()),
+            habit_id=None,
+            status="miss",
+            action_window=None,
+            target_dates=selected_dates,
+            reference_date=date(2026, 4, 5),
+        )
+    )
+
+    assert [view.action_date for view in views] == [date(2026, 4, 1)]
+    assert views[0].status == "miss"
+
+
+def test_expire_overdue_pending_habit_actions_marks_only_old_pending_rows() -> None:
+    overdue = SimpleNamespace(action_date=date(2026, 4, 1), status="pending")
+    recent = SimpleNamespace(action_date=date(2026, 4, 2), status="pending")
+    completed = SimpleNamespace(action_date=date(2026, 4, 1), status="done")
+
+    class Result:
+        def scalars(self) -> list[object]:
+            return [overdue]
+
+    async def fake_execute(statement: object) -> Result:
+        return Result()
+
+    session = SimpleNamespace(execute=fake_execute, flush=AsyncMock())
+
+    asyncio.run(
+        habit_queries._expire_overdue_pending_habit_actions(
+            cast(Any, session),
+            reference_date=date(2026, 4, 5),
+        )
+    )
+
+    assert overdue.status == "miss"
+    assert recent.status == "pending"
+    assert completed.status == "done"
+    session.flush.assert_awaited_once()
+
+
 def test_build_habit_action_views_stops_after_status_change_date(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1584,6 +1654,11 @@ def test_list_and_count_habit_actions_pass_discrete_dates_to_builder(
 
     monkeypatch.setattr(habit_queries, "_build_habit_action_views", fake_build_views)
     monkeypatch.setattr(habit_queries, "refresh_habit_expiration", AsyncMock(return_value=0))
+    monkeypatch.setattr(
+        habit_queries,
+        "_expire_overdue_pending_habit_actions",
+        AsyncMock(return_value=None),
+    )
 
     views = asyncio.run(
         habits.list_habit_actions(

@@ -35,9 +35,18 @@ describe("habit cache invalidation helpers", () => {
     ).toBe(false);
     expect(predicate({ queryKey: habitsKeys.actionsByDate("2026-07-04") }))
       .toBe(false);
+    expect(
+      predicate({
+        queryKey: habitsKeys.actionsInRange({
+          startDate: "2026-07-01",
+          endDate: "2026-07-31",
+          referenceDate: "2026-07-04",
+        }),
+      }),
+    ).toBe(false);
   });
 
-  it("invalidates habit actions grouped by date", () => {
+  it("invalidates habit actions grouped by planning date windows", () => {
     invalidateHabitActionsByDate(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
@@ -47,6 +56,15 @@ describe("habit cache invalidation helpers", () => {
 
     expect(predicate({ queryKey: habitsKeys.actionsByDate("2026-07-04") }))
       .toBe(true);
+    expect(
+      predicate({
+        queryKey: habitsKeys.actionsInRange({
+          startDate: "2026-07-01",
+          endDate: "2026-07-31",
+          referenceDate: "2026-07-04",
+        }),
+      }),
+    ).toBe(true);
     expect(
       predicate({ queryKey: habitsKeys.actions("habit-1", { page: 1 }) }),
     ).toBe(false);

@@ -144,12 +144,6 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
                             )}
                           </div>
 
-                          {/* 如果有备注，显示简短预览 */}
-                          {action.notes && (
-                            <div className="text-sm text-base-content/60 mt-1 truncate">
-                              {action.notes}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

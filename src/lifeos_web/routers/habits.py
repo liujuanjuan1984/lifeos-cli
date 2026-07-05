@@ -263,6 +263,46 @@ async def list_actions_by_date(
     )
 
 
+@router.get("/actions")
+async def list_actions_in_range(
+    session: SessionDep,
+    start_date: Annotated[date, Query()],
+    end_date: Annotated[date, Query()],
+    reference_date: Annotated[date | None, Query()] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=1000)] = 1000,
+) -> ListResponse:
+    """List materialized habit actions for one local planning date range."""
+    try:
+        total = await habit_action_services.count_habit_actions(
+            session,
+            start_date=start_date,
+            end_date=end_date,
+            reference_date=reference_date,
+        )
+        actions = await habit_action_services.list_habit_actions(
+            session,
+            start_date=start_date,
+            end_date=end_date,
+            reference_date=reference_date,
+            limit=size,
+            offset=(page - 1) * size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    items = [await _action_with_habit_summary(session, action) for action in actions]
+    pages = (total + size - 1) // size if total else 0
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=page, size=size, total=total, pages=pages),
+        meta={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "reference_date": reference_date.isoformat() if reference_date else None,
+        },
+    )
+
+
 @router.get("/{habit_id}/actions")
 async def list_actions_for_habit(
     habit_id: UUID,

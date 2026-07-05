@@ -526,7 +526,7 @@
         "dates_use_configured_timezone_and_day_starts_at_preference": "日期会使用当前配置中的时区和 `day_starts_at` 偏好。",
         "event_rows_stay_under_event_section_and_include_their_event_type": "`event` 行保留在 event 分区下，并包含其 `event_type`。",
         "event_section_columns_columns": "`event` 分区的列为：{columns}。",
-        "habit_action_rows_use_action_date_earlier_pending_rows_remain_visible_until": "`habit-action` 行使用 `action_date`；较早的待处理行会保持可见，直到被完成、标记为 missed，或通过 `--hide-overdue-unfinished` 隐藏。",
+        "habit_action_rows_use_action_date_earlier_pending_rows_remain_visible_until": "`habit-action` 行使用 `action_date`；早于打开日期超过 3 天的 pending 行会自动标记为 missed，较近的 pending 行仍会保持可见，除非通过 `--hide-overdue-unfinished` 隐藏。",
         "habit_action_section_columns_columns": "`habit-action` 分段的列为：{columns}。",
         "hide_overdue_unfinished_planning_tasks_and_habit_actions": "隐藏过时且未完成的规划 `task` 和 `habit-action`",
         "inclusive_schedule_range_end_date": "包含端点的 `schedule` 范围结束日期，格式为 YYYY-MM-DD",
