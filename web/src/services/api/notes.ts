@@ -67,6 +67,7 @@ export interface NoteTimelogSummary {
 export interface NoteHabitActionSummary {
   id: UUID;
   habit_id: UUID;
+  habit_title?: string | null;
   action_date: string;
   status: string;
 }

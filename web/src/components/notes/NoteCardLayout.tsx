@@ -17,7 +17,7 @@ import {
 import ActionButton from "@/components/ActionButton";
 import { Icon } from "@/components/icons";
 
-type AssociationType = "person" | "tag" | "task" | "timelog";
+type AssociationType = "person" | "tag" | "task" | "timelog" | "habit_action";
 
 export interface NoteCardAssociation {
   id: UUID | string;
@@ -77,6 +77,12 @@ const associationPalette = {
     base: "bg-info/10 text-info border-info/20 hover:bg-info/20 hover:border-info/30",
     active: "bg-info text-info-content border-info shadow-sm hover:bg-info",
     focus: "focus-visible:ring-info/40",
+  },
+  habit_action: {
+    base: "bg-accent/10 text-accent border-accent/20 hover:bg-accent/20 hover:border-accent/30",
+    active:
+      "bg-accent text-accent-content border-accent shadow-sm hover:bg-accent",
+    focus: "focus-visible:ring-accent/40",
   },
 } as const;
 

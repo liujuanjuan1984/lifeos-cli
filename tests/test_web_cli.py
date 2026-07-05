@@ -16,6 +16,7 @@ from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services.read_models import (
     EventView,
+    HabitActionSummaryView,
     NoteView,
     PersonSummaryView,
     PersonView,
@@ -2631,6 +2632,15 @@ def test_web_note_payload_exposes_primary_task_for_notes_page() -> None:
         tags=(tag,),
         people=(person,),
         tasks=(task,),
+        habit_actions=(
+            HabitActionSummaryView(
+                id=UUID("88888888-8888-8888-8888-888888888888"),
+                habit_id=UUID("99999999-9999-9999-9999-999999999999"),
+                habit_title="Morning Walk",
+                action_date=date(2026, 7, 5),
+                status="done",
+            ),
+        ),
     )
 
     payload = _note_payload(note)
@@ -2666,6 +2676,15 @@ def test_web_note_payload_exposes_primary_task_for_notes_page() -> None:
             "birth_date": None,
             "location": None,
             "tags": [],
+        }
+    ]
+    assert payload["habit_actions"] == [
+        {
+            "id": "88888888-8888-8888-8888-888888888888",
+            "habit_id": "99999999-9999-9999-9999-999999999999",
+            "habit_title": "Morning Walk",
+            "action_date": "2026-07-05",
+            "status": "done",
         }
     ]
     assert "persons" not in payload

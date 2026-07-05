@@ -153,6 +153,7 @@ def test_note_can_link_to_habit_action() -> None:
 
                 assert [row.id for row in rows] == [created_note.id]
                 assert rows[0].habit_actions[0].id == action.id
+                assert rows[0].habit_actions[0].habit_title == "Walk"
         finally:
             await engine.dispose()
 

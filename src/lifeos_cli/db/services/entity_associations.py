@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 
 from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.event import Event
@@ -348,9 +348,13 @@ async def load_habit_actions_for_sources(
     all_action_ids = {action_id for action_ids in mapping.values() for action_id in action_ids}
     if not all_action_ids:
         return {}
-    stmt = select(HabitAction).where(
-        HabitAction.id.in_(all_action_ids),
-        HabitAction.deleted_at.is_(None),
+    stmt = (
+        select(HabitAction)
+        .options(selectinload(HabitAction.habit))
+        .where(
+            HabitAction.id.in_(all_action_ids),
+            HabitAction.deleted_at.is_(None),
+        )
     )
     rows = await session.execute(stmt)
     actions_by_id = {action.id: action for action in rows.scalars().all()}

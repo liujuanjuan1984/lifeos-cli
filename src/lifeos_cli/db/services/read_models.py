@@ -82,6 +82,7 @@ class HabitActionSummaryView:
 
     id: UUID
     habit_id: UUID
+    habit_title: str | None
     action_date: date
     status: str
 
@@ -314,6 +315,7 @@ def build_habit_action_summary(action: HabitAction) -> HabitActionSummaryView:
     return HabitActionSummaryView(
         id=action.id,
         habit_id=action.habit_id,
+        habit_title=action.habit.title if action.habit is not None else None,
         action_date=action.action_date,
         status=action.status,
     )
