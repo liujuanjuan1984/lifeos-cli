@@ -19,6 +19,12 @@ import {
   type BulkImportWarningCode,
   type BulkImportGlobalErrorCode,
 } from "./parseBulkTimelogInput";
+import {
+  formatDateToken,
+  formatTimeToken,
+  resolveBulkImportDefaultStart,
+  toDateInputValue,
+} from "./bulkImportDefaults";
 import type { ProcessedEntry } from "@/utils/datetime";
 import type { UUID } from "@/types/primitive";
 import type { TaskWithSubtasks } from "@/services/api";
@@ -35,6 +41,7 @@ import { usePersonsList } from "@/hooks/queries/usePersonsList";
 interface TimeLogBulkImportPanelProps {
   selectedDate: Date;
   timezone?: string | null;
+  latestTimelogEndTime?: string | null;
   areaMap: Map<UUID, { name: string; color?: string | null }>;
   preloadedTasks: TaskWithSubtasks[];
   onCancel: () => void;
@@ -49,10 +56,6 @@ const MIN_TEXTAREA_HEIGHT = 200;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_REGEX = /^\d{2}:\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const pad = (value: number): string => value.toString().padStart(2, "0");
-const toDateInputValue = (date: Date): string =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const rowErrorKeys: Record<BulkImportRowErrorCode, string> = {
   line_unrecognized: "timeLog.bulkImport.errors.lineUnrecognized",
@@ -275,31 +278,10 @@ const buildDraftTimelog = (
   };
 };
 
-const formatDateToken = (iso: string, timezone: string): string => {
-  if (!iso) return "";
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return formatter.format(new Date(iso));
-};
-
-const formatTimeToken = (iso: string, timezone: string): string => {
-  if (!iso) return "";
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return formatter.format(new Date(iso));
-};
-
 const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   selectedDate,
   timezone,
+  latestTimelogEndTime,
   areaMap,
   preloadedTasks,
   onCancel,
@@ -311,9 +293,24 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   const { persons: knownPersons } = usePersonsList();
 
   const [startDateInput, setStartDateInput] = useState(
-    toDateInputValue(selectedDate),
+    () =>
+      resolveBulkImportDefaultStart(
+        selectedDate,
+        resolvePreferredTimezone(timezone),
+        latestTimelogEndTime,
+      ).date,
   );
-  const [firstStartTime, setFirstStartTime] = useState("00:00");
+  const [firstStartTime, setFirstStartTime] = useState(
+    () =>
+      resolveBulkImportDefaultStart(
+        selectedDate,
+        resolvePreferredTimezone(timezone),
+        latestTimelogEndTime,
+      ).time,
+  );
+  const [isStartDateCustomized, setIsStartDateCustomized] = useState(false);
+  const [isFirstStartTimeCustomized, setIsFirstStartTimeCustomized] =
+    useState(false);
   const [rawInput, setRawInput] = useState("");
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [globalErrors, setGlobalErrors] = useState<BulkImportMessage[]>([]);
@@ -328,10 +325,24 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
     () => resolvePreferredTimezone(timezone),
     [timezone],
   );
+  const defaultStart = useMemo(
+    () =>
+      resolveBulkImportDefaultStart(
+        selectedDate,
+        effectiveTimezone,
+        latestTimelogEndTime,
+      ),
+    [effectiveTimezone, latestTimelogEndTime, selectedDate],
+  );
 
   useEffect(() => {
-    setStartDateInput(toDateInputValue(selectedDate));
-  }, [selectedDate]);
+    if (!isStartDateCustomized) {
+      setStartDateInput(defaultStart.date);
+    }
+    if (!isFirstStartTimeCustomized) {
+      setFirstStartTime(defaultStart.time);
+    }
+  }, [defaultStart, isFirstStartTimeCustomized, isStartDateCustomized]);
 
   const baseDateString = useMemo(
     () =>
@@ -595,7 +606,7 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
   return (
     <div className="space-y-4">
       <Container padding="lg" borderVariant="subtle" shadow="md">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <div>
             <h2 className="text-xl font-semibold">
               {t("timeLog.bulkImport.modalTitle")}
@@ -606,7 +617,49 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
               })}
             </p>
           </div>
-          <div className="flex gap-2">
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t("timeLog.bulkImport.startDateLabel")}
+            </label>
+            <TextInput
+              type="date"
+              value={startDateInput}
+              onChange={(event) => {
+                setIsStartDateCustomized(true);
+                setStartDateInput(event.target.value);
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t("timeLog.bulkImport.firstStartLabel")}
+            </label>
+            <TextInput
+              type="time"
+              value={firstStartTime}
+              onChange={(event) => {
+                setIsFirstStartTimeCustomized(true);
+                setFirstStartTime(event.target.value);
+              }}
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-1">
+            {t("timeLog.bulkImport.inputLabel")}
+          </label>
+          <TextArea
+            value={rawInput}
+            onChange={(event) => setRawInput(event.target.value)}
+            resize="vertical"
+            rows={6}
+            style={{ minHeight: MIN_TEXTAREA_HEIGHT }}
+            placeholder={t("timeLog.bulkImport.inputPlaceholder")}
+          />
+          {globalErrors.length > 0 && renderMessages(globalErrors, "global")}
+          <div className="mt-3 flex flex-wrap gap-2">
             <ActionButton
               label={t("timeLog.bulkImport.parseButton")}
               color="primary"
@@ -628,42 +681,6 @@ const TimeLogBulkImportPanel: React.FC<TimeLogBulkImportPanelProps> = ({
               }}
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {t("timeLog.bulkImport.startDateLabel")}
-            </label>
-            <TextInput
-              type="date"
-              value={startDateInput}
-              onChange={(event) => setStartDateInput(event.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {t("timeLog.bulkImport.firstStartLabel")}
-            </label>
-            <TextInput
-              type="time"
-              value={firstStartTime}
-              onChange={(event) => setFirstStartTime(event.target.value)}
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="block text-sm font-medium mb-1">
-            {t("timeLog.bulkImport.inputLabel")}
-          </label>
-          <TextArea
-            value={rawInput}
-            onChange={(event) => setRawInput(event.target.value)}
-            resize="vertical"
-            rows={6}
-            style={{ minHeight: MIN_TEXTAREA_HEIGHT }}
-            placeholder={t("timeLog.bulkImport.inputPlaceholder")}
-          />
-          {globalErrors.length > 0 && renderMessages(globalErrors, "global")}
         </div>
       </Container>
 

@@ -1,6 +1,7 @@
 import React, { forwardRef, useId, useImperativeHandle, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Checkbox from "./Checkbox";
+import { FORM_DESCRIPTION_CLASS, FORM_LABEL_CLASS } from "./styles";
 
 interface CheckboxOption {
   /** 选项值 */
@@ -288,7 +289,7 @@ const CheckboxGroup = forwardRef<CheckboxGroupRef, CheckboxGroupProps>(
         {label && (
           <legend
             id={legendId}
-            className="text-sm sm:text-base font-medium text-base-content"
+            className={FORM_LABEL_CLASS}
           >
             {label}
             {required && <span className="text-error ml-1">*</span>}
@@ -296,10 +297,7 @@ const CheckboxGroup = forwardRef<CheckboxGroupRef, CheckboxGroupProps>(
         )}
 
         {description && (
-          <p
-            id={descriptionId}
-            className="text-xs sm:text-sm text-base-content/70"
-          >
+          <p id={descriptionId} className={FORM_DESCRIPTION_CLASS}>
             {description}
           </p>
         )}

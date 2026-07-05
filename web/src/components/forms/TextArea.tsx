@@ -21,7 +21,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ) => {
     const sizeClasses = {
       sm: "h-16 text-xs",
-      md: "h-20 sm:h-24 lg:h-28 text-sm sm:text-base",
+      md: "h-20 sm:h-24 lg:h-28 text-sm",
       lg: "h-32 text-base sm:text-lg",
     } as const;
 

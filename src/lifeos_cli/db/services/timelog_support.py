@@ -121,6 +121,7 @@ class TimelogQueryFilters:
     without_area: bool = False
     task_id: UUID | None = None
     without_task: bool = False
+    with_task: bool = False
     person_id: UUID | None = None
     tag_id: UUID | None = None
     date_values: tuple[date, ...] = ()

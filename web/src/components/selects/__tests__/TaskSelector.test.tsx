@@ -5,6 +5,7 @@ import React from "react";
 import { renderWithProviders, setupTranslationMock } from "@test/utils";
 import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
 import { tasksApi } from "@/services/api/tasks";
+import type { UUID } from "@/types/primitive";
 
 setupTranslationMock();
 
@@ -112,6 +113,7 @@ describe("TaskSelector", () => {
     expect(options.map((option) => option.id)).toEqual([
       SelectorSpecialValue.None,
       SelectorSpecialValue.All,
+      SelectorSpecialValue.Has,
       "task-1",
       "task-2",
     ]);
@@ -154,6 +156,10 @@ describe("TaskSelector", () => {
     onChange(SelectorSpecialValue.All);
     expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.All);
     expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
+
+    onChange(SelectorSpecialValue.Has);
+    expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.Has);
+    expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
   });
 
   it("can map empty selection to the all special value", () => {
@@ -183,6 +189,24 @@ describe("TaskSelector", () => {
     onChange(undefined);
     expect(handleChange).toHaveBeenLastCalledWith(SelectorSpecialValue.All);
     expect(handleTaskSelect).toHaveBeenLastCalledWith(null, undefined);
+  });
+
+  it("does not fetch special task selector values as task ids", async () => {
+    const Component = getTaskSelector();
+
+    renderWithProviders(
+      <Component
+        value={SelectorSpecialValue.Has as unknown as UUID}
+        onChange={vi.fn()}
+        preloadedTasks={preloadedTasks}
+        filterStatus={["todo"]}
+        showSpecialOptions
+        showNoTaskOption
+      />,
+    );
+
+    await waitFor(() => expect(mockAsyncSelect).toHaveBeenCalled());
+    expect(tasksApi.getById).not.toHaveBeenCalled();
   });
 
   it("loads additional task pages from the server on demand", async () => {

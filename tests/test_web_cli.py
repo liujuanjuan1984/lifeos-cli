@@ -18,6 +18,7 @@ from lifeos_cli.db.services.read_models import (
     EventView,
     NoteView,
     PersonSummaryView,
+    PersonView,
     TagSummaryView,
     TagView,
     TaskSummaryView,
@@ -535,9 +536,49 @@ def test_web_general_payloads_exclude_unconsumed_audit_fields() -> None:
     assert "is_soft_deleted" not in person_payload
 
 
+def test_web_person_payload_preserves_tag_categories() -> None:
+    pytest.importorskip("fastapi")
+    from lifeos_web.routers.persons import _person_payload
+
+    payload = _person_payload(
+        PersonView(
+            id=UUID("33333333-3333-3333-3333-333333333333"),
+            name="Ada",
+            description=None,
+            nicknames=(),
+            birth_date=None,
+            location=None,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            tags=(
+                TagSummaryView(
+                    id=UUID("44444444-4444-4444-4444-444444444444"),
+                    name="Shanghai",
+                    entity_type="person",
+                    category="location",
+                ),
+            ),
+        )
+    )
+
+    assert payload["tags"] == [
+        {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "name": "Shanghai",
+            "entity_type": "person",
+            "category": "location",
+            "description": None,
+            "color": None,
+            "created_at": "",
+            "updated_at": "",
+        }
+    ]
+
+
 def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     pytest.importorskip("fastapi")
-    from lifeos_web.routers.persons import _activity_payload
+    from lifeos_web.routers.persons import _activity_payload, _timelog_total_minutes
 
     timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
     payload = _activity_payload(
@@ -557,6 +598,7 @@ def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
     assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
     assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
+    assert _timelog_total_minutes([payload]) == 30
 
 
 def test_web_habit_action_payload_uses_slim_habit_summary(
@@ -1324,6 +1366,26 @@ def test_web_timelog_rejects_task_id_with_without_task() -> None:
     assert "Use either task_id or without_task" in str(getattr(exc_info.value, "detail", ""))
 
 
+def test_web_timelog_rejects_with_task_with_other_task_filters() -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    with pytest.raises(Exception) as exc_info:
+        asyncio.run(
+            timelogs.list_timelogs(
+                cast(AsyncSession, object()),
+                task_id=UUID("11111111-1111-1111-1111-111111111111"),
+                with_task=True,
+            )
+        )
+
+    assert getattr(exc_info.value, "status_code", None) == 400
+    assert "Use only one of task_id, without_task, or with_task" in str(
+        getattr(exc_info.value, "detail", "")
+    )
+
+
 def test_web_timelog_rejects_partial_date_filter() -> None:
     pytest.importorskip("fastapi")
 
@@ -1341,6 +1403,25 @@ def test_web_timelog_rejects_partial_date_filter() -> None:
     assert "start_date and end_date must be provided together" in str(
         getattr(exc_info.value, "detail", "")
     )
+
+
+def test_web_timelog_latest_end_time_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import timelogs
+
+    async def fake_get_latest_timelog_end_time(_session: object) -> datetime | None:
+        return datetime(2026, 7, 4, 16, 30, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(
+        timelogs.timelog_services,
+        "get_latest_timelog_end_time",
+        fake_get_latest_timelog_end_time,
+    )
+
+    response = asyncio.run(timelogs.get_latest_timelog_end_time(cast(AsyncSession, object())))
+
+    assert response == {"end_time": "2026-07-04T16:30:00+00:00"}
 
 
 def test_web_timelog_payload_exposes_linked_task_summary() -> None:
@@ -1589,6 +1670,43 @@ def test_web_vision_update_null_description_and_experience_clear_flags(
     assert captured["clear_area"] is False
 
 
+def test_web_vision_recompute_efforts_calls_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_cli.db.services.visions import VisionEffortRecomputeResult
+    from lifeos_web.routers import visions
+
+    vision_id = UUID("55555555-5555-5555-5555-555555555555")
+    root_id = UUID("11111111-1111-1111-1111-111111111111")
+    captured: dict[str, object] = {}
+
+    async def fake_recompute(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return VisionEffortRecomputeResult(
+            vision_id=vision_id,
+            recomputed_roots=(root_id,),
+        )
+
+    monkeypatch.setattr(
+        visions.vision_services,
+        "recompute_vision_task_efforts",
+        fake_recompute,
+    )
+
+    response = asyncio.run(
+        visions.recompute_vision_efforts(
+            vision_id,
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["vision_id"] == vision_id
+    assert response == {
+        "vision_id": str(vision_id),
+        "recomputed_roots": [str(root_id)],
+    }
+
+
 def test_web_vision_update_area_id_passes_through(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1674,6 +1792,114 @@ def test_web_habit_update_null_fields_translate_to_clear_flags(
     assert captured["clear_description"] is True
     assert captured["clear_weekdays"] is True
     assert captured["clear_task"] is True
+
+
+def test_web_habit_create_passes_repeat_count_and_cadence_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitCreate
+
+    captured: dict[str, object] = {}
+
+    async def fake_create_habit(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(habits.habit_services, "create_habit", fake_create_habit)
+    monkeypatch.setattr(
+        habits,
+        "_habit_model_payload",
+        lambda habit: {"id": str(habit.id)},
+    )
+
+    asyncio.run(
+        habits.create_habit(
+            HabitCreate(
+                title="Weekend calls",
+                start_date=date(2026, 4, 9),
+                repeat_count=3,
+                cadence_frequency="weekly",
+                cadence_weekdays=["saturday", "sunday"],
+                target_per_cycle=1,
+            ),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["duration_days"] is None
+    assert captured["repeat_count"] == 3
+    assert captured["end_date"] is None
+    assert captured["cadence_frequency"] == "weekly"
+    assert captured["cadence_weekdays"] == ["saturday", "sunday"]
+    assert captured["target_per_cycle"] == 1
+
+
+def test_web_habit_update_passes_end_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+    from lifeos_web.schemas import HabitUpdate
+
+    captured: dict[str, object] = {}
+
+    async def fake_update_habit(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(id=UUID("22222222-2222-2222-2222-222222222222"))
+
+    monkeypatch.setattr(habits.habit_services, "update_habit", fake_update_habit)
+    monkeypatch.setattr(
+        habits,
+        "_habit_model_payload",
+        lambda habit: {"id": str(habit.id)},
+    )
+
+    asyncio.run(
+        habits.update_habit(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            HabitUpdate(end_date=date(2026, 5, 1)),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["duration_days"] is None
+    assert captured["repeat_count"] is None
+    assert captured["end_date"] == date(2026, 5, 1)
+
+
+def test_web_habit_actions_by_date_uses_lifecycle_aware_action_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_by_date(
+            date(2026, 4, 9),
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert "habit_status" not in captured
+    assert captured["date_values"] == (date(2026, 4, 9),)
+    assert response.items == []
 
 
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(

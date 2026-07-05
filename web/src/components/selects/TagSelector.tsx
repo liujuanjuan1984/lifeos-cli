@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import AsyncEntityMultiSelect, {
   type MultiSelectOption,
 } from "./AsyncEntityMultiSelect";
+import { CreateNewButton } from "@/components/ActionButton";
+import { InputGroup } from "@/components/forms";
 import type { Tag } from "@/services/api/tags";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
@@ -23,6 +25,8 @@ interface TagSelectorProps {
   showLabel?: boolean;
   showNoTagOption?: boolean;
   className?: string;
+  selectedPlacement?: "inline" | "below";
+  showCreateButton?: boolean;
 }
 
 const sanitizeIds = (ids: UUID[]): UUID[] =>
@@ -43,9 +47,12 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   showLabel = true,
   showNoTagOption = true,
   className = "",
+  selectedPlacement = "inline",
+  showCreateButton = false,
 }) => {
   const { t } = useTranslation();
   const [createdTags, setCreatedTags] = useState<Tag[]>([]);
+  const [inputValue, setInputValue] = useState("");
 
   const sanitizedLocked = useMemo(
     () => sanitizeIds(lockedTagIds ?? []),
@@ -121,6 +128,30 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     [onCreateTag],
   );
 
+  const handleCreateButtonClick = useCallback(async () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    const existing = options.find(
+      (option) => option.label.trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (existing) {
+      handleSelectionChange([...sanitizedSelected, existing.id as UUID]);
+      setInputValue("");
+      return;
+    }
+    const created = await handleCreateOption(trimmed);
+    if (created) {
+      handleSelectionChange([...sanitizedSelected, created.id as UUID]);
+      setInputValue("");
+    }
+  }, [
+    handleCreateOption,
+    handleSelectionChange,
+    inputValue,
+    options,
+    sanitizedSelected,
+  ]);
+
   const renderTag = useCallback(
     ({ option, remove }: { option: MultiSelectOption; remove: () => void }) => {
       const name = option.label;
@@ -181,7 +212,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     [],
   );
 
-  return (
+  const selector = (
     <AsyncEntityMultiSelect
       selectedIds={sanitizedSelected}
       onSelectionChange={handleSelectionChange}
@@ -195,16 +226,38 @@ const TagSelector: React.FC<TagSelectorProps> = ({
       renderTag={renderTag}
       renderOption={renderOption}
       filterOptions={filterOptions}
+      searchValue={inputValue}
+      onSearchChange={setInputValue}
       allowCreation
       onCreateOption={handleCreateOption}
       dropdownClassName={dropdownClassName}
       dropdownZIndexClassName={dropdownZIndexClassName}
       showClearOption={showNoTagOption}
       clearOptionLabel={t("common.none")}
-      className={className}
+      className={showCreateButton ? "" : className}
       label={showLabel ? (label ?? t("target.tags.label")) : undefined}
       showLabel={showLabel}
+      selectedPlacement={selectedPlacement}
     />
+  );
+
+  if (!showCreateButton) {
+    return selector;
+  }
+
+  return (
+    <div className={className}>
+      <InputGroup align="end" wrap={false}>
+        <div className="min-w-0 flex-1">{selector}</div>
+        <CreateNewButton
+          onClick={() => void handleCreateButtonClick()}
+          disabled={disabled || !inputValue.trim()}
+          mode="subtle"
+          showLabel={false}
+          ariaLabel={t("common.add")}
+        />
+      </InputGroup>
+    </div>
   );
 };
 

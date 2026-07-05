@@ -1,4 +1,5 @@
 import React, { useId, useMemo, useRef, useState } from "react";
+import { FORM_LABEL_CLASS } from "./styles";
 
 type SegmentedValue = string;
 
@@ -89,7 +90,7 @@ export default function SegmentedControl({
       {label ? (
         <legend
           id={legendId}
-          className="text-sm sm:text-base font-medium text-base-content"
+          className={FORM_LABEL_CLASS}
         >
           {label}
         </legend>

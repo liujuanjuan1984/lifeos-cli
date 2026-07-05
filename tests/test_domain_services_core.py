@@ -8,9 +8,30 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
+from lifeos_cli.db.base import Base
+from lifeos_cli.db.models.area import Area
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services import areas, people, tags, visions
+from lifeos_cli.db.session import configure_async_engine
+
+
+async def _create_sqlite_session_factory() -> tuple[
+    AsyncEngine,
+    async_sessionmaker[AsyncSession],
+]:
+    engine = configure_async_engine(
+        create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    return engine, async_sessionmaker(engine, expire_on_commit=False, future=True)
 
 
 async def _identity_view(_: object, record: object) -> object:
@@ -116,6 +137,97 @@ def test_create_area_flushes_without_committing(monkeypatch: pytest.MonkeyPatch)
     assert area.name == "Health"
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
+
+
+def test_create_area_restores_soft_deleted_name() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                deleted_area = Area(
+                    name="Focus",
+                    description="Old description",
+                    color="#111111",
+                    icon="old",
+                    is_active=False,
+                    display_order=7,
+                )
+                session.add(deleted_area)
+                await session.flush()
+                deleted_area_id = deleted_area.id
+                deleted_area.soft_delete()
+                await session.commit()
+
+            async with session_factory() as session:
+                restored_area = await areas.create_area(
+                    session,
+                    name=" Focus ",
+                    description="New description",
+                    color="#123456",
+                    icon="spark",
+                    display_order=2,
+                )
+
+                assert restored_area.id == deleted_area_id
+                assert restored_area.name == "Focus"
+                assert restored_area.description == "New description"
+                assert restored_area.color == "#123456"
+                assert restored_area.icon == "spark"
+                assert restored_area.is_active is True
+                assert restored_area.display_order == 2
+                assert restored_area.deleted_at is None
+                await session.commit()
+
+            async with session_factory() as session:
+                visible_areas = await areas.list_areas(session, include_inactive=True)
+
+                assert [area.id for area in visible_areas] == [deleted_area_id]
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+def test_create_area_reactivates_inactive_name() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                inactive_area = Area(
+                    name="Energy",
+                    description="Old description",
+                    color="#111111",
+                    icon="old",
+                    is_active=False,
+                    display_order=7,
+                )
+                session.add(inactive_area)
+                await session.flush()
+                inactive_area_id = inactive_area.id
+                await session.commit()
+
+            async with session_factory() as session:
+                restored_area = await areas.create_area(
+                    session,
+                    name=" Energy ",
+                    description="New description",
+                    color="#123456",
+                    icon="spark",
+                    display_order=2,
+                )
+
+                assert restored_area.id == inactive_area_id
+                assert restored_area.name == "Energy"
+                assert restored_area.description == "New description"
+                assert restored_area.color == "#123456"
+                assert restored_area.icon == "spark"
+                assert restored_area.is_active is True
+                assert restored_area.display_order == 2
+                assert restored_area.deleted_at is None
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
 
 
 def test_update_tag_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch) -> None:

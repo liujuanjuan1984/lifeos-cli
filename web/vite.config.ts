@@ -111,8 +111,6 @@ export default defineConfig(({ mode }) => {
         '@tanstack/react-query',
         'react',
         'react-dom',
-        'three',
-        '@react-three/fiber',
         'luxon',
         'i18next',
         'react-i18next',

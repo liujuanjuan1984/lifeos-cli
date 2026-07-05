@@ -97,7 +97,7 @@ export const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
                 }
               }}
               options={statusFilterOptions}
-              className="text-sm sm:text-base min-w-28 max-w-48"
+              className="text-sm min-w-28 max-w-48"
               autoWidth
             />
             <EnumSelect
@@ -110,7 +110,7 @@ export const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
               }}
               options={visionFilterOptions}
               placeholder={t("planning.filters.vision.label")}
-              className="text-sm sm:text-base min-w-36 max-w-72"
+              className="text-sm min-w-36 max-w-72"
               autoWidth
             />
           </div>

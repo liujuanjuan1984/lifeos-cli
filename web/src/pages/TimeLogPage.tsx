@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type {
   Timelog,
@@ -34,6 +35,8 @@ import { useQueryMode } from "@/hooks/useQueryMode";
 import TimeLogBulkImportPanel from "@/features/timeLog/bulkImport/TimeLogBulkImportPanel";
 import { createModalSessionId } from "@/utils/session";
 import { SelectorSpecialValue } from "@/components/selects/selectorTypes";
+import { timelogsApi } from "@/services/api/timelogs";
+import { timelogsKeys } from "@/services/api/queryKeys";
 
 const TimeLogPage = () => {
   const { t } = useTranslation();
@@ -112,6 +115,32 @@ const TimeLogPage = () => {
       people: activeTimelogForNotes.people,
     });
   }, [activeTimelogForNotes]);
+
+  const latestTimelogEndTimeQuery = useQuery({
+    queryKey: timelogsKeys.latestEndTime(),
+    queryFn: () => timelogsApi.fetchLatestEndTime(),
+    staleTime: 30 * 1000,
+  });
+
+  const currentEntriesLatestEndTime = useMemo(() => {
+    let latestMs = Number.NEGATIVE_INFINITY;
+    let latestEnd: string | null = null;
+
+    processedEntries.forEach((entry) => {
+      if (entry.isPlaceholder || !entry.end_time) return;
+      const endMs = new Date(entry.end_time).getTime();
+      if (Number.isNaN(endMs)) return;
+      if (endMs > latestMs) {
+        latestMs = endMs;
+        latestEnd = entry.end_time;
+      }
+    });
+
+    return latestEnd;
+  }, [processedEntries]);
+
+  const latestTimelogEndTime =
+    latestTimelogEndTimeQuery.data?.end_time ?? currentEntriesLatestEndTime;
 
   // Request concurrency guards - removed as it's now handled in the hook
 
@@ -323,6 +352,7 @@ const TimeLogPage = () => {
         <TimeLogBulkImportPanel
           selectedDate={selectedDate}
           timezone={activeTimezone}
+          latestTimelogEndTime={latestTimelogEndTime}
           areaMap={areaMap}
           preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
           onCancel={() => switchToSingleMode()}
@@ -343,6 +373,7 @@ const TimeLogPage = () => {
                   area_id: advancedSearchParams.area_id,
                   description_keyword: advancedSearchParams.description_keyword,
                   task_id: advancedSearchParams.task_id,
+                  with_task: advancedSearchParams.with_task,
                 }}
                 onParamsChange={(params) => {
                   setAdvancedSearchParams({
@@ -359,6 +390,7 @@ const TimeLogPage = () => {
                           : null,
                     description_keyword: params.description_keyword,
                     task_id: params.task_id,
+                    with_task: params.with_task,
                   });
                 }}
                 onSearch={handleAdvancedSearch}
@@ -562,6 +594,10 @@ const TimeLogPage = () => {
                                 )?.content ||
                                 t("timeLog.searchResults.unknownTask"),
                             })}`)}
+                      {advancedSearchParams.with_task &&
+                        ` | ${t("timeLog.searchResults.task", {
+                          task: t("taskSelector.specialOptions.hasTask"),
+                        })}`}
                     </div>
                     <div className="text-base text-primary">
                       {t("timeLog.searchResults.foundRecords", {
@@ -595,7 +631,7 @@ const TimeLogPage = () => {
               queryMode={queryMode}
               areaMap={areaMap}
               preloadedTasks={allFlatTasks as unknown as TaskWithSubtasks[]}
-              disableQuickEntry={showEntryModal}
+              disableQuickEntry={showEntryModal || queryMode === "advanced"}
               selectedAreaId={
                 queryMode === "advanced" ? null : selectedAreaId
               }

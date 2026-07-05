@@ -83,6 +83,7 @@ export function useTimeLogAdvancedInteractions({
       area_name: null,
       description_keyword: null,
       task_id: undefined,
+      with_task: false,
     };
 
     setAdvancedSearchParams(resetParams);
@@ -109,11 +110,14 @@ export function useTimeLogAdvancedInteractions({
             ?.name || null
         : null;
 
-    const { task_id, ...restParams } = advancedSearchParams;
+    const { task_id, with_task, ...restParams } = advancedSearchParams;
     const normalizedTaskId =
-      typeof task_id === "string" && task_id === SelectorSpecialValue.All
+      typeof task_id === "string" &&
+      (task_id === SelectorSpecialValue.All || task_id === SelectorSpecialValue.Has)
         ? undefined
         : task_id;
+    const shouldFilterWithTask =
+      with_task || task_id === (SelectorSpecialValue.Has as unknown as UUID);
 
     return {
       ...restParams,
@@ -121,6 +125,7 @@ export function useTimeLogAdvancedInteractions({
         area_id: advancedSearchParams.area_id,
       }),
       ...(normalizedTaskId !== undefined && { task_id: normalizedTaskId }),
+      ...(shouldFilterWithTask && { with_task: true }),
       area_name: areaName,
       sort_order: sortOrder,
     };

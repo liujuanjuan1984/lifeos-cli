@@ -11,6 +11,7 @@ import ActionButton, {
 import ConfirmDialog from "./ConfirmDialog";
 import EnumSelect from "./selects/EnumSelect";
 import { FormField, TextInput, TextArea, Checkbox } from "./forms";
+import { FORM_LABEL_COMPACT_CLASS } from "./forms/styles";
 import { useAreaManagerController } from "@/features/areas/controller/useAreaManagerController";
 
 interface AreaManagerModalProps {
@@ -236,7 +237,7 @@ const AreaManagerModal: React.FC<AreaManagerModalProps> = ({
             </FormField>
 
             <div>
-              <label className="block text-base font-medium text-base-content mb-1">
+              <label className={FORM_LABEL_COMPACT_CLASS}>
                 {t("areaManager.color")}
               </label>
               <div className="flex space-x-2 mb-2">

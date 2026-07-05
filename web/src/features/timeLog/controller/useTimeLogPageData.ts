@@ -29,6 +29,7 @@ export interface TimeLogPageData extends TimeLogDataResult {
     area_name: string | null;
     description_keyword: string | null;
     task_id: UUID | null | undefined;
+    with_task: boolean;
   };
   setAdvancedSearchParams: React.Dispatch<
     React.SetStateAction<{
@@ -38,6 +39,7 @@ export interface TimeLogPageData extends TimeLogDataResult {
       area_name: string | null;
       description_keyword: string | null;
       task_id: UUID | null | undefined;
+      with_task: boolean;
     }>
   >;
   advancedSearch: ReturnType<typeof useAdvancedSearchWithPagination>;
@@ -81,6 +83,7 @@ export function useTimeLogPageData(
       area_name: null as string | null,
       description_keyword: null as string | null,
       task_id: undefined as UUID | null | undefined,
+      with_task: false,
     };
   });
 

@@ -90,6 +90,7 @@ export interface TimelogAdvancedSearchRequest {
   description_keyword?: string | null;
   task_id?: UUID | null;
   without_task?: boolean;
+  with_task?: boolean;
 }
 
 export interface TimelogAdvancedSearchMetadata {
@@ -104,6 +105,7 @@ export interface TimelogAdvancedSearchMetadata {
   description_keyword?: string | null;
   task_id?: UUID | null;
   without_task?: boolean | null;
+  with_task?: boolean | null;
   limit?: number | null;
   returned_count?: number | null;
   total_count?: number | null;
@@ -116,6 +118,10 @@ export type TimelogListResponse = ListResponse<
 >;
 
 export type TimelogAdvancedSearchResponse = TimelogListResponse;
+
+export interface LatestTimelogEndTimeResponse {
+  end_time: string | null;
+}
 
 const TIMELOG_PAGE_SIZE = 500;
 const MAX_TIMELOG_RANGE_PAGES = 100;
@@ -138,6 +144,11 @@ function toTimelogPayload(
 }
 
 export const timelogsApi = {
+  fetchLatestEndTime: () =>
+    http.get<LatestTimelogEndTimeResponse>(
+      ENDPOINTS.TIMELOGS.LATEST_END_TIME,
+    ),
+
   fetchRange: async (start: string, end: string, trackingMethod?: string) => {
     const items: Timelog[] = [];
     let firstResponse: TimelogListResponse | null = null;
@@ -268,6 +279,7 @@ export const timelogsApi = {
       params.without_area ?? params.area_id === null;
     const withoutTask =
       params.without_task ?? params.task_id === null;
+    const withTask = params.with_task ?? false;
     const response = await http.get<TimelogAdvancedSearchResponse>(
       ENDPOINTS.TIMELOGS.BASE,
       {
@@ -281,6 +293,7 @@ export const timelogsApi = {
         area_name: params.area_name ?? undefined,
         task_id: withoutTask ? undefined : (params.task_id ?? undefined),
         without_task: withoutTask || undefined,
+        with_task: withTask || undefined,
         size: 500,
       },
     );
@@ -308,6 +321,9 @@ export const timelogsApi = {
           params.description_keyword ??
           null,
         task_id: response.meta?.task_id ?? params.task_id ?? null,
+        without_task:
+          response.meta?.without_task ?? withoutTask,
+        with_task: response.meta?.with_task ?? withTask,
         limit: response.meta?.limit ?? 500,
         returned_count: response.meta?.returned_count ?? returnedCount,
         total_count: response.meta?.total_count ?? totalCount,

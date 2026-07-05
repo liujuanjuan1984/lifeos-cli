@@ -60,6 +60,7 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
       area_id: string | null | undefined;
       description_keyword: string | null;
       task_id: string | null | undefined;
+      with_task: boolean;
     };
     onParamsChange: (params: {
       start_date: Date;
@@ -67,6 +68,7 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
       area_id: string | null | undefined;
       description_keyword: string | null;
       task_id: string | null | undefined;
+      with_task: boolean;
     }) => void;
     onSearch: () => void;
     onReset: () => void;
@@ -101,6 +103,7 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
           onParamsChange({
             ...params,
             task_id: null,
+            with_task: false,
           })
         }
       >
@@ -112,10 +115,23 @@ vi.mock("@/components/AdvancedSearchPanel", () => ({
           onParamsChange({
             ...params,
             task_id: undefined,
+            with_task: false,
           })
         }
       >
         advanced-set-all-tasks
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onParamsChange({
+            ...params,
+            task_id: undefined,
+            with_task: true,
+          })
+        }
+      >
+        advanced-set-has-task
       </button>
       <button type="button" onClick={onBatchDelete}>
         advanced-batch-delete
@@ -462,6 +478,23 @@ describe("TimeLogPage", () => {
     expect(Object.prototype.hasOwnProperty.call(payload, "task_id")).toBe(
       false,
     );
+  });
+
+  it("sends has task filter in advanced search", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TimeLogPage />);
+
+    await user.click(screen.getByText("switch-advanced"));
+    await user.click(screen.getByText("advanced-set-has-task"));
+    await user.click(screen.getByText("advanced-search"));
+
+    await waitFor(() => expect(advancedSearchMock.search).toHaveBeenCalled());
+    const [payload] = advancedSearchMock.search.mock.calls.at(-1) ?? [];
+    expect(Object.prototype.hasOwnProperty.call(payload, "task_id")).toBe(
+      false,
+    );
+    expect(payload).toEqual(expect.objectContaining({ with_task: true }));
   });
 
   it("does not clear selection before advanced batch delete confirmation", async () => {

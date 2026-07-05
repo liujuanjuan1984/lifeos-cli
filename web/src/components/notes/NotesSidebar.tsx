@@ -78,7 +78,7 @@ export function NotesSidebar({
               value={searchKeyword}
               onChange={(e) => onSearchKeywordChange(e.target.value)}
               placeholder={t("notesSidebar.searchPlaceholder")}
-              className="text-base"
+              className="text-sm"
             />
           </div>
           <div className="flex gap-2">

@@ -86,6 +86,8 @@ interface PersonActivitiesMeta {
   person_id: UUID;
   person_name: string;
   activity_type?: PersonActivityType | null;
+  timelog_count?: number | null;
+  timelog_total_minutes?: number | null;
 }
 
 export type PersonListResponse = ListResponse<PersonSummary, PersonListMeta>;

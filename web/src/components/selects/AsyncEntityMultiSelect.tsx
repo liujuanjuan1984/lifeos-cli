@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useDropdownSurface } from "./useDropdownSurface";
 import type { EntityOption, SelectSize } from "./AsyncEntitySelect";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 
 export type MultiSelectOption = EntityOption;
 
@@ -63,6 +64,7 @@ interface AsyncEntityMultiSelectProps {
   isCreatingOption?: boolean;
   inputAriaDescribedBy?: string;
   selectedContainerMaxHeight?: number;
+  selectedPlacement?: "inline" | "below";
 }
 
 const MENU_ITEM_HEIGHT = 40;
@@ -109,6 +111,7 @@ const AsyncEntityMultiSelect = forwardRef<
     isCreatingOption,
     inputAriaDescribedBy,
     selectedContainerMaxHeight,
+    selectedPlacement = "inline",
   } = props;
 
   const { t } = useTranslation();
@@ -354,6 +357,9 @@ const AsyncEntityMultiSelect = forwardRef<
   };
 
   const sizeClass = deriveInputSizeClass(size);
+  const showSelectedInline = multiple && selectedPlacement === "inline";
+  const showSelectedBelow =
+    multiple && selectedPlacement === "below" && selectedOptions.length > 0;
 
   const containerClassName = [
     "relative",
@@ -369,7 +375,7 @@ const AsyncEntityMultiSelect = forwardRef<
     "input-bordered",
     sizeClass,
     "flex",
-    "flex-wrap",
+    showSelectedInline ? "flex-wrap" : "",
     selectedContainerMaxHeight ? "items-start" : "items-center",
     "gap-2",
     multiple ? "min-h-[2.5rem]" : "",
@@ -544,12 +550,38 @@ const AsyncEntityMultiSelect = forwardRef<
     : isOpen
       ? query
       : (selectedOptions[0]?.label ?? "");
+  const renderSelectedOption = (option: MultiSelectOption) => {
+    const remove = () => handleRemove(option.id);
+    if (renderTag) {
+      return <div key={option.id}>{renderTag({ option, remove })}</div>;
+    }
+    return (
+      <span
+        key={option.id}
+        className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded border border-primary/30"
+      >
+        <span className="truncate max-w-[8rem]">{option.label}</span>
+        {!disabled && (
+          <button
+            type="button"
+            className="text-primary hover:text-primary/70"
+            onClick={(event) => {
+              event.stopPropagation();
+              remove();
+            }}
+          >
+            ×
+          </button>
+        )}
+      </span>
+    );
+  };
 
   return (
     <div ref={containerRef} className={containerClassName}>
       {showLabel && label && (
         <label htmlFor={inputId} className="label">
-          <span className="label-text">{label}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{label}</span>
         </label>
       )}
 
@@ -562,33 +594,7 @@ const AsyncEntityMultiSelect = forwardRef<
           openDropdown();
         }}
       >
-        {multiple &&
-          selectedOptions.map((option) => {
-            const remove = () => handleRemove(option.id);
-            if (renderTag) {
-              return <div key={option.id}>{renderTag({ option, remove })}</div>;
-            }
-            return (
-              <span
-                key={option.id}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded border border-primary/30"
-              >
-                <span className="truncate max-w-[8rem]">{option.label}</span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    className="text-primary hover:text-primary/70"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      remove();
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </span>
-            );
-          })}
+        {showSelectedInline && selectedOptions.map(renderSelectedOption)}
 
         <input
           ref={mergeInputRef}
@@ -601,7 +607,11 @@ const AsyncEntityMultiSelect = forwardRef<
           aria-disabled={disabled}
           disabled={disabled}
           className="flex-1 min-w-[6rem] border-none bg-transparent outline-none focus:outline-none"
-          placeholder={selectedOptions.length === 0 ? effectivePlaceholder : ""}
+          placeholder={
+            selectedOptions.length === 0 || selectedPlacement === "below"
+              ? effectivePlaceholder
+              : ""
+          }
           value={inputValue}
           onFocus={() => {
             if (!disabled) {
@@ -615,6 +625,22 @@ const AsyncEntityMultiSelect = forwardRef<
           onKeyDown={handleInputKeyDown}
         />
       </div>
+
+      {showSelectedBelow && (
+        <div
+          className="mt-2 flex flex-wrap gap-2"
+          style={
+            selectedContainerMaxHeight
+              ? {
+                  maxHeight: selectedContainerMaxHeight,
+                  overflowY: "auto" as const,
+                }
+              : undefined
+          }
+        >
+          {selectedOptions.map(renderSelectedOption)}
+        </div>
+      )}
 
       {dropdownContent}
     </div>

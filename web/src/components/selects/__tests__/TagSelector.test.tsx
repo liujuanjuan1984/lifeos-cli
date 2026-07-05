@@ -151,6 +151,41 @@ describe("TagSelector", () => {
     await waitFor(() => expect(handleChange).toHaveBeenCalledWith(["tag-new"]));
   });
 
+  it("creates a new tag from the explicit add button", async () => {
+    const user = userEvent.setup();
+    const handleChange = vi.fn();
+    const handleCreate = vi.fn(
+      async (name: string): Promise<Tag> => ({
+        id: "tag-new" as UUID,
+        name,
+        entity_type: "task",
+        category: "general",
+        created_at: "2024-01-03T00:00:00Z",
+        updated_at: "2024-01-03T00:00:00Z",
+      }),
+    );
+    const Component = getTagSelector();
+
+    render(
+      <Component
+        availableTags={baseTags}
+        selectedTagIds={[]}
+        onTagsChange={handleChange}
+        onCreateTag={handleCreate}
+        usePortal={false}
+        selectedPlacement="below"
+        showCreateButton
+      />,
+    );
+
+    const input = screen.getByRole("combobox");
+    await user.type(input, "Learning");
+    await user.click(screen.getByRole("button", { name: "common.add" }));
+
+    await waitFor(() => expect(handleCreate).toHaveBeenCalledWith("Learning"));
+    await waitFor(() => expect(handleChange).toHaveBeenCalledWith(["tag-new"]));
+  });
+
   it("removes a selected tag when clicking the pill", async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();

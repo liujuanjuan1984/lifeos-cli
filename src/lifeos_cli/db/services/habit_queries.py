@@ -21,6 +21,7 @@ from lifeos_cli.db.services.habit_support import (
     HabitNotFoundError,
     HabitValidationError,
     build_habit_stats_payload,
+    get_habit_occurrence_end_date,
     habit_occurs_on_date,
     refresh_habit_expiration,
     validate_habit_action_status,
@@ -108,8 +109,10 @@ async def _materialize_habit_action_for_date(
     """Create one materialized dated action for a scheduled occurrence."""
     if not habit_occurs_on_date(
         start_date=habit.start_date,
-        end_date=habit.end_date,
-        cadence_weekdays=habit.cadence_weekdays,
+        end_date=get_habit_occurrence_end_date(habit),
+        cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+        cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+        cadence_monthdays=getattr(habit, "cadence_monthdays", None),
         target_date=action_date,
     ):
         raise HabitActionNotFoundError(
@@ -132,7 +135,7 @@ def _iter_habit_window_dates(
     end_date: date,
 ) -> list[date]:
     effective_start = max(start_date, habit.start_date)
-    effective_end = min(end_date, habit.end_date)
+    effective_end = min(end_date, get_habit_occurrence_end_date(habit))
     if effective_end < effective_start:
         return []
     return [
@@ -143,8 +146,10 @@ def _iter_habit_window_dates(
         )
         if habit_occurs_on_date(
             start_date=habit.start_date,
-            end_date=habit.end_date,
-            cadence_weekdays=habit.cadence_weekdays,
+            end_date=get_habit_occurrence_end_date(habit),
+            cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+            cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+            cadence_monthdays=getattr(habit, "cadence_monthdays", None),
             target_date=current_date,
         )
     ]
@@ -300,8 +305,10 @@ async def _build_habit_action_views(
                 for target_date in normalized_target_dates
                 if habit_occurs_on_date(
                     start_date=habit.start_date,
-                    end_date=habit.end_date,
-                    cadence_weekdays=habit.cadence_weekdays,
+                    end_date=get_habit_occurrence_end_date(habit),
+                    cadence_frequency=getattr(habit, "cadence_frequency", "daily"),
+                    cadence_weekdays=getattr(habit, "cadence_weekdays", None),
+                    cadence_monthdays=getattr(habit, "cadence_monthdays", None),
                     target_date=target_date,
                 )
             ]
@@ -503,6 +510,7 @@ async def list_habit_actions(
     offset: int = 0,
 ) -> list[HabitActionView]:
     """List habit-action occurrence views with optional filters."""
+    await refresh_habit_expiration(session)
     target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)
@@ -583,6 +591,7 @@ async def count_habit_actions(
     end_date: date | None = None,
 ) -> int:
     """Count habit-action occurrence views with the same filters used by list_habit_actions."""
+    await refresh_habit_expiration(session)
     target_dates = tuple(deduplicate_preserving_order(date_values))
     action_window = (
         None if target_dates else _normalize_action_window(start_date=start_date, end_date=end_date)

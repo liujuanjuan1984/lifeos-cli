@@ -1392,7 +1392,8 @@
       "nextPage": "下一页",
       "pageIndicator": "第 {{page}} / {{total}} 页",
       "noActivities": "暂无活动记录",
-      "noActivitiesDescription": "每一次互动都值得被记录。将联系人关联到你的活动中，共同的故事线将在这里展开。"
+      "noActivitiesDescription": "每一次互动都值得被记录。将联系人关联到你的活动中，共同的故事线将在这里展开。",
+      "timelogStats": "{{count}} 条记录，总计 {{duration}}"
     },
     "activityTypes": {
       "vision": "愿景管理",
@@ -1762,19 +1763,34 @@
       "descriptionPlaceholder": "描述这个习惯的意义和目标...",
       "startDateHint": "请选择习惯的开始日期",
       "duration": "持续天数",
+      "cadenceFrequency": "循环方式",
+      "targetPerCycle": "每周期需完成",
+      "weekdays": "每周日期",
+      "monthdays": "每月日期",
+      "monthdaysHint": "留空表示所选历法月内任意日期都可记录。",
+      "monthdaysPlaceholder": "例如：1,15,28",
+      "endMode": "结束方式",
+      "repeatCount": "重复次数",
+      "endDate": "截止日期",
       "status": "习惯状态"
     },
-    "durationOptions": {
-      "7": "7天",
-      "14": "14天",
-      "21": "21天",
-      "100": "100天",
-      "365": "365天",
-      "1000": "1000天"
+    "cadence": {
+      "daily": "每天",
+      "weekly": "每周",
+      "monthly": "每月",
+      "yearly": "每年"
+    },
+    "endMode": {
+      "repeatCount": "按次数",
+      "untilDate": "到日期"
     },
     "validation": {
       "titleRequired": "请输入习惯标题",
-      "startDateRequired": "请选择开始日期"
+      "startDateRequired": "请选择开始日期",
+      "repeatCountRequired": "请输入大于 0 的重复次数",
+      "endDateRequired": "请选择截止日期",
+      "endDateAfterStart": "截止日期不能早于开始日期",
+      "monthdaysInvalid": "每月日期必须是 1 到 31 的数字"
     },
     "messages": {
       "createSuccess": "习惯创建成功",
@@ -1841,7 +1857,8 @@
     "noResults": "没有找到匹配的任务",
     "loadMore": "加载更多任务",
     "specialOptions": {
-      "allTasks": "全部"
+      "allTasks": "全部",
+      "hasTask": "有任务"
     }
   },
   "errorBoundary": {

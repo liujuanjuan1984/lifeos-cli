@@ -69,7 +69,7 @@ export const TaskCreationPanel: React.FC<TaskCreationPanelProps> = ({
             onChange={(event) => onTaskContentChange(event.target.value)}
             placeholder={t("planning.createTask.contentPlaceholder")}
             disabled={isCreatingTask}
-            className="text-base disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();

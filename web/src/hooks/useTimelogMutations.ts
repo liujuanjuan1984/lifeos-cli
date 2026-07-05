@@ -6,6 +6,7 @@ import {
   type QueryLike,
 } from "@/services/api/queryPredicates";
 import {
+  invalidateTimelogLatestEndTime,
   invalidateTimelogLists,
   invalidateTimelogsAdvancedSearch,
   removeTimelogDetailCache,
@@ -53,6 +54,7 @@ export function useTimelogMutations() {
   const scheduleTimelogRefresh = (context: string) => {
     void Promise.all([
       invalidateTimelogLists(queryClient),
+      invalidateTimelogLatestEndTime(queryClient),
       invalidateTimelogsAdvancedSearch(queryClient),
     ]).catch((error) => {
       logger.warn(context, error);

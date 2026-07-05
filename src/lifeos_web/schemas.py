@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+PositiveIntField = Annotated[int, Field(ge=1)]
 
 
 class Pagination(BaseModel):
@@ -161,9 +163,12 @@ class HabitCreate(BaseModel):
     title: str
     description: str | None = None
     start_date: date
-    duration_days: int = Field(..., ge=1)
+    duration_days: PositiveIntField | None = None
+    end_date: date | None = None
+    repeat_count: PositiveIntField | None = None
     cadence_frequency: str | None = None
     cadence_weekdays: list[str] | None = None
+    cadence_monthdays: list[int] | None = None
     target_per_cycle: int | None = None
     task_id: UUID | None = None
 
@@ -174,9 +179,12 @@ class HabitUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     start_date: date | None = None
-    duration_days: int | None = Field(None, ge=1)
+    duration_days: PositiveIntField | None = None
+    end_date: date | None = None
+    repeat_count: PositiveIntField | None = None
     cadence_frequency: str | None = None
     cadence_weekdays: list[str] | None = None
+    cadence_monthdays: list[int] | None = None
     target_per_cycle: int | None = None
     status: str | None = None
     task_id: UUID | None = None

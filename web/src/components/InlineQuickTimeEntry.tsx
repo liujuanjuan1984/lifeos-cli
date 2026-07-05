@@ -24,6 +24,7 @@ import ActionButton, { FormActions } from "./ActionButton";
 import { Icon } from "./icons";
 import TaskSelector from "./selects/TaskSelector";
 import { TextInput } from "./forms";
+import { FORM_LABEL_COMPACT_CLASS } from "./forms/styles";
 import {
   getNearestFiveMinuteTime,
   hhmmOnDateToISO,
@@ -846,7 +847,7 @@ export default function InlineQuickTimeEntry({
           <div className="flex-shrink-0 w-full lg:w-auto mt-4">
             <label
               htmlFor={`${idPrefix}-start-time`}
-              className="block text-base font-medium text-base-content mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("eventModal.fields.startTime")}
             </label>
@@ -868,7 +869,7 @@ export default function InlineQuickTimeEntry({
           <div className="flex-shrink-0 w-full lg:w-auto  mt-4">
             <label
               htmlFor={`${idPrefix}-end-time`}
-              className="block text-base font-medium text-base-content mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("eventModal.fields.endTime")}
             </label>
@@ -890,7 +891,7 @@ export default function InlineQuickTimeEntry({
           <div className="flex-shrink-0 w-full lg:w-auto  mt-4">
             <label
               htmlFor={`${idPrefix}-duration`}
-              className="flex items-center justify-between gap-2 text-base font-medium text-base-content mb-1"
+              className={`${FORM_LABEL_COMPACT_CLASS} flex items-center justify-between gap-2`}
             >
               <span>{t("timeLog.table.duration")}</span>
               <span className="text-sm text-base-content/70 whitespace-nowrap">
@@ -920,7 +921,7 @@ export default function InlineQuickTimeEntry({
           <div className="flex-1  mt-4">
             <label
               htmlFor={`${idPrefix}-title`}
-              className="block text-base font-medium text-base-content mb-1"
+              className={FORM_LABEL_COMPACT_CLASS}
             >
               {t("quickTimeEntry.activity.label")}
             </label>

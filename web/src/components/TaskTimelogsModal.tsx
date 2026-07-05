@@ -110,6 +110,46 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
   const calculateTotalTime = (): string =>
     formatMinutes(Math.max(0, task?.actual_effort_self ?? 0));
 
+  const paginationFooter =
+    !isLoading && !error && safeTotalPages > 1 ? (
+      <div
+        className="flex items-center justify-between gap-3 border-t border-base-300 pt-3"
+        data-testid="task-timelogs-pagination"
+      >
+        <ActionButton
+          label={t("taskTimelogs.previousPage")}
+          size="sm"
+          variant="outline"
+          color="neutral"
+          disabled={!canGoPrev}
+          onClick={() => setPage((current) => Math.max(1, current - 1))}
+        />
+        <div className="flex items-center gap-3 text-sm text-base-content/70">
+          <span>
+            {t("taskTimelogs.pageIndicator", {
+              page,
+              total: safeTotalPages,
+            })}
+          </span>
+          {isFetching && (
+            <span className="text-xs text-base-content/60">
+              {t("common.loading")}
+            </span>
+          )}
+        </div>
+        <ActionButton
+          label={t("taskTimelogs.nextPage")}
+          size="sm"
+          variant="outline"
+          color="neutral"
+          disabled={!canGoNext}
+          onClick={() =>
+            setPage((current) => Math.min(safeTotalPages, current + 1))
+          }
+        />
+      </div>
+    ) : null;
+
   return (
     <ModalBase
       isOpen={isOpen}
@@ -123,11 +163,11 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
       loadingSpinnerSize="md"
       showCloseButton={true}
       errorDisplayMode="inline"
-      bodyOverflow="hidden"
+      footer={paginationFooter}
     >
-      <div className="flex max-h-[calc(100dvh-8rem)] min-h-0 flex-col overflow-hidden md:max-h-[42rem]">
+      <div className="space-y-3">
         {!isLoading && !error && (
-          <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-2 pt-4 pb-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 pt-4 pb-2">
             <div className="min-w-0 text-base">
               {task && (
                 <span className="line-clamp-2">
@@ -153,7 +193,7 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
           hideHeader
           size="lg"
           borderVariant="subtle"
-          className="min-h-0 flex flex-1 flex-col overflow-hidden"
+          contentClassName="overflow-visible"
           columns={[
             {
               key: "date",
@@ -208,7 +248,10 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
           }
         >
           {!isLoading && !error && timelogs.length > 0 && (
-            <div className="overflow-x-auto px-2 py-3">
+            <div
+              className="overflow-x-auto px-2 py-3"
+              data-testid="task-timelogs-scroll-area"
+            >
               <div
                 className="min-w-[760px] grid gap-4"
                 style={{
@@ -233,7 +276,9 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                     t("taskTimelogs.unknownArea");
                   const areaColor =
                     event.area_summary?.color ??
-                    (event.area_id ? areaMap.get(event.area_id)?.color : null) ??
+                    (event.area_id
+                      ? areaMap.get(event.area_id)?.color
+                      : null) ??
                     undefined;
 
                   return (
@@ -272,45 +317,6 @@ const TaskTimelogsModal: React.FC<TaskTimelogsModalProps> = ({
                   );
                 })}
               </div>
-              {safeTotalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
-                  <ActionButton
-                    label={t("taskTimelogs.previousPage")}
-                    size="sm"
-                    variant="outline"
-                    color="neutral"
-                    disabled={!canGoPrev}
-                    onClick={() =>
-                      setPage((current) => Math.max(1, current - 1))
-                    }
-                  />
-                  <div className="flex items-center gap-3 text-sm text-base-content/70">
-                    <span>
-                      {t("taskTimelogs.pageIndicator", {
-                        page,
-                        total: safeTotalPages,
-                      })}
-                    </span>
-                    {isFetching && (
-                      <span className="text-xs text-base-content/60">
-                        {t("common.loading")}
-                      </span>
-                    )}
-                  </div>
-                  <ActionButton
-                    label={t("taskTimelogs.nextPage")}
-                    size="sm"
-                    variant="outline"
-                    color="neutral"
-                    disabled={!canGoNext}
-                    onClick={() =>
-                      setPage((current) =>
-                        Math.min(safeTotalPages, current + 1),
-                      )
-                    }
-                  />
-                </div>
-              )}
             </div>
           )}
         </ListContainer>

@@ -16,6 +16,12 @@ export const invalidateTimelogLists = (queryClient: QueryClient) =>
     predicate: (query) => isTimelogsListQuery(query as QueryLike),
   });
 
+export const invalidateTimelogLatestEndTime = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({
+    queryKey: timelogsKeys.latestEndTime(),
+    exact: true,
+  });
+
 export const invalidateTimelogList = (
   queryClient: QueryClient,
   filters: TimelogListFilters,

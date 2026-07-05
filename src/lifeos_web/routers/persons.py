@@ -54,10 +54,10 @@ def _tag_payload(tag: TagSummaryView) -> dict[str, object]:
     return {
         "id": str(tag.id),
         "name": tag.name,
-        "entity_type": "person",
-        "category": "general",
-        "description": None,
-        "color": None,
+        "entity_type": tag.entity_type or "person",
+        "category": tag.category or "general",
+        "description": tag.description,
+        "color": tag.color,
         "created_at": "",
         "updated_at": "",
     }
@@ -111,6 +111,26 @@ def _activity_payload(
     if extra:
         payload.update(extra)
     return payload
+
+
+def _timelog_total_minutes(items: list[dict[str, object]]) -> int:
+    total = 0
+    for item in items:
+        if item.get("type") != "timelog":
+            continue
+        start = item.get("start_time")
+        end = item.get("end_time")
+        if not isinstance(start, str) or not isinstance(end, str):
+            continue
+        try:
+            start_dt = datetime.fromisoformat(start)
+            end_dt = datetime.fromisoformat(end)
+        except ValueError:
+            continue
+        minutes = round((end_dt - start_dt).total_seconds() / 60)
+        if minutes > 0:
+            total += minutes
+    return total
 
 
 async def _load_person_entity_ids(
@@ -396,6 +416,10 @@ async def list_person_activities(
             "person_id": str(person_id),
             "person_name": person.name,
             "activity_type": activity_filter,
+            "timelog_count": total if activity_filter == "timelog" else None,
+            "timelog_total_minutes": (
+                _timelog_total_minutes(all_items) if activity_filter == "timelog" else None
+            ),
         },
     )
 

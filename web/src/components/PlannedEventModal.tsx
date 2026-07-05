@@ -14,6 +14,7 @@ import { plannedEventsApi } from "@/services/api/plannedEvents";
 import ModalBase from "@/layouts/ModalBase";
 import RecurrenceSelector from "./RecurrenceSelector";
 import { FormField, TextInput, Checkbox, RadioGroup } from "./forms";
+import { FORM_LABEL_SPACED_CLASS } from "./forms/styles";
 import DateTimeSelector from "./forms/DateTimeSelector";
 
 import TaskSelector from "./selects/TaskSelector";
@@ -616,7 +617,7 @@ export default function PlannedEventModal({
             <div>
               <label
                 htmlFor="start-time-selector"
-                className="block text-sm sm:text-base font-medium text-base-content mb-1 sm:mb-2"
+                className={FORM_LABEL_SPACED_CLASS}
               >
                 {t("eventModal.fields.startTime")}{" "}
                 <span className="text-error">*</span>
@@ -649,7 +650,7 @@ export default function PlannedEventModal({
               <div>
                 <label
                   htmlFor="end-time-selector"
-                  className="block text-sm sm:text-base font-medium text-base-content mb-1 sm:mb-2"
+                  className={FORM_LABEL_SPACED_CLASS}
                 >
                   {t("eventModal.fields.endTime")}
                 </label>

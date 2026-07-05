@@ -130,16 +130,6 @@ export const VISION_STATUS_FILTER_OPTIONS = [
 // All available vision statuses for filtering
 export const ALL_VISION_STATUSES = ["active", "archived", "fruit"];
 
-// Habit duration options for form dropdowns
-export const HABIT_DURATION_OPTIONS = [
-  { value: "7", label: t("habitForm.durationOptions.7") },
-  { value: "14", label: t("habitForm.durationOptions.14") },
-  { value: "21", label: t("habitForm.durationOptions.21") },
-  { value: "100", label: t("habitForm.durationOptions.100") },
-  { value: "365", label: t("habitForm.durationOptions.365") },
-  { value: "1000", label: t("habitForm.durationOptions.1000") },
-];
-
 export const HABIT_EDITABLE_DAYS = 10000;
 export const MAX_HABIT_ACTION_WINDOW_DAYS = 100;
 

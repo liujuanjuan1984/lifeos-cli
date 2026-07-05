@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,7 +16,9 @@ from lifeos_cli.application.time_preferences import (
     to_storage_timezone,
 )
 from lifeos_cli.db.models.area import Area
+from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
+from lifeos_cli.db.models.tag import Tag
 from lifeos_cli.db.models.tag_association import tag_associations
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
@@ -29,8 +31,16 @@ from lifeos_cli.db.services.entity_associations import count_sources_for_targets
 from lifeos_cli.db.services.entity_people import load_people_for_entities, sync_entity_people
 from lifeos_cli.db.services.entity_tags import load_tags_for_entities, sync_entity_tags
 from lifeos_cli.db.services.read_models import TimelogView, build_timelog_view
-from lifeos_cli.db.services.task_effort import recompute_task_effort_after_timelog_change
-from lifeos_cli.db.services.timelog_stats import recompute_timelog_stats_groupby_area_after_change
+from lifeos_cli.db.services.task_effort import (
+    recompute_task_effort_after_timelog_change,
+    recompute_totals_upwards,
+)
+from lifeos_cli.db.services.timelog_stats import (
+    iter_local_dates_for_timelog_window,
+    recompute_aggregated_timelog_stats_groupby_area_for_dates,
+    recompute_daily_timelog_stats_groupby_area_for_dates,
+    recompute_timelog_stats_groupby_area_after_change,
+)
 from lifeos_cli.db.services.timelog_support import (
     TimelogAreaReferenceNotFoundError,
     TimelogBatchUpdateInput,
@@ -172,6 +182,85 @@ async def _flush_and_recompute_timelog_dependents(
     await session.flush()
 
 
+def _timelog_change_affects_task_effort(change: _TimelogDependencyChange) -> bool:
+    return (
+        change.previous.task_id != change.current.task_id
+        or change.previous.start_time != change.current.start_time
+        or change.previous.end_time != change.current.end_time
+    )
+
+
+def _timelog_change_affects_area_stats(change: _TimelogDependencyChange) -> bool:
+    return (
+        change.previous.area_id != change.current.area_id
+        or change.previous.start_time != change.current.start_time
+        or change.previous.end_time != change.current.end_time
+    )
+
+
+def _affected_area_stat_dates(change: _TimelogDependencyChange) -> set[date]:
+    affected_dates: set[date] = set()
+    if (
+        change.previous.area_id is not None
+        and change.previous.start_time is not None
+        and change.previous.end_time is not None
+    ):
+        affected_dates.update(
+            iter_local_dates_for_timelog_window(
+                start_time=change.previous.start_time,
+                end_time=change.previous.end_time,
+            )
+        )
+    if (
+        change.current.area_id is not None
+        and change.current.start_time is not None
+        and change.current.end_time is not None
+    ):
+        affected_dates.update(
+            iter_local_dates_for_timelog_window(
+                start_time=change.current.start_time,
+                end_time=change.current.end_time,
+            )
+        )
+    return affected_dates
+
+
+async def _flush_and_recompute_batch_timelog_dependents(
+    session: AsyncSession,
+    *,
+    changes: list[_TimelogDependencyChange],
+) -> None:
+    await session.flush()
+
+    affected_task_ids: list[UUID] = []
+    affected_dates: set[date] = set()
+    for change in changes:
+        if _timelog_change_affects_task_effort(change):
+            affected_task_ids.extend(
+                task_id
+                for task_id in (change.previous.task_id, change.current.task_id)
+                if task_id is not None
+            )
+        if _timelog_change_affects_area_stats(change):
+            affected_dates.update(_affected_area_stat_dates(change))
+
+    for task_id in dict.fromkeys(affected_task_ids):
+        await recompute_totals_upwards(session, task_id)
+
+    local_dates = tuple(sorted(affected_dates))
+    if local_dates:
+        await recompute_daily_timelog_stats_groupby_area_for_dates(
+            session,
+            local_dates=local_dates,
+        )
+        await recompute_aggregated_timelog_stats_groupby_area_for_dates(
+            session,
+            local_dates=local_dates,
+        )
+
+    await session.flush()
+
+
 def _resolve_timelog_times(
     timelog: Timelog,
     changes: TimelogUpdateInput,
@@ -270,27 +359,226 @@ async def _apply_timelog_association_updates(
         )
 
 
-async def _resolve_batch_timelog_title(
+async def _load_batch_timelog_models(
     session: AsyncSession,
     *,
-    timelog_id: UUID,
-    changes: TimelogBatchUpdateInput,
-) -> tuple[str | None, bool]:
-    if changes.find_title_text is None:
-        return changes.title, False
-    timelog = await get_timelog(
-        session,
-        timelog_id=timelog_id,
+    timelog_ids: list[UUID],
+) -> dict[UUID, Timelog]:
+    unique_ids = deduplicate_preserving_order(timelog_ids)
+    if not unique_ids:
+        return {}
+    stmt = select(Timelog).where(
+        Timelog.id.in_(unique_ids),
+        Timelog.deleted_at.is_(None),
     )
-    if timelog is None:
-        raise TimelogNotFoundError(f"Timelog {timelog_id} was not found")
-    replaced_title = timelog.title.replace(
-        changes.find_title_text,
-        changes.replace_title_text,
+    return {timelog.id: timelog for timelog in (await session.execute(stmt)).scalars()}
+
+
+async def _ensure_timelog_people_exist(
+    session: AsyncSession,
+    *,
+    person_ids: list[UUID],
+) -> list[UUID]:
+    unique_person_ids = deduplicate_preserving_order(person_ids)
+    if not unique_person_ids:
+        return []
+    rows = await session.execute(
+        select(Person.id).where(
+            Person.id.in_(unique_person_ids),
+            Person.deleted_at.is_(None),
+        )
     )
-    if replaced_title != timelog.title:
-        return replaced_title, False
-    return None, not changes.has_non_title_update()
+    existing_person_ids = set(rows.scalars().all())
+    missing = [
+        str(person_id) for person_id in unique_person_ids if person_id not in existing_person_ids
+    ]
+    if missing:
+        raise LookupError(f"Unknown person IDs for entity type timelog: {', '.join(missing)}")
+    return unique_person_ids
+
+
+async def _ensure_timelog_tags_exist(
+    session: AsyncSession,
+    *,
+    tag_ids: list[UUID],
+) -> list[UUID]:
+    unique_tag_ids = deduplicate_preserving_order(tag_ids)
+    if not unique_tag_ids:
+        return []
+    rows = await session.execute(
+        select(Tag.id).where(
+            Tag.id.in_(unique_tag_ids),
+            Tag.entity_type == "timelog",
+            Tag.deleted_at.is_(None),
+        )
+    )
+    existing_tag_ids = set(rows.scalars().all())
+    missing = [str(tag_id) for tag_id in unique_tag_ids if tag_id not in existing_tag_ids]
+    if missing:
+        raise LookupError(f"Unknown tag IDs for entity type timelog: {', '.join(missing)}")
+    return unique_tag_ids
+
+
+async def _replace_batch_timelog_people(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+    desired_person_ids: list[UUID],
+    validated_person_ids: list[UUID] | None = None,
+) -> None:
+    unique_timelog_ids = deduplicate_preserving_order(timelog_ids)
+    unique_person_ids = (
+        validated_person_ids
+        if validated_person_ids is not None
+        else await _ensure_timelog_people_exist(
+            session,
+            person_ids=desired_person_ids,
+        )
+    )
+    if not unique_timelog_ids:
+        return
+    await session.execute(
+        delete(person_associations).where(
+            person_associations.c.entity_id.in_(unique_timelog_ids),
+            person_associations.c.entity_type == "timelog",
+        )
+    )
+    if not unique_person_ids:
+        return
+    await session.execute(
+        person_associations.insert(),
+        [
+            {
+                "entity_id": timelog_id,
+                "entity_type": "timelog",
+                "person_id": person_id,
+            }
+            for timelog_id in unique_timelog_ids
+            for person_id in unique_person_ids
+        ],
+    )
+
+
+async def _replace_batch_timelog_tags(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+    desired_tag_ids: list[UUID],
+    validated_tag_ids: list[UUID] | None = None,
+) -> None:
+    unique_timelog_ids = deduplicate_preserving_order(timelog_ids)
+    unique_tag_ids = (
+        validated_tag_ids
+        if validated_tag_ids is not None
+        else await _ensure_timelog_tags_exist(
+            session,
+            tag_ids=desired_tag_ids,
+        )
+    )
+    if not unique_timelog_ids:
+        return
+    await session.execute(
+        delete(tag_associations).where(
+            tag_associations.c.entity_id.in_(unique_timelog_ids),
+            tag_associations.c.entity_type == "timelog",
+        )
+    )
+    if not unique_tag_ids:
+        return
+    await session.execute(
+        tag_associations.insert(),
+        [
+            {
+                "entity_id": timelog_id,
+                "entity_type": "timelog",
+                "tag_id": tag_id,
+            }
+            for timelog_id in unique_timelog_ids
+            for tag_id in unique_tag_ids
+        ],
+    )
+
+
+async def batch_add_timelog_people(
+    session: AsyncSession,
+    *,
+    timelog_ids: list[UUID],
+    person_ids: list[UUID],
+) -> TimelogBatchUpdateResult:
+    """Add people links to multiple timelogs without rewriting unchanged links."""
+    unique_timelog_ids = deduplicate_preserving_order(timelog_ids)
+    timelogs_by_id = await _load_batch_timelog_models(session, timelog_ids=unique_timelog_ids)
+
+    failed_ids: list[UUID] = []
+    errors: list[str] = []
+    for timelog_id in unique_timelog_ids:
+        if timelog_id not in timelogs_by_id:
+            failed_ids.append(timelog_id)
+            errors.append(f"Timelog {timelog_id} was not found")
+
+    active_ids = [timelog_id for timelog_id in unique_timelog_ids if timelog_id in timelogs_by_id]
+    try:
+        unique_person_ids = await _ensure_timelog_people_exist(session, person_ids=person_ids)
+    except LookupError as exc:
+        for timelog_id in active_ids:
+            failed_ids.append(timelog_id)
+            errors.append(str(exc))
+        return TimelogBatchUpdateResult(
+            updated_count=0,
+            unchanged_ids=(),
+            failed_ids=tuple(failed_ids),
+            errors=tuple(errors),
+        )
+
+    if not active_ids:
+        return TimelogBatchUpdateResult(
+            updated_count=0,
+            unchanged_ids=(),
+            failed_ids=tuple(failed_ids),
+            errors=tuple(errors),
+        )
+
+    rows = await session.execute(
+        select(person_associations.c.entity_id, person_associations.c.person_id).where(
+            person_associations.c.entity_type == "timelog",
+            person_associations.c.entity_id.in_(active_ids),
+        )
+    )
+    existing_by_timelog: dict[UUID, set[UUID]] = {timelog_id: set() for timelog_id in active_ids}
+    for timelog_id, person_id in rows.all():
+        existing_by_timelog.setdefault(timelog_id, set()).add(person_id)
+
+    insert_rows: list[dict[str, UUID | str]] = []
+    updated_ids: list[UUID] = []
+    unchanged_ids: list[UUID] = []
+    for timelog_id in active_ids:
+        existing_person_ids = existing_by_timelog.get(timelog_id, set())
+        missing_person_ids = [
+            person_id for person_id in unique_person_ids if person_id not in existing_person_ids
+        ]
+        if not missing_person_ids:
+            unchanged_ids.append(timelog_id)
+            continue
+        updated_ids.append(timelog_id)
+        insert_rows.extend(
+            {
+                "entity_id": timelog_id,
+                "entity_type": "timelog",
+                "person_id": person_id,
+            }
+            for person_id in missing_person_ids
+        )
+
+    if insert_rows:
+        await session.execute(person_associations.insert(), insert_rows)
+        await session.flush()
+
+    return TimelogBatchUpdateResult(
+        updated_count=len(updated_ids),
+        unchanged_ids=tuple(unchanged_ids),
+        failed_ids=tuple(failed_ids),
+        errors=tuple(errors),
+    )
 
 
 def _apply_timelog_filters(stmt: Any, *, filters: TimelogQueryFilters) -> Any:
@@ -341,6 +629,8 @@ def _apply_timelog_area_task_filters(stmt: Any, *, filters: TimelogQueryFilters)
         )
     if filters.without_task:
         stmt = stmt.where(Timelog.task_id.is_(None))
+    elif filters.with_task:
+        stmt = stmt.where(Timelog.task_id.is_not(None))
     elif filters.task_id is not None:
         stmt = stmt.where(Timelog.task_id == filters.task_id)
     return stmt
@@ -563,36 +853,140 @@ async def batch_update_timelogs(
         raise TimelogValidationError("Title find text must not be empty.")
     if not changes.has_update():
         raise TimelogValidationError("At least one batch update option is required.")
+
+    unique_timelog_ids = deduplicate_preserving_order(timelog_ids)
+    timelogs_by_id = await _load_batch_timelog_models(session, timelog_ids=unique_timelog_ids)
     updated_count = 0
     unchanged_ids: list[UUID] = []
     failed_ids: list[UUID] = []
     errors: list[str] = []
 
-    for timelog_id in deduplicate_preserving_order(timelog_ids):
+    reference_error: Exception | None = None
+    if changes.changes.area_id is not None and not changes.changes.clear_area:
         try:
-            next_title, unchanged = await _resolve_batch_timelog_title(
+            await ensure_timelog_area_exists(session, changes.changes.area_id)
+        except TimelogAreaReferenceNotFoundError as exc:
+            reference_error = exc
+    if (
+        reference_error is None
+        and changes.changes.task_id is not None
+        and not changes.changes.clear_task
+    ):
+        try:
+            await ensure_timelog_task_exists(session, changes.changes.task_id)
+        except TimelogTaskReferenceNotFoundError as exc:
+            reference_error = exc
+
+    person_error: Exception | None = None
+    validated_person_ids: list[UUID] | None = None
+    next_person_ids = [] if changes.changes.clear_people else changes.changes.person_ids
+    if next_person_ids is not None:
+        try:
+            validated_person_ids = await _ensure_timelog_people_exist(
                 session,
-                timelog_id=timelog_id,
-                changes=changes,
+                person_ids=next_person_ids,
             )
-            if unchanged:
+        except LookupError as exc:
+            person_error = exc
+
+    tag_error: Exception | None = None
+    validated_tag_ids: list[UUID] | None = None
+    next_tag_ids = [] if changes.changes.clear_tags else changes.changes.tag_ids
+    if next_tag_ids is not None:
+        try:
+            validated_tag_ids = await _ensure_timelog_tags_exist(
+                session,
+                tag_ids=next_tag_ids,
+            )
+        except LookupError as exc:
+            tag_error = exc
+
+    updated_timelog_ids: list[UUID] = []
+    dependency_changes: list[_TimelogDependencyChange] = []
+    for timelog_id in unique_timelog_ids:
+        timelog = timelogs_by_id.get(timelog_id)
+        if timelog is None:
+            failed_ids.append(timelog_id)
+            errors.append(f"Timelog {timelog_id} was not found")
+            continue
+
+        next_title = changes.title
+        if changes.find_title_text is not None:
+            replaced_title = timelog.title.replace(
+                changes.find_title_text,
+                changes.replace_title_text,
+            )
+            if replaced_title != timelog.title:
+                next_title = replaced_title
+            elif not changes.has_non_title_update():
                 unchanged_ids.append(timelog_id)
                 continue
-            await update_timelog(
-                session,
-                timelog_id=timelog_id,
-                changes=replace(changes.changes, title=next_title),
+            else:
+                next_title = None
+
+        if reference_error is not None and changes.has_non_title_update():
+            failed_ids.append(timelog_id)
+            errors.append(str(reference_error))
+            continue
+        if person_error is not None and next_person_ids is not None:
+            failed_ids.append(timelog_id)
+            errors.append(str(person_error))
+            continue
+        if tag_error is not None and next_tag_ids is not None:
+            failed_ids.append(timelog_id)
+            errors.append(str(tag_error))
+            continue
+
+        try:
+            normalized_title = (
+                validate_timelog_title(next_title) if next_title is not None else None
             )
-            updated_count += 1
-        except (
-            TimelogAreaReferenceNotFoundError,
-            TimelogNotFoundError,
-            TimelogTaskReferenceNotFoundError,
-            TimelogValidationError,
-            LookupError,
-        ) as exc:
+        except TimelogValidationError as exc:
             failed_ids.append(timelog_id)
             errors.append(str(exc))
+            continue
+
+        previous_state = _capture_timelog_dependency_snapshot(timelog)
+        if normalized_title is not None:
+            timelog.title = normalized_title
+        if changes.changes.clear_area:
+            timelog.area_id = None
+        elif changes.changes.area_id is not None:
+            timelog.area_id = changes.changes.area_id
+        if changes.changes.clear_task:
+            timelog.task_id = None
+        elif changes.changes.task_id is not None:
+            timelog.task_id = changes.changes.task_id
+
+        updated_timelog_ids.append(timelog_id)
+        dependency_changes.append(
+            _TimelogDependencyChange(
+                previous=previous_state,
+                current=_capture_timelog_dependency_snapshot(timelog),
+            )
+        )
+        updated_count += 1
+
+    if updated_timelog_ids and next_person_ids is not None:
+        await _replace_batch_timelog_people(
+            session,
+            timelog_ids=updated_timelog_ids,
+            desired_person_ids=next_person_ids,
+            validated_person_ids=validated_person_ids,
+        )
+    if updated_timelog_ids and next_tag_ids is not None:
+        await _replace_batch_timelog_tags(
+            session,
+            timelog_ids=updated_timelog_ids,
+            desired_tag_ids=next_tag_ids,
+            validated_tag_ids=validated_tag_ids,
+        )
+
+    if updated_timelog_ids:
+        await _flush_and_recompute_batch_timelog_dependents(
+            session,
+            changes=dependency_changes,
+        )
 
     return TimelogBatchUpdateResult(
         updated_count=updated_count,

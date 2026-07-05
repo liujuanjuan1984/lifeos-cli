@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { invalidateTimelogList } from "@/services/api/cacheInvalidation/timelogs";
+import {
+  invalidateTimelogLatestEndTime,
+  invalidateTimelogList,
+} from "@/services/api/cacheInvalidation/timelogs";
 import { timelogsApi } from "@/services/api/timelogs";
 import { processTimeEntries, type ProcessedEntry } from "@/utils/datetime";
 import { logger } from "@/utils/core";
@@ -145,6 +148,7 @@ export const useTimeLogData = ({
     onSuccess: () => {
       toast.showSuccess("时间日志删除成功！");
       invalidateTimelogList(queryClient, singleDayListFilters);
+      invalidateTimelogLatestEndTime(queryClient);
     },
     onError: (err: Error) => {
       logger.error("Failed to delete entry:", err);
@@ -168,6 +172,7 @@ export const useTimeLogData = ({
         setIsSelectMode(false);
       }
       invalidateTimelogList(queryClient, singleDayListFilters);
+      invalidateTimelogLatestEndTime(queryClient);
     },
     onError: (err: Error) => {
       logger.error("Failed to batch delete entries:", err);

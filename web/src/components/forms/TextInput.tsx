@@ -17,7 +17,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   ({ className = "", size = "md", type = "text", ...rest }, ref) => {
     const sizeClasses = {
       sm: "h-8 text-xs",
-      md: "h-10 sm:h-12 text-sm sm:text-base",
+      md: "h-10 sm:h-12 text-sm",
       lg: "h-14 text-base sm:text-lg",
     } as const;
 

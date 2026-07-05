@@ -15,6 +15,7 @@ import { useVisions } from "@/hooks/queries/useVisions";
 import { tasksApi } from "@/services/api/tasks";
 import { tasksKeys } from "@/services/api/queryKeys";
 import { ACTIVE_TASK_STATUSES } from "@/utils/constants";
+import { SELECT_LABEL_TEXT_CLASS } from "@/components/forms/styles";
 import type { UUID } from "@/types/primitive";
 import { logger } from "@/utils/core";
 
@@ -48,14 +49,22 @@ interface TaskSelectorProps {
 
 type TaskOptionMeta =
   | { kind: "task"; task: TaskWithSubtasks }
-  | { kind: "special"; type: "none" | "all" };
+  | { kind: "special"; type: "none" | "has" | "all" };
 
 type TaskEntityOption = EntityOption & { data: TaskOptionMeta };
 
-const SPECIAL_NONE_ID = SelectorSpecialValue.None as unknown as UUID;
+const SPECIAL_HAS_ID = SelectorSpecialValue.Has as unknown as UUID;
 const SPECIAL_ALL_ID = SelectorSpecialValue.All as unknown as UUID;
 const TASK_SELECTOR_PAGE_SIZE = 50;
 const TASK_SELECTOR_SEARCH_DEBOUNCE_MS = 250;
+const SPECIAL_TASK_SELECTOR_VALUES = new Set<string>([
+  SelectorSpecialValue.None,
+  SelectorSpecialValue.Has,
+  SelectorSpecialValue.All,
+]);
+
+const isSpecialTaskSelectorValue = (value: UUID | null): boolean =>
+  value !== null && SPECIAL_TASK_SELECTOR_VALUES.has(String(value));
 
 const TaskSelector: React.FC<TaskSelectorProps> = (props) => {
   if (props.overrideOptions && props.overrideOptions.length > 0) {
@@ -117,7 +126,7 @@ const TaskSelectorOverride: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-override`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{effectiveLabel}</span>
         </label>
       )}
 
@@ -218,6 +227,12 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
         return;
       }
 
+      if (normalized === SelectorSpecialValue.Has) {
+        onChange(SPECIAL_HAS_ID);
+        onTaskSelect?.(null, undefined);
+        return;
+      }
+
       if (normalized === SelectorSpecialValue.All) {
         onChange(SPECIAL_ALL_ID);
         onTaskSelect?.(null, undefined);
@@ -304,7 +319,7 @@ const TaskSelectorManaged: React.FC<TaskSelectorProps> = ({
     <div className={`relative form-control ${className}`}>
       {showLabel && effectiveLabel && (
         <label htmlFor={`${idPrefix}-input`} className="label">
-          <span className="label-text">{effectiveLabel}</span>
+          <span className={SELECT_LABEL_TEXT_CLASS}>{effectiveLabel}</span>
         </label>
       )}
 
@@ -472,7 +487,7 @@ const useTaskSelectorOptions = (
 
   const selectedTaskId = useMemo<UUID | null>(() => {
     if (!value) return null;
-    if (value === SPECIAL_NONE_ID || value === SPECIAL_ALL_ID) {
+    if (isSpecialTaskSelectorValue(value)) {
       return null;
     }
     return value;
@@ -588,6 +603,14 @@ const useTaskSelectorOptions = (
         {
           kind: "special",
           type: "all",
+        },
+      );
+      ensureOption(
+        SelectorSpecialValue.Has,
+        translator("taskSelector.specialOptions.hasTask"),
+        {
+          kind: "special",
+          type: "has",
         },
       );
     }
