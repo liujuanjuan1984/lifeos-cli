@@ -22,6 +22,8 @@ interface HabitActionsCardProps {
   onNotesChanged?: () => void;
 }
 
+const subduedNoteButtonClass = "opacity-40 hover:opacity-60 transition-opacity";
+
 const getHabitActionStatusStyling = (status: string) => {
   // Map status to icon names
   const statusIconMap: Record<string, IconName> = {
@@ -163,9 +165,11 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
                       <ActionButton
                         label={t("notes.actions.viewNotes")}
                         iconName="book-open"
-                        color="primary"
+                        color={hasLinkedNotes ? "primary" : "neutral"}
+                        className={
+                          hasLinkedNotes ? undefined : subduedNoteButtonClass
+                        }
                         onClick={() => setViewingNotesForAction(action)}
-                        disabled={!hasLinkedNotes}
                         iconOnly
                         ariaLabel={t("notes.actions.viewNotes")}
                       />

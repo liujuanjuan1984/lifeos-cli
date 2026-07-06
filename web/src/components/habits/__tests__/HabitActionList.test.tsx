@@ -42,7 +42,9 @@ describe("HabitActionList", () => {
       name: "notes.actions.viewNotes",
     });
     expect(viewButtons).toHaveLength(2);
-    expect(viewButtons[0]).toBeDisabled();
+    expect(viewButtons[0]).toBeEnabled();
+    expect(viewButtons[0].className).toContain("opacity-40");
     expect(viewButtons[1]).toBeEnabled();
+    expect(viewButtons[1].className).not.toContain("opacity-40");
   });
 });

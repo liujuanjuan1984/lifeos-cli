@@ -47,6 +47,8 @@ interface HabitActionListProps {
   onNotesChanged?: () => void;
 }
 
+const subduedNoteButtonClass = "opacity-40 hover:opacity-60 transition-opacity";
+
 export function HabitActionList({
   actions,
   habitId,
@@ -463,9 +465,11 @@ export function HabitActionList({
                         <ActionButton
                           label={t("notes.actions.viewNotes")}
                           iconName="book-open"
-                          color="primary"
+                          color={hasLinkedNotes ? "primary" : "neutral"}
+                          className={
+                            hasLinkedNotes ? undefined : subduedNoteButtonClass
+                          }
                           onClick={() => setViewingNotesForAction(action)}
-                          disabled={!hasLinkedNotes}
                           iconOnly
                           ariaLabel={t("notes.actions.viewNotes")}
                         />
