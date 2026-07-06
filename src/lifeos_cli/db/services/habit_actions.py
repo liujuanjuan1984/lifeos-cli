@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from lifeos_cli.db.services.habit_mutations import (
-    expire_overdue_pending_habit_actions,
     update_habit_action,
     update_habit_action_by_date,
 )
@@ -37,7 +36,6 @@ __all__ = [
     "InvalidHabitOperationError",
     "VALID_HABIT_ACTION_STATUSES",
     "count_habit_actions",
-    "expire_overdue_pending_habit_actions",
     "get_habit_action",
     "list_habit_actions",
     "list_habit_actions_in_range",

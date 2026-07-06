@@ -12,6 +12,24 @@ from lifeos_cli.db.services import schedules
 from tests.support import make_session_scope, utc_datetime
 
 
+@pytest.fixture(autouse=True)
+def stub_schedule_lifecycle(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        session: object,
+        *,
+        reference_date: date,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        return 0
+
+    monkeypatch.setattr(
+        schedule_handlers.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
+    )
+
+
 def test_main_schedule_show_prints_grouped_sections(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -164,6 +182,59 @@ def test_main_schedule_show_defaults_to_operational_date(
     assert "date: 2026-04-22" in captured.out
 
 
+def test_main_schedule_show_reconciles_habit_action_lifecycle(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_lifecycle: dict[str, date] = {}
+
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        session: object,
+        *,
+        reference_date: date,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        captured_lifecycle.update(
+            reference_date=reference_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return 3
+
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> object:
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            events=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+    monkeypatch.setattr(
+        schedule_handlers.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
+    )
+
+    exit_code = cli.main(["schedule", "show", "--date", "2026-04-10"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured_lifecycle == {
+        "reference_date": date(2026, 4, 10),
+        "start_date": date.min,
+        "end_date": date(2026, 4, 10),
+    }
+    assert "date: 2026-04-10" in captured.out
+
+
 def test_main_schedule_list_rejects_inverted_date_range(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -248,10 +319,80 @@ def test_main_schedule_list_deduplicates_repeated_dates(
     assert captured.out.count("date: 2026-04-10") == 1
 
 
+def test_main_schedule_list_reconciles_lifecycle_against_latest_requested_date(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured_lifecycle: dict[str, date] = {}
+
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        session: object,
+        *,
+        reference_date: date,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        captured_lifecycle.update(
+            reference_date=reference_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return 2
+
+    async def fake_get_schedule_for_date(
+        session: object,
+        *,
+        target_date: date,
+        hide_overdue_unfinished: bool,
+    ) -> schedules.ScheduleDay:
+        return schedules.ScheduleDay(
+            local_date=target_date,
+            tasks=(),
+            habit_actions=(),
+            events=(),
+        )
+
+    monkeypatch.setattr(db_session, "session_scope", make_session_scope())
+    monkeypatch.setattr(schedules, "get_schedule_for_date", fake_get_schedule_for_date)
+    monkeypatch.setattr(
+        schedule_handlers.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
+    )
+
+    exit_code = cli.main(["schedule", "list", "--date", "2026-04-09", "--date", "2026-04-11"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured_lifecycle == {
+        "reference_date": date(2026, 4, 11),
+        "start_date": date.min,
+        "end_date": date(2026, 4, 11),
+    }
+    assert "date: 2026-04-09" in captured.out
+    assert "date: 2026-04-11" in captured.out
+
+
 def test_main_schedule_list_accepts_explicit_date_range(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    captured_lifecycle: dict[str, date] = {}
+
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        session: object,
+        *,
+        reference_date: date,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        captured_lifecycle.update(
+            reference_date=reference_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return 1
+
     async def fake_list_schedule_in_range(
         session: object,
         *,
@@ -279,6 +420,11 @@ def test_main_schedule_list_accepts_explicit_date_range(
 
     monkeypatch.setattr(db_session, "session_scope", make_session_scope())
     monkeypatch.setattr(schedules, "list_schedule_in_range", fake_list_schedule_in_range)
+    monkeypatch.setattr(
+        schedule_handlers.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
+    )
 
     exit_code = cli.main(
         [
@@ -294,6 +440,11 @@ def test_main_schedule_list_accepts_explicit_date_range(
     captured = capsys.readouterr()
 
     assert exit_code == 0
+    assert captured_lifecycle == {
+        "reference_date": date(2026, 4, 11),
+        "start_date": date.min,
+        "end_date": date(2026, 4, 11),
+    }
     assert "date: 2026-04-10" in captured.out
     assert "date: 2026-04-11" in captured.out
 

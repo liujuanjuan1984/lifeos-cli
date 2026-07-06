@@ -16,6 +16,7 @@ from lifeos_cli.db.services import (
     habit_queries,
     habit_support,
     habits,
+    planning_lifecycle,
     task_mutations,
     task_queries,
     task_support,
@@ -1505,7 +1506,7 @@ def test_build_habit_action_views_uses_discrete_target_dates_without_gap_expansi
     assert [view.action_date for view in views] == [date(2026, 4, 1), date(2026, 4, 30)]
 
 
-def test_expire_overdue_pending_habit_actions_is_explicit_lifecycle_step(
+def test_reconcile_planning_habit_action_lifecycle_expires_overdue_pending_actions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     habit_id = UUID("77777777-7777-7777-7777-777777777777")
@@ -1558,12 +1559,16 @@ def test_expire_overdue_pending_habit_actions_is_explicit_lifecycle_step(
         assert kwargs["action_date"] == date(2026, 4, 1)
         return materialized_synthetic
 
-    monkeypatch.setattr(habit_mutations, "build_habit_action_views", fake_build_views)
-    monkeypatch.setattr(habit_mutations, "get_habit", fake_get_habit)
-    monkeypatch.setattr(habit_mutations, "_materialize_habit_action_for_date", fake_materialize)
+    monkeypatch.setattr(planning_lifecycle, "build_habit_action_views", fake_build_views)
+    monkeypatch.setattr(planning_lifecycle, "get_habit", fake_get_habit)
+    monkeypatch.setattr(
+        planning_lifecycle,
+        "_materialize_habit_action_for_date",
+        fake_materialize,
+    )
 
     expired_count = asyncio.run(
-        habit_mutations.expire_overdue_pending_habit_actions(
+        planning_lifecycle.reconcile_planning_habit_action_lifecycle(
             cast(Any, session),
             reference_date=date(2026, 4, 5),
             start_date=date(2026, 4, 1),

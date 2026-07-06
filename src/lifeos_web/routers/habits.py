@@ -13,6 +13,7 @@ from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
 from lifeos_cli.db.services import habits as habit_services
+from lifeos_cli.db.services import planning_lifecycle as planning_lifecycle_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import HabitActionUpdate, HabitCreate, HabitUpdate, ListResponse, Pagination
 from lifeos_web.serialization import to_jsonable
@@ -274,7 +275,7 @@ async def list_actions_in_range(
 ) -> ListResponse:
     """List materialized habit actions for one local planning date range."""
     try:
-        await habit_action_services.expire_overdue_pending_habit_actions(
+        await planning_lifecycle_services.reconcile_planning_habit_action_lifecycle(
             session,
             reference_date=reference_date,
             start_date=start_date,

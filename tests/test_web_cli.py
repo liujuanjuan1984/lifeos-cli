@@ -1914,7 +1914,10 @@ def test_web_habit_actions_range_passes_reference_date(
     captured_count: dict[str, object] = {}
     captured_list: dict[str, object] = {}
 
-    async def fake_expire_overdue_pending_habit_actions(_session: object, **kwargs: object) -> int:
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        _session: object,
+        **kwargs: object,
+    ) -> int:
         captured_expire.update(kwargs)
         return 0
 
@@ -1927,9 +1930,9 @@ def test_web_habit_actions_range_passes_reference_date(
         return []
 
     monkeypatch.setattr(
-        habits.habit_action_services,
-        "expire_overdue_pending_habit_actions",
-        fake_expire_overdue_pending_habit_actions,
+        habits.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
     )
     monkeypatch.setattr(
         habits.habit_action_services,
