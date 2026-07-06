@@ -1330,11 +1330,8 @@
         "friday": "Fri",
         "saturday": "Sat"
       },
-      "notesLabel": "Habit Actions Record",
       "notRecorded": "Not Recorded",
-      "notStarted": "Not Started",
-      "editNotes": "Edit Notes",
-      "notesPlaceholder": "Enter notes content..."
+      "notStarted": "Not Started"
     }
   },
   "createNoteModal": {

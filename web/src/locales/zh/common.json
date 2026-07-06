@@ -1330,11 +1330,8 @@
         "friday": "五",
         "saturday": "六"
       },
-      "notesLabel": "习惯打卡记录",
       "notRecorded": "未记录",
-      "notStarted": "未开始",
-      "editNotes": "编辑备注",
-      "notesPlaceholder": "输入备注内容..."
+      "notStarted": "未开始"
     }
   },
   "createNoteModal": {
