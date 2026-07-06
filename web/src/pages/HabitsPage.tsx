@@ -16,10 +16,12 @@ import StatusBadge from "@/components/StatusBadge";
 import EnumSelect from "@/components/selects/EnumSelect";
 import ExpandableCard from "@/components/ExpandableCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useCalendarAdapter } from "@/hooks/useCalendarAdapter";
 import { useHabitActions } from "@/hooks/queries/useHabitActions";
 import { useHabitStats } from "@/hooks/queries/useHabitStats";
 import { HABIT_STATUS_FILTER_OPTIONS } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
+import type { CalendarAdapter } from "@/utils/calendar";
 import { Icon } from "@/components/icons";
 import { addDays, formatDate } from "@/utils/datetime";
 function HabitItem({
@@ -29,6 +31,7 @@ function HabitItem({
   onEdit,
   onCopy,
   onStatusUpdate,
+  calendarAdapter,
   t,
 }: {
   habit: Habit;
@@ -41,6 +44,7 @@ function HabitItem({
     action: HabitAction,
     newStatus: string,
   ) => void;
+  calendarAdapter: CalendarAdapter;
   t: TFunction;
 }) {
   const parseHabitDate = (value: string) => {
@@ -250,6 +254,8 @@ function HabitItem({
               actions={actions || []}
               durationDays={habit.duration_days}
               startDate={habit.start_date}
+              cadenceFrequency={habit.cadence_frequency}
+              calendarAdapter={calendarAdapter}
               centerDate={actionCenterDate}
               onCenterDateChange={setActionCenterDate}
               onStatusUpdate={(habitId, action, newStatus) =>
@@ -269,6 +275,7 @@ function HabitItem({
 function HabitsPage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
+  const { adapter: calendarAdapter } = useCalendarAdapter();
 
   // State
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -402,6 +409,7 @@ function HabitsPage() {
                   onEdit={handleEditHabit}
                   onCopy={handleCopyHabit}
                   onStatusUpdate={handleStatusUpdate}
+                  calendarAdapter={calendarAdapter}
                   t={t}
                 />
               ))}

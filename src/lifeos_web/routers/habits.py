@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated
 from uuid import UUID
 
@@ -322,15 +322,26 @@ async def list_actions_for_habit(
     session: SessionDep,
     start_date: Annotated[date | None, Query()] = None,
     end_date: Annotated[date | None, Query()] = None,
+    status_filter: Annotated[str | None, Query()] = None,
+    center_date: Annotated[date | None, Query()] = None,
+    days_before: Annotated[int | None, Query(ge=0, le=500)] = None,
+    days_after: Annotated[int | None, Query(ge=0, le=500)] = None,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
     """List materialized/scheduled actions for one habit."""
+    effective_start_date = start_date
+    effective_end_date = end_date
+    if center_date is not None and start_date is None and end_date is None:
+        effective_start_date = center_date - timedelta(days=days_before or 0)
+        effective_end_date = center_date + timedelta(days=days_after or 0)
+
     try:
         actions = await habit_action_services.list_habit_actions(
             session,
             habit_id=habit_id,
-            start_date=start_date,
-            end_date=end_date,
+            status=status_filter,
+            start_date=effective_start_date,
+            end_date=effective_end_date,
             limit=size,
         )
     except ValueError as exc:
@@ -340,10 +351,10 @@ async def list_actions_for_habit(
         items=items,
         pagination=Pagination(page=1, size=size, total=len(items), pages=1 if items else 0),
         meta={
-            "status_filter": None,
-            "center_date": None,
-            "days_before": None,
-            "days_after": None,
+            "status_filter": status_filter,
+            "center_date": center_date.isoformat() if center_date else None,
+            "days_before": days_before,
+            "days_after": days_after,
         },
     )
 

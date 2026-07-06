@@ -4,6 +4,7 @@ import { renderWithProviders } from "@test/utils";
 import type { HabitAction } from "@/services/api/habits";
 import type { UUID } from "@/types/primitive";
 import { HabitActionList } from "@/components/habits/HabitActionList";
+import { GregorianCalendarAdapter } from "@/utils/calendar";
 
 const action: HabitAction = {
   id: "action-1" as UUID,
@@ -31,6 +32,8 @@ describe("HabitActionList", () => {
         habitTitle="Morning Walk"
         durationDays={5}
         startDate="2026-07-02"
+        cadenceFrequency="daily"
+        calendarAdapter={new GregorianCalendarAdapter()}
         centerDate={new Date("2026-07-04T00:00:00")}
         onCenterDateChange={vi.fn()}
         onStatusUpdate={vi.fn()}
@@ -46,5 +49,45 @@ describe("HabitActionList", () => {
     expect(viewButtons[0].className).toContain("opacity-40");
     expect(viewButtons[1]).toBeEnabled();
     expect(viewButtons[1].className).not.toContain("opacity-40");
+  });
+
+  it("uses habit action occurrence periods for weekly five period view", () => {
+    const weeklyActions: HabitAction[] = [
+      "2026-07-06",
+      "2026-07-13",
+      "2026-07-20",
+      "2026-07-27",
+      "2026-08-03",
+    ].map((actionDate, index) => ({
+      id: `weekly-action-${index}` as UUID,
+      habit_id: "habit-1" as UUID,
+      action_date: actionDate,
+      status: "pending",
+      notes: null,
+      linked_notes_count: 0,
+    }));
+
+    renderWithProviders(
+      <HabitActionList
+        actions={weeklyActions}
+        habitId={"habit-1" as UUID}
+        habitTitle="Weekly Review"
+        durationDays={60}
+        startDate="2026-07-01"
+        cadenceFrequency="weekly"
+        calendarAdapter={new GregorianCalendarAdapter(1)}
+        centerDate={new Date("2026-07-20T00:00:00")}
+        onCenterDateChange={vi.fn()}
+        onStatusUpdate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/2026-07-06 - 2026-07-12/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-07-13 - 2026-07-19/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-07-20 - 2026-07-26/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-07-27 - 2026-08-02/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-08-03 - 2026-08-09/)).toBeInTheDocument();
+    expect(screen.queryByText("2026-07-18")).not.toBeInTheDocument();
+    expect(screen.queryByText("2026-07-19")).not.toBeInTheDocument();
   });
 });

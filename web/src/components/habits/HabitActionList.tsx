@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type HabitAction } from "@/services/api/habits";
@@ -13,13 +13,17 @@ import type { UUID } from "@/types/primitive";
 import CreateNoteModal from "@/components/CreateNoteModal";
 import TaskNotesModal from "@/components/TaskNotesModal";
 import type { NoteHabitActionSummary } from "@/services/api/notes";
+import type {
+  CalendarAdapter,
+  ExtendedPlanningViewType,
+} from "@/utils/calendar";
 import {
   addDays,
   addMonths,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
-  formatDateInTimezone,
+  formatDate,
   formatDateKey,
   formatMonthKey,
   isSameDay,
@@ -27,7 +31,6 @@ import {
   startOfMonth,
   startOfLocalDay,
   startOfWeek,
-  subDays,
   subMonths,
 } from "@/utils/datetime";
 
@@ -37,6 +40,8 @@ interface HabitActionListProps {
   habitTitle: string;
   durationDays: number;
   startDate: string;
+  cadenceFrequency?: string | null;
+  calendarAdapter: CalendarAdapter;
   centerDate: Date;
   onCenterDateChange: (date: Date) => void;
   onStatusUpdate: (
@@ -49,12 +54,30 @@ interface HabitActionListProps {
 
 const subduedNoteButtonClass = "opacity-40 hover:opacity-60 transition-opacity";
 
+function cadenceToPeriodViewType(
+  cadenceFrequency?: string | null,
+): ExtendedPlanningViewType {
+  switch (cadenceFrequency) {
+    case "weekly":
+      return "week";
+    case "monthly":
+      return "month";
+    case "yearly":
+      return "year";
+    case "daily":
+    default:
+      return "day";
+  }
+}
+
 export function HabitActionList({
   actions,
   habitId,
   habitTitle,
   durationDays,
   startDate,
+  cadenceFrequency,
+  calendarAdapter,
   centerDate,
   onCenterDateChange,
   onStatusUpdate,
@@ -83,6 +106,51 @@ export function HabitActionList({
   const today = new Date();
 
   const habitStartDate = parseDateStringToLocalDate(startDate);
+  const habitEndDate = addDays(habitStartDate, durationDays - 1);
+  const periodViewType = cadenceToPeriodViewType(cadenceFrequency);
+  const isDailyCadence = periodViewType === "day";
+
+  const sortedActions = useMemo(
+    () =>
+      [...actions].sort((a, b) =>
+        a.action_date.localeCompare(b.action_date),
+      ),
+    [actions],
+  );
+
+  const actionDates = useMemo(
+    () =>
+      sortedActions
+        .map((action) => parseDateStringToLocalDate(action.action_date))
+        .filter((date) => date >= habitStartDate && date <= habitEndDate),
+    [habitEndDate, habitStartDate, sortedActions],
+  );
+
+  const isWithinHabitRange = (date: Date) => {
+    const day = startOfLocalDay(date);
+    return day >= habitStartDate && day <= habitEndDate;
+  };
+
+  const getPeriodRangeForDate = (date: Date) =>
+    calendarAdapter.getPeriodRange(periodViewType, date);
+
+  const parsePeriodStart = (range: { start: string; end: string }) =>
+    parseDateStringToLocalDate(range.start);
+
+  const formatPeriodLabel = (date: Date) => {
+    const range = getPeriodRangeForDate(date);
+    const startLabel = formatDate(range.start);
+    if (range.start === range.end) {
+      return startLabel;
+    }
+    return `${startLabel} - ${formatDate(range.end)}`;
+  };
+
+  const isDateInPeriod = (targetDate: Date, periodDate: Date) => {
+    const targetKey = formatDateKey(targetDate);
+    const range = getPeriodRangeForDate(periodDate);
+    return targetKey >= range.start && targetKey <= range.end;
+  };
 
   const isFuture = (date: string) => {
     const today = startOfLocalDay(new Date());
@@ -122,51 +190,63 @@ export function HabitActionList({
     status: action.status,
   });
 
-  // Get 5 days centered around selected date
-  const getDisplayDays = (centerDate: Date) => {
-    const displayDays = [];
+  const findAnchorActionIndex = (date: Date) => {
+    const target = startOfLocalDay(date);
+    const index = actionDates.findIndex((actionDate) => actionDate >= target);
+    return index === -1 ? actionDates.length - 1 : index;
+  };
 
-    // Calculate habit end date based on duration
-    const habitEndDate = addDays(habitStartDate, durationDays - 1);
+  const getFallbackDisplayPeriods = (date: Date) => {
+    const centerRange = getPeriodRangeForDate(date);
+    const displayPeriods = [parsePeriodStart(centerRange)].filter(
+      isWithinHabitRange,
+    );
+    let firstRange = centerRange;
+    let lastRange = centerRange;
 
-    // Always show 5 days, with centerDate in the middle (position 2, 0-indexed)
-    for (let i = -2; i <= 2; i++) {
-      const date = addDays(centerDate, i);
-
-      // Only include dates within the habit duration range
-      if (date >= habitStartDate && date <= habitEndDate) {
-        displayDays.push(date);
-      }
-    }
-
-    // If we don't have 5 days, try to fill from available range
-    while (displayDays.length < 5 && displayDays.length < durationDays) {
-      const firstDate = displayDays[0];
-      const lastDate = displayDays[displayDays.length - 1];
-
-      // Try to add days before the first date
-      if (firstDate > habitStartDate) {
-        const beforeDate = subDays(firstDate, 1);
-        if (beforeDate >= habitStartDate) {
-          displayDays.unshift(beforeDate);
-          continue;
-        }
+    while (displayPeriods.length < 5) {
+      const previousRange = calendarAdapter.shiftPeriodRange(
+        periodViewType,
+        firstRange.start,
+        firstRange.end,
+        -1,
+      );
+      const previousDate = parsePeriodStart(previousRange);
+      if (isWithinHabitRange(previousDate)) {
+        displayPeriods.unshift(previousDate);
+        firstRange = previousRange;
+        continue;
       }
 
-      // Try to add days after the last date
-      if (lastDate < habitEndDate) {
-        const afterDate = addDays(lastDate, 1);
-        if (afterDate <= habitEndDate) {
-          displayDays.push(afterDate);
-          continue;
-        }
+      const nextRange = calendarAdapter.shiftPeriodRange(
+        periodViewType,
+        lastRange.start,
+        lastRange.end,
+        1,
+      );
+      const nextDate = parsePeriodStart(nextRange);
+      if (isWithinHabitRange(nextDate)) {
+        displayPeriods.push(nextDate);
+        lastRange = nextRange;
+        continue;
       }
 
-      // If we can't add more days, break
       break;
     }
 
-    return displayDays;
+    return displayPeriods;
+  };
+
+  const getDisplayDays = (date: Date) => {
+    if (actionDates.length > 0) {
+      const centerIndex = findAnchorActionIndex(date);
+      let startIndex = Math.max(0, centerIndex - 2);
+      const endIndex = Math.min(actionDates.length, startIndex + 5);
+      startIndex = Math.max(0, endIndex - 5);
+      return actionDates.slice(startIndex, endIndex);
+    }
+
+    return getFallbackDisplayPeriods(date);
   };
 
   const displayDays = getDisplayDays(selectedDate);
@@ -174,7 +254,7 @@ export function HabitActionList({
   // Get actions for recent days
   const getActionForDate = (date: Date) => {
     const dateStr = formatDateKey(date);
-    return actions.find((action) => action.action_date === dateStr);
+    return sortedActions.find((action) => action.action_date === dateStr);
   };
 
   // Generate calendar days for selected month
@@ -190,7 +270,7 @@ export function HabitActionList({
 
   const getActionForCalendarDate = (date: Date) => {
     const dateStr = formatDateKey(date);
-    return actions.find((action) => action.action_date === dateStr);
+    return sortedActions.find((action) => action.action_date === dateStr);
   };
 
   const changeMonth = (direction: "prev" | "next") => {
@@ -206,22 +286,36 @@ export function HabitActionList({
   // Handle date selection from calendar
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    // Update selected month to show the selected date's month
     setSelectedMonth(date);
     updateCenterDate(date);
   };
 
-  // Navigate to previous/next 5-day period
+  // Navigate to previous/next five occurrence periods.
   const navigatePeriod = (direction: "prev" | "next") => {
-    const newDate =
-      direction === "prev"
-        ? subDays(selectedDate, 5)
-        : addDays(selectedDate, 5);
+    const step = direction === "prev" ? -5 : 5;
+    let newDate: Date | null = null;
 
-    // Ensure the new date is within habit duration range
-    const habitEndDate = addDays(habitStartDate, durationDays - 1);
-    if (newDate >= habitStartDate && newDate <= habitEndDate) {
+    if (actionDates.length > 0) {
+      const currentIndex = findAnchorActionIndex(selectedDate);
+      const nextIndex = Math.min(
+        Math.max(currentIndex + step, 0),
+        actionDates.length - 1,
+      );
+      newDate = actionDates[nextIndex];
+    } else {
+      const currentRange = getPeriodRangeForDate(selectedDate);
+      const shiftedRange = calendarAdapter.shiftPeriodRange(
+        periodViewType,
+        currentRange.start,
+        currentRange.end,
+        step,
+      );
+      newDate = parsePeriodStart(shiftedRange);
+    }
+
+    if (newDate && isWithinHabitRange(newDate)) {
       setSelectedDate(newDate);
+      setSelectedMonth(newDate);
       updateCenterDate(newDate);
     }
   };
@@ -312,7 +406,7 @@ export function HabitActionList({
               const isClickable =
                 isCurrentMonth &&
                 day >= habitStartDate &&
-                day <= addDays(habitStartDate, durationDays - 1);
+                day <= habitEndDate;
 
               return (
                 <div
@@ -328,7 +422,7 @@ export function HabitActionList({
                   } ${
                     isSelectedDate ? "ring-2 ring-primary ring-offset-1" : ""
                   }`}
-                  title={`${formatDateInTimezone(day)} - ${cellStatus}`}
+                  title={`${formatDateKey(day)} - ${cellStatus}`}
                   onClick={() => isClickable && handleDateSelect(day)}
                 >
                   <div className="text-base font-medium">{day.getDate()}</div>
@@ -358,7 +452,7 @@ export function HabitActionList({
                 iconOnly
               />
               <span className="px-3 py-2 font-medium">
-                {formatDateInTimezone(selectedDate)}
+                {formatDateKey(selectedDate)}
               </span>
               <ActionButton
                 label={t("habits.actionList.nextFiveDays")}
@@ -374,9 +468,10 @@ export function HabitActionList({
           <div className="space-y-2">
             {displayDays.map((date) => {
               const action = getActionForDate(date);
-              const isTodayDate = isSameDay(date, today);
-              const isSelectedDate = isSameDay(date, selectedDate);
-              const isPastDate = date < today;
+              const isTodayDate = isDateInPeriod(today, date);
+              const isSelectedDate = isDateInPeriod(selectedDate, date);
+              const periodRange = getPeriodRangeForDate(date);
+              const isPastDate = periodRange.end < formatDateKey(today);
               const canModifyAction = action
                 ? canModify(action)
                 : isTodayDate || isPastDate;
@@ -400,44 +495,26 @@ export function HabitActionList({
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-base min-w-[80px]">
-                      <span className="font-medium text-base-content">
-                        {(() => {
-                          // Calculate day number using a more reliable method
-                          const calculateDayNumber = (
-                            currentDate: Date,
-                            startDate: Date,
-                          ) => {
-                            // Normalize both dates to start of day to avoid timezone issues
-                            const current = new Date(
-                              currentDate.getFullYear(),
-                              currentDate.getMonth(),
-                              currentDate.getDate(),
-                            );
-                            const start = new Date(
-                              startDate.getFullYear(),
-                              startDate.getMonth(),
-                              startDate.getDate(),
-                            );
-
-                            const timeDiff =
-                              current.getTime() - start.getTime();
+                      {isDailyCadence && (
+                        <span className="font-medium text-base-content">
+                          {(() => {
+                            const current = startOfLocalDay(date);
+                            const start = startOfLocalDay(habitStartDate);
                             const dayDiff = Math.floor(
-                              timeDiff / (1000 * 60 * 60 * 24),
+                              (current.getTime() - start.getTime()) /
+                                (1000 * 60 * 60 * 24),
                             );
-
                             return Math.max(1, dayDiff + 1);
-                          };
-
-                          const dayNumber = calculateDayNumber(
-                            date,
-                            habitStartDate,
-                          );
-                          return dayNumber;
-                        })()}
-                        /{durationDays}
-                      </span>
-                      <span className="text-sm text-base-content/70 ml-2">
-                        {formatDateInTimezone(date)}
+                          })()}
+                          /{durationDays}
+                        </span>
+                      )}
+                      <span
+                        className={`text-sm text-base-content/70 ${
+                          isDailyCadence ? "ml-2" : "font-medium"
+                        }`}
+                      >
+                        {formatPeriodLabel(date)}
                         {isTodayDate && ` (${t("planning.presets.today")})`}
                       </span>
                     </div>

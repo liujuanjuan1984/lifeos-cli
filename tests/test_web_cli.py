@@ -1979,6 +1979,51 @@ def test_web_habit_actions_range_passes_reference_date(
     }
 
 
+def test_web_habit_actions_for_habit_uses_center_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_for_habit(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            cast(AsyncSession, object()),
+            center_date=date(2026, 7, 20),
+            days_before=14,
+            days_after=21,
+            status_filter="pending",
+            size=50,
+        )
+    )
+
+    assert captured["habit_id"] == UUID("55555555-5555-5555-5555-555555555555")
+    assert captured["status"] == "pending"
+    assert captured["start_date"] == date(2026, 7, 6)
+    assert captured["end_date"] == date(2026, 8, 10)
+    assert captured["limit"] == 50
+    assert response.items == []
+    assert response.meta == {
+        "status_filter": "pending",
+        "center_date": "2026-07-20",
+        "days_before": 14,
+        "days_after": 21,
+    }
+
+
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
