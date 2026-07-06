@@ -426,18 +426,18 @@ export default function CreateNoteModal({
         </div>
       ) : null}
       {habitActionPrimaryLabel ? (
-        <div className="flex items-start gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+        <div className="alert alert-info items-start gap-2 px-3 py-2 text-sm">
           <Icon
             name="repeat"
             size={18}
             aria-hidden
-            className="mt-0.5 text-accent"
+            className="mt-0.5 text-info-content"
           />
           <div className="min-w-0">
-            <div className="font-medium text-accent">
+            <div className="font-medium text-info-content">
               {t("createNoteModal.habitActionHeader.label")}
             </div>
-            <div className="text-base-content/90 font-medium">
+            <div className="font-medium text-info-content">
               {habitActionPrimaryLabel}
             </div>
           </div>

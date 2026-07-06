@@ -55,15 +55,18 @@ def _habit_action_payload(action: object) -> dict[str, object]:
             "action_date": action.action_date.isoformat(),
             "status": action.status,
             "notes": getattr(action, "notes", None),
+            "linked_notes_count": getattr(action, "linked_notes_count", 0),
         }
     else:
         jsonable = to_jsonable(action)
         assert isinstance(jsonable, dict)
         payload = jsonable
         payload.pop("habit_title", None)
+        payload.pop("habit_cadence_frequency", None)
         payload.pop("created_at", None)
         payload.pop("updated_at", None)
         payload.pop("deleted_at", None)
+        payload.setdefault("linked_notes_count", 0)
     return payload
 
 
@@ -80,6 +83,7 @@ async def _action_with_habit_summary(
         "description": habit.description,
         "start_date": habit.start_date.isoformat(),
         "duration_days": habit.duration_days,
+        "cadence_frequency": habit.cadence_frequency,
     }
     return payload
 
@@ -270,6 +274,7 @@ async def list_actions_in_range(
     start_date: Annotated[date, Query()],
     end_date: Annotated[date, Query()],
     reference_date: Annotated[date, Query()],
+    cadence_frequency: Annotated[str | None, Query()] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=1000)] = 1000,
 ) -> ListResponse:
@@ -285,11 +290,13 @@ async def list_actions_in_range(
             session,
             start_date=start_date,
             end_date=end_date,
+            cadence_frequency=cadence_frequency,
         )
         actions = await habit_action_services.list_habit_actions(
             session,
             start_date=start_date,
             end_date=end_date,
+            cadence_frequency=cadence_frequency,
             limit=size,
             offset=(page - 1) * size,
         )
@@ -304,6 +311,7 @@ async def list_actions_in_range(
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "reference_date": reference_date.isoformat(),
+            "cadence_frequency": cadence_frequency,
         },
     )
 

@@ -649,6 +649,7 @@ def test_web_habit_action_payload_uses_slim_habit_summary(
         "action_date": "2026-06-30",
         "status": "pending",
         "notes": None,
+        "linked_notes_count": 0,
     }
 
     summary_payload = asyncio.run(
@@ -660,6 +661,7 @@ def test_web_habit_action_payload_uses_slim_habit_summary(
         "description": "Midday walk",
         "start_date": "2026-06-01",
         "duration_days": 30,
+        "cadence_frequency": "daily",
     }
     habit_summary = cast(dict[str, object], summary_payload["habit"])
     assert "id" not in habit_summary
@@ -1951,6 +1953,7 @@ def test_web_habit_actions_range_passes_reference_date(
             start_date=date(2026, 4, 1),
             end_date=date(2026, 4, 30),
             reference_date=date(2026, 4, 9),
+            cadence_frequency="weekly",
         )
     )
 
@@ -1959,9 +1962,11 @@ def test_web_habit_actions_range_passes_reference_date(
     assert captured_expire["reference_date"] == date(2026, 4, 9)
     assert captured_count["start_date"] == date(2026, 4, 1)
     assert captured_count["end_date"] == date(2026, 4, 30)
+    assert captured_count["cadence_frequency"] == "weekly"
     assert "reference_date" not in captured_count
     assert captured_list["start_date"] == date(2026, 4, 1)
     assert captured_list["end_date"] == date(2026, 4, 30)
+    assert captured_list["cadence_frequency"] == "weekly"
     assert "reference_date" not in captured_list
     assert captured_list["limit"] == 1000
     assert captured_list["offset"] == 0
@@ -1970,6 +1975,7 @@ def test_web_habit_actions_range_passes_reference_date(
         "start_date": "2026-04-01",
         "end_date": "2026-04-30",
         "reference_date": "2026-04-09",
+        "cadence_frequency": "weekly",
     }
 
 

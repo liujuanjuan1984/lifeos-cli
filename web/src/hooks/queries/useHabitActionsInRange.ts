@@ -7,6 +7,7 @@ export function useHabitActionsInRange(
     startDate: string;
     endDate: string;
     referenceDate: string;
+    cadenceFrequency?: string | null;
   },
   options?: { enabled?: boolean; staleTimeMs?: number },
 ) {
@@ -16,6 +17,7 @@ export function useHabitActionsInRange(
       const response = await habitsApi.getActionsInRange({
         ...params,
         size: 1000,
+        cadenceFrequency: params.cadenceFrequency,
       });
       return response.items ?? [];
     },

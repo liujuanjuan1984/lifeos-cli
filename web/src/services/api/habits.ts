@@ -56,6 +56,7 @@ export interface HabitAction {
   action_date: string;
   status: string;
   notes?: string | null;
+  linked_notes_count?: number;
 }
 
 export interface HabitActionHabitSummary {
@@ -63,6 +64,7 @@ export interface HabitActionHabitSummary {
   description?: string | null;
   start_date: string;
   duration_days: number;
+  cadence_frequency?: string | null;
 }
 
 export interface HabitActionUpdate {
@@ -107,6 +109,7 @@ interface HabitActionRangeListMeta {
   start_date?: string | null;
   end_date?: string | null;
   reference_date?: string | null;
+  cadence_frequency?: string | null;
 }
 
 export type HabitOverviewListResponse = ListResponse<
@@ -181,6 +184,7 @@ export const habitsApi = {
     startDate: string;
     endDate: string;
     referenceDate: string;
+    cadenceFrequency?: string | null;
     page?: number;
     size?: number;
   }): Promise<HabitActionRangeListResponse> {
@@ -190,6 +194,7 @@ export const habitsApi = {
         start_date: params.startDate,
         end_date: params.endDate,
         reference_date: params.referenceDate,
+        cadence_frequency: params.cadenceFrequency ?? undefined,
         page: params.page,
         size: params.size,
       },

@@ -12,6 +12,7 @@ export const notesKeys = {
     person_id?: UUID;
     task_id?: UUID;
     timelog_id?: UUID;
+    habit_action_id?: UUID;
     keyword?: string;
     untagged?: boolean;
     page?: number;
@@ -186,6 +187,7 @@ export const habitsKeys = {
     startDate: string;
     endDate: string;
     referenceDate: string;
+    cadenceFrequency?: string | null;
   }) => [...habitsKeys.all, "actions-in-range", filters] as const,
   details: () => [...habitsKeys.all, "detail"] as const,
   detail: (id: UUID) => [...habitsKeys.details(), id] as const,

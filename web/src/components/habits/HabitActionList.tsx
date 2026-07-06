@@ -378,7 +378,10 @@ export function HabitActionList({
               const canModifyAction = action
                 ? canModify(action)
                 : isTodayDate || isPastDate;
-              const hasNotes = Boolean(action?.notes?.trim());
+              const linkedNotesCount = action
+                ? (action.linked_notes_count ?? (action.notes?.trim() ? 1 : 0))
+                : 0;
+              const hasLinkedNotes = linkedNotesCount > 0;
 
               return (
                 <div
@@ -437,15 +440,7 @@ export function HabitActionList({
                       </span>
                     </div>
 
-                    {action ? (
-                      <>
-                        {action.notes && (
-                          <div className="text-base text-base-content/80 max-w-xs truncate">
-                            {action.notes}
-                          </div>
-                        )}
-                      </>
-                    ) : (
+                    {!action && (
                       <span className="text-base text-base-content/50">
                         {t("habits.actionList.notRecorded")}
                       </span>
@@ -465,16 +460,15 @@ export function HabitActionList({
                             ariaLabel={t("notes.actions.addNote")}
                           />
                         )}
-                        {hasNotes && (
-                          <ActionButton
-                            label={t("notes.actions.viewNotes")}
-                            iconName="book-open"
-                            color="primary"
-                            onClick={() => setViewingNotesForAction(action)}
-                            iconOnly
-                            ariaLabel={t("notes.actions.viewNotes")}
-                          />
-                        )}
+                        <ActionButton
+                          label={t("notes.actions.viewNotes")}
+                          iconName="book-open"
+                          color="primary"
+                          onClick={() => setViewingNotesForAction(action)}
+                          disabled={!hasLinkedNotes}
+                          iconOnly
+                          ariaLabel={t("notes.actions.viewNotes")}
+                        />
                         {canModifyAction && (
                           <EnumSelect
                             id={`status-select-${action.id}`}

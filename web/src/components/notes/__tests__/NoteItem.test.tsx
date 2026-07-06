@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@test/utils";
 import type { Note } from "@/types/newNotes";
@@ -25,7 +25,7 @@ const baseNote: Note = {
 };
 
 describe("NoteItem", () => {
-  it("renders linked habit action context on note cards", () => {
+  it("renders linked habit action context on note cards", async () => {
     renderWithProviders(
       <NoteItem
         note={baseNote}
@@ -45,5 +45,17 @@ describe("NoteItem", () => {
         name: /Morning Walk · 2026-07-05 \(done\)/,
       }),
     ).toBeInTheDocument();
+
+    fireEvent.mouseEnter(
+      screen.getByRole("button", {
+        name: /Morning Walk · 2026-07-05 \(done\)/,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/habitActionNotes\.typeLabel|Habit action|习惯打卡/),
+      ).toBeInTheDocument();
+    });
   });
 });

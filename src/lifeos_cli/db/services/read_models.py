@@ -198,12 +198,14 @@ class HabitActionView:
     id: UUID | None
     habit_id: UUID
     habit_title: str
+    habit_cadence_frequency: str
     action_date: date
     status: str
     notes: str | None
     created_at: datetime | None
     updated_at: datetime | None
     deleted_at: datetime | None
+    linked_notes_count: int
 
 
 @dataclass(frozen=True)

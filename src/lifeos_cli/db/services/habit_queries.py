@@ -82,24 +82,32 @@ def _build_habit_action_view(
     action_id: UUID | None,
     habit_id: UUID,
     habit_title: str,
+    habit_cadence_frequency: str,
     action_date: date,
     status: str,
     notes: str | None,
     created_at: datetime | None,
     updated_at: datetime | None,
     deleted_at: datetime | None,
+    linked_notes_count: int,
 ) -> HabitActionView:
     return HabitActionView(
         id=action_id,
         habit_id=habit_id,
         habit_title=habit_title,
+        habit_cadence_frequency=habit_cadence_frequency,
         action_date=action_date,
         status=status,
         notes=notes,
         created_at=created_at,
         updated_at=updated_at,
         deleted_at=deleted_at,
+        linked_notes_count=linked_notes_count,
     )
+
+
+def _habit_cadence_frequency(habit: Habit) -> str:
+    return str(getattr(habit, "cadence_frequency", "daily") or "daily")
 
 
 async def _materialize_habit_action_for_date(
@@ -183,13 +191,13 @@ async def _load_materialized_actions_for_habits(
     return list((await session.execute(stmt)).scalars())
 
 
-async def _load_note_content_for_actions(
+async def _load_note_metadata_for_actions(
     session: AsyncSession,
     *,
     action_ids: list[UUID],
-) -> dict[UUID, str]:
+) -> tuple[dict[UUID, str], dict[UUID, int]]:
     if not action_ids:
-        return {}
+        return {}, {}
     stmt = (
         select(Association.target_id, Note.content)
         .join(Note, Note.id == Association.source_id)
@@ -206,7 +214,10 @@ async def _load_note_content_for_actions(
     grouped: dict[UUID, list[str]] = {}
     for action_id, content in rows.all():
         grouped.setdefault(action_id, []).append(content)
-    return {action_id: "\n\n".join(contents) for action_id, contents in grouped.items()}
+    return (
+        {action_id: "\n\n".join(contents) for action_id, contents in grouped.items()},
+        {action_id: len(contents) for action_id, contents in grouped.items()},
+    )
 
 
 async def _load_candidate_habits(
@@ -215,15 +226,20 @@ async def _load_candidate_habits(
     habit_id: UUID | None,
     action_window: tuple[date, date] | None,
     target_dates: tuple[date, ...] = (),
+    cadence_frequency: str | None = None,
 ) -> list[Habit]:
     if habit_id is not None:
         habit = await get_habit(session, habit_id=habit_id)
         if habit is None:
             raise HabitNotFoundError(f"Habit {habit_id} was not found")
+        if cadence_frequency is not None and _habit_cadence_frequency(habit) != cadence_frequency:
+            return []
         return [habit]
 
     stmt = select(Habit).options(_active_habit_task_loader())
     stmt = stmt.where(Habit.deleted_at.is_(None))
+    if cadence_frequency is not None:
+        stmt = stmt.where(Habit.cadence_frequency == cadence_frequency)
     if target_dates:
         habit_end_expr = _habit_end_expr()
         stmt = stmt.where(
@@ -260,12 +276,14 @@ def _build_habit_action_views_for_occurrence_dates(
                     action_id=None,
                     habit_id=habit.id,
                     habit_title=habit.title,
+                    habit_cadence_frequency=_habit_cadence_frequency(habit),
                     action_date=action_date,
                     status="pending",
                     notes=None,
                     created_at=None,
                     updated_at=None,
                     deleted_at=None,
+                    linked_notes_count=0,
                 )
             )
             continue
@@ -274,12 +292,14 @@ def _build_habit_action_views_for_occurrence_dates(
                 action_id=materialized.id,
                 habit_id=materialized.habit_id,
                 habit_title=habit.title,
+                habit_cadence_frequency=_habit_cadence_frequency(habit),
                 action_date=materialized.action_date,
                 status=materialized.status,
                 notes=getattr(materialized, "notes", None),
                 created_at=materialized.created_at,
                 updated_at=materialized.updated_at,
                 deleted_at=materialized.deleted_at,
+                linked_notes_count=getattr(materialized, "linked_notes_count", 0),
             )
         )
 
@@ -293,6 +313,7 @@ async def build_habit_action_views(
     status: str | None,
     action_window: tuple[date, date] | None,
     target_dates: tuple[date, ...] = (),
+    cadence_frequency: str | None = None,
 ) -> list[HabitActionView]:
     """Build sparse habit-action occurrence views without mutating status."""
     normalized_target_dates = tuple(deduplicate_preserving_order(target_dates))
@@ -301,6 +322,7 @@ async def build_habit_action_views(
         habit_id=habit_id,
         action_window=action_window,
         target_dates=normalized_target_dates,
+        cadence_frequency=cadence_frequency,
     )
     if not habits:
         return []
@@ -322,13 +344,14 @@ async def build_habit_action_views(
         end_date=range_end,
         target_dates=normalized_target_dates,
     )
-    note_content_by_action = await _load_note_content_for_actions(
+    note_content_by_action, note_count_by_action = await _load_note_metadata_for_actions(
         session,
         action_ids=[action.id for action in materialized_actions],
     )
     actions_by_habit: dict[UUID, list[HabitAction]] = {habit_id: [] for habit_id in habit_ids}
     for action in materialized_actions:
         action.__dict__["notes"] = note_content_by_action.get(action.id)
+        action.__dict__["linked_notes_count"] = note_count_by_action.get(action.id, 0)
         actions_by_habit.setdefault(action.habit_id, []).append(action)
 
     views: list[HabitActionView] = []
@@ -537,6 +560,7 @@ async def list_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
+    cadence_frequency: str | None = None,
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
@@ -555,6 +579,7 @@ async def list_habit_actions(
         status=status,
         action_window=action_window,
         target_dates=target_dates,
+        cadence_frequency=cadence_frequency,
     )
     paged_views = views[offset : offset + limit]
     synthetic_views = [view for view in paged_views if view.id is None]
@@ -584,12 +609,14 @@ async def list_habit_actions(
             action_id=action.id,
             habit_id=action.habit_id,
             habit_title=habit.title,
+            habit_cadence_frequency=_habit_cadence_frequency(habit),
             action_date=action.action_date,
             status=action.status,
             notes=getattr(action, "notes", None),
             created_at=action.created_at,
             updated_at=action.updated_at,
             deleted_at=action.deleted_at,
+            linked_notes_count=0,
         )
 
     return [
@@ -620,6 +647,7 @@ async def count_habit_actions(
     *,
     habit_id: UUID | None = None,
     status: str | None = None,
+    cadence_frequency: str | None = None,
     date_values: tuple[date, ...] = (),
     start_date: date | None = None,
     end_date: date | None = None,
@@ -636,6 +664,7 @@ async def count_habit_actions(
         status=status,
         action_window=action_window,
         target_dates=target_dates,
+        cadence_frequency=cadence_frequency,
     )
     return len(views)
 
@@ -659,6 +688,10 @@ async def get_habit_action(
     action = (await session.execute(stmt)).scalar_one_or_none()
     if action is None:
         return None
-    note_content_by_action = await _load_note_content_for_actions(session, action_ids=[action.id])
+    note_content_by_action, note_count_by_action = await _load_note_metadata_for_actions(
+        session,
+        action_ids=[action.id],
+    )
     action.__dict__["notes"] = note_content_by_action.get(action.id)
+    action.__dict__["linked_notes_count"] = note_count_by_action.get(action.id, 0)
     return action

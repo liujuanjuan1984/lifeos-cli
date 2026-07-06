@@ -193,6 +193,7 @@ def test_habit_action_notes_are_stored_as_linked_notes() -> None:
                 assert updated.__dict__["notes"] == "Completed after lunch"
                 assert [note.content for note in linked_notes] == ["Completed after lunch"]
                 assert action_views[0].notes == "Completed after lunch"
+                assert action_views[0].linked_notes_count == 1
 
                 await habit_actions.update_habit_action(
                     session,
@@ -201,6 +202,12 @@ def test_habit_action_notes_are_stored_as_linked_notes() -> None:
                 )
 
                 assert await notes.list_notes(session, habit_action_id=action.id) == []
+                cleared_action_views = await habit_actions.list_habit_actions(
+                    session,
+                    habit_id=habit.id,
+                    date_values=(date(2026, 7, 4),),
+                )
+                assert cleared_action_views[0].linked_notes_count == 0
         finally:
             await engine.dispose()
 

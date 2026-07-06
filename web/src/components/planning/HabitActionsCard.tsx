@@ -97,7 +97,9 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
         {habitActions.map((action) => {
           const statusStyling = getHabitActionStatusStyling(action.status);
           const dayInfo = calculateDayInfo(action);
-          const hasNotes = Boolean(action.notes?.trim());
+          const linkedNotesCount =
+            action.linked_notes_count ?? (action.notes?.trim() ? 1 : 0);
+          const hasLinkedNotes = linkedNotesCount > 0;
 
           return (
             <div
@@ -158,16 +160,15 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
                         ariaLabel={t("notes.actions.addNote")}
                       />
 
-                      {hasNotes && (
-                        <ActionButton
-                          label={t("notes.actions.viewNotes")}
-                          iconName="book-open"
-                          color="primary"
-                          onClick={() => setViewingNotesForAction(action)}
-                          iconOnly
-                          ariaLabel={t("notes.actions.viewNotes")}
-                        />
-                      )}
+                      <ActionButton
+                        label={t("notes.actions.viewNotes")}
+                        iconName="book-open"
+                        color="primary"
+                        onClick={() => setViewingNotesForAction(action)}
+                        disabled={!hasLinkedNotes}
+                        iconOnly
+                        ariaLabel={t("notes.actions.viewNotes")}
+                      />
 
                       <div className="min-w-[90px]">
                         <EnumSelect

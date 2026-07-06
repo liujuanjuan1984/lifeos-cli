@@ -1829,6 +1829,7 @@
   },
   "habitActionNotes": {
     "title": "Habit Action Notes",
+    "typeLabel": "Habit action",
     "actionLabel": "Habit action: ",
     "emptyState": {
       "title": "No Notes",

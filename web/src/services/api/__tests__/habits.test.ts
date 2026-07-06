@@ -20,6 +20,7 @@ describe("habitsApi", () => {
             start_date: "2026-04-01",
             end_date: "2026-04-30",
             reference_date: "2026-04-09",
+            cadence_frequency: "monthly",
           },
         }),
         {
@@ -33,6 +34,7 @@ describe("habitsApi", () => {
       startDate: "2026-04-01",
       endDate: "2026-04-30",
       referenceDate: "2026-04-09",
+      cadenceFrequency: "monthly",
       page: 1,
       size: 1000,
     });
@@ -46,6 +48,7 @@ describe("habitsApi", () => {
     expect(parsedUrl.searchParams.get("start_date")).toBe("2026-04-01");
     expect(parsedUrl.searchParams.get("end_date")).toBe("2026-04-30");
     expect(parsedUrl.searchParams.get("reference_date")).toBe("2026-04-09");
+    expect(parsedUrl.searchParams.get("cadence_frequency")).toBe("monthly");
     expect(parsedUrl.searchParams.get("page")).toBe("1");
     expect(parsedUrl.searchParams.get("size")).toBe("1000");
     expect(init.method).toBe("GET");

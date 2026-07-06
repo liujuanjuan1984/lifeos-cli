@@ -1829,6 +1829,7 @@
   },
   "habitActionNotes": {
     "title": "习惯打卡笔记",
+    "typeLabel": "习惯打卡",
     "actionLabel": "习惯打卡：",
     "emptyState": {
       "title": "暂无笔记",

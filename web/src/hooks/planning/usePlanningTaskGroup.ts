@@ -113,6 +113,49 @@ interface PlanningTaskGroupHookResult {
   toggleTaskExpansion: (groupId: string, taskId: string) => void;
 }
 
+const habitCadenceByPlanningCycle: Partial<Record<PlanningViewType, string>> = {
+  day: "daily",
+  week: "weekly",
+  month: "monthly",
+};
+
+export function isTopLevelPlanningGroup(
+  groupId: string,
+  planningCycleType?: PlanningViewType,
+): boolean {
+  if (!planningCycleType) return false;
+  if (planningCycleType === "7years") {
+    return groupId.startsWith("seven-year-");
+  }
+  return (
+    groupId.startsWith(`${planningCycleType}-`) ||
+    groupId.startsWith(`mayan-${planningCycleType}-`)
+  );
+}
+
+export function buildHabitActionRange(
+  planningCycleType: PlanningViewType | undefined,
+  groupDate: Date,
+  calendarAdapter: CalendarAdapter,
+  referenceDate: Date = new Date(),
+): {
+  startDate: string;
+  endDate: string;
+  referenceDate: string;
+  cadenceFrequency: string;
+} | null {
+  if (!planningCycleType) return null;
+  const cadenceFrequency = habitCadenceByPlanningCycle[planningCycleType];
+  if (!cadenceFrequency) return null;
+  const periodRange = calendarAdapter.getPeriodRange(planningCycleType, groupDate);
+  return {
+    startDate: formatDateKey(new Date(periodRange.start)),
+    endDate: formatDateKey(new Date(periodRange.end)),
+    referenceDate: formatDateKey(referenceDate),
+    cadenceFrequency,
+  };
+}
+
 export function usePlanningTaskGroup(
   params: PlanningTaskGroupHookParams,
 ): PlanningTaskGroupHookResult {
@@ -165,26 +208,32 @@ export function usePlanningTaskGroup(
   });
 
   const habitActionRange = useMemo(() => {
-    if (!planningCycleType) return null;
     const localAdapter = calendarAdapter ?? adapter;
-    const periodRange = localAdapter.getPeriodRange(
+    return buildHabitActionRange(
       planningCycleType,
       group.date,
+      localAdapter,
+      new Date(),
     );
-    return {
-      startDate: formatDateKey(new Date(periodRange.start)),
-      endDate: formatDateKey(new Date(periodRange.end)),
-      referenceDate: formatDateKey(group.date),
-    };
   }, [adapter, calendarAdapter, group.date, planningCycleType]);
+  const canShowHabitActionsForGroup = isTopLevelPlanningGroup(
+    group.id,
+    planningCycleType,
+  );
   const habitsQuery = useHabitActionsInRange(
     habitActionRange ?? {
       startDate: formatDateKey(group.date),
       endDate: formatDateKey(group.date),
-      referenceDate: formatDateKey(group.date),
+      referenceDate: formatDateKey(new Date()),
+      cadenceFrequency: null,
     },
     {
-      enabled: Boolean(planningCycleType && showHabitActions && habitActionRange),
+      enabled: Boolean(
+        planningCycleType &&
+          showHabitActions &&
+          habitActionRange &&
+          canShowHabitActionsForGroup,
+      ),
       staleTimeMs: 5 * 60 * 1000,
     },
   );
@@ -455,7 +504,10 @@ export function usePlanningTaskGroup(
   const canAddTask = Boolean(planningCycleType);
   const carryForwardCount = carryForwardableTasks.length;
   const showHabitActionsCard =
-    Boolean(planningCycleType) && showHabitActions && habitActions.length > 0;
+    Boolean(planningCycleType) &&
+    showHabitActions &&
+    canShowHabitActionsForGroup &&
+    habitActions.length > 0;
 
   const handleVisionFilterChange = useCallback(
     (value: string) => {

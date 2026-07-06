@@ -424,6 +424,9 @@ const NoteItem = React.memo<NoteItemProps>(
           const habitAction = associationTooltip.payload.habitAction;
           return (
             <div className="space-y-2">
+              <span className="badge badge-info badge-sm">
+                {t("habitActionNotes.typeLabel")}
+              </span>
               <div className="text-base font-semibold text-base-content">
                 {habitAction.habit_title?.trim() || t("habits.form.title")}
               </div>
