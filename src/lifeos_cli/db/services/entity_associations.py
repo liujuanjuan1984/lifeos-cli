@@ -8,10 +8,11 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 
 from lifeos_cli.db.models.association import Association
 from lifeos_cli.db.models.event import Event
+from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.task import Task
@@ -19,11 +20,14 @@ from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.collection_utils import deduplicate_preserving_order
 
-VALID_ASSOCIATION_MODELS = frozenset({"event", "note", "person", "task", "timelog", "vision"})
+VALID_ASSOCIATION_MODELS = frozenset(
+    {"event", "habit_action", "note", "person", "task", "timelog", "vision"}
+)
 VALID_ASSOCIATION_LINK_TYPES = frozenset({"is_about", "relates_to", "captured_from"})
 
 MODEL_MAP: dict[str, Any] = {
     "event": Event,
+    "habit_action": HabitAction,
     "note": Note,
     "person": Person,
     "task": Task,
@@ -323,6 +327,42 @@ async def load_events_for_sources(
     return {
         source_id: [events_by_id[event_id] for event_id in event_ids if event_id in events_by_id]
         for source_id, event_ids in mapping.items()
+    }
+
+
+async def load_habit_actions_for_sources(
+    session: AsyncSession,
+    *,
+    source_model: str,
+    source_ids: list[UUID],
+    link_type: str,
+) -> dict[UUID, list[HabitAction]]:
+    """Load zero or more linked habit actions per source identifier."""
+    mapping = await get_target_ids_for_sources(
+        session,
+        source_model=source_model,
+        source_ids=source_ids,
+        target_model="habit_action",
+        link_type=link_type,
+    )
+    all_action_ids = {action_id for action_ids in mapping.values() for action_id in action_ids}
+    if not all_action_ids:
+        return {}
+    stmt = (
+        select(HabitAction)
+        .options(selectinload(HabitAction.habit))
+        .where(
+            HabitAction.id.in_(all_action_ids),
+            HabitAction.deleted_at.is_(None),
+        )
+    )
+    rows = await session.execute(stmt)
+    actions_by_id = {action.id: action for action in rows.scalars().all()}
+    return {
+        source_id: [
+            actions_by_id[action_id] for action_id in action_ids if action_id in actions_by_id
+        ]
+        for source_id, action_ids in mapping.items()
     }
 
 

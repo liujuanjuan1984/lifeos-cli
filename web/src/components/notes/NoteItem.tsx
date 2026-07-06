@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useId } from "react";
 import { DeleteButton } from "@/components/ActionButton";
 import ActionButton from "@/components/ActionButton";
-import { formatTime } from "@/utils/datetime";
+import { formatDate, formatTime } from "@/utils/datetime";
 import { useToast } from "@/contexts/ToastContext";
 import { copyToClipboardWithMessages } from "@/utils/core";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,10 @@ import type { Note } from "@/types/newNotes";
 import type { Tag } from "@/services/api";
 import type { PersonSummary } from "@/services/api";
 import type { UUID } from "@/types/primitive";
-import type { NoteTimelogSummary } from "@/services/api/notes";
+import type {
+  NoteHabitActionSummary,
+  NoteTimelogSummary,
+} from "@/services/api/notes";
 import Checkbox from "@/components/forms/Checkbox";
 import NoteCardLayout, { type NoteCardAssociation } from "./NoteCardLayout";
 import HoverTooltipOverlay from "@/components/HoverTooltipOverlay";
@@ -26,7 +29,8 @@ type NoteAssociationTooltipPayload =
   | { type: "person"; person: PersonSummary }
   | { type: "tag"; tag: Tag }
   | { type: "task"; task: Note["task"] }
-  | { type: "timelog"; timelog: NoteTimelogSummary };
+  | { type: "timelog"; timelog: NoteTimelogSummary }
+  | { type: "habit_action"; habitAction: NoteHabitActionSummary };
 
 interface AssociationTooltipPayloadState {
   key: string;
@@ -152,6 +156,14 @@ const NoteItem = React.memo<NoteItemProps>(
         return `${end}`;
       }
       return t("notes.timelogChipDefault");
+    };
+
+    const formatHabitActionLabel = (
+      habitAction: NoteHabitActionSummary,
+    ): string => {
+      const habitLabel =
+        habitAction.habit_title?.trim() || t("habits.form.title");
+      return `${habitLabel} · ${formatDate(habitAction.action_date, timezone)} (${habitAction.status})`;
     };
 
     if (note.people && note.people.length > 0) {
@@ -325,6 +337,44 @@ const NoteItem = React.memo<NoteItemProps>(
       );
     }
 
+    if (note.habit_actions && note.habit_actions.length > 0) {
+      associations.push(
+        ...note.habit_actions.map((habitAction) => {
+          const id = `habit-action-${habitAction.id}`;
+          const payload: NoteAssociationTooltipPayload = {
+            type: "habit_action",
+            habitAction,
+          };
+          return {
+            id,
+            type: "habit_action" as const,
+            label: formatHabitActionLabel(habitAction),
+            icon: (
+              <Icon name="repeat" size={16} className="text-accent" aria-hidden />
+            ),
+            onMouseEnter: (event: React.MouseEvent<HTMLElement>) =>
+              showAssociationTooltip(id, payload, {
+                x: event.clientX,
+                y: event.clientY,
+              }),
+            onMouseMove: (event: React.MouseEvent<HTMLElement>) =>
+              updateAssociationTooltipPosition(id, payload, {
+                x: event.clientX,
+                y: event.clientY,
+              }),
+            onMouseLeave: () => hideTooltip(),
+            onFocus: (event: React.FocusEvent<HTMLElement>) =>
+              showTooltipForElement(
+                { key: id, data: payload },
+                event.currentTarget,
+              ),
+            onBlur: () => hideTooltip(),
+            ariaDescribedBy: tooltipId,
+          } satisfies NoteCardAssociation;
+        }),
+      );
+    }
+
     const tooltipContentNode = useMemo(() => {
       if (!associationTooltip) {
         return null;
@@ -370,10 +420,39 @@ const NoteItem = React.memo<NoteItemProps>(
               timezone={timezone}
             />
           );
+        case "habit_action": {
+          const habitAction = associationTooltip.payload.habitAction;
+          return (
+            <div className="space-y-2">
+              <span className="badge badge-info badge-sm">
+                {t("habitActionNotes.typeLabel")}
+              </span>
+              <div className="text-base font-semibold text-base-content">
+                {habitAction.habit_title?.trim() || t("habits.form.title")}
+              </div>
+              <dl className="space-y-1 text-sm">
+                <div className="flex items-start gap-2">
+                  <dt className="font-medium text-base-content/70">
+                    {t("common.date")}:
+                  </dt>
+                  <dd className="text-base-content">
+                    {formatDate(habitAction.action_date, timezone)}
+                  </dd>
+                </div>
+                <div className="flex items-start gap-2">
+                  <dt className="font-medium text-base-content/70">
+                    {t("habits.habit.status")}:
+                  </dt>
+                  <dd className="text-base-content">{habitAction.status}</dd>
+                </div>
+              </dl>
+            </div>
+          );
+        }
         default:
           return null;
       }
-    }, [associationTooltip, areaMap, timezone]);
+    }, [associationTooltip, areaMap, t, timezone]);
 
     // 复制笔记内容到剪贴板
     const handleCopy = async () => {

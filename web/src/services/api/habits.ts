@@ -56,6 +56,7 @@ export interface HabitAction {
   action_date: string;
   status: string;
   notes?: string | null;
+  linked_notes_count?: number;
 }
 
 export interface HabitActionHabitSummary {
@@ -63,6 +64,7 @@ export interface HabitActionHabitSummary {
   description?: string | null;
   start_date: string;
   duration_days: number;
+  cadence_frequency?: string | null;
 }
 
 export interface HabitActionUpdate {
@@ -103,6 +105,13 @@ interface HabitActionByDateListMeta {
   action_date?: string | null;
 }
 
+interface HabitActionRangeListMeta {
+  start_date?: string | null;
+  end_date?: string | null;
+  reference_date?: string | null;
+  cadence_frequency?: string | null;
+}
+
 export type HabitOverviewListResponse = ListResponse<
   HabitOverview,
   HabitListMeta
@@ -122,6 +131,11 @@ export interface HabitActionWithHabit extends HabitAction {
 export type HabitActionByDateListResponse = ListResponse<
   HabitActionWithHabit,
   HabitActionByDateListMeta
+>;
+
+export type HabitActionRangeListResponse = ListResponse<
+  HabitActionWithHabit,
+  HabitActionRangeListMeta
 >;
 
 export interface HabitTaskAssociationsResponse {
@@ -163,6 +177,27 @@ export const habitsApi = {
   async getActionsByDate(date: string): Promise<HabitActionByDateListResponse> {
     return http.get<HabitActionByDateListResponse>(
       ENDPOINTS.HABITS.ACTIONS_BY_DATE(date),
+    );
+  },
+
+  async getActionsInRange(params: {
+    startDate: string;
+    endDate: string;
+    referenceDate: string;
+    cadenceFrequency?: string | null;
+    page?: number;
+    size?: number;
+  }): Promise<HabitActionRangeListResponse> {
+    return http.get<HabitActionRangeListResponse>(
+      ENDPOINTS.HABITS.ACTIONS_IN_RANGE,
+      {
+        start_date: params.startDate,
+        end_date: params.endDate,
+        reference_date: params.referenceDate,
+        cadence_frequency: params.cadenceFrequency ?? undefined,
+        page: params.page,
+        size: params.size,
+      },
     );
   },
 

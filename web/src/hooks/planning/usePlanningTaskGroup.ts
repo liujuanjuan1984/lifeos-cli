@@ -10,7 +10,7 @@ import { usePlanningCycle } from "@/hooks/useCalendarAdapter";
 import { useDefaultInboxVision } from "@/hooks/queries/useDefaultInboxVision";
 import { usePreferenceWithBootstrap } from "@/hooks/queries/usePreferenceWithBootstrap";
 import { useMultipleTaskTimelogs } from "@/hooks/queries/useTaskTimelogs";
-import { useHabitActionsByDate } from "@/hooks/queries/useHabitActionsByDate";
+import { useHabitActionsInRange } from "@/hooks/queries/useHabitActionsInRange";
 import { useTaskExpansionState } from "@/hooks/useTaskExpansionState";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import type {
@@ -18,7 +18,11 @@ import type {
   PlanningGroup,
   PlanningViewType,
 } from "@/utils/calendar";
-import { formatDateInTimezone, formatDuration } from "@/utils/datetime";
+import {
+  formatDateInTimezone,
+  formatDateKey,
+  formatDuration,
+} from "@/utils/datetime";
 import { ACTIVE_TASK_STATUSES, TASK_STATUS_LABELS } from "@/utils/constants";
 
 import type { UUID } from "@/types/primitive";
@@ -72,11 +76,7 @@ export interface PlanningTaskGroupHandlers {
     newStatus: string,
   ) => Promise<void>;
 
-  handleHabitActionNotesUpdate: (
-    actionId: UUID,
-    habitId: UUID,
-    notes: string,
-  ) => Promise<void>;
+  handleHabitActionNotesChanged: () => Promise<void>;
 }
 
 interface PlanningTaskGroupHookResult {
@@ -111,6 +111,49 @@ interface PlanningTaskGroupHookResult {
   handlers: PlanningTaskGroupHandlers;
   getExpandedTasksForDraggable: (groupId: string) => Set<UUID>;
   toggleTaskExpansion: (groupId: string, taskId: string) => void;
+}
+
+const habitCadenceByPlanningCycle: Partial<Record<PlanningViewType, string>> = {
+  day: "daily",
+  week: "weekly",
+  month: "monthly",
+};
+
+export function isTopLevelPlanningGroup(
+  groupId: string,
+  planningCycleType?: PlanningViewType,
+): boolean {
+  if (!planningCycleType) return false;
+  if (planningCycleType === "7years") {
+    return groupId.startsWith("seven-year-");
+  }
+  return (
+    groupId.startsWith(`${planningCycleType}-`) ||
+    groupId.startsWith(`mayan-${planningCycleType}-`)
+  );
+}
+
+export function buildHabitActionRange(
+  planningCycleType: PlanningViewType | undefined,
+  groupDate: Date,
+  calendarAdapter: CalendarAdapter,
+  referenceDate: Date = new Date(),
+): {
+  startDate: string;
+  endDate: string;
+  referenceDate: string;
+  cadenceFrequency: string;
+} | null {
+  if (!planningCycleType) return null;
+  const cadenceFrequency = habitCadenceByPlanningCycle[planningCycleType];
+  if (!cadenceFrequency) return null;
+  const periodRange = calendarAdapter.getPeriodRange(planningCycleType, groupDate);
+  return {
+    startDate: formatDateKey(new Date(periodRange.start)),
+    endDate: formatDateKey(new Date(periodRange.end)),
+    referenceDate: formatDateKey(referenceDate),
+    cadenceFrequency,
+  };
 }
 
 export function usePlanningTaskGroup(
@@ -164,14 +207,36 @@ export function usePlanningTaskGroup(
     enabled: group.tasks.length > 0,
   });
 
-  const dateKey = useMemo(
-    () => group.date.toLocaleDateString("en-CA"),
-    [group.date],
+  const habitActionRange = useMemo(() => {
+    const localAdapter = calendarAdapter ?? adapter;
+    return buildHabitActionRange(
+      planningCycleType,
+      group.date,
+      localAdapter,
+      new Date(),
+    );
+  }, [adapter, calendarAdapter, group.date, planningCycleType]);
+  const canShowHabitActionsForGroup = isTopLevelPlanningGroup(
+    group.id,
+    planningCycleType,
   );
-  const habitsQuery = useHabitActionsByDate(dateKey, {
-    enabled: planningCycleType === "day" && showHabitActions,
-    staleTimeMs: 5 * 60 * 1000,
-  });
+  const habitsQuery = useHabitActionsInRange(
+    habitActionRange ?? {
+      startDate: formatDateKey(group.date),
+      endDate: formatDateKey(group.date),
+      referenceDate: formatDateKey(new Date()),
+      cadenceFrequency: null,
+    },
+    {
+      enabled: Boolean(
+        planningCycleType &&
+          showHabitActions &&
+          habitActionRange &&
+          canShowHabitActionsForGroup,
+      ),
+      staleTimeMs: 5 * 60 * 1000,
+    },
+  );
   const habitActions = (habitsQuery.data || []) as HabitActionWithHabit[];
 
   const { state: statusFilter, setState: setStatusFilter } =
@@ -439,7 +504,10 @@ export function usePlanningTaskGroup(
   const canAddTask = Boolean(planningCycleType);
   const carryForwardCount = carryForwardableTasks.length;
   const showHabitActionsCard =
-    planningCycleType === "day" && showHabitActions && habitActions.length > 0;
+    Boolean(planningCycleType) &&
+    showHabitActions &&
+    canShowHabitActionsForGroup &&
+    habitActions.length > 0;
 
   const handleVisionFilterChange = useCallback(
     (value: string) => {
@@ -811,21 +879,9 @@ export function usePlanningTaskGroup(
     [toast, t, habitsQuery],
   );
 
-  const handleHabitActionNotesUpdate = useCallback(
-    async (actionId: UUID, habitId: UUID, notes: string) => {
-      try {
-        await habitsApi.updateAction(habitId, actionId, { notes });
-        await habitsQuery.refetch();
-      } catch (error) {
-        console.error("Failed to update habit action notes:", error);
-        toast.showError(
-          t("planning.messages.habitActionUpdateFailed"),
-          t("planning.messages.habitActionUpdateFailedMessage"),
-        );
-      }
-    },
-    [toast, t, habitsQuery],
-  );
+  const handleHabitActionNotesChanged = useCallback(async () => {
+    await habitsQuery.refetch();
+  }, [habitsQuery]);
 
   const handlers: PlanningTaskGroupHandlers = {
     handleStatusFilterChange: (value) => {
@@ -851,7 +907,7 @@ export function usePlanningTaskGroup(
     handleCarryForwardTasks,
     handleCancelCarryForward,
     handleHabitActionStatusUpdate,
-    handleHabitActionNotesUpdate,
+    handleHabitActionNotesChanged,
   };
 
   return {

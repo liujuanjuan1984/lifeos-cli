@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated
 from uuid import UUID
 
@@ -13,6 +13,7 @@ from lifeos_cli.db.models.habit import Habit
 from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.services import habit_actions as habit_action_services
 from lifeos_cli.db.services import habits as habit_services
+from lifeos_cli.db.services import planning_lifecycle as planning_lifecycle_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import HabitActionUpdate, HabitCreate, HabitUpdate, ListResponse, Pagination
 from lifeos_web.serialization import to_jsonable
@@ -53,16 +54,19 @@ def _habit_action_payload(action: object) -> dict[str, object]:
             "habit_id": str(action.habit_id),
             "action_date": action.action_date.isoformat(),
             "status": action.status,
-            "notes": action.notes,
+            "notes": getattr(action, "notes", None),
+            "linked_notes_count": getattr(action, "linked_notes_count", 0),
         }
     else:
         jsonable = to_jsonable(action)
         assert isinstance(jsonable, dict)
         payload = jsonable
         payload.pop("habit_title", None)
+        payload.pop("habit_cadence_frequency", None)
         payload.pop("created_at", None)
         payload.pop("updated_at", None)
         payload.pop("deleted_at", None)
+        payload.setdefault("linked_notes_count", 0)
     return payload
 
 
@@ -79,6 +83,7 @@ async def _action_with_habit_summary(
         "description": habit.description,
         "start_date": habit.start_date.isoformat(),
         "duration_days": habit.duration_days,
+        "cadence_frequency": habit.cadence_frequency,
     }
     return payload
 
@@ -263,21 +268,80 @@ async def list_actions_by_date(
     )
 
 
+@router.get("/actions")
+async def list_actions_in_range(
+    session: SessionDep,
+    start_date: Annotated[date, Query()],
+    end_date: Annotated[date, Query()],
+    reference_date: Annotated[date, Query()],
+    cadence_frequency: Annotated[str | None, Query()] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=1000)] = 1000,
+) -> ListResponse:
+    """List materialized habit actions for one local planning date range."""
+    try:
+        await planning_lifecycle_services.reconcile_planning_habit_action_lifecycle(
+            session,
+            reference_date=reference_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        total = await habit_action_services.count_habit_actions(
+            session,
+            start_date=start_date,
+            end_date=end_date,
+            cadence_frequency=cadence_frequency,
+        )
+        actions = await habit_action_services.list_habit_actions(
+            session,
+            start_date=start_date,
+            end_date=end_date,
+            cadence_frequency=cadence_frequency,
+            limit=size,
+            offset=(page - 1) * size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    items = [await _action_with_habit_summary(session, action) for action in actions]
+    pages = (total + size - 1) // size if total else 0
+    return ListResponse(
+        items=items,
+        pagination=Pagination(page=page, size=size, total=total, pages=pages),
+        meta={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "reference_date": reference_date.isoformat(),
+            "cadence_frequency": cadence_frequency,
+        },
+    )
+
+
 @router.get("/{habit_id}/actions")
 async def list_actions_for_habit(
     habit_id: UUID,
     session: SessionDep,
     start_date: Annotated[date | None, Query()] = None,
     end_date: Annotated[date | None, Query()] = None,
+    status_filter: Annotated[str | None, Query()] = None,
+    center_date: Annotated[date | None, Query()] = None,
+    days_before: Annotated[int | None, Query(ge=0, le=500)] = None,
+    days_after: Annotated[int | None, Query(ge=0, le=500)] = None,
     size: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> ListResponse:
     """List materialized/scheduled actions for one habit."""
+    effective_start_date = start_date
+    effective_end_date = end_date
+    if center_date is not None and start_date is None and end_date is None:
+        effective_start_date = center_date - timedelta(days=days_before or 0)
+        effective_end_date = center_date + timedelta(days=days_after or 0)
+
     try:
         actions = await habit_action_services.list_habit_actions(
             session,
             habit_id=habit_id,
-            start_date=start_date,
-            end_date=end_date,
+            status=status_filter,
+            start_date=effective_start_date,
+            end_date=effective_end_date,
             limit=size,
         )
     except ValueError as exc:
@@ -287,10 +351,10 @@ async def list_actions_for_habit(
         items=items,
         pagination=Pagination(page=1, size=size, total=len(items), pages=1 if items else 0),
         meta={
-            "status_filter": None,
-            "center_date": None,
-            "days_before": None,
-            "days_after": None,
+            "status_filter": status_filter,
+            "center_date": center_date.isoformat() if center_date else None,
+            "days_before": days_before,
+            "days_after": days_after,
         },
     )
 

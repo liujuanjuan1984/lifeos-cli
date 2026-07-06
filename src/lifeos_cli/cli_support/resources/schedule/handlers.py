@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 
 from lifeos_cli.application.time_preferences import get_operational_date
 from lifeos_cli.cli_support import handler_utils as cli_handler_utils
@@ -12,6 +13,7 @@ from lifeos_cli.cli_support.time_args import (
     resolve_date_selection_arguments,
 )
 from lifeos_cli.db import session as db_session
+from lifeos_cli.db.services import planning_lifecycle as planning_lifecycle_services
 from lifeos_cli.db.services import schedules as schedule_services
 
 SCHEDULE_TASK_COLUMNS = (
@@ -88,6 +90,12 @@ def _format_schedule_day(day: schedule_services.ScheduleDay) -> str:
 async def handle_schedule_show_async(args: argparse.Namespace) -> int:
     target_date = args.target_date or get_operational_date()
     async with db_session.session_scope() as session:
+        await planning_lifecycle_services.reconcile_planning_habit_action_lifecycle(
+            session,
+            reference_date=target_date,
+            start_date=date.min,
+            end_date=target_date,
+        )
         day = await schedule_services.get_schedule_for_date(
             session,
             target_date=target_date,
@@ -116,6 +124,13 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
         )
     async with db_session.session_scope() as session:
         if date_selection.date_values:
+            reference_date = max(date_selection.date_values)
+            await planning_lifecycle_services.reconcile_planning_habit_action_lifecycle(
+                session,
+                reference_date=reference_date,
+                start_date=date.min,
+                end_date=reference_date,
+            )
             days = [
                 await schedule_services.get_schedule_for_date(
                     session,
@@ -127,6 +142,12 @@ async def handle_schedule_list_async(args: argparse.Namespace) -> int:
         else:
             assert date_selection.start_date is not None
             assert date_selection.end_date is not None
+            await planning_lifecycle_services.reconcile_planning_habit_action_lifecycle(
+                session,
+                reference_date=date_selection.end_date,
+                start_date=date.min,
+                end_date=date_selection.end_date,
+            )
             days = await schedule_services.list_schedule_in_range(
                 session,
                 start_date=date_selection.start_date,

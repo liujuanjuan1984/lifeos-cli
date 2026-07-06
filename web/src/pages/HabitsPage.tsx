@@ -16,10 +16,12 @@ import StatusBadge from "@/components/StatusBadge";
 import EnumSelect from "@/components/selects/EnumSelect";
 import ExpandableCard from "@/components/ExpandableCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useCalendarAdapter } from "@/hooks/useCalendarAdapter";
 import { useHabitActions } from "@/hooks/queries/useHabitActions";
 import { useHabitStats } from "@/hooks/queries/useHabitStats";
 import { HABIT_STATUS_FILTER_OPTIONS } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
+import type { CalendarAdapter } from "@/utils/calendar";
 import { Icon } from "@/components/icons";
 import { addDays, formatDate } from "@/utils/datetime";
 function HabitItem({
@@ -29,7 +31,7 @@ function HabitItem({
   onEdit,
   onCopy,
   onStatusUpdate,
-  onNotesUpdate,
+  calendarAdapter,
   t,
 }: {
   habit: Habit;
@@ -42,7 +44,7 @@ function HabitItem({
     action: HabitAction,
     newStatus: string,
   ) => void;
-  onNotesUpdate: (habitId: UUID, action: HabitAction, notes: string) => void;
+  calendarAdapter: CalendarAdapter;
   t: TFunction;
 }) {
   const parseHabitDate = (value: string) => {
@@ -79,7 +81,7 @@ function HabitItem({
           : current;
     setActionCenterDate(clamped);
   }, [habit.id, habit.start_date, habit.duration_days]);
-  const { actions } = useHabitActions(habit.id, {
+  const { actions, query: actionsQuery } = useHabitActions(habit.id, {
     enabled: isExpanded,
     centerDate: actionCenterDate,
     windowSize: 100,
@@ -248,17 +250,20 @@ function HabitItem({
           {isExpanded && (
             <HabitActionList
               habitId={habit.id}
+              habitTitle={habit.title}
               actions={actions || []}
               durationDays={habit.duration_days}
               startDate={habit.start_date}
+              cadenceFrequency={habit.cadence_frequency}
+              calendarAdapter={calendarAdapter}
               centerDate={actionCenterDate}
               onCenterDateChange={setActionCenterDate}
               onStatusUpdate={(habitId, action, newStatus) =>
                 onStatusUpdate(habitId, action, newStatus)
               }
-              onNotesUpdate={(habitId, action, notes) =>
-                onNotesUpdate(habitId, action, notes)
-              }
+              onNotesChanged={() => {
+                void actionsQuery.refetch();
+              }}
             />
           )}
         </div>
@@ -270,6 +275,7 @@ function HabitItem({
 function HabitsPage() {
   const { t } = useTranslation();
   const { setHeader } = usePageHeader();
+  const { adapter: calendarAdapter } = useCalendarAdapter();
 
   // State
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -288,7 +294,6 @@ function HabitsPage() {
     isLoading,
     error,
     updateActionStatus,
-    updateActionNotes,
     createHabit,
     updateHabit,
     expandedHabits,
@@ -360,13 +365,6 @@ function HabitsPage() {
     [updateActionStatus],
   );
 
-  const handleNotesUpdate = useCallback(
-    async (habitId: UUID, action: HabitAction, notes: string) => {
-      updateActionNotes(habitId, action, notes);
-    },
-    [updateActionNotes],
-  );
-
   const handleCloseForm = useCallback(() => {
     setShowFormModal(false);
     setEditingHabit(null);
@@ -411,7 +409,7 @@ function HabitsPage() {
                   onEdit={handleEditHabit}
                   onCopy={handleCopyHabit}
                   onStatusUpdate={handleStatusUpdate}
-                  onNotesUpdate={handleNotesUpdate}
+                  calendarAdapter={calendarAdapter}
                   t={t}
                 />
               ))}

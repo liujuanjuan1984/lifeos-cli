@@ -126,7 +126,8 @@ export const isHabitsActionsByDateQuery = (query: QueryLike): boolean => {
   return (
     query.queryKey.length >= 3 &&
     query.queryKey[0] === "habits" &&
-    query.queryKey[1] === "actions-by-date"
+    (query.queryKey[1] === "actions-by-date" ||
+      query.queryKey[1] === "actions-in-range")
   );
 };
 

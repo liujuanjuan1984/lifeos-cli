@@ -193,6 +193,7 @@ export function useNotesPageData(
         tags: note.tags,
         task: note.task,
         timelogs: note.timelogs,
+        habit_actions: note.habit_actions,
       })),
     [notes],
   );
@@ -231,6 +232,7 @@ export function useNotesPageData(
       tags: apiNote.tags,
       task: apiNote.task,
       timelogs: apiNote.timelogs,
+      habit_actions: apiNote.habit_actions,
     }),
     [],
   );

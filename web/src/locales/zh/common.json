@@ -1316,11 +1316,11 @@
     },
     "actionList": {
       "monthView": "月视图",
-      "fiveDayView": "5天视图",
+      "fiveDayView": "近期打卡",
       "previousMonth": "上个月",
       "nextMonth": "下个月",
-      "previousFiveDays": "前5天",
-      "nextFiveDays": "后5天",
+      "previousFiveDays": "前5期打卡",
+      "nextFiveDays": "后5期打卡",
       "weekdays": {
         "sunday": "日",
         "monday": "一",
@@ -1330,11 +1330,8 @@
         "friday": "五",
         "saturday": "六"
       },
-      "notesLabel": "习惯打卡记录",
       "notRecorded": "未记录",
-      "notStarted": "未开始",
-      "editNotes": "编辑备注",
-      "notesPlaceholder": "输入备注内容..."
+      "notStarted": "未开始"
     }
   },
   "createNoteModal": {
@@ -1345,6 +1342,10 @@
     "relatedTaskOptional": "选择关联任务（可选）",
     "submitText": "创建笔记",
     "updateText": "更新笔记",
+    "habitActionHeader": {
+      "label": "关联的习惯打卡",
+      "fallbackTitle": "习惯打卡"
+    },
     "timelogHeader": {
       "label": "关联的时间记录",
       "fallbackTitle": "时间记录",
@@ -1824,6 +1825,15 @@
     "emptyState": {
       "title": "暂无笔记",
       "description": "通过时间日志入口创建的笔记会显示在这里，用它记录更多感受、思考或后续事项。"
+    }
+  },
+  "habitActionNotes": {
+    "title": "习惯打卡笔记",
+    "typeLabel": "习惯打卡",
+    "actionLabel": "习惯打卡：",
+    "emptyState": {
+      "title": "暂无笔记",
+      "description": "关联到这次习惯打卡的笔记会显示在这里，可用于记录打卡背景、感受或后续事项。"
     }
   },
   "taskTimelogs": {

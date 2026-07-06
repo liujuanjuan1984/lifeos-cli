@@ -70,7 +70,7 @@ SUPPORTED_DATA_RESOURCES = (
     "note",
 )
 BUNDLE_RESOURCE_ORDER = SUPPORTED_DATA_RESOURCES
-BUNDLE_SCHEMA_VERSION = 2
+BUNDLE_SCHEMA_VERSION = 3
 
 
 class DataOperationError(RuntimeError):
@@ -328,6 +328,7 @@ class PreparedSnapshotRow:
     note_vision_ids: list[UUID] | None = None
     note_event_ids: list[UUID] | None = None
     note_timelog_ids: list[UUID] | None = None
+    note_habit_action_ids: list[UUID] | None = None
     occurrence_exceptions: list[dict[str, Any]] | None = None
 
 
@@ -379,6 +380,11 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         if resource == "note" and "timelog_ids" in payload
         else None
     )
+    note_habit_action_ids = (
+        _parse_uuid_array(payload["habit_action_ids"], field_name="habit_action_ids")
+        if resource == "note" and "habit_action_ids" in payload
+        else None
+    )
     occurrence_exceptions = (
         _parse_event_occurrence_exceptions(payload["occurrence_exceptions"])
         if resource == "event" and "occurrence_exceptions" in payload
@@ -395,6 +401,7 @@ def prepare_snapshot_row(resource: str, index: int, payload: dict[str, Any]) -> 
         note_vision_ids=note_vision_ids,
         note_event_ids=note_event_ids,
         note_timelog_ids=note_timelog_ids,
+        note_habit_action_ids=note_habit_action_ids,
         occurrence_exceptions=occurrence_exceptions,
     )
 
@@ -547,6 +554,17 @@ async def export_resource_snapshot(
         if resource == "note"
         else {}
     )
+    note_habit_action_map = (
+        await get_target_ids_for_sources(
+            session,
+            source_model="note",
+            source_ids=entity_ids,
+            target_model="habit_action",
+            link_type="captured_from",
+        )
+        if resource == "note"
+        else {}
+    )
 
     for payload in payloads:
         entity_id = UUID(str(payload["id"]))
@@ -568,6 +586,9 @@ async def export_resource_snapshot(
             payload["event_ids"] = [str(event_id) for event_id in note_event_map.get(entity_id, [])]
             payload["timelog_ids"] = [
                 str(timelog_id) for timelog_id in note_timelog_map.get(entity_id, [])
+            ]
+            payload["habit_action_ids"] = [
+                str(action_id) for action_id in note_habit_action_map.get(entity_id, [])
             ]
     return payloads
 
@@ -664,6 +685,15 @@ async def _sync_snapshot_relations(
                 target_ids=prepared_row.note_timelog_ids,
                 link_type="captured_from",
             )
+        if prepared_row.note_habit_action_ids is not None:
+            await set_association_links(
+                session,
+                source_model="note",
+                source_id=prepared_row.row_id,
+                target_model="habit_action",
+                target_ids=prepared_row.note_habit_action_ids,
+                link_type="captured_from",
+            )
     if prepared_row.resource == "event" and prepared_row.occurrence_exceptions is not None:
         await session.execute(
             delete(EventOccurrenceException).where(
@@ -758,7 +788,7 @@ def _normalize_patch_payload(resource: str, payload: dict[str, Any]) -> dict[str
                 None if value is None else _parse_uuid_array(value, field_name=field)
             )
             continue
-        if field == "timelog_ids" and resource == "note":
+        if field in {"timelog_ids", "habit_action_ids"} and resource == "note":
             normalized[field] = (
                 None if value is None else _parse_uuid_array(value, field_name=field)
             )
@@ -961,10 +991,17 @@ def _batch_update_note_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     kwargs.update(_null_means_clear(payload, field="vision_ids", clear_flag="clear_visions"))
     kwargs.update(_null_means_clear(payload, field="event_ids", clear_flag="clear_events"))
     kwargs.update(_null_means_clear(payload, field="timelog_ids", clear_flag="clear_timelogs"))
+    kwargs.update(
+        _null_means_clear(
+            payload,
+            field="habit_action_ids",
+            clear_flag="clear_habit_actions",
+        )
+    )
     if len(kwargs) == 1:
         raise DataOperationError(
             "Note batch update requires at least one of `content`, `tag_ids`, `person_ids`, "
-            "`task_ids`, `vision_ids`, `event_ids`, or `timelog_ids`."
+            "`task_ids`, `vision_ids`, `event_ids`, `timelog_ids`, or `habit_action_ids`."
         )
     return kwargs
 
@@ -1205,8 +1242,8 @@ def read_bundle(path: Path) -> BundlePayload:
                 raise DataOperationError(
                     "Unsupported bundle schema version "
                     f"{schema_version!r}. Expected {BUNDLE_SCHEMA_VERSION}. "
-                    "Older bundle schemas are not supported after sparse habit-action "
-                    "materialization."
+                    "Older bundle schemas are not supported after habit-action notes moved "
+                    "to linked notes."
                 )
             for resource in BUNDLE_RESOURCE_ORDER:
                 entry_name = f"{resource}.jsonl"

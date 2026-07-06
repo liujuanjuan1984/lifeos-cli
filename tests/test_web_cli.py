@@ -16,6 +16,7 @@ from lifeos_cli.cli import build_parser
 from lifeos_cli.config import clear_config_cache
 from lifeos_cli.db.services.read_models import (
     EventView,
+    HabitActionSummaryView,
     NoteView,
     PersonSummaryView,
     PersonView,
@@ -648,6 +649,7 @@ def test_web_habit_action_payload_uses_slim_habit_summary(
         "action_date": "2026-06-30",
         "status": "pending",
         "notes": None,
+        "linked_notes_count": 0,
     }
 
     summary_payload = asyncio.run(
@@ -659,6 +661,7 @@ def test_web_habit_action_payload_uses_slim_habit_summary(
         "description": "Midday walk",
         "start_date": "2026-06-01",
         "duration_days": 30,
+        "cadence_frequency": "daily",
     }
     habit_summary = cast(dict[str, object], summary_payload["habit"])
     assert "id" not in habit_summary
@@ -1902,6 +1905,125 @@ def test_web_habit_actions_by_date_uses_lifecycle_aware_action_query(
     assert response.items == []
 
 
+def test_web_habit_actions_range_passes_reference_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured_expire: dict[str, object] = {}
+    captured_count: dict[str, object] = {}
+    captured_list: dict[str, object] = {}
+
+    async def fake_reconcile_planning_habit_action_lifecycle(
+        _session: object,
+        **kwargs: object,
+    ) -> int:
+        captured_expire.update(kwargs)
+        return 0
+
+    async def fake_count_habit_actions(_session: object, **kwargs: object) -> int:
+        captured_count.update(kwargs)
+        return 0
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured_list.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.planning_lifecycle_services,
+        "reconcile_planning_habit_action_lifecycle",
+        fake_reconcile_planning_habit_action_lifecycle,
+    )
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "count_habit_actions",
+        fake_count_habit_actions,
+    )
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_in_range(
+            cast(AsyncSession, object()),
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 30),
+            reference_date=date(2026, 4, 9),
+            cadence_frequency="weekly",
+        )
+    )
+
+    assert captured_expire["start_date"] == date(2026, 4, 1)
+    assert captured_expire["end_date"] == date(2026, 4, 30)
+    assert captured_expire["reference_date"] == date(2026, 4, 9)
+    assert captured_count["start_date"] == date(2026, 4, 1)
+    assert captured_count["end_date"] == date(2026, 4, 30)
+    assert captured_count["cadence_frequency"] == "weekly"
+    assert "reference_date" not in captured_count
+    assert captured_list["start_date"] == date(2026, 4, 1)
+    assert captured_list["end_date"] == date(2026, 4, 30)
+    assert captured_list["cadence_frequency"] == "weekly"
+    assert "reference_date" not in captured_list
+    assert captured_list["limit"] == 1000
+    assert captured_list["offset"] == 0
+    assert response.items == []
+    assert response.meta == {
+        "start_date": "2026-04-01",
+        "end_date": "2026-04-30",
+        "reference_date": "2026-04-09",
+        "cadence_frequency": "weekly",
+    }
+
+
+def test_web_habit_actions_for_habit_uses_center_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import habits
+
+    captured: dict[str, object] = {}
+
+    async def fake_list_habit_actions(_session: object, **kwargs: object) -> list[object]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        habits.habit_action_services,
+        "list_habit_actions",
+        fake_list_habit_actions,
+    )
+
+    response = asyncio.run(
+        habits.list_actions_for_habit(
+            UUID("55555555-5555-5555-5555-555555555555"),
+            cast(AsyncSession, object()),
+            center_date=date(2026, 7, 20),
+            days_before=14,
+            days_after=21,
+            status_filter="pending",
+            size=50,
+        )
+    )
+
+    assert captured["habit_id"] == UUID("55555555-5555-5555-5555-555555555555")
+    assert captured["status"] == "pending"
+    assert captured["start_date"] == date(2026, 7, 6)
+    assert captured["end_date"] == date(2026, 8, 10)
+    assert captured["limit"] == 50
+    assert response.items == []
+    assert response.meta == {
+        "status_filter": "pending",
+        "center_date": "2026-07-20",
+        "days_before": 14,
+        "days_after": 21,
+    }
+
+
 def test_web_habit_action_update_null_notes_maps_to_clear_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2556,6 +2678,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
     person_id = UUID("22222222-2222-2222-2222-222222222222")
     task_id = UUID("33333333-3333-3333-3333-333333333333")
     timelog_id = UUID("44444444-4444-4444-4444-444444444444")
+    habit_action_id = UUID("66666666-6666-6666-6666-666666666666")
     captured: dict[str, object] = {}
 
     async def fake_create_note(_session: object, **kwargs: object) -> object:
@@ -2572,6 +2695,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
             visions=(),
             events=(),
             timelogs=(),
+            habit_actions=(),
         )
 
     monkeypatch.setattr(notes.note_services, "create_note", fake_create_note)
@@ -2584,6 +2708,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
                 person_ids=[person_id],
                 task_id=task_id,
                 timelog_ids=[timelog_id],
+                habit_action_ids=[habit_action_id],
             ),
             cast(AsyncSession, object()),
         )
@@ -2595,6 +2720,7 @@ def test_web_note_create_maps_selector_associations_to_lifeos_note_service(
         "person_ids": [person_id],
         "task_ids": [task_id],
         "timelog_ids": [timelog_id],
+        "habit_action_ids": [habit_action_id],
     }
 
 
@@ -2627,6 +2753,15 @@ def test_web_note_payload_exposes_primary_task_for_notes_page() -> None:
         tags=(tag,),
         people=(person,),
         tasks=(task,),
+        habit_actions=(
+            HabitActionSummaryView(
+                id=UUID("88888888-8888-8888-8888-888888888888"),
+                habit_id=UUID("99999999-9999-9999-9999-999999999999"),
+                habit_title="Morning Walk",
+                action_date=date(2026, 7, 5),
+                status="done",
+            ),
+        ),
     )
 
     payload = _note_payload(note)
@@ -2662,6 +2797,15 @@ def test_web_note_payload_exposes_primary_task_for_notes_page() -> None:
             "birth_date": None,
             "location": None,
             "tags": [],
+        }
+    ]
+    assert payload["habit_actions"] == [
+        {
+            "id": "88888888-8888-8888-8888-888888888888",
+            "habit_id": "99999999-9999-9999-9999-999999999999",
+            "habit_title": "Morning Walk",
+            "action_date": "2026-07-05",
+            "status": "done",
         }
     ]
     assert "persons" not in payload

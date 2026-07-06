@@ -10,6 +10,7 @@ from uuid import UUID
 
 if TYPE_CHECKING:
     from lifeos_cli.db.models.event import Event
+    from lifeos_cli.db.models.habit_action import HabitAction
     from lifeos_cli.db.models.note import Note
     from lifeos_cli.db.models.person import Person
     from lifeos_cli.db.models.tag import Tag
@@ -73,6 +74,17 @@ class TimelogSummaryView:
 
     id: UUID
     title: str
+
+
+@dataclass(frozen=True)
+class HabitActionSummaryView:
+    """Lightweight habit-action summary."""
+
+    id: UUID
+    habit_id: UUID
+    habit_title: str | None
+    action_date: date
+    status: str
 
 
 @dataclass(frozen=True)
@@ -186,12 +198,14 @@ class HabitActionView:
     id: UUID | None
     habit_id: UUID
     habit_title: str
+    habit_cadence_frequency: str
     action_date: date
     status: str
     notes: str | None
     created_at: datetime | None
     updated_at: datetime | None
     deleted_at: datetime | None
+    linked_notes_count: int
 
 
 @dataclass(frozen=True)
@@ -252,6 +266,7 @@ class NoteView:
     visions: tuple[VisionSummaryView, ...] = field(default_factory=tuple)
     events: tuple[EventSummaryView, ...] = field(default_factory=tuple)
     timelogs: tuple[TimelogSummaryView, ...] = field(default_factory=tuple)
+    habit_actions: tuple[HabitActionSummaryView, ...] = field(default_factory=tuple)
 
 
 def build_person_summary(person: Person) -> PersonSummaryView:
@@ -295,6 +310,17 @@ def build_event_summary(event: Event) -> EventSummaryView:
 def build_timelog_summary(timelog: Timelog) -> TimelogSummaryView:
     """Build one timelog summary view from a timelog model."""
     return TimelogSummaryView(id=timelog.id, title=timelog.title)
+
+
+def build_habit_action_summary(action: HabitAction) -> HabitActionSummaryView:
+    """Build one habit-action summary view from a habit action model."""
+    return HabitActionSummaryView(
+        id=action.id,
+        habit_id=action.habit_id,
+        habit_title=action.habit.title if action.habit is not None else None,
+        action_date=action.action_date,
+        status=action.status,
+    )
 
 
 def build_person_view(person: Person, *, tags: Sequence[Tag] = ()) -> PersonView:
@@ -474,6 +500,7 @@ def build_note_view(
     visions: Sequence[Vision] = (),
     events: Sequence[Event] = (),
     timelogs: Sequence[Timelog] = (),
+    habit_actions: Sequence[HabitAction] = (),
 ) -> NoteView:
     """Build one note view from a note model and linked records."""
     return NoteView(
@@ -488,4 +515,5 @@ def build_note_view(
         visions=tuple(build_vision_summary(vision) for vision in visions),
         events=tuple(build_event_summary(event) for event in events),
         timelogs=tuple(build_timelog_summary(timelog) for timelog in timelogs),
+        habit_actions=tuple(build_habit_action_summary(action) for action in habit_actions),
     )

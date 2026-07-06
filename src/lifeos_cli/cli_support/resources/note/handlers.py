@@ -62,6 +62,7 @@ async def handle_note_add_async(args: argparse.Namespace) -> int:
                 and args.vision_ids is None
                 and args.event_ids is None
                 and args.timelog_ids is None
+                and args.habit_action_ids is None
             ):
                 note = await note_services.create_note(session, content=content)
             else:
@@ -74,6 +75,7 @@ async def handle_note_add_async(args: argparse.Namespace) -> int:
                     vision_ids=args.vision_ids,
                     event_ids=args.event_ids,
                     timelog_ids=args.timelog_ids,
+                    habit_action_ids=args.habit_action_ids,
                 )
     except (LookupError, note_services.NoteValidationError) as exc:
         return cli_handler_utils.print_cli_error(exc)
@@ -91,6 +93,7 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
             and args.task_id is None
             and args.timelog_id is None
             and args.vision_id is None
+            and args.habit_action_id is None
         ):
             notes = await note_services.list_notes(
                 session,
@@ -106,6 +109,7 @@ async def handle_note_list_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 timelog_id=args.timelog_id,
                 vision_id=args.vision_id,
+                habit_action_id=args.habit_action_id,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -132,6 +136,7 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
             and args.task_id is None
             and args.timelog_id is None
             and args.vision_id is None
+            and args.habit_action_id is None
         ):
             notes = await note_services.search_notes(
                 session,
@@ -149,6 +154,7 @@ async def handle_note_search_async(args: argparse.Namespace) -> int:
                 task_id=args.task_id,
                 timelog_id=args.timelog_id,
                 vision_id=args.vision_id,
+                habit_action_id=args.habit_action_id,
                 limit=args.limit,
                 offset=args.offset,
             )
@@ -183,6 +189,11 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
         (args.clear_visions and args.vision_ids is not None, "--vision-id", "--clear-visions"),
         (args.clear_events and args.event_ids is not None, "--event-id", "--clear-events"),
         (args.clear_timelogs and args.timelog_ids is not None, "--timelog-id", "--clear-timelogs"),
+        (
+            args.clear_habit_actions and args.habit_action_ids is not None,
+            "--habit-action-id",
+            "--clear-habit-actions",
+        ),
     )
     conflict_error = cli_handler_utils.validate_mutually_exclusive_pairs(conflicts)
     if conflict_error is not None:
@@ -203,6 +214,8 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
                 and not args.clear_events
                 and args.timelog_ids is None
                 and not args.clear_timelogs
+                and args.habit_action_ids is None
+                and not args.clear_habit_actions
             ):
                 note = await note_services.update_note(
                     session,
@@ -226,6 +239,8 @@ async def handle_note_update_async(args: argparse.Namespace) -> int:
                     clear_events=args.clear_events,
                     timelog_ids=args.timelog_ids,
                     clear_timelogs=args.clear_timelogs,
+                    habit_action_ids=args.habit_action_ids,
+                    clear_habit_actions=args.clear_habit_actions,
                 )
     except (note_services.NoteNotFoundError, note_services.NoteValidationError, LookupError) as exc:
         return cli_handler_utils.print_cli_error(exc)

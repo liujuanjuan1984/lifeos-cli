@@ -5,9 +5,10 @@ import { notesKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 
 type AssociatedNotesFilter =
-  | { task_id?: UUID; timelog_id?: never; tag_id?: never }
-  | { task_id?: never; timelog_id?: UUID; tag_id?: never }
-  | { task_id?: never; timelog_id?: never; tag_id?: UUID };
+  | { task_id?: UUID; timelog_id?: never; habit_action_id?: never; tag_id?: never }
+  | { task_id?: never; timelog_id?: UUID; habit_action_id?: never; tag_id?: never }
+  | { task_id?: never; timelog_id?: never; habit_action_id?: UUID; tag_id?: never }
+  | { task_id?: never; timelog_id?: never; habit_action_id?: never; tag_id?: UUID };
 
 interface UseAssociatedNotesControllerParams {
   isOpen: boolean;

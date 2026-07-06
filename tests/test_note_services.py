@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import warnings
+from datetime import date
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -17,9 +18,11 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from lifeos_cli.db.base import Base
+from lifeos_cli.db.models.habit import Habit
+from lifeos_cli.db.models.habit_action import HabitAction
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services import notes, people, tags
+from lifeos_cli.db.services import habit_actions, notes, people, tags
 
 
 async def _create_sqlite_session_factory() -> tuple[
@@ -117,6 +120,94 @@ def test_list_notes_by_task_does_not_emit_cartesian_product_warning() -> None:
                     and "cartesian product" in str(item.message)
                     for item in caught
                 )
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_note_can_link_to_habit_action() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                habit = Habit(
+                    title="Walk",
+                    start_date=date(2026, 7, 4),
+                    duration_days=1,
+                    status="active",
+                    status_changed_date=date(2026, 7, 4),
+                )
+                session.add(habit)
+                await session.flush()
+                action = HabitAction(habit_id=habit.id, action_date=date(2026, 7, 4))
+                session.add(action)
+                await session.flush()
+
+                created_note = await notes.create_note(
+                    session,
+                    content="Completed after lunch",
+                    habit_action_ids=[action.id],
+                )
+                rows = await notes.list_notes(session, habit_action_id=action.id)
+
+                assert [row.id for row in rows] == [created_note.id]
+                assert rows[0].habit_actions[0].id == action.id
+                assert rows[0].habit_actions[0].habit_title == "Walk"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_habit_action_notes_are_stored_as_linked_notes() -> None:
+    async def run() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                habit = Habit(
+                    title="Walk",
+                    start_date=date(2026, 7, 4),
+                    duration_days=1,
+                    status="active",
+                    status_changed_date=date(2026, 7, 4),
+                )
+                session.add(habit)
+                await session.flush()
+                action = HabitAction(habit_id=habit.id, action_date=date(2026, 7, 4))
+                session.add(action)
+                await session.flush()
+
+                updated = await habit_actions.update_habit_action(
+                    session,
+                    action_id=action.id,
+                    notes="Completed after lunch",
+                )
+                linked_notes = await notes.list_notes(session, habit_action_id=action.id)
+                action_views = await habit_actions.list_habit_actions(
+                    session,
+                    habit_id=habit.id,
+                    date_values=(date(2026, 7, 4),),
+                )
+
+                assert updated.__dict__["notes"] == "Completed after lunch"
+                assert [note.content for note in linked_notes] == ["Completed after lunch"]
+                assert action_views[0].notes == "Completed after lunch"
+                assert action_views[0].linked_notes_count == 1
+
+                await habit_actions.update_habit_action(
+                    session,
+                    action_id=action.id,
+                    clear_notes=True,
+                )
+
+                assert await notes.list_notes(session, habit_action_id=action.id) == []
+                cleared_action_views = await habit_actions.list_habit_actions(
+                    session,
+                    habit_id=habit.id,
+                    date_values=(date(2026, 7, 4),),
+                )
+                assert cleared_action_views[0].linked_notes_count == 0
         finally:
             await engine.dispose()
 

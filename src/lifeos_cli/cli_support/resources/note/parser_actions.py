@@ -54,6 +54,7 @@ def build_note_add_parser(
                 'lifeos note add "Review shared feedback" --tag-id <tag-id-1> --tag-id <tag-id-2>',
                 'lifeos note add "Review the monthly budget assumptions" --task-id <task-id>',
                 'lifeos note add "Prepare the partner sync agenda" --event-id <event-id>',
+                'lifeos note add "Completed after lunch" --habit-action-id <habit-action-id>',
             ),
             notes=(
                 _(
@@ -125,6 +126,14 @@ def build_note_add_parser(
         default=None,
         help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_timelogs"),
     )
+    add_parser.add_argument(
+        "--habit-action-id",
+        dest="habit_action_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help=_("resources.note.parser_actions.repeat_to_associate_one_or_more_habit_actions"),
+    )
     add_parser.set_defaults(handler=make_sync_handler(handle_note_add_async))
 
 
@@ -149,6 +158,7 @@ def build_note_list_parser(
                 "lifeos note list --person-id <person-id>",
                 "lifeos note list --event-id <event-id>",
                 "lifeos note list --timelog-id <timelog-id>",
+                "lifeos note list --habit-action-id <habit-action-id>",
                 "lifeos note list --limit 20 --offset 20",
             ),
             notes=(
@@ -174,6 +184,11 @@ def build_note_list_parser(
     )
     list_parser.add_argument(
         "--vision-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_vision")
+    )
+    list_parser.add_argument(
+        "--habit-action-id",
+        type=UUID,
+        help=_("resources.note.parser_actions.filter_by_linked_habit_action"),
     )
     list_parser.add_argument(
         "--with-counts",
@@ -203,6 +218,7 @@ def build_note_search_parser(
                 'lifeos note search "meeting notes"',
                 'lifeos note search "review" --task-id <task-id>',
                 'lifeos note search "partner sync" --event-id <event-id>',
+                'lifeos note search "completed" --habit-action-id <habit-action-id>',
                 'lifeos note search "budget q2" --limit 20',
                 'lifeos note search "archived idea"',
             ),
@@ -237,6 +253,11 @@ def build_note_search_parser(
     )
     search_parser.add_argument(
         "--vision-id", type=UUID, help=_("resources.note.parser_actions.filter_by_linked_vision")
+    )
+    search_parser.add_argument(
+        "--habit-action-id",
+        type=UUID,
+        help=_("resources.note.parser_actions.filter_by_linked_habit_action"),
     )
     search_parser.add_argument(
         "--with-counts",
@@ -298,6 +319,8 @@ def build_note_update_parser(
                 "lifeos note update 11111111-1111-1111-1111-111111111111 "
                 "--clear-tags --clear-events",
                 "lifeos note update 11111111-1111-1111-1111-111111111111 --clear-timelogs",
+                "lifeos note update 11111111-1111-1111-1111-111111111111 "
+                "--habit-action-id <habit-action-id>",
             ),
             notes=(
                 _(
@@ -397,6 +420,21 @@ def build_note_update_parser(
         "--clear-timelogs",
         action="store_true",
         help=_("resources.note.parser_actions.remove_all_linked_timelogs"),
+    )
+    update_parser.add_argument(
+        "--habit-action-id",
+        dest="habit_action_ids",
+        type=UUID,
+        action="append",
+        default=None,
+        help=_(
+            "resources.note.parser_actions.repeat_to_replace_habit_actions_with_one_or_more_identifiers"
+        ),
+    )
+    update_parser.add_argument(
+        "--clear-habit-actions",
+        action="store_true",
+        help=_("resources.note.parser_actions.remove_all_linked_habit_actions"),
     )
     update_parser.set_defaults(handler=make_sync_handler(handle_note_update_async))
 

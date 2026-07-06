@@ -1316,11 +1316,11 @@
     },
     "actionList": {
       "monthView": "Month View",
-      "fiveDayView": "5-Day View",
+      "fiveDayView": "Recent Check-ins",
       "previousMonth": "Previous Month",
       "nextMonth": "Next Month",
-      "previousFiveDays": "Previous 5 Days",
-      "nextFiveDays": "Next 5 Days",
+      "previousFiveDays": "Previous 5 Check-ins",
+      "nextFiveDays": "Next 5 Check-ins",
       "weekdays": {
         "sunday": "Sun",
         "monday": "Mon",
@@ -1330,11 +1330,8 @@
         "friday": "Fri",
         "saturday": "Sat"
       },
-      "notesLabel": "Habit Actions Record",
       "notRecorded": "Not Recorded",
-      "notStarted": "Not Started",
-      "editNotes": "Edit Notes",
-      "notesPlaceholder": "Enter notes content..."
+      "notStarted": "Not Started"
     }
   },
   "createNoteModal": {
@@ -1345,6 +1342,10 @@
     "relatedTaskOptional": "Select related task (optional)",
     "submitText": "Create Note",
     "updateText": "Update Note",
+    "habitActionHeader": {
+      "label": "Linked habit action",
+      "fallbackTitle": "Habit action"
+    },
     "timelogHeader": {
       "label": "Linked timelog",
       "fallbackTitle": "Timelog",
@@ -1824,6 +1825,15 @@
     "emptyState": {
       "title": "No Notes",
       "description": "Notes linked from this time entry will appear here. Capture extra context, reflections, or follow-up items."
+    }
+  },
+  "habitActionNotes": {
+    "title": "Habit Action Notes",
+    "typeLabel": "Habit action",
+    "actionLabel": "Habit action: ",
+    "emptyState": {
+      "title": "No Notes",
+      "description": "Notes linked from this habit action will appear here. Capture check-in context or follow-up reflections."
     }
   },
   "taskTimelogs": {

@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Card from "@/layouts/Card";
 import EnumSelect from "@/components/selects/EnumSelect";
-import ActionButton, {
-  ExpandButton,
-  EditButton,
-  ActionButtonGroup,
-} from "@/components/ActionButton";
+import ActionButton, { ExpandButton } from "@/components/ActionButton";
 import {
   HABIT_ACTION_STATUS_OPTIONS,
   HABIT_ACTION_STATUS_CONFIG,
@@ -15,15 +11,18 @@ import type { HabitActionWithHabit } from "@/services/api/habits";
 import type { UUID } from "@/types/primitive";
 import { Icon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
-import ModalBase from "@/layouts/ModalBase";
-import { FormField, TextArea } from "@/components/forms";
 import { parseDateStringToLocalDate, startOfLocalDay } from "@/utils/datetime";
+import CreateNoteModal from "@/components/CreateNoteModal";
+import TaskNotesModal from "@/components/TaskNotesModal";
+import type { NoteHabitActionSummary } from "@/services/api/notes";
 
 interface HabitActionsCardProps {
   habitActions: HabitActionWithHabit[];
   onStatusChange: (actionId: UUID, habitId: UUID, status: string) => void;
-  onNotesChange: (actionId: UUID, habitId: UUID, notes: string) => void;
+  onNotesChanged?: () => void;
 }
+
+const subduedNoteButtonClass = "opacity-40 hover:opacity-60 transition-opacity";
 
 const getHabitActionStatusStyling = (status: string) => {
   // Map status to icon names
@@ -50,13 +49,23 @@ const getHabitActionStatusStyling = (status: string) => {
 export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
   habitActions,
   onStatusChange,
-  onNotesChange,
+  onNotesChanged,
 }) => {
   const { t } = useTranslation();
-  const [editingAction, setEditingAction] =
+  const [creatingNoteForAction, setCreatingNoteForAction] =
     useState<HabitActionWithHabit | null>(null);
-  const [editingNotes, setEditingNotes] = useState("");
-  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [viewingNotesForAction, setViewingNotesForAction] =
+    useState<HabitActionWithHabit | null>(null);
+
+  const buildHabitActionSummary = (
+    action: HabitActionWithHabit,
+  ): NoteHabitActionSummary => ({
+    id: action.id,
+    habit_id: action.habit_id,
+    habit_title: action.habit.title,
+    action_date: action.action_date,
+    status: action.status,
+  });
 
   // 计算天数信息
   const calculateDayInfo = (action: HabitActionWithHabit) => {
@@ -79,23 +88,6 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
     return `${dayNumber}/${totalDays}`;
   };
 
-  // 处理编辑备注
-  const handleEditNotes = (action: HabitActionWithHabit) => {
-    setEditingAction(action);
-    setEditingNotes(action.notes || "");
-    setShowNotesDialog(true);
-  };
-
-  // 保存备注
-  const handleSaveNotes = () => {
-    if (editingAction) {
-      onNotesChange(editingAction.id, editingAction.habit_id, editingNotes);
-      setShowNotesDialog(false);
-      setEditingAction(null);
-      setEditingNotes("");
-    }
-  };
-
   return (
     <Card
       title={t("planning.habitActions.title")}
@@ -107,6 +99,9 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
         {habitActions.map((action) => {
           const statusStyling = getHabitActionStatusStyling(action.status);
           const dayInfo = calculateDayInfo(action);
+          const linkedNotesCount =
+            action.linked_notes_count ?? (action.notes?.trim() ? 1 : 0);
+          const hasLinkedNotes = linkedNotesCount > 0;
 
           return (
             <div
@@ -153,18 +148,31 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
                             )}
                           </div>
 
-                          {/* 如果有备注，显示简短预览 */}
-                          {action.notes && (
-                            <div className="text-sm text-base-content/60 mt-1 truncate">
-                              {action.notes}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-2 ml-3 flex-shrink-0">
-                      <EditButton onClick={() => handleEditNotes(action)} />
+                      <ActionButton
+                        label={t("notes.actions.addNote")}
+                        iconName="document-plus"
+                        color="primary"
+                        onClick={() => setCreatingNoteForAction(action)}
+                        iconOnly
+                        ariaLabel={t("notes.actions.addNote")}
+                      />
+
+                      <ActionButton
+                        label={t("notes.actions.viewNotes")}
+                        iconName="book-open"
+                        color={hasLinkedNotes ? "primary" : "neutral"}
+                        className={
+                          hasLinkedNotes ? undefined : subduedNoteButtonClass
+                        }
+                        onClick={() => setViewingNotesForAction(action)}
+                        iconOnly
+                        ariaLabel={t("notes.actions.viewNotes")}
+                      />
 
                       <div className="min-w-[90px]">
                         <EnumSelect
@@ -189,42 +197,28 @@ export const HabitActionsCard: React.FC<HabitActionsCardProps> = ({
         })}
       </div>
 
-      {/* 备注编辑模态框 */}
-      <ModalBase
-        isOpen={showNotesDialog}
-        onClose={() => setShowNotesDialog(false)}
-        title={t("habits.actionList.editNotes")}
-        size="md"
-        footer={
-          <ActionButtonGroup splitOpposite>
-            <ActionButton
-              label={t("common.cancel")}
-              color="neutral"
-              variant="ghost"
-              onClick={() => setShowNotesDialog(false)}
-            />
-            <ActionButton
-              label={t("common.save")}
-              color="primary"
-              variant="solid"
-              onClick={handleSaveNotes}
-            />
-          </ActionButtonGroup>
-        }
-      >
-        <FormField
-          label={t("habits.actionList.notesLabel")}
-          htmlFor="habit-notes-textarea"
-        >
-          <TextArea
-            id="habit-notes-textarea"
-            value={editingNotes}
-            onChange={(e) => setEditingNotes(e.target.value)}
-            placeholder={t("habits.actionList.notesPlaceholder")}
-            rows={4}
-          />
-        </FormField>
-      </ModalBase>
+      {creatingNoteForAction && (
+        <CreateNoteModal
+          isOpen={!!creatingNoteForAction}
+          onClose={() => setCreatingNoteForAction(null)}
+          preSelectedHabitActionId={creatingNoteForAction.id}
+          preSelectedHabitAction={buildHabitActionSummary(creatingNoteForAction)}
+          onNoteCreated={() => {
+            setCreatingNoteForAction(null);
+            onNotesChanged?.();
+          }}
+        />
+      )}
+
+      {viewingNotesForAction && (
+        <TaskNotesModal
+          isOpen={!!viewingNotesForAction}
+          onClose={() => setViewingNotesForAction(null)}
+          entityType="habit_action"
+          habitAction={buildHabitActionSummary(viewingNotesForAction)}
+          onNotesChanged={onNotesChanged}
+        />
+      )}
     </Card>
   );
 };

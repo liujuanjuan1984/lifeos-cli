@@ -76,6 +76,7 @@ async def list_notes(
     person_id: UUID | None = None,
     task_id: UUID | None = None,
     timelog_id: UUID | None = None,
+    habit_action_id: UUID | None = None,
 ) -> ListResponse:
     """List notes for the local Web UI."""
     offset = (page - 1) * size
@@ -87,6 +88,7 @@ async def list_notes(
             person_id=person_id,
             task_id=task_id,
             timelog_id=timelog_id,
+            habit_action_id=habit_action_id,
             limit=size,
             offset=offset,
         )
@@ -97,6 +99,7 @@ async def list_notes(
             person_id=person_id,
             task_id=task_id,
             timelog_id=timelog_id,
+            habit_action_id=habit_action_id,
             limit=size,
             offset=offset,
         )
@@ -116,6 +119,7 @@ async def list_notes(
             "person_id": str(person_id) if person_id else None,
             "task_id": str(task_id) if task_id else None,
             "timelog_id": str(timelog_id) if timelog_id else None,
+            "habit_action_id": str(habit_action_id) if habit_action_id else None,
         },
     )
 
@@ -152,6 +156,7 @@ async def create_note(
             person_ids=payload.person_ids,
             task_ids=[payload.task_id] if payload.task_id is not None else None,
             timelog_ids=payload.timelog_ids,
+            habit_action_ids=payload.habit_action_ids,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -179,6 +184,8 @@ async def update_note(
             clear_tasks="task_id" in fields and payload.task_id is None,
             timelog_ids=payload.timelog_ids,
             clear_timelogs=("timelog_ids" in fields and payload.timelog_ids == []),
+            habit_action_ids=payload.habit_action_ids,
+            clear_habit_actions=("habit_action_ids" in fields and payload.habit_action_ids == []),
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

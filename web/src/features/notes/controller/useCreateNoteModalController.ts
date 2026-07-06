@@ -20,6 +20,10 @@ import {
   invalidateNotesStats,
 } from "@/services/api/cacheInvalidation/notes";
 import {
+  invalidateHabitActions,
+  invalidateHabitActionsByDate,
+} from "@/services/api/cacheInvalidation/habits";
+import {
   isTimelogsAdvancedSearchQuery,
   type QueryLike,
 } from "@/services/api/queryPredicates";
@@ -73,6 +77,7 @@ interface SubmitNotePayload {
   isTagSelectionLocked: boolean;
   selectedTaskId: UUID | null;
   selectedTimelogIds: UUID[];
+  selectedHabitActionIds: UUID[];
 }
 
 export function useCreateNoteModalController({
@@ -89,6 +94,7 @@ export function useCreateNoteModalController({
     async (targets?: {
       timelogIds?: UUID[];
       taskIds?: UUID[];
+      habitIds?: UUID[];
       notes?: Note[];
       removedNoteIds?: UUID[];
     }) => {
@@ -145,6 +151,17 @@ export function useCreateNoteModalController({
             skipLists: true,
           }),
         );
+      }
+
+      const habitIds =
+        targets?.habitIds && targets.habitIds.length > 0
+          ? Array.from(new Set(targets.habitIds))
+          : [];
+      if (habitIds.length > 0) {
+        habitIds.forEach((habitId) => {
+          tasks.push(invalidateHabitActions(queryClient, habitId));
+        });
+        tasks.push(invalidateHabitActionsByDate(queryClient));
       }
 
       await Promise.all(tasks);
@@ -254,6 +271,11 @@ export function useCreateNoteModalController({
         taskIds.add(createdNote.task.id);
       }
 
+      const habitIds = new Set<UUID>();
+      createdNote?.habit_actions?.forEach((action) => {
+        habitIds.add(action.habit_id);
+      });
+
       const refreshCaches = async () => {
         await syncTaskFromNoteSummary(createdNote?.task);
         Array.from(taskIds).forEach((taskId) => {
@@ -264,6 +286,7 @@ export function useCreateNoteModalController({
         await invalidateRelatedQueries({
           timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),
+          habitIds: Array.from(habitIds),
           notes: [createdNote],
         });
       };
@@ -322,6 +345,14 @@ export function useCreateNoteModalController({
         taskIds.add(nextTaskId);
       }
 
+      const habitIds = new Set<UUID>();
+      existingNote?.habit_actions?.forEach((action) => {
+        habitIds.add(action.habit_id);
+      });
+      updatedNote?.habit_actions?.forEach((action) => {
+        habitIds.add(action.habit_id);
+      });
+
       const refreshCaches = async () => {
         await syncTaskFromNoteSummary(
           updatedNote?.task,
@@ -330,6 +361,7 @@ export function useCreateNoteModalController({
         await invalidateRelatedQueries({
           timelogIds: Array.from(timelogIds),
           taskIds: Array.from(taskIds),
+          habitIds: Array.from(habitIds),
           notes: [updatedNote],
         });
       };
@@ -385,6 +417,7 @@ export function useCreateNoteModalController({
       isTagSelectionLocked,
       selectedTaskId,
       selectedTimelogIds,
+      selectedHabitActionIds,
     }: SubmitNotePayload) => {
       const mergedTagIds = isTagSelectionLocked
         ? Array.from(new Set<UUID>([...lockedTagIds, ...selectedTagIds]))
@@ -402,6 +435,7 @@ export function useCreateNoteModalController({
                 ? selectedTaskId
                 : undefined,
           timelog_ids: selectedTimelogIds,
+          habit_action_ids: selectedHabitActionIds,
         };
         updateNoteMutation.mutate({ noteId: existingNote.id, noteData });
         return;
@@ -420,6 +454,10 @@ export function useCreateNoteModalController({
         timelog_ids:
           selectedTimelogIds.length > 0
             ? selectedTimelogIds
+            : undefined,
+        habit_action_ids:
+          selectedHabitActionIds.length > 0
+            ? selectedHabitActionIds
             : undefined,
       };
       createNoteMutation.mutate(payload);

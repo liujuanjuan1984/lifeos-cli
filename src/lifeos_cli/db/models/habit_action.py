@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, Index, String, Text, Uuid, text
+from sqlalchemy import Date, ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lifeos_cli.db.base import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMixin
@@ -41,8 +41,6 @@ class HabitAction(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         nullable=False,
         default=get_default_habit_action_status,
     )
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-
     habit = relationship("Habit", back_populates="actions")
 
     def __repr__(self) -> str:

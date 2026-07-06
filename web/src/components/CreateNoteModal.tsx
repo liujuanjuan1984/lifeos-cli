@@ -13,16 +13,25 @@ import TaskSelector from "./selects/TaskSelector";
 import { FormActions } from "./ActionButton";
 import { tasksApi } from "@/services/api/tasks";
 import { FormField, TextArea } from "./forms";
-import type { Note, NoteTimelogSummary } from "@/services/api/notes";
+import type {
+  Note,
+  NoteHabitActionSummary,
+  NoteTimelogSummary,
+} from "@/services/api/notes";
 import { ACTIVE_TASK_STATUSES } from "@/utils/constants";
 import type { UUID } from "@/types/primitive";
 import { Icon } from "./icons";
-import { formatTime } from "@/utils/datetime";
+import { formatDate, formatTime } from "@/utils/datetime";
 import { useCreateNoteModalController } from "@/features/notes/controller/useCreateNoteModalController";
 
 type TimelogPreview = Pick<
   NoteTimelogSummary,
   "id" | "title" | "start_time" | "end_time"
+>;
+
+type HabitActionPreview = Pick<
+  NoteHabitActionSummary,
+  "id" | "habit_id" | "habit_title" | "action_date" | "status"
 >;
 
 const uniqueUuidList = (ids?: UUID[] | null): UUID[] => {
@@ -41,6 +50,8 @@ interface CreateNoteModalProps {
   preSelectedTaskTitle?: string;
   preSelectedTimelogId?: UUID;
   preSelectedTimelog?: TimelogPreview | null;
+  preSelectedHabitActionId?: UUID;
+  preSelectedHabitAction?: HabitActionPreview | null;
   preSelectedPersonIds?: UUID[];
   preSelectedTagIds?: UUID[];
   lockTaskSelection?: boolean;
@@ -59,6 +70,8 @@ export default function CreateNoteModal({
   preSelectedTaskTitle,
   preSelectedTimelogId,
   preSelectedTimelog,
+  preSelectedHabitActionId,
+  preSelectedHabitAction,
   preSelectedPersonIds,
   preSelectedTagIds,
   lockTaskSelection,
@@ -105,9 +118,16 @@ export default function CreateNoteModal({
     () => preSelectedTimelog?.id ?? preSelectedTimelogId ?? null,
     [preSelectedTimelog?.id, preSelectedTimelogId],
   );
+  const initialHabitActionId = useMemo(
+    () => preSelectedHabitAction?.id ?? preSelectedHabitActionId ?? null,
+    [preSelectedHabitAction?.id, preSelectedHabitActionId],
+  );
 
   const [selectedTimelogIds, setSelectedTimelogIds] = useState<UUID[]>(
     initialTimelogId ? [initialTimelogId] : [],
+  );
+  const [selectedHabitActionIds, setSelectedHabitActionIds] = useState<UUID[]>(
+    initialHabitActionId ? [initialHabitActionId] : [],
   );
 
   const lockedTaskOptionId: UUID | null =
@@ -147,6 +167,9 @@ export default function CreateNoteModal({
       setSelectedTimelogIds(
         existingNote.timelogs?.map((timelog) => timelog.id) || [],
       );
+      setSelectedHabitActionIds(
+        existingNote.habit_actions?.map((habitAction) => habitAction.id) || [],
+      );
     }
   }, [mode, existingNote, normalizedPreSelectedTagIds]);
 
@@ -156,7 +179,10 @@ export default function CreateNoteModal({
     setSelectedTimelogIds(
       initialTimelogId ? [initialTimelogId] : [],
     );
-  }, [isOpen, initialTimelogId, mode]);
+    setSelectedHabitActionIds(
+      initialHabitActionId ? [initialHabitActionId] : [],
+    );
+  }, [isOpen, initialHabitActionId, initialTimelogId, mode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -164,7 +190,11 @@ export default function CreateNoteModal({
     setSelectedPersonIds(uniqueUuidList(preSelectedPersonIds));
     setSelectedTaskId(preSelectedTaskId ?? null);
     setSelectedTagIds([...normalizedPreSelectedTagIds]);
+    setSelectedHabitActionIds(
+      initialHabitActionId ? [initialHabitActionId] : [],
+    );
   }, [
+    initialHabitActionId,
     isOpen,
     mode,
     preSelectedPersonIds,
@@ -184,7 +214,11 @@ export default function CreateNoteModal({
     setSelectedTimelogIds(
       initialTimelogId ? [initialTimelogId] : [],
     );
+    setSelectedHabitActionIds(
+      initialHabitActionId ? [initialHabitActionId] : [],
+    );
   }, [
+    initialHabitActionId,
     initialTimelogId,
     preSelectedPersonIds,
     preSelectedTaskId,
@@ -263,6 +297,7 @@ export default function CreateNoteModal({
         isTagSelectionLocked,
         selectedTaskId,
         selectedTimelogIds,
+        selectedHabitActionIds,
       });
     },
     [
@@ -271,6 +306,7 @@ export default function CreateNoteModal({
       selectedTagIds,
       selectedTaskId,
       selectedTimelogIds,
+      selectedHabitActionIds,
       isTagSelectionLocked,
       lockedTagIds,
       submitNote,
@@ -340,6 +376,24 @@ export default function CreateNoteModal({
     return t("createNoteModal.timelogHeader.fallbackTitle");
   }, [timelogPreview, timelogRangeLabel, t]);
 
+  const habitActionPreview = useMemo<HabitActionPreview | null>(() => {
+    if (mode === "edit" && existingNote?.habit_actions?.length) {
+      return existingNote.habit_actions[0];
+    }
+    if (preSelectedHabitAction) {
+      return preSelectedHabitAction;
+    }
+    return null;
+  }, [mode, existingNote, preSelectedHabitAction]);
+
+  const habitActionPrimaryLabel = useMemo(() => {
+    if (!habitActionPreview) return null;
+    const habitLabel =
+      habitActionPreview.habit_title?.trim() ||
+      t("createNoteModal.habitActionHeader.fallbackTitle");
+    return `${habitLabel} · ${formatDate(habitActionPreview.action_date, timezone)} (${habitActionPreview.status})`;
+  }, [habitActionPreview, t, timezone]);
+
   const modalHeader = (
     <div className="flex flex-col gap-2">
       <span className="text-lg font-semibold text-base-content">
@@ -368,6 +422,24 @@ export default function CreateNoteModal({
                 {timelogRangeLabel}
               </div>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+      {habitActionPrimaryLabel ? (
+        <div className="alert alert-info items-start gap-2 px-3 py-2 text-sm">
+          <Icon
+            name="repeat"
+            size={18}
+            aria-hidden
+            className="mt-0.5 text-info-content"
+          />
+          <div className="min-w-0">
+            <div className="font-medium text-info-content">
+              {t("createNoteModal.habitActionHeader.label")}
+            </div>
+            <div className="font-medium text-info-content">
+              {habitActionPrimaryLabel}
+            </div>
           </div>
         </div>
       ) : null}
