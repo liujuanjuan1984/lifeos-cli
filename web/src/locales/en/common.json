@@ -1316,11 +1316,11 @@
     },
     "actionList": {
       "monthView": "Month View",
-      "fiveDayView": "5-Day View",
+      "fiveDayView": "Recent Check-ins",
       "previousMonth": "Previous Month",
       "nextMonth": "Next Month",
-      "previousFiveDays": "Previous 5 Days",
-      "nextFiveDays": "Next 5 Days",
+      "previousFiveDays": "Previous 5 Check-ins",
+      "nextFiveDays": "Next 5 Check-ins",
       "weekdays": {
         "sunday": "Sun",
         "monday": "Mon",

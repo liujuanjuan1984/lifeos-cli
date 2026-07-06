@@ -1316,11 +1316,11 @@
     },
     "actionList": {
       "monthView": "月视图",
-      "fiveDayView": "5天视图",
+      "fiveDayView": "近期打卡",
       "previousMonth": "上个月",
       "nextMonth": "下个月",
-      "previousFiveDays": "前5天",
-      "nextFiveDays": "后5天",
+      "previousFiveDays": "前5期打卡",
+      "nextFiveDays": "后5期打卡",
       "weekdays": {
         "sunday": "日",
         "monday": "一",

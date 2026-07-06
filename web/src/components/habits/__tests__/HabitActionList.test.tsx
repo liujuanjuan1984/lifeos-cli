@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@test/utils";
 import type { HabitAction } from "@/services/api/habits";
 import type { UUID } from "@/types/primitive";
@@ -24,6 +24,15 @@ const actionWithoutNotes: HabitAction = {
 };
 
 describe("HabitActionList", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-06T12:00:00"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("does not render note details in the five day view", () => {
     renderWithProviders(
       <HabitActionList
@@ -89,5 +98,36 @@ describe("HabitActionList", () => {
     expect(screen.getByText(/2026-08-03 - 2026-08-09/)).toBeInTheDocument();
     expect(screen.queryByText("2026-07-18")).not.toBeInTheDocument();
     expect(screen.queryByText("2026-07-19")).not.toBeInTheDocument();
+  });
+
+  it("shows the action status when today falls within a weekly action period", () => {
+    const currentWeeklyAction: HabitAction = {
+      id: "weekly-current-action" as UUID,
+      habit_id: "habit-1" as UUID,
+      action_date: "2026-07-10",
+      status: "pending",
+      notes: null,
+      linked_notes_count: 0,
+    };
+
+    const { container } = renderWithProviders(
+      <HabitActionList
+        actions={[currentWeeklyAction]}
+        habitId={"habit-1" as UUID}
+        habitTitle="Weekly Review"
+        durationDays={30}
+        startDate="2026-07-01"
+        cadenceFrequency="weekly"
+        calendarAdapter={new GregorianCalendarAdapter(6)}
+        centerDate={new Date("2026-07-06T00:00:00")}
+        onCenterDateChange={vi.fn()}
+        onStatusUpdate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/2026-07-04 - 2026-07-10/)).toBeInTheDocument();
+    expect(
+      container.querySelector("#status-select-weekly-current-action"),
+    ).toBeInTheDocument();
   });
 });

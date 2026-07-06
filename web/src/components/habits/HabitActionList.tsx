@@ -91,7 +91,7 @@ export function HabitActionList({
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(centerDate),
   );
-  const [selectedDate, setSelectedDate] = useState(() => new Date(centerDate)); // 当前选中的日期
+  const [selectedDate, setSelectedDate] = useState(() => new Date(centerDate));
 
   useEffect(() => {
     setSelectedMonth(new Date(centerDate));
@@ -152,29 +152,32 @@ export function HabitActionList({
     return targetKey >= range.start && targetKey <= range.end;
   };
 
-  const isFuture = (date: string) => {
-    const today = startOfLocalDay(new Date());
-    const actionDate = startOfLocalDay(parseDateStringToLocalDate(date));
-    return actionDate > today;
-  };
-
-  const canModify = (action: HabitAction) => {
-    if (isFuture(action.action_date)) {
+  const canModifyPeriod = (periodDate: Date) => {
+    const todayKey = formatDateKey(new Date());
+    const todayStart = startOfLocalDay(new Date());
+    const periodRange = getPeriodRangeForDate(periodDate);
+    if (periodRange.start > todayKey) {
       return false;
     }
+    if (periodRange.end >= todayKey) {
+      return true;
+    }
 
-    const daysSinceAction = Math.floor(
-      (startOfLocalDay(new Date()).getTime() -
-        startOfLocalDay(
-          parseDateStringToLocalDate(action.action_date),
-        ).getTime()) /
-        (1000 * 60 * 60 * 24),
+    const periodEnd = startOfLocalDay(
+      parseDateStringToLocalDate(periodRange.end),
     );
-    return daysSinceAction <= HABIT_EDITABLE_DAYS;
+    const daysSincePeriodEnd = Math.floor(
+      (todayStart.getTime() - periodEnd.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return daysSincePeriodEnd <= HABIT_EDITABLE_DAYS;
   };
 
-  const handleStatusChange = (action: HabitAction, newStatus: string) => {
-    if (!canModify(action)) {
+  const handleStatusChange = (
+    action: HabitAction,
+    newStatus: string,
+    periodDate: Date,
+  ) => {
+    if (!canModifyPeriod(periodDate)) {
       return;
     }
     onStatusUpdate(habitId, action, newStatus);
@@ -254,7 +257,16 @@ export function HabitActionList({
   // Get actions for recent days
   const getActionForDate = (date: Date) => {
     const dateStr = formatDateKey(date);
-    return sortedActions.find((action) => action.action_date === dateStr);
+    if (isDailyCadence) {
+      return sortedActions.find((action) => action.action_date === dateStr);
+    }
+
+    const periodRange = getPeriodRangeForDate(date);
+    return sortedActions.find(
+      (action) =>
+        action.action_date >= periodRange.start &&
+        action.action_date <= periodRange.end,
+    );
   };
 
   // Generate calendar days for selected month
@@ -472,9 +484,7 @@ export function HabitActionList({
               const isSelectedDate = isDateInPeriod(selectedDate, date);
               const periodRange = getPeriodRangeForDate(date);
               const isPastDate = periodRange.end < formatDateKey(today);
-              const canModifyAction = action
-                ? canModify(action)
-                : isTodayDate || isPastDate;
+              const canModifyAction = canModifyPeriod(date);
               const linkedNotesCount = action
                 ? (action.linked_notes_count ?? (action.notes?.trim() ? 1 : 0))
                 : 0;
@@ -556,7 +566,11 @@ export function HabitActionList({
                             value={action.status}
                             onChange={(value) => {
                               if (value) {
-                                handleStatusChange(action, value as string);
+                                handleStatusChange(
+                                  action,
+                                  value as string,
+                                  date,
+                                );
                               }
                             }}
                             options={HABIT_ACTION_STATUS_OPTIONS}
