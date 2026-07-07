@@ -153,6 +153,7 @@ lifeos web serve --static-dir web/dist
 If your configured database URL uses PostgreSQL, install or run with both optional extras:
 
 ```bash
+uv tool install --upgrade "lifeos-cli[web,postgres]"
 uv run --extra web --extra postgres lifeos web serve
 ```
 

@@ -153,6 +153,7 @@ lifeos web serve --static-dir web/dist
 如果当前配置的数据库 URL 使用 PostgreSQL，需要同时安装或运行 `web` 和 `postgres` 两个可选依赖：
 
 ```bash
+uv tool install --upgrade "lifeos-cli[web,postgres]"
 uv run --extra web --extra postgres lifeos web serve
 ```
 
