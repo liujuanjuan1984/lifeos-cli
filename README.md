@@ -95,10 +95,6 @@ Install the optional local Web API and Web UI runtime dependencies when you want
 uv tool install --upgrade "lifeos-cli[web]"
 ```
 
-```bash
-uv tool install --upgrade "lifeos-cli[web,postgres]"
-```
-
 `lifeos-cli` supports SQLite and PostgreSQL.
 
 - SQLite is the low-friction option for local, single-user setups.

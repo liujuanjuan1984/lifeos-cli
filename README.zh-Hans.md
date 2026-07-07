@@ -95,10 +95,6 @@ uv tool install --upgrade "lifeos-cli[postgres]"
 uv tool install --upgrade "lifeos-cli[web]"
 ```
 
-```bash
-uv tool install --upgrade "lifeos-cli[web,postgres]"
-```
-
 `lifeos-cli` 支持 SQLite 和 PostgreSQL。
 
 - SQLite 适合本地、单用户、低门槛使用场景。
