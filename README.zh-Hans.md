@@ -95,13 +95,9 @@ uv tool install --upgrade "lifeos-cli[postgres]"
 uv tool install --upgrade "lifeos-cli[web]"
 ```
 
-如果需要同时支持 Web 和 PostgreSQL，请在同一次 tool 安装命令里声明两个 extras：
-
 ```bash
 uv tool install --upgrade "lifeos-cli[web,postgres]"
 ```
-
-对于已有的 `uv tool` 安装，每次 `uv tool install --upgrade` 都会按这一次请求的 extras 同步该工具环境。先装 `[web]` 再只装 `[postgres]` 会移除 Web 依赖。
 
 `lifeos-cli` 支持 SQLite 和 PostgreSQL。
 
