@@ -1710,6 +1710,50 @@ def test_web_vision_recompute_efforts_calls_service(monkeypatch: pytest.MonkeyPa
     }
 
 
+def test_web_vision_sync_experience_calls_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+
+    from lifeos_web.routers import visions
+
+    vision_id = UUID("55555555-5555-5555-5555-555555555555")
+    captured: dict[str, object] = {}
+
+    async def fake_sync_experience(_session: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            id=vision_id,
+            name="Vision",
+            description=None,
+            status="active",
+            stage=1,
+            experience_points=120,
+            experience_rate_per_hour=None,
+            area_id=None,
+            created_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc),
+            deleted_at=None,
+            people=(),
+            tasks=(),
+        )
+
+    monkeypatch.setattr(
+        visions.vision_services,
+        "sync_vision_experience",
+        fake_sync_experience,
+    )
+
+    response = asyncio.run(
+        visions.sync_vision_experience(
+            vision_id,
+            cast(AsyncSession, object()),
+        )
+    )
+
+    assert captured["vision_id"] == vision_id
+    assert response["experience_points"] == 120
+    assert response["experience_rate_per_hour"] is None
+
+
 def test_web_vision_update_area_id_passes_through(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2930,6 +2974,7 @@ def test_web_vision_experience_preference_persists_to_cli_config(
 ) -> None:
     pytest.importorskip("fastapi")
 
+    from lifeos_web.routers import preferences as preferences_router
     from lifeos_web.routers.preferences import PreferenceUpdate, get_preference, set_preference
 
     config_path = install_test_config(
@@ -2937,6 +2982,16 @@ def test_web_vision_experience_preference_persists_to_cli_config(
         tmp_path=tmp_path,
         include_preferences=True,
         vision_experience_rate_per_hour=60,
+    )
+    sync_calls: list[str] = []
+
+    async def fake_sync_dependents(key: str) -> None:
+        sync_calls.append(key)
+
+    monkeypatch.setattr(
+        preferences_router,
+        "_sync_config_preference_dependents",
+        fake_sync_dependents,
     )
 
     updated = asyncio.run(
@@ -2951,6 +3006,7 @@ def test_web_vision_experience_preference_persists_to_cli_config(
     assert reloaded["value"] == 120
 
     assert "vision_experience_rate_per_hour = 120" in config_path.read_text(encoding="utf-8")
+    assert sync_calls == ["visions.experience_rate_per_hour"]
 
 
 def test_web_theme_preference_persists_to_cli_config(

@@ -106,11 +106,6 @@ def resolve_experience_rate_for_vision(vision: Vision) -> int:
     )
 
 
-def _apply_effective_experience_rate(vision: Vision, effective_rate: int) -> None:
-    if vision.experience_rate_per_hour is None:
-        vision.experience_rate_per_hour = effective_rate
-
-
 async def _ensure_area_exists(session: AsyncSession, area_id: UUID | None) -> None:
     if area_id is None:
         return
@@ -128,6 +123,78 @@ async def _load_active_tasks_for_vision(session: AsyncSession, vision_id: UUID) 
         .order_by(Task.display_order.asc(), Task.created_at.asc(), Task.id.asc())
     )
     return list((await session.execute(stmt)).scalars())
+
+
+async def _load_active_vision_ids_for_tasks(
+    session: AsyncSession,
+    *,
+    task_ids: list[UUID],
+) -> list[UUID]:
+    unique_task_ids = deduplicate_preserving_order(task_ids)
+    if not unique_task_ids:
+        return []
+    rows = await session.execute(
+        select(Task.vision_id).where(
+            Task.id.in_(unique_task_ids),
+            Task.deleted_at.is_(None),
+        )
+    )
+    return deduplicate_preserving_order([vision_id for vision_id in rows.scalars().all()])
+
+
+async def sync_vision_experience_for_vision_ids(
+    session: AsyncSession,
+    *,
+    vision_ids: list[UUID],
+) -> tuple[UUID, ...]:
+    """Synchronize derived experience for active visions."""
+    unique_vision_ids = deduplicate_preserving_order(vision_ids)
+    if not unique_vision_ids:
+        return ()
+    rows = await session.execute(
+        select(Vision).where(
+            Vision.id.in_(unique_vision_ids),
+            Vision.deleted_at.is_(None),
+        )
+    )
+    visions_by_id = {vision.id: vision for vision in rows.scalars().all()}
+    synced_ids: list[UUID] = []
+    for vision_id in unique_vision_ids:
+        vision = visions_by_id.get(vision_id)
+        if vision is None:
+            continue
+        tasks = await _load_active_tasks_for_vision(session, vision.id)
+        vision.sync_experience_with_actual_effort(
+            experience_rate_per_hour=resolve_experience_rate_for_vision(vision),
+            tasks=tasks,
+        )
+        synced_ids.append(vision.id)
+    await session.flush()
+    return tuple(synced_ids)
+
+
+async def sync_vision_experience_for_task_ids(
+    session: AsyncSession,
+    *,
+    task_ids: list[UUID],
+) -> tuple[UUID, ...]:
+    """Synchronize derived vision experience for active tasks' visions."""
+    vision_ids = await _load_active_vision_ids_for_tasks(session, task_ids=task_ids)
+    return await sync_vision_experience_for_vision_ids(session, vision_ids=vision_ids)
+
+
+async def sync_default_rate_vision_experience(session: AsyncSession) -> tuple[UUID, ...]:
+    """Synchronize visions that inherit the global default experience rate."""
+    rows = await session.execute(
+        select(Vision.id).where(
+            Vision.experience_rate_per_hour.is_(None),
+            Vision.deleted_at.is_(None),
+        )
+    )
+    return await sync_vision_experience_for_vision_ids(
+        session,
+        vision_ids=list(rows.scalars().all()),
+    )
 
 
 async def _build_vision_view(
@@ -288,6 +355,8 @@ async def update_vision(
         vision.experience_rate_per_hour = None
     elif experience_rate_per_hour is not None:
         vision.experience_rate_per_hour = validate_vision_experience_rate(experience_rate_per_hour)
+    if clear_experience_rate or experience_rate_per_hour is not None:
+        await sync_vision_experience_for_vision_ids(session, vision_ids=[vision.id])
     if clear_people:
         await sync_entity_people(
             session, entity_id=vision.id, entity_type="vision", desired_person_ids=[]
@@ -333,8 +402,6 @@ async def add_experience_to_vision(
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
     if vision.status != "active":
         raise ValueError("Can only add experience to active visions")
-    effective_rate = resolve_experience_rate_for_vision(vision)
-    _apply_effective_experience_rate(vision, effective_rate)
     vision.add_experience(validate_experience_points(experience_points))
     await session.flush()
     await session.refresh(vision)
@@ -354,11 +421,9 @@ async def sync_vision_experience(
     )
     if vision is None:
         raise VisionNotFoundError(f"Vision {vision_id} was not found")
-    effective_rate = resolve_experience_rate_for_vision(vision)
-    _apply_effective_experience_rate(vision, effective_rate)
     tasks = await _load_active_tasks_for_vision(session, vision.id)
     vision.sync_experience_with_actual_effort(
-        experience_rate_per_hour=effective_rate,
+        experience_rate_per_hour=resolve_experience_rate_for_vision(vision),
         tasks=tasks,
     )
     await session.flush()
@@ -383,6 +448,7 @@ async def recompute_vision_task_efforts(
     root_task_ids = tuple(task.id for task in tasks if task.parent_task_id is None)
     for root_task_id in root_task_ids:
         await recompute_subtree_totals(session, root_task_id)
+    await sync_vision_experience_for_vision_ids(session, vision_ids=[vision.id])
     await session.flush()
     return VisionEffortRecomputeResult(vision_id=vision.id, recomputed_roots=root_task_ids)
 
@@ -457,8 +523,6 @@ async def harvest_vision(
         raise VisionNotReadyForHarvestError(
             "Vision is not ready for harvest (must be at final stage and active)"
         )
-    effective_rate = resolve_experience_rate_for_vision(vision)
-    _apply_effective_experience_rate(vision, effective_rate)
     vision.harvest()
     await session.flush()
     await session.refresh(vision)

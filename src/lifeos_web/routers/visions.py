@@ -192,7 +192,7 @@ async def add_experience(
 
 @router.post("/{vision_id}/recompute-efforts")
 async def recompute_vision_efforts(vision_id: UUID, session: SessionDep) -> dict[str, object]:
-    """Recompute task effort totals for one vision."""
+    """Recompute task effort totals and derived experience for one vision."""
     try:
         result = await vision_services.recompute_vision_task_efforts(
             session,
@@ -204,6 +204,16 @@ async def recompute_vision_efforts(vision_id: UUID, session: SessionDep) -> dict
         "vision_id": str(result.vision_id),
         "recomputed_roots": [str(task_id) for task_id in result.recomputed_roots],
     }
+
+
+@router.post("/{vision_id}/sync-experience")
+async def sync_vision_experience(vision_id: UUID, session: SessionDep) -> dict[str, object]:
+    """Synchronize one vision's experience from current root task effort totals."""
+    try:
+        vision = await vision_services.sync_vision_experience(session, vision_id=vision_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _vision_payload(vision)
 
 
 @router.post("/{vision_id}/harvest")

@@ -58,6 +58,7 @@ from lifeos_cli.db.services.timelog_support import (
     validate_timelog_title,
     validate_tracking_method,
 )
+from lifeos_cli.db.services.visions import sync_vision_experience_for_task_ids
 
 
 @dataclass(frozen=True)
@@ -161,6 +162,14 @@ async def _recompute_timelog_dependents(
         old_task_id=change.previous.task_id,
         new_task_id=change.current.task_id,
     )
+    await sync_vision_experience_for_task_ids(
+        session,
+        task_ids=[
+            task_id
+            for task_id in (change.previous.task_id, change.current.task_id)
+            if task_id is not None
+        ],
+    )
     await recompute_timelog_stats_groupby_area_after_change(
         session,
         old_start_time=change.previous.start_time,
@@ -246,6 +255,10 @@ async def _flush_and_recompute_batch_timelog_dependents(
 
     for task_id in dict.fromkeys(affected_task_ids):
         await recompute_totals_upwards(session, task_id)
+    await sync_vision_experience_for_task_ids(
+        session,
+        task_ids=deduplicate_preserving_order(affected_task_ids),
+    )
 
     local_dates = tuple(sorted(affected_dates))
     if local_dates:

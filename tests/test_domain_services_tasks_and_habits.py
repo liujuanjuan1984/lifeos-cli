@@ -137,8 +137,10 @@ def test_update_task_can_clear_parent_without_committing(
     monkeypatch.setattr(task_mutations, "_build_task_view", _identity_task_view)
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
+    sync_experience = AsyncMock()
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(task_mutations, "sync_vision_experience_for_vision_ids", sync_experience)
 
     updated_task = asyncio.run(
         task_mutations.update_task(
@@ -155,6 +157,10 @@ def test_update_task_can_clear_parent_without_committing(
         UUID("22222222-2222-2222-2222-222222222222"),
     )
     recompute_upwards.assert_any_await(cast(Any, session), task.id)
+    sync_experience.assert_awaited_once_with(
+        cast(Any, session),
+        vision_ids=[UUID("11111111-1111-1111-1111-111111111111")],
+    )
     session.flush.assert_awaited_once()
     session.refresh.assert_awaited_once_with(task)
     session.commit.assert_not_called()
@@ -200,6 +206,7 @@ def test_move_task_updates_parent_vision_and_descendants(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
+    sync_experience = AsyncMock()
     monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "ensure_vision_exists", fake_ensure_vision_exists)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
@@ -210,6 +217,7 @@ def test_move_task_updates_parent_vision_and_descendants(
     )
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(task_mutations, "sync_vision_experience_for_vision_ids", sync_experience)
 
     result = asyncio.run(
         tasks.move_task(
@@ -228,6 +236,13 @@ def test_move_task_updates_parent_vision_and_descendants(
     assert task.vision_id == UUID("55555555-5555-5555-5555-555555555555")
     assert task.display_order == 7
     recompute_subtree.assert_awaited_once_with(cast(Any, session), task.id)
+    sync_experience.assert_awaited_once_with(
+        cast(Any, session),
+        vision_ids=[
+            UUID("22222222-2222-2222-2222-222222222222"),
+            UUID("55555555-5555-5555-5555-555555555555"),
+        ],
+    )
     recompute_upwards.assert_any_await(
         cast(Any, session),
         UUID("33333333-3333-3333-3333-333333333333"),
@@ -270,10 +285,12 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
 
     recompute_subtree = AsyncMock()
     recompute_upwards = AsyncMock()
+    sync_experience = AsyncMock()
     monkeypatch.setattr(task_mutations, "load_model_by_id", fake_load_task)
     monkeypatch.setattr(task_mutations, "validate_parent_task", fake_validate_parent_task)
     monkeypatch.setattr(task_mutations, "recompute_subtree_totals", recompute_subtree)
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(task_mutations, "sync_vision_experience_for_vision_ids", sync_experience)
 
     result = asyncio.run(
         tasks.move_task(
@@ -291,6 +308,7 @@ def test_move_task_preserves_parent_when_parent_change_is_not_requested(
         cast(Any, session),
         UUID("33333333-3333-3333-3333-333333333333"),
     )
+    sync_experience.assert_not_awaited()
     recompute_upwards.assert_any_await(cast(Any, session), task.id)
     assert recompute_upwards.await_count == 2
     session.flush.assert_awaited_once()
@@ -521,6 +539,7 @@ def test_delete_task_soft_deletes_subtree_without_committing(
 ) -> None:
     root_task = SimpleNamespace(
         id=UUID("11111111-1111-1111-1111-111111111111"),
+        vision_id=UUID("44444444-4444-4444-4444-444444444444"),
         parent_task_id=UUID("22222222-2222-2222-2222-222222222222"),
         soft_delete=Mock(),
     )
@@ -548,13 +567,19 @@ def test_delete_task_soft_deletes_subtree_without_committing(
         AsyncMock(return_value=[root_task, child_task]),
     )
     recompute_upwards = AsyncMock()
+    sync_experience = AsyncMock()
     monkeypatch.setattr(task_mutations, "recompute_totals_upwards", recompute_upwards)
+    monkeypatch.setattr(task_mutations, "sync_vision_experience_for_vision_ids", sync_experience)
 
     asyncio.run(task_mutations.delete_task(cast(Any, session), task_id=root_task.id))
 
     root_task.soft_delete.assert_called_once_with()
     child_task.soft_delete.assert_called_once_with()
     recompute_upwards.assert_awaited_once_with(cast(Any, session), root_task.parent_task_id)
+    sync_experience.assert_awaited_once_with(
+        cast(Any, session),
+        vision_ids=[UUID("44444444-4444-4444-4444-444444444444")],
+    )
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 

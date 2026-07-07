@@ -22,7 +22,7 @@ from lifeos_cli.db.models.event import Event
 from lifeos_cli.db.models.task import Task
 from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
-from lifeos_cli.db.services import events, task_effort, timelogs, visions
+from lifeos_cli.db.services import events, task_effort, task_mutations, timelogs, visions
 from lifeos_cli.db.session import configure_async_engine
 from tests.support import utc_datetime
 
@@ -155,6 +155,107 @@ def test_create_timelog_flushes_without_committing(monkeypatch: pytest.MonkeyPat
     assert timelog.end_time == utc_datetime(2026, 4, 10, 14, 0)
     assert session.flush.await_count == 2
     session.commit.assert_not_called()
+
+
+def test_timelog_mutations_sync_vision_experience() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Build fitness", status="active")
+                session.add(vision)
+                await session.flush()
+                task = Task(
+                    vision_id=vision.id,
+                    content="Run",
+                    status="todo",
+                    priority=0,
+                    display_order=0,
+                )
+                session.add(task)
+                await session.flush()
+
+                created = await timelogs.create_timelog(
+                    session,
+                    payload=timelogs.TimelogCreateInput(
+                        title="Morning run",
+                        start_time=utc_datetime(2026, 4, 10, 11, 0),
+                        end_time=utc_datetime(2026, 4, 10, 11, 30),
+                        task_id=task.id,
+                    ),
+                )
+                await session.refresh(task)
+                await session.refresh(vision)
+
+                assert task.actual_effort_self == 30
+                assert task.actual_effort_total == 30
+                assert vision.experience_points == 30
+                assert vision.stage == 0
+
+                await timelogs.update_timelog(
+                    session,
+                    timelog_id=created.id,
+                    changes=timelogs.TimelogUpdateInput(
+                        end_time=utc_datetime(2026, 4, 10, 12, 0),
+                    ),
+                )
+                await session.refresh(task)
+                await session.refresh(vision)
+
+                assert task.actual_effort_self == 60
+                assert task.actual_effort_total == 60
+                assert vision.experience_points == 60
+
+                await timelogs.delete_timelog(session, timelog_id=created.id)
+                await session.refresh(task)
+                await session.refresh(vision)
+
+                assert task.actual_effort_self == 0
+                assert task.actual_effort_total == 0
+                assert vision.experience_points == 0
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+def test_task_delete_syncs_vision_experience() -> None:
+    async def scenario() -> None:
+        engine, session_factory = await _create_sqlite_session_factory()
+        try:
+            async with session_factory() as session:
+                vision = Vision(name="Build focus", status="active")
+                session.add(vision)
+                await session.flush()
+                task = Task(
+                    vision_id=vision.id,
+                    content="Deep work",
+                    status="todo",
+                    priority=0,
+                    display_order=0,
+                    actual_effort_self=120,
+                    actual_effort_total=120,
+                )
+                session.add(task)
+                await session.flush()
+
+                await visions.sync_vision_experience_for_vision_ids(
+                    session,
+                    vision_ids=[vision.id],
+                )
+                await session.refresh(vision)
+                assert vision.experience_points == 120
+                assert vision.stage == 1
+
+                await task_mutations.delete_task(session, task_id=task.id)
+                await session.refresh(vision)
+
+                assert vision.experience_points == 0
+                assert vision.stage == 0
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
 
 
 def test_create_event_normalizes_offset_datetimes_to_utc(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1160,6 +1261,12 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
         "recompute_timelog_stats_groupby_area_after_change",
         recompute_timelog_stats,
     )
+    sync_vision_experience = AsyncMock()
+    monkeypatch.setattr(
+        timelogs,
+        "sync_vision_experience_for_task_ids",
+        sync_vision_experience,
+    )
 
     updated_timelog = asyncio.run(
         timelogs.update_timelog(
@@ -1182,6 +1289,10 @@ def test_update_timelog_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatc
     assert updated_timelog.notes is None
     assert updated_timelog.area_id is None
     assert updated_timelog.task_id is None
+    sync_vision_experience.assert_awaited_once_with(
+        cast(Any, session),
+        task_ids=[UUID("22222222-2222-2222-2222-222222222222")],
+    )
     recompute_task_effort.assert_awaited_once_with(
         cast(Any, session),
         old_task_id=UUID("22222222-2222-2222-2222-222222222222"),
@@ -1357,7 +1468,13 @@ def test_batch_timelog_dependent_recompute_deduplicates_affected_tasks(
     timestamp = utc_datetime(2026, 4, 9, 12, 0)
     session = SimpleNamespace(flush=AsyncMock())
     recompute_task = AsyncMock()
+    sync_vision_experience = AsyncMock()
     monkeypatch.setattr(timelogs, "recompute_totals_upwards", recompute_task)
+    monkeypatch.setattr(
+        timelogs,
+        "sync_vision_experience_for_task_ids",
+        sync_vision_experience,
+    )
 
     previous = timelogs._TimelogDependencySnapshot(
         task_id=None,
@@ -1383,3 +1500,4 @@ def test_batch_timelog_dependent_recompute_deduplicates_affected_tasks(
     )
 
     recompute_task.assert_awaited_once_with(cast(Any, session), task_id)
+    sync_vision_experience.assert_awaited_once_with(cast(Any, session), task_ids=[task_id])

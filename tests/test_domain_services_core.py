@@ -449,6 +449,8 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(visions, "load_model_by_id", fake_load_vision)
     monkeypatch.setattr(visions, "_build_vision_view", _build_fake_vision_view)
+    sync_experience = AsyncMock()
+    monkeypatch.setattr(visions, "sync_vision_experience_for_vision_ids", sync_experience)
 
     updated_vision = asyncio.run(
         visions.update_vision(
@@ -463,6 +465,10 @@ def test_update_vision_can_clear_optional_fields(monkeypatch: pytest.MonkeyPatch
     assert updated_vision.description is None
     assert updated_vision.area_id is None
     assert updated_vision.experience_rate_per_hour is None
+    sync_experience.assert_awaited_once_with(
+        cast(Any, session),
+        vision_ids=[UUID("44444444-4444-4444-4444-444444444444")],
+    )
     session.flush.assert_awaited_once()
     session.commit.assert_not_called()
 
@@ -585,7 +591,7 @@ def test_sync_vision_experience_uses_root_task_effort(
         )
     )
 
-    assert synced.experience_rate_per_hour == 120
+    assert synced.experience_rate_per_hour is None
     assert synced.experience_points == 480
     assert synced.stage == 3
     session.flush.assert_awaited_once()
