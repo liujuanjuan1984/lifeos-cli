@@ -29,6 +29,7 @@ from lifeos_cli.db.services.task_support import (
     validate_task_status,
     validate_task_status_change,
 )
+from lifeos_cli.db.services.visions import sync_vision_experience_for_vision_ids
 
 
 @dataclass(frozen=True)
@@ -161,7 +162,9 @@ async def move_task(
     target_parent_task_id = (
         cast(UUID | None, new_parent_task_id) if parent_change_requested else task.parent_task_id
     )
-    if new_vision_id is not None and new_vision_id != old_vision_id:
+    parent_changed = parent_change_requested and target_parent_task_id != old_parent_task_id
+    vision_changed = target_vision_id != old_vision_id
+    if new_vision_id is not None and vision_changed:
         await ensure_vision_exists(session, new_vision_id)
 
     if target_parent_task_id == task.id:
@@ -178,7 +181,7 @@ async def move_task(
     if new_display_order is not None:
         task.display_order = new_display_order
     updated_descendants: tuple[Task, ...] = ()
-    if target_vision_id != old_vision_id:
+    if vision_changed:
         task.vision_id = target_vision_id
         updated_descendants = await _update_descendant_visions(
             session,
@@ -198,6 +201,11 @@ async def move_task(
     ]
     for recompute_root_id in deduplicate_preserving_order(recompute_roots):
         await recompute_totals_upwards(session, recompute_root_id)
+    if parent_changed or vision_changed:
+        await sync_vision_experience_for_vision_ids(
+            session,
+            vision_ids=deduplicate_preserving_order([old_vision_id, target_vision_id]),
+        )
     await session.flush()
     await session.refresh(task)
     return TaskMoveResult(task=task, updated_descendants=updated_descendants)
@@ -314,6 +322,7 @@ async def update_task(
         if old_parent_task_id is not None:
             await recompute_totals_upwards(session, old_parent_task_id)
         await recompute_totals_upwards(session, task.id)
+        await sync_vision_experience_for_vision_ids(session, vision_ids=[task.vision_id])
     await session.flush()
     await session.refresh(task)
     return await _build_task_view(session, task)
@@ -329,11 +338,13 @@ async def delete_task(session: AsyncSession, *, task_id: UUID) -> None:
     if task is None:
         raise TaskNotFoundError(f"Task {task_id} was not found")
     old_parent_task_id = task.parent_task_id
+    old_vision_id = task.vision_id
     subtree = await load_task_subtree(session, root_task_id=task_id)
     for subtree_task in subtree:
         subtree_task.soft_delete()
     if old_parent_task_id is not None:
         await recompute_totals_upwards(session, old_parent_task_id)
+    await sync_vision_experience_for_vision_ids(session, vision_ids=[old_vision_id])
     await session.flush()
 
 

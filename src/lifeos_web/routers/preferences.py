@@ -16,6 +16,8 @@ from lifeos_cli.config import (
     clear_config_cache,
     get_preferences_settings,
 )
+from lifeos_cli.db import session as db_session
+from lifeos_cli.db.services import visions as vision_services
 
 router = APIRouter(prefix="/preferences", tags=["preferences"])
 
@@ -191,6 +193,13 @@ def _preference_response(key: str) -> dict[str, Any]:
     return {"key": key, "value": value, "meta": meta}
 
 
+async def _sync_config_preference_dependents(key: str) -> None:
+    if key != "visions.experience_rate_per_hour":
+        return
+    async with db_session.session_scope() as session:
+        await vision_services.sync_default_rate_vision_experience(session)
+
+
 @router.get("/{key}")
 async def get_preference(key: str) -> dict[str, Any]:
     """Return local Web preference values."""
@@ -211,6 +220,7 @@ async def set_preference(key: str, payload: PreferenceUpdate) -> dict[str, Any]:
         except ConfigurationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         _set_process_config_override(key, payload.value)
+        await _sync_config_preference_dependents(key)
         response = _preference_response(key)
         if payload.module:
             response["meta"]["module"] = payload.module

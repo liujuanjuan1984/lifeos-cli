@@ -253,17 +253,17 @@ const VisionManager = forwardRef<VisionManagerHandle, VisionManagerProps>(
       [requestDeleteVision],
     );
 
-    // 重新计算愿景时间投入
+    // Recompute effort and derived experience for one vision.
     const handleRecomputeVisionEfforts = useCallback(
       async (vision: Vision) => {
         try {
-          // 调用API重新计算愿景时间投入
+          // The backend also syncs derived vision experience after effort recompute.
           await visionsApi.recomputeEfforts(vision.id);
 
-          // 重新加载愿景数据以显示更新后的时间投入
+          // Reload visions so updated effort-derived experience is visible.
           await loadVisions();
 
-          // 如果当前愿景已展开，也重新加载其任务数据
+          // Reload tasks too when this vision is already expanded.
           if (expandedVisions.has(vision.id)) {
             await loadVisionTasks(vision.id, true);
           }

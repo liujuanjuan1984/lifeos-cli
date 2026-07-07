@@ -13,7 +13,7 @@ export interface Vision {
   status: string;
   stage: number;
   experience_points: number;
-  experience_rate_per_hour: number;
+  experience_rate_per_hour: number | null;
   created_at: string;
   people?: PersonSummary[];
   // Optional aggregated minutes for display (if backend adds later)
@@ -116,6 +116,10 @@ export const visionsApi = {
     return http.post<{ vision_id: UUID; recomputed_roots: UUID[] }>(
       ENDPOINTS.VISIONS.RECOMPUTE_EFFORTS(id),
     );
+  },
+
+  async syncExperience(id: UUID): Promise<Vision> {
+    return http.post<Vision>(ENDPOINTS.VISIONS.SYNC_EXPERIENCE(id));
   },
 
   async bulkUpdateExperienceRates(
