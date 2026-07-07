@@ -95,6 +95,14 @@ Install the optional local Web API and Web UI runtime dependencies when you want
 uv tool install --upgrade "lifeos-cli[web]"
 ```
 
+If you need both Web and PostgreSQL support, install both extras in the same tool command:
+
+```bash
+uv tool install --upgrade "lifeos-cli[web,postgres]"
+```
+
+For an existing `uv tool` installation, each `uv tool install --upgrade` run syncs the requested extras for that tool. Installing only `[postgres]` after `[web]` removes the Web dependencies.
+
 `lifeos-cli` supports SQLite and PostgreSQL.
 
 - SQLite is the low-friction option for local, single-user setups.
@@ -153,6 +161,7 @@ lifeos web serve --static-dir web/dist
 If your configured database URL uses PostgreSQL, install or run with both optional extras:
 
 ```bash
+uv tool install --upgrade "lifeos-cli[web,postgres]"
 uv run --extra web --extra postgres lifeos web serve
 ```
 
