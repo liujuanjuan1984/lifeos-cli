@@ -12,8 +12,6 @@ interface AreaBadgeProps {
   color?: string;
   /** Show the name text; set false to render dot only */
   showLabel?: boolean;
-  /** Backward-compat: when true, show unknown label text; prefer `showLabel` */
-  showUnknownText?: boolean;
   className?: string;
   labelClassName?: string;
   /** Control dot size: sm (2), md (3), lg (4) */
@@ -26,8 +24,7 @@ const AreaBadgeComponent: React.FC<AreaBadgeProps> = ({
   areaMap,
   name,
   color,
-  showLabel,
-  showUnknownText = true,
+  showLabel = true,
   className,
   labelClassName = "text-base",
   size = "md",
@@ -49,11 +46,8 @@ const AreaBadgeComponent: React.FC<AreaBadgeProps> = ({
     name ??
     (typeof areaId === "string"
       ? (areaMap?.get(areaId)?.name ??
-        (isUnknownId ? "未知" : showUnknownText ? "未知领域" : ""))
+        (isUnknownId ? "未知" : "未知领域"))
       : "");
-
-  const shouldShowLabel =
-    typeof showLabel === "boolean" ? showLabel : showUnknownText;
 
   return (
     <div
@@ -66,7 +60,7 @@ const AreaBadgeComponent: React.FC<AreaBadgeProps> = ({
         style={{ backgroundColor: resolvedColor }}
         aria-label={ariaLabel || resolvedName || "area"}
       />
-      {shouldShowLabel ? (
+      {showLabel ? (
         <span
           className={`${labelClassName} text-base-content truncate max-w-[120px]`}
         >
@@ -85,7 +79,6 @@ const AreaBadge = React.memo(
     prev.name === next.name &&
     prev.color === next.color &&
     prev.showLabel === next.showLabel &&
-    prev.showUnknownText === next.showUnknownText &&
     prev.className === next.className &&
     prev.labelClassName === next.labelClassName &&
     prev.size === next.size &&

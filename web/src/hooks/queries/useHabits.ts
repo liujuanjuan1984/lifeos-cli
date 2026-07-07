@@ -11,7 +11,7 @@ import { habitsKeys } from "@/services/api/queryKeys";
 import type { UUID } from "@/types/primitive";
 import {
   invalidateHabitActions,
-  invalidateHabitActionsByDate,
+  invalidateHabitActionWindows,
   invalidateHabitStats,
   invalidateHabitsLists,
   removeHabitDetailCache,
@@ -94,7 +94,7 @@ export function useHabits(filters: UseHabitsFilters = {}): UseHabitsReturn {
       setHabitDetailCache(queryClient, created);
       await Promise.all([
         invalidateHabitsLists(queryClient),
-        invalidateHabitActionsByDate(queryClient),
+        invalidateHabitActionWindows(queryClient),
       ]);
     },
     onError: (err: Error) => {
@@ -112,7 +112,7 @@ export function useHabits(filters: UseHabitsFilters = {}): UseHabitsReturn {
         invalidateHabitsLists(queryClient),
         invalidateHabitStats(queryClient, updated.id),
         invalidateHabitActions(queryClient, updated.id),
-        invalidateHabitActionsByDate(queryClient),
+        invalidateHabitActionWindows(queryClient),
       ]);
     },
     onError: (err: Error) => {
@@ -130,7 +130,7 @@ export function useHabits(filters: UseHabitsFilters = {}): UseHabitsReturn {
         invalidateHabitsLists(queryClient),
         invalidateHabitStats(queryClient, habitId),
         invalidateHabitActions(queryClient, habitId),
-        invalidateHabitActionsByDate(queryClient),
+        invalidateHabitActionWindows(queryClient),
       ]);
     },
     onError: (err: Error) => {
@@ -151,7 +151,7 @@ export function useHabits(filters: UseHabitsFilters = {}): UseHabitsReturn {
     }) => habitsApi.updateAction(habitId, actionId, actionUpdate),
     onSuccess: (_, { habitId }) => {
       void invalidateHabitActions(queryClient, habitId);
-      void invalidateHabitActionsByDate(queryClient);
+      void invalidateHabitActionWindows(queryClient);
       void invalidateHabitStats(queryClient, habitId);
     },
     onError: (err: Error) => {

@@ -1,5 +1,5 @@
 import type { CalendarAdapter } from "./CalendarAdapter";
-import type { CalendarSystem } from "./CalendarAdapterFactory";
+import type { CalendarSystem } from "./createCalendarAdapter";
 
 export function getFullCalendarFirstDay(
   calendarSystem: CalendarSystem,

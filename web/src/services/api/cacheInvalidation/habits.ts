@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { habitsKeys } from "@/services/api/queryKeys";
 import {
-  isHabitsActionsByDateQuery,
+  isHabitActionWindowQuery,
   isHabitsActionsQuery,
   isHabitsListQuery,
   type QueryLike,
@@ -37,9 +37,9 @@ export const invalidateHabitActions = (queryClient: QueryClient, id: UUID) =>
     },
   });
 
-export const invalidateHabitActionsByDate = (queryClient: QueryClient) =>
+export const invalidateHabitActionWindows = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
-    predicate: (query) => isHabitsActionsByDateQuery(query as QueryLike),
+    predicate: (query) => isHabitActionWindowQuery(query as QueryLike),
   });
 
 export const setHabitDetailCache = (queryClient: QueryClient, habit: Habit) => {

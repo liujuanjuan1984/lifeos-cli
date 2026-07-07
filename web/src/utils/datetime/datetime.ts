@@ -401,10 +401,6 @@ export function addDays(date: Date, days: number): Date {
   return d;
 }
 
-export function subDays(date: Date, days: number): Date {
-  return addDays(date, -days);
-}
-
 export function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
   const day = d.getDate();

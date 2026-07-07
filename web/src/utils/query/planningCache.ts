@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { habitsKeys, tasksKeys } from "@/services/api/queryKeys";
+import { invalidateHabitActionWindows } from "@/services/api/cacheInvalidation/habits";
+import { tasksKeys } from "@/services/api/queryKeys";
 import type { TaskFieldsMode } from "@/services/api/tasks";
 
 const PLANNING_TASK_LIST_LIMIT = 100;
@@ -37,32 +38,10 @@ const normalizePlanningSnapshot = (
   };
 };
 
-interface InvalidatePlanningOptions {
-  /**
-   * 是否同时失效与每日习惯相关的缓存。默认 true。
-   */
-  includeHabitActions?: boolean;
-  /**
-   * 需要额外强制失效的日期（即使对应 snapshot 不是 day）。
-   */
-  extraHabitDates?: string[];
-  /**
-   * planning 列表查询使用的 size，默认与 usePlanningTasks 对齐。
-   */
-  limit?: number;
-}
-
 export const invalidatePlanningSnapshots = async (
   queryClient: QueryClient,
   snapshots: Array<PlanningSnapshot | null | undefined>,
-  options: InvalidatePlanningOptions = {},
 ): Promise<void> => {
-  const size = options.limit ?? PLANNING_TASK_LIST_LIMIT;
-  const includeHabitActions =
-    options.includeHabitActions === undefined
-      ? true
-      : options.includeHabitActions;
-
   const normalizedSnapshots = snapshots
     .map((snapshot) => normalizePlanningSnapshot(snapshot))
     .filter(
@@ -70,7 +49,7 @@ export const invalidatePlanningSnapshots = async (
         snapshot !== null && snapshot !== undefined,
     );
 
-  if (normalizedSnapshots.length === 0 && !options.extraHabitDates?.length) {
+  if (normalizedSnapshots.length === 0) {
     return;
   }
 
@@ -90,31 +69,17 @@ export const invalidatePlanningSnapshots = async (
           planning_cycle_type: snapshot.planning_cycle_type,
           planning_cycle_start_date: snapshot.planning_cycle_start_date,
           fields: fieldsMode,
-          size,
+          size: PLANNING_TASK_LIST_LIMIT,
         }),
       }),
     ),
   );
 
-  let habitDates: string[] = options.extraHabitDates || [];
-  if (includeHabitActions) {
-    habitDates = [
-      ...habitDates,
-      ...dedupedSnapshots
-        .filter((snapshot) => snapshot.planning_cycle_type === "day")
-        .map((snapshot) => snapshot.planning_cycle_start_date),
-    ];
-  }
-
-  const dedupedHabitDates = Array.from(new Set(habitDates)).filter(
-    (date) => typeof date === "string" && date.length > 0,
-  );
-
-  const habitInvalidations = dedupedHabitDates.map((date) =>
-    queryClient.invalidateQueries({
-      queryKey: habitsKeys.actionsByDate(date),
-    }),
-  );
+  const habitInvalidations = dedupedSnapshots.some(
+    (snapshot) => snapshot.planning_cycle_type === "day",
+  )
+    ? [invalidateHabitActionWindows(queryClient)]
+    : [];
 
   await Promise.all([...planningInvalidations, ...habitInvalidations]);
 };

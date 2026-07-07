@@ -66,8 +66,6 @@ export const ENDPOINTS = {
     BY_ID: (id: string) => `${API_V1}/habits/${id}`,
     OVERVIEWS: `${API_V1}/habits/overviews`,
     ACTIONS_IN_RANGE: `${API_V1}/habits/actions`,
-    ACTIONS_BY_DATE: (date: string) =>
-      `${API_V1}/habits/actions/by-date/${date}`,
     OVERVIEW_BY_ID: (id: string) => `${API_V1}/habits/${id}/overview`,
     ACTIONS: (habitId: string) => `${API_V1}/habits/${habitId}/actions`,
     ACTION_BY_ID: (habitId: string, actionId: string) =>

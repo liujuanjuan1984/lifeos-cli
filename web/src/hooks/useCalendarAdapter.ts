@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { usePreferenceWithBootstrap } from "./queries/usePreferenceWithBootstrap";
 import {
-  CalendarAdapterFactory,
   DEFAULT_SEVEN_YEAR_ANCHOR_DATE,
+  createCalendarAdapter,
   isLocalDateString,
   parseLocalDateString,
 } from "@/utils/calendar";
@@ -56,7 +56,7 @@ export function useCalendarAdapter(): CalendarAdapterState {
     : DEFAULT_SEVEN_YEAR_ANCHOR_DATE;
 
   const adapter = useMemo(() => {
-    return CalendarAdapterFactory.create(
+    return createCalendarAdapter(
       calendarSystem,
       firstDayOfWeek,
       sevenYearAnchorDate,

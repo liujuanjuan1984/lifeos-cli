@@ -10,9 +10,9 @@ export {
   parseLocalDateString,
 } from "./CalendarAdapter";
 export {
-  CalendarAdapterFactory,
+  createCalendarAdapter,
   type CalendarSystem,
-} from "./CalendarAdapterFactory";
+} from "./createCalendarAdapter";
 export {
   getFullCalendarFirstDay,
 } from "./fullCalendar";

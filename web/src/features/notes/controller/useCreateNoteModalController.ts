@@ -21,7 +21,7 @@ import {
 } from "@/services/api/cacheInvalidation/notes";
 import {
   invalidateHabitActions,
-  invalidateHabitActionsByDate,
+  invalidateHabitActionWindows,
 } from "@/services/api/cacheInvalidation/habits";
 import {
   isTimelogsAdvancedSearchQuery,
@@ -161,7 +161,7 @@ export function useCreateNoteModalController({
         habitIds.forEach((habitId) => {
           tasks.push(invalidateHabitActions(queryClient, habitId));
         });
-        tasks.push(invalidateHabitActionsByDate(queryClient));
+        tasks.push(invalidateHabitActionWindows(queryClient));
       }
 
       await Promise.all(tasks);
