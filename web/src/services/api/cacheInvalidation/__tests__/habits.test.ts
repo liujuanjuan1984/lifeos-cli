@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   invalidateHabitActions,
-  invalidateHabitActionsByDate,
+  invalidateHabitActionWindows,
 } from "@/services/api/cacheInvalidation/habits";
 import { habitsKeys } from "@/services/api/queryKeys";
 import type { QueryLike } from "@/services/api/queryPredicates";
@@ -33,8 +33,6 @@ describe("habit cache invalidation helpers", () => {
     expect(
       predicate({ queryKey: habitsKeys.actions("habit-2", { page: 1 }) }),
     ).toBe(false);
-    expect(predicate({ queryKey: habitsKeys.actionsByDate("2026-07-04") }))
-      .toBe(false);
     expect(
       predicate({
         queryKey: habitsKeys.actionsInRange({
@@ -47,15 +45,13 @@ describe("habit cache invalidation helpers", () => {
   });
 
   it("invalidates habit actions grouped by planning date windows", () => {
-    invalidateHabitActionsByDate(queryClient);
+    invalidateHabitActionWindows(queryClient);
 
     expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
     const [{ predicate }] = invalidateQueriesMock.mock.calls[0] as [
       { predicate: (query: QueryLike) => boolean },
     ];
 
-    expect(predicate({ queryKey: habitsKeys.actionsByDate("2026-07-04") }))
-      .toBe(true);
     expect(
       predicate({
         queryKey: habitsKeys.actionsInRange({

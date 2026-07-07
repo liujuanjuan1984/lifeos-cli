@@ -121,13 +121,12 @@ export const isHabitsActionsQuery = (query: QueryLike): boolean => {
   );
 };
 
-export const isHabitsActionsByDateQuery = (query: QueryLike): boolean => {
+export const isHabitActionWindowQuery = (query: QueryLike): boolean => {
   if (!Array.isArray(query.queryKey)) return false;
   return (
     query.queryKey.length >= 3 &&
     query.queryKey[0] === "habits" &&
-    (query.queryKey[1] === "actions-by-date" ||
-      query.queryKey[1] === "actions-in-range")
+    query.queryKey[1] === "actions-in-range"
   );
 };
 

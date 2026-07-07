@@ -181,8 +181,6 @@ export const habitsKeys = {
   lists: () => [...habitsKeys.all, "list"] as const,
   list: (filters: { statusFilter?: string }) =>
     [...habitsKeys.lists(), filters] as const,
-  actionsByDate: (date: string) =>
-    [...habitsKeys.all, "actions-by-date", date] as const,
   actionsInRange: (filters: {
     startDate: string;
     endDate: string;

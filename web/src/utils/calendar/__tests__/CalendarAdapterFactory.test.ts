@@ -17,19 +17,6 @@ describe("CalendarAdapterFactory", () => {
     expect(adapter).toBeInstanceOf(MayanCalendarAdapter);
   });
 
-  it("exposes supported systems list", () => {
-    expect(CalendarAdapterFactory.getSupportedSystems()).toEqual([
-      "gregorian",
-      "mayan_13_moon",
-    ]);
-  });
-
-  it("asserts support for known calendar systems", () => {
-    expect(CalendarAdapterFactory.isSupported("gregorian")).toBe(true);
-    expect(CalendarAdapterFactory.isSupported("mayan_13_moon")).toBe(true);
-    expect(CalendarAdapterFactory.isSupported("unknown" as never)).toBe(false);
-  });
-
   it("throws for unsupported calendar systems", () => {
     expect(() =>
       CalendarAdapterFactory.create("martian" as never, 1),

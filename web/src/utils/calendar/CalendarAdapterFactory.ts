@@ -31,21 +31,4 @@ export class CalendarAdapterFactory {
         throw new Error(`Unsupported calendar system: ${system}`);
     }
   }
-
-  /**
-   * Get all supported calendar systems
-   * @returns Array of supported calendar system names
-   */
-  static getSupportedSystems(): CalendarSystem[] {
-    return ["gregorian", "mayan_13_moon"];
-  }
-
-  /**
-   * Check if a calendar system is supported
-   * @param system - The calendar system to check
-   * @returns True if supported, false otherwise
-   */
-  static isSupported(system: string): system is CalendarSystem {
-    return this.getSupportedSystems().includes(system as CalendarSystem);
-  }
 }

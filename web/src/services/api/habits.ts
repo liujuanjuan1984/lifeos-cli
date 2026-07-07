@@ -101,10 +101,6 @@ interface HabitActionListMeta {
   days_after?: number | null;
 }
 
-interface HabitActionByDateListMeta {
-  action_date?: string | null;
-}
-
 interface HabitActionRangeListMeta {
   start_date?: string | null;
   end_date?: string | null;
@@ -127,11 +123,6 @@ export type HabitActionListResponse = ListResponse<
 export interface HabitActionWithHabit extends HabitAction {
   habit: HabitActionHabitSummary;
 }
-
-export type HabitActionByDateListResponse = ListResponse<
-  HabitActionWithHabit,
-  HabitActionByDateListMeta
->;
 
 export type HabitActionRangeListResponse = ListResponse<
   HabitActionWithHabit,
@@ -172,12 +163,6 @@ export const habitsApi = {
       page: params?.page,
       size: params?.size,
     });
-  },
-
-  async getActionsByDate(date: string): Promise<HabitActionByDateListResponse> {
-    return http.get<HabitActionByDateListResponse>(
-      ENDPOINTS.HABITS.ACTIONS_BY_DATE(date),
-    );
   },
 
   async getActionsInRange(params: {
