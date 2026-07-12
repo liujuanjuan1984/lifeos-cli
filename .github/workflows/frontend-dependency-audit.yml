@@ -113,7 +113,7 @@ jobs:
         if: steps.fix.outputs.changes_detected == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          title: "chore(web): apply npm audit fix updates (#133)"
+          title: "chore(web): apply npm audit fix updates"
           body: |
             ## 变更说明
             本 PR 由前端依赖审计工作流自动发起，用于应用非强制的 `npm audit fix` 结果。
@@ -127,11 +127,9 @@ jobs:
             - 本 PR 仅包含 `npm audit fix` 自动可处理的前端依赖清单和锁文件变更
             - 若审计结果仍存在未修复问题，需要人工评估并升级依赖
 
-            ## 关联
-            - Related #133
           branch: "chore/web-npm-audit-fix"
           base: main
-          commit-message: "chore(web): apply npm audit fix updates (#133)"
+          commit-message: "chore(web): apply npm audit fix updates"
           delete-branch: true
           draft: true
           add-paths: |
