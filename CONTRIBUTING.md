@@ -70,10 +70,10 @@ bash ./scripts/web_dependency_health.sh
 
 Dependency maintenance policy:
 
-- `.github/dependabot.yml` opens separate monthly version-update PRs for the root `uv` backend workspace and the `web/` npm frontend workspace.
+- `.github/dependabot.yml` checks the root `uv` backend workspace and the `web/` npm frontend workspace weekly.
 - Backend dependency updates use the `backend` and `dependencies` labels.
 - Frontend dependency updates use the `frontend` and `dependencies` labels, with runtime and tooling dependency groups kept separate inside the npm workspace.
-- Routine Dependabot version updates allow only semver minor and patch updates for both workspaces. Major version migrations are explicit tasks with focused validation coverage.
+- Routine Dependabot version updates allow only semver minor updates for both workspaces. Patch updates are intentionally excluded from routine PRs, and major version migrations are explicit tasks with focused validation coverage.
 - Dependabot security updates remain eligible independently of the routine version-update policy; frontend security remediation is also checked weekly by `.github/workflows/frontend-dependency-audit.yml`.
 - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for Python outdated packages and dependency-related health checks.
 - `bash ./scripts/web_dependency_health.sh` remains the explicit maintainer audit flow for frontend outdated packages and dependency-related health checks.
