@@ -8,12 +8,8 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifeos_cli.db.models.association import Association
-from lifeos_cli.db.models.note import Note
-from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.services import tasks as task_services
 from lifeos_web.deps import get_db_session
 from lifeos_web.schemas import (
@@ -46,54 +42,6 @@ TASK_BASIC_FIELDS = (
 )
 
 
-def _collect_task_tree_ids(tasks: list[Any]) -> list[UUID]:
-    task_ids: list[UUID] = []
-
-    def visit(task: Any) -> None:
-        task_ids.append(task.id)
-        for subtask in getattr(task, "subtasks", ()) or ():
-            visit(subtask)
-
-    for task in tasks:
-        visit(task)
-    return task_ids
-
-
-async def _load_task_relation_counts(
-    session: AsyncSession,
-    task_ids: list[UUID],
-) -> tuple[dict[UUID, int], dict[UUID, int]]:
-    unique_task_ids = list(dict.fromkeys(task_ids))
-    if not unique_task_ids:
-        return {}, {}
-
-    note_rows = await session.execute(
-        select(Association.target_id, func.count(Association.id))
-        .join(Note, Note.id == Association.source_id)
-        .where(
-            Association.source_model == "note",
-            Association.target_model == "task",
-            Association.link_type == "relates_to",
-            Association.target_id.in_(unique_task_ids),
-            Note.deleted_at.is_(None),
-        )
-        .group_by(Association.target_id)
-    )
-    timelog_rows = await session.execute(
-        select(Timelog.task_id, func.count(Timelog.id))
-        .where(
-            Timelog.task_id.in_(unique_task_ids),
-            Timelog.deleted_at.is_(None),
-        )
-        .group_by(Timelog.task_id)
-    )
-
-    return (
-        {task_id: count for task_id, count in note_rows.all()},
-        {task_id: count for task_id, count in timelog_rows.all()},
-    )
-
-
 def _page_envelope(
     *,
     items: list[dict[str, object]],
@@ -110,61 +58,44 @@ def _page_envelope(
     )
 
 
-def _task_tree_payload(
-    task: Any,
-    *,
-    notes_count_by_task: dict[UUID, int],
-    timelogs_count_by_task: dict[UUID, int],
-) -> dict[str, object]:
+def _task_tree_payload(task: task_services.TaskTreeReadModel) -> dict[str, object]:
     """Serialize a nested task read model without leaking SQLAlchemy internals."""
+    task_view = task.task
     return {
-        "id": str(task.id),
-        "vision_id": str(task.vision_id),
-        "parent_task_id": str(task.parent_task_id) if task.parent_task_id else None,
-        "content": task.content,
-        "description": task.description,
-        "status": task.status,
-        "priority": task.priority,
-        "display_order": task.display_order,
-        "estimated_effort": task.estimated_effort,
-        "planning_cycle_type": task.planning_cycle_type,
-        "planning_cycle_days": task.planning_cycle_days,
+        "id": str(task_view.id),
+        "vision_id": str(task_view.vision_id),
+        "parent_task_id": str(task_view.parent_task_id) if task_view.parent_task_id else None,
+        "content": task_view.content,
+        "description": task_view.description,
+        "status": task_view.status,
+        "priority": task_view.priority,
+        "display_order": task_view.display_order,
+        "estimated_effort": task_view.estimated_effort,
+        "planning_cycle_type": task_view.planning_cycle_type,
+        "planning_cycle_days": task_view.planning_cycle_days,
         "planning_cycle_start_date": (
-            task.planning_cycle_start_date.isoformat() if task.planning_cycle_start_date else None
+            task_view.planning_cycle_start_date.isoformat()
+            if task_view.planning_cycle_start_date
+            else None
         ),
-        "actual_effort_self": task.actual_effort_self,
-        "actual_effort_total": task.actual_effort_total,
-        "notes_count": notes_count_by_task.get(task.id, 0),
-        "timelogs_count": timelogs_count_by_task.get(task.id, 0),
-        "created_at": task.created_at.isoformat(),
-        "updated_at": task.updated_at.isoformat(),
-        "people": to_jsonable(task.people),
-        "subtasks": [
-            _task_tree_payload(
-                subtask,
-                notes_count_by_task=notes_count_by_task,
-                timelogs_count_by_task=timelogs_count_by_task,
-            )
-            for subtask in task.subtasks
-        ],
-        "completion_percentage": task.completion_percentage,
-        "depth": task.depth,
+        "actual_effort_self": task_view.actual_effort_self,
+        "actual_effort_total": task_view.actual_effort_total,
+        "notes_count": task.notes_count,
+        "timelogs_count": task.timelogs_count,
+        "created_at": task_view.created_at.isoformat(),
+        "updated_at": task_view.updated_at.isoformat(),
+        "people": to_jsonable(task_view.people),
+        "subtasks": [_task_tree_payload(subtask) for subtask in task.subtasks],
+        "completion_percentage": task_view.completion_percentage,
+        "depth": task_view.depth,
     }
 
 
-def _task_list_payload(
-    task: object,
-    *,
-    fields: str,
-    notes_count_by_task: dict[UUID, int] | None = None,
-    timelogs_count_by_task: dict[UUID, int] | None = None,
-) -> dict[str, object]:
-    payload = to_jsonable_dict(task)
+def _task_list_payload(task: task_services.TaskReadModel, *, fields: str) -> dict[str, object]:
+    payload = to_jsonable_dict(task.task)
     payload.pop("deleted_at", None)
-    task_id = getattr(task, "id", None)
-    if isinstance(task_id, UUID):
-        payload["notes_count"] = (notes_count_by_task or {}).get(task_id, 0)
-        payload["timelogs_count"] = (timelogs_count_by_task or {}).get(task_id, 0)
+    payload["notes_count"] = task.notes_count
+    payload["timelogs_count"] = task.timelogs_count
     if fields == "basic":
         return {field: payload.get(field) for field in TASK_BASIC_FIELDS}
     return payload
@@ -191,7 +122,7 @@ async def list_tasks(
     if fields not in TASK_LIST_FIELD_MODES:
         raise HTTPException(status_code=400, detail=f"Unsupported task fields mode: {fields}")
     try:
-        rows = await task_services.list_tasks(
+        result = await task_services.list_task_read_models(
             session,
             vision_id=vision_id,
             vision_in=vision_in,
@@ -206,38 +137,13 @@ async def list_tasks(
             limit=size,
             offset=(page - 1) * size,
         )
-        total_count = await task_services.count_tasks(
-            session,
-            vision_id=vision_id,
-            vision_in=vision_in,
-            status=status_filter,
-            status_in=status_in,
-            exclude_status=exclude_status,
-            planning_cycle_type=planning_cycle_type,
-            planning_cycle_start_date=planning_cycle_start_date,
-            calendar_system=calendar_system,
-            first_day_of_week=first_day_of_week,
-            query=query,
-        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    notes_count_by_task, timelogs_count_by_task = await _load_task_relation_counts(
-        session,
-        [row.id for row in rows],
-    )
     return _page_envelope(
-        items=[
-            _task_list_payload(
-                row,
-                fields=fields,
-                notes_count_by_task=notes_count_by_task,
-                timelogs_count_by_task=timelogs_count_by_task,
-            )
-            for row in rows
-        ],
+        items=[_task_list_payload(row, fields=fields) for row in result.items],
         page=page,
         size=size,
-        total=total_count,
+        total=result.total,
         meta={
             "vision_id": str(vision_id) if vision_id else None,
             "vision_in": vision_in,
@@ -284,24 +190,15 @@ async def create_task(
 async def get_vision_hierarchy(vision_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load a frontend-compatible task hierarchy for one vision."""
     try:
-        hierarchy = await task_services.get_vision_task_hierarchy(session, vision_id=vision_id)
+        hierarchy = await task_services.get_vision_task_hierarchy_read_model(
+            session,
+            vision_id=vision_id,
+        )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    task_ids = _collect_task_tree_ids(list(hierarchy.root_tasks))
-    notes_count_by_task, timelogs_count_by_task = await _load_task_relation_counts(
-        session,
-        task_ids,
-    )
     return {
         "vision_id": str(hierarchy.vision_id),
-        "root_tasks": [
-            _task_tree_payload(
-                task,
-                notes_count_by_task=notes_count_by_task,
-                timelogs_count_by_task=timelogs_count_by_task,
-            )
-            for task in hierarchy.root_tasks
-        ],
+        "root_tasks": [_task_tree_payload(task) for task in hierarchy.root_tasks],
     }
 
 
@@ -318,19 +215,10 @@ async def reorder_tasks(payload: TaskReorderRequest, session: SessionDep) -> Non
 @router.get("/{task_id}")
 async def get_task(task_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load one task."""
-    task = await task_services.get_task(session, task_id=task_id)
+    task = await task_services.get_task_read_model(session, task_id=task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} was not found")
-    notes_count_by_task, timelogs_count_by_task = await _load_task_relation_counts(
-        session,
-        [task.id],
-    )
-    return _task_list_payload(
-        task,
-        fields="full",
-        notes_count_by_task=notes_count_by_task,
-        timelogs_count_by_task=timelogs_count_by_task,
-    )
+    return _task_list_payload(task, fields="full")
 
 
 @router.put("/{task_id}")
@@ -410,19 +298,10 @@ async def update_task_status(
 @router.get("/{task_id}/with-subtasks")
 async def get_task_with_subtasks(task_id: UUID, session: SessionDep) -> dict[str, object]:
     """Load one task with nested subtasks."""
-    task = await task_services.get_task_with_subtasks(session, task_id=task_id)
+    task = await task_services.get_task_with_subtasks_read_model(session, task_id=task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} was not found")
-    task_ids = _collect_task_tree_ids([task])
-    notes_count_by_task, timelogs_count_by_task = await _load_task_relation_counts(
-        session,
-        task_ids,
-    )
-    return _task_tree_payload(
-        task,
-        notes_count_by_task=notes_count_by_task,
-        timelogs_count_by_task=timelogs_count_by_task,
-    )
+    return _task_tree_payload(task)
 
 
 @router.get("/{task_id}/stats")

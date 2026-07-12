@@ -217,7 +217,7 @@ def test_habit_action_notes_are_stored_as_linked_notes() -> None:
 def test_web_task_relation_counts_include_related_notes() -> None:
     pytest.importorskip("fastapi")
 
-    from lifeos_web.routers.tasks import _load_task_relation_counts
+    from lifeos_cli.db.services.task_queries import load_task_relation_counts
 
     async def run() -> None:
         engine, session_factory = await _create_sqlite_session_factory()
@@ -235,13 +235,12 @@ def test_web_task_relation_counts_include_related_notes() -> None:
                     task_ids=[task.id],
                 )
 
-                note_counts, timelog_counts = await _load_task_relation_counts(
+                relation_counts = await load_task_relation_counts(
                     session,
-                    [task.id],
+                    task_ids=[task.id],
                 )
 
-                assert note_counts == {task.id: 1}
-                assert timelog_counts == {}
+                assert relation_counts == {task.id: (1, 0)}
         finally:
             await engine.dispose()
 

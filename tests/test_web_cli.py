@@ -326,46 +326,48 @@ def test_web_vision_payload_excludes_unconsumed_audit_fields() -> None:
 
 def test_web_task_hierarchy_payload_excludes_deleted_at() -> None:
     pytest.importorskip("fastapi")
+    from lifeos_cli.db.services.task_queries import TaskTreeReadModel
     from lifeos_web.routers.tasks import _task_tree_payload
 
     timestamp = datetime(2026, 6, 1, 13, 0, tzinfo=timezone.utc)
 
     def task_node(task_id: str, *, subtasks: tuple[object, ...] = ()) -> SimpleNamespace:
         return SimpleNamespace(
-            id=UUID(task_id),
-            vision_id=UUID("22222222-2222-2222-2222-222222222222"),
-            parent_task_id=None,
-            content="Audit endpoint payload",
-            description=None,
-            status="todo",
-            priority=1,
-            display_order=1,
-            estimated_effort=None,
-            planning_cycle_type=None,
-            planning_cycle_days=None,
-            planning_cycle_start_date=None,
-            actual_effort_self=0,
-            actual_effort_total=0,
-            created_at=timestamp,
-            updated_at=timestamp,
-            deleted_at=timestamp,
-            people=(),
+            task=SimpleNamespace(
+                id=UUID(task_id),
+                vision_id=UUID("22222222-2222-2222-2222-222222222222"),
+                parent_task_id=None,
+                content="Audit endpoint payload",
+                description=None,
+                status="todo",
+                priority=1,
+                display_order=1,
+                estimated_effort=None,
+                planning_cycle_type=None,
+                planning_cycle_days=None,
+                planning_cycle_start_date=None,
+                actual_effort_self=0,
+                actual_effort_total=0,
+                created_at=timestamp,
+                updated_at=timestamp,
+                deleted_at=timestamp,
+                people=(),
+                completion_percentage=0,
+                depth=0,
+            ),
+            notes_count=2 if task_id.startswith("111") else 0,
+            timelogs_count=1 if task_id.startswith("333") else 0,
             subtasks=subtasks,
-            completion_percentage=0,
-            depth=0,
         )
 
     payload = _task_tree_payload(
-        task_node(
-            "11111111-1111-1111-1111-111111111111",
-            subtasks=(task_node("33333333-3333-3333-3333-333333333333"),),
+        cast(
+            TaskTreeReadModel,
+            task_node(
+                "11111111-1111-1111-1111-111111111111",
+                subtasks=(task_node("33333333-3333-3333-3333-333333333333"),),
+            ),
         ),
-        notes_count_by_task={
-            UUID("11111111-1111-1111-1111-111111111111"): 2,
-        },
-        timelogs_count_by_task={
-            UUID("33333333-3333-3333-3333-333333333333"): 1,
-        },
     )
 
     assert payload["created_at"] == "2026-06-01T13:00:00+00:00"
@@ -409,28 +411,13 @@ def test_web_task_list_basic_payload_excludes_full_task_fields(
         people=(PersonSummaryView(id=UUID("33333333-3333-3333-3333-333333333333"), name="A"),),
     )
 
-    async def fake_list_tasks(_session: object, **_kwargs: object) -> list[TaskView]:
-        return [task]
-
-    async def fake_count_tasks(_session: object, **_kwargs: object) -> int:
-        return 1
-
-    async def fake_load_task_relation_counts(
-        _session: object,
-        _task_ids: list[UUID],
-    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
-        return (
-            {UUID("11111111-1111-1111-1111-111111111111"): 4},
-            {UUID("11111111-1111-1111-1111-111111111111"): 5},
+    async def fake_list_task_read_models(_session: object, **_kwargs: object) -> object:
+        return SimpleNamespace(
+            items=(SimpleNamespace(task=task, notes_count=4, timelogs_count=5),),
+            total=1,
         )
 
-    monkeypatch.setattr(tasks.task_services, "list_tasks", fake_list_tasks)
-    monkeypatch.setattr(tasks.task_services, "count_tasks", fake_count_tasks)
-    monkeypatch.setattr(
-        tasks,
-        "_load_task_relation_counts",
-        fake_load_task_relation_counts,
-    )
+    monkeypatch.setattr(tasks.task_services, "list_task_read_models", fake_list_task_read_models)
 
     response = asyncio.run(
         tasks.list_tasks(
@@ -579,27 +566,30 @@ def test_web_person_payload_preserves_tag_categories() -> None:
 
 def test_web_person_timelog_activity_payload_exposes_timeline_fields() -> None:
     pytest.importorskip("fastapi")
-    from lifeos_web.routers.persons import _activity_payload, _timelog_total_minutes
+    from lifeos_cli.db.services.person_activity_queries import (
+        PersonActivityItem,
+        _timelog_total_minutes,
+    )
+    from lifeos_web.routers.persons import _activity_payload
 
     timestamp = datetime(2026, 7, 2, 9, 0, tzinfo=timezone.utc)
-    payload = _activity_payload(
-        entity_id=UUID("11111111-1111-1111-1111-111111111111"),
+    item = PersonActivityItem(
+        id=UUID("11111111-1111-1111-1111-111111111111"),
         activity_type="timelog",
         title="Deep work",
         description=None,
         activity_date=timestamp,
-        extra={
-            "start_time": "2026-07-02T09:00:00+00:00",
-            "end_time": "2026-07-02T09:30:00+00:00",
-            "area_id": "22222222-2222-2222-2222-222222222222",
-        },
+        start_time=timestamp,
+        end_time=datetime(2026, 7, 2, 9, 30, tzinfo=timezone.utc),
+        area_id=UUID("22222222-2222-2222-2222-222222222222"),
     )
+    payload = _activity_payload(item)
 
     assert payload["status"] is None
     assert payload["start_time"] == "2026-07-02T09:00:00+00:00"
     assert payload["end_time"] == "2026-07-02T09:30:00+00:00"
     assert payload["area_id"] == "22222222-2222-2222-2222-222222222222"
-    assert _timelog_total_minutes([payload]) == 30
+    assert _timelog_total_minutes([item]) == 30
 
 
 def test_web_habit_action_payload_uses_slim_habit_summary(
@@ -860,34 +850,14 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
 
     captured: dict[str, object] = {}
 
-    async def fake_list_tasks(_session: object, **kwargs: object) -> list[object]:
-        captured["list_kwargs"] = kwargs
-        return [
-            SimpleNamespace(
-                id=UUID("11111111-1111-1111-1111-111111111111"),
-                vision_id=UUID("22222222-2222-2222-2222-222222222222"),
-                parent_task_id=None,
-                content="Needle task",
-                status="todo",
-            )
-        ]
+    async def fake_list_task_read_models(_session: object, **kwargs: object) -> object:
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(items=(), total=123)
 
-    async def fake_count_tasks(_session: object, **kwargs: object) -> int:
-        captured["count_kwargs"] = kwargs
-        return 123
-
-    async def fake_load_task_relation_counts(
-        _session: object,
-        _task_ids: list[UUID],
-    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
-        return ({}, {})
-
-    monkeypatch.setattr(task_router.task_services, "list_tasks", fake_list_tasks)
-    monkeypatch.setattr(task_router.task_services, "count_tasks", fake_count_tasks)
     monkeypatch.setattr(
-        task_router,
-        "_load_task_relation_counts",
-        fake_load_task_relation_counts,
+        task_router.task_services,
+        "list_task_read_models",
+        fake_list_task_read_models,
     )
 
     response = asyncio.run(
@@ -899,7 +869,7 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         )
     )
 
-    assert captured["list_kwargs"] == {
+    assert captured["kwargs"] == {
         "vision_id": None,
         "vision_in": None,
         "status": None,
@@ -912,18 +882,6 @@ def test_web_tasks_list_uses_count_for_pagination_and_query(
         "query": "Needle",
         "limit": 50,
         "offset": 50,
-    }
-    assert captured["count_kwargs"] == {
-        "vision_id": None,
-        "vision_in": None,
-        "status": None,
-        "status_in": None,
-        "exclude_status": None,
-        "planning_cycle_type": None,
-        "planning_cycle_start_date": None,
-        "calendar_system": None,
-        "first_day_of_week": None,
-        "query": "Needle",
     }
     assert response.pagination.total == 123
     assert response.pagination.pages == 3
@@ -1504,7 +1462,7 @@ def test_web_person_note_activity_payload_avoids_duplicate_note_content(
 ) -> None:
     pytest.importorskip("fastapi")
 
-    from lifeos_web.routers import persons
+    from lifeos_cli.db.services import person_activity_queries
 
     note_id = UUID("11111111-1111-1111-1111-111111111111")
     person_id = UUID("22222222-2222-2222-2222-222222222222")
@@ -1538,18 +1496,18 @@ def test_web_person_note_activity_payload_avoids_duplicate_note_content(
             return FakeResult()
 
     monkeypatch.setattr(
-        persons,
+        person_activity_queries,
         "_load_person_entity_ids",
         fake_load_person_entity_ids,
     )
     monkeypatch.setattr(
-        persons,
+        person_activity_queries,
         "_load_person_note_ids",
         fake_load_person_note_ids,
     )
 
     activities = asyncio.run(
-        persons._load_activity_items(
+        person_activity_queries._load_activity_items(
             cast(AsyncSession, FakeSession()),
             person_id=person_id,
             activity_filter="note",
@@ -1557,14 +1515,13 @@ def test_web_person_note_activity_payload_avoids_duplicate_note_content(
     )
 
     assert activities == [
-        {
-            "id": str(note_id),
-            "type": "note",
-            "title": "Remember the meeting notes",
-            "description": None,
-            "date": timestamp.isoformat(),
-            "status": None,
-        }
+        person_activity_queries.PersonActivityItem(
+            id=note_id,
+            activity_type="note",
+            title="Remember the meeting notes",
+            description=None,
+            activity_date=timestamp,
+        )
     ]
 
 

@@ -15,9 +15,12 @@ from lifeos_cli.application.calendar_adapter import (
     get_calendar_period_range,
 )
 from lifeos_cli.config import ConfigurationError
+from lifeos_cli.db.models.association import Association
+from lifeos_cli.db.models.note import Note
 from lifeos_cli.db.models.person import Person
 from lifeos_cli.db.models.person_association import person_associations
 from lifeos_cli.db.models.task import Task
+from lifeos_cli.db.models.timelog import Timelog
 from lifeos_cli.db.models.vision import Vision
 from lifeos_cli.db.services.entity_people import load_people_for_entities
 from lifeos_cli.db.services.model_utils import load_view_by_id
@@ -81,6 +84,41 @@ class TaskHierarchy:
 
     vision_id: UUID
     root_tasks: tuple[TaskWithSubtasks, ...]
+
+
+@dataclass(frozen=True)
+class TaskReadModel:
+    """Task view enriched with relationship counts for read endpoints."""
+
+    task: TaskView
+    notes_count: int
+    timelogs_count: int
+
+
+@dataclass(frozen=True)
+class TaskTreeReadModel:
+    """Nested task view enriched with relationship counts."""
+
+    task: TaskWithSubtasks
+    notes_count: int
+    timelogs_count: int
+    subtasks: tuple[TaskTreeReadModel, ...]
+
+
+@dataclass(frozen=True)
+class TaskListReadModel:
+    """Paginated task query result with its total count."""
+
+    items: tuple[TaskReadModel, ...]
+    total: int
+
+
+@dataclass(frozen=True)
+class TaskHierarchyReadModel:
+    """Vision task hierarchy enriched with relationship counts."""
+
+    vision_id: UUID
+    root_tasks: tuple[TaskTreeReadModel, ...]
 
 
 def _build_task_tree(
@@ -278,6 +316,76 @@ async def _build_task_views(session: AsyncSession, tasks: list[Task]) -> list[Ta
     return [build_task_view(task, people=people_map.get(task.id, ())) for task in tasks]
 
 
+async def load_task_relation_counts(
+    session: AsyncSession,
+    *,
+    task_ids: list[UUID],
+) -> dict[UUID, tuple[int, int]]:
+    """Load active note and timelog counts for the supplied tasks."""
+    unique_task_ids = list(dict.fromkeys(task_ids))
+    if not unique_task_ids:
+        return {}
+
+    note_rows = await session.execute(
+        select(Association.target_id, func.count(Association.id))
+        .join(Note, Note.id == Association.source_id)
+        .where(
+            Association.source_model == "note",
+            Association.target_model == "task",
+            Association.link_type == "relates_to",
+            Association.target_id.in_(unique_task_ids),
+            Note.deleted_at.is_(None),
+        )
+        .group_by(Association.target_id)
+    )
+    timelog_rows = await session.execute(
+        select(Timelog.task_id, func.count(Timelog.id))
+        .where(
+            Timelog.task_id.in_(unique_task_ids),
+            Timelog.deleted_at.is_(None),
+        )
+        .group_by(Timelog.task_id)
+    )
+    note_counts = {task_id: int(count) for task_id, count in note_rows.all()}
+    timelog_counts = {task_id: int(count) for task_id, count in timelog_rows.all()}
+    return {
+        task_id: (note_counts.get(task_id, 0), timelog_counts.get(task_id, 0))
+        for task_id in unique_task_ids
+    }
+
+
+def _build_task_tree_read_model(
+    task: TaskWithSubtasks,
+    *,
+    relation_counts: dict[UUID, tuple[int, int]],
+) -> TaskTreeReadModel:
+    """Attach relationship counts to a nested task read model."""
+    notes_count, timelogs_count = relation_counts.get(task.id, (0, 0))
+    return TaskTreeReadModel(
+        task=task,
+        notes_count=notes_count,
+        timelogs_count=timelogs_count,
+        subtasks=tuple(
+            _build_task_tree_read_model(subtask, relation_counts=relation_counts)
+            for subtask in task.subtasks
+        ),
+    )
+
+
+def _collect_task_tree_ids(tasks: tuple[TaskWithSubtasks, ...]) -> list[UUID]:
+    """Return task identifiers from a nested task read model."""
+    task_ids: list[UUID] = []
+
+    def visit(task: TaskWithSubtasks) -> None:
+        task_ids.append(task.id)
+        for subtask in task.subtasks:
+            visit(subtask)
+
+    for task in tasks:
+        visit(task)
+    return task_ids
+
+
 async def get_task(
     session: AsyncSession,
     *,
@@ -374,6 +482,99 @@ async def count_tasks(
     return int((await session.execute(stmt)).scalar_one())
 
 
+async def list_task_read_models(
+    session: AsyncSession,
+    *,
+    vision_id: UUID | None = None,
+    vision_in: str | None = None,
+    parent_task_id: UUID | None = None,
+    person_id: UUID | None = None,
+    status: str | None = None,
+    status_in: str | None = None,
+    exclude_status: str | None = None,
+    planning_cycle_type: str | None = None,
+    planning_cycle_start_date: date | None = None,
+    calendar_system: str | None = None,
+    first_day_of_week: int | None = None,
+    content: str | None = None,
+    query: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> TaskListReadModel:
+    """List task views with relationship counts and a matching total."""
+    tasks = await list_tasks(
+        session,
+        vision_id=vision_id,
+        vision_in=vision_in,
+        parent_task_id=parent_task_id,
+        person_id=person_id,
+        status=status,
+        status_in=status_in,
+        exclude_status=exclude_status,
+        planning_cycle_type=planning_cycle_type,
+        planning_cycle_start_date=planning_cycle_start_date,
+        calendar_system=calendar_system,
+        first_day_of_week=first_day_of_week,
+        content=content,
+        query=query,
+        limit=limit,
+        offset=offset,
+    )
+    total = await count_tasks(
+        session,
+        vision_id=vision_id,
+        vision_in=vision_in,
+        parent_task_id=parent_task_id,
+        person_id=person_id,
+        status=status,
+        status_in=status_in,
+        exclude_status=exclude_status,
+        planning_cycle_type=planning_cycle_type,
+        planning_cycle_start_date=planning_cycle_start_date,
+        calendar_system=calendar_system,
+        first_day_of_week=first_day_of_week,
+        content=content,
+        query=query,
+    )
+    relation_counts = (
+        await load_task_relation_counts(
+            session,
+            task_ids=[task.id for task in tasks],
+        )
+        if tasks
+        else {}
+    )
+    return TaskListReadModel(
+        items=tuple(
+            TaskReadModel(
+                task=task,
+                notes_count=relation_counts.get(task.id, (0, 0))[0],
+                timelogs_count=relation_counts.get(task.id, (0, 0))[1],
+            )
+            for task in tasks
+        ),
+        total=total,
+    )
+
+
+async def get_task_read_model(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+) -> TaskReadModel | None:
+    """Load one task view with relationship counts."""
+    task = await get_task(session, task_id=task_id)
+    if task is None:
+        return None
+    relation_counts = await load_task_relation_counts(session, task_ids=[task.id])
+    notes_count, timelogs_count = relation_counts.get(task.id, (0, 0))
+    return TaskReadModel(
+        task=task,
+        notes_count=notes_count,
+        timelogs_count=timelogs_count,
+    )
+
+
 async def get_vision_task_hierarchy(
     session: AsyncSession,
     *,
@@ -397,6 +598,26 @@ async def get_vision_task_hierarchy(
     )
 
 
+async def get_vision_task_hierarchy_read_model(
+    session: AsyncSession,
+    *,
+    vision_id: UUID,
+) -> TaskHierarchyReadModel:
+    """Load a vision task hierarchy with relationship counts."""
+    hierarchy = await get_vision_task_hierarchy(session, vision_id=vision_id)
+    relation_counts = await load_task_relation_counts(
+        session,
+        task_ids=_collect_task_tree_ids(hierarchy.root_tasks),
+    )
+    return TaskHierarchyReadModel(
+        vision_id=hierarchy.vision_id,
+        root_tasks=tuple(
+            _build_task_tree_read_model(task, relation_counts=relation_counts)
+            for task in hierarchy.root_tasks
+        ),
+    )
+
+
 async def get_task_with_subtasks(
     session: AsyncSession,
     *,
@@ -413,6 +634,22 @@ async def get_task_with_subtasks(
     )
     task_tree = _build_task_tree(tasks, people_map=people_map)
     return task_tree[0] if task_tree else None
+
+
+async def get_task_with_subtasks_read_model(
+    session: AsyncSession,
+    *,
+    task_id: UUID,
+) -> TaskTreeReadModel | None:
+    """Load one nested task view with relationship counts."""
+    task = await get_task_with_subtasks(session, task_id=task_id)
+    if task is None:
+        return None
+    relation_counts = await load_task_relation_counts(
+        session,
+        task_ids=_collect_task_tree_ids((task,)),
+    )
+    return _build_task_tree_read_model(task, relation_counts=relation_counts)
 
 
 async def get_task_stats(
