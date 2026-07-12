@@ -80,17 +80,47 @@ def test_dependabot_configuration_keeps_backend_and_frontend_updates_separate() 
 
     uv_entry = entries["uv"]
     assert uv_entry["directory"] == "/"
+    assert uv_entry["schedule"]["interval"] == "monthly"
     assert uv_entry["open-pull-requests-limit"] == 1
+    assert uv_entry["allow"] == [
+        {
+            "dependency-type": "direct",
+            "update-types": [
+                "version-update:semver-minor",
+                "version-update:semver-patch",
+            ],
+        }
+    ]
     assert uv_entry["labels"] == ["backend", "dependencies"]
+    assert uv_entry["groups"]["uv-all-updates"]["applies-to"] == "version-updates"
     assert uv_entry["groups"]["uv-all-updates"]["patterns"] == ["*"]
 
     npm_entry = entries["npm"]
     assert npm_entry["directory"] == "/web"
+    assert npm_entry["schedule"]["interval"] == "monthly"
     assert npm_entry["open-pull-requests-limit"] == 2
+    assert npm_entry["allow"] == [
+        {
+            "dependency-type": "production",
+            "update-types": [
+                "version-update:semver-minor",
+                "version-update:semver-patch",
+            ],
+        },
+        {
+            "dependency-type": "development",
+            "update-types": [
+                "version-update:semver-minor",
+                "version-update:semver-patch",
+            ],
+        },
+    ]
     assert npm_entry["commit-message"]["prefix"] == "deps(web)"
     assert npm_entry["labels"] == ["frontend", "dependencies"]
+    assert npm_entry["groups"]["web-runtime"]["applies-to"] == "version-updates"
     assert npm_entry["groups"]["web-runtime"]["dependency-type"] == "production"
     assert npm_entry["groups"]["web-runtime"]["patterns"] == ["*"]
+    assert npm_entry["groups"]["web-tooling"]["applies-to"] == "version-updates"
     assert npm_entry["groups"]["web-tooling"]["dependency-type"] == "development"
     assert npm_entry["groups"]["web-tooling"]["patterns"] == ["*"]
 
@@ -160,8 +190,9 @@ def test_frontend_dependency_audit_workflow_creates_non_force_fix_prs() -> None:
     assert create_pr_inputs["base"] == "main"
     assert create_pr_inputs["branch"] == "chore/web-npm-audit-fix"
     assert create_pr_inputs["draft"] is True
-    assert create_pr_inputs["title"] == "chore(web): apply npm audit fix updates (#133)"
-    assert create_pr_inputs["commit-message"] == ("chore(web): apply npm audit fix updates (#133)")
+    assert create_pr_inputs["title"] == "chore(web): apply npm audit fix updates"
+    assert create_pr_inputs["commit-message"] == "chore(web): apply npm audit fix updates"
+    assert "#133" not in create_pr_inputs["body"]
     assert create_pr_inputs["add-paths"].splitlines() == [
         "web/package-lock.json",
         "web/package.json",

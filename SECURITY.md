@@ -27,6 +27,8 @@ Preferred disclosure order:
 - Trusted publishing should be configured only for the intended repository and workflow path.
 - Keep `uv.lock`, version metadata, and tag validation logic aligned to reduce release drift.
 
+Routine dependency version updates are intentionally less frequent than vulnerability checks. Dependabot handles monthly minor and patch version updates, while security updates and the weekly frontend audit remain independent of that routine schedule. The frontend audit workflow never uses `npm audit fix --force`.
+
 ## Supported Branches
 
 Security fixes should land on the active `main` branch first.

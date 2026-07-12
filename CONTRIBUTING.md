@@ -70,14 +70,16 @@ bash ./scripts/web_dependency_health.sh
 
 Dependency maintenance policy:
 
-- `.github/dependabot.yml` opens separate weekly version-update PRs for the root `uv` backend workspace and the `web/` npm frontend workspace.
+- `.github/dependabot.yml` opens separate monthly version-update PRs for the root `uv` backend workspace and the `web/` npm frontend workspace.
 - Backend dependency updates use the `backend` and `dependencies` labels.
 - Frontend dependency updates use the `frontend` and `dependencies` labels, with runtime and tooling dependency groups kept separate inside the npm workspace.
-- Frontend Dependabot version-update groups only allow semver minor and patch updates. Semver major version updates for the npm workspace are intentionally ignored by routine automation and should be handled as explicit migration tasks with frontend validation coverage. Security updates continue to rely on GitHub Dependabot security update behavior.
+- Routine Dependabot version updates allow only semver minor and patch updates for both workspaces. Major version migrations are explicit tasks with focused validation coverage.
+- Dependabot security updates remain eligible independently of the routine version-update policy; frontend security remediation is also checked weekly by `.github/workflows/frontend-dependency-audit.yml`.
 - `bash ./scripts/dependency_health.sh` remains the explicit maintainer audit flow for Python outdated packages and dependency-related health checks.
 - `bash ./scripts/web_dependency_health.sh` remains the explicit maintainer audit flow for frontend outdated packages and dependency-related health checks.
 - `bash ./scripts/web_validate.sh` remains the explicit maintainer and CI validation flow for frontend install, build, lint, and tests.
 - `.github/workflows/frontend-dependency-audit.yml` runs a weekly frontend audit and opens a draft PR when non-force `npm audit fix --package-lock-only` produces changes for `web/package-lock.json` or `web/package.json`.
+- The `open-pull-requests-limit` setting limits concurrent Dependabot version-update PRs; it is not a dependency version ceiling.
 
 Static-analysis governance:
 
