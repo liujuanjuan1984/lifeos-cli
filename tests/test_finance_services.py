@@ -14,6 +14,19 @@ from sqlalchemy.ext.asyncio import (
 
 from lifeos_cli.db.base import Base
 from lifeos_cli.db.services import finance
+from lifeos_cli.db.services.finance import assets, lifecycle, rates, snapshots, trees
+
+
+def test_finance_facade_exports_implementation_symbols() -> None:
+    assert "create_finance_asset" in finance.__all__
+    assert "create_finance_tree" in finance.__all__
+    assert "create_finance_rate_snapshot" in finance.__all__
+    assert "create_finance_snapshot" in finance.__all__
+    assert finance.FinanceSnapshotEntryInput is snapshots.FinanceSnapshotEntryInput
+    assert finance.FinanceRateSnapshotEntryInput is rates.FinanceRateSnapshotEntryInput
+    assert finance.update_finance_rate_snapshot is lifecycle.update_finance_rate_snapshot
+    assert finance.create_finance_tree is trees.create_finance_tree
+    assert finance.create_finance_asset is assets.create_finance_asset
 
 
 async def _create_sqlite_session_factory() -> tuple[
